@@ -28,8 +28,10 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 ## Aktueller Stand
 
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben einzeln geprüfte und committete Checklistenpunkte.
-Letzter Implementierungscommit ist `3ad54d0`; anschließend folgt dieser reine Übergabe-/Dokumentationsblock.
-13 eigene Projekte sind angelegt, externe Projekte stehen im logischen Solution-Ordner `src`.
+Phase 2, Punkt 1 ist ebenfalls abgeschlossen: gemeinsame DTOs und Fach-/Host-/Plugin-Verträge sind in
+`WawiCallPro.Interfaces` implementiert; Festlegungen und Grenzen stehen in `Docs/Vertraege.md`.
+13 eigene Produktprojekte und das neue `WawiCallPro.Interfaces.Tests` sind angelegt; externe Projekte stehen
+im logischen Solution-Ordner `src`.
 Die weiteren Solution-Ordner heißen `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
 `debug-build.bat` beziehungsweise `scripts/build-debug.ps1` baut getrennte Varianten mit
@@ -42,11 +44,19 @@ CI ist vorbereitet, aber nicht entfernt ausgeführt. Einige Schwester-Repositori
 `bootstrap.ps1` erhält diese und `-RequireClean` verweigert damit eine irreführende CI-Abnahme.
 Für reproduzierbare CI werden passende veröffentlichte Revisionen und ein eingerichteter Windows-Runner benötigt.
 
+Aktuelle Prüfung zu Phase 2, Punkt 1: je elf Vertragstests für Pro/FinOffice bestanden; beide Hosts in beiden
+Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und diagnostisch gestartet. Abhängigkeiten geprüft.
+Das zentrale Buildskript stoppt inzwischen am Revisionsabgleich für `Quantarix.Pcfk.Core`
+(Manifest `da59daa69ed09f45c3049b019045f52041d2205a`, lokal `13227fe559450f6afc45f1e6191f60f56786c673`).
+Manifest und Schwester-Repositories wurden nicht verändert. Direkte lokale Builds ersetzen hier keinen
+erfolgreichen Bootstrap-/CI-Lauf. Buildprotokolle: `.artifacts/phase2-item1`.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 2, Punkt 1: gemeinsame DTOs und Verträge für Mandanten, Geschäftspartner, Fähigkeiten,
-Telefonie, Historie und Hostdienste entwerfen und implementieren.
+Als Nächstes Phase 2, Punkt 2: Lebenszyklen und Zustandsmodell festlegen sowie UI-Thread und Hintergrunddienste
+trennen. Die neuen Verträge und `Docs/Vertraege.md` berücksichtigen. Der bisherige `CallState` definiert das
+Vokabular; konkrete Übergänge, Ressourcenbesitz und Schutz vor überholten Ereignissen sind noch umzusetzen.
 
 Nach JEDEM einzelnen Phasenpunkt: passende Prüfungen, betroffene Projekte und Hosts explizit mit `-c Debug`
 bauen, Plan aktualisieren und sofort einen eigenen Commit erstellen. Erst danach den nächsten Punkt beginnen.

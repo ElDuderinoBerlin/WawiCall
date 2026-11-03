@@ -364,7 +364,19 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
 
 ### Phase 2 – Verträge, Infrastruktur und Einstellungen ⬜
 
-- [ ] DTOs und Verträge für Mandanten, Geschäftspartner, Fähigkeiten, Telefonie, Historie und Hostdienste entwerfen.
+- [x] DTOs und Verträge für Mandanten, Geschäftspartner, Fähigkeiten, Telefonie, Historie und Hostdienste entwerfen.
+  Nachweis: UI-/adapterunabhängige, unveränderliche Datenmodelle und abbrechbare Dienstverträge in
+  `WawiCallPro.Interfaces`; Quellidentitäten einschließlich Produktlinie, Installation, Mandant, Rolle und
+  Kontaktbesitzer, explizite Fähigkeiten, paginierte Abfragen, historische Momentaufnahmen sowie typisierte
+  Host-/Plugin-Verträge. Festlegungen und Grenzen unter `Docs/Vertraege.md`, in der Solution referenziert und
+  in Rider geöffnet. Je elf MSTest-/Microsoft.Testing.Platform-Vertragstests für Pro und FinOffice bestanden.
+  App und Console jeweils für beide Varianten mit `-c Debug` in regulären Ausgaben ohne Warnungen/Fehler gebaut,
+  vier Diagnosestarts sowie Runtime-/MMS-/Produktlinienprüfungen erfolgreich. Protokolle unter
+  `.artifacts/phase2-item1`. Keine UI-Änderung; keine zusätzliche Renderprüfung erforderlich.
+  Das zentrale Buildskript stoppt aktuell am Bootstrap-Revisionsabgleich von `Quantarix.Pcfk.Core`
+  (erwartet `da59daa69ed09f45c3049b019045f52041d2205a`, lokal `13227fe559450f6afc45f1e6191f60f56786c673`).
+  Die erfolgreichen Builds erfolgten deshalb direkt gegen den vorhandenen lokalen Stand; Manifest und
+  Schwester-Repositories bleiben unverändert. Das ist kein erfolgreicher Bootstrap-/CI-Nachweis.
 - [ ] Lebenszyklen und Zustandsmodell festlegen; UI-Thread und Hintergrunddienste sauber trennen.
 - [ ] App-/Console-Composition-Roots aufbauen; Dienste über DI statt globale Form-/Singleton-Zugriffe verbinden.
 - [ ] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.

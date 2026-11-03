@@ -8,6 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 		Docs\Quantarix-Zuordnung.md = Docs\Quantarix-Zuordnung.md
 		Docs\Build.md = Docs\Build.md
 		Docs\Codex-Uebergabe.md = Docs\Codex-Uebergabe.md
+		Docs\Vertraege.md = Docs\Vertraege.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.App", "WawiCallPro.App\WawiCallPro.App.csproj", "{275DD5FC-D51E-42F4-A103-40AE2808462D}"
@@ -84,6 +85,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{3910C37C
 	ProjectSection(SolutionItems) = preProject
 		Tools\.gitkeep = Tools\.gitkeep
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Interfaces.Tests", "WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj", "{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -383,6 +386,18 @@ Global
 		{D578AED2-A5FF-4EFC-AAD2-82331449C889}.Release|x64.Build.0 = Release|Any CPU
 		{D578AED2-A5FF-4EFC-AAD2-82331449C889}.Release|x86.ActiveCfg = Release|Any CPU
 		{D578AED2-A5FF-4EFC-AAD2-82331449C889}.Release|x86.Build.0 = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|x64.Build.0 = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Debug|x86.Build.0 = Debug|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|x64.ActiveCfg = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|x64.Build.0 = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|x86.ActiveCfg = Release|Any CPU
+		{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

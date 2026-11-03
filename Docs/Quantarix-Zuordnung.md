@@ -26,8 +26,9 @@ bauen und später laden kann. Beide Hosts besitzen ausschließlich bedingte Buil
 und Plugin-Ausführung folgen in Phase 4; eine normale Compile-Abhängigkeit des Hosts auf konkrete Adaptertypen
 wird dadurch vermieden.
 
-`WawiCallPro.Interfaces` trägt bereits `[SharedAssembly]`. Das tatsächliche Laden vor Erzeugung des Managers
-und der zusätzliche WawiCallPro-Hostvertrag sind weiterhin Aufgaben von Phase 4.
+`WawiCallPro.Interfaces` trägt bereits `[SharedAssembly]`. Seit Phase 2, Punkt 1 sind `IWawiCallPlugin` und
+`IWawiCallHostServices` samt Fachverträgen deklariert; Details stehen in `Docs/Vertraege.md`.
+Das tatsächliche Laden vor Erzeugung des Managers und das Konfigurieren der Hostdienste bleiben Aufgaben von Phase 4.
 
 Prüfungen: App und Console für beide Produktlinien in Debug; zugehörige Adapterprojekte und ihre Quantarix-
 Abhängigkeiten werden dabei mitgebaut. Runtime-Graphen und Ausgabedateien der Hosts sowie des passenden Plugins
