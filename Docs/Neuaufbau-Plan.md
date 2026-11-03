@@ -427,7 +427,24 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   `LX_UI_AUDIT_SURFACES=MainForm`. Die bekannte Titelleisten-Aufnahmegrenze bleibt dokumentiert.
   Aufteilung/Versionierung der vollständigen Benutzer-/Mandanten-/Geräte-/Datenbankeinstellungen bleibt
   ausdrücklich Punkt 5. Die bekannte lokale Pcfk-Core-Abweichung und ausstehende CI-Abnahme bleiben bestehen.
-- [ ] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.
+- [x] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.
+  Nachweis: getrennte unveränderliche Bereiche `user`, `companies`, `devices` und `database` neben dem
+  Arbeitsplatz-SIP-Konto in einer gemeinsam atomar gespeicherten Datei. Mandantenvorgaben nutzen den
+  vollständigen `CompanyKey`; Geräte speichern CSCore-/MMDevice-Kennungen statt Listenindizes.
+  Kommunikationsdatenbank-Provider und geschützte Server-Verbindungszeichenfolgen sind separat modelliert.
+  Formatversion 1 mit Hülle `formatVersion`/`settings`; bisheriges unversioniertes SIP-Format einschließlich
+  UTF-8-BOM wird nur im Speicher aufgerüstet. Explizites Speichern übernimmt Kennworthüllen unverändert;
+  unbekannte/neue Versionen und unversionierte neue Felder werden ohne Dateiveränderung abgewiesen.
+  Schreibschutz durch gelesenen Inhaltsstand und exklusive prozessübergreifende Dateisperre: neue Dateien
+  lassen sich ohne Vorversion anlegen, Änderungen benötigen den passenden Snapshot. Veraltete/fremde
+  Bearbeitungsstände und konkurrierende Schreiber überschreiben keine bereits gespeicherten Einstellungen.
+  Je 65 Tests für Pro/FinOffice bestanden, darunter elf neue Versions-/Bereichs-/Konflikttests. Beide Hosts
+  in beiden Varianten mit `-c Debug` ohne Warnungen/Fehler gebaut; 24 isolierte Prozessprüfungen zu fehlendem,
+  bisherigem, aktuellem, neuerem und ungültigem Format samt Ausgabeschutz und unveränderten Dateien bestanden.
+  Runtime-/MMS-/Produktlinien- und Solution-Prüfung erfolgreich. Logs: `.artifacts/phase2-item5`.
+  Keine UI-/Layoutänderung und keine automatische Anwendung der gespeicherten Benutzer-/Gerätevorgaben;
+  keine neue Renderprüfung erforderlich. Anwendung durch UI/Audio sowie echte DB-Provider folgen ihren
+  Fachphasen. Die bekannten Bootstrap-/CI-Grenzen bleiben bestehen.
 - [ ] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren.
 - [ ] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen.
 

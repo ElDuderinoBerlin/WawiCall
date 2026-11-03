@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using WawiCallPro.Utilities.Security;
+using System.Globalization;
+using WawiCallPro.Interfaces.Companies;
 
 namespace WawiCallPro.Utilities.Configuration;
 
@@ -8,8 +10,17 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
     public void Validate(ApplicationOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (options.SipAccount is not { } account) return;
         var issues = ImmutableArray.CreateBuilder<ConfigurationIssue>();
+        if (options.SipAccount is { } account) ValidateSip(account, issues);
+        if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
+        ValidateDevices(options.Devices, issues);
+        ValidateDatabase(options.Database, issues);
+        ValidateCompanies(options, issues);
+        if (issues.Count != 0) throw new ConfigurationException(issues.ToImmutable());
+    }
+
+    private void ValidateSip(SipAccountOptions account, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
         if (string.IsNullOrWhiteSpace(account.Server) || account.Server != account.Server.Trim() ||
             Uri.CheckHostName(account.Server) == UriHostNameType.Unknown)
             issues.Add(new("sipAccount.server", "Ein Hostname oder eine IP-Adresse ohne URI und Zugangsdaten ist erforderlich."));
@@ -35,7 +46,98 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
                 issues.Add(new("sipAccount.password", "Das geschützte Kennwort ist für dieses Benutzerkonto nicht verfügbar oder beschädigt."));
             }
         }
-        if (issues.Count != 0) throw new ConfigurationException(issues.ToImmutable());
+    }
+
+    private static void ValidateDevices(AudioDeviceSettings? devices, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        if (devices is null)
+        {
+            issues.Add(new("devices", "Geräteeinstellungen dürfen nicht null sein."));
+            return;
+        }
+        if (!IsValidDeviceId(devices.CaptureDeviceId) || !IsValidDeviceId(devices.PlaybackDeviceId) || !IsValidDeviceId(devices.RingDeviceId))
+            issues.Add(new("devices", "Gerätekennungen müssen null oder nichtleere Kennungen ohne Steuerzeichen sein."));
+        if (devices.PlaybackVolumePercent is < 0 or > 100)
+            issues.Add(new("devices.playbackVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
+        if (devices.RingVolumePercent is < 0 or > 100)
+            issues.Add(new("devices.ringVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
+    }
+
+    private void ValidateDatabase(CommunicationDatabaseSettings? database, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        if (database is null || !Enum.IsDefined(database.Provider))
+        {
+            issues.Add(new("database.provider", "Ein unterstützter Kommunikationsdatenbank-Provider ist erforderlich."));
+            return;
+        }
+        if (database.Provider == CommunicationDatabaseProvider.Sqlite)
+        {
+            var fileName = database.SqliteFileName;
+            if (fileName is not null && (string.IsNullOrWhiteSpace(fileName) || fileName.Length > 240 ||
+                fileName is "." or ".." || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+                fileName.Contains('/') || fileName.Contains('\\') || fileName.Contains(':') || fileName.EndsWith('.') || fileName.EndsWith(' ') ||
+                IsReservedDeviceName(fileName)))
+                issues.Add(new("database.sqliteFileName", "Ein gültiger lokaler Dateiname ohne Verzeichnis ist erforderlich."));
+            if (database.ConnectionString is not null)
+                issues.Add(new("database.connectionString", "SQLite verwendet einen Dateinamen statt einer Server-Verbindungszeichenfolge."));
+            return;
+        }
+        if (database.SqliteFileName is not null)
+            issues.Add(new("database.sqliteFileName", "Ein Server-Provider verwendet keinen SQLite-Dateinamen."));
+        if (database.ConnectionString is null)
+        {
+            issues.Add(new("database.connectionString", "Eine geschützte Verbindungszeichenfolge ist erforderlich."));
+            return;
+        }
+        try
+        {
+            using var connection = secrets.Unprotect(database.ConnectionString, CommunicationDatabaseSettings.ConnectionStringPurpose);
+            if (connection.IsEmpty) issues.Add(new("database.connectionString", "Die geschützte Verbindungszeichenfolge ist leer."));
+        }
+        catch (SecretProtectionException)
+        {
+            issues.Add(new("database.connectionString", "Die geschützte Verbindungszeichenfolge ist nicht verfügbar oder beschädigt."));
+        }
+    }
+
+    private static void ValidateCompanies(ApplicationOptions options, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        if (options.Companies.IsDefault || options.Companies.Length > 256)
+        {
+            issues.Add(new("companies", "Eine initialisierte Liste mit höchstens 256 Mandanteneinstellungen ist erforderlich."));
+            return;
+        }
+        var companies = new HashSet<CompanyKey>();
+        foreach (var settings in options.Companies)
+        {
+            if (settings?.Company is null || !companies.Add(settings.Company))
+            {
+                issues.Add(new("companies", "Mandantenbezüge müssen vollständig und eindeutig sein."));
+                continue;
+            }
+            if (!IsValidRegion(settings.DefaultPhoneRegion))
+                issues.Add(new("companies.defaultPhoneRegion", "Ein gültiger zweistelliger ISO-Ländercode in Großbuchstaben ist erforderlich."));
+            if (settings.LocalAreaCode is { } areaCode && (areaCode.Length is < 1 or > 16 || !areaCode.All(char.IsAsciiDigit)))
+                issues.Add(new("companies.localAreaCode", "Die Ortsvorwahl muss aus 1 bis 16 Ziffern bestehen."));
+        }
+    }
+
+    private static bool IsValidRegion(string? region)
+    {
+        if (region is null || region.Length != 2 || !region.All(character => character is >= 'A' and <= 'Z')) return false;
+        try { return new RegionInfo(region).TwoLetterISORegionName == region; }
+        catch (ArgumentException) { return false; }
+    }
+
+    private static bool IsValidDeviceId(string? id) =>
+        id is null || (!string.IsNullOrWhiteSpace(id) && id.Length <= 1024 && !id.Any(char.IsControl));
+
+    private static bool IsReservedDeviceName(string fileName)
+    {
+        var stem = fileName.Split('.')[0].TrimEnd(' ').ToUpperInvariant();
+        return stem is "CON" or "PRN" or "AUX" or "NUL" ||
+               (stem.Length == 4 && (stem.StartsWith("COM", StringComparison.Ordinal) || stem.StartsWith("LPT", StringComparison.Ordinal)) &&
+                stem[3] is >= '1' and <= '9');
     }
 
     private static bool IsValidUsername(string? username) =>

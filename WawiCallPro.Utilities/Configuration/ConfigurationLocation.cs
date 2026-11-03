@@ -6,7 +6,7 @@ public sealed class ConfigurationLocation
     {
         if (string.IsNullOrWhiteSpace(directory) || !Path.IsPathFullyQualified(directory))
             throw ConfigurationException.FileError("Das Konfigurationsverzeichnis muss ein absoluter Pfad sein.");
-        FilePath = Path.Combine(directory, "connection.local.json");
+        FilePath = Path.GetFullPath(Path.Combine(directory, "connection.local.json"));
     }
 
     public string FilePath { get; }

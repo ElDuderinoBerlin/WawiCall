@@ -14,6 +14,8 @@ public sealed record HostDiagnosticSnapshot(
 {
     public bool ConnectionConfigured { get; init; }
     public bool ConfigurationFound { get; init; }
+    public int SettingsFormatVersion { get; init; }
+    public bool SettingsUpgradeRequired { get; init; }
 }
 
 public sealed class HostDiagnostics(ApplicationDescriptor application, ICompanyContext companies,
@@ -28,7 +30,9 @@ public sealed class HostDiagnostics(ApplicationDescriptor application, ICompanyC
             lifetime.ApplicationStarted.IsCancellationRequested, dispatcher.GetType().Name, selected)
         {
             ConnectionConfigured = configuration.Current.IsSipConfigured,
-            ConfigurationFound = configuration.Current.FileFound
+            ConfigurationFound = configuration.Current.FileFound,
+            SettingsFormatVersion = configuration.Current.FormatVersion,
+            SettingsUpgradeRequired = configuration.Current.RequiresUpgrade
         };
     }
 }

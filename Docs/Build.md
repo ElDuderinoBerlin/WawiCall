@@ -56,6 +56,11 @@ Vorgabepfad: `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>/connection.local.json`;
 Vorhandene ungültige Konfiguration verhindert den Start und bleibt erhalten. Fehlermeldungen enthalten feste
 Feldangaben, keine Rohwerte. Beide Hosts schreiben umgeleitete Ausgaben als UTF-8. Kennwörter werden
 ausschließlich als DPAPI-CurrentUser-Werte gespeichert; Details stehen in `Docs/Vertraege.md`.
+Seit Punkt 5 werden `SettingsFormatVersion` und `SettingsUpgradeRequired` gemeldet. Geschrieben wird die
+Hülle `{"formatVersion":1,"settings":{...}}` mit getrennten Benutzer-/Mandanten-/Geräte-/Datenbankbereichen.
+Das bisherige unversionierte SIP-Format bleibt beim Lesen unverändert und wird erst bei ausdrücklichem
+Speichern aufgerüstet. Neuere Versionen und unversionierte neue Felder verhindern den Start. Schreibende
+Änderungen benötigen einen geladenen Snapshot; veraltete Stände werden unter einer Dateisperre abgewiesen.
 Seit Phase 2, Punkt 3 durchläuft `--diagnostics` einen echten Standardhost mit DI, Start, Dispatcheraufruf,
 Stop und asynchroner Freigabe; JSON wird erst danach ausgegeben. Zusätzlich werden `HostStarted`,
 Dispatchertyp und Mandantenauswahl gemeldet. Die App prüft dabei ihre WinForms-Nachrichtenschleife und

@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2, Punkte 1–4. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2, Punkte 1–5. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -220,7 +220,7 @@ Kontext die Form und beendet die Schleife. Die Behandlung laufender echter Gespr
 `--diagnostics` läuft jetzt durch dieselben tatsächlichen Basisdienste und gibt erst nach erfolgreichem
 Stop/Freigeben genau ein JSON-Dokument aus. Die App öffnet dabei eine unsichtbare Instanz ihrer normalen
 Form, prüft den UI-Dispatcher aus einem Hintergrundaufruf und durchläuft den normalen Schließpfad.
-Die Angaben umfassen Hostidentität, `HostStarted`, Dispatchertyp und Mandantenauswahl. Bei Fehlern gibt es
+Die Angaben umfassen Hostidentität, `HostStarted`, Dispatchertyp, Mandantenauswahl und den geladenen Formatstand. Bei Fehlern gibt es
 einen Exitcode ungleich null und eine kurze Fehlermeldung ohne rohe Ausnahmeinhalte.
 `ConfigurationFound` und `ConnectionConfigured` werden aus der typisiert geprüften Startkonfiguration
 ermittelt. Die Angaben enthalten weder Server/Benutzername noch Kennwortblöcke. Ein vollständig konfiguriertes
@@ -239,12 +239,43 @@ dass der umgebrochene Einrichtungsstatus am unteren Fensterrand zu knapp sitzt.
 
 ## Typisierte Konfiguration und geschützte Werte
 
-`ApplicationOptions` und `SipAccountOptions` beschreiben zunächst das optionale SIP-Konto. Ist es vorhanden,
+`ApplicationOptions` enthält das optionale Arbeitsplatz-SIP-Konto sowie getrennte Einstellungsbereiche.
+`SipAccountOptions` wird wie bisher vollständig geprüft, sobald es vorhanden ist:
 werden Server als Hostname/IP ohne URI/Zugangsdaten, Port 1–65535, Transport Udp/Tcp/Tls, Benutzer-/
 Authentifizierungsname und das geschützte Kennwort geprüft. Ein fehlender Kontoabschnitt ist der gültige
 Erststartzustand. Ein teilweise ausgefüllter Abschnitt ist ein Fehler und wird nicht als „nicht eingerichtet“
-verschwiegen. Die Aufteilung aller Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sowie deren
-Formatversionierung folgen separat in Punkt 5; die aktuellen Typen sind dafür noch kein vollständiges Schema.
+verschwiegen. Die weiteren Bereiche bilden das persistierbare Grundmodell für die folgenden Fachphasen:
+
+| Bereich | Inhalt und Gültigkeit |
+|---|---|
+| `sipAccount` | Konto des lokalen Arbeitsplatzes/Benutzers; kein Mandanten-Override |
+| `user` | Benachrichtigungs-/Startpräferenzen und bevorzugter vollständiger Mandantenbezug |
+| `companies` | Eigene Rufnummernregion/Ortsvorwahl je Produktlinie, Installation und externer Mandanten-ID |
+| `devices` | Lokale Capture-/Playback-/Klingel-Endpunktkennungen, Lautstärken und Mikrofonpräferenz |
+| `database` | Die eigene gemeinsame Kommunikationsdatenbank; keine Lexware-Quelldatenbank |
+
+Die Bereiche bleiben in derselben lokalen Datei, damit ein Speichern keine inkonsistenten Kombinationen
+mehrerer Dateien erzeugt. Records und unveränderliche Sammlungen erlauben gezielte `with`-Änderungen,
+ohne die anderen Bereiche zu ersetzen. `FindCompanySettings` sucht ausschließlich über den vollständigen
+`CompanyKey` und liefert ohne individuellen Eintrag `null`; fremde Mandantenvorgaben werden nicht übernommen.
+Doppelte Mandantenbezüge sind ungültig, gleiche externe IDs verschiedener Installationen/Produktlinien erlaubt.
+Die Liste ist auf 256 Einträge begrenzt. Rufnummernregionen sind bekannte zweistellige ISO-Regionscodes,
+Ortsvorwahlen 1–16 Ziffern. Die Normalisierungsimplementierung folgt weiterhin in Phase 6.
+
+Die bevorzugte Firma ist nur eine Präferenz. Sie stellt weder einen nachgewiesenen Lexware-Mandanten noch
+die aktuelle Auswahl dar und wird beim Start nicht automatisch in `CompanyContext` übernommen.
+Gerätekennungen sind unveränderte CSCore-/MMDevice-IDs, keine Listenpositionen. `null` bezeichnet die spätere
+Systemstandard-Auswahl; Leerwerte und Steuerzeichen werden abgewiesen. Lautstärken liegen zwischen 0 und 100.
+Geräteverfügbarkeit und die Anwendung der Benutzer-/Audiopräferenzen folgen mit der UI-/Audiointegration
+in Phase 8/9. In diesem Block werden weder Controls umgebaut noch Audiogeräte geöffnet.
+
+`CommunicationDatabaseSettings` enthält zunächst die Konfigurationstokens Sqlite, SqlServer, MySql und
+PostgreSql. SQLite nutzt einen lokalen Dateinamen ohne Verzeichnispfad; `null` steht für `communications.db`
+unter dem Konfigurationsverzeichnis. Server-Provider verlangen eine DPAPI-geschützte Verbindungszeichenfolge
+mit dem eigenen Zweck `communications-database-connection-string`; SIP-Kennworthüllen sind dafür ungültig.
+Dateiname und Server-Zeichenfolge schließen sich aus. Die tatsächlichen Provider, das Prüfen ihrer
+Verbindungsstring-Syntax sowie Zugriffe/Migrationen gehören zur Datenbankphase 3. Ein gespeicherter Provider
+ist noch kein Nachweis eines implementierten oder erreichbaren Datenbankservers.
 
 `ConfigurationStore` liest `connection.local.json` standardmäßig unter
 `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>`. App und Console derselben Variante verwenden denselben Pfad.
@@ -258,7 +289,7 @@ Beim Speichern erfolgt zuerst die vollständige Validierung einschließlich der 
 Danach wird eine temporäre Datei im selben Verzeichnis geschrieben und die Zieldatei ersetzt. Ein vor dem
 Austausch beobachteter Abbruch oder Validierungsfehler erhält die bisherige Datei. Konfigurationsdatei und
 temporäre Dateien sind zusätzlich im Repository ignoriert; die Standardablage liegt außerhalb davon.
-Gleichzeitige Bearbeitung und spätere Aktualisierungs-/Versionsregeln gehören zum nächsten Einstellungsblock.
+Für Änderungen gilt seit Punkt 5 zusätzlich der unten beschriebene Vergleich mit dem geladenen Stand.
 
 `ApplicationConfigurationService` lädt den Stand als erster Hosted Service vor späteren Fachworkern.
 `Current` enthält anschließend eine abgelöste geprüfte Momentaufnahme. Speicheränderungen wirken derzeit
@@ -274,8 +305,8 @@ beschädigter oder für das aktuelle Windows-Konto nicht entschlüsselbarer Wert
 Es gibt weder eine Klartextmigration noch einen Schutz für das ganze Windows-System als Ausweichweg.
 Die Datei allein ist deshalb kein portables Kennwortbackup für ein anderes Benutzerprofil.
 
-Persistiert wird ausschließlich `ProtectedSecret` mit der Hülle `dpapi-user-v1:<Base64>`. Deren Version
-bezeichnet den Geheimnisschutz, nicht die noch ausstehende Versionierung des Einstellungsformats.
+Geheimnisse werden ausschließlich als `ProtectedSecret` mit der Hülle `dpapi-user-v1:<Base64>` persistiert.
+Deren Version bezeichnet den Geheimnisschutz, unabhängig von der Versionierung des Einstellungsformats.
 `ISecretProtector.Protect` erhält einen Wert und seinen festen Zweck. Nach `Unprotect` besitzt der Aufrufer
 einen kurzlebigen `SecretValue`, ruft `Reveal()` ausdrücklich nur an der API-Grenze auf und gibt den Wert frei.
 Die UTF-8-Puffer werden bei Freigabe genullt; zurückgegebene .NET-Strings lassen sich dadurch nicht löschen.
@@ -287,6 +318,57 @@ Werte oder innere Parser-/IO-Ausnahmen. Die zentrale Startfehlermeldung zeigt nu
 unbekannte Ausnahmen werden auf ihren Typ zusammengefasst. Beide Hosts schreiben umgeleitete Ausgaben als
 UTF-8. Erfolgsdiagnosen bleiben eine explizite Auswahl von Statuswerten, ohne Rohkonfiguration, Benutzernamen,
 Server, Klartextkennwort oder verschlüsselten Kennwortblock.
+
+## Formatversion und konkurrierende Änderungen
+
+Aktuell wird ausschließlich die Version 1 geschrieben. Die Hülle trennt die Formatkennung von den
+eigentlichen Einstellungen; fehlende optionale Bereiche erhalten die festgelegten Standardwerte:
+
+```json
+{
+  "formatVersion": 1,
+  "settings": {
+    "sipAccount": null,
+    "user": { "showCallNotifications": true, "startMinimized": false },
+    "devices": {},
+    "database": { "provider": "Sqlite" },
+    "companies": []
+  }
+}
+```
+
+Das bisherige Format ohne `formatVersion` wird ausschließlich mit seinen tatsächlich vorhandenen
+SIP-Feldern gelesen, auch mit UTF-8-BOM. Es erhält im Snapshot `FormatVersion=0` und
+`RequiresUpgrade=true`. Beim Lesen werden neue Bereichsstandards nur im Speicher ergänzt; die ursprüngliche
+Datei wird weder ersetzt noch neu verschlüsselt. Erst ein ausdrückliches Speichern schreibt Version 1.
+Kennworthüllen und ihre Zweckbindung bleiben dabei identisch. Neue Bereiche ohne Versionshülle, explizite
+Version 0 sowie unbekannte/neuere Versionen werden abgewiesen. Zukünftige Formatänderungen brauchen eine
+neue Version und einen expliziten Migrationsschritt; unbekannte Felder werden weiterhin nicht verworfen.
+
+`HostDiagnostics` meldet zusätzlich `SettingsFormatVersion` und `SettingsUpgradeRequired` aus der beim
+Start geladenen Momentaufnahme. Ohne Datei gilt Version 1 ohne Upgradebedarf. Die Metadaten stellen
+keine Rohkonfiguration dar. Speichern aktualisiert die laufende Host-Momentaufnahme noch nicht automatisch;
+der nächste Hoststart lädt den neuen Stand.
+
+`SaveAsync(options)` legt nur eine noch fehlende Datei an. Für Änderungen wird der geladene Snapshot
+mitgegeben, der intern Quelldatei und SHA-256 des vollständig gelesenen Dateiinhalts trägt:
+
+```csharp
+var loaded = await store.LoadAsync(cancellationToken);
+var updated = loaded.Options with
+{
+    User = loaded.Options.User with { ShowCallNotifications = false }
+};
+await store.SaveAsync(updated, loaded, cancellationToken);
+```
+
+Unter der exklusiven Sperre `connection.local.json.lock` wird der aktuelle Inhalt mit dem erwarteten Stand
+verglichen. Erst danach erfolgt der atomare Austausch. Das schützt kooperierende App-/Console-Schreiber
+prozessübergreifend; externe Editoren müssen nicht am Sperrprotokoll teilnehmen, ihre bereits erfolgten
+Inhaltsänderungen werden über den Hash erkannt. Ein fremder Snapshot, eine belegte Sperre oder ein
+veralteter Stand führt zu einer festen Fehlermeldung. Es gibt weder automatisches Zusammenführen noch
+stilles Überschreiben. Nach erfolgreichem Speichern oder einem Konflikt wird vor der nächsten Änderung
+erneut geladen. Die leere Sperrdatei darf bestehen bleiben und ist ebenfalls im Repository ignoriert.
 
 ## Prüfungen
 
@@ -306,6 +388,9 @@ und Erhalt mehrerer Fehler aus Ausführung/Stop/Freigabe. Die Diagnose- und Rend
 die tatsächlichen ausführbaren Hosts und die App-Nachrichtenschleife.
 Elf zusätzliche Konfigurationstests prüfen echte DPAPI-Rundläufe, falschen Zweck/manipulierte Hüllen,
 strenges JSON, unveränderte Dateien nach fehlgeschlagenem Speichern sowie den Abbruch vor Fachworkern.
+Elf weitere Tests prüfen Bereichserhalt bei gezielten Änderungen, vollständige Mandantenidentitäten,
+BOM-/SIP-Übernahme, unveränderte Kennworthüllen, Versionsablehnung, belegte Sperren und konkurrierende/
+veraltete Bearbeitungsstände. Datenbank-Zugangsdaten werden mit dem eigenen DPAPI-Zweck geprüft.
 
 ```powershell
 dotnet test --project .\WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj -c Debug -p:LexwareProductLine=Pro
@@ -319,25 +404,31 @@ dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 54 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host- und elf Konfigurationstests); App und Console
+Lokaler Nachweis: je 65 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-
+und elf Einstellungs-/Versionstests); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
 Das zentrale Buildskript stoppt derzeit vor dem Build am abweichenden lokalen Stand von `Quantarix.Pcfk.Core`
 gegenüber `deps.json`. Die Schwesterbibliothek und das Manifest wurden dafür nicht verändert.
 Direktbuilds belegen den vorhandenen lokalen Stand; sie sind kein erfolgreicher Bootstrap-/CI-Nachweis.
 
-16 isolierte Prozessprüfungen verwenden pro Host und Variante fehlende, gültige, unvollständige und
-beschädigte Konfigurationen. Exitcodes, Statusflags und das Ausbleiben synthetischer Zugangsdaten/
-Kennworthüllen in stdout/stderr wurden geprüft. Es wurden keine vorhandenen Benutzereinstellungen verändert.
+24 isolierte Prozessprüfungen verwenden pro Host und Variante fehlende Dateien, das bisherige SIP-Format,
+Version 1 mit allen Bereichen, eine neuere Version, ungültige Gerätevorgaben und unversionierte neue Felder.
+Exitcodes, Format-/Einrichtungsstatus, unveränderte Dateien und das Ausbleiben synthetischer Zugangsdaten,
+Mandanten-/Gerätekennungen und Kennworthüllen in stdout/stderr wurden geprüft. Vorhandene Benutzereinstellungen
+wurden nicht verändert.
 
 `MainForm` wurde für beide Varianten ohne Konto und mit geprüftem, nicht verbundenem Konto mit kleinen/großen Fenstern,
 10/16-Punkt-Schrift und zusätzlicher 150%-Layoutskalierung gerendert und visuell geprüft. Die Skalierung
 simuliert den Layoutstress; eine echte High-DPI-Monitorprüfung wird damit nicht behauptet.
-Aktuelle Protokolle und Renderausgaben liegen unter `.artifacts/phase2-item4`.
+Die Renderausgaben des letzten UI-Blocks liegen unter `.artifacts/phase2-item4`. Der jetzige Block verändert
+keine Ansicht und wendet die neuen Präferenzen noch nicht an; eine erneute Renderprüfung ist nicht erforderlich.
+Aktuelle Test-/Build-/Prozessprotokolle liegen unter `.artifacts/phase2-item5`.
 Bei der ersten 10-Punkt-Aufnahme kann `DrawToBitmap` die native Titelleiste leer erfassen;
 die Inhaltsfläche ist sichtbar und die Titelleiste in den weiteren Aufnahmen geprüft. Dieser
 Aufnahmeartefakt wird nicht als Nachweis einer fehlerhaft angezeigten Laufzeit-Titelleiste gewertet.
 
-Das vollständige Einstellungsmodell, Datenbankzugriffe und echte SIP-/Lexware-Integration sind noch nicht
-implementiert. Betriebs-/Loggingintegration und Freigabe zukünftiger Fachressourcen bleiben Aufgaben
-der folgenden Punkte/Phasen. Die Standardeinrichtung wird später über die vorgesehenen Oberflächen angeboten.
+Die Einstellungsbereiche und das versionierte Grundschema sind umgesetzt. Weitere modulspezifische Optionen,
+ihre Anwendung, Datenbankzugriffe und echte SIP-/Lexware-Integration folgen mit den Fachphasen.
+Betriebs-/Loggingintegration und Freigabe zukünftiger Fachressourcen bleiben Aufgaben der folgenden Punkte.
+Die Standardeinrichtung wird später über die vorgesehenen Oberflächen angeboten.

@@ -11,6 +11,7 @@ artifacts/
 *.log
 appsettings.Local.json
 connection.local.json
+connection.local.json.lock
 .connection-*.tmp
 *.db
 *.db-shm
