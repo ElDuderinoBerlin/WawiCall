@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Quantarix.Pcfk.Core\Quantarix.Pcfk.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Pcfk.DataAccess\Quantarix.Pcfk.DataAccess.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
   </ItemGroup>
 </Project>

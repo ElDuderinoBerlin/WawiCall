@@ -318,7 +318,12 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   Saubere CI-Reproduzierbarkeit benötigt veröffentlichte passende Revisionen dieser lokalen Änderungen;
   `-RequireClean` verhindert eine irreführend erfolgreiche CI-Abnahme. Das ungenutzte, nicht versionierte lokale
   Projekt Quantarix.Resources ist kein Bootstrap- oder Build-Bestandteil.
-- [ ] Aktuelle MMS-Typen ihren konkreten Quantarix-APIs zuordnen; keine Alt-DLLs ins neue Produkt kopieren.
+- [x] Aktuelle MMS-Typen ihren konkreten Quantarix-APIs zuordnen; keine Alt-DLLs ins neue Produkt kopieren.
+  Nachweis: konkrete Typ-/Namespace-Zuordnung unter `Docs/Quantarix-Zuordnung.md`; Core-, Windows-/DevExpress-,
+  Interop- und Plugin-Referenzen sowie getrennte Lexware-/Pcfk-Adapterreferenzen eingebunden. Konsole wie
+  LxTranslate auf `net10.0-windows`. Beide Hosts samt passendem Adapter für beide Produktlinien ohne
+  Warnungen/Fehler in Debug gebaut und gestartet. Ausgaben und Runtime-Graphen auf MMS/falsche Produktlinie geprüft.
+  Die Plugin-Laufzeitbereitstellung und fachlichen Adapteroperationen bleiben ausdrücklich Phase 4/5.
 - [ ] Debug-Buildskripte und erste CI-Prüfung vorbereiten; externe/private Abhängigkeiten und DevExpress-Zugang
   für den Build reproduzierbar bereitstellen.
 

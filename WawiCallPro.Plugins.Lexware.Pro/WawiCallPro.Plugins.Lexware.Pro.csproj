@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
   </ItemGroup>
 </Project>

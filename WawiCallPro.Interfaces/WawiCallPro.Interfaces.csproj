@@ -4,4 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Abstractions\Quantarix.Plugin.Abstractions.csproj" />
+  </ItemGroup>
 </Project>

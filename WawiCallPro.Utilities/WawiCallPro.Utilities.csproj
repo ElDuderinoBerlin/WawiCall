@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Quantarix.Core\Quantarix.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\Quantarix.Plugin.Hosting.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
   </ItemGroup>
 </Project>

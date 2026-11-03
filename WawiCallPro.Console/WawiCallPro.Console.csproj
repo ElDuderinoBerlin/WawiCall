@@ -1,12 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
     <RootNamespace>WawiCallPro.ConsoleApp</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Plugins.Lexware.Pro\WawiCallPro.Plugins.Lexware.Pro.csproj"
+                      ReferenceOutputAssembly="false" Condition="'$(LexwareProductLinePro)' == 'true'" />
+    <ProjectReference Include="..\WawiCallPro.Plugins.Lexware.FinOffice\WawiCallPro.Plugins.Lexware.FinOffice.csproj"
+                      ReferenceOutputAssembly="false" Condition="'$(LexwareProductLineFinOffice)' == 'true'" />
     <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
     <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />
     <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
