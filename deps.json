@@ -1,0 +1,97 @@
+{
+  "description": "Schwester-Repositories der WawiCallPro-Solution. Bestehende Arbeitskopien werden ausschließlich geprüft und niemals zurückgesetzt.",
+  "baseDir": "..",
+  "dependencies": [
+    {
+      "name": "Quantarix.Core",
+      "url": "https://github.com/Quantarix/Quantarix.Core.git",
+      "branch": "master",
+      "revision": "d121fdda0b3b11240f68a8eb0d4fdfb038101f32",
+      "projects": [
+        "Quantarix.Core.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Interop",
+      "url": "https://github.com/Quantarix/Quantarix.Interop.git",
+      "branch": "master",
+      "revision": "eb389bf72c85409a90697baf8b6eed3ac9de2386",
+      "projects": [
+        "Quantarix.Interop.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Windows",
+      "url": "https://github.com/Quantarix/Quantarix.Windows.git",
+      "branch": "master",
+      "revision": "ca7ed37c457629b2bd4cd98f88bc3f57034fe832",
+      "projects": [
+        "Quantarix.Windows.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.DevExpress",
+      "url": "https://github.com/Quantarix/Quantarix.DevExpress.git",
+      "branch": "master",
+      "revision": "6119ac4c86ce7d2b8d346ea26f481ec2f1838c0d",
+      "projects": [
+        "Quantarix.DevExpress.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Lexware.Core",
+      "url": "https://github.com/Quantarix/Quantarix.Lexware.Core.git",
+      "branch": "master",
+      "revision": "e37c3974b350c23fa5578e73547958c65c826144",
+      "projects": [
+        "Quantarix.Lexware.Core.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Lexware.APIService",
+      "url": "https://github.com/Quantarix/Quantarix.Lexware.APIService.git",
+      "branch": "master",
+      "revision": "bb40d5ec4a4250d7c3aa7164927fef94e10f63e3",
+      "projects": [
+        "Quantarix.Lexware.APIService/Quantarix.Lexware.APIService.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Pcfk.Core",
+      "url": "https://github.com/Quantarix/Quantarix.Pcfk.Core.git",
+      "branch": "master",
+      "revision": "da59daa69ed09f45c3049b019045f52041d2205a",
+      "projects": [
+        "Quantarix.Pcfk.Core.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Pcfk.DataAccess",
+      "url": "https://github.com/Quantarix/Quantarix.Pcfk.DataAccess.git",
+      "branch": "master",
+      "revision": "608ee52e82348420a91efdd51db8eee4f3bce8bd",
+      "projects": [
+        "Quantarix.Pcfk.DataAccess.csproj"
+      ]
+    },
+    {
+      "name": "Quantarix.Plugin.System",
+      "url": "https://github.com/Quantarix/Quantarix.Plugin.System.git",
+      "branch": "master",
+      "revision": "1e43c99068cd17bfa32586d86099c6e66fae4076",
+      "projects": [
+        "src/Quantarix.Plugin.Abstractions/Quantarix.Plugin.Abstractions.csproj",
+        "src/Quantarix.Plugin.Hosting/Quantarix.Plugin.Hosting.csproj"
+      ]
+    },
+    {
+      "name": "sqlite-netFx-source-1.0.117.0",
+      "url": "https://github.com/Quantarix/sqlite-netFx-source-1.0.117.0.git",
+      "branch": "master",
+      "revision": "10e44bfb8afc0f327ebd5a0a05cb51f350dc1a21",
+      "projects": [
+        "System.Data.SQLite/System.Data.SQLite.NetStandard21.csproj"
+      ]
+    }
+  ]
+}

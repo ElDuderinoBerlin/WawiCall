@@ -309,8 +309,15 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   `--diagnostics` gestartet. Assembly-Metadaten melden die richtige Variante. `bin/Debug/<Produktlinie>` und
   `obj/<Produktlinie>` sind getrennt; `obj/**` bleibt komplett aus Compile-Globs ausgeschlossen.
   Negativprüfung mit `LexwareProductLine=Invalid` wird erwartungsgemäß abgewiesen. Standard wie LxTranslate: FinOffice.
-- [ ] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
+- [x] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
   Vorhandene Änderungen in Schwester-Repositories nicht überschreiben oder automatisch auf einen anderen Stand ziehen.
+  Nachweis: zehn Git-Repositories mit festen Revisionen und Projektpfaden erfasst. `bootstrap.ps1 -CheckOnly`
+  prüft vorhandene Kopien ohne Fetch/Pull/Reset; nur fehlende Repositories werden standardmäßig geklont.
+  Syntax, vorhandene/fehlende Abhängigkeiten und `-RequireClean`-Negativfall geprüft; beide Hosts in Debug gebaut.
+  Vorhandene Änderungen in Quantarix.Interop, Quantarix.Plugin.System und dem SQLite-Quellrepo bleiben erhalten.
+  Saubere CI-Reproduzierbarkeit benötigt veröffentlichte passende Revisionen dieser lokalen Änderungen;
+  `-RequireClean` verhindert eine irreführend erfolgreiche CI-Abnahme. Das ungenutzte, nicht versionierte lokale
+  Projekt Quantarix.Resources ist kein Bootstrap- oder Build-Bestandteil.
 - [ ] Aktuelle MMS-Typen ihren konkreten Quantarix-APIs zuordnen; keine Alt-DLLs ins neue Produkt kopieren.
 - [ ] Debug-Buildskripte und erste CI-Prüfung vorbereiten; externe/private Abhängigkeiten und DevExpress-Zugang
   für den Build reproduzierbar bereitstellen.

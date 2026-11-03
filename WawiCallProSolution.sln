@@ -43,8 +43,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.Windows", "..\Qua
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.DevExpress", "..\Quantarix.DevExpress\Quantarix.DevExpress.csproj", "{EA8427CC-4FEB-45C0-B505-555BF9E69588}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.Resources", "..\Quantarix.Resources\Quantarix.Resources.csproj", "{6917D28E-7202-4554-B4F7-45A0959F0121}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.Lexware.Core", "..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj", "{47FF7608-F7D0-41FB-9CF4-94AC57281ACA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.Lexware.APIService", "..\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService.csproj", "{A0BBA4AE-5898-45FA-B03F-15F664A59EE3}"
@@ -66,13 +64,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 		.gitignore = .gitignore
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
+		deps.json = deps.json
+		bootstrap.ps1 = bootstrap.ps1
 		global.json = global.json
 		Solution.props = Solution.props
 	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A50D7C-E0E2-4F86-927E-075304786242}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{3910C37C-A104-4147-93D5-82EBF4143017}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -288,18 +284,6 @@ Global
 		{EA8427CC-4FEB-45C0-B505-555BF9E69588}.Release|x64.Build.0 = Release|Any CPU
 		{EA8427CC-4FEB-45C0-B505-555BF9E69588}.Release|x86.ActiveCfg = Release|Any CPU
 		{EA8427CC-4FEB-45C0-B505-555BF9E69588}.Release|x86.Build.0 = Release|Any CPU
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|x64.ActiveCfg = Debug|x64
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|x64.Build.0 = Debug|x64
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|x86.ActiveCfg = Debug|x86
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Debug|x86.Build.0 = Debug|x86
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|x64.ActiveCfg = Release|x64
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|x64.Build.0 = Release|x64
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|x86.ActiveCfg = Release|x86
-		{6917D28E-7202-4554-B4F7-45A0959F0121}.Release|x86.Build.0 = Release|x86
 		{47FF7608-F7D0-41FB-9CF4-94AC57281ACA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{47FF7608-F7D0-41FB-9CF4-94AC57281ACA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47FF7608-F7D0-41FB-9CF4-94AC57281ACA}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -393,7 +377,6 @@ Global
 		{DC5EDC29-7B11-43F9-995B-7DB137E36EE4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7361FE4A-A089-433F-8B09-640191608426} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{EA8427CC-4FEB-45C0-B505-555BF9E69588} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
-		{6917D28E-7202-4554-B4F7-45A0959F0121} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{47FF7608-F7D0-41FB-9CF4-94AC57281ACA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A0BBA4AE-5898-45FA-B03F-15F664A59EE3} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{F1686EB4-BDAE-4B81-8E90-9D7E6A51871C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
