@@ -23,6 +23,8 @@
 - Automatically reference each newly created Markdown document in the `Docs` solution folder in `WawiCallProSolution.sln`,
   preserving existing solution entries and avoiding duplicates.
 - Open each newly created Markdown document in the Rider editor after creating it.
+- Use the active Rider editor for opening documents. Do not launch another Rider instance or open another solution
+  to display a Markdown file. If the editor tool cannot access the file, provide its clickable path instead.
 
 # Studio UI preference
 
