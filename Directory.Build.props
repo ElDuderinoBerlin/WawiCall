@@ -6,5 +6,11 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
+    <BaseIntermediateOutputPath>obj\$(LexwareProductLine)\</BaseIntermediateOutputPath>
+    <OutputPath>bin\$(Configuration)\$(LexwareProductLine)\</OutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console'">
+    <AssemblyName>$(MSBuildProjectName).$(LexwareProductLine)</AssemblyName>
   </PropertyGroup>
 </Project>

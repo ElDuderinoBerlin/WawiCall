@@ -1,7 +1,16 @@
 <Project>
   <PropertyGroup>
+    <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">FinOffice</LexwareProductLine>
+    <LexwareProductLinePro Condition="'$(LexwareProductLine)' == 'Pro'">true</LexwareProductLinePro>
+    <LexwareProductLineFinOffice Condition="'$(LexwareProductLine)' == 'FinOffice'">true</LexwareProductLineFinOffice>
     <Version>0.1.0</Version>
     <Product>WawiCallPro</Product>
     <DevExpressVersion>26.1.6</DevExpressVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(LexwareProductLinePro)' == 'true'">
+    <DefineConstants>$(DefineConstants);LX_PRO</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
+    <DefineConstants>$(DefineConstants);LX_FINOFFICE</DefineConstants>
   </PropertyGroup>
 </Project>

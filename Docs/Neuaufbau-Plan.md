@@ -303,8 +303,12 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   Nachweis: Solution-/Directory.Build-Dateien, .NET-10-SDK-Pinning mit Roll-forward, gemeinsame DevExpress-Version,
   Editor-/Git-Regeln sowie Build-Guard gegen direkte MMS-Referenzen eingerichtet. App und Console in Debug
   mit SDK 10.0.403 ohne Warnungen/Fehler gebaut. Neue Pakete werden erst mit ihrem fachlichen Einsatz ergänzt.
-- [ ] `LexwareProductLine=Pro|FinOffice` einschließlich ungültiger Werte validieren; Ausgabe- und Zwischenverzeichnisse
+- [x] `LexwareProductLine=Pro|FinOffice` einschließlich ungültiger Werte validieren; Ausgabe- und Zwischenverzeichnisse
   so trennen, dass ein Variantenwechsel keine veralteten Assemblies oder Restore-Graphen wiederverwendet.
+  Nachweis: beide Hosts jeweils für Pro und FinOffice ohne Warnungen/Fehler in Debug gebaut und mit
+  `--diagnostics` gestartet. Assembly-Metadaten melden die richtige Variante. `bin/Debug/<Produktlinie>` und
+  `obj/<Produktlinie>` sind getrennt; `obj/**` bleibt komplett aus Compile-Globs ausgeschlossen.
+  Negativprüfung mit `LexwareProductLine=Invalid` wird erwartungsgemäß abgewiesen. Standard wie LxTranslate: FinOffice.
 - [ ] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
   Vorhandene Änderungen in Schwester-Repositories nicht überschreiben oder automatisch auf einen anderen Stand ziehen.
 - [ ] Aktuelle MMS-Typen ihren konkreten Quantarix-APIs zuordnen; keine Alt-DLLs ins neue Produkt kopieren.

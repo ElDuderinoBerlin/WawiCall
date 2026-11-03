@@ -1,4 +1,11 @@
 <Project>
+  <ItemGroup>
+    <AssemblyMetadata Include="LexwareProductLine" Value="$(LexwareProductLine)" />
+  </ItemGroup>
+  <Target Name="ValidateLexwareProductLine" BeforeTargets="_GenerateRestoreGraphProjectEntry;PrepareForBuild">
+    <Error Condition="'$(LexwareProductLine)' != 'Pro' and '$(LexwareProductLine)' != 'FinOffice'"
+           Text="Ungültige LexwareProductLine '$(LexwareProductLine)'. Erlaubt sind Pro und FinOffice." />
+  </Target>
   <Target Name="ValidateWawiCallReferences" BeforeTargets="ResolveReferences">
     <Error Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('MMS.'))"
            Text="MMS-Projektreferenz ist nicht erlaubt: %(ProjectReference.Identity). Eine konkrete Quantarix-API verwenden." />
