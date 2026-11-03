@@ -1,19 +1,29 @@
-using System.Reflection;
 using System.Text.Json;
-using WawiCallPro.Utilities;
+using Microsoft.Extensions.DependencyInjection;
+using WawiCallPro.ConsoleApp;
+using WawiCallPro.Utilities.Hosting;
 
-var productLine = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
-if (args is ["--diagnostics"])
+try
 {
-    Console.WriteLine(JsonSerializer.Serialize(new
+    var host = ConsoleCompositionRoot.Build();
+    HostDiagnosticSnapshot? diagnostic = null;
+    await HostExecution.RunAsync(host, async stoppingToken =>
     {
-        Application = ApplicationIdentity.Name,
-        ProductLine = productLine,
-        ConnectionConfigured = false
-    }));
-    return;
-}
+        diagnostic = await host.Services.GetRequiredService<HostDiagnostics>().CaptureAsync(stoppingToken);
+        if (args is not ["--diagnostics"])
+        {
+            var application = host.Services.GetRequiredService<ApplicationDescriptor>();
+            Console.WriteLine($"{application.Name} – {application.ProductLine}");
+            Console.WriteLine("Keine Verbindung konfiguriert.");
+            Console.WriteLine("--diagnostics gibt den Einrichtungsstatus als JSON aus.");
+        }
+    });
 
-Console.WriteLine($"{ApplicationIdentity.Name} – {productLine}");
-Console.WriteLine("Keine Verbindung konfiguriert.");
-Console.WriteLine("--diagnostics gibt den Einrichtungsstatus als JSON aus.");
+    if (args is ["--diagnostics"]) Console.WriteLine(JsonSerializer.Serialize(diagnostic));
+    return 0;
+}
+catch (Exception exception)
+{
+    Console.Error.WriteLine($"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).");
+    return 1;
+}

@@ -391,7 +391,24 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   Keine Ansicht und noch keine Hostverdrahtung geändert; keine Renderprüfung erforderlich.
   Die konkrete DI-/Hostintegration folgt in Punkt 3, vollständige Betriebs-/Shutdownintegration in Punkt 6
   sowie Datenbank-/SIP-Anbindung in deren Fachphasen. Diese Abnahmen sind damit nicht vorweggenommen.
-- [ ] App-/Console-Composition-Roots aufbauen; Dienste über DI statt globale Form-/Singleton-Zugriffe verbinden.
+- [x] App-/Console-Composition-Roots aufbauen; Dienste über DI statt globale Form-/Singleton-Zugriffe verbinden.
+  Nachweis: eigener Composition Root je Host und gemeinsame Registrierungen über Standard-.NET-Hosting
+  (`Microsoft.Extensions.Hosting` 10.0.14 wie in LxTranslate). Dienstgraph und Scopes werden beim Aufbau
+  validiert; Mandantenkontext, Dispatcher, Hostidentität und Startdiagnose werden über DI verbunden.
+  Die App startet/stoppt innerhalb der WinForms-Nachrichtenschleife und besitzt ihre Form selbst;
+  die Konsole nutzt denselben Hostablauf mit Inline-Dispatcher. Startfehler führen ebenfalls zu Stop und
+  asynchroner Containerfreigabe. Nicht implementierte Fachmodule bleiben unregistriert.
+  Je 43 Tests für Pro/FinOffice bestanden, darunter acht neue Hosttests zu Dienstidentität, Scopefehlern,
+  Teilstart, Fehlererhalt und dem Abwarten eines Hintergrunddienstes. Beide Hosts in beiden Varianten
+  mit `-c Debug` ohne Warnungen/Fehler gebaut; vier echte Diagnose-Start-/Stopläufe, Runtime-/MMS-/
+  Produktlinienprüfung und Solution-Prüfung erfolgreich. Logs/JSON unter `.artifacts/phase2-item3`.
+  Betroffene Ansicht: ausschließlich `MainForm` im vorhandenen Zustand ohne eingerichtete Verbindung.
+  Über den aktiven DI-Host mit 440/720 Pixeln, 10/16-Punkt-Schrift und zusätzlicher 150%-Layoutskalierung
+  gerendert und visuell geprüft (`LX_UI_AUDIT_SURFACES=MainForm`). Die Renderprüfung setzt Testgrößen
+  nun nach der Schrift-Autoskalierung; eng gewordene Randabstände bei großer Schrift im Designer korrigiert.
+  Die Skalierung bleibt eine Simulation und ersetzt keine echte High-DPI-Monitorabnahme.
+  Plan/Verträge/Übergabe aktualisiert. Die bekannte lokale Pcfk-Core-Abweichung bleibt bestehen;
+  direkte lokale Builds sind weiterhin kein neuer Bootstrap-/CI-Nachweis.
 - [ ] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.
 - [ ] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.
 - [ ] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren.

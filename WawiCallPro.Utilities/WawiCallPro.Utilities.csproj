@@ -8,5 +8,9 @@
     <ProjectReference Include="..\..\Quantarix.Core\Quantarix.Core.csproj" />
     <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\Quantarix.Plugin.Hosting.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
   </ItemGroup>
 </Project>

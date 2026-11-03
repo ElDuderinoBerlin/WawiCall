@@ -1,34 +1,33 @@
-using System.Reflection;
-using System.Text.Json;
-using WawiCallPro.App.Diagnostics;
-using ApplicationIdentity = WawiCallPro.Utilities.ApplicationIdentity;
+using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 
 namespace WawiCallPro.App;
 
 internal static class Program
 {
     [STAThread]
-    private static void Main(string[] args)
+    private static int Main(string[] args)
     {
-        if (args is ["--diagnostics"])
+        var diagnostics = args is ["--diagnostics"];
+        try
         {
-            Console.WriteLine(JsonSerializer.Serialize(new
-            {
-                Application = ApplicationIdentity.Name,
-                ProductLine = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly()),
-                ConnectionConfigured = false
-            }));
-            return;
+            ApplicationConfiguration.Initialize();
+            using var uiContext = new WindowsFormsSynchronizationContext();
+            SynchronizationContext.SetSynchronizationContext(uiContext);
+            var auditDirectory = args is ["--ui-audit", var directory] ? directory : null;
+            var host = AppCompositionRoot.Build(uiContext);
+            using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
+            Application.Run(application);
+            if (application.Failure is not null) throw application.Failure;
+            return 0;
         }
-
-        ApplicationConfiguration.Initialize();
-
-        if (args is ["--ui-audit", var outputDirectory])
+        catch (Exception exception)
         {
-            UiAudit.Render(outputDirectory);
-            return;
+            Console.Error.WriteLine($"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).");
+            if (!diagnostics && args is not ["--ui-audit", _])
+                XtraMessageBox.Show("Die Anwendung konnte nicht gestartet oder beendet werden.", "WawiCallPro",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return 1;
         }
-
-        Application.Run(new MainForm());
     }
 }

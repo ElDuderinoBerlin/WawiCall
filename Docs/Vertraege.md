@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2, Punkte 1–2. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2, Punkte 1–3. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -158,9 +158,10 @@ Auswahlaufrufer beobachtbar; auch dann wird die geänderte Auswahl benachrichtig
 
 ## Besitz, Start und Beenden
 
-Der nächste Planpunkt verbindet diese Bausteine über einen Standard-.NET-Host mit DI und
+Die Composition Roots verbinden diese Bausteine seit Punkt 3 über einen Standard-.NET-Host mit DI und
 `IHostedService`/`BackgroundService`, entsprechend dem bestehenden LxTranslate-Hostingmuster.
-Es wird kein zweiter eigener Hintergrunddienst-Runner eingeführt.
+`Microsoft.Extensions.Hosting` 10.0.14 entspricht dem lokal geprüften Referenzstand.
+Es gibt keinen zweiten eigenen Hintergrunddienst-Runner.
 
 | Lebensdauer/Eigentümer | Dienste und Regeln |
 |---|---|
@@ -186,8 +187,53 @@ Abbruchcallbacks ab; gleichzeitige Dispose-Aufrufe beobachten denselben Abschlus
 Abwarten der Aufgaben durch deren Besitzer. UI-Nachrichtenverarbeitung und Dispatcher bleiben bis zum Ende
 der Hintergrundarbeiten verfügbar. Keine synchronen `.Wait()`-/`.Result`-Aufrufe auf dem UI-Thread und keine
 unbeobachteten Hintergrundtasks. Stop-Zeitüberschreitungen/Fehler müssen beim Host sichtbar bleiben;
-Abbruchtokens allein beweisen kein erfolgreiches Herunterfahren. Die konkrete Hostverdrahtung folgt in
-Punkt 3, die vollständige Fehler-/Shutdownintegration in Punkt 6 und in den jeweiligen Fachphasen.
+Abbruchtokens allein beweisen kein erfolgreiches Herunterfahren. Die konkrete Basis-Hostverdrahtung ist
+umgesetzt; die vollständige Fehler-/Shutdownintegration folgt in Punkt 6 und in den jeweiligen Fachphasen.
+
+## Composition Roots und aktuelle Hostverdrahtung
+
+`WawiCallHost.CreateBuilder` in Utilities registriert gemeinsame Dienste und aktiviert `ValidateOnBuild`
+und `ValidateScopes` in beiden Hosts. Ein fehlender Dispatcher oder eine unzulässige Scoped-Abhängigkeit
+im Singleton wird beim Aufbau erkannt. `CompanyContext` und `ICompanyContext` liefern dieselbe Instanz.
+Der vor späteren Workern registrierte `CompanyContextLifetime` beendet den Mandantenkontext nach deren
+Stop-Aufrufen. Dienst- und Containerfreigabe sind asynchron; die Kontextfreigabe ist idempotent.
+
+`ConsoleCompositionRoot` ergänzt `InlineUiDispatcher`. `AppCompositionRoot` ergänzt den an einen
+ausdrücklich installierten `WindowsFormsSynchronizationContext` gebundenen Dispatcher und eine von der
+Nachrichtenschleife gesteuerte `IHostLifetime`. Der App-Host installiert keine Console-/ProcessExit-Handler.
+`ApplicationDescriptor` erhält seine Produktlinie aus der jeweiligen Host-Assembly; die gemeinsam genutzte
+Utilities-Assembly bestimmt nicht die Identität des gestarteten Hosts.
+
+`HostExecution.RunAsync` startet den Standardhost, führt den Hostablauf aus, stoppt auch nach Teilstartfehlern
+und gibt den Container frei. Es wartet Dienste nicht über einen separaten Runner ab. Fehler aus Ausführung,
+Stop und Freigabe werden gemeinsam weitergegeben, statt einen ursprünglichen Fehler zu verdecken.
+Diese Orchestrierung behält ausdrücklich den aufrufenden Synchronisierungskontext für UI-Arbeit bei;
+asynchrone Fach-/Datenzugriffe verwenden weiterhin `ConfigureAwait(false)`.
+
+`AppApplicationContext` startet einmalig nach Beginn der Nachrichtenverarbeitung. `MainForm` erhält die
+Hostidentität per Konstruktorinjektion. Sein parameterloser Designer-Konstruktor bleibt erhalten.
+Die Form wird am Composition Root mit `ActivatorUtilities` erstellt und vom Anwendungskontext besessen,
+damit eine asynchrone DI-Freigabe keine WinForms-Controls auf einem Workerthread entsorgt. Beim Schließen
+bleibt die Nachrichtenschleife bis nach Host-Stop und Containerfreigabe aktiv. Erst danach schließt der
+Kontext die Form und beendet die Schleife. Die Behandlung laufender echter Gespräche folgt in Phase 8.
+
+`--diagnostics` läuft jetzt durch dieselben tatsächlichen Basisdienste und gibt erst nach erfolgreichem
+Stop/Freigeben genau ein JSON-Dokument aus. Die App öffnet dabei eine unsichtbare Instanz ihrer normalen
+Form, prüft den UI-Dispatcher aus einem Hintergrundaufruf und durchläuft den normalen Schließpfad.
+Die Angaben umfassen Hostidentität, `HostStarted`, Dispatchertyp und Mandantenauswahl. Bei Fehlern gibt es
+einen Exitcode ungleich null und eine kurze Fehlermeldung ohne rohe Ausnahmeinhalte.
+`ConnectionConfigured=false` bleibt der ausdrückliche Stand ohne Verbindungseinrichtung.
+
+Es werden weder `IBusinessDirectory`, `ITelephonyService`, `ICallHistoryService` noch `IWawiCallHostServices`
+durch erfolgreiche Leerimplementierungen ersetzt. Diese Dienste sowie Plugins, Konfiguration und Provider
+werden erst mit ihrer realen Implementierung registriert. Der Basis-Host verwendet deshalb noch keine
+automatischen Konfigurations- oder Loggingprovider; deren Einrichtung folgt in Punkt 4–6.
+
+Die Renderprüfung läuft ebenfalls innerhalb des aktiven Hosts und erzeugt die Form mit derselben
+Konstruktorinjektion. Schrift-/Fenster-Testgrößen werden nach der automatischen Skalierung gesetzt;
+die Mindestgröße wird dafür nur im Test auf die Designerbasis zurückgesetzt. So bleibt auch die kleine
+Fläche bei großer Schrift tatsächlich Teil der Prüfung. Korrigierte Designer-Randabstände verhindern,
+dass der umgebrochene Einrichtungsstatus am unteren Fensterrand zu knapp sitzt.
 
 ## Prüfungen
 
@@ -201,6 +247,11 @@ konkurrierende/verspätete Ereignisse. `WawiCallPro.Core.Tests` prüft Dispatche
 bereits gestartete Callbacks, Fehlerweitergabe, Mandantenwechsel, Abbruchisolation und asynchrones Freigeben.
 Die UI-Warteschlange wird dafür deterministisch gepumpt; diese Tests sind kein WinForms-/DPI-Rendering.
 
+`WawiCallPro.Utilities.Tests` prüft den Standardhost mit den gemeinsamen Registrierungen: Singleton-/
+Scopegrenzen, fehlende Dienste, Teilstartfehler, umgekehrte Stopreihenfolge, Abbruch eines Hintergrunddienstes
+und Erhalt mehrerer Fehler aus Ausführung/Stop/Freigabe. Die Diagnose- und Renderläufe prüfen zusätzlich
+die tatsächlichen ausführbaren Hosts und die App-Nachrichtenschleife.
+
 ```powershell
 dotnet test --project .\WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj -c Debug -p:LexwareProductLine=Pro
 dotnet test --project .\WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
@@ -208,16 +259,26 @@ dotnet test --project .\WawiCallPro.Core.Tests\WawiCallPro.Core.Tests.csproj -c 
 dotnet test --project .\WawiCallPro.Core.Tests\WawiCallPro.Core.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 dotnet test --project .\WawiCallPro.Telephony.Tests\WawiCallPro.Telephony.Tests.csproj -c Debug -p:LexwareProductLine=Pro
 dotnet test --project .\WawiCallPro.Telephony.Tests\WawiCallPro.Telephony.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
+dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 35 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonietests); App und Console
+Lokaler Nachweis: je 43 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie- und acht Hosttests); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
 Das zentrale Buildskript stoppt derzeit vor dem Build am abweichenden lokalen Stand von `Quantarix.Pcfk.Core`
 gegenüber `deps.json`. Die Schwesterbibliothek und das Manifest wurden dafür nicht verändert.
 Direktbuilds belegen den vorhandenen lokalen Stand; sie sind kein erfolgreicher Bootstrap-/CI-Nachweis.
 
-Laufende Dienste, DI, Einstellungen, Datenbankzugriffe und echte SIP-/Lexware-Integration sind mit diesem
-Bausteinblock noch nicht implementiert. Die Dispatcher sind noch nicht in den Hosts verdrahtet;
-die unveränderten Oberflächen benötigen hierfür keine neue Renderprüfung.
+`MainForm` wurde für beide Varianten im vorhandenen Zustand ohne Verbindung mit kleinen/großen Fenstern,
+10/16-Punkt-Schrift und zusätzlicher 150%-Layoutskalierung gerendert und visuell geprüft. Die Skalierung
+simuliert den Layoutstress; eine echte High-DPI-Monitorprüfung wird damit nicht behauptet.
+Protokolle und Renderausgaben liegen unter `.artifacts/phase2-item3`.
+Bei der ersten 10-Punkt-Aufnahme kann `DrawToBitmap` die native Titelleiste leer erfassen;
+die Inhaltsfläche ist sichtbar und die Titelleiste in den weiteren Aufnahmen geprüft. Dieser
+Aufnahmeartefakt wird nicht als Nachweis einer fehlerhaft angezeigten Laufzeit-Titelleiste gewertet.
+
+Einstellungen, Datenbankzugriffe und echte SIP-/Lexware-Integration sind mit diesem Basis-Hostblock noch
+nicht implementiert. Die vollständige Betriebs-/Fehlerbehandlung und Freigabe zukünftiger Fachressourcen
+bleiben Aufgaben der folgenden Punkte/Phasen.

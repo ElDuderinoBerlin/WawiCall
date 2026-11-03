@@ -92,6 +92,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Core.Tests", "W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Telephony.Tests", "WawiCallPro.Telephony.Tests\WawiCallPro.Telephony.Tests.csproj", "{70DC862D-FBB7-4CCB-BEC9-E308EDB48069}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Utilities.Tests", "WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.csproj", "{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -426,6 +428,18 @@ Global
 		{70DC862D-FBB7-4CCB-BEC9-E308EDB48069}.Release|x64.Build.0 = Release|Any CPU
 		{70DC862D-FBB7-4CCB-BEC9-E308EDB48069}.Release|x86.ActiveCfg = Release|Any CPU
 		{70DC862D-FBB7-4CCB-BEC9-E308EDB48069}.Release|x86.Build.0 = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|x64.Build.0 = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Debug|x86.Build.0 = Debug|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|x64.ActiveCfg = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|x64.Build.0 = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|x86.ActiveCfg = Release|Any CPU
+		{4A383CF8-0A54-4912-A296-5BFC3D70D0A5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

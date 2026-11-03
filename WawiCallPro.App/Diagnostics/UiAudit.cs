@@ -8,6 +8,11 @@ internal static class UiAudit
 {
     internal static void Render(string outputDirectory)
     {
+        Render(outputDirectory, () => new MainForm());
+    }
+
+    internal static void Render(string outputDirectory, Func<MainForm> createForm)
+    {
         var requestedSurfaces = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES");
         if (!string.IsNullOrWhiteSpace(requestedSurfaces) &&
             !requestedSurfaces.Split(',', StringSplitOptions.TrimEntries).Contains(nameof(MainForm)))
@@ -25,11 +30,16 @@ internal static class UiAudit
                 try
                 {
                     WindowsFormsSettings.DefaultFont = font;
-                    using var form = new MainForm();
+                    using var form = createForm();
                     form.Font = font;
                     form.ClientSize = size;
                     form.Show();
+                    // Apply the stress-test bounds after font autoscaling has completed.
+                    form.MinimumSize = new Size(360, 220);
+                    form.ClientSize = size;
+                    form.PerformLayout();
                     Application.DoEvents();
+                    form.Refresh();
                     using var bitmap = new Bitmap(form.Width, form.Height);
                     form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, form.Size));
                     bitmap.Save(Path.Combine(outputDirectory, $"MainForm-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);

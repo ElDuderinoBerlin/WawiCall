@@ -32,7 +32,7 @@ partial class MainForm
         contentLayout.Controls.Add(connectionLabel, 0, 1);
         contentLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         contentLayout.Name = "contentLayout";
-        contentLayout.Padding = new System.Windows.Forms.Padding(24);
+        contentLayout.Padding = new System.Windows.Forms.Padding(16);
         contentLayout.RowCount = 3;
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));

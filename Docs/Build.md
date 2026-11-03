@@ -49,7 +49,14 @@ visuell betrachtet werden. Die 150%-Layoutskalierung ist eine Simulation; eine e
 wird dadurch nicht ersetzt. Unveränderte Ansichten müssen nicht nach jedem reinen Build erneut gerendert werden.
 
 Die Diagnosekonsole und die App melden bei fehlender Einrichtung `ConnectionConfigured=false`.
-Es werden in Phase 1 noch keine Telefonie-, Lexware- oder Datenbank-Fachoperationen ausgeführt.
+Seit Phase 2, Punkt 3 durchläuft `--diagnostics` einen echten Standardhost mit DI, Start, Dispatcheraufruf,
+Stop und asynchroner Freigabe; JSON wird erst danach ausgegeben. Zusätzlich werden `HostStarted`,
+Dispatchertyp und Mandantenauswahl gemeldet. Die App prüft dabei ihre WinForms-Nachrichtenschleife und
+den Schließpfad mit einer unsichtbaren Form. Telefonie-, Lexware- oder Datenbank-Fachoperationen laufen noch nicht.
+
+Die Renderprüfung verwendet denselben aktiven App-Host und Konstruktorinjektion. Test-Fenstergrößen werden
+nach der automatischen Schriftskalierung gesetzt, damit kleine Fenster bei großer Schrift tatsächlich geprüft werden.
+Die Mindestgröße wird hierfür nur im Audit auf die Designerbasis zurückgesetzt.
 
 ## Abhängigkeiten und CI
 
