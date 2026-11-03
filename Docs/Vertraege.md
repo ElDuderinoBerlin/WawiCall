@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2 abgeschlossen, Punkte 1–7. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2 abgeschlossen, Punkte 1–7; Tools-Nachtrag integriert. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -510,3 +510,17 @@ Die Einstellungsbereiche und das versionierte Grundschema sind umgesetzt. Weiter
 ihre Anwendung, Datenbankzugriffe und echte SIP-/Lexware-Integration folgen mit den Fachphasen.
 Die Betriebsbasis ist umgesetzt; Freigabe zukünftiger Fachressourcen folgt mit deren Implementierung.
 Die Standardeinrichtung wird später über die vorgesehenen Oberflächen angeboten.
+
+## Tools-Nachtrag: Release-Metadaten
+
+`StripDxLicenseInformation` und seine Tests sind im Solution-Ordner `Tools` integriert. Release-Build und
+modularer Release-Publish beider Hosts bereinigen eigene Assemblies nach der LxTranslate-Vorlage; Debug
+behält das bisherige Verhalten. Die Fachverträge, Produktlinienmetadaten und fremden Assemblies bleiben
+erhalten. Tool und Mono.Cecil sind reine Buildabhängigkeiten. Aufrufe, Schalter und Schlüsselbehandlung
+stehen in `Docs/Build.md`.
+
+Mit diesem Nachtrag bestehen je 93 Tests für Pro/FinOffice, darunter fünf zusätzliche Tooltests. Beide
+Hosts bauen in Debug und Release; vier modulare Publishes und 78 unabhängig geprüfte Ausgabedateien belegen
+die Entfernung ausschließlich in Release/Publish sowie erhaltene Produktidentität. Zwölf Hoststarts aus
+diesen Ausgaben und ein zusätzlicher win-x64-Publish/-Start bestanden. Logs: `.artifacts/stripdx`.
+Die dokumentierte Bootstrap-/CI-Abweichung bleibt bestehen.

@@ -77,6 +77,40 @@ Die Renderprüfung verwendet denselben aktiven App-Host und Konstruktorinjektion
 nach der automatischen Schriftskalierung gesetzt, damit kleine Fenster bei großer Schrift tatsächlich geprüft werden.
 Die Mindestgröße wird hierfür nur im Audit auf die Designerbasis zurückgesetzt.
 
+## StripDxLicenseInformation unter Tools
+
+`Tools/StripDxLicenseInformation` übernimmt die lokal geprüfte LxTranslate-Vorlage mit Mono.Cecil 0.11.6.
+Tool und `StripDxLicenseInformation.Tests` stehen im Solution-Ordner `Tools`. Die Ausgabe heißt
+`WawiCallPro.StripDxLicenseInformation.dll`; sie liegt wie andere eigene Projekte unter
+`bin/<Debug|Release>/<Pro|FinOffice>/net10.0` im Toolverzeichnis.
+
+`Directory.Build.targets` bindet das Tool als reine Buildabhängigkeit der Release-Hosts ein und führt es
+nach `Build` sowie nach `Publish` auf eigene `WawiCallPro*.dll` und `WawiCallPro*.exe` im jeweiligen
+Ausgabeverzeichnis aus. Native Apphosts werden übersprungen; fremde Quantarix-/DevExpress-Assemblies bleiben
+unverändert. Das Tool entfernt ausschließlich `DXLicenseInformation`-/`DXLicenseInformationAttribute`-
+Metadaten, einschließlich solcher an Modulen, verschachtelten Typen und Membern. Andere Attribute und
+Produktlinieninformationen bleiben erhalten. Debug- und Designerläufe werden nicht umgeschrieben.
+Mono.Cecil und das Tool werden nicht in Hostausgaben oder deren Runtime-Graph aufgenommen.
+
+Abschalten ist mit `-p:WawiStripDxLicenseInformationEnabled=false` möglich. Der optionale
+`-p:WawiStripDxLicenseInformationKeyFile=<absoluter-pfad-zur-snk>` erlaubt das erneute Signieren geänderter
+Strong-Name-Assemblies. Ohne Schlüssel werden solche Änderungen mit Fehler abgewiesen; private Schlüssel
+bleiben außerhalb der Versionsverwaltung. Die aktuelle Integration ist für modulare Publish-Ausgaben
+geprüft. Einzeldatei-/AOT-Pakete und die endgültige Signierreihenfolge gehören zur späteren Packaging-Phase.
+
+```powershell
+dotnet build .\Tools\StripDxLicenseInformation\StripDxLicenseInformation.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet test --project .\Tools\StripDxLicenseInformation.Tests\StripDxLicenseInformation.Tests.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet .\Tools\StripDxLicenseInformation\bin\Debug\Pro\net10.0\WawiCallPro.StripDxLicenseInformation.dll --input <assembly-oder-verzeichnis> --dry-run
+```
+
+Prüfung des Nachtrags: je 93 Tests für beide Produktlinien, Debug-/Release-Builds beider Hosts sowie deren
+modulare Release-Publishes. Fünf Tooltests prüfen Dry-Run, alle betroffenen Metadatenstellen, idempotentes
+Umschreiben, erhaltene Ausführbarkeit, Muster/Rekursion, Strong Names und gesperrte Eingaben.
+Ein unabhängiger Leser mit `System.Reflection.Metadata` prüft 78 tatsächliche Ausgabedateien auf Attribute,
+Produktidentität und getrennte Runtime-Abhängigkeiten. Zwölf Starts aus Debug/Release/Publish sowie ein
+zusätzlicher frameworkabhängiger win-x64-Publish/-Start bestanden. Protokolle: `.artifacts/stripdx`.
+
 ## Abhängigkeiten und CI
 
 `bootstrap.ps1` klont nur fehlende Schwester-Repositories und verwendet dann die im Manifest fixierte Revision.

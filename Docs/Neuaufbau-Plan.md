@@ -202,6 +202,8 @@ WawiCallPro/
   Docs/
   scripts/
   Tools/
+    StripDxLicenseInformation/       Release-Metadatenbereinigung
+    StripDxLicenseInformation.Tests/ Isolierte Assembly-/Schlüsseltests
 ```
 
 Die 13 eigenen Projektgerüste sowie Solution-/Build-Dateien sind mit Phase 1 angelegt. Tests und Fachimplementierungen
@@ -323,6 +325,16 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 - [x] `Solution Files`, `Docs`, `Scripts`, `Tools` und externe `src`-Einträge wie in LxTranslate pflegen.
   Nachweis: eigene Projekte direkt im Root; externe Quantarix-Projekte und deren SQLite-Quellprojekt im logischen
   Ordner `src` referenziert. Die Dateien bleiben in ihren Schwester-Repositories. Solution mit `dotnet sln list` geprüft.
+- [x] Nachtrag 04.11.2026: `StripDxLicenseInformation` aus der LxTranslate-Vorlage unter `Tools` integrieren. ✅
+  Eigenes .NET-10-Tool samt Testprojekt in der Solution. Standardmäßig nach Release-Build/-Publish beider
+  Hosts auf eigene `WawiCallPro*.dll`/`.exe` angewandt; Debug und fremde Assemblies werden nicht umgeschrieben.
+  Buildabhängigkeit über `ProjectReference`, keine Tool-/Mono.Cecil-Abhängigkeit im Produkt. Optionaler
+  Strong-Name-Schlüssel; signierte geänderte Assemblies ohne Schlüssel werden abgewiesen.
+  Je 93 Tests pro Produktlinie einschließlich fünf Tooltests bestanden; beide Hosts in beiden Varianten
+  in Debug und Release ohne Warnungen/Fehler gebaut, modulare Release-Publishes ebenfalls geprüft.
+  78 Assemblies unabhängig mit `System.Reflection.Metadata` geprüft: Release/Publish bereinigt,
+  Debug-Attribut erhalten, Produktlinienmetadaten unverändert. Zwölf Hoststarts aus diesen Ausgaben sowie
+  zusätzlicher win-x64-Publish/-Start bestanden. Logs: `.artifacts/stripdx`. Bootstrap-/CI-Grenzen unverändert.
 - [x] Zentrale MSBuild-Dateien, SDK-Konfiguration, Editor-/Git-Konventionen und Pakete festlegen.
   Nachweis: Solution-/Directory.Build-Dateien, .NET-10-SDK-Pinning mit Roll-forward, gemeinsame DevExpress-Version,
   Editor-/Git-Regeln sowie Build-Guard gegen direkte MMS-Referenzen eingerichtet. App und Console in Debug

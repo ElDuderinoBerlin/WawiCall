@@ -82,9 +82,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A5
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{3910C37C-A104-4147-93D5-82EBF4143017}"
-	ProjectSection(SolutionItems) = preProject
-		Tools\.gitkeep = Tools\.gitkeep
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Interfaces.Tests", "WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj", "{3CF39C76-FE4C-41A5-96FA-C4C3CE87675E}"
 EndProject
@@ -97,6 +94,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.App.Tests", "WawiCallPro.App.Tests\WawiCallPro.App.Tests.csproj", "{A7B58002-F012-4F1C-B2D8-2DBDAEBE4929}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Console.Tests", "WawiCallPro.Console.Tests\WawiCallPro.Console.Tests.csproj", "{13E04AD2-C577-4DA3-864D-4C93C8DC3F7C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripDxLicenseInformation", "Tools\StripDxLicenseInformation\StripDxLicenseInformation.csproj", "{60109D5A-98CD-497B-B996-1D242E6FF34D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripDxLicenseInformation.Tests", "Tools\StripDxLicenseInformation.Tests\StripDxLicenseInformation.Tests.csproj", "{A782647E-60B5-45D3-BC1A-E85B59221EC7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -468,6 +469,30 @@ Global
 		{13E04AD2-C577-4DA3-864D-4C93C8DC3F7C}.Release|x64.Build.0 = Release|Any CPU
 		{13E04AD2-C577-4DA3-864D-4C93C8DC3F7C}.Release|x86.ActiveCfg = Release|Any CPU
 		{13E04AD2-C577-4DA3-864D-4C93C8DC3F7C}.Release|x86.Build.0 = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|x64.Build.0 = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Debug|x86.Build.0 = Debug|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|x64.ActiveCfg = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|x64.Build.0 = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|x86.ActiveCfg = Release|Any CPU
+		{60109D5A-98CD-497B-B996-1D242E6FF34D}.Release|x86.Build.0 = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|x64.Build.0 = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Debug|x86.Build.0 = Debug|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x64.ActiveCfg = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x64.Build.0 = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x86.ActiveCfg = Release|Any CPU
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -484,5 +509,7 @@ Global
 		{77BE07F7-8183-4A83-8AEC-D46A0C2C026D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{C27FFA97-7E20-4032-A9D9-C9571EE427D0} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D578AED2-A5FF-4EFC-AAD2-82331449C889} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{60109D5A-98CD-497B-B996-1D242E6FF34D} = {3910C37C-A104-4147-93D5-82EBF4143017}
+		{A782647E-60B5-45D3-BC1A-E85B59221EC7} = {3910C37C-A104-4147-93D5-82EBF4143017}
 	EndGlobalSection
 EndGlobal

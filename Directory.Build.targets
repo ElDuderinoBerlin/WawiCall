@@ -12,4 +12,40 @@
     <Error Condition="$([System.String]::Copy('%(Reference.Identity)').StartsWith('MMS.'))"
            Text="MMS-Assemblyreferenz ist nicht erlaubt: %(Reference.Identity). Eine konkrete Quantarix-API verwenden." />
   </Target>
+  <PropertyGroup>
+    <WawiStripDxLicenseInformationEnabled Condition="'$(WawiStripDxLicenseInformationEnabled)' == ''">true</WawiStripDxLicenseInformationEnabled>
+    <_WawiStripDxHost Condition="'$(Configuration)' == 'Release' and '$(DesignTimeBuild)' != 'true'
+        and '$(WawiStripDxLicenseInformationEnabled)' == 'true'
+        and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">true</_WawiStripDxHost>
+  </PropertyGroup>
+  <!-- Build dependency only: Mono.Cecil and the tool must never become host runtime dependencies. -->
+  <ItemGroup Condition="'$(_WawiStripDxHost)' == 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Tools\StripDxLicenseInformation\StripDxLicenseInformation.csproj"
+                      ReferenceOutputAssembly="false" Private="false" OutputItemType="_WawiStripDxTool"
+                      GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishSingleFile;PublishTrimmed;PublishAot;OutDir;OutputPath;BaseOutputPath;BaseIntermediateOutputPath;IntermediateOutputPath" />
+  </ItemGroup>
+  <Target Name="WawiValidateStripDxTool" Condition="'$(_WawiStripDxHost)' == 'true'"
+          DependsOnTargets="ResolveProjectReferences">
+    <Error Condition="'@(_WawiStripDxTool->Count())' != '1' or !Exists('@(_WawiStripDxTool)')"
+           Text="StripDxLicenseInformation fehlt. Tool und Host mit derselben Konfiguration/Produktlinie bauen." />
+    <PropertyGroup>
+      <_WawiStripDxToolPath>@(_WawiStripDxTool->'%(FullPath)')</_WawiStripDxToolPath>
+      <_WawiStripDxKeyArgument Condition="'$(WawiStripDxLicenseInformationKeyFile)' != ''">--key-file &quot;$(WawiStripDxLicenseInformationKeyFile)&quot;</_WawiStripDxKeyArgument>
+    </PropertyGroup>
+  </Target>
+  <Target Name="WawiStripDxLicenseInformationFromBuildOutput" AfterTargets="Build"
+          DependsOnTargets="WawiValidateStripDxTool" Condition="'$(_WawiStripDxHost)' == 'true'">
+    <Exec Command="dotnet &quot;$(_WawiStripDxToolPath)&quot; --input &quot;$(TargetDir).&quot; --pattern &quot;WawiCallPro*.dll&quot; --pattern &quot;WawiCallPro*.exe&quot; $(_WawiStripDxKeyArgument)"
+          IgnoreStandardErrorWarningFormat="true" />
+  </Target>
+  <Target Name="WawiStripDxLicenseInformationFromPublishOutput" AfterTargets="Publish"
+          DependsOnTargets="WawiValidateStripDxTool" Condition="'$(_WawiStripDxHost)' == 'true'">
+    <PropertyGroup>
+      <_WawiStripDxPublishDir Condition="$([System.IO.Path]::IsPathRooted('$(PublishDir)'))">$(PublishDir)</_WawiStripDxPublishDir>
+      <_WawiStripDxPublishDir Condition="'$(_WawiStripDxPublishDir)' == ''">$(MSBuildProjectDirectory)\$(PublishDir)</_WawiStripDxPublishDir>
+      <_WawiStripDxPublishDir>$([MSBuild]::EnsureTrailingSlash('$(_WawiStripDxPublishDir)'))</_WawiStripDxPublishDir>
+    </PropertyGroup>
+    <Exec Command="dotnet &quot;$(_WawiStripDxToolPath)&quot; --input &quot;$(_WawiStripDxPublishDir).&quot; --pattern &quot;WawiCallPro*.dll&quot; --pattern &quot;WawiCallPro*.exe&quot; $(_WawiStripDxKeyArgument)"
+          IgnoreStandardErrorWarningFormat="true" />
+  </Target>
 </Project>

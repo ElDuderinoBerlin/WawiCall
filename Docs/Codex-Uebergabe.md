@@ -43,7 +43,8 @@ Version 1 trennt `user`, `companies`, `devices` und `database` neben `sipAccount
 Datei (`formatVersion`/`settings`). Unversionierte SIP-Dateien werden nur im Speicher ergänzt; erst ausdrückliches
 Speichern aktualisiert das Format. Änderungen brauchen den geladenen Snapshot und eine exklusive Dateisperre.
 Veraltete/fremde Bearbeitungsstände sowie neuere/unbekannte Versionen überschreiben keine Daten.
-13 eigene Produktprojekte und sechs Testprojekte (`Interfaces`, `Core`, `Telephony`, `Utilities`, `App`, `Console`) sind angelegt;
+13 eigene Produktprojekte, das Tool `StripDxLicenseInformation` sowie sieben Testprojekte
+(`Interfaces`, `Core`, `Telephony`, `Utilities`, `App`, `Console`, `StripDxLicenseInformation`) sind angelegt;
 externe Projekte stehen im logischen Solution-Ordner `src`.
 Die weiteren Solution-Ordner heißen `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
@@ -72,11 +73,17 @@ Das zentrale Buildskript stoppt inzwischen am Revisionsabgleich für `Quantarix.
 Manifest und Schwester-Repositories wurden nicht verändert. Direkte lokale Builds ersetzen hier keinen
 erfolgreichen Bootstrap-/CI-Lauf. Aktuelle Test-/Build-/Diagnose-Ausgaben: `.artifacts/phase2-item7`.
 
+Der vom Nutzer angeforderte Tools-Nachtrag ist ebenfalls abgeschlossen: Tool und Testprojekt im
+Solution-Ordner `Tools`, automatische Bereinigung eigener Assemblies nach Release-Build und modularem
+Release-Publish. Debug wird nicht umgeschrieben. Reine Buildreferenz, keine Tool-/Mono.Cecil-Runtime-Abhängigkeit.
+Je 93 Tests inklusive fünf Tooltests bestanden; beide Hosts/Varianten in Debug und Release gebaut und
+veröffentlicht. 78 Assemblies unabhängig auf Attribute und erhaltene Produktidentität geprüft; zwölf
+Hoststarts sowie zusätzlicher win-x64-Publish/-Start bestanden. Logs: `.artifacts/stripdx`.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Noch im aktuellen Auftrag: die vom Nutzer vermisste Integration von `StripDxLicenseInformation` unter Tools
-ergänzen und separat validieren/committen. Danach folgt Phase 3, Punkt 1: Schema-/Repository-Verträge ausarbeiten.
+Als Nächstes Phase 3, Punkt 1: Schema-/Repository-Verträge ausarbeiten.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes
 SIP-Konto, keine erfolgreiche Registrierung/Verbindung. Die neuen Benutzer-/Gerätepräferenzen und DB-Tokens
