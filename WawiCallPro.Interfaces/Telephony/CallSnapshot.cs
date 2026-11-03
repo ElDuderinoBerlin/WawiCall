@@ -8,7 +8,7 @@ public enum CallDirection
     Outgoing = 2
 }
 
-/// <summary>Shared state vocabulary; legal transitions and concurrency policy are defined in the next plan item.</summary>
+/// <summary>Shared states; legal transitions are enforced by WawiCallPro.Telephony.CallStateMachine.</summary>
 public enum CallState
 {
     Created = 1,
@@ -66,6 +66,7 @@ public sealed record CallSnapshot
     public required CallAddress LocalAddress { get; init; }
     public required CallAddress RemoteAddress { get; init; }
     public required DateTimeOffset StartedAtUtc { get; init; }
+    public required DateTimeOffset StateChangedAtUtc { get; init; }
     public DateTimeOffset? AnsweredAtUtc { get; init; }
     public DateTimeOffset? EndedAtUtc { get; init; }
     public CallEndReason? EndReason { get; init; }

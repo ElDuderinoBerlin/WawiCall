@@ -377,7 +377,20 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   (erwartet `da59daa69ed09f45c3049b019045f52041d2205a`, lokal `13227fe559450f6afc45f1e6191f60f56786c673`).
   Die erfolgreichen Builds erfolgten deshalb direkt gegen den vorhandenen lokalen Stand; Manifest und
   Schwester-Repositories bleiben unverändert. Das ist kein erfolgreicher Bootstrap-/CI-Nachweis.
-- [ ] Lebenszyklen und Zustandsmodell festlegen; UI-Thread und Hintergrunddienste sauber trennen.
+- [x] Lebenszyklen und Zustandsmodell festlegen; UI-Thread und Hintergrunddienste sauber trennen.
+  Nachweis: Besitz-/Start-/Stopregeln, Registrierungsablauf und Gesprächsübergänge unter `Docs/Vertraege.md`
+  festgelegt. UI-unabhängiger, pro Gespräch gesperrter `CallStateMachine` mit Sequenz-/Endzustandsprüfung,
+  UTC-/Annahme-/Endzeitregeln und Wiederherstellung einschließlich `StateChangedAtUtc` implementiert.
+  `CompanyContext`/`CompanyOperation` kapseln Auswahlrevision, Abbruch und die erneute Prüfung beim Binden;
+  UI-/Inline-Dispatcher warten Callbacks ab und geben Fehler/Abbruch beobachtbar weiter.
+  Je 35 Tests für Pro und FinOffice bestanden: elf Vertrags-, 16 Core- und acht Telefonietests einschließlich
+  konkurrierender Ereignisse, wartender UI-Callbacks, Mandantenwechsel und asynchroner Freigabe.
+  App/Console für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut; vier Diagnosestarts,
+  Runtime-/MMS-/Produktlinienprüfung und Solution-Prüfung erfolgreich. Logs: `.artifacts/phase2-item2`.
+  Die unveränderte lokale Pcfk-Core-Revision weicht weiterhin vom Manifest ab; kein neuer Bootstrap-/CI-Nachweis.
+  Keine Ansicht und noch keine Hostverdrahtung geändert; keine Renderprüfung erforderlich.
+  Die konkrete DI-/Hostintegration folgt in Punkt 3, vollständige Betriebs-/Shutdownintegration in Punkt 6
+  sowie Datenbank-/SIP-Anbindung in deren Fachphasen. Diese Abnahmen sind damit nicht vorweggenommen.
 - [ ] App-/Console-Composition-Roots aufbauen; Dienste über DI statt globale Form-/Singleton-Zugriffe verbinden.
 - [ ] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.
 - [ ] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.

@@ -19,7 +19,8 @@ public sealed class CompanySelectionChangedEventArgs(CompanySelection selection)
 }
 
 /// <summary>
-/// Invokes a callback on the host's UI context and completes after it has run, propagating cancellation/errors.
+/// Invokes a short synchronous callback on the host's UI context and completes after it has run.
+/// Errors propagate; cancellation prevents queued callbacks from starting, but does not interrupt running callbacks.
 /// The console executes callbacks without a WinForms dependency. Callers must await the returned ValueTask.
 /// </summary>
 public interface IUiDispatcher

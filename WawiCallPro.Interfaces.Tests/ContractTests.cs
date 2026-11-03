@@ -166,6 +166,7 @@ public sealed class ContractTests
                 LocalAddress = new(NumberPresentation.Available, "**620"),
                 RemoteAddress = new(NumberPresentation.Available, "030 / 12345", "+493012345"),
                 StartedAtUtc = started,
+                StateChangedAtUtc = started.AddMinutes(2),
                 AnsweredAtUtc = started.AddSeconds(5),
                 EndedAtUtc = started.AddMinutes(2),
                 EndReason = CallEndReason.RemoteHangup
@@ -200,7 +201,8 @@ public sealed class ContractTests
             State = CallState.Ringing,
             LocalAddress = new(NumberPresentation.Available, "**620"),
             RemoteAddress = new(NumberPresentation.Withheld),
-            StartedAtUtc = DateTimeOffset.UtcNow
+            StartedAtUtc = DateTimeOffset.UtcNow,
+            StateChangedAtUtc = DateTimeOffset.UtcNow
         };
 
         var restored = RoundTrip(new CallHistory { Call = call });
