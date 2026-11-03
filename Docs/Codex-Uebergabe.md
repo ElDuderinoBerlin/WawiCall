@@ -27,7 +27,7 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 
 ## Aktueller Stand
 
-Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben einzeln geprüfte und committete Checklistenpunkte.
+Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben ursprüngliche Checklistenpunkte und den Tools-Nachtrag.
 Phase 2 ist einschließlich ihrer lokalen Abnahme abgeschlossen: gemeinsame Fach-/Host-/Plugin-Verträge in
 `WawiCallPro.Interfaces`, Gesprächszustandsautomat in `WawiCallPro.Telephony`, Mandantenarbeitsbereiche
 und Dispatcher in `WawiCallPro.Core`. Festlegungen und Grenzen stehen in `Docs/Vertraege.md`.
@@ -43,8 +43,8 @@ Version 1 trennt `user`, `companies`, `devices` und `database` neben `sipAccount
 Datei (`formatVersion`/`settings`). Unversionierte SIP-Dateien werden nur im Speicher ergänzt; erst ausdrückliches
 Speichern aktualisiert das Format. Änderungen brauchen den geladenen Snapshot und eine exklusive Dateisperre.
 Veraltete/fremde Bearbeitungsstände sowie neuere/unbekannte Versionen überschreiben keine Daten.
-13 eigene Produktprojekte, das Tool `StripDxLicenseInformation` sowie sieben Testprojekte
-(`Interfaces`, `Core`, `Telephony`, `Utilities`, `App`, `Console`, `StripDxLicenseInformation`) sind angelegt;
+13 eigene Produktprojekte, das Tool `StripDxLicenseInformation` sowie acht Testprojekte
+(`Interfaces`, `Core`, `Telephony`, `Utilities`, `App`, `Console`, `Database`, `StripDxLicenseInformation`) sind angelegt;
 externe Projekte stehen im logischen Solution-Ordner `src`.
 Die weiteren Solution-Ordner heißen `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
@@ -80,10 +80,23 @@ Je 93 Tests inklusive fünf Tooltests bestanden; beide Hosts/Varianten in Debug 
 veröffentlicht. 78 Assemblies unabhängig auf Attribute und erhaltene Produktidentität geprüft; zwölf
 Hoststarts sowie zusätzlicher win-x64-Publish/-Start bestanden. Logs: `.artifacts/stripdx`.
 
+Phase 3, Punkt 1 ist abgeschlossen: `Docs/Datenbankschema.md` legt Spalten, Schlüssel, UTC, Löschregeln
+und Indizes der Migrationen 1–5 fest. Die neue Datei ist einmal im Docs-Solutionordner referenziert und
+in Rider geöffnet. Unter `WawiCallPro.Database.Contracts` liegen sechs Repository-Verträge, geprüfte
+Schreibanträge, Konfliktcodes und kanonische GUID-/UTC-/Quellhash-Kodierungen. Cacheersatz und Historie
+sind getrennt; Telefonie-Revision, Speicherversion und Ereignisfolge sind unterschiedliche Zähler.
+Zwölf neue Vertragstests, insgesamt je 105 Tests für Pro/FinOffice bestanden. Database, App und Console
+beider Varianten in Debug ohne Warnungen/Fehler gebaut; vier Diagnose-Starts, keine Datenbankanlage,
+Runtime-/MMS-/Produktlinien- und Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item1`.
+Keine UI-Änderung oder neue Renderprüfung. Noch keine Provider, Migrationen oder Dapper-Implementierungen;
+reale Constraint-, Transaktions- und Providerabnahmen stehen aus. Die bekannte Bootstrap-/CI-Grenze bleibt.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 3, Punkt 1: Schema-/Repository-Verträge ausarbeiten.
+Als Nächstes Phase 3, Punkt 2: eigene DatabaseType-/Factory-/Provisioner-/Migrator-/Status-/Fortschrittsdienste.
+Vorher das neue Schema und die Repository-Verträge lesen; vorhandene LxTranslate-Referenz nutzt
+FluentMigrator 8.0.1. Providerpakete und die eigentlichen Migrationen sind weiterhin getrennte Planpunkte.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes
 SIP-Konto, keine erfolgreiche Registrierung/Verbindung. Die neuen Benutzer-/Gerätepräferenzen und DB-Tokens

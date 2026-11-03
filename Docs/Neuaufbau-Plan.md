@@ -248,7 +248,8 @@ weiter SQL Anywhere unterstützen muss, erhält dies einen eigenen nachgewiesene
 | `mailmessages` / `mailattachments` | Späterer Office-Ausbau: eindeutige Connector-ID, Beteiligte, Inhalt/Metadaten und Anhangsverweise |
 | FluentMigrator-Versionsinformationen | Ausschließlich Versionsverwaltung des neuen WawiCallPro-Schemas |
 
-Das genaue Spaltenschema wird vor der ersten Migration festgelegt. Technische IDs, Fremdschlüssel,
+Das genaue Spaltenschema ist seit Phase 3, Punkt 1 in [Datenbankschema.md](Datenbankschema.md) festgelegt.
+Technische IDs, Fremdschlüssel,
 Nullbarkeit, maximale Längen, Löschregeln und Indizes sind Teil der Abnahme.
 Produktlinie plus Installation plus externe Mandanten-ID bilden die Quellidentität; Kundennummern allein sind
 nicht global eindeutig. Nummern können mehreren Geschäftspartnern gehören und bekommen keinen falschen Unique-Index.
@@ -281,7 +282,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 |---|---|---|---|
 | 0 | ✅ | Referenzen geprüft, Regeln übernommen, vollständiger Plan dokumentiert | Dieser Auftrag |
 | 1 | ✅ | Solution-/Build-Grundlage wie LxTranslate | 0 |
-| 2 | ⬜ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
+| 2 | ✅ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
 | 3 | ⬜ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
 | 4 | ⬜ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
 | 5 | ⬜ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
@@ -497,7 +498,21 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
 
 ### Phase 3 – Datenbank und FluentMigrator vollständig neu ⬜
 
-- [ ] Tabellen, Schlüssel, UTC-Konventionen und Repository-Verträge aus Abschnitt 6 verbindlich ausarbeiten.
+- [x] Tabellen, Schlüssel, UTC-Konventionen und Repository-Verträge aus Abschnitt 6 verbindlich ausarbeiten. ✅
+  Nachweis: `Docs/Datenbankschema.md` definiert alle Tabellen der Versionen 1–5 einschließlich
+  verlustfreiem Anschriften-/Nummerncache, Spalten, Längen/Nullbarkeit, Fremdschlüsseln, Löschregeln,
+  Indizes und der Runner-Versionstabelle. Office bleibt außerhalb dieser Migrationen für Phase 11 reserviert.
+  Sechs Repository-Verträge in `WawiCallPro.Database.Contracts`, geprüfte Schreibanträge und feste
+  Konfliktcodes. Getrennte Speicher-/Gesprächsrevisionen und Ereignisfolgen; atomarer vollständiger
+  Cacheersatz ohne Historienänderung, gemeinsame Rufnummern ohne falsche Eindeutigkeit.
+  Versionierte UTF-8-Quellhashes mit Originalvergleich als Repository-Pflicht, kanonische GUID-Schlüssel
+  und Int64-UTC-Ticks erhalten Quellidentitäten und 100-ns-Präzision über Providergrenzen.
+  Je 105 Tests für Pro/FinOffice bestanden, darunter zwölf neue Datenbank-Vertragstests mit unabhängig
+  berechneten Hashvektoren. Database, App und Console beider Varianten mit `-c Debug` ohne Warnungen/Fehler
+  gebaut; vier Diagnose-Hoststarts sowie Runtime-/Produktlinien-/MMS- und Solution-Prüfung bestanden.
+  Neue Schema-Markdowndatei einmal im Docs-Solutionordner referenziert und in Rider geöffnet.
+  Logs: `.artifacts/phase3-item1`. Keine UI-Änderung; keine neue Renderprüfung nötig.
+  Noch keine Provider, Migrationen, tatsächlichen CAS-/Rollback- oder SQL-Constrainttests; die Phase bleibt offen.
 - [ ] Eigene `DatabaseType`, `DatabaseFactory`, `DatabaseProvisioner`, Migrator-, Status- und Fortschrittsdienste erstellen.
 - [ ] FluentMigrator-Pakete/Runner für SQLite, SQL Server, MySQL und PostgreSQL kompatibel zum Referenzstand einbinden.
 - [ ] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen.

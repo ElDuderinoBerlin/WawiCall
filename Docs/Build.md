@@ -111,6 +111,21 @@ Ein unabhängiger Leser mit `System.Reflection.Metadata` prüft 78 tatsächliche
 Produktidentität und getrennte Runtime-Abhängigkeiten. Zwölf Starts aus Debug/Release/Publish sowie ein
 zusätzlicher frameworkabhängiger win-x64-Publish/-Start bestanden. Protokolle: `.artifacts/stripdx`.
 
+## Datenbankverträge und Tests
+
+Die Datenbankschema-/Repository-Verträge aus Phase 3, Punkt 1 stehen in `Docs/Datenbankschema.md` und
+`WawiCallPro.Database.Contracts`. `WawiCallPro.Database.Tests` prüft die Speicherwertkodierungen und
+Schreibanträge ohne angelegte Datenbank. Noch keine FluentMigrator-/Dapper-Implementierung oder neue
+Datenbank-DI-Registrierung. Beide Hosts starten deshalb weiterhin ohne Kommunikationsdatenbank.
+
+```powershell
+dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
+```
+
+Die aktuelle Prüfung umfasst je 105 Tests pro Variante einschließlich zwölf neuer Datenbank-Vertragstests
+und Debug-Builds von Database, App und Console. Protokolle: `.artifacts/phase3-item1`.
+
 ## Abhängigkeiten und CI
 
 `bootstrap.ps1` klont nur fehlende Schwester-Repositories und verwendet dann die im Manifest fixierte Revision.

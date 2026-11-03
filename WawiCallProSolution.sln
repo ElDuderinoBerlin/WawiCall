@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 		Docs\Build.md = Docs\Build.md
 		Docs\Codex-Uebergabe.md = Docs\Codex-Uebergabe.md
 		Docs\Vertraege.md = Docs\Vertraege.md
+		Docs\Datenbankschema.md = Docs\Datenbankschema.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.App", "WawiCallPro.App\WawiCallPro.App.csproj", "{275DD5FC-D51E-42F4-A103-40AE2808462D}"
@@ -98,6 +99,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripDxLicenseInformation", "Tools\StripDxLicenseInformation\StripDxLicenseInformation.csproj", "{60109D5A-98CD-497B-B996-1D242E6FF34D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StripDxLicenseInformation.Tests", "Tools\StripDxLicenseInformation.Tests\StripDxLicenseInformation.Tests.csproj", "{A782647E-60B5-45D3-BC1A-E85B59221EC7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Database.Tests", "WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj", "{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -493,6 +496,18 @@ Global
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x64.Build.0 = Release|Any CPU
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x86.ActiveCfg = Release|Any CPU
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7}.Release|x86.Build.0 = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|x64.Build.0 = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Debug|x86.Build.0 = Debug|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|x64.ActiveCfg = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|x64.Build.0 = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|x86.ActiveCfg = Release|Any CPU
+		{B8582DDC-0023-42CA-A485-AA49EAD9CBE1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

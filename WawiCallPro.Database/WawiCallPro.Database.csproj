@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Telephony\WawiCallPro.Telephony.csproj" />
   </ItemGroup>
 </Project>

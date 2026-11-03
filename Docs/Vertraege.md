@@ -1,11 +1,13 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2 abgeschlossen, Punkte 1–7; Tools-Nachtrag integriert. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 3, Punkt 1 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
 `WawiCallPro.Core` den Mandantenkontext und die Dispatcher. Ihre öffentlichen Datentransfers
 verwenden dieselbe Vertrags-Assembly wie die Plugins.
+Die Infrastrukturverträge der Kommunikationsdatenbank liegen seit Phase 3, Punkt 1 getrennt
+unter `WawiCallPro.Database.Contracts`; Plugins erhalten weiterhin ausschließlich die Fachverträge.
 
 ## Identität und Stammdaten
 
@@ -104,13 +106,52 @@ des Telefoniedienstes, nicht zu der eines Fensters oder Mandantenladevorgangs.
 
 `CallHistory` bündelt Gespräch, alle Zuordnungskandidaten, Auswahl, historische Namen/Nummern, Notizen,
 geordnete Ereignisse und Aufnahmereferenzen. Stammdatenaktualisierungen verändern diese Momentaufnahme nicht.
-`ICallHistoryService` beschreibt Abfragen und Notizspeicherung; Rohverbindungen und Repository-Verträge
-folgen getrennt in Phase 3. Aufnahmeverfügbarkeit wird ausdrücklich modelliert; Dateipfade sind relativ
+`ICallHistoryService` beschreibt Abfragen und Notizspeicherung; die getrennten Repository-Verträge sind
+seit Phase 3, Punkt 1 festgelegt, Rohverbindungen bleiben Implementierungsdetails. Aufnahmeverfügbarkeit
+wird ausdrücklich modelliert; Dateipfade sind relativ
 zum konfigurierten Aufnahmeverzeichnis. Implementierungen müssen diese Grenze bei Dateioperationen prüfen.
 
 Historienseiten sind nach Beginn absteigend und anschließend Gesprächs-ID geordnet. Zeitfilter verwenden
 UTC mit inklusivem Beginn und exklusivem Ende. Ohne Mandantenfilter werden auch unzugeordnete Gespräche
 berücksichtigt. Gleichzeitige Mandanten-/Geschäftspartnerfilter müssen widerspruchsfrei sein.
+
+## Datenbankschema und Repository-Verträge
+
+Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–5 mit Spalten, Längen,
+Nullbarkeit, Schlüsseln, Indizes und Löschregeln. `partyaddresses` ergänzt den bereits vereinbarten
+Geschäftspartner-/Nummerncache, damit die vorhandenen Anschriften-DTOs vollständig gespeichert werden
+können. Historische Kandidaten und Nummernfehler besitzen keinen FK auf veränderliche Cachezeilen.
+Alle Fremdschlüssel sperren unzulässige Löschungen; Cachepflege löscht erlaubte Kinder ausdrücklich
+in derselben Transaktion. Office-Tabellen bleiben der späteren Office-Phase vorbehalten.
+
+`ICompanyRepository`, `IPartyCacheRepository`, `ICallRepository`, `ICallNoteRepository`,
+`IRecordingRepository` und `INumberParseLogRepository` beschreiben ausschließlich die eigene
+Kommunikationsdatenbank. Es gibt noch keine Provider-/Dapper-Implementierung oder DI-Registrierung.
+Die Vertragsassembly enthält keine SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
+Interfaces und Telephony, um die vorhandenen Snapshotregeln des Gesprächsautomaten wiederzuverwenden;
+dadurch wird weder ein Gespräch gestartet noch ein anderer Zustandsautomat eingeführt.
+
+Schreibanträge prüfen Quellidentität, Grenzen, UTC, Besitz und initialisierte Sammlungen vor einem
+späteren Repositoryaufruf. `SourceIdentityHash` kodiert Identitätskomponenten mit getrennten Domänen,
+UTF-8-Bytelängen und SHA-256; IDs werden nicht getrimmt, umgeschrieben oder Unicode-normalisiert.
+Die späteren Repositories müssen nach Hashsuche zusätzlich alle Originalkomponenten ordinal vergleichen
+und eine Kollision abweisen. `DatabaseId` speichert GUIDs als 32 kleine Hexzeichen; `DatabaseUtc` bildet
+Zeitpunkte auf Int64-UTC-Ticks ab und erhält einzelne 100-ns-Ticks. SQL-Zeitzonen-/Sortierdefaults bestimmen
+damit nicht die gespeicherte Fachidentität oder Gesprächschronologie.
+
+`ExpectedVersion=null` bedeutet ausschließlich Insert. Updates benötigen die gelesene positive
+Speicherversion; ein Cacheersatz separat die Cacheversion ab 0. `CallWrite` ersetzt Gespräch und
+historische Kandidaten und hängt Ereignisse atomar an. Notizen und Aufnahmemetadaten besitzen eigene
+Versionen und werden von einem Gesprächszustands-Write nicht überschrieben. Speicher-CAS-Version,
+CallSnapshot.Revision und CallEvent.Sequence sind ausdrücklich verschiedene Zähler.
+Ein vollständiger Cacheantrag entsteht erst nach erfolgreich geladenen Quellseiten; ein abgebrochener
+Abruf darf weder einen leeren Cache vortäuschen noch einen neueren Snapshot ersetzen.
+
+`RepositoryConflictException` liefert feste Codes/Meldungen für veraltete Versionen, vorhandene/fehlende
+Datensätze, Identitätskollisionen, fremden Besitz und geänderte bereits gespeicherte Ereignisse.
+Reale Transaktionen, Konkurrenzkonflikte, UTC-/Unicode-SQL-Rundläufe und Fremdschlüssel werden erst mit
+den Provider-/Repository-Implementierungen getestet. Die vorliegenden Vertragsprüfungen nehmen diese
+Abnahme nicht vorweg.
 
 ## Host und Plugins
 
@@ -470,10 +511,12 @@ dotnet test --project .\WawiCallPro.Telephony.Tests\WawiCallPro.Telephony.Tests.
 dotnet test --project .\WawiCallPro.Telephony.Tests\WawiCallPro.Telephony.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.csproj -c Debug -p:LexwareProductLine=Pro
 dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
+dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 88 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-,
+Nachweis zu Phase 2, Punkt 7: je 88 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-,
 elf Einstellungs-/Versions-, sieben Betriebs-, ein WinForms-Fehlerablauf- und 15 Konsolentests); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
@@ -524,3 +567,14 @@ Hosts bauen in Debug und Release; vier modulare Publishes und 78 unabhängig gep
 die Entfernung ausschließlich in Release/Publish sowie erhaltene Produktidentität. Zwölf Hoststarts aus
 diesen Ausgaben und ein zusätzlicher win-x64-Publish/-Start bestanden. Logs: `.artifacts/stripdx`.
 Die dokumentierte Bootstrap-/CI-Abweichung bleibt bestehen.
+
+## Nachweis zu Phase 3, Punkt 1
+
+`WawiCallPro.Database.Tests` prüft zwölf neue Fälle: unabhängig berechnete Hashvektoren, vollständige
+Quellidentitäten, UTC-Einzelticks, kanonische GUIDs, Mandantentrennung in Schreibanträgen, gemeinsame
+Rufnummern, historische Kandidaten, Ereignisordnung, eigene Notiz-/Aufnahmeversionen und feste Fehlercodes.
+Je 105 Tests für Pro/FinOffice bestanden; Database, App und Console beider Varianten in Debug ohne
+Warnungen/Fehler gebaut. Vier Diagnose-Hoststarts und die Runtime-/MMS-/Produktlinien-/Solution-Prüfung
+bestanden. Dabei werden weiterhin nur Betriebslogs und keine Datenbanken oder Einstellungen erzeugt.
+Protokolle: `.artifacts/phase3-item1`. Die Verträge sind implementiert; ihre künftigen SQL-Implementierungen
+und echte Provider-/Migrations-/Konkurrenztests bleiben offen. Keine UI-Änderung, keine neue Renderprüfung.
