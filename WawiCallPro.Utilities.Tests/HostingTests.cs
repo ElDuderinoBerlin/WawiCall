@@ -9,6 +9,7 @@ using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Utilities.Tests;
 
@@ -20,6 +21,7 @@ public sealed class HostingTests
         {
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
             services.AddSingleton<IHostLifetime, TestHostLifetime>();
+            services.AddSingleton(new ConfigurationLocation(Path.Combine(Path.GetTempPath(), "WawiCallPro-host-tests-" + Guid.NewGuid().ToString("N"))));
         });
 
     [TestMethod]

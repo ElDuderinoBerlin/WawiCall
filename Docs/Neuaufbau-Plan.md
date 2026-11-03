@@ -409,7 +409,24 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   Die Skalierung bleibt eine Simulation und ersetzt keine echte High-DPI-Monitorabnahme.
   Plan/Verträge/Übergabe aktualisiert. Die bekannte lokale Pcfk-Core-Abweichung bleibt bestehen;
   direkte lokale Builds sind weiterhin kein neuer Bootstrap-/CI-Nachweis.
-- [ ] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.
+- [x] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.
+  Nachweis: typisierte Startkonfiguration mit optionalem SIP-Konto, strikter JSON-Prüfung und festen
+  Feldmeldungen vor dem Start der Fachdienste. Kennwörter werden ausschließlich als Windows-DPAPI-
+  `CurrentUser`-Werte mit Anwendungs-/Zweckbindung gespeichert; keine Klartext- oder Machine-Fallbacks.
+  Konfigurationsspeicherung mit Validierung vor dem atomaren Dateiaustausch, temporären Dateien ohne Klartextkennwort
+  und Abbruchprüfung. Rohwerte, Parserausnahmen und Kennwortblöcke werden nicht in Diagnosen übernommen.
+  App/Console verwenden denselben Dienst; `ConfigurationFound`/`ConnectionConfigured` entstehen aus dem
+  geprüften Stand. Konto eingerichtet bedeutet noch keine SIP-Verbindung. Fehlerausgaben sind UTF-8.
+  Je 54 Tests für Pro/FinOffice bestanden, darunter elf neue Konfigurationstests mit echtem Windows-DPAPI,
+  beschädigten/falsch gebundenen Werten, JSON-Fehlern, abgebrochenem Speichern und Startabbruch vor Workern.
+  Beide Hosts in beiden Varianten mit `-c Debug` ohne Warnungen/Fehler gebaut. 16 isolierte Prozessprüfungen
+  (fehlend, gültig, unvollständig, beschädigt je Host/Variante) mit Status-/Exitcode-/Ausgabeschutzprüfung
+  erfolgreich. Runtime-/MMS-/Produktlinien- und Solution-Prüfung bestanden; Logs: `.artifacts/phase2-item4`.
+  Betroffene Ansicht `MainForm` ohne Konto und mit geprüftem, nicht verbundenem Konto für beide Varianten
+  mit kleinen/großen Fenstern, 10/16-Punkt-Schrift und 150%-Layoutsimulation gerendert/visuell geprüft;
+  `LX_UI_AUDIT_SURFACES=MainForm`. Die bekannte Titelleisten-Aufnahmegrenze bleibt dokumentiert.
+  Aufteilung/Versionierung der vollständigen Benutzer-/Mandanten-/Geräte-/Datenbankeinstellungen bleibt
+  ausdrücklich Punkt 5. Die bekannte lokale Pcfk-Core-Abweichung und ausstehende CI-Abnahme bleiben bestehen.
 - [ ] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.
 - [ ] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren.
 - [ ] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen.

@@ -2,9 +2,12 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.ConsoleApp;
 using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Configuration;
+using System.Text;
 
 try
 {
+    Console.OutputEncoding = new UTF8Encoding(false);
     var host = ConsoleCompositionRoot.Build();
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
@@ -14,7 +17,9 @@ try
         {
             var application = host.Services.GetRequiredService<ApplicationDescriptor>();
             Console.WriteLine($"{application.Name} – {application.ProductLine}");
-            Console.WriteLine("Keine Verbindung konfiguriert.");
+            Console.WriteLine(diagnostic.ConnectionConfigured
+                ? "Verbindung konfiguriert. Nicht verbunden."
+                : "Keine Verbindung konfiguriert.");
             Console.WriteLine("--diagnostics gibt den Einrichtungsstatus als JSON aus.");
         }
     });
@@ -24,6 +29,6 @@ try
 }
 catch (Exception exception)
 {
-    Console.Error.WriteLine($"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).");
+    Console.Error.WriteLine(StartupFailureMessage.Format(exception));
     return 1;
 }

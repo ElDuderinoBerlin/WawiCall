@@ -28,13 +28,17 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 ## Aktueller Stand
 
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben einzeln geprüfte und committete Checklistenpunkte.
-Phase 2, Punkte 1 bis 3 sind ebenfalls abgeschlossen: gemeinsame Fach-/Host-/Plugin-Verträge in
+Phase 2, Punkte 1 bis 4 sind ebenfalls abgeschlossen: gemeinsame Fach-/Host-/Plugin-Verträge in
 `WawiCallPro.Interfaces`, Gesprächszustandsautomat in `WawiCallPro.Telephony`, Mandantenarbeitsbereiche
 und Dispatcher in `WawiCallPro.Core`. Festlegungen und Grenzen stehen in `Docs/Vertraege.md`.
 `CallSnapshot.StateChangedAtUtc` ist für eine zeitlich korrekte Wiederherstellung hinzugekommen.
 App und Console besitzen jetzt eigene Composition Roots mit Standard-.NET-Host, gemeinsamen DI-Diensten,
 Start-/Stop-/Freigabeorchestrierung und echter Startdiagnose. Fachmodule bleiben bis zu ihrer Implementierung
 unregistriert. Die App hält ihre Nachrichtenschleife während des Host-Shutdowns aktiv.
+Typisierte Startkonfiguration mit optionalem SIP-Konto wird vor Fachworkern validiert. Kennwörter werden
+als DPAPI-CurrentUser-Werte mit Zweckbindung gespeichert; Diagnosen enthalten nur geprüfte Statusangaben.
+Vorgabepfad: `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>/connection.local.json`;
+`WAWICALLPRO_CONFIG_DIR` erlaubt ein ausdrückliches absolutes Verzeichnis für isolierte Tests.
 13 eigene Produktprojekte und vier Testprojekte (`Interfaces`, `Core`, `Telephony`, `Utilities`) sind angelegt;
 externe Projekte stehen im logischen Solution-Ordner `src`.
 Die weiteren Solution-Ordner heißen `Docs`, `Scripts`, `Solution Files` und `Tools`.
@@ -49,25 +53,26 @@ CI ist vorbereitet, aber nicht entfernt ausgeführt. Einige Schwester-Repositori
 `bootstrap.ps1` erhält diese und `-RequireClean` verweigert damit eine irreführende CI-Abnahme.
 Für reproduzierbare CI werden passende veröffentlichte Revisionen und ein eingerichteter Windows-Runner benötigt.
 
-Aktuelle Prüfung zu Phase 2, Punkt 3: je 43 Tests für Pro/FinOffice bestanden (elf Vertrags-, 16 Core-,
-acht Telefonie- und acht Hosttests); beide Hosts in beiden Varianten direkt mit `-c Debug` ohne Warnungen/Fehler
-gebaut. Vier echte Diagnose-Start-/Stopläufe, Abhängigkeiten und Solution geprüft. `MainForm` über den aktiven
-Host mit 440/720 Pixeln, 10/16-Punkt-Schrift und simulierter 150%-Layoutskalierung gerendert/visuell geprüft.
-Die Auditgrößen werden nach der Autoskalierung gesetzt; knapp gewordene Randabstände im Designer korrigiert.
+Aktuelle Prüfung zu Phase 2, Punkt 4: je 54 Tests für Pro/FinOffice bestanden (elf Vertrags-, 16 Core-,
+acht Telefonie-, acht Host- und elf Konfigurationstests); beide Hosts in beiden Varianten direkt mit
+`-c Debug` ohne Warnungen/Fehler gebaut. 16 isolierte Start-/Fehler-/Ausgabeschutzprüfungen sowie Abhängigkeiten
+und Solution geprüft. `MainForm` über den aktiven Host ohne Konto und mit geprüftem, nicht verbundenem Konto
+mit 440/720 Pixeln, 10/16-Punkt-Schrift und simulierter 150%-Layoutskalierung gerendert/visuell geprüft.
 Das zentrale Buildskript stoppt inzwischen am Revisionsabgleich für `Quantarix.Pcfk.Core`
 (Manifest `da59daa69ed09f45c3049b019045f52041d2205a`, lokal `13227fe559450f6afc45f1e6191f60f56786c673`).
 Manifest und Schwester-Repositories wurden nicht verändert. Direkte lokale Builds ersetzen hier keinen
-erfolgreichen Bootstrap-/CI-Lauf. Aktuelle Test-/Build-/Diagnose-/UI-Ausgaben: `.artifacts/phase2-item3`.
+erfolgreichen Bootstrap-/CI-Lauf. Aktuelle Test-/Build-/Diagnose-/UI-Ausgaben: `.artifacts/phase2-item4`.
 
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 2, Punkt 4: typisiert validierte Konfiguration mit geschützten sensiblen Werten aufbauen.
-Die Composition Roots und Lebenszyklus-/Threadregeln in `Docs/Vertraege.md` berücksichtigen.
-`ConnectionConfigured=false` ist noch der feste Diagnosezustand ohne Verbindungseinrichtung und muss
-später aus dem tatsächlichen geprüften Konfigurationsstand abgeleitet werden. Konfigurations- und Loggingprovider
-sind im Basis-Host noch nicht eingerichtet. SIP/Medien, Datenbank und Plugins bleiben Aufgaben ihrer
-Fachphasen; keine erfolgreichen leeren Fachdienste als Platzhalter einführen.
+Als Nächstes Phase 2, Punkt 5: Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen trennen und das
+Einstellungsformat versionieren. Die Startkonfiguration ist bisher auf das optionale SIP-Konto begrenzt;
+`dpapi-user-v1` versioniert nur die Geheimnishülle. Geschützte Werte, strikte Validierung und die sicheren
+Fehlermeldungen beim Ausbau erhalten. `ConnectionConfigured` bedeutet vollständig geprüftes Konto,
+keine erfolgreiche Registrierung/Verbindung. Änderungen werden derzeit beim nächsten Hoststart geladen.
+Allgemeine Loggingprovider und die Betriebsintegration folgen in Punkt 6. SIP/Medien, Datenbank und Plugins
+bleiben Aufgaben ihrer Fachphasen; keine erfolgreichen leeren Fachdienste als Platzhalter einführen.
 
 Nach JEDEM einzelnen Phasenpunkt: passende Prüfungen, betroffene Projekte und Hosts explizit mit `-c Debug`
 bauen, Plan aktualisieren und sofort einen eigenen Commit erstellen. Erst danach den nächsten Punkt beginnen.

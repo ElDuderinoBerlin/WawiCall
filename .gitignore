@@ -10,6 +10,8 @@ artifacts/
 *.pfx
 *.log
 appsettings.Local.json
+connection.local.json
+.connection-*.tmp
 *.db
 *.db-shm
 *.db-wal

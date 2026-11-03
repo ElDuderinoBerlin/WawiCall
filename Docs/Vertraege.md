@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2, Punkte 1–3. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2, Punkte 1–4. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -222,18 +222,71 @@ Stop/Freigeben genau ein JSON-Dokument aus. Die App öffnet dabei eine unsichtba
 Form, prüft den UI-Dispatcher aus einem Hintergrundaufruf und durchläuft den normalen Schließpfad.
 Die Angaben umfassen Hostidentität, `HostStarted`, Dispatchertyp und Mandantenauswahl. Bei Fehlern gibt es
 einen Exitcode ungleich null und eine kurze Fehlermeldung ohne rohe Ausnahmeinhalte.
-`ConnectionConfigured=false` bleibt der ausdrückliche Stand ohne Verbindungseinrichtung.
+`ConfigurationFound` und `ConnectionConfigured` werden aus der typisiert geprüften Startkonfiguration
+ermittelt. Die Angaben enthalten weder Server/Benutzername noch Kennwortblöcke. Ein vollständig konfiguriertes
+Konto ist noch kein Nachweis einer Registrierung oder Netzwerkverbindung.
 
 Es werden weder `IBusinessDirectory`, `ITelephonyService`, `ICallHistoryService` noch `IWawiCallHostServices`
-durch erfolgreiche Leerimplementierungen ersetzt. Diese Dienste sowie Plugins, Konfiguration und Provider
-werden erst mit ihrer realen Implementierung registriert. Der Basis-Host verwendet deshalb noch keine
-automatischen Konfigurations- oder Loggingprovider; deren Einrichtung folgt in Punkt 4–6.
+durch erfolgreiche Leerimplementierungen ersetzt. Diese Dienste sowie Plugins und Provider werden erst mit
+ihrer realen Implementierung registriert. Konfiguration wird seit Punkt 4 ausdrücklich typisiert geladen;
+allgemeine Konfigurations-Debugansichten und automatische Loggingprovider sind weiterhin nicht eingerichtet.
 
 Die Renderprüfung läuft ebenfalls innerhalb des aktiven Hosts und erzeugt die Form mit derselben
 Konstruktorinjektion. Schrift-/Fenster-Testgrößen werden nach der automatischen Skalierung gesetzt;
 die Mindestgröße wird dafür nur im Test auf die Designerbasis zurückgesetzt. So bleibt auch die kleine
 Fläche bei großer Schrift tatsächlich Teil der Prüfung. Korrigierte Designer-Randabstände verhindern,
 dass der umgebrochene Einrichtungsstatus am unteren Fensterrand zu knapp sitzt.
+
+## Typisierte Konfiguration und geschützte Werte
+
+`ApplicationOptions` und `SipAccountOptions` beschreiben zunächst das optionale SIP-Konto. Ist es vorhanden,
+werden Server als Hostname/IP ohne URI/Zugangsdaten, Port 1–65535, Transport Udp/Tcp/Tls, Benutzer-/
+Authentifizierungsname und das geschützte Kennwort geprüft. Ein fehlender Kontoabschnitt ist der gültige
+Erststartzustand. Ein teilweise ausgefüllter Abschnitt ist ein Fehler und wird nicht als „nicht eingerichtet“
+verschwiegen. Die Aufteilung aller Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sowie deren
+Formatversionierung folgen separat in Punkt 5; die aktuellen Typen sind dafür noch kein vollständiges Schema.
+
+`ConfigurationStore` liest `connection.local.json` standardmäßig unter
+`%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>`. App und Console derselben Variante verwenden denselben Pfad.
+`WAWICALLPRO_CONFIG_DIR` kann ein ausdrückliches absolutes Verzeichnis vorgeben, etwa für isolierte Tests.
+Fehlende Dateien werden ohne Schreibzugriff als leerer Erststart behandelt. Vorhandene ungültige Dateien
+bleiben erhalten und verhindern den Hoststart. Unbekannte/doppelte JSON-Felder, Klartextkennwörter,
+ungültige Enumwerte, zu große Dateien und fehlerhafte Strukturen werden abgewiesen. Das Limit beträgt
+128 KiB und 16 JSON-Ebenen. Dateipfade und Parserausnahmen werden nicht in Fehlermeldungen übernommen.
+
+Beim Speichern erfolgt zuerst die vollständige Validierung einschließlich der Entschlüsselbarkeit.
+Danach wird eine temporäre Datei im selben Verzeichnis geschrieben und die Zieldatei ersetzt. Ein vor dem
+Austausch beobachteter Abbruch oder Validierungsfehler erhält die bisherige Datei. Konfigurationsdatei und
+temporäre Dateien sind zusätzlich im Repository ignoriert; die Standardablage liegt außerhalb davon.
+Gleichzeitige Bearbeitung und spätere Aktualisierungs-/Versionsregeln gehören zum nächsten Einstellungsblock.
+
+`ApplicationConfigurationService` lädt den Stand als erster Hosted Service vor späteren Fachworkern.
+`Current` enthält anschließend eine abgelöste geprüfte Momentaufnahme. Speicheränderungen wirken derzeit
+beim nächsten Hoststart; es gibt noch kein automatisches Nachladen. `MainForm` und die Konsole zeigen
+„Verbindung konfiguriert. Nicht verbunden.“ ausschließlich für ein vollständig geprüftes Konto.
+SIP-Registrierung, Medienzugriffe und Netzwerktests werden durch Konfigurationsprüfung nicht gestartet.
+
+`WindowsUserSecretProtector` verwendet die ebenfalls in LxTranslate vorhandene
+`System.Security.Cryptography.ProtectedData` 10.0.14 mit `DataProtectionScope.CurrentUser`.
+Zusätzliche Entropie bindet den Wert an WawiCallPro, die Schutzhüllenversion und seinen Verwendungszweck.
+Für das Kontokennwort gilt `SipAccountOptions.PasswordPurpose`. Ein für einen anderen Zweck geschützter,
+beschädigter oder für das aktuelle Windows-Konto nicht entschlüsselbarer Wert führt zum Fehler.
+Es gibt weder eine Klartextmigration noch einen Schutz für das ganze Windows-System als Ausweichweg.
+Die Datei allein ist deshalb kein portables Kennwortbackup für ein anderes Benutzerprofil.
+
+Persistiert wird ausschließlich `ProtectedSecret` mit der Hülle `dpapi-user-v1:<Base64>`. Deren Version
+bezeichnet den Geheimnisschutz, nicht die noch ausstehende Versionierung des Einstellungsformats.
+`ISecretProtector.Protect` erhält einen Wert und seinen festen Zweck. Nach `Unprotect` besitzt der Aufrufer
+einen kurzlebigen `SecretValue`, ruft `Reveal()` ausdrücklich nur an der API-Grenze auf und gibt den Wert frei.
+Die UTF-8-Puffer werden bei Freigabe genullt; zurückgegebene .NET-Strings lassen sich dadurch nicht löschen.
+`ToString()` und JSON-Serialisierung eines entschlüsselten Werts liefern nur einen Platzhalter. Konfiguration
+und Kennworthüllen dürfen trotzdem nicht als allgemeine Diagnoseobjekte ausgegeben werden.
+
+`ConfigurationException` enthält ausschließlich feste Feldnamen und Anwendungsnachrichten ohne abgewiesene
+Werte oder innere Parser-/IO-Ausnahmen. Die zentrale Startfehlermeldung zeigt nur diese freigegebenen Angaben;
+unbekannte Ausnahmen werden auf ihren Typ zusammengefasst. Beide Hosts schreiben umgeleitete Ausgaben als
+UTF-8. Erfolgsdiagnosen bleiben eine explizite Auswahl von Statuswerten, ohne Rohkonfiguration, Benutzernamen,
+Server, Klartextkennwort oder verschlüsselten Kennwortblock.
 
 ## Prüfungen
 
@@ -251,6 +304,8 @@ Die UI-Warteschlange wird dafür deterministisch gepumpt; diese Tests sind kein 
 Scopegrenzen, fehlende Dienste, Teilstartfehler, umgekehrte Stopreihenfolge, Abbruch eines Hintergrunddienstes
 und Erhalt mehrerer Fehler aus Ausführung/Stop/Freigabe. Die Diagnose- und Renderläufe prüfen zusätzlich
 die tatsächlichen ausführbaren Hosts und die App-Nachrichtenschleife.
+Elf zusätzliche Konfigurationstests prüfen echte DPAPI-Rundläufe, falschen Zweck/manipulierte Hüllen,
+strenges JSON, unveränderte Dateien nach fehlgeschlagenem Speichern sowie den Abbruch vor Fachworkern.
 
 ```powershell
 dotnet test --project .\WawiCallPro.Interfaces.Tests\WawiCallPro.Interfaces.Tests.csproj -c Debug -p:LexwareProductLine=Pro
@@ -264,21 +319,25 @@ dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 43 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie- und acht Hosttests); App und Console
+Lokaler Nachweis: je 54 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host- und elf Konfigurationstests); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
 Das zentrale Buildskript stoppt derzeit vor dem Build am abweichenden lokalen Stand von `Quantarix.Pcfk.Core`
 gegenüber `deps.json`. Die Schwesterbibliothek und das Manifest wurden dafür nicht verändert.
 Direktbuilds belegen den vorhandenen lokalen Stand; sie sind kein erfolgreicher Bootstrap-/CI-Nachweis.
 
-`MainForm` wurde für beide Varianten im vorhandenen Zustand ohne Verbindung mit kleinen/großen Fenstern,
+16 isolierte Prozessprüfungen verwenden pro Host und Variante fehlende, gültige, unvollständige und
+beschädigte Konfigurationen. Exitcodes, Statusflags und das Ausbleiben synthetischer Zugangsdaten/
+Kennworthüllen in stdout/stderr wurden geprüft. Es wurden keine vorhandenen Benutzereinstellungen verändert.
+
+`MainForm` wurde für beide Varianten ohne Konto und mit geprüftem, nicht verbundenem Konto mit kleinen/großen Fenstern,
 10/16-Punkt-Schrift und zusätzlicher 150%-Layoutskalierung gerendert und visuell geprüft. Die Skalierung
 simuliert den Layoutstress; eine echte High-DPI-Monitorprüfung wird damit nicht behauptet.
-Protokolle und Renderausgaben liegen unter `.artifacts/phase2-item3`.
+Aktuelle Protokolle und Renderausgaben liegen unter `.artifacts/phase2-item4`.
 Bei der ersten 10-Punkt-Aufnahme kann `DrawToBitmap` die native Titelleiste leer erfassen;
 die Inhaltsfläche ist sichtbar und die Titelleiste in den weiteren Aufnahmen geprüft. Dieser
 Aufnahmeartefakt wird nicht als Nachweis einer fehlerhaft angezeigten Laufzeit-Titelleiste gewertet.
 
-Einstellungen, Datenbankzugriffe und echte SIP-/Lexware-Integration sind mit diesem Basis-Hostblock noch
-nicht implementiert. Die vollständige Betriebs-/Fehlerbehandlung und Freigabe zukünftiger Fachressourcen
-bleiben Aufgaben der folgenden Punkte/Phasen.
+Das vollständige Einstellungsmodell, Datenbankzugriffe und echte SIP-/Lexware-Integration sind noch nicht
+implementiert. Betriebs-/Loggingintegration und Freigabe zukünftiger Fachressourcen bleiben Aufgaben
+der folgenden Punkte/Phasen. Die Standardeinrichtung wird später über die vorgesehenen Oberflächen angeboten.

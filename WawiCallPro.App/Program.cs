@@ -1,5 +1,7 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.Utilities.Configuration;
+using System.Text;
 
 namespace WawiCallPro.App;
 
@@ -11,6 +13,7 @@ internal static class Program
         var diagnostics = args is ["--diagnostics"];
         try
         {
+            Console.OutputEncoding = new UTF8Encoding(false);
             ApplicationConfiguration.Initialize();
             using var uiContext = new WindowsFormsSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(uiContext);
@@ -23,9 +26,10 @@ internal static class Program
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).");
+            var message = StartupFailureMessage.Format(exception);
+            Console.Error.WriteLine(message);
             if (!diagnostics && args is not ["--ui-audit", _])
-                XtraMessageBox.Show("Die Anwendung konnte nicht gestartet oder beendet werden.", "WawiCallPro",
+                XtraMessageBox.Show(message, "WawiCallPro",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;
         }
