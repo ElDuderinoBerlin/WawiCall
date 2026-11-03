@@ -19,6 +19,9 @@ Struktur, Entwicklungsregeln und bewährte Integrationsmuster kommen aus `D:\App
 | Plugin-Laufzeit | `D:\Application-Development\Quantarix.Plugin.System` |
 | Lexware-Produkte | Pro und Financial Office, mit getrennten Adaptern und Build-Varianten |
 | Datenbankmigration | Eigene, vollständig neue FluentMigrator-Implementierung nach den Mustern von LxTranslate |
+| Telefonie | Ausschließlich SIPSorcery; keine TAPI-/CAPI-/Dialogic-Adapter |
+| Windows-Audio | Eigene `SIPSorceryMedia.Windows.CSCore` auf Basis von CSCore; keine NAudio-Anbindung |
+| SIP-Testreferenz | FRITZ!Box als SIP-Proxy; lokale Beispiele `sipsorcery-examples/PlaySounds` und `RecordIncomingCall` |
 
 Die separat geöffnete Solution `D:\Application-Development\WawiCall\WawiCall.sln` enthält bisher nur ein
 Konsolen-Grundgerüst mit „Hello, World!“. Sie wird in diesem Plan nicht als Altimplementierung behandelt.
@@ -54,9 +57,9 @@ Kundeninformationen anzeigen → Gespräch bedienen → Verlauf, Notizen und geg
 | Bedienung | DevExpress-Oberfläche, Tray, Hotkeys, Autostart, Benachrichtigungen, Layout-/Skin-/Schrifteinstellungen | Umfangreiche Einstellungen, zentrale Forms überladen |
 | Betrieb | Konfiguration, Diagnose, Datenbanksicherung/-wiederherstellung, Installation und Updates | Ältere Setup-Projekte und heterogene Datenbankwege |
 
-CAPI, TAPI und Dialogic bleiben als gesondert zu bewertende Altanforderungen in Phase 13 sichtbar.
-Sie werden nicht als bereits funktionsfähige Bestandteile übernommen. Gleiches gilt für nur als Enum vorhandene
-Warenwirtschaften wie JTL, Sage und SAP Business One.
+CAPI, TAPI, Dialogic und andere frühere Telefonie-Backends entfallen auf ausdrücklichen Nutzerwunsch.
+Der neue Gesprächsablauf verwendet ausschließlich SIPSorcery. Nur als Enum vorhandene Warenwirtschaften
+wie JTL, Sage und SAP Business One sind weiterhin keine nachgewiesenen Integrationen.
 
 ## 3. Verifizierte Vorlagen und ihre Grenzen
 
@@ -128,6 +131,27 @@ Neu entstehen das komplette WawiCallPro-Schema, die Migrationsklassen, deren Ver
 Konfiguration und die Tests. Weder die alte leere Migration `Migration_20240301` noch LxTranslate-
 Übersetzungstabellen werden importiert. Bereits ausgeführte neue Migrationen werden später nicht umgeschrieben.
 
+### 3.5 SIPSorcery, CSCore und FRITZ!Box
+
+Verbindliche Referenzen sind die vom Nutzer als funktionierend benannten Projekte
+`D:\Application-Development\sipsorcery-examples\PlaySounds` und `RecordIncomingCall` für seine FRITZ!Box als SIP-Proxy.
+Beide verwenden SIPSorcery 10.0.17 und die direkte Projektreferenz auf
+`D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj`.
+
+Die lokale Medienbibliothek trägt derzeit Version 6.0.7, verwendet CSCore 1.2.1.5 und
+SIPSorceryMedia.Abstractions 10.0.17 und zielt auf `net9.0-windows10.0.19041.0`.
+Maßgeblicher Audio-Endpunkt ist `SIPSorceryMedia.Windows.CSCore.WindowsAudioEndPoint`.
+Die Beispiele koppeln ihn über `ToMediaEndPoints()` an `VoIPMediaSession` und `SIPUserAgent`.
+`PlaySounds` zeigt unter anderem Dateiwiedergabe über `AudioExtrasSource.SendAudioFromStream`;
+`RecordIncomingCall` verarbeitet empfangene RTP-Audiodaten und schreibt diese mit einem CSCore-`WaveWriter`.
+Das ist eine Vorlage für den Empfangspfad; die Aufzeichnung beider Gesprächsseiten ist gesondert umzusetzen.
+
+Vor der konkreten Integration in Phase 7/9 Bibliothek und Abhängigkeitsmanifest ergänzen sowie die kompatible
+Windows-Plattformbasis in Audio-, SIP- und Hostprojekten festlegen. Die .NET-10-Projekte dürfen nicht bei einer
+niedrigeren Windows-Plattformbasis bleiben als ihre referenzierte Medienbibliothek. Keine NAudio-Abhängigkeit
+oder parallele NAudio-Gerätepipeline einführen. Die Quellen wurden geprüft; während der Plananpassung wurden
+keine SIP-Registrierung und keine Anrufe an der FRITZ!Box ausgeführt. Zugangsdaten werden nicht aus Beispielen kopiert.
+
 ## 4. MMS-Abhängigkeiten fachlich ersetzen
 
 Die vorhandenen Verzeichnisse heißen **Quantarix**, nicht `Quatarix`. Eine globale Textersetzung reicht nicht:
@@ -169,7 +193,7 @@ WawiCallPro/
   WawiCallPro.Database/               Factory, Provisioner, FluentMigrator, Repositories
   WawiCallPro.Telephony/              Telefonieverträge und gemeinsame Zustände
   WawiCallPro.Telephony.Sip/          SIPSorcery-Implementierung
-  WawiCallPro.Audio/                  Geräte, Wiedergabe, Aufnahme und Ansagen
+  WawiCallPro.Audio/                  Geräte, Wiedergabe und Aufnahme über SIPSorceryMedia.Windows.CSCore
   WawiCallPro.Plugins.Lexware.Pro/    Plugin für Pro
   WawiCallPro.Plugins.Lexware.FinOffice/ Plugin für Financial Office
   WawiCallPro.Office/                Kommunikations-Connector, Phase 11
@@ -266,7 +290,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
-| 13 | ⬜ | Altdatenübernahme und Entscheidung über Alttelefonie | 3, 8–12 |
+| 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | ⬜ | Installation, Lizenzierung und Updates | 8, passende Ausbauphasen |
 | 15 | ⬜ | Gesamtprüfung, Dokumentation und Übergabe | Alle zugesagten Funktionen |
 
@@ -413,7 +437,10 @@ getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zug
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜
 
-- [ ] SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen.
+- [ ] Ausschließlich SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen;
+  die FRITZ!Box-Beispiele `PlaySounds` und `RecordIncomingCall` als konkrete Referenz verwenden.
+- [ ] Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
+  ergänzen und `WindowsAudioEndPoint` als gemeinsamen Audio-Endpunkt nutzen; keine NAudio-Anbindung.
 - [ ] Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
 - [ ] Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
 - [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
@@ -421,7 +448,7 @@ getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zug
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
 - [ ] Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
 
-Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten bestehen.
+Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten über die FRITZ!Box bestehen.
 Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzwerk fällt aus sind geprüft.
 App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
@@ -443,9 +470,11 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 
 ### Phase 9 – Audio, Aufzeichnung und Ansagen ⬜
 
-- [ ] Geräteauflistung/-wechsel, Pegel, Lautstärke, Stummschaltung und Wiederanbindung nach Geräteverlust umsetzen.
+- [ ] Geräteauflistung/-wechsel, Pegel, Lautstärke, Stummschaltung und Wiederanbindung nach Geräteverlust über
+  die eigene SIPSorceryMedia.Windows.CSCore-/CSCore-Anbindung umsetzen.
 - [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
-- [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren.
+- [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren;
+  Empfangspfad aus `RecordIncomingCall` berücksichtigen und beide Gesprächsseiten gezielt erfassen.
 - [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
 - [ ] Aufnahmen abspielen, exportieren und konvertieren; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.
 - [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
@@ -492,19 +521,16 @@ Anmeldefehler sind mit einer geeigneten Testumgebung geprüft. Debug-Build und U
 Abnahme: Repräsentatives Menü mit Auswahl, falscher Eingabe, Timeout, Transfer und Auflegen läuft simuliert
 und mit echtem SIP-Anruf. Editor visuell geprüft; neue Menü-/Hostprojekte in Debug gebaut.
 
-### Phase 13 – Altimport und frühere Telefoniearten ⬜
+### Phase 13 – Altimport ⬜
 
 - [ ] Tatsächliche alte Datenbankschemas, Konfigurationsstände und Aufnahmepfade aus verfügbaren Beispieldaten ermitteln.
 - [ ] Importer für vorhandene Anrufe, Notizen, E-Mails und Aufnahmereferenzen vom neuen Schema-Migrator trennen.
 - [ ] Quell-/Zielzuordnung, Zeitzonen, fehlerhafte Nummern, Dubletten, Mehrfachlauf und Importbericht implementieren.
 - [ ] Quelle nur lesen; Originaldaten und Originalkonfiguration erhalten. Import in isolierter Kopie validieren.
 - [ ] SQL-Anywhere-Altdaten bei Bedarf lesend importieren; das ist unabhängig vom Zielprovider.
-- [ ] Für CAPI, TAPI und Dialogic tatsächlichen Nutzungsbedarf, Hardware, Treiber, x86/x64 und .NET-10-Kompatibilität prüfen.
-- [ ] Ergebnis je Alttelefonieart ausdrücklich festhalten: aktueller Adapter mit Hardwareabnahme oder begründete
-  spätere/entfallende Unterstützung. Nicht stillschweigend aus der Funktionsliste streichen.
 
 Abnahme: Mengen, Gesprächszuordnungen und Aufnahmereferenzen sind anhand eines Importberichts geprüft;
-erneuter Import verdoppelt keine Daten. Für jede Alttelefonieart ist der Lieferumfang dokumentiert.
+erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich über den neuen SIPSorcery-Stack.
 
 ### Phase 14 – Installation, Lizenzierung und Updates ⬜
 
@@ -576,7 +602,7 @@ die Erstellung dieses Plans nicht:
 3. Funktionsparität der erweiterten Lexware-Daten und der erlaubten Schreiboperationen je Produktlinie.
 4. Geeignete isolierte SQL-Server-/MySQL-/PostgreSQL-Testumgebungen für die vollständige Providerabnahme.
 5. Konkrete Office-/LDAP-Zielumgebung und benötigter Umfang.
-6. Weiterer Bedarf an CAPI/TAPI/Dialogic und SQL Anywhere als eigener Zieldatenbank.
+6. Weiterer Bedarf an SQL Anywhere als eigener Zieldatenbank; TAPI/CAPI/Dialogic sind bereits ausdrücklich ausgeschlossen.
 7. Tatsächliche Altdaten, Größenordnung und Importumfang.
 8. WawiCallPro-spezifische Plugin-Signierung, Produktidentität, Lizenz-/Releasekonfiguration.
 
@@ -611,3 +637,9 @@ Diese Quellen wurden für die Planung gelesen. Sie sind Vorlagen und bleiben au�
 - `D:\Application-Development\Quantarix.Pcfk.DataAccess\README.md`
 - `D:\Application-Development\Quantarix.Pcfk.DataAccess\Infrastructure\IPcfkKundeManager.cs`
 - `D:\Application-Development\Quantarix.Pcfk.DataAccess\Infrastructure\IPcfkLieferantManager.cs`
+- `D:\Application-Development\sipsorcery-examples\PlaySounds\PlaySounds.csproj`
+- `D:\Application-Development\sipsorcery-examples\PlaySounds\Program.cs`
+- `D:\Application-Development\sipsorcery-examples\RecordIncomingCall\RecordIncomingCall.csproj`
+- `D:\Application-Development\sipsorcery-examples\RecordIncomingCall\Program.cs`
+- `D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj`
+- `D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\WindowsAudioEndPoint.cs`

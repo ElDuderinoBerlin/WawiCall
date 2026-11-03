@@ -4,6 +4,24 @@ Die eigenen `WawiCallPro.*`-Projekte liegen direkt im Repository-Root. Die exter
 im logischen Solution-Ordner `src` und bleiben physisch als Schwester-Repositories erhalten.
 Die weiteren Solution-Ordner heißen wie bei LxTranslate `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
+## Verbindlicher Telefonie- und Audio-Stack
+
+Telefonie wird ausschließlich mit SIPSorcery umgesetzt. TAPI, CAPI und Dialogic sind nicht Bestandteil des Neuaufbaus.
+Für Windows-Audio ist die eigene Bibliothek `SIPSorceryMedia.Windows.CSCore` aus
+`D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj` vorgegeben.
+Sie verwendet CSCore. Eine NAudio-basierte SIPSorcery-Medienanbindung wird nicht eingebunden.
+
+Die vom Nutzer als funktionierend benannten FRITZ!Box-Beispiele liegen unter
+`D:\Application-Development\sipsorcery-examples\PlaySounds` und `RecordIncomingCall`.
+Beide referenzieren bereits diese lokale Medienbibliothek und SIPSorcery 10.0.17.
+Die Bibliothek selbst zielt derzeit auf `net9.0-windows10.0.19041.0` und verwendet CSCore 1.2.1.5 sowie
+SIPSorceryMedia.Abstractions 10.0.17. Bei der Integration in Phase 7/9 sind Projektgraph, Manifest,
+Build-Ausgabepfade und die Windows-Plattformbasis der referenzierenden .NET-10-Projekte entsprechend anzupassen.
+Die Bibliothek muss dafür nicht ungefragt auf ein anderes Framework umgestellt werden.
+
+In dieser Dokumentationsanpassung wurden Beispiele und Referenzen gelesen; es erfolgten keine Anrufe
+oder Registrierungen an der FRITZ!Box und noch keine konkrete Medienintegration in die Projektgerüste.
+
 ## Lokaler Debug-Build
 
 Voraussetzungen: Windows, PowerShell 7 (`pwsh`), Git, .NET-10-SDK entsprechend `global.json`,

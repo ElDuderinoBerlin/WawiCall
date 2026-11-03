@@ -13,6 +13,17 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 - Plugin-System aus `D:\Application-Development\Quantarix.Plugin.System` verwenden.
 - Lexware Pro und Financial Office über getrennte Adapter unterstützen; LxTranslate liefert die Integrationsvorlagen.
 - FluentMigrator samt WawiCallPro-Schema vollständig neu implementieren; Vorbilder in LxTranslate.Database lesen.
+- Telefonie ausschließlich mit SIPSorcery. TAPI, CAPI, Dialogic und frühere SIP-Backends entfallen vollständig.
+- Audio ausschließlich über die eigene Bibliothek
+  `D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj` mit CSCore;
+  keine NAudio-Anbindung übernehmen.
+- Funktionierende Referenzen für die FRITZ!Box als SIP-Proxy laut Nutzer:
+  `D:\Application-Development\sipsorcery-examples\PlaySounds` und `RecordIncomingCall`.
+  Beide Projekte und ihre aktuellen Programme wurden gelesen; keine Testanrufe ausgelöst.
+  Sie verwenden SIPSorcery 10.0.17 und die lokale CSCore-Projektreferenz. Die Medienbibliothek trägt Version 6.0.7,
+  verwendet CSCore 1.2.1.5/SIPSorceryMedia.Abstractions 10.0.17 und zielt auf `net9.0-windows10.0.19041.0`.
+  Bei der späteren Integration die passende Windows-Plattformbasis der .NET-10-Hosts berücksichtigen.
+  Die aktuelle Projektstruktur enthält die Audio-/SIP-Gerüste; die konkrete Medienintegration folgt in Phase 7/9.
 
 ## Aktueller Stand
 

@@ -13,6 +13,15 @@
   block of code changes, before reporting completion.
 - Use explicit `-c Debug` and the regular Debug output directories so the next local start uses the latest changes.
 
+# Telephony and audio
+
+- Use SIPSorcery exclusively for telephony. Do not implement TAPI, CAPI, Dialogic, PJSIP, or other legacy backends.
+- Use the user's `D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj`
+  for Windows audio. It uses CSCore; do not substitute an NAudio-based endpoint or introduce an NAudio dependency.
+- Use `D:\Application-Development\sipsorcery-examples\PlaySounds` and `RecordIncomingCall` as the functional
+  reference examples supplied by the user for their FRITZ!Box SIP proxy. Inspect their current implementation
+  before implementing playback, recording, registration, or media sessions; do not copy credentials into the product.
+
 # Console preference
 
 - Always page long interactive console tables using the WawiCallPro.Console N/P/G/Q navigation. Fit pages to the
