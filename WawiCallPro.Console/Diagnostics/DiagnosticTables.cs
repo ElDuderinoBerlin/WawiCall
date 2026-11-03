@@ -1,0 +1,52 @@
+using System.Globalization;
+using WawiCallPro.ConsoleApp.Presentation;
+using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Configuration;
+
+namespace WawiCallPro.ConsoleApp.Diagnostics;
+
+internal static class DiagnosticTables
+{
+    internal static ConsoleTable Status(HostDiagnosticSnapshot status) => new("WawiCallPro – Einrichtungsstatus", "Merkmal", "Wert",
+    [
+        new("Anwendung", status.Application),
+        new("Produktlinie", status.ProductLine),
+        new("Host", status.HostStarted ? "Gestartet" : "Nicht gestartet"),
+        new("Konfigurationsdatei", status.ConfigurationFound ? "Geladen" : "Nicht vorhanden; Vorgaben aktiv"),
+        new("Dateiformat", status.ConfigurationFound ? status.SettingsFormatVersion.ToString(CultureInfo.InvariantCulture) : "Keine Datei"),
+        new("Formatübernahme", status.SettingsUpgradeRequired ? "Beim nächsten ausdrücklichen Speichern" : "Nicht erforderlich"),
+        new("SIP-Einrichtung", status.ConnectionConfigured ? "Vollständig geprüft" : "Nicht eingerichtet"),
+        new("SIP-Verbindung", "Nicht verbunden"),
+        new("Mandant", status.CompanySelected ? "Ausgewählt" : "Nicht ausgewählt"),
+        new("Dispatcher", status.Dispatcher),
+        new("Protokoll", "Bereinigtes JSONL; --logs zeigt abgeschlossene Einträge"),
+        new("Bedienung", "N nächste, P vorige, G Seite, Q Ende; jeweils Enter. ? bedeutet ungültige Eingabe.")
+    ]);
+
+    internal static ConsoleTable Paths(ApplicationPaths paths, ConfigurationLocation configuration) => new("WawiCallPro – Betriebspfade", "Bereich", "Pfad",
+    [
+        new("Stammverzeichnis", paths.RootDirectory),
+        new("Konfiguration", configuration.FilePath),
+        new("Protokolle", paths.LogsDirectory),
+        new("Aufnahmen", paths.RecordingsDirectory),
+        new("Backups", paths.BackupsDirectory)
+    ]);
+
+    internal static ConsoleTable Logs(LogSnapshot snapshot) => new(
+        $"Betriebsprotokoll – {snapshot.Entries.Count} Einträge; {snapshot.IncompleteTails} unvollständige Dateiende(n) im Lesesnapshot",
+        "UTC-Zeit", "Ereignis und Lauf", snapshot.Entries.Select(entry => new ConsoleRow(
+            entry.TimestampUtc.ToString("O", CultureInfo.InvariantCulture),
+            $"{entry.Level} | {entry.Event} | ID {entry.EventId}\nTyp: {entry.ExceptionType ?? "–"}\nPID {entry.ProcessId} | Lauf {entry.RunId:D}")).ToArray());
+
+    internal static ConsoleTable Help() => new("WawiCallPro – Diagnosekonsole", "Aufruf", "Ausgabe",
+    [
+        new("--status (Vorgabe)", "Geprüfter Einrichtungsstatus; keine Netzwerkverbindung"),
+        new("--paths", "Betriebspfade des aktuellen Benutzers und der Produktlinie"),
+        new("--logs", "Snapshot aller abgeschlossenen JSONL-Einträge; offene Dateiende(n) werden gezählt"),
+        new("--diagnostics", "Ein JSON-Dokument nach erfolgreichem Host-Stop; keine Zugangsdaten"),
+        new("--help", "Diese Hilfe"),
+        new("N/P/G/Q + Enter", "Nächste/vorige Seite, Seitenzahl eingeben, Ausgabe beenden. ? = ungültige Eingabe."),
+        new("Umleitung", "Bei umgeleiteter Ein- oder Ausgabe alle Zeilen ohne Tastaturabfrage; Ctrl+C bricht interaktiv ab.")
+    ]);
+}

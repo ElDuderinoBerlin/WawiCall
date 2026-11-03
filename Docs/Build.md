@@ -66,6 +66,13 @@ Stop und asynchroner Freigabe; JSON wird erst danach ausgegeben. Zusätzlich wer
 Dispatchertyp und Mandantenauswahl gemeldet. Die App prüft dabei ihre WinForms-Nachrichtenschleife und
 den Schließpfad mit einer unsichtbaren Form. Telefonie-, Lexware- oder Datenbank-Fachoperationen laufen noch nicht.
 
+Seit Abschluss von Phase 2 zeigt die Konsole ohne Argument beziehungsweise mit `--status` eine Statustabelle.
+Weitere Aufrufe: `--paths`, `--logs`, `--help`. Lange interaktive Tabellen verwenden N/P/G/Q jeweils mit Enter;
+bei umgeleiteter Ein- oder Ausgabe werden alle Zeilen ohne Tastaturabfrage ausgegeben. `--diagnostics` bleibt
+für Skripte ein einzelnes JSON-Dokument. `--logs` liest einen Snapshot vollständiger JSONL-Einträge und meldet
+unvollständige Dateiende(n). Beide Hosts schreiben nur bereinigte Betriebsmetadaten nach
+`<Konfigurationsverzeichnis>/logs`; Loggingfehler führen zu einem sichtbaren Fehlerstatus.
+
 Die Renderprüfung verwendet denselben aktiven App-Host und Konstruktorinjektion. Test-Fenstergrößen werden
 nach der automatischen Schriftskalierung gesetzt, damit kleine Fenster bei großer Schrift tatsächlich geprüft werden.
 Die Mindestgröße wird hierfür nur im Audit auf die Designerbasis zurückgesetzt.

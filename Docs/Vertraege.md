@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2, Punkte 1–6. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2 abgeschlossen, Punkte 1–7. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -273,6 +273,33 @@ der Aufgabenabschluss dennoch abgewartet. Ein dauerhaft unkooperativer Worker ve
 Prozessabschluss. Prozessabbruch, StackOverflow und vergleichbare CLR-Abbrüche erlauben keine Zusage eines
 geordneten Managed-Shutdowns. Konkrete Fachworker müssen kooperativ abbrechen und ihre Ressourcen besitzen.
 
+## Diagnosekonsole und vollständige Ausgabe
+
+Ohne Argument beziehungsweise mit `--status` zeigt die Konsole den geprüften Einrichtungsstatus.
+`--paths` zeigt Betriebspfade, `--logs` die vorhandenen bereinigten Betriebseinträge und `--help` die Aufrufe.
+Alle Tabellen verwenden denselben Pager. `--diagnostics` behält das einzelne JSON-Dokument nach erfolgreichem
+Shutdown; weder Tabellen noch interaktive Prompts werden dem JSON beigemischt.
+
+Bei interaktivem Ein- und Ausgang gelten N = nächste, P = vorige, G = Seitenzahl, Q = Ende, jeweils mit Enter.
+Grenzen werden eingehalten, ungültige Befehle/Zielseiten mit `?` angezeigt. Umgebrochene Zellen, Kopfzeilen,
+Navigation und Eingabezeile zählen zur Terminalhöhe. Eine einzelne überhohe Tabellenzeile wird vollständig
+über mehrere Seiten verteilt. Schmale Terminals zeigen Feld/Wert untereinander. Beim Größenwechsel während
+der Eingabe wird neu gezeichnet; die aktuelle Datenzeile bleibt Bezugspunkt. Unter zwölf Spalten oder sechs
+Zeilen wird eine passende Vergrößerungsaufforderung mit Q-Ausgang gezeigt. Ctrl+C beendet die wartende
+Eingabe über den normalen Hostabbruch; es bleibt kein blockierender ReadLine-Hintergrundtask zurück.
+
+Sobald Ein- oder Ausgabe umgeleitet ist, werden alle Zeilen ohne Terminalabfrage und Tastatureingabe
+ausgegeben. Lange Zellen werden lediglich umgebrochen. Steuerzeichen aus Zellen erscheinen sichtbar als
+Escapes; übliche breite Zeichen, Emoji-Grapheme und kombinierende Akzente werden beim Umbruch berücksichtigt.
+
+`--logs` liest alle `operations-*.jsonl` des aktuellen Produkt-/Benutzerverzeichnisses. Der Leser erlaubt
+gleichzeitiges Schreiben und fixiert pro Datei die beim Öffnen sichtbare Byteanzahl. Er zeigt alle darin
+abgeschlossenen Datensätze und zählt unvollständige Dateiende(n) in der Überschrift. Später abgeschlossene
+oder neu erzeugte Einträge gehören zum nächsten Aufruf. UTC-Zeit, Laufkennung, Prozess, Level, Ereignis-ID,
+Ereignis und Ausnahmetyp bleiben erhalten. Fremde/fehlerhafte Felder, ungültige Metadaten, zu große Dateien
+oder Zugriffsfehler führen zu einer festen Meldung und Exitcode 1, ohne rohe Inhalte oder Dateinamen zu spiegeln.
+Die Diagnosekonsole erstellt keine Beispielzeilen und baut keine Netzwerkverbindung auf.
+
 Die Renderprüfung läuft ebenfalls innerhalb des aktiven Hosts und erzeugt die Form mit derselben
 Konstruktorinjektion. Schrift-/Fenster-Testgrößen werden nach der automatischen Skalierung gesetzt;
 die Mindestgröße wird dafür nur im Test auf die Designerbasis zurückgesetzt. So bleibt auch die kleine
@@ -446,8 +473,8 @@ dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 73 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-,
-elf Einstellungs-/Versions-, sieben Betriebs- und ein WinForms-Fehlerablauftest); App und Console
+Lokaler Nachweis: je 88 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-,
+elf Einstellungs-/Versions-, sieben Betriebs-, ein WinForms-Fehlerablauf- und 15 Konsolentests); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
 Das zentrale Buildskript stoppt derzeit vor dem Build am abweichenden lokalen Stand von `Quantarix.Pcfk.Core`
@@ -465,11 +492,16 @@ wurden nicht verändert.
 simuliert den Layoutstress; eine echte High-DPI-Monitorprüfung wird damit nicht behauptet.
 Die Renderausgaben des letzten UI-Blocks liegen unter `.artifacts/phase2-item4`. Der jetzige Block verändert
 keine Ansicht und wendet die neuen Präferenzen noch nicht an; eine erneute Renderprüfung ist nicht erforderlich.
-Aktuelle Test-/Build-/Prozessprotokolle liegen unter `.artifacts/phase2-item6`.
+Aktuelle Test-/Build-/Prozessprotokolle liegen unter `.artifacts/phase2-item7`.
 20 weitere isolierte Prozessprüfungen decken beide Hosts/Varianten mit fehlender, aktueller, ungültiger,
 neuerer Konfiguration sowie blockierter Logablage ab. Konfigurationen bleiben unverändert; synthetische
 Zugangsdaten fehlen auch in JSONL. Der UI-Ablauftest wirft einen Fehler in der echten Nachrichtenschleife,
 prüft Formfreigabe und beobachtet anschließend den ursprünglichen Fehler. Kein Layout wurde geändert.
+15 Konsolentests prüfen N/P/G/Q samt ungültigen Zielen, Größenwechsel, 15×6-Terminals, überhohe Zeilen,
+vollständige Umleitung, beobachtbaren Abbruch, Unicode/Steuerzeichen und konsistente Logs bei aktivem Schreiber.
+20 zusätzliche umgeleitete Konsolenprozesse prüfen sämtliche Befehle, vollständige Ausgabe mehrerer Logläufe,
+ungültige Aufrufe und defekte Logs. Ein echter ConPTY-Lauf prüft N/P/G/Q; getrennte Ein- und Ausgabeumleitung
+beenden sich ebenfalls ohne Prompt. Keine zusätzliche WinForms-Renderprüfung für diesen Konsolenblock.
 Bei der ersten 10-Punkt-Aufnahme kann `DrawToBitmap` die native Titelleiste leer erfassen;
 die Inhaltsfläche ist sichtbar und die Titelleiste in den weiteren Aufnahmen geprüft. Dieser
 Aufnahmeartefakt wird nicht als Nachweis einer fehlerhaft angezeigten Laufzeit-Titelleiste gewertet.

@@ -1,6 +1,6 @@
 # WawiCallPro – Plan für den vollständigen Neuaufbau
 
-Stand: 03.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
+Stand: 04.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -362,7 +362,7 @@ erklären fehlende Konfiguration. Keine neuen MMS-Abhängigkeiten. Produktlinien
 Diese lokale Abnahme ist erfüllt. Die entfernte CI-Ausführung ist davon ausdrücklich getrennt und wurde
 weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. Alle sieben Punkte sind einzeln committet.
 
-### Phase 2 – Verträge, Infrastruktur und Einstellungen ⬜
+### Phase 2 – Verträge, Infrastruktur und Einstellungen ✅
 
 - [x] DTOs und Verträge für Mandanten, Geschäftspartner, Fähigkeiten, Telefonie, Historie und Hostdienste entwerfen.
   Nachweis: UI-/adapterunabhängige, unveränderliche Datenmodelle und abbrechbare Dienstverträge in
@@ -460,10 +460,28 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   Einstellungen sowie Runtime-/Produktlinien-/MMS- und Solution-Prüfung bestanden.
   Logs: `.artifacts/phase2-item6`. Keine Layoutänderung; MainForm-Fehler-/Schließzustand im echten
   Message-Loop geprüft, unveränderte Ansichten nicht erneut gerendert. Bootstrap-/CI-Grenzen bleiben bestehen.
-- [ ] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen.
+- [x] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen. ✅
+  Nachweis: `--status` (Vorgabe), `--paths`, `--logs`, `--help` als Tabellen; bestehendes `--diagnostics`
+  bleibt ein JSON-Dokument nach erfolgreichem Shutdown. N/P/G/Q jeweils mit Enter; G prüft Seitenzahlen.
+  Seiten berücksichtigen umgebrochene Zellen, Kopf, Navigation und Eingabezeile; überlange Einträge werden
+  über mehrere Seiten vollständig angezeigt. Größenwechsel berechnen die Darstellung mit Bezug auf die
+  aktuelle Zeile neu; sehr kleine Terminals zeigen eine Vergrößerungsaufforderung mit Q-Ausgang.
+  Bei umgeleiteter Ein- oder Ausgabe alle Zeilen ohne Größenabfrage, Löschen oder Tastaturabfrage.
+  Loglesen teilt aktive Dateien, liest einen festen Snapshot vollständiger JSONL-Zeilen und meldet offene
+  Dateiende(n). Fehlerhafte/fremde Datensätze führen zu einer festen Fehlermeldung statt Rohdatenausgabe.
+  Je 88 Tests für Pro/FinOffice bestanden, einschließlich 15 Konsolenprüfungen für Navigation, Umbruch,
+  überhohe Zeilen, kleine/größenveränderte Terminals, Unicode, Abbruch und Logs bei aktivem Schreiber.
+  Beide Hosts beider Varianten in Debug ohne Warnungen/Fehler gebaut; 20 umgeleitete Konsolen- und
+  20 Host-/Fehler-/Abhängigkeitsprüfungen bestanden. N/P/G/Q sowie getrennte Ein-/Ausgabeumleitung
+  zusätzlich im echten ConPTY-Terminal geprüft. Logs: `.artifacts/phase2-item7`.
 
 Abnahme: Relevante Konfigurationstests bestehen; falsche Einstellungen werden verständlich gemeldet.
 Hosts bauen in Debug und beenden alle gestarteten Hintergrunddienste zuverlässig.
+Lokal erfüllt: Konfiguration einschließlich DPAPI, Versions-/Schreibkonflikten und verständlicher Ablehnung
+falscher Vorgaben geprüft; Teilstart-, Worker-, UI-, Stop- und Freigabefehler bleiben sichtbar. Abbruch und
+das Abwarten gestarteter Worker sind getestet. Die dokumentierte Grenze unkooperativer Worker bleibt bestehen.
+Die bekannte Abweichung des lokalen Pcfk-Core-Commits und die ausstehende entfernte CI-Abnahme aus Phase 1
+werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
 
 ### Phase 3 – Datenbank und FluentMigrator vollständig neu ⬜
 
