@@ -270,7 +270,9 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 14 | ⬜ | Installation, Lizenzierung und Updates | 8, passende Ausbauphasen |
 | 15 | ⬜ | Gesamtprüfung, Dokumentation und Übergabe | Alle zugesagten Funktionen |
 
-Jede Phase wird in kleine validierte Änderungsblöcke mit jeweils eigenem Commit aufgeteilt.
+Jeder einzelne Checklistenpunkt innerhalb einer Phase wird separat umgesetzt, geprüft und unmittelbar mit
+seiner Planaktualisierung committet. Erst danach beginnt der nächste Punkt; mehrere erledigte Punkte werden
+nicht zu einem Commit zusammengefasst.
 Die Abhängigkeiten bestimmen die Reihenfolge; diese Tabelle ist keine Beauftragung paralleler Agenten.
 
 ### Phase 0 – Analyse und Planung ✅

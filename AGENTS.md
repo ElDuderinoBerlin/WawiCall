@@ -4,6 +4,8 @@
   confirmation. Do not accumulate completed blocks without committing them.
 - Commit only changes made for the current task. Preserve unrelated work and existing staged changes.
 - Do not push commits unless explicitly requested.
+- Complete, validate, and commit each individual phase checklist item separately before starting the next item.
+  Include the corresponding plan status update in that same commit; do not combine several completed items.
 
 # Build preference
 
