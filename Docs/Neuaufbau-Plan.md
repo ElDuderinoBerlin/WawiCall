@@ -1,0 +1,578 @@
+# WawiCallPro – Plan für den vollständigen Neuaufbau
+
+Stand: 03.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
+
+## 1. Auftrag und Arbeitsstand
+
+WawiCallPro wird als Windows-Anwendung für Telefonie und kundenbezogene Kommunikation vollständig neu aufgebaut.
+Die fachlichen Anforderungen kommen aus `D:\Application-Development\WawiCallPro_old`.
+Struktur, Entwicklungsregeln und bewährte Integrationsmuster kommen aus `D:\Application-Development\LxTranslate`.
+
+| Gegenstand | Festlegung |
+|---|---|
+| Zielverzeichnis | `D:\Application-Development\WawiCallPro` entsprechend dem ursprünglichen Auftrag |
+| Git-Remote | <https://github.com/ElDuderinoBerlin/WawiCall.git> |
+| Solution | `WawiCallProSolution.sln` |
+| Anwendung und Namespaces | `WawiCallPro.*`; der GitHub-Repositoryname ist davon unabhängig |
+| Referenzprojekt | `D:\Application-Development\LxTranslate\LxTranslateSolution.sln` |
+| Bibliotheken | Bestehende `Quantarix.*`-Schwesterprojekte unter `D:\Application-Development` |
+| Plugin-Laufzeit | `D:\Application-Development\Quantarix.Plugin.System` |
+| Lexware-Produkte | Pro und Financial Office, mit getrennten Adaptern und Build-Varianten |
+| Datenbankmigration | Eigene, vollständig neue FluentMigrator-Implementierung nach den Mustern von LxTranslate |
+
+Die separat geöffnete Solution `D:\Application-Development\WawiCall\WawiCall.sln` enthält bisher nur ein
+Konsolen-Grundgerüst mit „Hello, World!“. Sie wird in diesem Plan nicht als Altimplementierung behandelt.
+Der Zielpfad wurde zur Klärung vorgelegt; bis zu einer abweichenden Antwort gilt das ursprüngliche Ziel oben.
+Der neu geklonte Remote war bei der Prüfung leer. Es wurde nichts gepusht.
+
+`AGENTS.md` wurde aus LxTranslate übernommen. Nur die projektspezifischen Namen `LxTranslate.Console` und
+`StockSim.sln` wurden zu `WawiCallPro.Console` und `WawiCallProSolution.sln` angepasst.
+Die Designer-, Layout-, Build-, Prüf- und Commitregeln gelten vollständig.
+
+### Statuskonvention
+
+- ✅ beziehungsweise `[x]`: tatsächlich abgeschlossen und geprüft.
+- ⬜ beziehungsweise `[ ]`: geplant, noch nicht abgeschlossen.
+- Eine Phase erhält erst nach ihrer Abnahme ein grünes Häkchen.
+- Geprüfte Quellcodevorlagen bedeuten nicht, dass die entsprechende WawiCallPro-Funktion bereits implementiert ist.
+
+## 2. Was aus dem Altprojekt erhalten werden soll
+
+Der zentrale Ablauf lautet: Anruf empfangen → Nummer normalisieren → Geschäftspartner und Mandant ermitteln →
+Kundeninformationen anzeigen → Gespräch bedienen → Verlauf, Notizen und gegebenenfalls Aufnahme speichern.
+
+| Fachbereich | Umfang des Neuaufbaus | Befund im Altprojekt |
+|---|---|---|
+| Telefonie | SIP-Konto, Registrierung, eingehende/ausgehende Gespräche, Annehmen, Ablehnen, Auflegen, Halten, Weiterleiten, DTMF | Controller-Factory erzeugt aktuell keinen Controller; neuer SIP-Code enthält Platzhalter |
+| Anrufererkennung | Kunden/Lieferanten, Kontaktpersonen, Rechnungs-, Liefer- und Zusatzanschriften, Mehrfachtreffer | Umfangreicher älterer Lexware-Cache; Integration in den neuen Ablauf unvollständig |
+| Lexware | Installation und Mandanten erkennen, Stammdaten lesen, geeignete Änderungen kontrolliert zurückschreiben | Konkrete alte Lese-/Schreibpfade, aber alte MMS-Abhängigkeiten |
+| Kundenübersicht | Adressen, Aufträge/Artikel, offene Posten, Zahlungsmoral, Kontakte, Dokumente, Termine und Projekte | Ältere Modelle und Ansichten vorhanden; aktuelle Oberfläche teilweise Demo |
+| Historie | Ein-/ausgehende/verpasste Anrufe, Teilnehmer, Zeiten, Status, Notizen und Aufnahmen | Datenmodelle und SQL-Abfragen widersprechen sich teilweise; zentrale Protokollierung nur kommentiert |
+| Audio | Geräte, Pegel, Stummschaltung, Klingeltöne, Aufnahme/Wiedergabe, Konvertierung, Ansagen | Viel konkreter Code, stark mit alter Telefonie und UI verbunden |
+| Sprachmenüs | XML-Menüs, DTMF-/Spracheingabe, Verzweigungen, Ansagen und Gesprächsaktionen | Serialisierung vorhanden, mehrere Aktionen nicht implementiert |
+| Office | E-Mail-/Kontaktzuordnung, optional Termine und Anhänge | Cache teilweise Platzhalter; alter Outlook-Handler vom Build ausgeschlossen |
+| Bedienung | DevExpress-Oberfläche, Tray, Hotkeys, Autostart, Benachrichtigungen, Layout-/Skin-/Schrifteinstellungen | Umfangreiche Einstellungen, zentrale Forms überladen |
+| Betrieb | Konfiguration, Diagnose, Datenbanksicherung/-wiederherstellung, Installation und Updates | Ältere Setup-Projekte und heterogene Datenbankwege |
+
+CAPI, TAPI und Dialogic bleiben als gesondert zu bewertende Altanforderungen in Phase 13 sichtbar.
+Sie werden nicht als bereits funktionsfähige Bestandteile übernommen. Gleiches gilt für nur als Enum vorhandene
+Warenwirtschaften wie JTL, Sage und SAP Business One.
+
+## 3. Verifizierte Vorlagen und ihre Grenzen
+
+### 3.1 Solution-Struktur aus LxTranslate
+
+LxTranslate verwendet eigene Projekte direkt unter dem Repository-Root. Gemeinsame Quantarix-Projekte liegen als
+Schwester-Repositories daneben und erscheinen im logischen Solution-Ordner `src`.
+Zusätzlich existieren `Solution Files`, `Docs`, `Scripts` und `Tools` sowie eigene Testprojekte.
+Es wird kein zusätzliches physisches `src`-Verzeichnis für alle WawiCallPro-Projekte erzwungen.
+
+Zentrale Dateien sind `Solution.props`, `Directory.Build.props`, `Directory.Build.targets`, `global.json`,
+`deps.json` und `bootstrap.ps1`. Nur die benötigten Mechanismen werden übernommen; Übersetzungs-, Druckformular-
+und COM-Server-Funktionen von LxTranslate gehören nicht zum WawiCallPro-Auftrag.
+
+### 3.2 Lexware Pro und Financial Office
+
+| Produktlinie | Vorhandene Bibliotheken | Konkreter Referenzpfad |
+|---|---|---|
+| Pro | `Quantarix.Lexware.Core`, `Quantarix.Lexware.APIService` | Installation/PropertyStore, Firmenloader mit API-Fallback, API-Client für Firmen, Kunden, Lieferanten und Kontaktpersonen |
+| Financial Office | `Quantarix.Pcfk.Core`, `Quantarix.Pcfk.DataAccess` | `PcfkInstallationManager.GetMandantenAsync(readOnly: true)`, Kunden-/Lieferanten-Repositories und Manager |
+
+Pro stellt unter anderem `ILexwareApiServiceClient.UseCompany`, `GetCustomersAsync`,
+`GetCustomersByPhoneAsync` und Kontaktpersonenabfragen bereit. Die API normalisiert Telefonnummern nicht;
+die Normalisierung gehört deshalb weiterhin in WawiCallPro.
+
+Financial Office hat eigene Datenstrukturen und eigene IDs. Eine Pro-interne ID und eine Financial-Office-
+Kundennummer dürfen nicht ohne Produktlinien- und Mandantenkontext gleichgesetzt werden.
+Die DataAccess-Bibliothek benötigt außerdem das vorhandene Schwesterprojekt
+`sqlite-netFx-source-1.0.117.0` für Lexware-spezifische SQLite-Funktionen.
+
+`LexwareProductLine=Pro|FinOffice` und `LX_PRO|LX_FINOFFICE` folgen dem Muster von LxTranslate.
+Pro-Pakete enthalten keine Financial-Office-Adapter; Financial-Office-Pakete keine Pro-Adapter.
+Ob jede einzelne erweiterte Geschäftsdatenabfrage oder Adressänderung gleichwertig unterstützt wird, wird
+in der Capability-Matrix von Phase 5 nachgewiesen. Eine erfolgreiche Mandantenliste beweist diese Parität nicht.
+
+### 3.3 Quantarix-Plugin-System
+
+Tatsächlich vorhandene Verträge und Laufzeitmechanismen:
+
+- `IPlugin`: `Name`, `Version`, `Initialize(IPluginHost)`, `Execute()`, `Shutdown()`.
+- `IPluginHost` stellt aktuell ausschließlich `ILogger Logger` bereit.
+- `PluginManager` lädt pro Unterverzeichnis die gleichnamige DLL: `plugins/<AssemblyName>/<AssemblyName>.dll`.
+- Ein eigener sammelbarer `AssemblyLoadContext` isoliert private Plugin-Abhängigkeiten.
+- `[SharedAssembly]` markiert gemeinsam geladene Verträge; diese müssen vor Erzeugung des Managers geladen sein.
+- Native Abhängigkeiten werden über `AssemblyDependencyResolver` aufgelöst.
+- Eine konfigurierbare Public-Key-Token-Allowlist wird geprüft. Strong Names ersetzen keine Sicherheitsisolation.
+
+Integrationslücke: `PluginManager` übergibt sich selbst an `Initialize`; ein eigener erweiterter Host kann nicht
+einfach als Konstruktorargument eingesetzt werden. Die Dokumentation nennt teils weitergehende UI-Services,
+die im aktuellen `IPluginHost` nicht vorhanden sind. Der Quellcode ist hier maßgeblich.
+
+Geplanter Anschluss ohne zweiten Plugin-Loader: Ein gemeinsamer WawiCallPro-Vertrag erweitert `IPlugin` um
+eine explizite Konfiguration mit `IWawiCallHostServices`. Nach `LoadFromDirectory` konfiguriert die Anwendung die
+passenden `manager.Plugins`, bevor Fachoperationen gestartet werden. `Initialize` verwendet zunächst nur das
+vorhandene Logging. UI-Marshalling, Mandantenkontext und Datenzugriff werden über typisierte Dienste angeboten.
+Falls sich dafür eine Änderung am gemeinsamen Plugin-System als nötig erweist, wird sie gesondert begründet,
+in dessen Repository umgesetzt und dort geprüft.
+
+### 3.4 FluentMigrator aus LxTranslate
+
+Verifiziert wurden `DatabaseFactory`, `DatabaseProvisioner`, `DatabaseMigrator`, `DatabaseMigrationStatus`,
+die Migrationen sowie Datenbank- und Fortschrittstests.
+
+Übernommen werden die Architekturideen: Provider-Auswahl, DI-basierter Runner, ausschließlich eigene
+Migrations-Assembly, Tags für Providerbesonderheiten, Provisionierung vor Migration, Status und Fortschritt,
+Logging sowie getrennte Repository-/Query-Schichten mit Dapper.
+
+Neu entstehen das komplette WawiCallPro-Schema, die Migrationsklassen, deren Versionsfolge, die Runner-
+Konfiguration und die Tests. Weder die alte leere Migration `Migration_20240301` noch LxTranslate-
+Übersetzungstabellen werden importiert. Bereits ausgeführte neue Migrationen werden später nicht umgeschrieben.
+
+## 4. MMS-Abhängigkeiten fachlich ersetzen
+
+Die vorhandenen Verzeichnisse heißen **Quantarix**, nicht `Quatarix`. Eine globale Textersetzung reicht nicht:
+Namensräume, Typen, Verträge, Projektzuschnitt und Fähigkeiten haben sich geändert.
+
+| Alte Abhängigkeit | Neuer Anschluss | Nachweis beziehungsweise offener Teil |
+|---|---|---|
+| `MMS.Utility` | `Quantarix.Core` | Hilfsmittel für Serialisierung, Reflection, Threading, Collections; verwendete APIs einzeln zuordnen |
+| `MMS.Windows` | `Quantarix.Windows` und `Quantarix.Interop` | Fenster, Hotkeys, Registry und native APIs anhand der tatsächlich benötigten Typen prüfen |
+| `MMS.DevExpress` | `Quantarix.DevExpress`, bei Bedarf `.Skins` und `Quantarix.Resources` | Dialoge, Skins und gemeinsame UI-Hilfen abgleichen |
+| `MMS.Plugin` | `Quantarix.Plugin.Abstractions` und `Quantarix.Plugin.Hosting` | Neues Lebenszyklus- und Shared-Assembly-Modell verwenden |
+| `MMS.Lexware`, `MMS.Wawi`, `MMS.Lexware.Database` | Produktlinien-Adapter auf `Quantarix.Lexware.*` beziehungsweise `Quantarix.Pcfk.*` | Alte Factory-/Datenbankzugriffe durch konkrete aktuelle APIs ersetzen |
+| `MMS.Database` | Eigene neue Datenbankschicht mit Dapper und FluentMigrator | Keine pauschale Annahme eines vorhandenen `Quantarix.Database` |
+| `MMS.Office`, `MMS.Office.Common`, `MMS.Exchange` | Neue Office-Connector-Verträge; konkrete Implementierung in Phase 11 | Kein gleichnamiger Quantarix-Nachfolger im untersuchten Bestand nachgewiesen |
+| Alte Lizenzbibliotheken | Bei aktivierter Lizenzierung `Quantarix.License.System` | Client/Core und Produktidentität prüfen; keine LxTranslate-Produktschlüssel übernehmen |
+
+Abnahme: Keine `MMS.*`-Referenzen, `using`-Direktiven oder MMS-Runtime-Assemblies im neuen Produkt.
+Auch transitive Abhängigkeiten und die tatsächlichen Publish-Ausgaben prüfen. Historische Erwähnungen in
+diesem Plan sind selbstverständlich erlaubt. Fehlende Nachfolge-APIs werden als Implementierungsaufgabe
+geführt und nicht durch erfundene Quantarix-Bibliotheken ersetzt.
+
+## 5. Zielarchitektur und Solution
+
+```text
+WawiCallPro/
+  WawiCallProSolution.sln
+  AGENTS.md
+  Solution.props
+  Directory.Build.props
+  Directory.Build.targets
+  global.json
+  deps.json
+  bootstrap.ps1
+  WawiCallPro.App/                    DevExpress-WinForms-Host, Composition Root
+  WawiCallPro.Console/                Diagnose und Datenbankverwaltung
+  WawiCallPro.Interfaces/             DTOs, Fach-/Plugin-Verträge, SharedAssembly
+  WawiCallPro.Core/                   Gesprächsablauf, Zuordnung, Historie
+  WawiCallPro.Utilities/              Konfiguration, Logging, Betriebshilfen
+  WawiCallPro.Database/               Factory, Provisioner, FluentMigrator, Repositories
+  WawiCallPro.Telephony/              Telefonieverträge und gemeinsame Zustände
+  WawiCallPro.Telephony.Sip/          SIPSorcery-Implementierung
+  WawiCallPro.Audio/                  Geräte, Wiedergabe, Aufnahme und Ansagen
+  WawiCallPro.Plugins.Lexware.Pro/    Plugin für Pro
+  WawiCallPro.Plugins.Lexware.FinOffice/ Plugin für Financial Office
+  WawiCallPro.Office/                Kommunikations-Connector, Phase 11
+  WawiCallPro.PhoneMenu/             Menümodell und Ausführung, Phase 12
+  WawiCallPro.*.Tests/               Relevante Unit-/Integrations-/Hosttests
+  Docs/
+  scripts/
+  Tools/
+```
+
+Das ist die geplante Endstruktur, keine Aussage über bereits erzeugte Projekte. Für diesen Planungsblock
+existiert zunächst nur eine Solution mit dem Dokumentationsordner. Projekte entstehen in den folgenden Phasen.
+
+Logische Solution-Ordner wie in LxTranslate: `Solution Files`, `Docs`, `Scripts`, `Tools`, `src` für die externen
+Quantarix-Projekte. Eigene Projekte und Testprojekte bleiben einzeln sichtbar.
+
+Abhängigkeiten: App/Console orchestrieren über Verträge; Core kennt keine WinForms-Controls und keine
+Lexware-internen Datentypen. Datenbank und Telefonie besitzen getrennte Verantwortlichkeiten. Nur die
+Lexware-Plugins referenzieren produktspezifische Quantarix-APIs. Der Host lädt keine zweite Kopie gemeinsamer
+Vertrags-Assemblies und benötigt keine normale Compile-Referenz auf konkrete Plugins.
+
+Neue Projekte zielen auf .NET 10; Windows-spezifische Projekte auf `net10.0-windows` mit passender Plattformbasis.
+Keine beiläufige Umstellung auf .NET 11. SDK-/Paketversionen anhand der lokalen Referenz und tatsächlicher
+Kompatibilität festlegen. LxTranslate verwendet ein SDK-Pinning mit Roll-forward; lokal sind .NET-10-SDKs vorhanden.
+
+## 6. Neues Datenmodell und Migrationskonzept
+
+### Eigentum und Datenbanken
+
+Die eigene WawiCallPro-Kommunikationsdatenbank wird von FluentMigrator verwaltet. Lexware-Pro- und
+Financial-Office-Datenbanken bleiben externe Fachquellen: keine WawiCallPro-Migration läuft gegen sie.
+Schreibende Lexware-Operationen verwenden die passenden Fach-APIs und Fähigkeiten des Adapters.
+
+Als Zielprovider sind wie in LxTranslate SQLite, SQL Server, MySQL und PostgreSQL vorgesehen.
+SQLite ist der lokale Standard. SQL Anywhere bleibt als mögliche Altimportquelle sichtbar und wird nicht
+stillschweigend als vorhandener neuer FluentMigrator-Provider zugesagt. Falls die eigene Kommunikationsdatenbank
+weiter SQL Anywhere unterstützen muss, erhält dies einen eigenen nachgewiesenen Provider-Arbeitsblock.
+
+### Geplante fachliche Tabellen
+
+| Bereich | Vorgesehene Daten |
+|---|---|
+| `companies` | Produktlinie, Quellinstallation, externe Mandanten-ID, Anzeigename |
+| `parties` / `partyphones` | Cache für Kunden/Lieferanten/Kontaktpersonen, externe IDs, Rohnummer, E.164, Quelle und Aktualisierungszeit |
+| `phonecalls` | Stabile Gesprächs-ID, Mandant, Richtung, Status, eigene/fremde Nummer, Beginn/Annahme/Ende in UTC |
+| `callparties` | Zuordnungen und Teilnehmer einschließlich Mehrfachtreffern; historische Momentaufnahme des Namens |
+| `callnotes` / `callevents` | Notizen sowie geordnete Status-/Gesprächsereignisse |
+| `recordings` | Gesprächsbezug, relativer Dateipfad, Format, Dauer, Verfügbarkeit; Audiodaten zunächst dateibasiert |
+| `numberparselogs` | Ungültige Quellnummern mit Produkt-/Mandanten-/Datensatzbezug und Fehlergrund |
+| `mailmessages` / `mailattachments` | Späterer Office-Ausbau: eindeutige Connector-ID, Beteiligte, Inhalt/Metadaten und Anhangsverweise |
+| FluentMigrator-Versionsinformationen | Ausschließlich Versionsverwaltung des neuen WawiCallPro-Schemas |
+
+Das genaue Spaltenschema wird vor der ersten Migration festgelegt. Technische IDs, Fremdschlüssel,
+Nullbarkeit, maximale Längen, Löschregeln und Indizes sind Teil der Abnahme.
+Produktlinie plus Installation plus externe Mandanten-ID bilden die Quellidentität; Kundennummern allein sind
+nicht global eindeutig. Nummern können mehreren Geschäftspartnern gehören und bekommen keinen falschen Unique-Index.
+Alle technischen Zeitstempel werden in UTC gespeichert und erst in der Oberfläche lokal dargestellt.
+
+Geplante neue Versionsfolge: 1 Mandanten, 2 Geschäftspartner-/Nummerncache, 3 Gespräche/Teilnehmer/Ereignisse/Notizen,
+4 Aufnahmemetadaten, 5 Nummernfehler; Office-Tabellen folgen erst mit der Office-Phase. Jede Version ist
+eindeutig, unveränderlich nach Auslieferung und mit dem dazu passenden Repository-Code gemeinsam prüfbar.
+Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängige Typen und Indizes explizit behandeln.
+
+### Verhalten des neuen Migrators
+
+- Eigene DI-Registrierung mit korrektem Runner je Provider; nur WawiCallPro-Migrationen scannen.
+- Statusabfrage unterscheidet fehlende Datenbank, ausstehendes Schema, aktuelle Version, neuere inkompatible Version
+  und Verbindungs-/Rechtefehler. Eine reine Statusprüfung soll keine Datenbank oder Versionstabelle erzeugen.
+- Provisionierung und Schemaänderung sind getrennt. Bestehende Datenbanken werden nicht automatisch gelöscht.
+- Neue Datenbanken können angelegt werden; für vorhandene Installationen nur ausstehende Migrationen ausführen.
+- Ein zweiter Start darf keine konkurrierende Migration derselben Datenbank ausführen: anbieterübergreifendes
+  Sperrkonzept mit tatsächlicher Durchsetzung und Timeout vorsehen.
+- Fortschritt und Fehler an Logger und UI melden; Verbindungskennwörter und Tokens dabei auslassen.
+- Abbruch wird vor/nach sicheren Ausführungsschritten beachtet. Der synchrone FluentMigrator-Runner wird nicht
+  als jederzeit unterbrechbar beschrieben. Transaktions-/DDL-Unterschiede der Provider berücksichtigen.
+- Nach Fehlern keine falsche erfolgreiche Version melden. Wiederanlauf, Backup und Wiederherstellung prüfen.
+- Keine automatischen destruktiven Downgrades beim normalen Anwendungsstart. Down-Pfade nur für geeignete
+  Entwicklungstests oder gezielte Wartung; Sicherungswiederherstellung ist der Rückweg für Bestandsdaten.
+
+## 7. Phasenübersicht
+
+| Phase | Status | Ergebnis | Voraussetzung |
+|---|---|---|---|
+| 0 | ✅ | Referenzen geprüft, Regeln übernommen, vollständiger Plan dokumentiert | Dieser Auftrag |
+| 1 | ⬜ | Solution-/Build-Grundlage wie LxTranslate | 0 |
+| 2 | ⬜ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
+| 3 | ⬜ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
+| 4 | ⬜ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
+| 5 | ⬜ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
+| 6 | ⬜ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
+| 7 | ⬜ | Vollständiger SIP-Gesprächsablauf | 2, 3 |
+| 8 | ⬜ | Bedienbare App und erstes vollständiges Kernprodukt | 4–7 |
+| 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
+| 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
+| 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
+| 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
+| 13 | ⬜ | Altdatenübernahme und Entscheidung über Alttelefonie | 3, 8–12 |
+| 14 | ⬜ | Installation, Lizenzierung und Updates | 8, passende Ausbauphasen |
+| 15 | ⬜ | Gesamtprüfung, Dokumentation und Übergabe | Alle zugesagten Funktionen |
+
+Jede Phase wird in kleine validierte Änderungsblöcke mit jeweils eigenem Commit aufgeteilt.
+Die Abhängigkeiten bestimmen die Reihenfolge; diese Tabelle ist keine Beauftragung paralleler Agenten.
+
+### Phase 0 – Analyse und Planung ✅
+
+- [x] Altprojekt und den Unterschied zum geöffneten Hello-World-Projekt erfasst.
+- [x] LxTranslate-AGENTS, Solution-Struktur und Produktlinien-Schalter gelesen.
+- [x] Aktuelle Quantarix-Plugin-Verträge und Loader einschließlich Integrationslücke geprüft.
+- [x] Pro-/Financial-Office-Bibliotheken und konkrete Kunden-/Mandantenpfade identifiziert.
+- [x] LxTranslate-FluentMigrator, Provisioner, Factory, Status und Tests ausgewertet.
+- [x] Leeres GitHub-Repository geprüft und unter dem ursprünglichen Zielpfad geklont.
+- [x] Regeln übernommen und Plan im Solution-Ordner `Docs` aufgenommen.
+
+Abnahme dieses Blocks: Markdown-/Solution-Verweise existieren, Solution ist lesbar, Regelübernahme ist
+nachvollziehbar, Dokumente sind in Rider geöffnet und nur die zugehörigen Dateien werden lokal committet.
+Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es gibt noch keine neuen Codeprojekte.
+
+### Phase 1 – Solution, Abhängigkeiten und Builds ⬜
+
+- [ ] Projekte schrittweise in der Struktur aus Abschnitt 5 anlegen; App und Diagnosekonsole als Hosts vorsehen.
+- [ ] `Solution Files`, `Docs`, `Scripts`, `Tools` und externe `src`-Einträge wie in LxTranslate pflegen.
+- [ ] Zentrale MSBuild-Dateien, SDK-Konfiguration, Editor-/Git-Konventionen und Pakete festlegen.
+- [ ] `LexwareProductLine=Pro|FinOffice` einschließlich ungültiger Werte validieren; Ausgabe- und Zwischenverzeichnisse
+  so trennen, dass ein Variantenwechsel keine veralteten Assemblies oder Restore-Graphen wiederverwendet.
+- [ ] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
+  Vorhandene Änderungen in Schwester-Repositories nicht überschreiben oder automatisch auf einen anderen Stand ziehen.
+- [ ] Aktuelle MMS-Typen ihren konkreten Quantarix-APIs zuordnen; keine Alt-DLLs ins neue Produkt kopieren.
+- [ ] Debug-Buildskripte und erste CI-Prüfung vorbereiten; externe/private Abhängigkeiten und DevExpress-Zugang
+  für den Build reproduzierbar bereitstellen.
+
+Abnahme: App und Console bauen mit `-c Debug` für beide Produktlinien, starten ohne Lexware-Verbindung und
+erklären fehlende Konfiguration. Keine neuen MMS-Abhängigkeiten. Produktlinienwechsel wurde tatsächlich geprüft.
+
+### Phase 2 – Verträge, Infrastruktur und Einstellungen ⬜
+
+- [ ] DTOs und Verträge für Mandanten, Geschäftspartner, Fähigkeiten, Telefonie, Historie und Hostdienste entwerfen.
+- [ ] Lebenszyklen und Zustandsmodell festlegen; UI-Thread und Hintergrunddienste sauber trennen.
+- [ ] App-/Console-Composition-Roots aufbauen; Dienste über DI statt globale Form-/Singleton-Zugriffe verbinden.
+- [ ] Konfiguration typisiert validieren; sensible Werte geschützt speichern und nie in Diagnoseausgaben schreiben.
+- [ ] Benutzer-, Mandanten-, Geräte- und Datenbankeinstellungen sinnvoll trennen; Einstellungsformat versionieren.
+- [ ] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren.
+- [ ] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen.
+
+Abnahme: Relevante Konfigurationstests bestehen; falsche Einstellungen werden verständlich gemeldet.
+Hosts bauen in Debug und beenden alle gestarteten Hintergrunddienste zuverlässig.
+
+### Phase 3 – Datenbank und FluentMigrator vollständig neu ⬜
+
+- [ ] Tabellen, Schlüssel, UTC-Konventionen und Repository-Verträge aus Abschnitt 6 verbindlich ausarbeiten.
+- [ ] Eigene `DatabaseType`, `DatabaseFactory`, `DatabaseProvisioner`, Migrator-, Status- und Fortschrittsdienste erstellen.
+- [ ] FluentMigrator-Pakete/Runner für SQLite, SQL Server, MySQL und PostgreSQL kompatibel zum Referenzstand einbinden.
+- [ ] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen.
+- [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
+- [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.
+- [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
+- [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
+- [ ] Tests: leere Datenbank → aktuelles Schema; wiederholter Lauf unverändert; ältere Version → Upgrade mit Daten;
+  Migration scheitert → korrekter Status/Wiederanlauf; zwei Starts → wirksame Sperre; neuere Schema-Version → Abbruch;
+  Statusabfrage ohne Nebenwirkungen; UTC, Unicode, Fremdschlüssel und Mandantentrennung.
+
+Abnahme: Alle vier Provider werden gegen echte isolierte Testdatenbanken geprüft. SQLite ist lokal automatisch
+prüfbar; fehlende Server-Testumgebungen werden als offene Abnahme geführt und nicht als grün markiert.
+Database-Projekt und beide Hosts bauen in Debug. Kein WawiCallPro-Schema landet in einer Lexware-Datenbank.
+
+### Phase 4 – Quantarix-Plugin-Laufzeit integrieren ⬜
+
+- [ ] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen.
+- [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
+- [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
+- [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
+- [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
+  Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.
+- [ ] Mehrfachkopien gemeinsamer DLLs vermeiden; keine UI-Steuerelemente oder Logger versehentlich doppelt laden.
+- [ ] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben.
+- [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
+
+Abnahme: App und Console laden das richtige Plugin über denselben Quantarix-Manager. Vertragstypen sind
+kompatibel; Fehler im Plugin werden verständlich gemeldet. Debug-Build und aussagekräftiger Plugin-Hosttest bestehen.
+
+### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
+
+- [ ] Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.
+- [ ] FinOffice-Adapter auf Pcfk-Installationserkennung, Mandantenverwaltung und DataAccess aufbauen.
+- [ ] Kunden, Lieferanten und Ansprechpartner in gemeinsame DTOs abbilden; externe IDs und Quelltypen erhalten.
+- [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
+- [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
+- [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
+- [ ] Teilweise/nicht verfügbare Funktionen über Fähigkeiten kenntlich machen; keine erfolgreichen Leerantworten vortäuschen.
+- [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
+
+Abnahme: Beide Plugins lesen echte oder geeignete isolierte Lexware-Testbestände, einschließlich mehrerer
+Mandanten, leerer Daten und Verbindungsfehlern. API-Vertragstests plus Debug-Build beider Varianten bestehen.
+Produktlinienspezifische DLLs sind nur im passenden Pluginpaket vorhanden.
+
+### Phase 6 – Rufnummernindex und Zuordnung ⬜
+
+- [ ] Normalisierung über vorhandenes `libphonenumber-csharp` fachlich kapseln; E.164 und Originalwert speichern.
+- [ ] Landes-/Ortsvorwahl, Nebenstellen, interne und unterdrückte Nummern nachvollziehbar behandeln.
+- [ ] Index nach Produktlinie, Installation und Mandant führen; Aktualisierung abbrechbar und ohne UI-Blockade ausführen.
+- [ ] Mehrfachtreffer, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
+- [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
+- [ ] Cache nach Mandantenwechsel/Änderungen korrekt erneuern; Gesprächshistorie bleibt als Momentaufnahme erhalten.
+
+Abnahme: Repräsentative reale Nummernformate, Mehrfachtreffer, ungültige Nummern und Mandantentrennung sind
+getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden.
+
+### Phase 7 – SIP und Gesprächsablauf ⬜
+
+- [ ] SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen.
+- [ ] Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
+- [ ] Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
+- [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
+- [ ] Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
+- [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
+- [ ] Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
+
+Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten bestehen.
+Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzwerk fällt aus sind geprüft.
+App-/Console-Hosts und Telefonieprojekte bauen in Debug.
+
+### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
+
+- [ ] Hauptfenster, Verbindungs-/Mandantenauswahl, Kunden-/Lieferantensuche, Wähldialog und Historie erstellen.
+- [ ] Anruferfenster mit Treffern, Nummer, Mandant, Gesprächsstatus und Notizen anbinden.
+- [ ] Einstellungen für SIP, Geräte, Datenbank, Hotkeys, Autostart und Benachrichtigungen bereitstellen.
+- [ ] Tray und globale Tastenkürzel integrieren; Fokus, Mehrfachfenster und Beenden mit aktivem Gespräch definieren.
+- [ ] Alle Forms/Controls als `.cs`/`.Designer.cs`/`.resx` und mit designerfähigem parameterlosem Konstruktor aufbauen.
+- [ ] DevExpress-Eingaben in TableLayoutPanel-Layouts verwenden; UI-Schrift, Skin und DPI gemeinsam berücksichtigen.
+- [ ] Auf die betroffenen Views begrenzte Renderprüfung entsprechend `LX_UI_AUDIT_SURFACES` aus der Vorlage einrichten.
+  Diese Renderinfrastruktur ist im neuen Repository erst zu implementieren.
+
+Abnahme Kernprodukt: Mandant wählen → Kunden laden → Anruf empfangen → zuordnen → bedienen → Notiz speichern →
+Gespräch nach Neustart in der Historie wiederfinden. Zusätzlich ausgehender Anruf und verpasster Anruf.
+Beide Produktlinien in Debug bauen. Betroffene Views mit befüllten/leeren Daten, kleinem Fenster,
+größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
+
+### Phase 9 – Audio, Aufzeichnung und Ansagen ⬜
+
+- [ ] Geräteauflistung/-wechsel, Pegel, Lautstärke, Stummschaltung und Wiederanbindung nach Geräteverlust umsetzen.
+- [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
+- [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren.
+- [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
+- [ ] Aufnahmen abspielen, exportieren und konvertieren; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.
+- [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
+
+Abnahme: Echte Gespräche in beide Richtungen aufzeichnen und wiedergeben; Geräteverlust, Dateifehler und
+Gesprächsabbruch geprüft. Betroffene Audio-Views visuell geprüft, Debug-Build und geeignete Audioprüfungen bestanden.
+
+### Phase 10 – Erweiterte Lexware-Kundenübersicht ⬜
+
+- [ ] Überblick, Adressen, Kontaktpersonen und kundenbezogene Historie vollständig anbinden.
+- [ ] Aufträge zu Artikeln und Artikel zu Aufträgen, offene Posten, Zahlungsmoral, Kontakte, Dokumente, Termine und Projekte
+  anhand der Capability-Matrix je Produktlinie ergänzen.
+- [ ] Detaildaten bei Bedarf laden; große Datenmengen paginieren und Ladeoperationen abbrechen können.
+- [ ] Unterstützte Adressänderungen mit Validierung und Konfliktbehandlung über Fach-APIs zurückschreiben.
+- [ ] Nicht verfügbare Fachoperationen je Produktlinie nachvollziehbar behandeln und dokumentieren.
+- [ ] Fachtests für Produktlinien-/Mandantengrenzen sowie Testbestandsprüfungen für schreibende Operationen durchführen.
+
+Abnahme: Jede zugesagte Ansicht zeigt nachgewiesene echte Daten, keine Demo-Personenliste oder leere Handler.
+Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten visuell abgenommen und Debug gebaut.
+
+### Phase 11 – Office-Kommunikation ⬜
+
+- [ ] Vorhandene Office-Anforderungen und verfügbare aktuelle Bibliotheken/API-Verträge getrennt erfassen.
+- [ ] Konkreten Connector für unterstütztes Outlook/Exchange festlegen; Authentifizierung, Clienttyp und Zielumgebung klären.
+- [ ] Neue Connector-Verträge statt alter MMS.Office-Typen verwenden; kein nicht vorhandenes Quantarix.Office voraussetzen.
+- [ ] E-Mails, Kontakte und benötigte Termine kundenbezogen zuordnen; E-Mail-Adressen und Produkt-/Mandantenbezug beachten.
+- [ ] Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und optional Anhänge behandeln.
+- [ ] Eigene neue FluentMigrator-Migration für Office-Tabellen und Repository-Tests ergänzen.
+- [ ] LDAP nur bei konkretem Bedarf als separaten Connector umsetzen; bisher leere Klasse ist keine fertige Funktion.
+
+Abnahme: Synchronisieren und wiederholtes Synchronisieren ohne Duplikate, Zuordnung, Abbruch und
+Anmeldefehler sind mit einer geeigneten Testumgebung geprüft. Debug-Build und UI-Prüfung bestehen.
+
+### Phase 12 – Telefonmenüs und Automatisierung ⬜
+
+- [ ] XML-/Schemaformat und Versionsvertrag für Menüs definieren; vorhandene Menüideen fachlich übernehmen.
+- [ ] Ansage, Dateiwiedergabe, DTMF-Eingabe, Spracheingabe, Bedingungen, Variablen, Timeout und Wiederholungen implementieren.
+- [ ] Transfer, Auflegen und Fehlerpfade an den neuen Gesprächsablauf anschließen.
+- [ ] Menüvalidierung und Testlauf ohne echten Anruf anbieten; Zyklen und Abbruchverhalten begrenzen.
+- [ ] Editor designerfähig entwickeln; fehlerhafte Menüs mit genauer Stelle anzeigen.
+- [ ] Alte VBScript-/JavaScript-/Command-Platzhalter zunächst einzeln spezifizieren; keine beliebige Skriptausführung
+  oder abgeschlossene Implementierung aus vorhandenen Klassennamen ableiten.
+
+Abnahme: Repräsentatives Menü mit Auswahl, falscher Eingabe, Timeout, Transfer und Auflegen läuft simuliert
+und mit echtem SIP-Anruf. Editor visuell geprüft; neue Menü-/Hostprojekte in Debug gebaut.
+
+### Phase 13 – Altimport und frühere Telefoniearten ⬜
+
+- [ ] Tatsächliche alte Datenbankschemas, Konfigurationsstände und Aufnahmepfade aus verfügbaren Beispieldaten ermitteln.
+- [ ] Importer für vorhandene Anrufe, Notizen, E-Mails und Aufnahmereferenzen vom neuen Schema-Migrator trennen.
+- [ ] Quell-/Zielzuordnung, Zeitzonen, fehlerhafte Nummern, Dubletten, Mehrfachlauf und Importbericht implementieren.
+- [ ] Quelle nur lesen; Originaldaten und Originalkonfiguration erhalten. Import in isolierter Kopie validieren.
+- [ ] SQL-Anywhere-Altdaten bei Bedarf lesend importieren; das ist unabhängig vom Zielprovider.
+- [ ] Für CAPI, TAPI und Dialogic tatsächlichen Nutzungsbedarf, Hardware, Treiber, x86/x64 und .NET-10-Kompatibilität prüfen.
+- [ ] Ergebnis je Alttelefonieart ausdrücklich festhalten: aktueller Adapter mit Hardwareabnahme oder begründete
+  spätere/entfallende Unterstützung. Nicht stillschweigend aus der Funktionsliste streichen.
+
+Abnahme: Mengen, Gesprächszuordnungen und Aufnahmereferenzen sind anhand eines Importberichts geprüft;
+erneuter Import verdoppelt keine Daten. Für jede Alttelefonieart ist der Lieferumfang dokumentiert.
+
+### Phase 14 – Installation, Lizenzierung und Updates ⬜
+
+- [ ] Erststart und Verbindungseinrichtung für beide Produktlinien ausarbeiten.
+- [ ] Paketierung/Updates nach dem bewährten LxTranslate-Muster prüfen und WawiCallPro-spezifisch umsetzen.
+- [ ] Quantarix-Lizenzierung mit eigener Produktidentität anbinden, sofern im Zielprodukt verwendet;
+  keine fremden Lizenz-/API-Schlüssel übernehmen.
+- [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
+- [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
+- [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.
+
+Abnahme: Pro- und FinOffice-Pakete auf einer sauberen Testumgebung installieren, starten, aktualisieren und
+deinstallieren. Keine MMS-DLLs, falschen Produktlinienbibliotheken oder Entwicklungszugangsdaten im Paket.
+
+### Phase 15 – Gesamtprüfung und Übergabe ⬜
+
+- [ ] Funktionsmatrix aus Abschnitt 2 gegen tatsächlich ausgelieferte Funktionen abgleichen.
+- [ ] Kernablauf, Schreibpfade, Import, Backup/Restore und Updates je Produktlinie vollständig nachweisen.
+- [ ] Laufzeittest mit wiederholten Gesprächen, Mandanten-/Gerätewechseln und Netzwerkausfällen durchführen.
+- [ ] Ressourcennutzung, UI-Reaktion, Hintergrunddienste, Plugin-Shutdown und offene Dateihandles prüfen.
+- [ ] Alle unterstützten Datenbankprovider mit leeren sowie bestehenden Datenbanken prüfen.
+- [ ] Betroffene Oberflächen final visuell prüfen; keine unerledigten Designer-/Layoutregeln.
+- [ ] Benutzerhilfe, Einrichtung, Architektur, Datenmodell, Betrieb, Import und bekannte Grenzen dokumentieren;
+  jedes neue Markdown-Dokument unter `Docs` in der Solution referenzieren und in Rider öffnen.
+- [ ] Debug-Builds und sinnvolle Tests für die finale Änderung ausführen, Release-/Installationsprüfung durchführen,
+  Planstatus mit Nachweisen aktualisieren und validierte Blöcke einzeln committen.
+
+Abnahme: Nur nachgewiesene Funktionen erhalten grüne Häkchen. Offene Punkte werden mit Auswirkung,
+Voraussetzung und Folgephase benannt. Kein Push ohne ausdrücklichen Auftrag.
+
+## 8. Übergreifende Prüfungen und Nachweise
+
+Für jeden Codeblock: anwendbare AGENTS vor Änderung und Commit prüfen, fachlich relevante Tests ausführen,
+betroffene Bibliotheken und Hosts mit explizitem `-c Debug` in ihren regulären Ausgabeordnern bauen.
+Bei UI-Änderungen zusätzlich den betroffenen Umfang benennen, rendern und visuell prüfen.
+Keine Tests nur für triviale Dokumentationsänderungen oder zur bloßen Spiegelung der Implementierung schreiben.
+
+Geplante Standard-Buildaufrufe nach Anlegen der Projekte:
+
+```powershell
+dotnet build .\WawiCallPro.App\WawiCallPro.App.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet build .\WawiCallPro.Console\WawiCallPro.Console.csproj -c Debug -p:LexwareProductLine=Pro
+dotnet build .\WawiCallPro.App\WawiCallPro.App.csproj -c Debug -p:LexwareProductLine=FinOffice
+dotnet build .\WawiCallPro.Console\WawiCallPro.Console.csproj -c Debug -p:LexwareProductLine=FinOffice
+```
+
+Die Testaufrufe werden passend zum tatsächlich eingerichteten MSTest-/Microsoft.Testing.Platform-Runner
+festgelegt; keine unbelegten Testkommandos als bereits erfolgreiche Prüfung angeben.
+Providerprüfungen erfolgen auf wegwerfbaren Datenbanken und Lexware-Schreibtests auf geeigneten Testbeständen.
+
+| Nachweis | Bedeutung |
+|---|---|
+| Build | Projekt/Host, Produktlinie, Konfiguration, Ergebnis |
+| Fachtests | Zustände, Datenintegrität, Mandantentrennung und Fehlerfälle |
+| Providerprüfung | Tatsächlich verwendeter DB-Server/Treiber; leer, Upgrade, Wiederanlauf |
+| Pluginprüfung | Geladene Version, Shared-Assembly-Identität, Shutdown und Dependency-Auflösung |
+| UI-Prüfung | Betroffene Typen, Datenzustände, Schrift/DPI/Skin und kontrollierte Renderausgabe |
+| Integration | SIP-Endpunkte und Lexware-Produktlinie/Testbestand ohne Zugangsdaten im Bericht |
+| Commit | Nur der validierte aktuelle Änderungsblock; fremde Änderungen erhalten |
+
+## 9. Verbleibende Entscheidungen und Voraussetzungen
+
+Die Architektur ist mit den vorhandenen Vorlagen nachvollziehbar umsetzbar. Folgende Punkte brauchen
+vor ihrer jeweiligen Implementierung einen konkreten Nachweis oder eine Entscheidung, blockieren aber
+die Erstellung dieses Plans nicht:
+
+1. Zielpfad beziehungsweise spätere Umbenennung: ursprüngliches `WawiCallPro` gegenüber geöffnetem `WawiCall`.
+2. Echte Testzugänge/Testbestände für Lexware Pro und Financial Office sowie SIP-Endpunkte.
+3. Funktionsparität der erweiterten Lexware-Daten und der erlaubten Schreiboperationen je Produktlinie.
+4. Geeignete isolierte SQL-Server-/MySQL-/PostgreSQL-Testumgebungen für die vollständige Providerabnahme.
+5. Konkrete Office-/LDAP-Zielumgebung und benötigter Umfang.
+6. Weiterer Bedarf an CAPI/TAPI/Dialogic und SQL Anywhere als eigener Zieldatenbank.
+7. Tatsächliche Altdaten, Größenordnung und Importumfang.
+8. WawiCallPro-spezifische Plugin-Signierung, Produktidentität, Lizenz-/Releasekonfiguration.
+
+## 10. Lokale Quellen
+
+Diese Quellen wurden für die Planung gelesen. Sie sind Vorlagen und bleiben außerhalb dieses neuen Repositories.
+
+- `D:\Application-Development\WawiCallPro_old\WawiCallPro\Program.cs`
+- `D:\Application-Development\WawiCallPro_old\WawiCallPro\ControllerFactory.cs`
+- `D:\Application-Development\WawiCallPro_old\WawiCallPro\FrmConfig.cs`
+- `D:\Application-Development\WawiCallPro_old\WawiCallPro.Database\TelephoneDatabase.cs`
+- `D:\Application-Development\WawiCallPro_old\WawiCallPro.Lexware.Plugin\LexwareCache.cs`
+- `D:\Application-Development\LxTranslate\AGENTS.md`
+- `D:\Application-Development\LxTranslate\LxTranslateSolution.sln`
+- `D:\Application-Development\LxTranslate\Solution.props`
+- `D:\Application-Development\LxTranslate\Lexware-ProductLine-Plan.md`
+- `D:\Application-Development\LxTranslate\LxTranslate.App\LxTranslate.App.csproj`
+- `D:\Application-Development\LxTranslate\LxTranslate.App\Infrastructure\LexwareCompanyListLoader.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.App\Infrastructure\FinOfficeCompanyListLoader.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database\DatabaseMigrator.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database\DatabaseProvisioner.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database\DatabaseFactory.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database\DatabaseMigrationStatus.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database\Migrations\_001_InitialSchema.cs`
+- `D:\Application-Development\LxTranslate\LxTranslate.Database.Tests\DatabaseMigratorProgressTests.cs`
+- `D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Abstractions\IPlugin.cs`
+- `D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Abstractions\IPluginHost.cs`
+- `D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\PluginManager.cs`
+- `D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\PluginLoadContext.cs`
+- `D:\Application-Development\Quantarix.Plugin.System\docs\PluginSystem-Integration-Guide.md`
+- `D:\Application-Development\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService\ILexwareApiServiceClient.cs`
+- `D:\Application-Development\Quantarix.Pcfk.DataAccess\README.md`
+- `D:\Application-Development\Quantarix.Pcfk.DataAccess\Infrastructure\IPcfkKundeManager.cs`
+- `D:\Application-Development\Quantarix.Pcfk.DataAccess\Infrastructure\IPcfkLieferantManager.cs`

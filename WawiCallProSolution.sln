@@ -1,0 +1,17 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C577-441C-8512-D027A41E98FD}"
+	ProjectSection(SolutionItems) = preProject
+		AGENTS.md = AGENTS.md
+		Docs\Neuaufbau-Plan.md = Docs\Neuaufbau-Plan.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
