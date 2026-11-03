@@ -296,7 +296,9 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   App-Startansicht mit 440/720 Pixeln, 10/16-Punkt-UI-Schrift und zusätzlicher 150%-Layoutskalierung gerendert
   und visuell geprüft. Letzteres simuliert die Skalierung und ersetzt keinen späteren Test am echten High-DPI-Monitor.
   Ergebnisse lokal unter `.artifacts/ui/phase1-point1`; Fachmodule enthalten noch keine vorgetäuschten Implementierungen.
-- [ ] `Solution Files`, `Docs`, `Scripts`, `Tools` und externe `src`-Einträge wie in LxTranslate pflegen.
+- [x] `Solution Files`, `Docs`, `Scripts`, `Tools` und externe `src`-Einträge wie in LxTranslate pflegen.
+  Nachweis: eigene Projekte direkt im Root; externe Quantarix-Projekte und deren SQLite-Quellprojekt im logischen
+  Ordner `src` referenziert. Die Dateien bleiben in ihren Schwester-Repositories. Solution mit `dotnet sln list` geprüft.
 - [ ] Zentrale MSBuild-Dateien, SDK-Konfiguration, Editor-/Git-Konventionen und Pakete festlegen.
 - [ ] `LexwareProductLine=Pro|FinOffice` einschließlich ungültiger Werte validieren; Ausgabe- und Zwischenverzeichnisse
   so trennen, dass ein Variantenwechsel keine veralteten Assemblies oder Restore-Graphen wiederverwendet.
