@@ -1,0 +1,30 @@
+name: Debug builds
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: [self-hosted, Windows, X64, quantarix]
+    strategy:
+      max-parallel: 1
+      matrix:
+        product-line: [Pro, FinOffice]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Prepare pinned dependencies
+        run: ./bootstrap.ps1 -RequireClean
+      - name: Build and verify application hosts
+        env:
+          LEXWARE_PRODUCT_LINE: ${{ matrix.product-line }}
+        run: ./scripts/build-debug.ps1 -ProductLine $env:LEXWARE_PRODUCT_LINE -RequireCleanDependencies

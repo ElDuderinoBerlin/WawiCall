@@ -180,8 +180,8 @@ WawiCallPro/
   Tools/
 ```
 
-Das ist die geplante Endstruktur, keine Aussage über bereits erzeugte Projekte. Für diesen Planungsblock
-existiert zunächst nur eine Solution mit dem Dokumentationsordner. Projekte entstehen in den folgenden Phasen.
+Die 13 eigenen Projektgerüste sowie Solution-/Build-Dateien sind mit Phase 1 angelegt. Tests und Fachimplementierungen
+entstehen in den nachfolgenden Phasen. Die ursprüngliche Phase 0 enthielt zunächst nur die Dokumentations-Solution.
 
 Logische Solution-Ordner wie in LxTranslate: `Solution Files`, `Docs`, `Scripts`, `Tools`, `src` für die externen
 Quantarix-Projekte. Eigene Projekte und Testprojekte bleiben einzeln sichtbar.
@@ -254,7 +254,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | Phase | Status | Ergebnis | Voraussetzung |
 |---|---|---|---|
 | 0 | ✅ | Referenzen geprüft, Regeln übernommen, vollständiger Plan dokumentiert | Dieser Auftrag |
-| 1 | ⬜ | Solution-/Build-Grundlage wie LxTranslate | 0 |
+| 1 | ✅ | Solution-/Build-Grundlage wie LxTranslate | 0 |
 | 2 | ⬜ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
 | 3 | ⬜ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
 | 4 | ⬜ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
@@ -289,7 +289,7 @@ Abnahme dieses Blocks: Markdown-/Solution-Verweise existieren, Solution ist lesb
 nachvollziehbar, Dokumente sind in Rider geöffnet und nur die zugehörigen Dateien werden lokal committet.
 Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es gibt noch keine neuen Codeprojekte.
 
-### Phase 1 – Solution, Abhängigkeiten und Builds ⬜
+### Phase 1 – Solution, Abhängigkeiten und Builds ✅
 
 - [x] Projekte schrittweise in der Struktur aus Abschnitt 5 anlegen; App und Diagnosekonsole als Hosts vorsehen.
   Nachweis: 13 eigene Projekte angelegt; Solution-Debug-Build ohne Warnungen/Fehler, Console-Diagnose gestartet.
@@ -324,11 +324,19 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   LxTranslate auf `net10.0-windows`. Beide Hosts samt passendem Adapter für beide Produktlinien ohne
   Warnungen/Fehler in Debug gebaut und gestartet. Ausgaben und Runtime-Graphen auf MMS/falsche Produktlinie geprüft.
   Die Plugin-Laufzeitbereitstellung und fachlichen Adapteroperationen bleiben ausdrücklich Phase 4/5.
-- [ ] Debug-Buildskripte und erste CI-Prüfung vorbereiten; externe/private Abhängigkeiten und DevExpress-Zugang
+- [x] Debug-Buildskripte und erste CI-Prüfung vorbereiten; externe/private Abhängigkeiten und DevExpress-Zugang
   für den Build reproduzierbar bereitstellen.
+  Nachweis: `debug-build.bat` und `scripts/build-debug.ps1` erstellen produktlinienspezifische Solution-Filter
+  wie im LxTranslate-Buildmuster: Pro 20 Projekte, FinOffice 21 Projekte. Beide Builds mit null Warnungen/Fehlern,
+  vier Hoststarts und Runtime-/MMS-/Produktlinienprüfungen erfolgreich. PowerShell und Workflow-YAML geprüft.
+  GitHub-Matrix vorbereitet, aber nicht ausgeführt: dedizierter Windows-Runner mit Label `quantarix`, Git-Rechte,
+  DevExpress-Zugang und veröffentlichte saubere Schwesterbibliotheksstände sind vor dessen Abnahme erforderlich.
+  Einrichtung und Kommandos unter `Docs/Build.md`; Markdown sofort in Rider geöffnet. Keine Zugangsdaten eingebettet.
 
 Abnahme: App und Console bauen mit `-c Debug` für beide Produktlinien, starten ohne Lexware-Verbindung und
 erklären fehlende Konfiguration. Keine neuen MMS-Abhängigkeiten. Produktlinienwechsel wurde tatsächlich geprüft.
+Diese lokale Abnahme ist erfüllt. Die entfernte CI-Ausführung ist davon ausdrücklich getrennt und wurde
+weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. Alle sieben Punkte sind einzeln committet.
 
 ### Phase 2 – Verträge, Infrastruktur und Einstellungen ⬜
 
