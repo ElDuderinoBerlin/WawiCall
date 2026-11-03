@@ -578,3 +578,24 @@ Warnungen/Fehler gebaut. Vier Diagnose-Hoststarts und die Runtime-/MMS-/Produktl
 bestanden. Dabei werden weiterhin nur Betriebslogs und keine Datenbanken oder Einstellungen erzeugt.
 Protokolle: `.artifacts/phase3-item1`. Die Verträge sind implementiert; ihre künftigen SQL-Implementierungen
 und echte Provider-/Migrations-/Konkurrenztests bleiben offen. Keine UI-Änderung, keine neue Renderprüfung.
+
+## Geplante Velopack- und Releaseintegration
+
+Der [Velopack-Build-Plan](Velopack-Build-Plan.md) ergänzt Phase 14 auf Basis der aktuellen LxTranslate-
+Quellen: SDK/CLI 1.2.161, frühes Velopack-Bootstrapping, getrennte Pro-/FinOffice-Pakete, versionierte
+Setups und konkrete Build-/Publish-/Pack-/Prepare-/Upload-/Prüfskripte im vorhandenen `scripts/`-Ordner.
+Es wurden ausschließlich die Planung und ihre Referenzen ergänzt; keine neue Laufzeit- oder SDK-Anbindung.
+
+Updates werden als eigener Hostablauf geplant: prüfen und herunterladen, laufende Gespräche/Aufnahmen/
+Migrationen berücksichtigen, App und Console dieser Produktinstallation koordiniert stoppen und erst
+nach vollständigem Host-/Plugin-/Medien-Shutdown anwenden. FastCallbacks bleiben ohne UI oder Fachdienste;
+automatisches Anwenden beim Start wird ausdrücklich abgeschaltet. Konfiguration, Datenbank, Backups
+und Aufnahmen bleiben außerhalb der ersetzten Installationsdateien. Ein Binärrollback ersetzt keine
+Schemastand-/Backupprüfung.
+
+Der Releaseablauf berücksichtigt das endgültige Paket mit App, Console und passendem Plugin. Nach
+dem letzten Kopierschritt erfolgen Metadatenbereinigung und passende Signierung vor Pack/Hashnachweis.
+Lokaler Paketbau und Veröffentlichung sind getrennt; ein fehlerhafter Upload erhält den bisherigen Feed.
+Details zu Dateiverträgen, eigenen Identitäten, Quellen und offenen Installations-/Skriptprüfungen stehen
+im Detailplan. Die neue Markdowndatei ist in der Solution referenziert und in Rider geöffnet. Keine neuen
+Builds oder Tests für diesen reinen Dokumentationsblock; der zuvor nachgewiesene Stand bleibt unverändert.

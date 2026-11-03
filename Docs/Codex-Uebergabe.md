@@ -91,6 +91,13 @@ Runtime-/MMS-/Produktlinien- und Solution-Prüfung bestanden. Logs: `.artifacts/
 Keine UI-Änderung oder neue Renderprüfung. Noch keine Provider, Migrationen oder Dapper-Implementierungen;
 reale Constraint-, Transaktions- und Providerabnahmen stehen aus. Die bekannte Bootstrap-/CI-Grenze bleibt.
 
+Zusätzlicher Planungsauftrag vom 04.11.2026 abgeschlossen: `Docs/Velopack-Build-Plan.md` enthält die
+geprüfte LxTranslate-Vorlage für SDK/CLI 1.2.161, Host-/Hookintegration, Paketidentitäten, Release-Skripte
+im bestehenden `scripts/`-Ordner, finale Strip-/Signierreihenfolge und getrennte lokale/Remote-Stufen.
+Plan, Build-Dokumentation und Vertraege sind verknüpft; neue Datei im Docs-Solutionordner und in Rider.
+Phase 14 ist entsprechend konkretisiert, die eigentliche Umsetzung bleibt offen. Kein Referenzskript,
+Produktbuild, Installer oder Upload wurde für diesen Planungsblock ausgeführt. Nächster Fachpunkt bleibt 3.2.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.

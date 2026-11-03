@@ -111,6 +111,25 @@ Ein unabhängiger Leser mit `System.Reflection.Metadata` prüft 78 tatsächliche
 Produktidentität und getrennte Runtime-Abhängigkeiten. Zwölf Starts aus Debug/Release/Publish sowie ein
 zusätzlicher frameworkabhängiger win-x64-Publish/-Start bestanden. Protokolle: `.artifacts/stripdx`.
 
+## Geplante Velopack- und Release-Skripte
+
+Die am 04.11.2026 geprüfte LxTranslate-Übernahme ist im [Velopack-Build-Plan](Velopack-Build-Plan.md)
+konkretisiert. Dort stehen Ausgangsversion 1.2.161 für SDK/CLI, eigene PackageIds, App-Bootstrap,
+Update-Shutdown, Paket-/Signierreihenfolge sowie der Abnahmeumfang. Das Produkt bindet Velopack noch nicht ein.
+
+Im bestehenden physischen `scripts/`-Ordner sind `build-release.ps1`, `publish-release.ps1`,
+`Invoke-VelopackRelease.ps1`, `Invoke-VelopackReleaseUpload.ps1`, `Assert-ReleasePackage.ps1`,
+`Set-VelopackSetupFileName.ps1`, `Release.Common.psm1` und die zugehörigen Pester-Fixtures vorgesehen.
+Sie werden bei Umsetzung im Solution-Ordner `Scripts` referenziert. Root-BAT-Dateien bleiben dünne Wrapper.
+`scripts/build-debug.ps1` und die normalen Debug-Ausgabeordner behalten ihre Funktion.
+
+Release/Publish/Pack arbeiten lokal mit getrennten Produkten und Versionen. Veröffentlichung ist ein
+separater ausdrücklicher Schritt. Die Planung berücksichtigt auch später hinzukopierte Plugins bei
+StripDxLicenseInformation, passende Strong-Name-Schlüssel, Authenticode und die Prüfung des endgültigen
+NUPKG-Inhalts. LxTranslate-Server-/COM-/Demo-Funktionen und dessen Veröffentlichungseinstellungen werden
+nicht als Produktvorgaben übernommen. Für diesen Dokumentationsblock wurden keine Produktbuilds,
+Skripttests, Installationen oder Uploads ausgeführt; die Umsetzung bleibt Phase 14 zugeordnet.
+
 ## Datenbankverträge und Tests
 
 Die Datenbankschema-/Repository-Verträge aus Phase 3, Punkt 1 stehen in `Docs/Datenbankschema.md` und

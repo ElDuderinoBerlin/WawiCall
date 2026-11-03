@@ -669,8 +669,29 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
 
 ### Phase 14 – Installation, Lizenzierung und Updates ⬜
 
+- [x] Velopack- und Release-Skriptintegration anhand von LxTranslate konkret planen. ✅
+  Nachweis vom 04.11.2026: `Docs/Velopack-Build-Plan.md` beschreibt die gelesenen App-/Toolmanifest-/
+  Build-/Publish-/Pack-/Upload-/Prüfskripte und die Anpassung auf WawiCallPro. Geprüfter Ausgangsstand:
+  Velopack-SDK und vpk 1.2.161. Vorgesehen sind getrennte Pro-/FinOffice-Identitäten, ein UI-freier
+  Bootstrap, geordneter Update-Shutdown, modulare App-/Console-/Pluginpakete, finale Strip-/Signierreihenfolge,
+  konkrete Skripte unter `scripts/`, lokaler Releaseablauf und gestufte Veröffentlichung mit Feed-Erhalt.
+  Neue Markdowndatei im Docs-Solutionordner referenziert und in Rider geöffnet; Quellen, Links, Solution
+  und Git-Diff geprüft. Reiner Planungsblock: keine Skripte ausgeführt, kein neuer Build-/Installationsnachweis.
+  Die folgenden Implementierungs-/Abnahmepunkte bleiben offen; der nächste reguläre Schritt bleibt Phase 3, Punkt 2.
+- [ ] Velopack-SDK und lokale vpk-CLI gemeinsam pinnen; eigenes Toolmanifest mit Restore-/Versionsprüfung einbinden.
+- [ ] App-Einstieg mit frühem Velopack-Run, schlanker NoInlining-Grenze und UI-freien FastCallbacks umsetzen;
+  automatische Anwendung beim Start ausdrücklich deaktivieren und Hook-/Diagnoseabläufe testen.
+- [ ] Updateprüfung, Download und Anwendung getrennt in den Host integrieren; Gespräch, Aufnahme, Migration
+  und laufende Companion-Prozesse berücksichtigen. Erst nach vollständig erfolgreichem Shutdown anwenden/neustarten.
+- [ ] Release-Build-/Publish-/Pack-Orchestrierung und gemeinsame Hilfen im bestehenden `scripts/`-Ordner anlegen;
+  Root-BAT-Dateien nur als Aufrufwrapper, reguläre Debug-Ausgaben erhalten, Produkt-/Versions-/Staginggrenzen prüfen.
+- [ ] Paketprüfung, versionierten Setupnamen samt assets.win.json und finalen Release-/Hashnachweis umsetzen;
+  StripDxLicenseInformation nach letztem Kopieren auch auf eigene Plugin-Unterordner anwenden und korrekt signieren.
+- [ ] Prepare/Upload nach dem geprüften Skriptmuster trennen; eigene stabile Feedadressen, geprüfte unveränderliche
+  Dateien und atomare Feedbereitstellung. Bestehenden funktionierenden Feed bei Fehlern erhalten; kein automatischer Upload.
+- [ ] Pester-Skriptprüfungen mit lokalen Prozessdoubles und echten Paketprüfungen für beide Produktlinien ergänzen;
+  Restore-/Build-/Pack-/Signatur-/Timeout-/Transferfehler, falsche Kanäle und vertrauliche Inhalte abweisen.
 - [ ] Erststart und Verbindungseinrichtung für beide Produktlinien ausarbeiten.
-- [ ] Paketierung/Updates nach dem bewährten LxTranslate-Muster prüfen und WawiCallPro-spezifisch umsetzen.
 - [ ] Quantarix-Lizenzierung mit eigener Produktidentität anbinden, sofern im Zielprodukt verwendet;
   keine fremden Lizenz-/API-Schlüssel übernehmen.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
@@ -679,6 +700,10 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
 
 Abnahme: Pro- und FinOffice-Pakete auf einer sauberen Testumgebung installieren, starten, aktualisieren und
 deinstallieren. Keine MMS-DLLs, falschen Produktlinienbibliotheken oder Entwicklungszugangsdaten im Paket.
+Jeweils Version N → N+1 über einen lokalen Feed, parallele Installation der anderen Produktlinie, aktive
+Gespräche/Aufnahmen, laufende Console, Offline-/Feed-/Signaturfehler, Daten-/DPAPI-Erhalt und unterbrochene
+Veröffentlichung prüfen. Konkrete Dateiverträge, Skriptzuordnung und Abnahme stehen im
+[Velopack-Build-Plan](Velopack-Build-Plan.md). Die erfolgte Planung ist keine Installations-/Release-Abnahme.
 
 ### Phase 15 – Gesamtprüfung und Übergabe ⬜
 
