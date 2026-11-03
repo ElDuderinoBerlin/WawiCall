@@ -16,6 +16,6 @@
     <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DevExpress.Win.Design" Version="26.1.6" />
+    <PackageReference Include="DevExpress.Win.Design" Version="$(DevExpressVersion)" />
   </ItemGroup>
 </Project>

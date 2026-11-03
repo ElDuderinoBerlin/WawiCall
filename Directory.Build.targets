@@ -1,0 +1,8 @@
+<Project>
+  <Target Name="ValidateWawiCallReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('MMS.'))"
+           Text="MMS-Projektreferenz ist nicht erlaubt: %(ProjectReference.Identity). Eine konkrete Quantarix-API verwenden." />
+    <Error Condition="$([System.String]::Copy('%(Reference.Identity)').StartsWith('MMS.'))"
+           Text="MMS-Assemblyreferenz ist nicht erlaubt: %(Reference.Identity). Eine konkrete Quantarix-API verwenden." />
+  </Target>
+</Project>

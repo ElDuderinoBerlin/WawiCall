@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Product>WawiCallPro</Product>
+    <DevExpressVersion>26.1.6</DevExpressVersion>
+  </PropertyGroup>
+</Project>

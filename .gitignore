@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+.artifacts/
+artifacts/
+.idea/
+.vs/
+*.user
+*.suo
+*.snk
+*.pfx
+*.log
+appsettings.Local.json
+*.db
+*.db-shm
+*.db-wal
