@@ -22,6 +22,7 @@
     <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="WawiCallPro.App.Tests" />
     <PackageReference Include="DevExpress.Win.Design" Version="$(DevExpressVersion)" />
   </ItemGroup>
 </Project>

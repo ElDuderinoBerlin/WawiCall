@@ -5,6 +5,8 @@ using WawiCallPro.Core.Companies;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
+using WawiCallPro.Utilities.Operations;
+using Microsoft.Extensions.Logging;
 
 namespace WawiCallPro.Utilities.Hosting;
 
@@ -14,7 +16,7 @@ public static class WawiCallHost
     public static IHostBuilder CreateBuilder(Assembly entryAssembly)
     {
         ArgumentNullException.ThrowIfNull(entryAssembly);
-        // Configuration uses explicit typed persistence; logging providers follow in the operations plan item.
+        // Only the safe provider is registered; arbitrary formatted state never becomes a log record.
         return new HostBuilder()
             .UseContentRoot(AppContext.BaseDirectory)
             .UseDefaultServiceProvider(options =>
@@ -31,6 +33,11 @@ public static class WawiCallHost
                 });
                 services.AddSingleton(ApplicationDescriptor.FromAssembly(entryAssembly));
                 services.AddSingleton(provider => ConfigurationLocation.ForCurrentUser(provider.GetRequiredService<ApplicationDescriptor>().ProductLine));
+                services.AddSingleton<ApplicationPaths>();
+                services.AddSingleton<RuntimeFailureState>();
+                services.AddSingleton<ILoggerProvider, SafeFileLoggerProvider>();
+                services.AddSingleton<Quantarix.Plugin.Abstractions.ILogger, QuantarixLogAdapter>();
+                services.AddHostedService<RuntimeFailureMonitor>();
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();
                 services.AddSingleton<ConfigurationStore>();

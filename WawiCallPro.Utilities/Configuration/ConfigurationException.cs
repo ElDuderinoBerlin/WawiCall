@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Configuration;
 
@@ -26,6 +27,9 @@ public static class StartupFailureMessage
         var configurationFailure = exception as ConfigurationException;
         if (exception is AggregateException aggregate)
             configurationFailure = aggregate.Flatten().InnerExceptions.OfType<ConfigurationException>().FirstOrDefault();
-        return configurationFailure?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
+        var operationalFailure = exception as OperationException;
+        if (exception is AggregateException errors)
+            operationalFailure = errors.Flatten().InnerExceptions.OfType<OperationException>().FirstOrDefault();
+        return configurationFailure?.Message ?? operationalFailure?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
     }
 }

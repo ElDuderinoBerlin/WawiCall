@@ -445,7 +445,21 @@ weder als erfolgreich ausgeführt gemeldet noch durch einen Push ausgelöst. All
   Keine UI-/Layoutänderung und keine automatische Anwendung der gespeicherten Benutzer-/Gerätevorgaben;
   keine neue Renderprüfung erforderlich. Anwendung durch UI/Audio sowie echte DB-Provider folgen ihren
   Fachphasen. Die bekannten Bootstrap-/CI-Grenzen bleiben bestehen.
-- [ ] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren.
+- [x] Logging, Fehleranzeige, Pfade, geordnetes Beenden und Abbruchverhalten mit Quantarix-/Standarddiensten integrieren. ✅
+  Nachweis: Standard-`ILogger` mit begrenztem JSONL-Dateiprovider und Adapter für den tatsächlichen
+  Quantarix-Plugin-Loggervertrag. Ausschließlich UTC-/Prozess-/Laufkennungen, feste Ereigniscodes,
+  Schweregrad und Ausnahmetyp; keine fremden Meldungen, Formatter, Scopes oder Ausnahmeinhalte.
+  Gemeinsame produktbezogene Pfade für Logs, Aufnahmen und Backups; Dateifehler und ausgeschöpftes
+  Loglimit werden sichtbar und stoppen den Host. Aufnahmen/Backups werden noch nicht angelegt.
+  Worker-/UI-Fehler und externer Abbruch erreichen den Standardhost. Mandantenkontext wird vor Worker-Stop
+  gesperrt; tatsächliche BackgroundService-Aufgaben werden auch nach der Stopfrist vor Freigabe abgewartet.
+  Fristüberschreitungen bleiben Fehler; ein unkooperativer Worker kann weiterhin den Abschluss verzögern.
+  Je 73 Tests für Pro/FinOffice bestanden, darunter sieben Betriebs- und ein echter WinForms-Fehlerablauftest.
+  Beide Hosts beider Varianten mit `-c Debug` ohne Warnungen/Fehler gebaut. 20 isolierte Prozessprüfungen
+  zu fehlender/aktueller/ungültiger/neuerer Konfiguration und Logausfall, sichere Ausgaben, unveränderte
+  Einstellungen sowie Runtime-/Produktlinien-/MMS- und Solution-Prüfung bestanden.
+  Logs: `.artifacts/phase2-item6`. Keine Layoutänderung; MainForm-Fehler-/Schließzustand im echten
+  Message-Loop geprüft, unveränderte Ansichten nicht erneut gerendert. Bootstrap-/CI-Grenzen bleiben bestehen.
 - [ ] Diagnosekonsole mit N/P/G/Q-Paginierung sowie vollständigem nichtinteraktivem Ausgabeformat aufbauen.
 
 Abnahme: Relevante Konfigurationstests bestehen; falsche Einstellungen werden verständlich gemeldet.

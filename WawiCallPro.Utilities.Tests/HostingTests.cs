@@ -16,12 +16,20 @@ namespace WawiCallPro.Utilities.Tests;
 [TestClass]
 public sealed class HostingTests
 {
-    private static IHostBuilder CreateBuilder() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-host-tests-" + Guid.NewGuid().ToString("N"));
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        if (Directory.Exists(_root)) Directory.Delete(_root, true);
+    }
+
+    private IHostBuilder CreateBuilder() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
         .ConfigureServices(services =>
         {
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
             services.AddSingleton<IHostLifetime, TestHostLifetime>();
-            services.AddSingleton(new ConfigurationLocation(Path.Combine(Path.GetTempPath(), "WawiCallPro-host-tests-" + Guid.NewGuid().ToString("N"))));
+            services.AddSingleton(new ConfigurationLocation(_root));
         });
 
     [TestMethod]

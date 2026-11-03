@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 2, Punkte 1–5. Die öffentlichen Datenmodelle und Schnittstellen liegen in
+Stand: Phase 2, Punkte 1–6. Die öffentlichen Datenmodelle und Schnittstellen liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -188,15 +188,17 @@ Abwarten der Aufgaben durch deren Besitzer. UI-Nachrichtenverarbeitung und Dispa
 der Hintergrundarbeiten verfügbar. Keine synchronen `.Wait()`-/`.Result`-Aufrufe auf dem UI-Thread und keine
 unbeobachteten Hintergrundtasks. Stop-Zeitüberschreitungen/Fehler müssen beim Host sichtbar bleiben;
 Abbruchtokens allein beweisen kein erfolgreiches Herunterfahren. Die konkrete Basis-Hostverdrahtung ist
-umgesetzt; die vollständige Fehler-/Shutdownintegration folgt in Punkt 6 und in den jeweiligen Fachphasen.
+umgesetzt; seit Punkt 6 werden auch Laufzeitfehler und tatsächlich noch laufende BackgroundService-Aufgaben
+beobachtet. Konkrete Gesprächs-/DB-/Pluginressourcen folgen mit den jeweiligen Fachphasen.
 
 ## Composition Roots und aktuelle Hostverdrahtung
 
 `WawiCallHost.CreateBuilder` in Utilities registriert gemeinsame Dienste und aktiviert `ValidateOnBuild`
 und `ValidateScopes` in beiden Hosts. Ein fehlender Dispatcher oder eine unzulässige Scoped-Abhängigkeit
 im Singleton wird beim Aufbau erkannt. `CompanyContext` und `ICompanyContext` liefern dieselbe Instanz.
-Der vor späteren Workern registrierte `CompanyContextLifetime` beendet den Mandantenkontext nach deren
-Stop-Aufrufen. Dienst- und Containerfreigabe sind asynchron; die Kontextfreigabe ist idempotent.
+`HostExecution` sperrt den Mandantenkontext bereits vor den Worker-Stop-Aufrufen; der davor registrierte
+`CompanyContextLifetime` beobachtet dessen Abbruchabschluss auch beim direkten Standardhost-Stop.
+Dienst- und Containerfreigabe sind asynchron; die Kontextfreigabe ist idempotent.
 
 `ConsoleCompositionRoot` ergänzt `InlineUiDispatcher`. `AppCompositionRoot` ergänzt den an einen
 ausdrücklich installierten `WindowsFormsSynchronizationContext` gebundenen Dispatcher und eine von der
@@ -229,7 +231,47 @@ Konto ist noch kein Nachweis einer Registrierung oder Netzwerkverbindung.
 Es werden weder `IBusinessDirectory`, `ITelephonyService`, `ICallHistoryService` noch `IWawiCallHostServices`
 durch erfolgreiche Leerimplementierungen ersetzt. Diese Dienste sowie Plugins und Provider werden erst mit
 ihrer realen Implementierung registriert. Konfiguration wird seit Punkt 4 ausdrücklich typisiert geladen;
-allgemeine Konfigurations-Debugansichten und automatische Loggingprovider sind weiterhin nicht eingerichtet.
+allgemeine Konfigurations-Debugansichten sind nicht eingerichtet. Seit Punkt 6 wird ausschließlich der
+unten beschriebene bereinigte Loggingprovider registriert.
+
+## Betrieb, Fehler und Pfade
+
+`ApplicationPaths` leitet aus `ConfigurationLocation` dasselbe produktbezogene lokale Stammverzeichnis ab.
+Darunter liegen `logs`, `recordings` und `backups`. Auflösen legt keine Verzeichnisse an; erst ein tatsächlicher
+Logeintrag erzeugt `logs`. Relative Aufnahme-/Backupdateien dürfen den jeweiligen Stamm lexikalisch nicht
+verlassen; absolute Pfade, Laufwerksangaben und Traversal werden mit festen Meldungen abgewiesen.
+Dies ist keine Dateisystemsandbox gegen Reparsepoints; konkrete Aufnahme-/Backupzugriffe folgen später.
+
+Standard-`ILogger` und `Quantarix.Plugin.Abstractions.ILogger` verwenden denselben `SafeFileLoggerProvider`.
+`QuantarixLogAdapter` implementiert die geprüften Methoden `LogInfo`, `LogWarning` und `LogError`.
+Die spätere Pluginmanager-Verdrahtung bleibt Phase 4. Der Quantarix-Textlogger wird hier bewusst nicht als
+Dateisink verwendet: dessen lokale Implementierung verschluckt Schreibfehler. Die Standard-Pfad-APIs erhalten
+die schon vorhandene produktbezogene Ablage; Quantarix-Folder-Hilfen würden deren Semantik ändern.
+
+Pro Hostlauf entsteht `logs/operations-<Prozess-ID>-<Lauf-GUID>.jsonl`, maximal 4 MiB. Einträge enthalten nur
+UTC-Zeit, Lauf-/Prozesskennung, Schweregrad, festen `OperationEvent`, numerische Ereignis-ID und Ausnahmetyp.
+Freitext aus Standard-/Pluginmeldungen, Formatter, Scopes, Exception.Message/Data/StackTrace und
+Konfigurationswerte werden nicht gespeichert. Fachphasen ergänzen bei Bedarf ausdrücklich geprüfte
+Ereigniscodes statt unbereinigter Meldungen. Jeder Schreibzugriff schließt seine Datei unmittelbar.
+Nicht beschreibbare Logs und das erreichte Limit melden einen festen `OperationException` und stoppen den
+Host mit Fehlerstatus. Es gibt keine automatische Löschung früherer Laufdateien; Aufbewahrung bleibt eine
+ausdrückliche Betriebsentscheidung. Die Startdiagnose bleibt davon getrennt genau ein JSON-Dokument.
+
+`RuntimeFailureState` behält den ersten fatalen Betriebsfehler; `RuntimeFailureMonitor` fordert darüber
+`IHostApplicationLifetime.StopApplication` an. Framework-Hostfehler einschließlich fehlerhafter
+BackgroundServices werden über den Provider beobachtet. Die App fängt UI-Nachrichtenschleifenfehler über
+`Application.ThreadException` und gemeldete unbeobachtete Taskfehler ab und leitet sie in denselben Stopweg.
+Die Form und der Dispatcher leben bis nach Workerabschluss und Containerfreigabe. Danach wird der Fehler
+mit der bestehenden bereinigten Anzeige und Exitcode 1 gemeldet. Taskbesitzer müssen Aufgaben weiterhin
+explizit abwarten; das GC-abhängige UnobservedTaskException-Ereignis ersetzt dies nicht.
+
+Ein externer Abbruch nach erfolgreichem Start stoppt normal; Fehler beim Start, Stoppen oder Freigeben
+bleiben erhalten. Die 30-Sekunden-Stopfrist des Standardhosts ist keine Erlaubnis, Ressourcen unter laufenden
+Workern freizugeben. `HostExecution` beobachtet zusätzlich deren tatsächliche `ExecuteTask` sowie ausstehende
+Mandanten-Abbruchcallbacks. Eine überschrittene Wartefrist wird protokolliert und als Fehler zurückgegeben,
+der Aufgabenabschluss dennoch abgewartet. Ein dauerhaft unkooperativer Worker verzögert folglich auch den
+Prozessabschluss. Prozessabbruch, StackOverflow und vergleichbare CLR-Abbrüche erlauben keine Zusage eines
+geordneten Managed-Shutdowns. Konkrete Fachworker müssen kooperativ abbrechen und ihre Ressourcen besitzen.
 
 Die Renderprüfung läuft ebenfalls innerhalb des aktiven Hosts und erzeugt die Form mit derselben
 Konstruktorinjektion. Schrift-/Fenster-Testgrößen werden nach der automatischen Skalierung gesetzt;
@@ -404,8 +446,8 @@ dotnet test --project .\WawiCallPro.Utilities.Tests\WawiCallPro.Utilities.Tests.
 .\scripts\build-debug.ps1
 ```
 
-Lokaler Nachweis: je 65 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-
-und elf Einstellungs-/Versionstests); App und Console
+Lokaler Nachweis: je 73 Tests bestanden (elf Vertrags-, 16 Core-, acht Telefonie-, acht Host-, elf Konfigurations-,
+elf Einstellungs-/Versions-, sieben Betriebs- und ein WinForms-Fehlerablauftest); App und Console
 für beide Varianten direkt mit `-c Debug` ohne Warnungen/Fehler gebaut und mit `--diagnostics` gestartet,
 Runtime-Abhängigkeiten geprüft.
 Das zentrale Buildskript stoppt derzeit vor dem Build am abweichenden lokalen Stand von `Quantarix.Pcfk.Core`
@@ -423,12 +465,16 @@ wurden nicht verändert.
 simuliert den Layoutstress; eine echte High-DPI-Monitorprüfung wird damit nicht behauptet.
 Die Renderausgaben des letzten UI-Blocks liegen unter `.artifacts/phase2-item4`. Der jetzige Block verändert
 keine Ansicht und wendet die neuen Präferenzen noch nicht an; eine erneute Renderprüfung ist nicht erforderlich.
-Aktuelle Test-/Build-/Prozessprotokolle liegen unter `.artifacts/phase2-item5`.
+Aktuelle Test-/Build-/Prozessprotokolle liegen unter `.artifacts/phase2-item6`.
+20 weitere isolierte Prozessprüfungen decken beide Hosts/Varianten mit fehlender, aktueller, ungültiger,
+neuerer Konfiguration sowie blockierter Logablage ab. Konfigurationen bleiben unverändert; synthetische
+Zugangsdaten fehlen auch in JSONL. Der UI-Ablauftest wirft einen Fehler in der echten Nachrichtenschleife,
+prüft Formfreigabe und beobachtet anschließend den ursprünglichen Fehler. Kein Layout wurde geändert.
 Bei der ersten 10-Punkt-Aufnahme kann `DrawToBitmap` die native Titelleiste leer erfassen;
 die Inhaltsfläche ist sichtbar und die Titelleiste in den weiteren Aufnahmen geprüft. Dieser
 Aufnahmeartefakt wird nicht als Nachweis einer fehlerhaft angezeigten Laufzeit-Titelleiste gewertet.
 
 Die Einstellungsbereiche und das versionierte Grundschema sind umgesetzt. Weitere modulspezifische Optionen,
 ihre Anwendung, Datenbankzugriffe und echte SIP-/Lexware-Integration folgen mit den Fachphasen.
-Betriebs-/Loggingintegration und Freigabe zukünftiger Fachressourcen bleiben Aufgaben der folgenden Punkte.
+Die Betriebsbasis ist umgesetzt; Freigabe zukünftiger Fachressourcen folgt mit deren Implementierung.
 Die Standardeinrichtung wird später über die vorgesehenen Oberflächen angeboten.

@@ -1,0 +1,12 @@
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.App\WawiCallPro.App.csproj" />
+    <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />
+    <PackageReference Update="MSTest.TestFramework" Version="4.5.2" />
+  </ItemGroup>
+</Project>

@@ -30,6 +30,12 @@ wird dadurch vermieden.
 `IWawiCallHostServices` samt Fachverträgen deklariert; Details stehen in `Docs/Vertraege.md`.
 Das tatsächliche Laden vor Erzeugung des Managers und das Konfigurieren der Hostdienste bleiben Aufgaben von Phase 4.
 
+Seit Phase 2, Punkt 6 verbindet `QuantarixLogAdapter` den tatsächlichen Plugin-Loggervertrag mit dem
+Standard-`ILogger` und dem bereinigten JSONL-Provider. Keine freien Plugin-/Ausnahmetexte gelangen ins Log.
+Der lokale Quantarix-Textlogger verschluckt Schreibfehler und wird deshalb nicht als beobachtbarer Dateisink
+verwendet. Produktbezogene Betriebspfade verwenden die Standard-Pfad-APIs auf Basis der vorhandenen
+Konfigurationsablage. Details und bewusst begrenzte Shutdownzusagen stehen in `Docs/Vertraege.md`.
+
 Prüfungen: App und Console für beide Produktlinien in Debug; zugehörige Adapterprojekte und ihre Quantarix-
 Abhängigkeiten werden dabei mitgebaut. Runtime-Graphen und Ausgabedateien der Hosts sowie des passenden Plugins
 werden auf MMS-Assemblies und auf Bibliotheken der jeweils anderen Lexware-Produktlinie geprüft.
