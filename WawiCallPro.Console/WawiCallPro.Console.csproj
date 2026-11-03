@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>WawiCallPro.ConsoleApp</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
+  </ItemGroup>
+</Project>

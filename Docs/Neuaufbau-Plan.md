@@ -291,7 +291,11 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 
 ### Phase 1 – Solution, Abhängigkeiten und Builds ⬜
 
-- [ ] Projekte schrittweise in der Struktur aus Abschnitt 5 anlegen; App und Diagnosekonsole als Hosts vorsehen.
+- [x] Projekte schrittweise in der Struktur aus Abschnitt 5 anlegen; App und Diagnosekonsole als Hosts vorsehen.
+  Nachweis: 13 eigene Projekte angelegt; Solution-Debug-Build ohne Warnungen/Fehler, Console-Diagnose gestartet.
+  App-Startansicht mit 440/720 Pixeln, 10/16-Punkt-UI-Schrift und zusätzlicher 150%-Layoutskalierung gerendert
+  und visuell geprüft. Letzteres simuliert die Skalierung und ersetzt keinen späteren Test am echten High-DPI-Monitor.
+  Ergebnisse lokal unter `.artifacts/ui/phase1-point1`; Fachmodule enthalten noch keine vorgetäuschten Implementierungen.
 - [ ] `Solution Files`, `Docs`, `Scripts`, `Tools` und externe `src`-Einträge wie in LxTranslate pflegen.
 - [ ] Zentrale MSBuild-Dateien, SDK-Konfiguration, Editor-/Git-Konventionen und Pakete festlegen.
 - [ ] `LexwareProductLine=Pro|FinOffice` einschließlich ungültiger Werte validieren; Ausgabe- und Zwischenverzeichnisse

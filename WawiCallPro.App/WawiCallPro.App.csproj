@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ForceDesignerDpiUnaware>false</ForceDesignerDpiUnaware>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Telephony.Sip\WawiCallPro.Telephony.Sip.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="DevExpress.Win.Design" Version="26.1.6" />
+  </ItemGroup>
+</Project>
