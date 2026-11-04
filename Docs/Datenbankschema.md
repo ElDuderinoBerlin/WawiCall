@@ -257,6 +257,14 @@ Notiz-ID und Gesprächsbesitz bleiben bei Änderungen gleich; Zeiten werden nich
 
 ### Version 4: recordings
 
+Nutzerergänzung für Phase 9: exakte Aufnahmezeiträume und den Ablauf WAV → MP3 je Aufnahmesegment
+mit Call-ID verbinden. Die folgenden implementierten Version-4-Spalten reichen noch nicht für
+Aufnahmebeginn/-ende, separate WAV-/MP3-Artefakte, Konvertierungs-/Fehlerstatus und Wiederanlauf aus.
+Diese Erweiterungen sind mit Vertragsanpassung in zusätzlichen Migrationen ab Version 6 festzulegen;
+Migrationen 1–5 bleiben unverändert. Der [Aufnahmeablauf](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3)
+beschreibt die erforderlichen Zustände. Gesprächsrichtung und Beginn/Annahme/Ende stehen bereits in
+phonecalls; die tatsächliche DB-/SIP-Anbindung ist weiterhin offen.
+
 | Spalte | Typ | Regel |
 |---|---|---|
 | id, callid | id ! | PK; FK phonecalls.id; Gesprächsbesitz unveränderlich |

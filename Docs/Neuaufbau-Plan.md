@@ -706,6 +706,8 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
 - [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
 - [ ] Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
+  Eingehende/ausgehende Richtung, Beginn/Annahme/Ende in UTC, Endgrund, Nummern und Zuordnung sowie
+  PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.
 - [ ] Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
 
 Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten über die FRITZ!Box bestehen.
@@ -739,12 +741,26 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 - [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
 - [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren;
   Empfangspfad aus `RecordIncomingCall` berücksichtigen und beide Gesprächsseiten gezielt erfassen.
+- [ ] Mixer aus `WawiCallPro_old/TestCSCoreRecording` als fachliche Vorlage portieren: WavMixer,
+  SimpleMixer und SoundRecorder auf gesprächsgebundene Empfangs-/Sendedaten hinter eigenen DI-Interfaces
+  anpassen. Gemeinsame Zeitbasis, tatsächliche PCM-Abtastraten, Lücken, Kanalzuordnung und Pegel prüfen;
+  gültige WAV-Datei vor Konvertierung finalisieren. Kein allgemeiner Desktop-Loopback als Gesprächsquelle.
+- [ ] WAV anschließend asynchron nach MP3 encodieren; WavToMp3Converter/CSCore Media Foundation als
+  Vorlage verwenden. MP3-Fähigkeitsprüfung statt des alten WMA-Checks, unterstützte Formate/Bitraten,
+  Abbruch und echte Fehlerweitergabe umsetzen. Erst vollständige MP3 veröffentlichen; WAV bei Fehler erhalten.
+- [ ] Aufnahmesegmente mit Call-ID/Aufnahme-ID, Aufnahmebeginn/-ende, Dauer, WAV-/MP3-Dateireferenzen
+  und Konvertierungs-/Fehlerstatus in der eigenen DB protokollieren. Zusätzliche Verträge/Migrationen ab
+  Version 6 ausarbeiten; bestehende Migrationen 1–5 unverändert lassen. Neustart und erneute Konvertierung
+  ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).
 - [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
 - [ ] Aufnahmen abspielen, exportieren und konvertieren; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.
 - [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
 
-Abnahme: Echte Gespräche in beide Richtungen aufzeichnen und wiedergeben; Geräteverlust, Dateifehler und
-Gesprächsabbruch geprüft. Betroffene Audio-Views visuell geprüft, Debug-Build und geeignete Audioprüfungen bestanden.
+Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, WAV/MP3 wiedergeben
+und Historie nach Neustart/Zeitraum prüfen. Unterschiedliche Codecs/Abtastraten, Aufnahme ab Gesprächsmitte,
+mehrere Segmente, Stumm/Halten, Paketlücken, Geräteverlust, Dateifehler, fehlender MP3-Encoder,
+Gesprächsabbruch und Neustart während Konvertierung sind geprüft. Betroffene Audio-Views visuell geprüft,
+Debug-Build und geeignete Audioprüfungen bestanden.
 
 ### Phase 10 – Erweiterte Lexware-Kundenübersicht ⬜
 

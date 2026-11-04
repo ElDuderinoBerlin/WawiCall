@@ -148,6 +148,18 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Neue Nutzeranforderung zur Aufnahme: `WawiCallPro_old/TestCSCoreRecording` mit WavMixer, SimpleMixer,
+SoundRecorder und WavToMp3Converter geprüft. Ziel: beide Gesprächsseiten zeitlich ausgerichtet als PCM-WAV,
+danach asynchrone MP3-Konvertierung mit CSCore/Media Foundation, Dienste/Sitzungen über Interfaces/DI.
+Produktquellen sind gesprächsgebundene Sende-/Empfangsdaten statt allgemeinem Mikrofon-/Desktop-Loopback.
+Alter MP3-Konverter prüft fälschlich WindowsMediaAudio und meldet Finished auch nach Fehlern;
+RecordIncomingCall schreibt derzeit WaveWriter-Daten unter MP3-Endung. Diese Fehler nicht übernehmen.
+Gesprächslogging bleibt unabhängig vom Aufnahmeerfolg: Richtung, UTC-Beginn/Annahme/Ende, Endgrund,
+Zuordnung und PC/Windows-Nutzer. Exakte Aufnahmezeiträume, WAV-/MP3-Artefakte und Konvertierungszustand
+brauchen ergänzte Verträge/Migrationen ab Version 6; alte Migrationen 1–5 nicht ändern.
+Architektur, Schemahinweis und Phase 7/9 aktualisiert. Noch keine Aufnahme-/Encoderimplementierung,
+keine Geräte geöffnet oder Gespräche geführt. Der begonnene Telefonnummernkontext bleibt nächste Codearbeit.
+
 Auf die Fortsetzung des Telefonnummernkonzepts hin ist Phase 6/Punkt 1 vorgezogen abgeschlossen:
 libphonenumber-csharp 9.0.42 in Core, `IPhoneNumberParser` und eigene DTOs/Enums in Interfaces,
 gemeinsame Singleton-DI-Registrierung für App/Console. Original/SourceField, E.164/Extension,
