@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–5 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–6 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -146,10 +146,12 @@ des Telefoniedienstes, nicht zu der eines Fensters oder Mandantenladevorgangs.
 
 `CallHistory` bündelt Gespräch, alle Zuordnungskandidaten, Auswahl, historische Namen/Nummern, Notizen,
 geordnete Ereignisse und Aufnahmereferenzen. Stammdatenaktualisierungen verändern diese Momentaufnahme nicht.
-Die derzeitige Speicherprüfung verlangt für alle Kandidaten dieselbe Gesprächsfirma. Das ist eine
-bekannte Grenze gegenüber dem neuen Mehrfirmenzielbild: eigene Firmenidentität pro Kandidat, Kandidaten
-auch vor Auswahl einer Gesprächsfirma und Erhalt nicht gewählter Alternativen benötigen angepasste
-Verträge und zusätzliche Migrationen ab Version 6. Die ausgewählte Partei muss zur Gesprächsfirma passen.
+Seit Migration 6 haben Kandidaten unabhängige Firmenidentitäten und dürfen auch vor Firmenauswahl
+firmenübergreifend vorliegen. Nur die ausgewählte Partei muss zur Gesprächsfirma passen, zusätzlich
+per SQL-FK abgesichert. CompanyDisplayName und PhoneNumberMatchEvidence speichern bekannte historische
+Firmen-/Trefferinformationen; fehlende Altnamen bleiben null. CallerLookupSnapshot erfasst Suchfirmen,
+Cache-/Regel-/Parserstände, Vollständigkeit und Auswahlgrund. CallWrite besitzt dafür einen zusätzlichen
+Konstruktor, der bisherige Aufruf bleibt erhalten. Automatische Matchbelege gehören zum erfassten Suchbereich.
 `ICallHistoryService` beschreibt Abfragen und Notizspeicherung; die getrennten Repository-Verträge sind
 seit Phase 3, Punkt 1 festgelegt, Rohverbindungen bleiben Implementierungsdetails. Aufnahmeverfügbarkeit
 wird ausdrücklich modelliert; Dateipfade sind relativ
@@ -161,7 +163,7 @@ berücksichtigt. Gleichzeitige Mandanten-/Geschäftspartnerfilter müssen widers
 
 ## Datenbankschema und Repository-Verträge
 
-Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–5 mit Spalten, Längen,
+Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–6 mit Spalten, Längen,
 Nullbarkeit, Schlüsseln, Indizes und Löschregeln. `partyaddresses` ergänzt den bereits vereinbarten
 Geschäftspartner-/Nummerncache, damit die vorhandenen Anschriften-DTOs vollständig gespeichert werden
 können. Historische Kandidaten und Nummernfehler besitzen keinen FK auf veränderliche Cachezeilen.
@@ -170,7 +172,9 @@ in derselben Transaktion. Office-Tabellen bleiben der späteren Office-Phase vor
 
 `ICompanyRepository`, `IPartyCacheRepository`, `ICallRepository`, `ICallNoteRepository`,
 `IRecordingRepository` und `INumberParseLogRepository` beschreiben ausschließlich die eigene
-Kommunikationsdatenbank. Seit Punkt 2 bestehen die ADO-Infrastrukturdienste; konkrete Repositories und
+Kommunikationsdatenbank. Seit Punkt 6 kommt IPhoneMatchingRepository für gemeinsame Firmenprofile
+und bestätigte/vermutete Organisationsblöcke mit eigenen CAS-Schreibverträgen hinzu.
+Seit Punkt 2 bestehen die ADO-Infrastrukturdienste; konkrete Repositories und
 die Datenbank-DI-Registrierung im Host fehlen noch. Die Repository-Verträge enthalten keine
 SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
 Interfaces und Telephony, um die vorhandenen Snapshotregeln des Gesprächsautomaten wiederzuverwenden;
@@ -291,7 +295,7 @@ Elf neue Prüfungen lösen alle vier Generator-/Processor-Konfigurationen ohne V
 Echte FluentMigrator-Testmigrationen in der Testassembly prüfen SQLite-Versionstabelle, Unicode,
 unveränderte Wiederholung, Rollback des ersten und eines späteren Schritts, Wiederanlauf, Freigabe,
 Fremd-/Neuerschutz und redigierte Fehler/Logs. Diese elf Runnerprüfungen bleiben neben den neuen
-Produktschematests bestehen; der Produktkatalog enthält seit Punkt 4 ausschließlich Versionen 1–5.
+Produktschematests bestehen; seit Punkt 6 enthält der Produktkatalog Versionen 1–6.
 
 ## Eigene Migrationen und Anrufherkunft
 

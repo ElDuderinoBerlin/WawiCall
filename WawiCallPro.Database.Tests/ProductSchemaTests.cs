@@ -27,10 +27,10 @@ public sealed class ProductSchemaTests
         var migrator = new DatabaseMigrator(new(), engine);
         var status = await migrator.MigrateAsync(target);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, status.AppliedVersions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6 }, status.AppliedVersions.ToArray());
         using (var db = Open(target))
         {
-            Assert.AreEqual("callevents,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,recordings,versioninfo,wawicallpro_metadata",
+            Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordings,versioninfo,wawicallpro_metadata",
                 Scalar(db, "SELECT group_concat(name,',') FROM (SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name)"));
             Assert.AreEqual("WawiCallPro.Communications", Scalar(db, "SELECT applicationid FROM wawicallpro_metadata"));
             Assert.AreEqual(1L, Scalar(db, "SELECT formatversion FROM wawicallpro_metadata"));
@@ -51,8 +51,8 @@ public sealed class ProductSchemaTests
         var target = Target();
         await new DatabaseProvisioner(new()).CreateAsync(target);
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
-        int[] tableCounts = [3, 6, 10, 11, 12];
-        for (var version = 1; version <= 5; version++)
+        int[] tableCounts = [3, 6, 10, 11, 12, 15];
+        for (var version = 1; version <= 6; version++)
         {
             engine.MigrateUp(target, version);
             using var db = Open(target);
@@ -61,7 +61,7 @@ public sealed class ProductSchemaTests
             Assert.AreEqual("Mandant Ä 电话 ' 001", Scalar(db, "SELECT displayname FROM companies"));
             Assert.AreEqual(Time + 1, Scalar(db, "SELECT updatedatutc FROM companies"));
             var status = await new DatabaseStatusService(new(), engine.Catalog).GetStatusAsync(target);
-            Assert.AreEqual(version == 5 ? DatabaseSchemaState.Current : DatabaseSchemaState.MigrationRequired, status.State);
+            Assert.AreEqual(version == engine.Catalog.LatestVersion ? DatabaseSchemaState.Current : DatabaseSchemaState.MigrationRequired, status.State);
             CollectionAssert.AreEqual(Enumerable.Range(1, version).Select(value => (long)value).ToArray(), status.AppliedVersions.ToArray());
         }
     }
@@ -255,7 +255,7 @@ public sealed class ProductSchemaTests
     public void EveryProviderHasFiveVersionsAndExplicitDdlForItsPhysicalTypesAndSelectionIndex(DatabaseType type)
     {
         var engine = new FluentMigratorEngine(type);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, engine.Catalog.Versions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, engine.Catalog.Versions.Take(5).ToArray());
         var ddl = string.Join(";\n", Enumerable.Range(1, 5).SelectMany(version => InitialSchema.Statements(type, version)));
         Assert.AreEqual(11, ddl.Split("CREATE TABLE", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("DROP ", ddl);
@@ -371,6 +371,7 @@ public sealed class ProductSchemaTests
     private static Dictionary<string, object?> Candidate(char id, char hash, int position, int selected) => new()
     {
         ["id"] = Id(id), ["callid"] = Id('2'), ["partykeyhash"] = Hash(hash), ["kind"] = 1, ["externalid"] = "0001",
+        ["companyid"] = Id('1'), ["assignedcompanyid"] = selected == 1 ? Id('1') : null, ["matchkind"] = 0,
         ["displayname"] = "Historisch Ä 电话", ["isselected"] = selected, ["position"] = position
     };
 }

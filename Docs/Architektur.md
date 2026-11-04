@@ -306,9 +306,9 @@ sichtbar bevorzugen, wenn dort genau ein belastbarer Datensatz passt; Alternativ
 Ein Anruferbereich erhält einen eigenen Firmen-/Viewkontext und wechselt keine Hauptansicht mit
 offenen Änderungen. Späte Antworten benötigen Anruf-ID, vollständige Quellidentität und Revision.
 
-Die bestehende Persistenz der Version 3 erlaubt bisher nur Kandidaten der Gesprächsfirma. Für
-firmenübergreifende historische Kandidaten sind zusätzliche Migrationen ab Version 6 und angepasste
-Verträge nötig. Migrationen 1–5 bleiben unverändert. Der Offline-Parser ist seit Phase 6/Punkt 1
+Seit Migration 6 besitzen historische Kandidaten eigene Firmenidentität und optionale Matchnachweise;
+Suchstände und versionierte Firmenregeln haben eigene Tabellen/Verträge. Die ausgewählte Partei ist
+auch per SQL-FK an die Gesprächsfirma gebunden. Migrationen 1–5 bleiben unverändert. Der Offline-Parser ist seit Phase 6/Punkt 1
 über `IPhoneNumberParser` in beiden Hosts registriert; seine DTOs behalten Original/Quelle,
 E.164/Extension, Prüfstatus, Rufnummernregion und Parserversion ohne Bibliothekstypen im gemeinsamen
 Vertrag. Seit Punkt 2 wendet `IPhoneNumberInterpreter` ausdrücklich getrennte Firmen-/Leitungskontexte,
@@ -403,14 +403,14 @@ werden mit leeren/befüllten Daten, kleineren Fenstern und größerer Schrift vi
 
 Vorhanden sind die Hostprojekte mit Standard-.NET-Host/DI-Grundlage, gemeinsame Fachverträge
 einschließlich `ITelephonyService`, Mandantenkontext/Dispatcher, Konfiguration und Gesprächszustandsautomat.
-Die Datenbankmigrationen 1–5, Herkunftsfelder und prozessübergreifenden Migrationssperren/Rechteprüfungen
+Die Datenbankmigrationen 1–6, Herkunftsfelder und prozessübergreifenden Migrationssperren/Rechteprüfungen
 sind implementiert und auf allen vier Providern geprüft.
 Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
 hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
 
 Noch offen sind insbesondere:
 
-- Zusätzliche Mehrfirmenmigration ab Version 6, Repositories, Sicherung/Wiederherstellung und Hostanbindung.
+- Konkrete Repositories, Sicherung/Wiederherstellung und Hostanbindung.
 - Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
 - Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.

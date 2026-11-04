@@ -149,13 +149,18 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 ## Weiterarbeiten
 
 Aktueller Auftrag: Phase 3 vollständig abschließen, jeden offenen Checklistenpunkt einzeln prüfen und
-committen. Punkt 5 ist fertig: native Serversperren und SQLite-Sidecar, abbrechbare Wartefrist,
+committen. Punkt 6 ist fertig: Migration 6 mit unabhängigen Kandidatenfirmen, Auswahl-FK, Match-/Suchstand-
+Snapshots und versionierten Firmenprofilen/Organisationsblöcken. Alte Identität aus Gesprächsfirma
+nachgetragen, nicht vorhandene historische Firmennamen bleiben null. Acht neue Datenbanktests,
+je 225 Tests in Pro/FinOffice sowie Debug-/Hostprüfungen und native Daten-Upgrades auf SQL Server/
+MySQL/PostgreSQL bestanden. Nachweise `.artifacts/phase3-item6`. Eingefrorene Migrationen 1–5 unverändert.
+Nächster Punkt: sieben Dapper-Repositories, anschließend Sicherung, Host/Console und Gesamtabnahme.
+Keine laufenden Testserver. Punkt 5 ist ebenfalls fertig: native Serversperren und SQLite-Sidecar, abbrechbare Wartefrist,
 Neulesen des Status unter der Sperre, Rechteprüfung und explizite DBA-Leerzielfreigabe. Fremde Routinen
 zählen als Fremdbestand; keine Freigabe ohne volle Metadatensicht. Separater TestWorker für echte
 Prozessgrenzen in der Solution, keine Produktabhängigkeit darauf. Sechs neue Tests, je 217 Tests in
 Pro/FinOffice, acht Debug-Builds, vier Hoststarts und native SQL-Server-/MySQL-/PostgreSQL-Prüfungen
-bestanden; `.artifacts/phase3-item5`. Instanzen gestoppt/entfernt. Nächster Punkt: Mehrfirmenmigration
-ab Version 6 samt Verträgen, anschließend Dapper-Repositories, Sicherung, Host/Console und Gesamtabnahme.
+bestanden; `.artifacts/phase3-item5`. Instanzen gestoppt/entfernt.
 Phase 6/StartWidth bleibt während dieses ausdrücklich priorisierten Phase-3-Auftrags zurückgestellt.
 
 Neue Nutzeranforderung zur Aufnahme: `WawiCallPro_old/TestCSCoreRecording` mit WavMixer, SimpleMixer,
@@ -212,11 +217,9 @@ entscheidet aber nicht still. Verlässliche Leitungszuordnung kann sichtbar bevo
 Caches erlauben keine globale Eindeutigkeit. Stammdaten sofort aus dem Cache, Detailviews asynchron
 aus genau der gewählten Firma; keine ungeschützten parallelen UseCompany-Wechsel eines gemeinsamen Clients.
 
-Wichtige neue Schemaaufgabe nach Phase 3/Punkt 5 und vor Repositories: Version 3 rekonstruiert alle
-callparties-Firmen aus phonecalls; StorageContract.Call verlangt dieselbe Firma für jeden Kandidaten.
-Zusätzliche Migrationen ab Version 6 und Vertragsanpassung für eigene Kandidatenfirmen mit Backfill,
-Kandidaten vor Gesprächsfirmenauswahl und Erhalt der übrigen Alternativen vorsehen. Migrationen 1–5
-nicht ändern. UserSettings hat bisher nur PreferredCompany; Mehrfirmenauswahl und übergreifende
+Die Schemaaufgabe aus Phase 3/Punkt 6 ist erledigt: Version 6 besitzt unabhängige Kandidatenfirmen
+mit Backfill, erlaubt Kandidaten vor Gesprächsfirmenauswahl und sichert die Auswahlfirma per SQL-FK.
+Die alten Versionen 1–5 bleiben unverändert. UserSettings hat bisher nur PreferredCompany; Mehrfirmenauswahl und übergreifende
 Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert; Parser und Kontextpunkte sind abgeschlossen.
 Lokaler synthetischer Parseversuch mit Version 9.0.42: Bindestrich bleibt Teil der vollständigen Nummer,
 ext. 42 und ;ext=42 liefern separate Extension; Kurznummer 1234 ist nicht gültig. Nachweis unter
@@ -264,7 +267,7 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Im Datenbankplan als Nächstes Phase 3, Punkt 6: zusätzliche Mehrfirmenmigration und Speicherverträge.
+Im Datenbankplan als Nächstes Phase 3, Punkt 7: konkrete Dapper-Repositories.
 Punkt 5 ist mit Server-/Zwei-Prozess-/Rechteprüfung abgeschlossen. Die vorhandenen Status-/Eigentumsgrenzen
 und bestätigten Versionspräfixe erhalten. Migrationen 1–5 nicht rückwirkend ändern.
 Keine Runnererzeugung in der reinen Statusabfrage.

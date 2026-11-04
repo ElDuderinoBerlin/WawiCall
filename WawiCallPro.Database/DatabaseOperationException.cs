@@ -69,7 +69,10 @@ public sealed class DatabaseOperationException : Exception
     internal static DatabaseErrorCode MigrationCode(Exception exception)
     {
         for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is DatabaseOperationException operation) return operation.Code;
             if (Classify(current) == DatabaseErrorCode.AccessDenied) return DatabaseErrorCode.AccessDenied;
+        }
         return DatabaseErrorCode.MigrationFailed;
     }
 }

@@ -4,6 +4,7 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Telephony;
 
 namespace WawiCallPro.Database.Contracts;
@@ -130,10 +131,12 @@ internal static class StorageContract
         {
             ArgumentNullException.ThrowIfNull(party);
             PartyKey(party.Party);
-            if (party.Party.Company != call.Company || !keys.Add(party.Party))
-                throw new ArgumentException("Participants must be unique and belong to the call's assigned company.", nameof(parties));
+            if (party.IsSelected && party.Party.Company != call.Company || !keys.Add(party.Party))
+                throw new ArgumentException("Candidates must be unique; the selected candidate must belong to the call's assigned company.", nameof(parties));
             Text(party.DisplayName, 512, nameof(party.DisplayName), required: true);
             Text(party.Number, 2048, nameof(party.Number));
+            Text(party.CompanyDisplayName, 512, nameof(party.CompanyDisplayName), required: party.CompanyDisplayName is not null);
+            if (party.Match is { } match) Match(match);
             if (party.IsSelected) selected++;
         }
         if (selected > 1) throw new ArgumentException("At most one participant may be selected.", nameof(parties));
@@ -152,6 +155,62 @@ internal static class StorageContract
             sequence = entry.Sequence;
             occurred = entry.OccurredAtUtc;
         }
+    }
+
+    internal static void Match(PhoneNumberMatchEvidence match)
+    {
+        if (!Enum.IsDefined(match.Kind)) throw new ArgumentOutOfRangeException(nameof(match));
+        Text(match.ParserVersion, 256, nameof(match.ParserVersion), required: true);
+        ArgumentOutOfRangeException.ThrowIfNegative(match.CacheRevision);
+        ArgumentOutOfRangeException.ThrowIfNegative(match.RuleRevision);
+        if (match.Kind is PhoneNumberMatchKind.ConfirmedBlock or PhoneNumberMatchKind.InferredBlock)
+        {
+            if (match.RuleId is not { } ruleId || match.RuleRevision == 0) throw new ArgumentException("Block evidence requires its rule identity/version.", nameof(match));
+            _ = DatabaseId.Encode(ruleId);
+        }
+        else if (match.RuleId is not null) throw new ArgumentException("Only block evidence carries a rule ID.", nameof(match));
+        if (match.Kind != PhoneNumberMatchKind.Exact)
+        {
+            if (match.CountryCallingCode is not (>= 1 and <= 999) || match.DestinationCode is null || match.Stem is null)
+                throw new ArgumentException("Prefix evidence requires the applied country, destination and stem.", nameof(match));
+            Text(match.DestinationCode, 10, nameof(match.DestinationCode), required: true);
+            Text(match.Stem, 15, nameof(match.Stem), required: true);
+            if (!match.DestinationCode.All(char.IsAsciiDigit) || !match.Stem.All(char.IsAsciiDigit) ||
+                match.Kind == PhoneNumberMatchKind.StemPrefix && match.StartWidth != match.Stem.Length)
+                throw new ArgumentException("Prefix evidence must preserve its exact digit boundary.", nameof(match));
+        }
+        if (match.Kind == PhoneNumberMatchKind.StemPrefix ? match.StartWidth is not (>= 1 and <= 15) : match.StartWidth is not null)
+            throw new ArgumentException("Only configured stem matches carry a positive StartWidth.", nameof(match));
+        Text(match.ApparatusNumber, 32, nameof(match.ApparatusNumber));
+        if (match.ApparatusNumber is not null && match.ApparatusNumber.Any(character => !char.IsAsciiDigit(character)))
+            throw new ArgumentException("Apparatus numbers must preserve ASCII digits.", nameof(match));
+        E164(match.MatchedE164);
+        if (match.Source is not null) Source(match.Source);
+    }
+
+    internal static void Lookup(CallerLookupSnapshot? lookup)
+    {
+        if (lookup is null) return;
+        Array(lookup.SearchCompanies);
+        if (lookup.SearchCompanies.Length > 256) throw new ArgumentException("Too many search companies.", nameof(lookup));
+        Text(lookup.ParserVersion, 256, nameof(lookup.ParserVersion), required: true);
+        Utc(lookup.SearchedAtUtc);
+        if (lookup.SelectionReason is not null) Code(lookup.SelectionReason);
+        var companies = new HashSet<CompanyKey>();
+        foreach (var company in lookup.SearchCompanies)
+        {
+            ArgumentNullException.ThrowIfNull(company);
+            CompanyKey(company.Company);
+            if (!companies.Add(company.Company)) throw new ArgumentException("Search company identities must be unique.", nameof(lookup));
+            ArgumentOutOfRangeException.ThrowIfNegative(company.CacheRevision);
+            ArgumentOutOfRangeException.ThrowIfNegative(company.RuleRevision);
+            if (company.RefreshedAtUtc is { } refreshed) Utc(refreshed);
+            Text(company.CacheParserVersion, 256, nameof(company.CacheParserVersion), required: company.CacheParserVersion is not null);
+            if (company.IsComplete && (company.CacheRevision == 0 || company.RefreshedAtUtc is null || company.CacheParserVersion != lookup.ParserVersion))
+                throw new ArgumentException("Complete search data requires a refreshed cache with matching parser metadata.", nameof(lookup));
+        }
+        if (lookup.IsComplete && (lookup.SearchCompanies.IsEmpty || lookup.SearchCompanies.Any(company => !company.IsComplete)))
+            throw new ArgumentException("Global completeness requires all selected companies.", nameof(lookup));
     }
 
     private static void Address(CallAddress address)

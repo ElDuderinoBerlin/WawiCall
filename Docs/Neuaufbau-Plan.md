@@ -589,12 +589,22 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Freigabe nach Prozessverlust, Leerzielfreigabe, fremde Routinen, Rechteverweigerung und aktive MySQL-Rollen.
   Instanzen gestoppt/entfernt, keine Lexware-Datenbanken geöffnet. Logs: `.artifacts/phase3-item5`.
   Keine UI-Änderung/Renderprüfung; weitere Phasenpunkte bleiben offen.
-- [ ] Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
+- [x] Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
   Migrationen ab Version 6 und passende Speicherverträge vorbereiten. Eigene Firma je historischem
   Kandidaten mit Backfill aus der bisherigen Gesprächsfirma; Kandidaten vor Firmenauswahl zulassen,
   höchstens eine Auswahl passend zur Gesprächsfirma, übrige Firmenalternativen erhalten.
   Suchstand-/Treffer-/Auswahlmetadaten und firmengebundene Rufnummernblockregeln konkret ausarbeiten;
   Migrationen 1–5 unverändert lassen. Upgrades mit Bestandsdaten auf allen vier Providern prüfen.
+  Nachweis: Migration 6 mit eigener Firma je historischem Kandidaten, ausgewählter Firma per SQL-FK,
+  nullablem historischen Firmenname und Matchnachweis. Alte Firmenidentität aus phonecalls nachgetragen;
+  unbekannte Namen/Nachweise bleiben null. Drei neue Tabellen für Suchstand, Parser-/Cache-/Regelversionen,
+  StartWidth-Profil und bestätigte/vermutete Organisationsblöcke. Eigene DTOs, validierte Schreibanträge
+  und siebter Repository-Vertrag. Noch keine Matcher-/UI-Implementierung.
+  Acht neue Datenbanktests, je 225 Tests in Pro/FinOffice; Debug-Builds, vier isolierte Hoststarts und
+  Runtime-/Produktlinien-/MMS-/Solutionprüfungen bestanden. Native Upgrades mit Bestandsdaten, Unicode,
+  fehlerhaftem Altbestand, Auswahl-FK und Regelconstraints auf SQL Server/MySQL/PostgreSQL erfolgreich.
+  Nur eigene Testbestände, Instanzen gestoppt. Logs: `.artifacts/phase3-item6`.
+  Migrationen 1–5 und ihre eingefrorenen DDL-Definitionen sind unverändert.
 - [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.
 - [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
 - [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.

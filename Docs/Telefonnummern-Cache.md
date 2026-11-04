@@ -306,7 +306,7 @@ Ein firmengebundener Wawi-Client darf nicht parallel durch ungeschützte UseComp
 werden. Es werden nachweislich isolierte Firmenclients verwendet oder Firmenwechsel plus Abfrage über
 denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der Rückkehr von Antworten.
 
-## DI-Verträge, Persistenzlücke und Umsetzung
+## DI-Verträge, Persistenz und Umsetzung
 
 Parsing/Regionsauflösung, Kontextwahl und Interpretation sind über `IPhoneNumberParser`,
 `IPhoneNumberInterpreter` und `ICompanyPhoneNumberContextProvider` implementiert und per DI an
@@ -315,23 +315,23 @@ Implementierungen. Das bestehende
 `IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
 Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
 
-Wichtig: `callparties` der implementierten Version 3 rekonstruiert die Firma bisher aus `phonecalls`.
-`StorageContract.Call` verlangt derzeit dieselbe Firma für alle Kandidaten. Das kann die neue
-Mehrfirmen-Strategie noch nicht vollständig speichern. Vor Produktbetrieb ist daher eine zusätzliche
-Migration ab Version 6 mit Vertragsanpassung erforderlich, insbesondere:
+Die Persistenzgrundlage ist seit Phase 3/Punkt 6 implementiert: Migration 6 ergänzt die unabhängige
+Firmenidentität historischer Kandidaten, Suchstände und versionierte Firmenregeln. Migrationen 1–5
+bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandidaten vor Firmenauswahl.
 
-- Eigene Firmenidentität pro historischem Kandidaten; vorhandene Kandidaten aus der bisherigen
-  Gesprächsfirma nachtragen. Historische Firmen-/Namensinformationen und Auswahlbegründung erhalten.
+- Vorhandene Kandidaten erhalten ihre Firma aus der bisherigen Gesprächsfirma. Nicht damals erfasste
+  Firmennamen und Matchnachweise bleiben null; neue Kandidaten können diese historischen Werte erfassen.
 - Noch nicht zugeordnete Gespräche dürfen firmenübergreifende Kandidaten enthalten. Eine ausgewählte
   Partei muss zur gewählten Gesprächsfirma passen; nicht ausgewählte Alternativen bleiben erhalten.
 - Höchstens ein ausgewählter Datensatz pro Gespräch; Änderungen von Cache/Firmenauswahl überschreiben
   weder diese Auswahl noch alte Herkunfts- und Kandidatensnapshots.
-- Suchfirmenmenge, Parser-/Regel-/Cacheversionen, Trefferarten sowie bestätigte/heuristische
-  Rufnummernblockregeln in passenden eigenen Modellen berücksichtigen. Firmenbezogene Aktivierung,
-  `StartWidth`, zerlegte Vorwahl/Stamm und abgeleitete Apparatenummer getrennt von Extension modellieren.
+- CallerLookupSnapshot/PhoneNumberMatchEvidence erfassen Suchfirmen, vollständigen/fehlenden Cache,
+  Parser-/Regel-/Cacheversionen, Trefferart, angewendete Präfixgrenze und Auswahlgrund. PhoneMatchingSettings
+  und PhoneNumberBlockRule modellieren firmenbezogene Aktivierung/StartWidth sowie bestätigte/vermutete
+  Organisationsblöcke. Der IPhoneMatchingRepository-Vertrag ist vorhanden, seine Implementierung folgt.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-zusätzliche Migration/Verträge, SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Cache-Repositories,
+SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, konkrete Cache-/Regel-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

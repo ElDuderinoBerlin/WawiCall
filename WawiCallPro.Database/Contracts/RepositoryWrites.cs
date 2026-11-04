@@ -3,6 +3,7 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.Database.Contracts;
 
@@ -62,8 +63,19 @@ public sealed record CallWrite
 {
     public CallWrite(CallSnapshot call, long? expectedVersion, ImmutableArray<CallPartySnapshot> parties,
         ImmutableArray<CallEvent> events, CallOrigin origin)
+        : this(call, expectedVersion, parties, events, origin, null) { }
+
+    public CallWrite(CallSnapshot call, long? expectedVersion, ImmutableArray<CallPartySnapshot> parties,
+        ImmutableArray<CallEvent> events, CallOrigin origin, CallerLookupSnapshot? lookup)
     {
         StorageContract.Call(call, parties, events);
+        StorageContract.Lookup(lookup);
+        if (lookup is not null)
+        {
+            var scope = lookup.SearchCompanies.Select(company => company.Company).ToHashSet();
+            if (parties.Any(party => party.Match is not null && !scope.Contains(party.Party.Company)))
+                throw new ArgumentException("Automatic match evidence must belong to the recorded search scope.", nameof(lookup));
+        }
         StorageContract.ExpectedVersion(expectedVersion);
         ArgumentNullException.ThrowIfNull(origin);
         if (call.Origin is not null && call.Origin != origin)
@@ -73,6 +85,7 @@ public sealed record CallWrite
         ExpectedVersion = expectedVersion;
         Parties = parties;
         Events = events;
+        Lookup = lookup;
     }
 
     public CallSnapshot Call { get; }
@@ -80,6 +93,7 @@ public sealed record CallWrite
     public long? ExpectedVersion { get; }
     public ImmutableArray<CallPartySnapshot> Parties { get; }
     public ImmutableArray<CallEvent> Events { get; }
+    public CallerLookupSnapshot? Lookup { get; }
 }
 
 /// <summary>Creation time is assigned on insert and retained on edits. Ownership and persisted version are checked in the transaction.</summary>

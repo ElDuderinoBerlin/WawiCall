@@ -1,11 +1,11 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–5. Die neuen Migrationen 1–5 sind implementiert.
+Stand: 04.11.2026, Phase 3, Punkte 1–6. Die Migrationen 1–6 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
-Prozessübergreifende Sperren und Rechteprüfung bestehen seit Punkt 5; zusätzliche Migrationen,
-Dapper-Repositories, Sicherung und Hostanbindung folgen in den nächsten Punkten.
+Prozessübergreifende Sperren/Rechteprüfung bestehen seit Punkt 5, Mehrfirmen-Verträge und Schema 6
+seit Punkt 6. Dapper-Repositories, Sicherung und Hostanbindung folgen in den nächsten Punkten.
 Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
@@ -240,19 +240,18 @@ wird ausschließlich aus dem zugehörigen Gespräch rekonstruiert; unzugeordnete
 Kandidaten. Ein ausdrücklicher Wechsel des Gesprächsmandanten ersetzt Kandidaten in derselben Transaktion.
 Index `ix_callparties_party(partykeyhash, callid)` unterstützt den historischen Geschäftspartnerfilter.
 
-Diese implementierte Einschränkung ist für die neue [Mehrfirmen-Anruferkennung](Telefonnummern-Cache.md)
-noch zu erweitern. Das folgende Zielbild ersetzt die Version-3-Regeln erst nach zusätzlichen Migrationen
-ab Version 6 und angepassten Speicherverträgen; Migrationen 1–5 werden nicht rückwirkend geändert:
+Diese Einschränkung der eingefrorenen Version 3 ist durch Migration 6 für die
+[Mehrfirmen-Anruferkennung](Telefonnummern-Cache.md) aufgehoben. Die neuen Speicherverträge erlauben:
 
 - Jeder historische Kandidat erhält eine eigene Firmenidentität, unabhängig von `phonecalls.companyid`.
   Vorhandene Kandidaten werden aus ihrer bisherigen Gesprächsfirma nachgetragen; vollständige
-  `CompanyKey`-/`PartyKey`-Identitäten und historische Firmen-/Geschäftspartnernamen bleiben rekonstruierbar.
+  `CompanyKey`-/`PartyKey`-Identitäten bleiben erhalten. Unbekannte historische Firmennamen bleiben null.
 - Ein Gespräch ohne gewählte Firma darf Kandidaten aus mehreren Firmen enthalten. Höchstens ein
   Kandidat ist ausgewählt und gehört dann zur Gesprächsfirma. Ein Firmenwechsel löscht die übrigen
   Kandidaten nicht. Historische Kandidaten bleiben unabhängig vom löschbaren Geschäftspartnercache.
 - Suchfirmen, Trefferart, Auswahlgrund und Parser-/Regel-/Cacheversionen werden nachvollziehbar
   erfasst. Bestätigte Rufnummernblockregeln erhalten eigene firmengebundene Daten statt freier
-  Präfixvergleiche. Konkrete Spalten/Tabellen und Backfill-/Upgradeprüfungen gehören in diesen neuen Schritt.
+  Präfixvergleiche. Spalten/Tabellen und Backfill-/Upgradeprüfungen sind seit Punkt 6 implementiert.
   Dazu gehören auch die firmenbezogene Aktivierung und `StartWidth` für den positiven Vergleich von
   Länder-/Ortsvorwahl plus ersten N Anschlussziffern sowie die getrennt von Extension gespeicherte
   abgeleitete Apparatenummer und die zum Zuordnungszeitpunkt angewendete Regelversion.
@@ -341,6 +340,38 @@ nach zurückgerollter erster Migration. Seit Punkt 4 sind zusätzlich die Fachmi
 vier Providern in eigenen Testdatenbanken ausgeführt; der konkrete Umfang steht am Dokumentende.
 [FluentMigrator 8.0.1 VersionLoader](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/VersionLoader.cs),
 [VersionMigration](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/Versioning/VersionMigration.cs)
+
+## Version 6: Mehrfirmen-Treffer und Rufnummernregeln
+
+Alle Versionen 1–5 bleiben eingefroren. Migration 6 prüft zuerst, dass jeder alte Kandidat eine
+rekonstruierbare Gesprächsfirma hat. Ein unmöglicher Altbestand bricht vor der ersten neuen DDL ab.
+Die Kandidatentabelle wird über eine neue Tabelle aufgebaut, verlustfrei kopiert und umbenannt.
+Die bekannten Einschränkungen nichttransaktionaler MySQL-DDL gelten weiterhin; kein automatisches
+Übernehmen eines teilweise migrierten Bestands.
+
+| Bereich | Erweiterung |
+|---|---|
+| callparties | companyid NOT NULL FK companies; unabhängige vollständige PartyKey-Identität, auch vor Gesprächsfirmenauswahl |
+| Historische Namen | companydisplayname nullable text(512); bei Altbeständen null, kein erfundener damaliger Name |
+| Auswahl | assignedcompanyid nullable; CHECK passend zu isselected/companyid; FK (callid,assignedcompanyid) auf phonecalls(id,companyid) |
+| Trefferbeleg | matchkind 0–4, startwidth nullable 1–15, apparatusnumber nullable text(32), evidencejson nullable text(8192); 0 bedeutet unbekannter Altbeleg |
+| calllookups | callid PK/FK, formatversion=1, detailsjson bis 1048576 Zeichen, parserversion text(256), iscomplete, searchedatutc UTC, selectionreason nullable Code(64) |
+| phonematchsettings | companyid PK/FK, enabled, startwidth 1–15, writeversion und gemeinsamer rulerevision-Zähler ab 1, changedatutc UTC |
+| phonenumberblockrules | ID/Company-FK, Organisationsidentität/hash, confirmed/inferred, enabled, Ländercode 1–999, numerische Vorwahl/Stamm, Suffixgrenzen, Herkunftsbeleg, CAS-Version und UTC |
+
+Die gemeinsame Regelrevision ändert sich bei Profil- oder Blockänderung; die individuelle Schreibversion
+bleibt ein eigener CAS-Token. Blöcke gehören ausschließlich Kunden-/Lieferantenorganisationen und
+haben keinen FK auf den löschbaren Parteiencache. Länder-/Vorwahl-/Stamm-/Suffixlängen passen in E.164.
+Trefferbelege verwenden eigene DTOs mit Parser-/Cache-/Regelversion, Regel-ID bei Blocktreffern,
+angewendeter Präfixgrenze, Quellfeld und separater Apparatenummer. Explizite Extension bleibt davon getrennt.
+Suchstände enthalten alle vollständigen CompanyKeys, Cachealter/-revision, Regelrevision und Parserstand.
+Ein vollständiger Suchstand verlangt vollständige kompatible Caches aller ausgewählten Firmen.
+
+Indexnamen der neuen Kandidatentabelle tragen v6; Filterindex beziehungsweise MySQL-Spalte selectedcallid
+erzwingen weiter höchstens eine Auswahl. Der zusätzliche Parent-Index ux_phonecalls_id_company ermöglicht
+den Firmen-FK der Auswahl. Ohne Auswahl darf ein Gespräch mit companyid=NULL mehrere Firmenkandidaten haben.
+Der neue IPhoneMatchingRepository-Vertrag beschreibt Profile/Blöcke; konkrete Repositories folgen in Punkt 7.
+SQLite- und native Serverprüfungen bestätigen Daten-Upgrades und Constraints; `.artifacts/phase3-item6`.
 
 ## Späterer Office-Ausbau
 

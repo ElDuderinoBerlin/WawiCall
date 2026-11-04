@@ -3,11 +3,17 @@ using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.Interfaces.History;
 
 /// <summary>A matched participant with the name/number at call time, independent of subsequent cache changes.</summary>
-public sealed record CallPartySnapshot(PartyKey Party, string DisplayName, string? Number, bool IsSelected);
+public sealed record CallPartySnapshot(PartyKey Party, string DisplayName, string? Number, bool IsSelected)
+{
+    /// <summary>Null for legacy records whose historical company name was not captured.</summary>
+    public string? CompanyDisplayName { get; init; }
+    public PhoneNumberMatchEvidence? Match { get; init; }
+}
 
 /// <summary>Note IDs remain stable when text is edited. Timestamps are UTC.</summary>
 public sealed record CallNote(Guid Id, Guid CallId, string Text, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
@@ -40,6 +46,7 @@ public sealed record CallHistory
     public ImmutableArray<CallNote> Notes { get; init; } = [];
     public ImmutableArray<CallEvent> Events { get; init; } = [];
     public ImmutableArray<Recording> Recordings { get; init; } = [];
+    public CallerLookupSnapshot? Lookup { get; init; }
 }
 
 /// <summary>

@@ -55,3 +55,13 @@ public interface INumberParseLogRepository
     Task AppendAsync(NumberParseFailure failure, CancellationToken cancellationToken = default);
     Task<Page<NumberParseFailure>> GetPageAsync(NumberParseLogQuery query, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Shared company rules; changing these never rewrites historical match evidence.</summary>
+public interface IPhoneMatchingRepository
+{
+    Task<StoredPhoneMatchingSettings?> GetSettingsAsync(CompanyKey company, CancellationToken cancellationToken = default);
+    Task<StoredPhoneMatchingSettings> WriteSettingsAsync(PhoneMatchingSettingsWrite write, CancellationToken cancellationToken = default);
+    Task<Page<StoredPhoneNumberBlockRule>> GetRulesAsync(CompanyKey company, PageRequest page, CancellationToken cancellationToken = default);
+    Task<StoredPhoneNumberBlockRule?> GetRuleAsync(Guid ruleId, CancellationToken cancellationToken = default);
+    Task<StoredPhoneNumberBlockRule> WriteRuleAsync(PhoneNumberBlockRuleWrite write, CancellationToken cancellationToken = default);
+}
