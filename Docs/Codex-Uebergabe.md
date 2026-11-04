@@ -157,6 +157,11 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Phase 4/Punkt 5 abgeschlossen: IsPluginProject/EnableDynamicLoading, Import/adaptierter Sharedfilter
+mit geprüftem ReferenceCopyLocalPaths, rekursive Bundles für Build/Publish, keine Vertragskopien.
+Vier Publishes/je 250 Tests/Debug-/Hostprüfungen und scripts/test-plugin-deployment.ps1 bestanden;
+`.artifacts/phase4-item5`. Nächster Punkt 6: weitere gemeinsame Paket-/DLL-Duplikate entfernen.
+
 Phase 4/Punkt 4 abgeschlossen: starke Namen für Plugins/Interfaces/Windowsvertrag mit vorhandener
 Quantarix-Plugin-Keydatei (konfigurierbar, nicht kopiert). IPluginTrust/CreateTrusted verwendet den
 signierten Hostvertrag als Anchor, nie eine Plugin-DLL. Je 250 Tests und Token-/Debug-/Hostprüfungen;

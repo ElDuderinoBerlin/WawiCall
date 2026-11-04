@@ -709,10 +709,16 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   CreateTrusted verwendet sie, unsignierte Fixtures werden abgelehnt. Metadaten beider Varianten geprüft.
   Je 250 Tests/Debug-/Hostprüfungen erfolgreich; `.artifacts/phase4-item4`. Strong Names sind Identität,
   keine Sicherheits-Sandbox; Authenticode bleibt Releasephase.
-- [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
+- [x] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen. ✅
   Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.
   IsPluginProject und SharedProjectAssembly/SharedPackage setzen, FilterSharedAssembliesAndPackages
   wirksam einbinden, private/native Abhängigkeiten erhalten und gemeinsame DLL-/PDB-Kopien entfernen.
+  Beide Projekte sind dynamisch ladbare Pluginprojekte. Quantarix-Targets importiert und der Filter
+  an MSBuild-Metadatenmatching angepasst; tatsächliche ReferenceCopyLocalPaths ohne Vertragskopien geprüft.
+  Build und Publish liefern rekursive Bundles unter plugins/<AssemblyName>, einschließlich Manifesten;
+  Quelle/Ziel aller privaten Dateien und nativen Unterordner per SHA-256 verglichen.
+  Vier Debug-Publishes, je 250 Tests, Debug-/Host-/Runtimeprüfungen bestanden; `.artifacts/phase4-item5`.
+  Reproduzierbare Bundleprüfung: scripts/test-plugin-deployment.ps1. Allgemeine Duplikate folgen in Punkt 6.
 - [ ] Mehrfachkopien gemeinsamer DLLs vermeiden; keine UI-Steuerelemente oder Logger versehentlich doppelt laden.
 - [ ] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben.
 - [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
