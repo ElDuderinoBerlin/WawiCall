@@ -158,7 +158,21 @@ Gesprächslogging bleibt unabhängig vom Aufnahmeerfolg: Richtung, UTC-Beginn/An
 Zuordnung und PC/Windows-Nutzer. Exakte Aufnahmezeiträume, WAV-/MP3-Artefakte und Konvertierungszustand
 brauchen ergänzte Verträge/Migrationen ab Version 6; alte Migrationen 1–5 nicht ändern.
 Architektur, Schemahinweis und Phase 7/9 aktualisiert. Noch keine Aufnahme-/Encoderimplementierung,
-keine Geräte geöffnet oder Gespräche geführt. Der begonnene Telefonnummernkontext bleibt nächste Codearbeit.
+keine Geräte geöffnet oder Gespräche geführt. Der danach umgesetzte Telefonnummernkontext steht im folgenden Absatz.
+
+Phase 6/Punkt 2 ist abgeschlossen: `IPhoneNumberInterpreter` mit getrennten Company-/Line-Kontexten,
+InputKind Automatic/National/LocalSubscriber/Internal und `ICompanyPhoneNumberContextProvider` aus
+dem geladenen Konfigurationsstand; gemeinsame DI-Registrierungen in beiden Hosts. Vollständige
+Firmenschlüssel statt PreferredCompany/aktiver Firma. Explizite Leitungsvorgaben, lokale Vorwahl,
+Wählpräfixe/signifikante Nullen, interne Nummern mit Anlagen-ID und bereinigte Withheld/Unknown-Adressen.
+Öffentliche Direktdurchwahl bleibt Anschlussnummer, explizite Extension wird nicht geraten. SIP-URI,
+unpassende Ortsvorwahl oder Extensionkonflikt werden nicht als öffentlicher Suchwert ausgegeben.
+Parser liefert NDC/SubscriberNumber soweit verfügbar; nichtgeografische 001 ohne erfundene Vorwahl.
+Parser normalization/2, Interpreter interpretation/1. 30 neue Fälle, je 211 Tests in Pro/FinOffice;
+zehn Debug-Builds und vier isolierte Hoststarts sowie Paket-/Runtime-/Produktlinien-/MMS-/Solutionchecks
+bestanden. Logs: `.artifacts/phase6-item2`. Kein UI-/SIP-/DB-/Wawi-Zugriff; tatsächliche SIP-Leitungs-
+Ereignisanbindung und Einstellungsoberfläche fehlen weiterhin. Nächster aktueller Punkt: StartWidth
+je Firma samt Regelversion, positivem Stammnummernvergleich und Mehrfachtrefferbehandlung.
 
 Auf die Fortsetzung des Telefonnummernkonzepts hin ist Phase 6/Punkt 1 vorgezogen abgeschlossen:
 libphonenumber-csharp 9.0.42 in Core, `IPhoneNumberParser` und eigene DTOs/Enums in Interfaces,
@@ -170,9 +184,8 @@ deutsche Offline-Beschreibung ist Nummernbereich, keine Live-Ortung. Kein Netzwe
 26 neue Prüffälle, je 181 Tests in Pro/FinOffice; zehn Debug-Builds für Interfaces/Core/Utilities/App/
 Console, vier isolierte Hoststarts sowie Runtime-/Produktlinien-/MMS-/Solution-/Paketprüfungen bestanden.
 Nachweise: `.artifacts/phase6-item1`. Keine UI-Änderung oder Renderprüfung.
-Nächster Punkt im aktuellen Telefonnummernauftrag: Phase 6/Punkt 2, Firmen-/Leitungskontext,
-lokale Vorwahl, interne/unterdrückte Nummern und Durchwahlregeln. Erst danach den gesonderten
-StartWidth-Punkt umsetzen/prüfen/committen. Die bestehenden Datenbank-/Pluginlücken bleiben offen.
+Die nachfolgende Kontextarbeit aus Punkt 2 ist inzwischen ebenfalls abgeschlossen. Als Nächstes den
+gesonderten StartWidth-Punkt umsetzen/prüfen/committen. Die bestehenden Datenbank-/Pluginlücken bleiben offen.
 
 Neu festgelegt: `Docs/Telefonnummern-Cache.md` beschreibt libphonenumber-csharp hinter DI-Interfaces,
 Rufnummernregionen, explizite Extensions versus öffentliche Durchwahlen sowie belegte Stammnummernregeln.
@@ -181,7 +194,7 @@ plus gleiche erste N Anschlussziffern sind ein positiver Geschäftspartnertreffe
 Vorwahl. Rest als Apparatenummer getrennt von expliziter Extension führen. Ein eindeutiger Treffer darf
 Geschäftspartner-Views öffnen; keine Kontaktperson aus dem Rest erfinden, Mehrfachtreffer auswählen lassen.
 Regel-/Indexversion und historische Matchdetails erhalten. Beispiele und geplante Prüfungen stehen im
-Detailkonzept und Phase-6-Plan; Einstellungs-/Kontext-/Matchingimplementierung ist weiterhin offen.
+Detailkonzept und Phase-6-Plan; Einstellungs-/Matchingimplementierung ist weiterhin offen.
 Mehrere berechtigte Suchfirmen werden per DevExpress-CheckedListBox gewählt; Haken, aktive Hauptansicht
 und Firmen-/Viewkontext je Anruf sind getrennt. In allen angehakten Firmen suchen, Treffer nach Firma
 gruppieren; bei gleichwertigen Treffern ausdrücklich auswählen lassen. Aktive/bevorzugte Firma sortiert,
@@ -194,7 +207,7 @@ callparties-Firmen aus phonecalls; StorageContract.Call verlangt dieselbe Firma 
 Zusätzliche Migrationen ab Version 6 und Vertragsanpassung für eigene Kandidatenfirmen mit Backfill,
 Kandidaten vor Gesprächsfirmenauswahl und Erhalt der übrigen Alternativen vorsehen. Migrationen 1–5
 nicht ändern. UserSettings hat bisher nur PreferredCompany; Mehrfirmenauswahl und übergreifende
-Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert; ausschließlich der Parserpunkt ist abgeschlossen.
+Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert; Parser und Kontextpunkte sind abgeschlossen.
 Lokaler synthetischer Parseversuch mit Version 9.0.42: Bindestrich bleibt Teil der vollständigen Nummer,
 ext. 42 und ;ext=42 liefern separate Extension; Kurznummer 1234 ist nicht gültig. Nachweis unter
 `.artifacts/phone-cache-analysis`. Der ursprüngliche Planungsblock änderte nur Dokumentation/Plan/

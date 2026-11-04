@@ -9,6 +9,7 @@ using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Interfaces.PhoneNumbers;
+using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Configuration;
 
@@ -65,6 +66,43 @@ public sealed class HostingTests
             Assert.AreEqual(PhoneNumberParseStatus.Valid, result.Status);
             Assert.AreEqual("+49301234542", result.E164);
             Assert.AreEqual(parser.Version, result.ParserVersion);
+            return Task.CompletedTask;
+        });
+    }
+
+    [TestMethod]
+    public async Task PhoneContextUsesExactConfiguredCompanyAndKeepsIncomingLineIndependent()
+    {
+        var company = new CompanyKey(LexwareProductLine.Pro, "installation-A", "0007");
+        var other = new CompanyKey(LexwareProductLine.Pro, "installation-B", "0007");
+        var host = CreateBuilder().Build();
+        await host.Services.GetRequiredService<ConfigurationStore>().SaveAsync(new ApplicationOptions
+        {
+            User = new UserSettings { PreferredCompany = other },
+            Companies = [
+                new CompanySettings { Company = company, DefaultPhoneRegion = "DE", LocalAreaCode = "030" },
+                new CompanySettings { Company = other, DefaultPhoneRegion = "AT", LocalAreaCode = "01" }
+            ]
+        });
+        await HostExecution.RunAsync(host, _ =>
+        {
+            var provider = host.Services.GetRequiredService<ICompanyPhoneNumberContextProvider>();
+            Assert.AreSame(provider, host.Services.GetRequiredService<ICompanyPhoneNumberContextProvider>());
+            var context = provider.ForCompany(company)!;
+            Assert.AreEqual(company, context.Company);
+            Assert.AreEqual("DE", context.DefaultRegion);
+            Assert.AreEqual("030", context.LocalAreaCode);
+            Assert.AreEqual("AT", provider.ForCompany(other)!.DefaultRegion);
+            Assert.IsNull(provider.ForCompany(new(LexwareProductLine.FinOffice, "installation-A", "0007")));
+            Assert.IsNull(provider.ForCompany(new(LexwareProductLine.Pro, "installation-C", "0007")));
+            var interpreter = host.Services.GetRequiredService<IPhoneNumberInterpreter>();
+            Assert.AreSame(interpreter, host.Services.GetRequiredService<IPhoneNumberInterpreter>());
+            var missingLine = interpreter.InterpretIncoming(new(NumberPresentation.Available, "12345"));
+            Assert.AreEqual(PhoneNumberAddressKind.Unresolved, missingLine.Kind);
+            Assert.IsNull(missingLine.Address.E164);
+            var explicitLine = interpreter.InterpretIncoming(new(NumberPresentation.Available, "12345"), new("pbx-A", "sip-1", "DE", "030"));
+            Assert.AreEqual("+493012345", explicitLine.Address.E164);
+            Assert.IsNull(explicitLine.CompanyContext);
             return Task.CompletedTask;
         });
     }

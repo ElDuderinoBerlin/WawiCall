@@ -43,6 +43,8 @@ public static class WawiCallHost
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();
                 services.AddSingleton<IPhoneNumberParser, LibPhoneNumberParser>();
+                services.AddSingleton<IPhoneNumberInterpreter, PhoneNumberInterpreter>();
+                services.AddSingleton<ICompanyPhoneNumberContextProvider, CompanyPhoneNumberContextProvider>();
                 services.AddSingleton<ConfigurationStore>();
                 services.AddSingleton<ApplicationConfigurationService>();
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());

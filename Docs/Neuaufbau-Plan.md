@@ -641,7 +641,7 @@ Produktlinienspezifische DLLs sind nur im passenden Pluginpaket vorhanden.
 ### Phase 6 – Rufnummernindex und Zuordnung ⬜
 
 Verbindliches Zielbild: [Telefonnummern-Cache.md](Telefonnummern-Cache.md). Die folgenden Punkte
-implementieren die Planung; der Offline-Parser aus Punkt 1 ist im Produkt eingebunden.
+implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 sind im Produkt eingebunden.
 
 - [x] [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) einbinden und Parsing,
   Normalisierung sowie Länder-/Regionsmetadaten über eigene DI-Interfaces kapseln. Original/Quellfeld,
@@ -657,13 +657,25 @@ implementieren die Planung; der Offline-Parser aus Punkt 1 ist im Produkt eingeb
   Runtime-/Produktlinien-/MMS-/Solution- und Paketprüfungen bestanden. Logs: `.artifacts/phase6-item1`.
   Keine UI-Änderung/Renderprüfung, keine Wawi-/SIP-/Datenbankabfrage. Die übrigen Phasenpunkte bleiben offen;
   der vorgezogene Parserpunkt ändert die noch ausstehende Datenbank-/Pluginabnahme nicht.
-- [ ] Firmenbezogenen Land-/Ortskontext für Stammdaten und expliziten Anlagenkontext für eingehende
-  Nummern verwenden. Öffentliche Direktdurchwahl, explizite Extension und bestätigte/vermutete
-  Rufnummernblöcke getrennt behandeln; interne, ungültige und unterdrückte Nummern nachvollziehbar behandeln.
+- [x] Firmenbezogenen Land-/Ortskontext für Stammdaten und expliziten Anlagenkontext für eingehende
+  Nummern verwenden. Öffentliche Direktdurchwahl und explizite Extension getrennt behandeln;
+  interne, ungültige und unterdrückte Nummern nachvollziehbar behandeln.
+  Nachweis: `IPhoneNumberInterpreter` mit getrennten Company-/Line-Kontexten und Eingabearten sowie
+  `ICompanyPhoneNumberContextProvider` für die vorhandenen persistierten Firmenvorgaben. Keine bevorzugte
+  oder aktive Firma als Rückfall für eingehende Nummern. Lokale Ergänzung anhand des Nummernplans,
+  gültige Nummern erhalten, nationale Zielvorwahl/öffentliche Anschlussnummer separat liefern.
+  Interne Nummern nur mit Anlagen-ID; Withheld/Unknown ohne Parseraufruf von Nummernwerten bereinigen;
+  SIP-URIs, Vorwahlfehler und Extensionkonflikte liefern keinen erfundenen öffentlichen Suchwert.
+  Parserregelversion normalization/2, Kontextregelversion interpretation/1. 30 neue Prüffälle;
+  je 211 Tests für Pro/FinOffice bestanden. Zehn Debug-Builds für Interfaces/Core/Utilities/App/Console,
+  vier isolierte Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-/Paketprüfungen erfolgreich.
+  Logs: `.artifacts/phase6-item2`. Keine UI-/SIP-/Wawi-/DB-Anbindung und keine neue Renderprüfung.
+  Rufnummernblöcke werden hier nicht aus Ziffern vermutet; deren Bewertung bleibt Aufgabe des folgenden Matchers.
 - [ ] Aktivierbaren Stammnummernabgleich mit `StartWidth` je Firma konfigurieren und per DI anbinden.
   Gleicher Ländercode, gleiche Orts-/Netzvorwahl und gleiche erste N Anschlussziffern ergeben einen
   positiven Geschäftspartnertreffer; N zählt nach der Vorwahl. Den Rest als Apparatenummer getrennt
   von Extension führen. Passenden Präfixindex und Regelversionen vorsehen; bei Mehrfachtreffern auswählen lassen.
+  Konfigurierte/ausdrücklich bestätigte Rufnummernblöcke und unbestätigte Vermutungen getrennt ausweisen.
 - [ ] Suchfirmenauswahl per DevExpress-CheckedListBox und vollständigen CompanyKeys persistieren;
   Hakenstatus von Zeilenmarkierung, bevorzugter Firma und aktiver Hauptansicht trennen.
 - [ ] Stammdaten-/Nummerncache pro Firma atomar und abbrechbar erneuern; gemeinsamen Index für alle

@@ -1,7 +1,7 @@
 # Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
 
 Stand: 04.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
-Anruferkennung. Der Offline-Parser aus Phase 6/Punkt 1 ist implementiert; Mehrfirmen-Cache,
+Anruferkennung. Offline-Parser und Nummernkontext aus Phase 6/Punkten 1–2 sind implementiert; Mehrfirmen-Cache,
 StartWidth-Abgleich, Auswahl und Viewanbindung bleiben noch umzusetzen.
 
 ## Grundentscheidung
@@ -84,12 +84,14 @@ ISO-Region; ohne Region werden internationale Nummern verarbeitet. Ein unbekannt
 Regionscode führt zum Fehler und wird nicht still durch DE ersetzt.
 
 Ergebnisse enthalten außerdem den national signifikanten Nummernteil einschließlich bedeutender
-führender Nullen, eigenen Nummerntyp, Ländercode, Region und gegebenenfalls eine deutsche Offline-
+führender Nullen, verfügbaren nationalen Zielpräfix/Anschlussnummer, eigenen Nummerntyp, Ländercode,
+Region und gegebenenfalls eine deutsche Offline-
 Regionsbeschreibung. Die `ParserVersion` enthält die Paket-/Metadatenversion und unsere Regelversion.
 SIP-/SIPS-Adressen werden nicht als öffentliche Telefonnummer normalisiert. Der Parser greift weder
 auf Wawi/Datenbank noch Telefonie, Netzwerk oder UI zu und bestimmt keine Firma oder Apparatenummer.
-Die spätere Auswahl des Firmen-/Leitungskontexts, lokale Vorwahlergänzung und Präsentationszustände
-gehören zum nächsten Umsetzungspunkt.
+Die Kontextanwendung erfolgt seit Punkt 2 durch `IPhoneNumberInterpreter`. Die Parserversion ist
+wegen der zusätzlichen Vorwahl-/Anschlusszerlegung auf `normalization/2` erhöht; die Interpretation
+kennzeichnet ihre zusätzlichen Regeln mit `interpretation/1`.
 
 Für Quellstammdaten gelten die jeweiligen Firmenvorgaben für Land/Ortsvorwahl. Für eine eingehende
 Nummer ohne Ländercode gilt der explizite Anlagen-/Leitungskontext. Sie wird nicht nacheinander unter
@@ -105,6 +107,44 @@ Die Anzeige lautet beispielsweise „Rufnummernregion: Berlin, Deutschland“. D
 Nummernbereichszuordnung, keine Live-Ortung des Anrufers. Mobilfunk, VoIP, Umleitungen und nichtgeografische
 Nummern lassen oft keine belastbare Ortsangabe zu. Die erkannte Nummer ist keine Zugriffsberechtigung.
 [Offline-Geocoder](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberOfflineGeocoder.cs)
+
+### Firmen- und Leitungskontext: umgesetzt in Punkt 2
+
+`InterpretCompanyPhone` erhält ein `PartyPhone` und einen `CompanyPhoneNumberContext` mit vollständigem
+CompanyKey. `ICompanyPhoneNumberContextProvider.ForCompany` liest ausschließlich die passenden
+persistierten Firmenvorgaben aus dem geladenen Startkonfigurationsstand. Ein fehlender Eintrag ergibt
+null, keine Vorgaben einer bevorzugten oder gerade sichtbaren anderen Firma. Quellfeld, deklarierter
+Nummerntyp und Originalnummer bleiben erhalten; ein bereits gespeichertes E.164 wird neu geprüft.
+
+`InterpretIncoming` erhält eine `CallAddress` und optional einen ausdrücklichen `PhoneLineContext`
+mit Anlagen-ID, Leitungs-ID, Region und Ortsvorwahl. Er übernimmt keine Firmenvorgaben aus Suchtreffern.
+Die Schnittstellen und Implementierungen sind in beiden Hosts per DI registriert. Die tatsächliche
+SIP-Ereignisanbindung und eine Einstellungsoberfläche für Leitungsvorgaben folgen weiterhin in Phase 7/8.
+
+Für mehrdeutige Eingaben gibt es `Automatic`, `National`, `LocalSubscriber` und `Internal`:
+
+- `Automatic` erhält eine bereits gültig erkannte Nummer. Für noch nicht gültig erkannte lokale
+  Eingaben kann eine konfigurierte Ortsvorwahl ergänzt werden. Explizite internationale/nationale
+  Wählpräfixe werden nicht durch eine Ortsvorwahlergänzung repariert.
+- `National` verwendet den Regionskontext ohne lokale Ergänzung. `LocalSubscriber` fordert die lokale
+  Interpretation ausdrücklich an, wenn bloße Ziffern auch schon als vollständige Nummer lesbar wären.
+- Eine lokale Ergänzung benötigt eine unterstützte Region und eine passende geografische Ortsvorwahl.
+  Die Nummernplandaten behandeln nationale Präfixe und signifikante Nullen; etwa DE/030, AT/01,
+  CH/044, IT/02 und US/650 sind geprüft. Format und Quelle des Originalwerts bleiben unverändert.
+- `Internal` beziehungsweise das erkannte `**`-Präfix erzeugt nur mit Anlagen-ID eine interne Nummer.
+  Führende Nullen und der interne Wählwert bleiben erhalten. Interne Nummern sind nur zusammen mit
+  dieser Anlagen-ID vergleichbar, erhalten kein E.164 und werden nicht anhand ihrer Länge erraten.
+- Withheld/Unknown haben Vorrang vor allen mitgelieferten Original-/E.164-/Extension-Werten. Diese
+  Werte werden entfernt und der Parser wird nicht aufgerufen. SIP-/SIPS-URIs bleiben Adressen ohne E.164.
+- Explizite Extensions aus Originalwert und separatem Feld müssen übereinstimmen. Widersprüche,
+  ungültige Ortsvorwahlen oder Kontextfehler ergeben feste Codes und keinen öffentlichen Suchwert.
+
+Die Interpretation liefert eine bereinigte `CallAddress`, Parsernachweis, Kontext und angewendete
+Ortsvorwahl. Der öffentliche Anschlussnummernteil enthält weiterhin die vollständige Direktdurchwahl.
+Ein nationaler Zielpräfix ist nur bei verfügbarer Metadatenzerlegung vorhanden; global nichtgeografische
+Nummern (`001`) erhalten keine erfundene Ortsvorwahl. Es wird weiterhin keine Stamm-/Apparatenummer
+abgeschnitten und kein Rufnummernblock bestätigt. Dies übernimmt erst der gesonderte StartWidth-/Matcher-Schritt.
+Nachweise: `.artifacts/phase6-item2`.
 
 ## Stammnummer, öffentliche Durchwahl und Extension
 
@@ -268,8 +308,9 @@ denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der R
 
 ## DI-Verträge, Persistenzlücke und Umsetzung
 
-Parsing/Regionsauflösung sind über `IPhoneNumberParser` implementiert und per DI an App/Console
-angebunden. Cachepflege, Mehrfirmensuche und Auswahl benötigen weiterhin eigene Interfaces und
+Parsing/Regionsauflösung, Kontextwahl und Interpretation sind über `IPhoneNumberParser`,
+`IPhoneNumberInterpreter` und `ICompanyPhoneNumberContextProvider` implementiert und per DI an
+App/Console angebunden. Cachepflege, Mehrfirmensuche und Auswahl benötigen weiterhin eigene Interfaces und
 Implementierungen. Das bestehende
 `IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
 Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
@@ -290,7 +331,7 @@ Migration ab Version 6 mit Vertragsanpassung erforderlich, insbesondere:
   `StartWidth`, zerlegte Vorwahl/Stamm und abgeleitete Apparatenummer getrennt von Extension modellieren.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-zusätzliche Migration/Verträge, Nummernkontext-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Cache-Repositories,
+zusätzliche Migration/Verträge, SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Cache-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

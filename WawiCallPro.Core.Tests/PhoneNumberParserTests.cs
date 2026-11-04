@@ -32,6 +32,25 @@ public sealed class PhoneNumberParserTests
     }
 
     [TestMethod]
+    [DataRow("+49301234542", "30", "1234542")]
+    [DataRow("+4312345678", "1", "2345678")]
+    [DataRow("+41442345678", "44", "2345678")]
+    [DataRow("+390236618300", "02", "36618300")]
+    [DataRow("+16502530000", "650", "2530000")]
+    [DataRow("+4915123456789", "1512", "3456789")]
+    public void DestinationPrefixAndPublicSubscriberDigitsRemainSeparate(string raw, string destination, string subscriber)
+    {
+        var result = _parser.Parse(raw);
+        Assert.AreEqual(PhoneNumberParseStatus.Valid, result.Status);
+        Assert.AreEqual(destination, result.NationalDestinationCode);
+        Assert.AreEqual(subscriber, result.SubscriberNumber);
+        Assert.IsNull(result.Extension);
+        var nonGeographic = _parser.Parse("+80012345678");
+        Assert.IsNull(nonGeographic.NationalDestinationCode);
+        Assert.IsNull(nonGeographic.SubscriberNumber);
+    }
+
+    [TestMethod]
     public void PreservesSourceFieldOriginalFormattingAndSignificantLeadingZero()
     {
         var source = new SourceField("customer-address", "0007", "telephone");
@@ -43,7 +62,7 @@ public sealed class PhoneNumberParserTests
         Assert.AreEqual("+390236618300", result.E164);
         Assert.IsFalse(result.ToString().Contains(original, StringComparison.Ordinal));
         StringAssert.StartsWith(result.ParserVersion, "libphonenumber-csharp/9.0.42");
-        StringAssert.EndsWith(result.ParserVersion, ";normalization/1");
+        StringAssert.EndsWith(result.ParserVersion, ";normalization/2");
     }
 
     [TestMethod]

@@ -61,6 +61,11 @@ public sealed class LibPhoneNumberParser : IPhoneNumberParser
             e164 = null;
         }
 
+        var national = _numbers.GetNationalSignificantNumber(number);
+        var regionCode = _numbers.GetRegionCodeForNumber(number);
+        var destinationLength = status == PhoneNumberParseStatus.Valid && regionCode != "001" ?
+            _numbers.GetLengthOfNationalDestinationCode(number) : 0;
+        var hasDestination = destinationLength > 0 && destinationLength < national.Length;
         return result with
         {
             Status = status,
@@ -68,8 +73,10 @@ public sealed class LibPhoneNumberParser : IPhoneNumberParser
             E164 = e164,
             Extension = string.IsNullOrEmpty(number.Extension) ? null : number.Extension,
             CountryCallingCode = number.CountryCode,
-            RegionCode = _numbers.GetRegionCodeForNumber(number),
-            NationalNumber = _numbers.GetNationalSignificantNumber(number),
+            RegionCode = regionCode,
+            NationalNumber = national,
+            NationalDestinationCode = hasDestination ? national[..destinationLength] : null,
+            SubscriberNumber = hasDestination ? national[destinationLength..] : null,
             NumberType = MapType(_numbers.GetNumberType(number)),
             RegionDescription = status == PhoneNumberParseStatus.Valid ?
                 NullIfEmpty(_geocoder.GetDescriptionForNumber(number, Library.Locale.German)) : null
@@ -110,6 +117,6 @@ public sealed class LibPhoneNumberParser : IPhoneNumberParser
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? assembly.GetName().Version?.ToString()
             ?? throw new InvalidOperationException("Phone number metadata version is unavailable.");
-        return $"libphonenumber-csharp/{version};normalization/1";
+        return $"libphonenumber-csharp/{version};normalization/2";
     }
 }

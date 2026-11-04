@@ -311,7 +311,10 @@ firmenübergreifende historische Kandidaten sind zusätzliche Migrationen ab Ver
 Verträge nötig. Migrationen 1–5 bleiben unverändert. Der Offline-Parser ist seit Phase 6/Punkt 1
 über `IPhoneNumberParser` in beiden Hosts registriert; seine DTOs behalten Original/Quelle,
 E.164/Extension, Prüfstatus, Rufnummernregion und Parserversion ohne Bibliothekstypen im gemeinsamen
-Vertrag. Mehrfirmensuche, StartWidth-Abgleich, Auswahlkonfiguration und UI bleiben Zielbild.
+Vertrag. Seit Punkt 2 wendet `IPhoneNumberInterpreter` ausdrücklich getrennte Firmen-/Leitungskontexte,
+lokale Ortsvorwahl und Präsentationszustände an. Firmenvorgaben werden nach vollständigem CompanyKey
+gelesen; interne Nummern benötigen Anlagenbezug, unterdrückte Nummern werden nicht geparst.
+Mehrfirmensuche, StartWidth-Abgleich, Auswahlkonfiguration und UI bleiben Zielbild.
 
 ## Gesprächsaufzeichnung, WAV-Mixer und MP3
 
@@ -401,7 +404,8 @@ werden mit leeren/befüllten Daten, kleineren Fenstern und größerer Schrift vi
 Vorhanden sind die Hostprojekte mit Standard-.NET-Host/DI-Grundlage, gemeinsame Fachverträge
 einschließlich `ITelephonyService`, Mandantenkontext/Dispatcher, Konfiguration und Gesprächszustandsautomat.
 Die Datenbankmigrationen 1–5 und die Herkunftsfelder sind implementiert und geprüft.
-Hinzu kommt der offline arbeitende libphonenumber-Adapter hinter einem eigenen DI-Interface.
+Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
+hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
 
 Noch offen sind insbesondere:
 

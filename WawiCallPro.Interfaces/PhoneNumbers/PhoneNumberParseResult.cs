@@ -50,6 +50,10 @@ public sealed record PhoneNumberParseResult
 
     /// <summary>National significant number, including any significant leading zeros.</summary>
     public string? NationalNumber { get; init; }
+    /// <summary>National destination prefix when the metadata supplies one; excludes the country/trunk prefix.</summary>
+    public string? NationalDestinationCode { get; init; }
+    /// <summary>Digits after the destination prefix, including a public DDI; not an inferred extension.</summary>
+    public string? SubscriberNumber { get; init; }
     public PhoneNumberType NumberType { get; init; }
 
     /// <summary>Optional offline number-range description in German, not a live location.</summary>
