@@ -1,10 +1,10 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–3. Diese Festlegung ist die Grundlage für die neuen Migrationen 1–5.
+Stand: 04.11.2026, Phase 3, Punkte 1–4. Die neuen Migrationen 1–5 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
-FluentMigrator-Adapter für alle vier Provider. Produkt-DDL, Dapper-Repositories und deren Transaktionstests
-folgen in den nächsten Punkten; es existiert noch keine erzeugte Kommunikationsdatenbank.
+FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
+Dapper-Repositories, prozessübergreifende Sperren und Hostanbindung folgen in den nächsten Punkten.
 Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
@@ -174,6 +174,9 @@ Zusätzlich Index `ix_partyphones_address(addressid, partyid)` für den zusammen
 | companyid | id ? | FK companies.id; eingehend zunächst unbekannt erlaubt |
 | writeversion | i64 ! | Persistenz-CAS ab 1 |
 | revision | i64 ! | CallSnapshot.Revision ab 0; kein Ersatz für writeversion |
+| workstationid | id ! | Stabile eigene Arbeitsplatz-Installationskennung, keine pro Gespräch erzeugte ID |
+| machinename | text(256) ! | PC-Name bei Gesprächsbeginn; historische Momentaufnahme |
+| windowsusername | text(256) ! | Ausführendes Windows-Konto bei Gesprächsbeginn, einschließlich Domäne/PC-Präfix |
 | direction, state | enum ! | CallDirection 1/2, CallState 1–7 |
 | localpresentation, remotepresentation | enum ! | NumberPresentation 0–2 |
 | localoriginalvalue, remoteoriginalvalue | text(2048) ? | Available benötigt nicht leeren Originalwert |
@@ -188,6 +191,14 @@ Ended/Failed eine Endzeit; die Zeit-/Endgrund-/Richtungsregeln des CallStateMach
 Diese werden vor Schreiben/Wiederherstellung geprüft und durch passende DDL-CHECKs ergänzt.
 Indizes: `ix_phonecalls_start(startedatutc DESC, id ASC)` und
 `ix_phonecalls_company(companyid, startedatutc DESC, id ASC)`.
+Zusätzlich `ix_phonecalls_workstation(workstationid, startedatutc DESC, id ASC)`,
+`ix_phonecalls_machine(machinename, startedatutc DESC, id ASC)` und
+`ix_phonecalls_user(windowsusername, startedatutc DESC, id ASC)` für die PC-/Benutzerhistorie.
+PC-Name und Windows-Benutzer sind unveränderliche Herkunftswerte des Gesprächs, keine Stammdatenverweise
+und keine Kennung des späteren Notizbearbeiters. Die eigene Arbeitsplatz-GUID soll bei der Einrichtung
+einmal erzeugt, dauerhaft gespeichert und von App/Console gemeinsam verwendet werden. Erzeugung und
+gemeinsame Ablage im Host sind noch nicht implementiert; sie stammen weder aus einer bereits vorhandenen
+Windows-ID noch aus der Migration. PC-/Benutzerumbenennungen schreiben alte Gesprächswerte nicht um.
 
 ### Version 3: callparties
 
@@ -209,7 +220,7 @@ Index `ix_callparties_party(partykeyhash, callid)` unterstützt den historischen
 callid für isselected=true. MySQL verwendet dafür eine berechnete nullable ASCII-Spalte selectedcallid
 (callid genau bei isselected=true) mit Unique-Index. Nicht ausgewählte Zeilen dürfen beliebig oft vorkommen;
 ein normaler Unique-Index auf (callid, nullable Slot) ist wegen unterschiedlicher NULL-Semantik ungeeignet.
-Die DDL wird mit den jeweiligen Provider-Tags umgesetzt und erst dort als getestet gewertet.
+Die DDL wird anhand des zum Runner/Provider-Tag passenden Datenbanktyps ausgewählt.
 [SQL Server Unique-/Filter-Indizes](https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql),
 [MySQL-Indizes auf generierten Spalten](https://dev.mysql.com/doc/refman/8.4/en/create-table-secondary-indexes.html)
 
@@ -277,7 +288,8 @@ konstruieren, weil er beim Laden fehlende Versionsstrukturen erzeugt. Die lesend
 seit Punkt 2. Seit Punkt 3 konfiguriert `CommunicationVersionTable` den realen Runner mit diesen Namen
 und dem eindeutigen Index uc_versioninfo_version; dbo/public bleiben fremdverwaltete Standard-Schemas
 (OwnsSchema=false). Echte SQLite-Testmigrationen bestätigen die Versionstabelle und deren Wiederanlauf
-nach zurückgerollter erster Migration. Das ist noch kein Nachweis der Fachmigrationen 1–5 oder der Server-DDL.
+nach zurückgerollter erster Migration. Seit Punkt 4 sind zusätzlich die Fachmigrationen 1–5 auf allen
+vier Providern in eigenen Testdatenbanken ausgeführt; der konkrete Umfang steht am Dokumentende.
 [FluentMigrator 8.0.1 VersionLoader](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/VersionLoader.cs),
 [VersionMigration](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/Versioning/VersionMigration.cs)
 
@@ -342,6 +354,13 @@ ToUpperInvariant-Suchwerte; SQL-Musterzeichen bleiben literal. Eine Cache-Seiten
 Ersatz ist keine Langzeit-Snapshotgarantie; Verbraucher lesen die Cacheversion und beginnen bei Änderung neu.
 Gespräche: startedatutc DESC, id ASC; Ereignisse: sequence ASC; Notizen: createdatutc ASC, id ASC;
 Aufnahmen: id ASC. Zeitfilter sind UTC [von,bis), widersprüchliche Mandanten-/Partyfilter ungültig.
+`CallOrigin` trägt Arbeitsplatz-ID, PC-Name und Windows-Konto. `CallWrite` verlangt diesen Wert und
+reichert den Snapshot unveränderlich damit an; ein widersprechender bereits erfasster Ursprung wird
+abgewiesen. Persistierte Snapshots müssen Origin enthalten. Repositories dürfen die Herkunft eines
+bestehenden Gesprächs nicht ersetzen. `CallHistoryQuery` erlaubt zusätzliche Filter nach WorkstationId,
+MachineName und WindowsUserName; null lässt die jeweilige Dimension ungefiltert, gesetzte Filter wirken
+gemeinsam. Namensfilter vergleichen den unveränderten gespeicherten Wert ordinal. Herkunft ist weder
+eine Zugriffsberechtigung noch eine Produktlinien-/Mandantenidentität.
 
 Alle Operationen nehmen CancellationToken an, warten ihr I/O ab und verwenden parametrisierte SQL-Werte.
 Vor Commit beobachteter Abbruch/Fehler erhält den bisherigen Zustand. Ist ein Commit trotz Verbindungsverlust
@@ -353,5 +372,17 @@ klären, nicht blind erneut anlegen. Keine automatischen destruktiven Lösch-/Do
 Zwölf Tests prüfen unabhängig berechnete Hashvektoren, Identitätstrennung einschließlich Rand-Leerzeichen/
 Unicode, UTC-Einzelticks, kanonische GUIDs, vollständige Cacheanträge, gemeinsame Nummern, getrennte
 Revisionen, historische Kandidaten, Reihenfolge/Besitz von Ereignissen, Notiz-/Aufnahmegrenzen und Fehlercodes.
-Dies prüft die implementierten Wert-/Antragsregeln. Tatsächliche SQL-Constraints, Rollbacks, CAS-Konflikte
-zwischen Prozessen, Schema-Upgrades und Providerparität bleiben ausdrücklich spätere Datenbanktests.
+Seit Punkt 4 ergänzen echte Produktmigrationen und 14 Schemaprüfungen SQLite-Neuanlage, Versionspräfixe,
+Daten-Upgrades, unveränderte Wiederholung, Fehler/Wiederanlauf, SQL-Constraints, FK-Adressbesitz,
+Nummernmehrdeutigkeit, historische Kandidaten, UTC-Einzelticks, Unicode und PC-/Benutzertrennung.
+Zusätzliche Herkunftsvertragsprüfungen sichern fehlende/widersprüchliche Werte und JSON-Übertragung ab.
+Alle Versionen liefen außerdem auf separaten SQL-Server-2019-LocalDB-, MySQL-8.4.9- und PostgreSQL-17.9-
+Instanzen: Versionen 1–5, Status, Wiederholung, Unicode, UTC-Ticks, ausgewählte CHECKs, Auswahl-Eindeutigkeit
+und Löschschutz. Nur selbst angelegte Instanzen/Bestände wurden benutzt und danach gestoppt/entfernt;
+vorhandene Lexware-Datenbanken wurden nicht geöffnet. Nachweise: `.artifacts/phase3-item4`.
+Die Migrationen verwenden ForwardOnlyMigration; SQLite/SQL Server/PostgreSQL können die vorgesehenen
+Schritte transaktional ausführen. MySQL-DDL kann trotz fehlender Versionsbestätigung teilweise bestehen
+bleiben. Kein IF NOT EXISTS übernimmt einen solchen Bestand automatisch; vor Wiederanlauf sind Status
+und Sicherung zu prüfen und gegebenenfalls eine ausdrückliche Reparatur/Wiederherstellung nötig.
+Vollständige Provider-Fehlerszenarien, CAS-Konflikte, prozessübergreifende Sperre, Rechte-/Backup-/WAL-
+Abnahme und Repository-/Hostzugriffe bleiben den folgenden Punkten vorbehalten.

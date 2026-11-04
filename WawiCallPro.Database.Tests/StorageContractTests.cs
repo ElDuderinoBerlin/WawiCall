@@ -114,13 +114,15 @@ public sealed class StorageContractTests
         var parties = ImmutableArray.Create(new CallPartySnapshot(Customer(), "Historischer Name", "030 123", true),
             new CallPartySnapshot(Customer("43"), "Weiterer Treffer", "030 123", false));
         var events = ImmutableArray.Create(new CallEvent(Guid.NewGuid(), call.Id, 10, Now, "call.created", CallState.Created));
-        var write = new CallWrite(call, 5, parties, events);
+        var write = new CallWrite(call, 5, parties, events, new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser"));
         Assert.AreEqual(0L, write.Call.Revision);
         Assert.AreEqual(5L, write.ExpectedVersion);
         Assert.AreEqual(10L, write.Events[0].Sequence);
         Assert.HasCount(2, write.Parties);
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new CallWrite(call, 0, parties, events));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { State = CallState.Connected }, null, [], []));
+        Assert.AreEqual("TEST-PC", write.Origin.MachineName);
+        Assert.AreEqual(write.Origin, write.Call.Origin);
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => new CallWrite(call, 0, parties, events, new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { State = CallState.Connected }, null, [], [], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
     }
 
     [TestMethod]
@@ -131,12 +133,25 @@ public sealed class StorageContractTests
         var other = selected with { Party = Customer("43") };
         var first = new CallEvent(Guid.NewGuid(), call.Id, 1, Now, "call.created", CallState.Created);
         var second = first with { Id = Guid.NewGuid(), Sequence = 2, OccurredAtUtc = Now.AddSeconds(1) };
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [selected, other], []));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { Company = null }, null, [selected], []));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [second, first]));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [first with { CallId = Guid.NewGuid() }]));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [first with { Code = "localized message" }]));
-        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { RemoteAddress = new(NumberPresentation.Withheld, "private") }, null, [], []));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [selected, other], [], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { Company = null }, null, [selected], [], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [second, first], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [first with { CallId = Guid.NewGuid() }], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call, null, [], [first with { Code = "localized message" }], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(call with { RemoteAddress = new(NumberPresentation.Withheld, "private") }, null, [], [], new CallOrigin(new Guid("11111111-1111-1111-1111-111111111111"), "TEST-PC", "DOMAIN\\TestUser")));
+    }
+
+    [TestMethod]
+    public void CallWritesRequireOriginAndCannotReplaceAnAlreadyCapturedPcOrWindowsUser()
+    {
+        var call = Call();
+        var origin = new CallOrigin(Guid.NewGuid(), "PC-01", "DOMAIN\\Benutzer");
+        var write = new CallWrite(call, null, [], [], origin);
+        Assert.AreEqual(origin, write.Call.Origin);
+        Assert.IsNull(call.Origin, "Enriching a write must not mutate the caller's live snapshot.");
+        Assert.ThrowsExactly<ArgumentNullException>(() => new CallWrite(call, null, [], [], null!));
+        var other = new CallOrigin(origin.WorkstationId, "PC-02", "DOMAIN\\Anderer");
+        Assert.ThrowsExactly<ArgumentException>(() => new CallWrite(write.Call, 1, [], [], other));
     }
 
     [TestMethod]

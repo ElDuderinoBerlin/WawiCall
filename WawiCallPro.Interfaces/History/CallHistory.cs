@@ -51,4 +51,9 @@ public sealed record CallHistoryQuery(
     CompanyKey? Company = null,
     PartyKey? Party = null,
     DateTimeOffset? StartedFromUtc = null,
-    DateTimeOffset? StartedToUtc = null);
+    DateTimeOffset? StartedToUtc = null)
+{
+    public Guid? WorkstationId { get; init; }
+    public string? MachineName { get; init; }
+    public string? WindowsUserName { get; init; }
+}

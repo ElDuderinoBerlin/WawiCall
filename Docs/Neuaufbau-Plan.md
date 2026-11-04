@@ -548,11 +548,29 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   ohne Warnungen/Fehler gebaut; vier Diagnose-Hoststarts und Runtime-/MMS-/Produktlinien-/Solution-Prüfung
   bestanden. Logs: `.artifacts/phase3-item3`. Keine UI-Änderung oder neue Renderprüfung.
   Fachmigrationen, prozessübergreifende Sperre, Repositories und Hostanbindung bleiben offen.
-- [ ] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen.
+- [x] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen. ✅
+  Nachweis: fünf eigene ForwardOnlyMigration-Klassen erzeugen elf Produkttabellen einschließlich
+  Eigentumskennung, Cache, Gesprächshistorie, Aufnahmen und Nummernfehlern; versioninfo bleibt Runner-Metadatum.
+  Feste providerabhängige DDL mit GUID-/Hash-/Längen-/Enum-/UTC-/Gesprächs-CHECKs, Besitzer-FKs und
+  benannten Indizes. Ein ausgewählter Kandidat per Filterindex beziehungsweise berechneter MySQL-Spalte.
+  Ergänzung auf Nutzerwunsch: PC-Name und Windows-Benutzer als historische Gesprächsspalten; zusätzliche
+  stabile eigene Arbeitsplatz-GUID, CallOrigin im Schreib-/Historienvertrag und optionale Herkunftsfilter.
+  Automatische GUID-Erzeugung/-Ablage und Windows-Erfassung sind ausdrücklich erst Hostanbindung.
+  Je 155 Tests für Pro/FinOffice bestanden, darunter 60 Datenbanktests und 13 Interfaceprüfungen.
+  SQLite prüft echte Produktversionen, Daten-Upgrades, Idempotenz, Fehler/Wiederanlauf, FK-/Wertregeln,
+  Unicode/UTC-Ticks und PC-/Benutzertrennung. Separate SQL-Server-2019-LocalDB-, MySQL-8.4.9- und
+  PostgreSQL-17.9-Instanzen bestätigen Versionen 1–5, Status/Wiederholung, ausgewählte CHECKs, Unicode/
+  Ticks und Auswahl-/Löschschutz. Testinstanzen gestoppt/entfernt, keine Lexware-Datenbanken verwendet.
+  Database, App und Console beider Varianten in Debug ohne Warnungen/Fehler gebaut; vier Diagnose-
+  Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item4`.
+  Keine UI-Änderung. MySQL-DDL kann nach Fehlern teilweise bestehen bleiben; keine automatische Übernahme
+  durch IF NOT EXISTS. Vollständige Providerfehler-/Rechte-/Sperr-/Backup-/Repositoryabnahme bleibt offen.
 - [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
 - [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.
 - [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
 - [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
+  Dabei Arbeitsplatz-GUID bei Einrichtung einmal erzeugen und dauerhaft für App/Console verfügbar machen;
+  gemeinsame Ablage festlegen, PC-Name und ausführendes Windows-Konto bei Gesprächsbeginn erfassen.
 - [ ] Tests: leere Datenbank → aktuelles Schema; wiederholter Lauf unverändert; ältere Version → Upgrade mit Daten;
   Migration scheitert → korrekter Status/Wiederanlauf; zwei Starts → wirksame Sperre; neuere Schema-Version → Abbruch;
   Statusabfrage ohne Nebenwirkungen; UTC, Unicode, Fremdschlüssel und Mandantentrennung.

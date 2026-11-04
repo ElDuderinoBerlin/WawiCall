@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 3, Punkte 1–3 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–4 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -208,7 +208,7 @@ abgewiesen. Dies ist noch keine Sperre zwischen Prozessen oder verschiedenen Ins
 Die Dienste sind noch nicht in App/Console registriert und öffnen dort keine Datenbank beim Start.
 Die 22 Dienstprüfungen aus Punkt 2 verwenden echte SQLite-Dateien sowie einen testinternen transaktionalen
 Adapter. Punkt 3 ergänzt den tatsächlichen FluentMigrator-Adapter und elf weitere Prüfungen. Die
-WawiCallPro-Migrationen 1–5 und tatsächliche SQL-Server-/MySQL-/PostgreSQL-Umgebungen bleiben offen.
+Produktmigrationen und deren reale Providerprüfung sind seit Punkt 4 ergänzt.
 
 ## FluentMigrator-Runner
 
@@ -240,11 +240,41 @@ Versions-/Phasenfortschritt meldet weiterhin der übergeordnete `DatabaseMigrato
 Elf neue Prüfungen lösen alle vier Generator-/Processor-Konfigurationen ohne Verbindungsöffnung auf.
 Echte FluentMigrator-Testmigrationen in der Testassembly prüfen SQLite-Versionstabelle, Unicode,
 unveränderte Wiederholung, Rollback des ersten und eines späteren Schritts, Wiederanlauf, Freigabe,
-Fremd-/Neuerschutz und redigierte Fehler/Logs. Das Produkt enthält weiterhin keine Migrationen 1–5;
-sein leerer Katalog meldet ausdrücklich fehlende Definitionen. Insgesamt je 138 Tests für Pro/FinOffice
-bestanden, darunter 45 Datenbanktests. Database, App und Console beider Varianten in Debug ohne
-Warnungen/Fehler gebaut; vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung
-bestanden. Nur Betriebslogs angelegt. Nachweise: `.artifacts/phase3-item3`. Keine UI-Änderung.
+Fremd-/Neuerschutz und redigierte Fehler/Logs. Diese elf Runnerprüfungen bleiben neben den neuen
+Produktschematests bestehen; der Produktkatalog enthält seit Punkt 4 ausschließlich Versionen 1–5.
+
+## Eigene Migrationen und Anrufherkunft
+
+Die fünf `ForwardOnlyMigration`-Klassen im eigenen Migrationsnamespace erzeugen Eigentumskennung/
+Mandanten, Geschäftspartner-/Adress-/Nummerncache, Gesprächshistorie, Aufnahmemetadaten und Nummernfehler.
+Keine Alt- oder Übersetzungsdaten werden übernommen. `SchemaSql`/`InitialSchema` erzeugen ausschließlich
+DDL aus festen Schemadefinitionen für den ausgewählten Provider. Inline-CHECKs sichern Wertebereiche,
+kanonische IDs, UTC-Ticks, Zeitbezüge und Gesprächszustände; FK-/Unique-Indizes sichern Besitzer und
+Eindeutigkeit. Die Format-/Längenregeln der Schreibverträge bleiben zusätzlich erforderlich.
+
+Jedes gespeicherte Gespräch erhält `workstationid`, `machinename` und `windowsusername`. Die beiden
+Namen sind Momentaufnahmen bei Gesprächsbeginn. Das Windows-Konto enthält das Domänen-/PC-Präfix und
+ist vom SIP-/Lexware-Benutzer unabhängig. Die zusätzliche eigene Arbeitsplatz-GUID soll bei Einrichtung
+einmal erzeugt und dauerhaft für App/Console gespeichert werden. Aktuell gibt es dafür Schema und
+Vertrag; automatische Erzeugung, gemeinsame Ablage und Betriebssystemerfassung folgen mit dem Host.
+Die ID wird weder bereits aus Windows gelesen noch pro Gespräch neu erzeugt.
+
+`CallOrigin` validiert Identität und Namen. `CallWrite` verlangt Origin und übernimmt es in seinen
+unveränderlichen `CallSnapshot`; ein vorhandener anderer Ursprung wird abgewiesen. Persistierte
+Snapshots enthalten Origin auch in Historienseiten. PC-/Kontoumbenennung und spätere Notizbearbeitung
+ändern keine historischen Herkunftswerte. `CallHistoryQuery` enthält optionale gemeinsame Filter für
+Arbeitsplatz-ID, PC-Name und Windows-Konto; die spätere Repositoryimplementierung muss diese anwenden.
+Die Felder sind keine Zugriffsberechtigungen und gehören nicht ins bereinigte Betriebslogging.
+
+Je 155 Tests für Pro/FinOffice bestanden, darunter 60 Datenbank- und 13 Interfaceprüfungen. Echte SQLite-
+Produktmigrationen prüfen Aufbau, Daten-Upgrades, Fehler/Wiederanlauf, Unicode/UTC, Constraints und
+PC-/Benutzertrennung. Alle fünf Versionen wurden zusätzlich auf eigenen SQL-Server-2019-LocalDB-,
+MySQL-8.4.9- und PostgreSQL-17.9-Instanzen ausgeführt; dort wurden Status, Wiederholung, ausgewählte
+CHECKs, Unicode/Ticks und Auswahl-/Löschschutz geprüft. Keine vorhandenen Lexware-Bestände verwendet.
+Database, App und Console beider Varianten in Debug ohne Warnungen/Fehler gebaut; vier Diagnose-
+Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Hosts erzeugen weiterhin nur
+Betriebslogs. Nachweise: `.artifacts/phase3-item4`. Keine UI-Änderung. Prozessübergreifende Sperre,
+Rechte-/Sicherungsprüfung, Dapper-Repositories und tatsächliche Hostpersistenz bleiben offen.
 
 ## Host und Plugins
 

@@ -138,12 +138,15 @@ Migrationssteuerung. Der aktuelle Treiberstand entspricht der geprüften LxTrans
 Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw.bundle_e_sqlite3 3.0.5, Microsoft.Data.SqlClient 7.1.1,
 MySqlConnector 2.6.2, Npgsql 10.0.3; Pkcs ist auf 10.0.14 festgelegt.
 `WawiCallPro.Database.Tests` prüft Speicherwerte/Schreibanträge sowie Dienste an isolierten SQLite-Dateien.
-Die vier Treibertypen werden geschlossen erzeugt, Serververbindungen/-Provisionierung sind noch offen.
+Die vier Treibertypen werden geschlossen erzeugt; eigene isolierte Serverbestände sind seit Punkt 4 geprüft.
 Seit Punkt 3 ist FluentMigrator 8.0.1 mit Core-/SQLite-/SqlServer-/MySql-/Postgres-Runnern eingebunden.
 `FluentMigratorEngine` stellt den synchronen Backendadapter mit eigenem Scope je Aufruf, festem
 Migrationsnamespace, Provider-Tags und redigiertem Logging bereit. Die vier Konfigurationen werden ohne
 Serververbindung aufgelöst; echte Runner-Testmigrationen prüfen SQLite einschließlich Rollback/Wiederanlauf.
-Noch keine Produktmigrationen 1–5, Dapper-Implementierung oder Datenbank-DI-Registrierung im Host.
+Seit Punkt 4 implementieren fünf eigene ForwardOnlyMigration-Klassen die Produktversionen 1–5 mit
+providerabhängiger DDL. Gesprächsherkunft enthält Arbeitsplatz-ID, PC-Name und Windows-Benutzer;
+Erzeugung/Persistenz der Arbeitsplatz-ID sowie Betriebssystemerfassung folgen bei der Hostanbindung.
+Noch keine Dapper-Implementierung oder Datenbank-DI-Registrierung im Host.
 Beide Hosts starten deshalb weiterhin ohne Kommunikationsdatenbank. Testmigrationen liegen ausschließlich
 in der Testassembly und können nicht in den Produktkatalog gelangen.
 
@@ -152,10 +155,16 @@ dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.cs
 dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 ```
 
-Die aktuelle Prüfung umfasst je 138 Tests pro Variante einschließlich 45 Datenbanktests
-(zwölf Vertrags-, 22 Dienst- und elf Runnerprüfungen) und Debug-Builds von Database, App und Console.
-Protokolle: `.artifacts/phase3-item3`. Vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-Prüfungen
+Die aktuelle Prüfung umfasst je 155 Tests pro Variante einschließlich 60 Datenbanktests
+(13 Vertrags-, 22 Dienst-, elf Runner- und 14 Schemaprüfungen) und Debug-Builds von Database, App und Console.
+Protokolle: `.artifacts/phase3-item4`. Vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-Prüfungen
 bestanden; App-/Console-Start erzeugt weiterhin nur Betriebslogs. Keine UI-/Renderänderung.
+Zusätzliche Serverprüfung unter `.artifacts/phase3-item4/server-audit.ps1`: eigene kurzlebige SQL-Server-
+2019-LocalDB-, MySQL-8.4.9- und PostgreSQL-17.9-Instanzen mit eigenen Datenverzeichnissen/Instanznamen.
+Alle fünf Migrationen, Versionsstatus, Wiederholung, Unicode/Ticks, ausgewählte CHECKs sowie Auswahl-
+Eindeutigkeit und Löschschutz bestanden. Nur diese Testinstanzen wurden gestoppt/entfernt; Lexware-
+Bestände blieben unberührt. Diese begrenzte Prüfung ersetzt keine Rechte-, Sperr-, Backup- oder vollständige
+Provider-/Repositoryabnahme. MySQL-DDL besitzt keinen versprochenen vollständigen Schrittrücklauf.
 
 ## Abhängigkeiten und CI
 

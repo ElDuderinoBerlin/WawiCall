@@ -1,4 +1,5 @@
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.History;
 
 namespace WawiCallPro.Interfaces.Telephony;
 
@@ -61,6 +62,8 @@ public sealed record CallSnapshot
     public required Guid Id { get; init; }
     public required long Revision { get; init; }
     public CompanyKey? Company { get; init; }
+    /// <summary>Captured before persistence; required by CallWrite and retained in stored history.</summary>
+    public CallOrigin? Origin { get; init; }
     public required CallDirection Direction { get; init; }
     public required CallState State { get; init; }
     public required CallAddress LocalAddress { get; init; }

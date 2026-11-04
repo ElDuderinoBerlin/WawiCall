@@ -126,14 +126,33 @@ Produktlinien-/Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item3`. Kei
 Der Produktkatalog ist bis Punkt 4 leer. Echte Serverabnahme, Fachmigrationen, prozessübergreifende
 Sperre und Hostanbindung bleiben offen; Bootstrap-/CI-Grenze und Velopack-Planung unverändert.
 
+Phase 3, Punkt 4 ist abgeschlossen: fünf eigene ForwardOnlyMigration-Klassen für Versionen 1–5,
+elf Produkttabellen plus versioninfo, fester neuer SQL-Aufbau ohne Alt-/Übersetzungsdaten.
+SchemaSql/InitialSchema unterscheiden Provider-Typen, Collations, CHECKs, FK-/Unique-Indizes und den
+ausgewählten Gesprächskandidaten. Bereits ausgelieferte Definitionen später nicht rückwirkend ändern.
+Auf Nutzerwunsch enthält phonecalls zusätzlich machinename/windowsusername sowie eine eigene
+workstationid. CallOrigin validiert die Herkunft; CallWrite verlangt sie und übernimmt sie in den
+Snapshot. Bestehende Herkunft darf nicht durch Bearbeitung oder Umbenennungen umgeschrieben werden.
+CallHistoryQuery besitzt optionale PC-/Benutzer-/Arbeitsplatzfilter. Die eigene GUID ist keine vorhandene
+Windows-ID: automatische Erzeugung, dauerhafte gemeinsame Ablage und Windows-Erfassung sind noch
+nicht implementiert und stehen bei der Hostanbindung an. Keine aktuelle Loggingfunktion vortäuschen.
+Je 155 Tests für beide Varianten bestanden, inklusive 60 Datenbank- und 13 Interfaceprüfungen.
+Echte SQLite-Produktmigrationen prüfen Daten-Upgrades, Fehler/Wiederanlauf, Constraints und Herkunft.
+Zusätzlich alle Versionen auf eigenen SQL-Server-2019-LocalDB-, MySQL-8.4.9- und PostgreSQL-17.9-
+Instanzen ausgeführt; begrenzte Status-/Wiederholungs-/Unicode-/Tick-/CHECK-/Auswahl-/Löschschutzprüfung
+bestanden. Testinstanzen gestoppt/entfernt, keine bestehenden Lexware-Datenbanken geöffnet.
+Database, App und Console beider Varianten in Debug ohne Warnungen/Fehler; vier Diagnose-Starts und
+Runtime-/MMS-/Produktlinien-/Solution-Prüfung erfolgreich. Logs: `.artifacts/phase3-item4`. Keine UI-Änderung.
+MySQL-DDL kann teilweise bestehen bleiben; keine automatische Übernahme/reparierende IF-NOT-EXISTS-
+Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Repositories und Host bleiben offen.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 3, Punkt 4: produktive WawiCallPro-Migrationen 1–5 im exakten Namespace
-`WawiCallPro.Database.Migrations` entsprechend `Docs/Datenbankschema.md` neu implementieren.
-Keine Alt-/Übersetzungsdaten übernehmen. Eigentumskennung in Version 1, Provider-DDL, Constraints und
-Daten-Upgrades prüfen. Den bisher absichtlich leeren Produktkatalogtest entsprechend anpassen;
-Testfixture-Namespaces dürfen weiterhin nicht geladen werden. Rechte-/Migrationssperren bleiben Punkt 5.
+Als Nächstes Phase 3, Punkt 5: Rechteprüfung, fehlende Datenbank, Provider-Tags, Fristen, Schemaversion
+und insbesondere eine wirksame prozessübergreifende Migrationssperre mit Timeout vervollständigen.
+Die vorhandenen Status-/Eigentumsgrenzen und bestätigten Versionspräfixe erhalten; neben echten
+Serverprüfungen auch zwei konkurrierende Prozesse und Fehler-/Abbruchfälle nachweisen.
 Keine Runnererzeugung in der reinen Statusabfrage.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes

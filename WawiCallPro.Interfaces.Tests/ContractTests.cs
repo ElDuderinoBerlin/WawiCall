@@ -236,4 +236,29 @@ public sealed class ContractTests
     private static T RoundTrip<T>(T value) =>
         JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value))
         ?? throw new InvalidOperationException("JSON round trip returned null.");
+
+    [TestMethod]
+    public void CallOriginRoundTripsPcAndDomainUserAndKeepsItsStableWorkstationIdentity()
+    {
+        var id = Guid.NewGuid();
+        var origin = new CallOrigin(id, "PC-Ä-01", "DOMAIN\\Benutzer");
+        Assert.AreEqual(origin, RoundTrip(origin));
+        var renamed = new CallOrigin(id, "PC-NEU", "PC-NEU\\LokalerBenutzer");
+        Assert.AreEqual(origin.WorkstationId, renamed.WorkstationId);
+        Assert.AreNotEqual(origin.MachineName, renamed.MachineName);
+        var query = new CallHistoryQuery(new(0, 20)) { WorkstationId = id, MachineName = origin.MachineName, WindowsUserName = origin.WindowsUserName };
+        Assert.AreEqual(id, RoundTrip(query).WorkstationId);
+    }
+
+    [TestMethod]
+    public void CallOriginRejectsMissingIdentityInvalidUnicodeAndUnusablePcOrAccountNames()
+    {
+        var id = Guid.NewGuid();
+        Assert.ThrowsExactly<ArgumentException>(() => new CallOrigin(Guid.Empty, "PC", "DOMAIN\\User"));
+        foreach (var value in new[] { "", " \t", "PC\0name", new string('x', 257), "\ud800" })
+        {
+            Assert.ThrowsExactly<ArgumentException>(() => new CallOrigin(id, value, "DOMAIN\\User"));
+            Assert.ThrowsExactly<ArgumentException>(() => new CallOrigin(id, "PC", value));
+        }
+    }
 }

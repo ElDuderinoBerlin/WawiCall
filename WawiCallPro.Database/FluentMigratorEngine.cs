@@ -77,6 +77,7 @@ public sealed class FluentMigratorEngine : IDatabaseMigrationEngine
     {
         if (target.Type != Type) throw new DatabaseOperationException(DatabaseErrorCode.InvalidTarget);
         var services = new ServiceCollection();
+        services.AddSingleton(typeof(DatabaseType), Type);
         services.AddFluentMigratorCore().ConfigureRunner(builder =>
         {
             switch (Type)

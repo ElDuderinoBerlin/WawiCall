@@ -33,16 +33,16 @@ public sealed class FluentMigratorEngineTests
     }
 
     [TestMethod]
-    public async Task ProductCatalogIsEmptyUntilProductMigrationsExistAndNeverCreatesADatabase()
+    public async Task ProductCatalogContainsOnlyProductVersionsAndNeverCreatesADatabase()
     {
         var target = Target();
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
         Assert.AreSame(engine.Catalog, engine.Catalog);
-        Assert.IsTrue(engine.Catalog.Versions.IsEmpty);
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, engine.Catalog.Versions.ToArray());
         var status = await new DatabaseStatusService(_factory, engine.Catalog).GetStatusAsync(target);
         Assert.AreEqual(DatabaseSchemaState.MissingDatabase, status.State);
         var failure = await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => new DatabaseMigrator(_factory, engine).MigrateAsync(target));
-        Assert.AreEqual(DatabaseErrorCode.MigrationDefinitionsMissing, failure.Code);
+        Assert.AreEqual(DatabaseErrorCode.MissingDatabase, failure.Code);
         Assert.IsFalse(Directory.Exists(_root));
     }
 

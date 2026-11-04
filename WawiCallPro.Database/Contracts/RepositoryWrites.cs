@@ -60,17 +60,23 @@ public sealed record PartyCacheReplacement
 /// </summary>
 public sealed record CallWrite
 {
-    public CallWrite(CallSnapshot call, long? expectedVersion, ImmutableArray<CallPartySnapshot> parties, ImmutableArray<CallEvent> events)
+    public CallWrite(CallSnapshot call, long? expectedVersion, ImmutableArray<CallPartySnapshot> parties,
+        ImmutableArray<CallEvent> events, CallOrigin origin)
     {
         StorageContract.Call(call, parties, events);
         StorageContract.ExpectedVersion(expectedVersion);
-        Call = call;
+        ArgumentNullException.ThrowIfNull(origin);
+        if (call.Origin is not null && call.Origin != origin)
+            throw new ArgumentException("Call origin must match the captured snapshot.", nameof(origin));
+        Call = call with { Origin = origin };
+        Origin = origin;
         ExpectedVersion = expectedVersion;
         Parties = parties;
         Events = events;
     }
 
     public CallSnapshot Call { get; }
+    public CallOrigin Origin { get; }
     public long? ExpectedVersion { get; }
     public ImmutableArray<CallPartySnapshot> Parties { get; }
     public ImmutableArray<CallEvent> Events { get; }
