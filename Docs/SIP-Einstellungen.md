@@ -104,6 +104,13 @@ DTMF verwendet zunächst den im Referenzablauf gezeigten Medienpfad über `SendD
 gesendete Demo-Ziffern gehören nicht in die Kontokonfiguration. Landes-/Ortsvorwahl und Wahlregeln
 gehören zur allgemeinen Rufnummernverarbeitung. Aufnahmepfad, Aufnahmefreigabe und Ansagen sind eigene Funktionen.
 
+DTMF bleibt für Sprachmenüs und ähnliche Gegenstellen notwendig. SIPSorcery bietet Senden und
+RTP-Empfang bereits an; die alten Audio-Erkennungsprojekte aus WawiCallPro.old.sln werden deshalb
+zunächst nicht benötigt. Für eigene Telefonmenüs fehlt noch ein neutraler Empfangsvertrag.
+Ein Audio-Detektor wäre eine gesonderte Option für In-band-DTMF, keine Voraussetzung des normalen
+SIP-Kontoprofils. Verfahren und Anlagenkompatibilität werden geprüft; siehe
+[DTMF-Entscheidung](Architektur.md#dtmf-als-telefoniefunktion).
+
 ## Bedienung und Prüfung
 
 Die Oberfläche benötigt getrennte Aktionen für Speichern/Übernehmen, Anmelden, Abmelden,

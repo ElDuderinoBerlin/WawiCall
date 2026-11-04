@@ -659,6 +659,9 @@ getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zug
   Ports, Transportkonsistenz, Bindung, Registrierungsdauer, Audio-/Codecprofil und klare Zustandsanzeige.
   App/Console koordinieren den Konto-/Portbesitz. Keine Demo-Autoannahme/-Aufnahme oder Zugangsdaten übernehmen.
 - [ ] Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
+  DTMF zunächst über ausgehandelte RTP-Telefonieereignisse und SIPSorcery SendDtmf/OnDtmfTone anbinden;
+  keine zusätzliche Audio-Erkennungsbibliothek aus WawiCallPro.old.sln für diesen Pfad übernehmen.
+  Gemeinsamen Empfangsvertrag für Telefonmenüs ergänzen und Gesprächszuordnung/Mehrfachmeldungen prüfen.
 - [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
 - [ ] Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
@@ -736,6 +739,8 @@ Anmeldefehler sind mit einer geeigneten Testumgebung geprüft. Debug-Build und U
 
 - [ ] XML-/Schemaformat und Versionsvertrag für Menüs definieren; vorhandene Menüideen fachlich übernehmen.
 - [ ] Ansage, Dateiwiedergabe, DTMF-Eingabe, Spracheingabe, Bedingungen, Variablen, Timeout und Wiederholungen implementieren.
+  DTMF-Eingaben aus neutralen Telefonieereignissen beziehen; PCM-/Goertzel-Erkennung nur bei gesondert
+  nachgewiesenem In-band-Bedarf hinter einem eigenen Interface vorsehen. Keine DTMF-Nutzwerte ins Betriebslog.
 - [ ] Transfer, Auflegen und Fehlerpfade an den neuen Gesprächsablauf anschließen.
 - [ ] Menüvalidierung und Testlauf ohne echten Anruf anbieten; Zyklen und Abbruchverhalten begrenzen.
 - [ ] Editor designerfähig entwickeln; fehlerhafte Menüs mit genauer Stelle anzeigen.

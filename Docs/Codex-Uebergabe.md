@@ -148,6 +148,13 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+DTMF-Analyse der ausdrücklich genannten WawiCallPro_old/WawiCallPro.old.sln: DtmfDetection und
+DtmfDetection.CSCore sind Audio-Erkennungsbibliotheken für .NET Framework 4.8; DtmfDetector ist ein
+Demo-EXE. SIPSorcery 10.0.17 bietet SendDtmf und OnDtmfTone für RTP-Ereignisse bereits. DTMF als
+Telefoniefunktion behalten, alte Detektoren zunächst nicht einbinden. SendDtmfAsync existiert im
+gemeinsamen Vertrag; ein neutraler Empfangsvertrag für Phase 12 fehlt. Optionaler In-band-Detektor
+erst nach konkretem Bedarf und eigenen Tests. Entscheidung/Quellen stehen in Architektur.md.
+
 Neu geprüft und dokumentiert: tatsächlicher Quantarix-Pluginvertrag mit SharedAssembly-Attribut,
 Default-ALC-Snapshot im Managerkonstruktor, Shared-Buildfiltern und Host-Deployment. Die Vorlage nutzt
 Directory.Build.props/.targets und TestHost-Projektziele, keine Solution.props. WawiCallPro importiert
