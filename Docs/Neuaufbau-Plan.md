@@ -1,5 +1,9 @@
 # WawiCallPro – Plan für den vollständigen Neuaufbau
 
+Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgemeinen Einstellungen,
+Plugin-Manager und SIPSorcery-Einstellungen; fünf Fachviews im jeweiligen Warenwirtschaftsplugin.
+Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
+
 Stand: 04.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
 
 ## 1. Auftrag und Arbeitsstand
@@ -584,6 +588,8 @@ Database-Projekt und beide Hosts bauen in Debug. Kein WawiCallPro-Schema landet 
 - [ ] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen.
 - [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
 - [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
+  DI-Aktivierung und Konstruktorinjektion an die Quantarix-Laufzeit anbinden; geliehene Hostdienste und
+  plugin-eigene Lebenszyklen trennen. Keine globale Service-Locator-Nutzung oder duplizierten Host-Singletons.
   Windows-spezifischen Anschluss für plugin-eigene Views vorsehen; gemeinsame Fachinterfaces bleiben
   UI-frei. Die Diagnosekonsole lädt Plugins ohne Views; Erzeugung/Freigabe auf dem UI-Thread und vor Unload.
 - [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
@@ -627,6 +633,10 @@ getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zug
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜
 
+- [ ] Eigene Telefonie-Dienstklassen einschließlich Zustandssteuerung, Sitzungen und Medien über Interfaces
+  und typisierte Factories in DI bereitstellen. Vorhandenen konkreten Zustandsautomaten entsprechend anbinden.
+  Technikunabhängige Verträge erhalten; spätere Telefonietechnologien können dieselben Verträge implementieren.
+  SIPSorcery bleibt der aktuelle Adapter; andere Backends werden damit noch nicht implementiert.
 - [ ] Ausschließlich SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen;
   die FRITZ!Box-Beispiele `PlaySounds` und `RecordIncomingCall` als konkrete Referenz verwenden.
 - [ ] Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
@@ -644,6 +654,8 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [ ] Allgemeine Einstellungen, Plugin-Manager-Oberfläche und SIPSorcery-Einstellungen im Hauptprogramm
+  erstellen und über DI mit den gemeinsamen Diensten verbinden; fachliche Wawi-Views bleiben im Plugin.
 - [ ] Hauptfenster, Verbindungs-/Mandantenauswahl, Kunden-/Lieferantensuche, Wähldialog und Historie erstellen.
   Der Host bindet die fünf Wawi-Views aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
   Keine konkreten Wawi-Oberflächen im App-Projekt nachbauen; Plugin-Views unterliegen denselben UI-Prüfregeln.

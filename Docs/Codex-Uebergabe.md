@@ -148,6 +148,13 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Die neue `Docs/Architektur.md` ist das verbindliche Zielbild: Hauptprogramm mit allgemeinen
+Einstellungen, Plugin-Manager-UI und SIPSorcery-Einstellungen; die fünf Wawi-Fachviews im jeweiligen
+Plugin. Alle Anwendungsdienste über DI und Konstruktoren; eigene Telefonie-Dienstklassen immer mit
+technikunabhängigen Interfaces. SIPSorcery bleibt aktuelle Implementierung, weitere Technologien
+später anschließbar. DI-/UI-Verträge und fehlende Telefonieinterfaces sind geplant, nicht bereits umgesetzt.
+Reiner Dokumentationsblock; Architekturdatei im Docs-Solutionordner und aktiven Rider-Editor.
+
 Zusätzliche Nutzerfestlegung: Die Views für Kundenstammdaten, Bestellungen, Kundenpreislisten,
 Projekte und Artikel-zu-Bestellungen-Statistik gehören in jedes unterstützte Warenwirtschaftsplugin,
 einschließlich ihrer produktspezifischen Zugriffe. App ist Rahmen/Navigation/Kontext; gemeinsame

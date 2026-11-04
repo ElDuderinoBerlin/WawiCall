@@ -1,5 +1,8 @@
 # Gemeinsame Fachverträge
 
+Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
+und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
+
 Stand: Phase 3, Punkte 1–4 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
@@ -277,6 +280,14 @@ Betriebslogs. Nachweise: `.artifacts/phase3-item4`. Keine UI-Änderung. Prozess�
 Rechte-/Sicherungsprüfung, Dapper-Repositories und tatsächliche Hostpersistenz bleiben offen.
 
 ## Host und Plugins
+
+Im Hauptprogramm liegen allgemeine Einstellungen, Plugin-Manager mit Oberfläche und
+SIPSorcery-Einstellungen. Gemeinsamer Rahmen, Navigation, Anrufsteuerung und Historie bleiben
+Hostaufgaben. Alle Anwendungsdienste werden über DI bereitgestellt; unsere Telefonie-Dienstklassen
+werden stets über technikunabhängige Interfaces angesprochen. SIPSorcery ist die aktuelle konkrete
+Implementierung dahinter. Weitere Telefonietechnologien sind eine spätere Erweiterungsmöglichkeit.
+DTOs und reine Werte brauchen keine Dienstinterfaces. Noch fehlende DI-/Interface-Anbindungen werden
+mit den jeweiligen Modulen umgesetzt; die Architekturfestlegung ist kein abgeschlossener Codeumbau.
 
 Verbindliche UI-Zuordnung laut Nutzer: Jedes unterstützte Warenwirtschaftssystem liefert im eigenen
 Plugin die Ansichten für Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
