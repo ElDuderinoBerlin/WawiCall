@@ -1,7 +1,7 @@
 # WawiCallPro – Plan für den vollständigen Neuaufbau
 
 Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgemeinen Einstellungen,
-Plugin-Manager und SIPSorcery-Einstellungen; fünf Fachviews im jeweiligen Warenwirtschaftsplugin.
+Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
 Stand: 04.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
@@ -121,6 +121,12 @@ passenden `manager.Plugins`, bevor Fachoperationen gestartet werden. `Initialize
 vorhandene Logging. UI-Marshalling, Mandantenkontext und Datenzugriff werden über typisierte Dienste angeboten.
 Falls sich dafür eine Änderung am gemeinsamen Plugin-System als nötig erweist, wird sie gesondert begründet,
 in dessen Repository umgesetzt und dort geprüft.
+
+Quellprüfung vom 04.11.2026: Der Manager aktiviert Einstiegsklassen mit Activator.CreateInstance.
+Der zusätzliche DI-Anspruch erfordert einen Factory-/Aktivierungshook im bestehenden Manager;
+die nachgelagerte Configure-Methode ersetzt diese Konstruktorinjektion nicht. SharedAssembly-Attribut,
+Default-ALC-Laden vor Managererzeugung, Buildfilter und korrektes Deployment sind gemeinsam umzusetzen.
+Der geprüfte Quantarix-Stand nutzt Directory.Build.props/.targets und Host-Projektziele, keine Solution.props.
 
 ### 3.4 FluentMigrator aus LxTranslate
 
@@ -587,14 +593,19 @@ Database-Projekt und beide Hosts bauen in Debug. Kein WawiCallPro-Schema landet 
 
 - [ ] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen.
 - [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
+  SharedAssembly-Attribut und Buildlisten für WawiCallPro.Interfaces sowie den späteren UI-Vertrag
+  abstimmen; Drittanbieterpakete über SharedPackage teilen. Runtime-Typidentität tatsächlich nachweisen.
 - [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
   DI-Aktivierung und Konstruktorinjektion an die Quantarix-Laufzeit anbinden; geliehene Hostdienste und
   plugin-eigene Lebenszyklen trennen. Keine globale Service-Locator-Nutzung oder duplizierten Host-Singletons.
+  Dafür den derzeit fehlenden Aktivierungshook im bestehenden Quantarix-Manager gesondert ergänzen und prüfen.
   Windows-spezifischen Anschluss für plugin-eigene Views vorsehen; gemeinsame Fachinterfaces bleiben
   UI-frei. Die Diagnosekonsole lädt Plugins ohne Views; Erzeugung/Freigabe auf dem UI-Thread und vor Unload.
 - [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
 - [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
   Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.
+  IsPluginProject und SharedProjectAssembly/SharedPackage setzen, FilterSharedAssembliesAndPackages
+  wirksam einbinden, private/native Abhängigkeiten erhalten und gemeinsame DLL-/PDB-Kopien entfernen.
 - [ ] Mehrfachkopien gemeinsamer DLLs vermeiden; keine UI-Steuerelemente oder Logger versehentlich doppelt laden.
 - [ ] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben.
 - [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
@@ -610,8 +621,10 @@ kompatibel; Fehler im Plugin werden verständlich gemeldet. Debug-Build und auss
 - [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
 - [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
-  Verbindliche Pluginbereiche: Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
-  Artikel-zu-Bestellungen-Statistik. Datenzugriffe und konkrete Views gehören zum jeweiligen Wawi-Plugin.
+  Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,
+  Artikel-zu-Belegen-Statistik, offene Posten, Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte.
+  LxOutlook-Vorlage in OutlookBlazorAddin berücksichtigen; Kunden-/Lieferantenkontext und Datenumfang trennen.
+  Datenzugriffe und konkrete Views gehören zum jeweiligen Wawi-Plugin.
 - [ ] Teilweise/nicht verfügbare Funktionen über Fähigkeiten kenntlich machen; keine erfolgreichen Leerantworten vortäuschen.
 - [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
 
@@ -642,6 +655,9 @@ getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zug
 - [ ] Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
   ergänzen und `WindowsAudioEndPoint` als gemeinsamen Audio-Endpunkt nutzen; keine NAudio-Anbindung.
 - [ ] Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
+  Die [SIP-/Audioanalyse](SIP-Einstellungen.md) als Feld-/Testgrundlage verwenden: getrennte Server-/lokale
+  Ports, Transportkonsistenz, Bindung, Registrierungsdauer, Audio-/Codecprofil und klare Zustandsanzeige.
+  App/Console koordinieren den Konto-/Portbesitz. Keine Demo-Autoannahme/-Aufnahme oder Zugangsdaten übernehmen.
 - [ ] Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
 - [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
 - [ ] Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
@@ -657,7 +673,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 - [ ] Allgemeine Einstellungen, Plugin-Manager-Oberfläche und SIPSorcery-Einstellungen im Hauptprogramm
   erstellen und über DI mit den gemeinsamen Diensten verbinden; fachliche Wawi-Views bleiben im Plugin.
 - [ ] Hauptfenster, Verbindungs-/Mandantenauswahl, Kunden-/Lieferantensuche, Wähldialog und Historie erstellen.
-  Der Host bindet die fünf Wawi-Views aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
+  Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
   Keine konkreten Wawi-Oberflächen im App-Projekt nachbauen; Plugin-Views unterliegen denselben UI-Prüfregeln.
 - [ ] Anruferfenster mit Treffern, Nummer, Mandant, Gesprächsstatus und Notizen anbinden.
 - [ ] Einstellungen für SIP, Geräte, Datenbank, Hotkeys, Autostart und Benachrichtigungen bereitstellen.
@@ -690,6 +706,8 @@ Gesprächsabbruch geprüft. Betroffene Audio-Views visuell geprüft, Debug-Build
 
 - [ ] Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und Artikel-zu-Bestellungen-Statistik
   als echte Views im jeweiligen Warenwirtschaftsplugin vervollständigen und im gemeinsamen Host anzeigen.
+- [ ] LxOutlook-Reiter Stammdaten, Aufträge, Top-Artikel, offene Posten, Zahlungsverhalten,
+  Umsatzentwicklung und Projekte einschließlich passender Lieferantensichten im Pluginkatalog abdecken.
 - [ ] Überblick, Adressen, Kontaktpersonen und kundenbezogene Historie vollständig anbinden.
 - [ ] Aufträge zu Artikeln und Artikel zu Aufträgen, offene Posten, Zahlungsmoral, Kontakte, Dokumente, Termine und Projekte
   anhand der Capability-Matrix je Produktlinie ergänzen.

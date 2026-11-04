@@ -130,6 +130,20 @@ NUPKG-Inhalts. LxTranslate-Server-/COM-/Demo-Funktionen und dessen Veröffentlic
 nicht als Produktvorgaben übernommen. Für diesen Dokumentationsblock wurden keine Produktbuilds,
 Skripttests, Installationen oder Uploads ausgeführt; die Umsetzung bleibt Phase 14 zugeordnet.
 
+## Noch offene Plugin-Buildintegration
+
+Die Quantarix-Vorlage wurde erneut am tatsächlichen Quellcode geprüft: SharedAssembly-Attribut plus
+vorheriges Default-ALC-Laden, IsPluginProject und SharedProjectAssembly/SharedPackage sowie der
+Buildfilter in Directory.Build.targets und die Host-Kopierziele bilden einen gemeinsamen Vertrag.
+Projektverweise auf das Schwester-Repository importieren dessen globale Targets nicht automatisch.
+In dessen aktuellem Stand existiert keine Solution.props; WawiCallPro hat eine eigene Solution.props.
+
+Die MSBuild-Auswertung unter `.artifacts/plugin-architecture-review` bestätigt: Pro-Plugin ohne
+Pluginflag, Shared-Listen und Signierung; Quantarix-Sample mit Pluginflag, Signierung und einer
+SharedProjectAssembly. Die Umsetzung bleibt Phase 4 einschließlich `.deps.json`, privaten/native DLLs,
+Build/Publish, gemeinsamer Hostpakete, Typidentitäts- und Entladeprüfung. Dokumentation ist keine
+bereits abgenommene Paketierung. Ausführliche Quellen: [Architektur](Architektur.md).
+
 ## Datenbankverträge und Tests
 
 Die Datenbankschema-/Repository-Verträge aus Phase 3, Punkt 1 stehen in `Docs/Datenbankschema.md` und

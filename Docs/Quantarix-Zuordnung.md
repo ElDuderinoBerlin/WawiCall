@@ -30,11 +30,21 @@ wird dadurch vermieden.
 `IWawiCallHostServices` samt Fachverträgen deklariert; Details stehen in `Docs/Vertraege.md`.
 Das tatsächliche Laden vor Erzeugung des Managers und das Konfigurieren der Hostdienste bleiben Aufgaben von Phase 4.
 
-Die konkreten Views für Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
-Artikel-zu-Bestellungen-Statistik liegen laut Nutzer ebenfalls im jeweiligen Warenwirtschaftsplugin,
+Die konkreten Fachviews des [erweiterten Katalogs](Architektur.md), einschließlich LxOutlook-Reitern
+für Top-Artikel, offene Posten, Zahlungsverhalten und Umsatzentwicklung, liegen im jeweiligen Warenwirtschaftsplugin,
 zusammen mit den produktspezifischen Datenzugriffen. Die App stellt den gemeinsamen Rahmen und Kontext.
 Ein Windows-spezifischer UI-Anschluss folgt mit der Pluginlaufzeit; die gemeinsamen Fachinterfaces
 bleiben UI-frei und die Konsole erzeugt keine Views. Die UI-/Capability-Abnahme bleibt Phase 5/8/10.
+
+Erneute Quellprüfung des Plugin-Systems (Stand `1e43c99068cd17bfa32586d86099c6e66fae4076`):
+SharedAssembly-Attribut und rechtzeitiges Laden in den Default-ALC sind die Laufzeitseite;
+IsPluginProject, SharedProjectAssembly/SharedPackage und FilterSharedAssembliesAndPackages bilden
+die Buildseite. Die Targets des Schwester-Repositories werden nicht automatisch für WawiCallPro aktiv.
+Der dortige Stand nutzt Directory.Build.props/.targets und Kopierziele im TestHost.csproj, keine Solution.props.
+Die lokalen WawiCallPro-Pluginprojekte besitzen diese Build-/Signiereinbindung noch nicht.
+Der Manager erzeugt Einstiegsklassen mit Activator.CreateInstance und bietet keinen DI-Aktivierungshook.
+Dieser muss für den DI-Anspruch im bestehenden Manager gesondert ergänzt/geprüft werden; keine zweite Laufzeit.
+Konkrete Quellen, MSBuild-Auswertung und Integrationsgrenzen stehen in `Docs/Architektur.md`.
 
 Seit Phase 2, Punkt 6 verbindet `QuantarixLogAdapter` den tatsächlichen Plugin-Loggervertrag mit dem
 Standard-`ILogger` und dem bereinigten JSONL-Provider. Keine freien Plugin-/Ausnahmetexte gelangen ins Log.

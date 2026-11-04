@@ -148,8 +148,27 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Neu geprüft und dokumentiert: tatsächlicher Quantarix-Pluginvertrag mit SharedAssembly-Attribut,
+Default-ALC-Snapshot im Managerkonstruktor, Shared-Buildfiltern und Host-Deployment. Die Vorlage nutzt
+Directory.Build.props/.targets und TestHost-Projektziele, keine Solution.props. WawiCallPro importiert
+diese Targets noch nicht; Pluginflag/Shared-Listen/Signierung fehlen laut MSBuild-Auswertung.
+Activator.CreateInstance in der aktuellen Laufzeit ist keine DI-Aktivierung. Für konsequente
+Konstruktorinjektion ist ein Hook im bestehenden Quantarix-Manager gesondert umzusetzen/zu prüfen.
+Keine zweite Laufzeit und keine als DI ausgegebene Service-Locator-Nachkonfiguration einführen.
+
+LxOutlook unter OutlookBlazorAddin und das Nutzerbild erweitern den Plugin-View-Katalog um Top-Artikel,
+offene Posten, Zahlungsverhalten und Umsatzentwicklung; ursprüngliche Kundenpreislisten und
+Artikel-zu-Belegen-Details bleiben erhalten. Kunden-/Lieferantensichten und Capability-Grenzen getrennt
+behandeln. Screenshot ist dauerhaft unter Docs/images abgelegt; Quellen stehen in der Architektur.
+
+Die neue `Docs/SIP-Einstellungen.md` analysiert PlaySounds/RecordIncomingCall und den aktuellen
+Konfigurationsumfang: TCP versus UDP, lokal 5060, Registrierungsdauer 120 Sekunden, unterschiedliche
+Codecprofile, CSCore-Standardgeräte sowie notwendige Konto-/Netz-/Audiofelder. Keine Zugangsdaten
+übernommen, keine Registrierung/Anrufe/Geräteöffnung. Lokaler Port/Bindung, Ablauf-/Startverhalten,
+Codecprofil und passende Modell-/Versions-/UI-/DI-Anbindung sind weiterhin offen.
+
 Die neue `Docs/Architektur.md` ist das verbindliche Zielbild: Hauptprogramm mit allgemeinen
-Einstellungen, Plugin-Manager-UI und SIPSorcery-Einstellungen; die fünf Wawi-Fachviews im jeweiligen
+Einstellungen, Plugin-Manager-UI und SIPSorcery-Einstellungen; die Wawi-Fachviews laut erweitertem Katalog im jeweiligen
 Plugin. Alle Anwendungsdienste über DI und Konstruktoren; eigene Telefonie-Dienstklassen immer mit
 technikunabhängigen Interfaces. SIPSorcery bleibt aktuelle Implementierung, weitere Technologien
 später anschließbar. DI-/UI-Verträge und fehlende Telefonieinterfaces sind geplant, nicht bereits umgesetzt.

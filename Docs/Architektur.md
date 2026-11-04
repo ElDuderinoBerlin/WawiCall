@@ -8,21 +8,57 @@ Der tatsächliche Umsetzungsstand steht am Dokumentende.
 
 | Hauptprogramm `WawiCallPro.App` | Jeweiliges Warenwirtschaftsplugin |
 |---|---|
-| Allgemeine Einstellungen | Kundenstammdaten-View |
-| Plugin-Manager mit Oberfläche | Bestellungen-View |
+| Allgemeine Einstellungen | Kunden-/Lieferantenstammdaten |
+| Plugin-Manager mit Oberfläche | Aufträge und Bestellungen |
 | SIPSorcery-/SIP-Einstellungen | Kundenpreislisten-View |
-| Gemeinsamer Fenster- und Navigationsrahmen | Projekte-View |
-| Gemeinsamer Mandanten- und Gesprächskontext | Artikel-zu-Bestellungen-Statistik-View |
-| Anrufsteuerung, Anruferfenster und Kommunikationshistorie | Produktspezifische Datenzugriffe und Fachlogik dieser Views |
-| Gemeinsame Datenbank-, Audio- und Betriebseinstellungen | Warenwirtschaftsspezifische Verbindungs-/Fachoptionen |
+| Gemeinsamer Fenster- und Navigationsrahmen | Top-Artikel und Artikel-zu-Aufträgen-/Bestellungen-Statistik |
+| Gemeinsamer Mandanten- und Gesprächskontext | Offene Posten und Zahlungsverhalten |
+| Anrufsteuerung, Anruferfenster und Kommunikationshistorie | Umsatzentwicklung und Projekte |
+| Gemeinsame Datenbank-, Audio- und Betriebseinstellungen | Produktspezifische Datenzugriffe, Fachlogik und Verbindungs-/Fachoptionen |
 
-Die fünf Fachansichten gehören einschließlich ihrer konkreten Oberfläche in jedes unterstützte
+Die Fachansichten des folgenden Katalogs gehören einschließlich ihrer konkreten Oberfläche in jedes unterstützte
 Warenwirtschaftsplugin. Die App bindet sie in ihre Navigation ein und übergibt den aktuellen Kontext.
 Allgemeine Einstellungen, Plugin-Manager und SIPSorcery-Einstellungen bleiben im Hauptprogramm.
 
 Der Plugin-Manager verwendet die vorhandene Quantarix-Pluginlaufzeit. Seine Oberfläche verwaltet
 zulässige Plugins, Produktlinie, Version, Fähigkeiten, Ladezustand und Konfiguration. Ein jeweiliger
 Pro-/FinOffice-Build enthält ausschließlich die dazu passenden Warenwirtschaftsbibliotheken.
+
+## Fachansichten nach LxOutlook-Vorlage
+
+Zusätzliche fachliche Referenz ist `D:\Application-Development\OutlookBlazorAddin` mit LxOutlook.
+Das Nutzerbild und `Home.razor` zeigen die Reiter Stammdaten, Aufträge, Top-Artikel, Offene Posten,
+Zahlungsverhalten, Umsatzentwicklung und Projekte. Die ausdrücklich gewünschten Kundenpreislisten
+und die Artikel-zu-Bestellungen-Statistik bleiben zusätzlich Bestandteil des Katalogs.
+
+![Vom Nutzer bereitgestellte LxOutlook-Referenz mit Fachreitern](images/LxOutlook-Fachansichten.png)
+
+| Fachbereich im Wawi-Plugin | Inhalt/Zusammenhang |
+|---|---|
+| Stammdaten | Kunden/Lieferanten, Anschriften, Kontakte und Rufnummern im jeweiligen Mandanten |
+| Aufträge / Bestellungen | Belege und Positionen; Verkaufs-/Einkaufssicht je Kunden-/Lieferantenkontext unterscheiden |
+| Kundenpreislisten | Kundenspezifische Preise und Konditionen gemäß verfügbarer Wawi-API |
+| Top-Artikel | Artikelbezogene Auswertung, Mengen und Werte aus den fachlich relevanten Belegen |
+| Artikel-zu-Aufträgen-/Bestellungen-Statistik | Zugehörige Belege/Positionen zu einem Artikel; als Detailansicht aus Top-Artikeln nutzbar |
+| Offene Posten | Offene Forderungen/Verbindlichkeiten mit Beträgen, Fälligkeiten und Status |
+| Zahlungsverhalten | Nachvollziehbare Auswertung aus tatsächlich verfügbaren Zahlungs-/Beleginformationen |
+| Umsatzentwicklung | Zeitbezogene Umsatzsicht; bei Lieferanten fachlich getrennte Einkaufsentwicklung |
+| Projekte | Projekte und tatsächlich zugehörige Geschäftsdaten/Belege |
+
+Die Umsetzung erfolgt als designerfähige DevExpress-/WinForms-Pluginansichten. Alle Bereiche werden
+je Warenwirtschaftssystem, Produktlinie, Mandant und Kunden-/Lieferantenkontext in der Capability-Matrix
+geprüft. Die Vorlage belegt keine automatische Funktionsparität der WawiCallPro-Adapter.
+
+Die Referenz trennt beispielsweise `ArticleRevenueTab`, `SupplierArticlePurchasesTab`,
+`SupplierPurchaseStatisticsTab`, `OpenItemsTab`, `SupplierPerformanceTab` und `ProjectsTab`.
+Die Lieferantenzahlungssicht nennt ausdrücklich ihre belegbasierte Grenze ohne vollständige
+Kreditorenbuchhaltung. Solche fachlichen Grenzen, getrennte Währungen sowie Gutschrift-/Stornoregeln
+müssen die jeweiligen Wawi-Dienste korrekt abbilden.
+
+Referenz-HEAD: `f2d9e17cb62684d6d2b2b9e641e115b98f45473c`. Die Arbeitskopie enthält lokale Änderungen;
+gesichtet wurden die aktuellen Dateien. Einstieg:
+[Home.razor](../../OutlookBlazorAddin/src/OutlookBlazorAddin.Web/Pages/Home.razor),
+[Components](../../OutlookBlazorAddin/src/OutlookBlazorAddin.Web/Components).
 
 ## Zusammenspiel
 
@@ -37,8 +73,8 @@ flowchart TB
     end
 
     subgraph Plugins["Warenwirtschaftsplugins: eigene Views und eigene Datenzugriffe"]
-        Pro["Lexware Pro<br/>Kundenstammdaten · Bestellungen<br/>Kundenpreislisten · Projekte<br/>Artikel-zu-Bestellungen-Statistik"]
-        FinOffice["Financial Office<br/>Kundenstammdaten · Bestellungen<br/>Kundenpreislisten · Projekte<br/>Artikel-zu-Bestellungen-Statistik"]
+        Pro["Lexware Pro<br/>Fachviews laut Katalog<br/>eigene Pro-Datenzugriffe"]
+        FinOffice["Financial Office<br/>Fachviews laut Katalog<br/>eigene FinOffice-Datenzugriffe"]
     end
 
     Contracts["Gemeinsame Fachinterfaces und DTOs"]
@@ -98,6 +134,60 @@ WinForms-Designerkonstruktoren bleiben parameterlos und rufen nur `InitializeCom
 Der Laufzeitpfad erhält seine Dienste über einen DI-fähigen Konstruktor beziehungsweise die Factory.
 Der Designer löst keine Laufzeitdienste auf und öffnet keine Datenbankverbindung.
 
+## Quantarix-Pluginvertrag: Attribute, Build und Laufzeit
+
+Geprüft wurde der aktuelle Quellcode unter `D:\Application-Development\Quantarix.Plugin.System`,
+Stand `1e43c99068cd17bfa32586d86099c6e66fae4076`. Maßgeblich sind die tatsächlichen C#-/MSBuild-Dateien.
+In diesem Stand liegen die Buildregeln in `Directory.Build.props`, `Directory.Build.targets` und im
+TestHost-Projekt; eine `Solution.props` existiert dort nicht. WawiCallPro besitzt seine eigene
+`Solution.props`, importiert dadurch aber noch keine Targets des Schwester-Repositories.
+
+| Mechanismus | Konkrete Bedeutung für WawiCallPro |
+|---|---|
+| `[assembly: SharedAssembly]` | Markiert eigene gemeinsame Vertragsassemblies. `WawiCallPro.Interfaces` trägt das Attribut bereits; ein künftiger eigener UI-Vertrag benötigt dieselbe Behandlung. Die konkrete Pluginimplementierung wird dadurch nicht selbst zur Shared Assembly. |
+| Shared-Erkennung beim Managerkonstruktor | `PluginManager` erfasst nur die zu diesem Zeitpunkt im Default-ALC geladenen markierten Assemblies. Alle gemeinsamen Verträge müssen vorher ausdrücklich geladen sein. |
+| `IsPluginProject=true` | Aktiviert den Buildfilter für das jeweilige Pluginprojekt. |
+| `SharedProjectAssembly` | Benennt die vom Host bereitgestellten Projekt-DLLs; Buildfilter entfernt deren `ReferenceCopyLocalPaths`-Einträge nach `ResolveReferences`. |
+| `SharedPackage` | Entsprechende Paketliste, gefiltert über `NuGetPackageId`; gemeinsam verwendete Drittanbieterpakete bekommen kein eigenes SharedAssembly-Attribut. Der Host muss die passenden Pakete bereitstellen. |
+| Host-Kopierziele | Stellen jedes Plugin samt `.deps.json` und privaten/native Abhängigkeiten unter `plugins/<AssemblyName>/` bereit und entfernen dort gemeinsame DLL-/PDB-Kopien. |
+| Laufzeitauflösung | Pro Plugin ein sammelbarer `PluginLoadContext`; gemeinsame Typen aus dem Default-ALC, private/native Bibliotheken über `AssemblyDependencyResolver`. |
+| Erkennung/Validierung | Erwartet `plugins/<AssemblyName>/<AssemblyName>.dll`, sucht konkrete `IPlugin`-Implementierungen und prüft den Strong-Name-Public-Key-Token gegen die Host-Allowlist. Eine leere Allowlist schaltet diese Prüfung im vorhandenen Code ab. |
+
+Attribute, gemeinsame Buildlisten und Deployment müssen zusammenpassen: Das Attribut ersetzt die
+Buildfilter nicht; Buildfilter ersetzen das rechtzeitige Laden gemeinsamer Verträge nicht. Die nötigen
+Targets werden im WawiCallPro-Build ausdrücklich importiert/adaptiert. Produktlinien, reguläre Debug-
+Ausgaben, Publish-Pakete und die finale Strip-/Signierreihenfolge bleiben dabei erhalten.
+
+Der Loader verwendet aktuell `Activator.CreateInstance(type)` und ruft anschließend
+`Initialize(this)` auf. `IPluginHost` stellt dabei ausschließlich den Quantarix-Logger bereit.
+Unser `Configure(IWawiCallHostServices)` ist ein nachgelagerter typisierter Anschluss; er ist keine
+bereits vorhandene Konstruktorinjektion. Für die verbindliche DI-Aktivierung auch der Einstiegsklasse
+ist daher ein Factory-/Aktivierungshook im bestehenden Quantarix-Manager erforderlich. Dessen konkrete
+API muss gesondert im Quantarix-Repository umgesetzt und geprüft werden. Es entsteht kein zweiter Loader
+und keine globale Service-Locator-Lösung als Ersatz für DI.
+
+Die vorhandene öffentliche Manager-API bietet LoadFromDirectory, ExecuteAll und UnloadAll. Ein
+gezieltes Entladen einzelner Plugins oder ein asynchroner Stopvertrag ist damit noch nicht gegeben.
+Entsprechende Bedienaktionen des Plugin-Managers müssen vor ihrer Implementierung auf diese
+Laufzeitgrenzen abgestimmt werden.
+
+Vor Entladen: Aufrufe stoppen und asynchrone Arbeit vollständig abwarten, Views/Ereignisbindungen
+freigeben, im geordneten Shutdown die Plugin-DI-Ressourcen freigeben und anschließend den ALC entladen.
+Der Manager ruft `Shutdown` synchron vor `Unload` auf. `Unload` fordert die Entladung an; verbleibende Referenzen
+verhindern sie. Die Integration muss Typidentität, private/native Auflösung, fehlerhafte Plugins und
+tatsächliche Freigabe prüfen. Strong Names/ALCs bilden keine Sicherheits-Sandbox.
+
+MSBuild-Auswertung des Iststands: WawiCallPro-Pro-Plugin noch ohne IsPluginProject/Shared-Listen und
+ohne Signierung; Quantarix-Sample mit gesetztem Pluginflag, Signierung und SharedProjectAssembly.
+Diese Lücke bleibt Phase 4, nicht eine bereits erledigte Buildintegration.
+
+Quellen:
+[SharedAssemblyAttribute](../../Quantarix.Plugin.System/src/Quantarix.Plugin.Abstractions/SharedAssemblyAttribute.cs),
+[PluginManager](../../Quantarix.Plugin.System/src/Quantarix.Plugin.Hosting/PluginManager.cs),
+[PluginLoadContext](../../Quantarix.Plugin.System/src/Quantarix.Plugin.Hosting/PluginLoadContext.cs),
+[Buildfilter](../../Quantarix.Plugin.System/Directory.Build.targets),
+[TestHost-Deployment](../../Quantarix.Plugin.System/src/Quantarix.Plugin.TestHost/Quantarix.Plugin.TestHost.csproj).
+
 ## Telefonie hinter Interfaces
 
 Unsere Telefonie-Dienstklassen erhalten immer ein Interface. App, Plugins, Gesprächsabläufe und Tests
@@ -121,6 +211,15 @@ Ein späterer Adapter implementiert die gemeinsamen Verträge und wird am Compos
 Fähigkeiten und Einschränkungen werden ausdrücklich ausgewiesen. Nicht unterstützte Funktionen melden
 einen klaren Status/Fehler. Einstellungen eines weiteren Adapters folgen erst mit dessen Implementierung.
 
+### Erforderliche SIPSorcery-Einstellungen
+
+Die [SIP-/Audioanalyse](SIP-Einstellungen.md) legt den anhand von PlaySounds und RecordIncomingCall
+geprüften Einstellungsumfang fest: Registrar/Serverport, Transport, Konto/Authname/Kennwort, lokaler
+SIP-Port und Bindung, Registrierungsdauer sowie Audioausgabe, Mikrofon, Klingelausgabe und Codecprofil.
+Die Demos verwenden unterschiedliche Transporte und Codecfreigaben. Domain/Proxy, TLS, RTP-/NAT-
+Optionen bleiben bedarfsabhängige Experteneinstellungen. Konfiguriert und tatsächlich registriert
+werden getrennt dargestellt; reine Anzeige/Speicherung startet weder Anmeldung noch Audiohardware.
+
 ## Projektgrenzen
 
 | Projekt/Bereich | Zuständigkeit |
@@ -133,8 +232,8 @@ einen klaren Status/Fehler. Einstellungen eines weiteren Adapters folgen erst mi
 | `WawiCallPro.Telephony.Sip` | SIPSorcery-Adapter und SIP-spezifische Umsetzung |
 | `WawiCallPro.Audio` | Eigene Audio-Dienstimplementierungen hinter Interfaces; vorgegebene CSCore-Anbindung |
 | `WawiCallPro.Database` | Eigene Kommunikationsdatenbank, Migrationen und Repositories |
-| `WawiCallPro.Plugins.Lexware.Pro` | Alle fünf Pro-Fachviews und zugehörige Pro-Zugriffe über Quantarix Lexware/APIService |
-| `WawiCallPro.Plugins.Lexware.FinOffice` | Alle fünf FinOffice-Fachviews und zugehörige Zugriffe über Quantarix Pcfk |
+| `WawiCallPro.Plugins.Lexware.Pro` | Pro-Fachviews laut Katalog und zugehörige Zugriffe über Quantarix Lexware/APIService |
+| `WawiCallPro.Plugins.Lexware.FinOffice` | FinOffice-Fachviews laut Katalog und zugehörige Zugriffe über Quantarix Pcfk |
 | Windows-spezifischer Plugin-UI-Anschluss, noch festzulegen | Einbettung, Erzeugung und Freigabe der Plugin-Views ohne UI-Typen in den Fachinterfaces |
 
 Die bestehenden Fachinterfaces bleiben frei von WinForms, DevExpress, SIPSorcery und konkreten
@@ -144,7 +243,7 @@ Seine endgültige API und DI-Anbindung werden mit der Pluginlaufzeit umgesetzt.
 ## Daten und Lebenszyklus
 
 Ein Plugin lädt seine Warenwirtschaftsdaten über den passenden Adapter und liefert gemeinsame DTOs.
-Die Capability-Matrix weist alle fünf Fachbereiche je Warenwirtschaftssystem gesondert nach.
+Die Capability-Matrix weist alle Fachbereiche des Katalogs je Warenwirtschaftssystem gesondert nach.
 Nicht verfügbare Quellfunktionen werden sichtbar ausgewiesen; Fachansichten erhalten keine Demo-/Leerdaten.
 
 Rufnummernzuordnung und gemeinsame Gesprächsabläufe verwenden die Fachverträge. Die Telefonie sendet
@@ -178,8 +277,8 @@ Die Datenbankmigrationen 1–5 und die Herkunftsfelder sind implementiert und ge
 Noch offen sind insbesondere:
 
 - Migrationssperre zwischen Prozessen und Rechteprüfung: nächster Umsetzungspunkt, Phase 3/Punkt 5.
-- Pluginlaufzeit im Host und Plugin-Manager-Oberfläche.
-- Windows-spezifischer Plugin-UI-Vertrag und alle fünf tatsächlichen Fachviews je Plugin.
+- Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
+- Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.
 - DI-Anbindung der fehlenden Module und Interfaces für die bisher konkrete Zustandssteuerung.
 - SIPSorcery-/CSCore-Betrieb, Repository-/Hostpersistenz und Herkunftserfassung.

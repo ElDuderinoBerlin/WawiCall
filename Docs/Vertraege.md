@@ -290,8 +290,10 @@ DTOs und reine Werte brauchen keine Dienstinterfaces. Noch fehlende DI-/Interfac
 mit den jeweiligen Modulen umgesetzt; die Architekturfestlegung ist kein abgeschlossener Codeumbau.
 
 Verbindliche UI-Zuordnung laut Nutzer: Jedes unterstützte Warenwirtschaftssystem liefert im eigenen
-Plugin die Ansichten für Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
-Artikel-zu-Bestellungen-Statistik. Das umfasst jeweils die konkrete Oberfläche und ihre
+Plugin die Fachansichten gemäß dem [erweiterten Katalog](Architektur.md): Kunden-/Lieferantenstammdaten,
+Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel, Artikel-zu-Belegen-Statistik, offene Posten,
+Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte. LxOutlook unter OutlookBlazorAddin dient
+mit seinen Reitern als zusätzliche fachliche Vorlage. Das umfasst jeweils die konkrete Oberfläche und ihre
 produktspezifischen Datenzugriffe. Die App stellt den gemeinsamen Fenster-/Navigationsrahmen,
 Mandanten-/Gesprächskontext, Telefonie und Historie bereit und bindet die Pluginansichten dort ein.
 Diese fünf Ansichten werden nicht als konkrete Warenwirtschaftsoberflächen im App-Projekt implementiert.
@@ -302,8 +304,20 @@ ohne Erzeugung ihrer Views laden. Ansichten entstehen auf dem UI-Thread nach erf
 Pluginkonfiguration, übernehmen den aktuellen Mandantenkontext und werden vor dem Entladen freigegeben.
 Für Plugin-Forms/-Controls gelten dieselben Designer-/resx-/TableLayoutPanel-/DevExpress- und
 gezielten visuellen Prüfregeln wie für die App. Der UI-Vertrag und die konkreten Views sind noch offen.
-Die Capability-Matrix muss alle fünf Bereiche je Warenwirtschaftssystem nachweisen; fehlende
+Die Capability-Matrix muss alle Bereiche je Warenwirtschaftssystem und Kunden-/Lieferantenkontext nachweisen; fehlende
 API-Unterstützung wird sichtbar ausgewiesen und nicht durch Demo-/Leerdaten ersetzt.
+
+Die geprüfte Quantarix-Laufzeit aktiviert Plugin-Einstiegsklassen noch mit `Activator.CreateInstance`.
+Für durchgängige DI ist ein Aktivierungshook im vorhandenen Manager erforderlich; `Configure` allein
+ist keine Konstruktorinjektion. `[SharedAssembly]`, rechtzeitiges Default-ALC-Laden, IsPluginProject,
+SharedProjectAssembly/SharedPackage, Host-Kopierziele und Signierung gehören zusammen. Die konkreten
+Quellen und noch fehlenden WawiCallPro-Buildregeln sind in der Architektur dokumentiert.
+
+Der notwendige Umfang der SIPSorcery-/Audioeinstellungen steht in der
+[Demoanalyse](SIP-Einstellungen.md). PlaySounds verwendet TCP, RecordIncomingCall UDP; beide verwenden
+lokal Port 5060 und 120 Sekunden Registrierungsdauer. Das vorhandene Kontomodell benötigt zusätzlich
+lokale Bindung/Port, Registrierungsdauer/Startverhalten und Codecprofil sowie bedarfsabhängige Optionen.
+Die Analyse erweitert keine Laufzeitfunktion und übernimmt keine Zugangsdaten aus den Beispielen.
 
 `IWawiCallPlugin` erweitert das vorhandene Quantarix-`IPlugin` um Produktlinie, `IBusinessDirectory` und
 `Configure(IWawiCallHostServices)`. Quantarix `Initialize(IPluginHost)` stellt weiterhin das Logging bereit.
