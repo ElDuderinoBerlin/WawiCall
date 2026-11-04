@@ -143,6 +143,12 @@ unsignierte Entwicklungsfixtures vorgesehen. Erstellung der Factory lädt keine 
 Das isolierte Testplugin prüft den tatsächlichen Quantarix-Lebenszyklus; Produktplugin-Aktivierung,
 rechtzeitiges Laden aller Shared-Verträge und Build-/Signierregeln bleiben die nächsten Planpunkte.
 
+Punkt 2 ergänzt ISharedPluginContracts: markierte Interfaces/Abstractions werden vor jeder
+Managerkonstruktion im Default-ALC geladen und geprüft. SharedProjectAssembly listet beide Namen
+zentral in Directory.Build.props; SharedPackage bleibt ohne derzeitige Drittanbieter-Vertragspakete leer.
+Der Fixture-Test liefert trotz privater Vertragskopien exakt dieselben CompanyKey-Typen/Instanzen.
+Der Windows-UI-Vertrag wird in Punkt 3 ergänzt, der wirksame Filterimport folgt in Punkt 5.
+
 Geprüft wurde der aktuelle Quellcode unter `D:\Application-Development\Quantarix.Plugin.System`,
 Stand `1e43c99068cd17bfa32586d86099c6e66fae4076`. Maßgeblich sind die tatsächlichen C#-/MSBuild-Dateien.
 In diesem Stand liegen die Buildregeln in `Directory.Build.props`, `Directory.Build.targets` und im

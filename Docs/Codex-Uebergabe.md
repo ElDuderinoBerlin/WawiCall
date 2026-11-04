@@ -157,6 +157,12 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Aktiver Auftrag: Phase 4 vollständig fertig machen. Punkt 2 ist abgeschlossen und geprüft:
+Default-ALC-Vertragsbootstrap vor Managerkonstruktion, zentrale SharedProjectAssembly-Liste,
+Typidentitätsprüfung trotz privater DLL-Kopien. Je 248 Tests/Debug-/Hostprüfungen bestanden;
+`.artifacts/phase4-item2`. Als Nächstes Punkt 3: tatsächlicher DI-Aktivierungshook im Quantarix-Manager,
+typisierte Hostdienste und Windows-UI-Vertragsgrenze. Danach Punkte 4–8 jeweils separat prüfen/committen.
+
 Phase 4/Punkt 1 ist abgeschlossen: gemeinsame IPluginManagerFactory/QuantarixPluginManagerFactory
 erzeugt den echten Quantarix-Manager über DI, mit Hostlogger und kopierter Tokenliste. Kein eigener
 Loader, keine Produktplugin-Aktivierung beim Start. Testfixture RuntimePlugin im Solution-Ordner

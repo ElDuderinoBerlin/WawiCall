@@ -680,9 +680,16 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   zwölf Debug-Builds, vier Diagnose-Hoststarts und Runtime-/MMS-/Produktlinien-/Solutionprüfungen.
   Nachweise: `.artifacts/phase4-item1`. Kein automatisches Laden beim Hoststart; Produktplugins,
   Shared-Buildfilter, Konstruktoraktivierung und Signierung folgen in den getrennten Punkten.
-- [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
+- [x] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden. ✅
   SharedAssembly-Attribut und Buildlisten für WawiCallPro.Interfaces sowie den späteren UI-Vertrag
   abstimmen; Drittanbieterpakete über SharedPackage teilen. Runtime-Typidentität tatsächlich nachweisen.
+  ISharedPluginContracts lädt/prueft Interfaces und Quantarix-Abstractions ausdrücklich im Default-ALC,
+  bevor die Factory den Manager konstruiert. Gemeinsame SharedProjectAssembly-Liste in Directory.Build.props;
+  derzeit keine dritten Vertragspakete, daher keine SharedPackage-Einträge. UI-Vertrag folgt in Punkt 3.
+  Fixture enthält absichtlich private Kopien beider Vertrags-DLLs: CompanyKey-Parametertyp und zurückgegebene
+  Instanz bleiben identisch mit den Hosttypen. Buildlisten beider Plugins ausgewertet.
+  Je 248 Tests, zwölf Debug-Builds, vier Hoststarts und Runtime-/Solutionprüfungen bestanden;
+  `.artifacts/phase4-item2`. Tatsächlicher Filterimport und Deployment folgen in Punkt 5.
 - [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
   DI-Aktivierung und Konstruktorinjektion an die Quantarix-Laufzeit anbinden; geliehene Hostdienste und
   plugin-eigene Lebenszyklen trennen. Keine globale Service-Locator-Nutzung oder duplizierten Host-Singletons.

@@ -46,6 +46,7 @@ public static class WawiCallHost
                 services.AddSingleton<ILoggerProvider, SafeFileLoggerProvider>();
                 services.AddSingleton<Quantarix.Plugin.Abstractions.ILogger, QuantarixLogAdapter>();
                 services.AddSingleton<IPluginManagerFactory, QuantarixPluginManagerFactory>();
+                services.AddSingleton<ISharedPluginContracts, SharedPluginContracts>();
                 services.AddHostedService<RuntimeFailureMonitor>();
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();

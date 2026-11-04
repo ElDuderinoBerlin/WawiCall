@@ -4,6 +4,7 @@
     <GenerateDependencyFile>true</GenerateDependencyFile>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
     <ProjectReference Include="../../../../Quantarix.Plugin.System/src/Quantarix.Plugin.Abstractions/Quantarix.Plugin.Abstractions.csproj" />
   </ItemGroup>
 </Project>

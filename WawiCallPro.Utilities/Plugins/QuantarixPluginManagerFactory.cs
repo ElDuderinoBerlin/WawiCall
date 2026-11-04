@@ -10,11 +10,12 @@ public interface IPluginManagerFactory
 }
 
 /// <summary>Composition boundary for Quantarix; does not discover plugins or activate their services at host startup.</summary>
-public sealed class QuantarixPluginManagerFactory(Quantarix.Plugin.Abstractions.ILogger logger) : IPluginManagerFactory
+public sealed class QuantarixPluginManagerFactory(Quantarix.Plugin.Abstractions.ILogger logger, ISharedPluginContracts contracts) : IPluginManagerFactory
 {
     public PluginManager Create(IReadOnlySet<string> allowedPublicKeyTokens)
     {
         ArgumentNullException.ThrowIfNull(allowedPublicKeyTokens);
+        contracts.EnsureLoaded();
         return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal));
     }
 }

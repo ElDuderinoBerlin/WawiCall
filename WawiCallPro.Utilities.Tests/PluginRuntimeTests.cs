@@ -9,6 +9,7 @@ using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
+using WawiCallPro.Interfaces.Companies;
 
 namespace WawiCallPro.Utilities.Tests;
 
@@ -59,6 +60,11 @@ public sealed class PluginRuntimeTests
             manager.LoadFromDirectory(plugins);
             Assert.AreEqual(1, manager.Plugins.Count);
             var plugin = manager.Plugins.Single();
+            var company = new CompanyKey(LexwareProductLine.Pro, "shared", "0001");
+            var echo = plugin.GetType().GetMethod("EchoCompany")!;
+            Assert.AreSame(typeof(CompanyKey), echo.GetParameters()[0].ParameterType);
+            Assert.AreSame(company, echo.Invoke(plugin, [company]));
+            Assert.AreEqual(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(typeof(CompanyKey).Assembly));
             Assert.AreEqual("private-plugin-sentinel", plugin.Name);
             Assert.AreEqual(new Version(1, 0), plugin.Version);
             Assert.IsTrue(AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!.IsCollectible);
@@ -102,7 +108,7 @@ public sealed class PluginRuntimeTests
         var plugins = Path.Combine(_root, "plugins"); var destination = Path.Combine(plugins, "RuntimePlugin");
         Directory.CreateDirectory(destination);
         // Only the fixture and its dependency manifest; abstractions must resolve to the host's loaded contract.
-        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
+        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
         return plugins;
     }
 }

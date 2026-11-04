@@ -1,4 +1,5 @@
 using Quantarix.Plugin.Abstractions;
+using WawiCallPro.Interfaces.Companies;
 
 namespace RuntimePlugin;
 
@@ -10,6 +11,7 @@ public sealed class LifecyclePlugin : IPlugin
     public int Initializations { get; private set; }
     public int Executions { get; private set; }
     public int Shutdowns { get; private set; }
+    public CompanyKey EchoCompany(CompanyKey company) => company;
     public void Initialize(IPluginHost host)
     {
         _host = host;
