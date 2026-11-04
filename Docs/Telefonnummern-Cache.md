@@ -90,19 +90,80 @@ Nummern lassen oft keine belastbare Ortsangabe zu. Die erkannte Nummer ist keine
 
 ## Stammnummer, öffentliche Durchwahl und Extension
 
-Diese drei Dinge werden fachlich getrennt behandelt:
+Diese Fälle werden fachlich getrennt behandelt:
 
 | Fall | Behandlung |
 |---|---|
 | Explizite Extension, etwa `ext. 42` oder `tel:...;ext=42` | Die von der Bibliothek erkannte Extension separat erhalten; E.164 enthält die Basisnummer |
 | Öffentliche Direktdurchwahl als Bestandteil der Rufnummer | Die vollständige E.164-Nummer ist der primäre Suchwert |
+| Konfigurierter Stammnummernabgleich mit `StartWidth` | Gleiche Länder-/Ortsvorwahl und gleiche erste N Anschlussziffern ergeben einen positiven Geschäftspartnertreffer |
 | Vermuteter Firmenrufnummernblock/Stamm | Nur als begründete Regel oder gekennzeichnete Heuristik auswerten |
 
 Die Bibliothek kennt den Nummernplan, aber nicht die individuelle Nebenstellenanlage eines Kunden.
 Ein Bindestrich allein beweist keine Nebenstelle; es werden keine beliebigen letzten Ziffern abgeschnitten.
 Landes-/Ortsvorwahl ist ebenfalls kein ausreichender Firmenstamm.
 
-Zusätzliche Rufnummernblockregeln werden je externem Geschäftspartner und Firma geführt: Quelle der
+### Einstellung StartWidth und positiver Stammnummern-Match
+
+Gemäß Nutzerfestlegung erhält der Telefonnummernbereich eine aktivierbare Einstellung
+„Stammnummernabgleich“ mit `StartWidth`. N ist die Anzahl der ersten Ziffern der **Anschlussnummer nach
+der Vorwahl**, beispielsweise 4 oder 5. Ländercode und Orts-/Netzvorwahl zählen nicht zu N.
+Die Einstellung gilt je ausgewählter Lexware-Firma; dadurch können verschiedene Suchfirmen
+unterschiedliche Werte verwenden. Bei aktivierter Regel ist eine positive ganze Zahl erforderlich.
+
+Beide Nummern werden zuerst normalisiert und in Ländercode, Vorwahl und Anschlussziffern zerlegt.
+`030` und `+49 30` ergeben im passenden deutschen Kontext denselben Vorwahlvergleich. Nationale
+Präfixe werden gemäß Nummernplan behandelt; signifikante führende Nullen bleiben erhalten. Der
+Adapter nutzt die Nummernplandaten der Bibliothek für die Vorwahlzerlegung. Ist die Vorwahl nicht
+verlässlich bestimmbar, benötigt diese Regel eine explizite Vorwahlkonfiguration; ein leerer oder
+geratener Vorwahlwert genügt nicht. Vollständige Nummernvergleiche bleiben davon unabhängig.
+[PhoneNumberUtil: Vorwahl-/Anschlusszerlegung](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberUtil.cs)
+
+Ein **positiver Stammnummern-Match** liegt vor, wenn:
+
+1. Der Stammnummernabgleich für die betreffende Firma aktiviert ist.
+2. Eingehende Nummer und registrierte Wawi-Nummer denselben Ländercode und dieselbe Vorwahl haben.
+3. Beide Anschlussnummern mindestens N Ziffern enthalten.
+4. Die ersten N Anschlussziffern exakt übereinstimmen.
+
+Die restlichen Anschlussziffern der eingehenden Nummer werden gemäß dieser Einstellung als
+Apparatenummer interpretiert. Das können beispielsweise 3 oder 4 Ziffern sein; ihre Länge ergibt sich
+aus dem Rest nach N, nicht aus einem pauschalen Abschneiden der letzten vier Ziffern. Eine gespeicherte
+Zentralnummer mit genau N Anschlussziffern darf ebenfalls passen; ihr eigener Rest ist dann leer.
+Ein eigener pro Kunde bestätigter Rufnummernblock ist für diese bewusst aktivierte Regel nicht erforderlich.
+
+| StartWidth | Registrierte Wawi-Nummer | Eingehende Nummer | Ergebnis |
+|---|---|---|---|
+| 5 | `030 12345-000` | `+49 30 12345-6789` | Positiv: Stamm `12345`, Apparat `6789` |
+| 4 | `030 1234-000` | `+49 30 1234-5678` | Positiv: Stamm `1234`, Apparat `5678` |
+| 5 | `030 12345` | `+49 30 12345-678` | Positiv: gespeicherte Zentralnummer, Apparat `678` |
+| 5 | `030 12345-000` | `+49 30 12346-6789` | Kein Stammnummern-Match: Stamm weicht ab |
+| 5 | `030 12345-000` | `+49 40 12345-6789` | Kein Stammnummern-Match: Ortsvorwahl weicht ab |
+| 5 | `030 12345-000` | `+31 30 12345-67` | Kein Stammnummern-Match: Ländercode weicht ab |
+
+Die nationalen Wawi-Beispiele verwenden Region DE. Bei weniger als N Anschlussziffern, deaktivierter
+Regel oder ungeklärtem Vorwahlkontext gibt es keinen Stammnummern-Match und kein stilles Ausweichen
+auf ein kleineres N. Änderungen von `StartWidth` erzeugen eine neue Regelversion und erneuern den
+betroffenen Stammnummernindex; frühere Zuordnungen behalten ihre damalige Regel und Apparatenummer.
+
+Der konfigurierte Treffer wird als Trefferart `StemPrefix` mit angewendetem `StartWidth`, Regelversion,
+Vorwahl/Stamm, Quellnummer und abgeleiteter Apparatenummer geführt. Er ist ein positiver Treffer des
+Geschäftspartners und kein bloßer unbestätigter Vorschlag. Bei genau einem passenden Geschäftspartner
+im vollständigen Suchstand dürfen dessen Stammdaten und Fachviews automatisch erscheinen. Bei
+mehreren passenden Firmen oder Geschäftspartnern gilt weiterhin die ausdrückliche Trefferauswahl.
+Ein vollständiger Nummerntreffer wird vor Stammnummerntreffern einsortiert; weitere positive Treffer
+bleiben sichtbar. Die Apparatenummer allein bestätigt keine Kontaktperson. Bei einer passenden
+Kontakttelefonnummer wird der Stammnummerntreffer dem bekannten Kunden-/Lieferantenbesitzer
+zugeordnet. Mehrere solche Quellkontakte desselben Besitzers ergeben einen Organisationstreffer;
+die Quellkontakte bleiben als Herkunftsnachweise erhalten.
+
+Originalnummer und vollständige E.164 bleiben erhalten. Die nach `StartWidth` abgeleitete Apparatenummer
+ist getrennt von einer expliziten Extension zu speichern; die Regel überschreibt weder die echte
+Rufnummer noch eine vom Parser gelieferte Extension.
+
+### Weitere Rufnummernblockregeln und unbestätigte Vermutungen
+
+Zusätzliche spezifische Rufnummernblockregeln werden je externem Geschäftspartner und Firma geführt: Quelle der
 Regel, normalisiertes Präfix, erlaubte Suffixlängen/-bereiche und gegebenenfalls bekannte Durchwahlen.
 Ein solches Präfix ist nicht automatisch selbst eine vollständige gültige E.164-Nummer. Explizit bestätigte
 Blöcke sind von bloß aus ähnlichen Kontaktnummern vermuteten Blöcken zu unterscheiden.
@@ -145,6 +206,7 @@ Strategie bestimmt; „eindeutig“ setzt einen vollständigen, ausreichend aktu
 | Gleiche Nummer in mehreren Firmen | Nach Firma gruppierte Treffer zeigen; Firma/Datensatz mit einem Klick auswählen, keine stille Entscheidung nach aktiver Firma |
 | Verlässlich konfigurierte angerufene Leitung passt zu genau einer Trefferfirma | Diese Firma sichtbar bevorzugen; nur deren eindeutigen belastbaren Datensatz automatisch übernehmen. Alternative Firmen bleiben erreichbar |
 | Leitungsfirma und Stammdatentreffer widersprechen sich | Beide Informationen anzeigen und entscheiden lassen; keine automatische Umdeutung des Trefferkontexts |
+| Positiver StartWidth-Match bei gleicher Länder-/Ortsvorwahl | Geschäftspartner als positiven Stammnummerntreffer anzeigen; bei eindeutiger Organisation automatisch deren Views öffnen, ohne Kontaktperson zu erfinden |
 | Nur Stamm-/Kurznummernheuristik | Als mögliche Organisation/Treffer kennzeichnen; keine automatische Personenzuordnung |
 | Fehlender, veralteter oder gescheiterter Cache einer Suchfirma | Suchstand als unvollständig kennzeichnen; vorhandene Kandidaten anbieten, keine globale Eindeutigkeit behaupten |
 | Kein Treffer | Nummer/Region anzeigen, Gespräch normal bedienen und nachträgliche manuelle Zuordnung erlauben |
@@ -168,6 +230,9 @@ Die eigene Kommunikationsdatenbank hält dauerhafte Firmen-/Geschäftspartner-/A
 Ein unveränderlicher Speicherindex beschleunigt die Suche: normalisierte Nummer auf eine Menge von
 Nummernvorkommen mit `CompanyKey`, `PartyKey`, Extension, Quellfeld und Cacheversion. Die Nummer ist
 kein eindeutiger Datenbankschlüssel. Parteien verschiedener Firmen werden nie allein wegen gleicher Nummern verschmolzen.
+Für den aktivierten Stammnummernabgleich kommt ein Index nach Ländercode, Vorwahl, `StartWidth` und
+Anschlusspräfix hinzu; seine Treffer behalten Firma, Quellgeschäftspartner und Regelversion. Die Suche
+wertet vollständige Nummern und die jeweiligen Firmenregeln aus und führt alle positiven Kandidaten zusammen.
 
 Stammdaten wie Name, Rolle, Kunden-/Lieferantennummer, wichtige Kontakt-/Adressdaten und Originalnummern
 sind sofort verfügbar. Aufträge, Preise, Projekte, offene Posten und Auswertungen werden je View bei
@@ -201,13 +266,16 @@ Migration ab Version 6 mit Vertragsanpassung erforderlich, insbesondere:
 - Höchstens ein ausgewählter Datensatz pro Gespräch; Änderungen von Cache/Firmenauswahl überschreiben
   weder diese Auswahl noch alte Herkunfts- und Kandidatensnapshots.
 - Suchfirmenmenge, Parser-/Regel-/Cacheversionen, Trefferarten sowie bestätigte/heuristische
-  Rufnummernblockregeln in passenden eigenen Modellen berücksichtigen.
+  Rufnummernblockregeln in passenden eigenen Modellen berücksichtigen. Firmenbezogene Aktivierung,
+  `StartWidth`, zerlegte Vorwahl/Stamm und abgeleitete Apparatenummer getrennt von Extension modellieren.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
 zusätzliche Migration/Verträge, Paket-/Adapterintegration, Mehrfirmenkonfiguration, Cache-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
-Cachestand, Firmenwechsel und veraltete Antworten abdecken. Diese Planung meldet keine fertige Anruferkennung.
+Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,
+unterschiedliche Länder-/Ortsvorwahlen, zu kurze Nummern, Zentralnummer ohne Rest, deaktivierte Regel,
+Kollisionen zwischen Stamm und Volltreffer sowie Regelwechsel prüfen. Diese Planung meldet keine fertige Anruferkennung.
 
 Quellen: [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp),
 [PhoneNumberUtil](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberUtil.cs),

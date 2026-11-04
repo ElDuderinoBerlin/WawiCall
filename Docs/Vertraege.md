@@ -20,6 +20,11 @@ die Bibliothek; Firmen-/Geschäftspartnerzuordnung erfolgt über unseren Cache. 
 gewählten Firmenkontext je Anruf. Gleiche Nummern in verschiedenen Firmen bleiben getrennte Treffer.
 Rufnummernregionen beschreiben Nummernbereiche; öffentliche Durchwahlen und explizite Extensions
 werden getrennt von vermuteten Stammnummern behandelt. Diese Erweiterungen sind noch umzusetzen.
+Zusätzlich wird ein aktivierbarer `StartWidth` je Firma vorgesehen: gleicher Ländercode, gleiche
+Orts-/Netzvorwahl und gleiche erste N Anschlussziffern sind ein positiver Geschäftspartnertreffer.
+Die nachfolgenden Ziffern werden als Apparatenummer abgeleitet und getrennt von einer expliziten
+Extension geführt. StartWidth-/Regelversion und Trefferart bleiben nachvollziehbar; mehrere passende
+Firmen/Parteien erfordern weiterhin eine Auswahl. Konkrete Einstellungs-/Suchverträge fehlen noch.
 
 | Typ | Bedeutung |
 |---|---|

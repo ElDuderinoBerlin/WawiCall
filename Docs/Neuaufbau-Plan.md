@@ -649,6 +649,10 @@ implementieren die Planung; die Bibliothek ist im Produkt noch nicht eingebunden
 - [ ] Firmenbezogenen Land-/Ortskontext für Stammdaten und expliziten Anlagenkontext für eingehende
   Nummern verwenden. Öffentliche Direktdurchwahl, explizite Extension und bestätigte/vermutete
   Rufnummernblöcke getrennt behandeln; interne, ungültige und unterdrückte Nummern nachvollziehbar behandeln.
+- [ ] Aktivierbaren Stammnummernabgleich mit `StartWidth` je Firma konfigurieren und per DI anbinden.
+  Gleicher Ländercode, gleiche Orts-/Netzvorwahl und gleiche erste N Anschlussziffern ergeben einen
+  positiven Geschäftspartnertreffer; N zählt nach der Vorwahl. Den Rest als Apparatenummer getrennt
+  von Extension führen. Passenden Präfixindex und Regelversionen vorsehen; bei Mehrfachtreffern auswählen lassen.
 - [ ] Suchfirmenauswahl per DevExpress-CheckedListBox und vollständigen CompanyKeys persistieren;
   Hakenstatus von Zeilenmarkierung, bevorzugter Firma und aktiver Hauptansicht trennen.
 - [ ] Stammdaten-/Nummerncache pro Firma atomar und abbrechbar erneuern; gemeinsamen Index für alle
@@ -665,7 +669,9 @@ implementieren die Planung; die Bibliothek ist im Produkt noch nicht eingebunden
 
 Abnahme: Nationale/internationale Formate, explizite versus vermutete Durchwahlen, gleiche Nummern in
 zwei Firmen, mehrere Kontakte, fehlender/veralteter Cache, Kontextwechsel und verspätete Antworten sind
-getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden;
+getestet. StartWidth N=4/N=5, Länder-/Ortsvorwahlabweichungen, zu kurze Nummern, Zentralnummer ohne Rest,
+deaktivierte Regel, Stamm-/Volltrefferkollisionen und Regelwechsel sind abgedeckt.
+Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden;
 die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrift-/Skinprüfung.
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜

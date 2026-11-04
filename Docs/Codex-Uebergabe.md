@@ -150,6 +150,12 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 Neu festgelegt: `Docs/Telefonnummern-Cache.md` beschreibt libphonenumber-csharp hinter DI-Interfaces,
 Rufnummernregionen, explizite Extensions versus öffentliche Durchwahlen sowie belegte Stammnummernregeln.
+Nutzerergänzung: aktivierbarer `StartWidth` je Firma. Gleicher Ländercode und gleiche Orts-/Netzvorwahl
+plus gleiche erste N Anschlussziffern sind ein positiver Geschäftspartnertreffer; N zählt nach der
+Vorwahl. Rest als Apparatenummer getrennt von expliziter Extension führen. Ein eindeutiger Treffer darf
+Geschäftspartner-Views öffnen; keine Kontaktperson aus dem Rest erfinden, Mehrfachtreffer auswählen lassen.
+Regel-/Indexversion und historische Matchdetails erhalten. Beispiele und geplante Prüfungen stehen im
+Detailkonzept und Phase-6-Plan; Einstellungs-/Parser-/Matchingimplementierung ist weiterhin offen.
 Mehrere berechtigte Suchfirmen werden per DevExpress-CheckedListBox gewählt; Haken, aktive Hauptansicht
 und Firmen-/Viewkontext je Anruf sind getrennt. In allen angehakten Firmen suchen, Treffer nach Firma
 gruppieren; bei gleichwertigen Treffern ausdrücklich auswählen lassen. Aktive/bevorzugte Firma sortiert,

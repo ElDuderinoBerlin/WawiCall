@@ -229,6 +229,9 @@ ab Version 6 und angepassten Speicherverträgen; Migrationen 1–5 werden nicht 
 - Suchfirmen, Trefferart, Auswahlgrund und Parser-/Regel-/Cacheversionen werden nachvollziehbar
   erfasst. Bestätigte Rufnummernblockregeln erhalten eigene firmengebundene Daten statt freier
   Präfixvergleiche. Konkrete Spalten/Tabellen und Backfill-/Upgradeprüfungen gehören in diesen neuen Schritt.
+  Dazu gehören auch die firmenbezogene Aktivierung und `StartWidth` für den positiven Vergleich von
+  Länder-/Ortsvorwahl plus ersten N Anschlussziffern sowie die getrennt von Extension gespeicherte
+  abgeleitete Apparatenummer und die zum Zuordnungszeitpunkt angewendete Regelversion.
 
 `ux_callparties_selected` ist unter SQLite/PostgreSQL/SQL Server ein eindeutiger gefilterter Index auf
 callid für isselected=true. MySQL verwendet dafür eine berechnete nullable ASCII-Spalte selectedcallid
