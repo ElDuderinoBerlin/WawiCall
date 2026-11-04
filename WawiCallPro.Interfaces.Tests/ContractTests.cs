@@ -10,6 +10,7 @@ using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.Interfaces.Tests;
 
@@ -229,6 +230,7 @@ public sealed class ContractTests
              reference.Name.StartsWith("Quantarix.Lexware", StringComparison.Ordinal) ||
              reference.Name.StartsWith("Quantarix.Pcfk", StringComparison.Ordinal) ||
              reference.Name.StartsWith("SIPSorcery", StringComparison.Ordinal) ||
+             reference.Name.StartsWith("PhoneNumbers", StringComparison.Ordinal) ||
              reference.Name.StartsWith("MMS.", StringComparison.Ordinal))).ToArray();
         Assert.IsEmpty(forbidden);
     }
@@ -236,6 +238,26 @@ public sealed class ContractTests
     private static T RoundTrip<T>(T value) =>
         JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value))
         ?? throw new InvalidOperationException("JSON round trip returned null.");
+
+    [TestMethod]
+    public void PhoneParsingEvidenceRoundTripsWithoutLibraryTypes()
+    {
+        var result = new PhoneNumberParseResult
+        {
+            OriginalValue = "030 12345 ext. 0042",
+            Source = new SourceField("customer", "0007", "phone"),
+            ParserVersion = "synthetic/1",
+            Status = PhoneNumberParseStatus.Valid,
+            E164 = "+493012345",
+            Extension = "0042",
+            CountryCallingCode = 49,
+            NationalNumber = "3012345",
+            RegionCode = "DE",
+            RegionDescription = "Berlin",
+            NumberType = PhoneNumberType.FixedLine
+        };
+        Assert.AreEqual(result, RoundTrip(result));
+    }
 
     [TestMethod]
     public void CallOriginRoundTripsPcAndDomainUserAndKeepsItsStableWorkstationIdentity()

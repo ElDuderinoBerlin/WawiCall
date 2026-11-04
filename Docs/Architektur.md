@@ -308,8 +308,10 @@ offenen Änderungen. Späte Antworten benötigen Anruf-ID, vollständige Quellid
 
 Die bestehende Persistenz der Version 3 erlaubt bisher nur Kandidaten der Gesprächsfirma. Für
 firmenübergreifende historische Kandidaten sind zusätzliche Migrationen ab Version 6 und angepasste
-Verträge nötig. Migrationen 1–5 bleiben unverändert. Parser, Mehrfirmensuche, Auswahlkonfiguration und
-UI sind Zielbild, noch keine implementierte Anruferkennung.
+Verträge nötig. Migrationen 1–5 bleiben unverändert. Der Offline-Parser ist seit Phase 6/Punkt 1
+über `IPhoneNumberParser` in beiden Hosts registriert; seine DTOs behalten Original/Quelle,
+E.164/Extension, Prüfstatus, Rufnummernregion und Parserversion ohne Bibliothekstypen im gemeinsamen
+Vertrag. Mehrfirmensuche, StartWidth-Abgleich, Auswahlkonfiguration und UI bleiben Zielbild.
 
 ## Daten und Lebenszyklus
 
@@ -344,6 +346,7 @@ werden mit leeren/befüllten Daten, kleineren Fenstern und größerer Schrift vi
 Vorhanden sind die Hostprojekte mit Standard-.NET-Host/DI-Grundlage, gemeinsame Fachverträge
 einschließlich `ITelephonyService`, Mandantenkontext/Dispatcher, Konfiguration und Gesprächszustandsautomat.
 Die Datenbankmigrationen 1–5 und die Herkunftsfelder sind implementiert und geprüft.
+Hinzu kommt der offline arbeitende libphonenumber-Adapter hinter einem eigenen DI-Interface.
 
 Noch offen sind insbesondere:
 

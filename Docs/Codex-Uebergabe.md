@@ -148,6 +148,20 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Auf die Fortsetzung des Telefonnummernkonzepts hin ist Phase 6/Punkt 1 vorgezogen abgeschlossen:
+libphonenumber-csharp 9.0.42 in Core, `IPhoneNumberParser` und eigene DTOs/Enums in Interfaces,
+gemeinsame Singleton-DI-Registrierung für App/Console. Original/SourceField, E.164/Extension,
+signifikante führende Nullen, Nummerntyp, Länder-/Regionsmetadaten und Parserversion bleiben erhalten.
+E.164 nur für gültige Nummern mit höchstens 15 Ziffern; Empty/Unparseable/Invalid/Possible/Valid/
+UnsupportedLength und feste number.*-Codes. Nationale Nummern benötigen explizite ISO-Region,
+deutsche Offline-Beschreibung ist Nummernbereich, keine Live-Ortung. Kein Netzwerk-/Wawi-/DB-/UI-Zugriff.
+26 neue Prüffälle, je 181 Tests in Pro/FinOffice; zehn Debug-Builds für Interfaces/Core/Utilities/App/
+Console, vier isolierte Hoststarts sowie Runtime-/Produktlinien-/MMS-/Solution-/Paketprüfungen bestanden.
+Nachweise: `.artifacts/phase6-item1`. Keine UI-Änderung oder Renderprüfung.
+Nächster Punkt im aktuellen Telefonnummernauftrag: Phase 6/Punkt 2, Firmen-/Leitungskontext,
+lokale Vorwahl, interne/unterdrückte Nummern und Durchwahlregeln. Erst danach den gesonderten
+StartWidth-Punkt umsetzen/prüfen/committen. Die bestehenden Datenbank-/Pluginlücken bleiben offen.
+
 Neu festgelegt: `Docs/Telefonnummern-Cache.md` beschreibt libphonenumber-csharp hinter DI-Interfaces,
 Rufnummernregionen, explizite Extensions versus öffentliche Durchwahlen sowie belegte Stammnummernregeln.
 Nutzerergänzung: aktivierbarer `StartWidth` je Firma. Gleicher Ländercode und gleiche Orts-/Netzvorwahl
@@ -155,7 +169,7 @@ plus gleiche erste N Anschlussziffern sind ein positiver Geschäftspartnertreffe
 Vorwahl. Rest als Apparatenummer getrennt von expliziter Extension führen. Ein eindeutiger Treffer darf
 Geschäftspartner-Views öffnen; keine Kontaktperson aus dem Rest erfinden, Mehrfachtreffer auswählen lassen.
 Regel-/Indexversion und historische Matchdetails erhalten. Beispiele und geplante Prüfungen stehen im
-Detailkonzept und Phase-6-Plan; Einstellungs-/Parser-/Matchingimplementierung ist weiterhin offen.
+Detailkonzept und Phase-6-Plan; Einstellungs-/Kontext-/Matchingimplementierung ist weiterhin offen.
 Mehrere berechtigte Suchfirmen werden per DevExpress-CheckedListBox gewählt; Haken, aktive Hauptansicht
 und Firmen-/Viewkontext je Anruf sind getrennt. In allen angehakten Firmen suchen, Treffer nach Firma
 gruppieren; bei gleichwertigen Treffern ausdrücklich auswählen lassen. Aktive/bevorzugte Firma sortiert,
@@ -168,11 +182,12 @@ callparties-Firmen aus phonecalls; StorageContract.Call verlangt dieselbe Firma 
 Zusätzliche Migrationen ab Version 6 und Vertragsanpassung für eigene Kandidatenfirmen mit Backfill,
 Kandidaten vor Gesprächsfirmenauswahl und Erhalt der übrigen Alternativen vorsehen. Migrationen 1–5
 nicht ändern. UserSettings hat bisher nur PreferredCompany; Mehrfirmenauswahl und übergreifende
-Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert, keine neuen Punkte als erledigt markiert.
+Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert; ausschließlich der Parserpunkt ist abgeschlossen.
 Lokaler synthetischer Parseversuch mit Version 9.0.42: Bindestrich bleibt Teil der vollständigen Nummer,
 ext. 42 und ;ext=42 liefern separate Extension; Kurznummer 1234 ist nicht gültig. Nachweis unter
-`.artifacts/phone-cache-analysis`. Nur Dokumentation/Plan/Solutioneintrag geändert, kein Parser oder UI
-im Produkt eingebaut. Neue Markdowndatei im Docs-Solutionordner referenziert und im aktiven Rider geöffnet.
+`.artifacts/phone-cache-analysis`. Der ursprüngliche Planungsblock änderte nur Dokumentation/Plan/
+Solutioneintrag; inzwischen ist der Parser implementiert, die UI weiterhin offen. Die Markdowndatei
+ist im Docs-Solutionordner referenziert und wurde im aktiven Rider geöffnet.
 
 DTMF-Analyse der ausdrücklich genannten WawiCallPro_old/WawiCallPro.old.sln: DtmfDetection und
 DtmfDetection.CSCore sind Audio-Erkennungsbibliotheken für .NET Framework 4.8; DtmfDetector ist ein
@@ -214,7 +229,7 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 3, Punkt 5: Rechteprüfung, fehlende Datenbank, Provider-Tags, Fristen, Schemaversion
+Im Datenbankplan weiterhin als Nächstes Phase 3, Punkt 5: Rechteprüfung, fehlende Datenbank, Provider-Tags, Fristen, Schemaversion
 und insbesondere eine wirksame prozessübergreifende Migrationssperre mit Timeout vervollständigen.
 Die vorhandenen Status-/Eigentumsgrenzen und bestätigten Versionspräfixe erhalten; neben echten
 Serverprüfungen auch zwei konkurrierende Prozesse und Fehler-/Abbruchfälle nachweisen.

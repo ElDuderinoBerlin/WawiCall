@@ -2,7 +2,9 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Companies;
+using WawiCallPro.Core.PhoneNumbers;
 using WawiCallPro.Interfaces.Hosting;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
 using WawiCallPro.Utilities.Operations;
@@ -40,6 +42,7 @@ public static class WawiCallHost
                 services.AddHostedService<RuntimeFailureMonitor>();
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();
+                services.AddSingleton<IPhoneNumberParser, LibPhoneNumberParser>();
                 services.AddSingleton<ConfigurationStore>();
                 services.AddSingleton<ApplicationConfigurationService>();
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());

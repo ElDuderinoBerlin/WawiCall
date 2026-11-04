@@ -8,6 +8,7 @@ using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Configuration;
 
@@ -50,6 +51,22 @@ public sealed class HostingTests
             Assert.AreEqual(nameof(InlineUiDispatcher), report.Dispatcher);
         });
         Assert.ThrowsExactly<ObjectDisposedException>(() => context!.BeginOperation());
+    }
+
+    [TestMethod]
+    public async Task SharedHostResolvesOneWorkingOfflineParserThroughItsInterface()
+    {
+        var host = CreateBuilder().Build();
+        await HostExecution.RunAsync(host, _ =>
+        {
+            var parser = host.Services.GetRequiredService<IPhoneNumberParser>();
+            Assert.AreSame(parser, host.Services.GetRequiredService<IPhoneNumberParser>());
+            var result = parser.Parse("030 12345-42", "DE");
+            Assert.AreEqual(PhoneNumberParseStatus.Valid, result.Status);
+            Assert.AreEqual("+49301234542", result.E164);
+            Assert.AreEqual(parser.Version, result.ParserVersion);
+            return Task.CompletedTask;
+        });
     }
 
     [TestMethod]

@@ -641,11 +641,22 @@ Produktlinienspezifische DLLs sind nur im passenden Pluginpaket vorhanden.
 ### Phase 6 – Rufnummernindex und Zuordnung ⬜
 
 Verbindliches Zielbild: [Telefonnummern-Cache.md](Telefonnummern-Cache.md). Die folgenden Punkte
-implementieren die Planung; die Bibliothek ist im Produkt noch nicht eingebunden.
+implementieren die Planung; der Offline-Parser aus Punkt 1 ist im Produkt eingebunden.
 
-- [ ] [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) einbinden und Parsing,
+- [x] [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) einbinden und Parsing,
   Normalisierung sowie Länder-/Regionsmetadaten über eigene DI-Interfaces kapseln. Original/Quellfeld,
   E.164, Extension und Prüfstatus erhalten; Rufnummernregion nicht als tatsächlichen Aufenthaltsort ausgeben.
+  Nachweis: Version 9.0.42 im Core, UI-/bibliotheksfreie `IPhoneNumberParser`-/Ergebnisverträge und
+  gemeinsame Singleton-DI-Registrierung in App/Console. Original/SourceField, explizite Extension,
+  signifikante führende Nullen, eigener Nummerntyp, Länder-/Regionsmetadaten und Parserversion erhalten.
+  Nationale Nummern benötigen eine explizite Region; leere, unparsebare, ungültige, nur mögliche und
+  überlange Werte sind unterscheidbar. E.164 nur bei gültigen höchstens 15-stelligen Nummern;
+  feste Fehlercodes, keine Kürzung oder erfundene Stamm-/Apparatezuordnung. Offline-Regionsbeschreibung deutsch.
+  26 neue Prüffälle; je 181 Tests für Pro/FinOffice bestanden. Interfaces, Core, Utilities, App und Console
+  beider Varianten explizit in Debug ohne Warnungen/Fehler gebaut; vier isolierte Diagnose-Hoststarts,
+  Runtime-/Produktlinien-/MMS-/Solution- und Paketprüfungen bestanden. Logs: `.artifacts/phase6-item1`.
+  Keine UI-Änderung/Renderprüfung, keine Wawi-/SIP-/Datenbankabfrage. Die übrigen Phasenpunkte bleiben offen;
+  der vorgezogene Parserpunkt ändert die noch ausstehende Datenbank-/Pluginabnahme nicht.
 - [ ] Firmenbezogenen Land-/Ortskontext für Stammdaten und expliziten Anlagenkontext für eingehende
   Nummern verwenden. Öffentliche Direktdurchwahl, explizite Extension und bestätigte/vermutete
   Rufnummernblöcke getrennt behandeln; interne, ungültige und unterdrückte Nummern nachvollziehbar behandeln.

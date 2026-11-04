@@ -7,4 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="libphonenumber-csharp" Version="9.0.42" />
+  </ItemGroup>
 </Project>

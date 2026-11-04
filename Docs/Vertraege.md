@@ -3,11 +3,11 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–4 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–4 und Phase 6/Punkt 1 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
-`WawiCallPro.Core` den Mandantenkontext und die Dispatcher. Ihre öffentlichen Datentransfers
+`WawiCallPro.Core` den Mandantenkontext, die Dispatcher und den Offline-Rufnummernparser. Ihre öffentlichen Datentransfers
 verwenden dieselbe Vertrags-Assembly wie die Plugins.
 Die Infrastrukturverträge der Kommunikationsdatenbank liegen seit Phase 3, Punkt 1 getrennt
 unter `WawiCallPro.Database.Contracts`; Plugins erhalten weiterhin ausschließlich die Fachverträge.
@@ -19,7 +19,8 @@ die Bibliothek; Firmen-/Geschäftspartnerzuordnung erfolgt über unseren Cache. 
 [Mehrfirmenstrategie](Telefonnummern-Cache.md) trennt angehakte Suchfirmen, aktive Hauptansicht und
 gewählten Firmenkontext je Anruf. Gleiche Nummern in verschiedenen Firmen bleiben getrennte Treffer.
 Rufnummernregionen beschreiben Nummernbereiche; öffentliche Durchwahlen und explizite Extensions
-werden getrennt von vermuteten Stammnummern behandelt. Diese Erweiterungen sind noch umzusetzen.
+werden getrennt von vermuteten Stammnummern behandelt. Parsing/Metadaten sind implementiert,
+Firmen-/Leitungskontext und Stammnummernzuordnung folgen in den nächsten Punkten.
 Zusätzlich wird ein aktivierbarer `StartWidth` je Firma vorgesehen: gleicher Ländercode, gleiche
 Orts-/Netzvorwahl und gleiche erste N Anschlussziffern sind ein positiver Geschäftspartnertreffer.
 Die nachfolgenden Ziffern werden als Apparatenummer abgeleitet und getrennt von einer expliziten
@@ -34,6 +35,17 @@ Firmen/Parteien erfordern weiterhin eine Auswahl. Konkrete Einstellungs-/Suchver
 | `Party` | Abgelöste Momentaufnahme eines Kunden, Lieferanten oder einer Kontaktperson |
 | `PartyAddress` | Rechnungs-, Liefer-, Zusatz- oder Kontaktanschrift einschließlich ihrer Nummern |
 | `PartyPhone` / `SourceField` | Originalnummer, optional E.164/Nebenstelle, Nummerntyp und genaue Quellstelle |
+| `IPhoneNumberParser` / `PhoneNumberParseResult` | Offline-Parsing mit expliziter Standardregion, Original/Quelle, E.164/Extension, Prüfstatus, eigenem Nummerntyp, Länder-/Regionshinweisen und Parserversion |
+
+`LibPhoneNumberParser` aus Core kapselt libphonenumber-csharp 9.0.42 und ist in App/Console über den
+gemeinsamen Host als `IPhoneNumberParser` registriert. Gemeinsame Fachinterfaces referenzieren die
+Bibliothek nicht. `Valid` liefert einen höchstens 15-stelligen E.164-Wert; `Empty`, `Unparseable`,
+`Invalid`, `Possible` und `UnsupportedLength` liefern keinen solchen Suchwert. Nationale Nummern ohne
+Regionskontext und unbekannte explizite Regionen werden nicht durch eine angenommene deutsche Region
+gerettet. Extensions und signifikante führende Nullen bleiben erhalten. Regionsbeschreibungen sind
+derzeit deutsch und kennzeichnen Nummernbereiche. Fehler enthalten feste `number.*`-Codes;
+`ParserVersion` identifiziert Bibliotheksmetadaten und eigene Normalisierungsregeln. Noch keine
+Anruferzuordnung, Wawi-/Datenbankabfrage oder automatische Stamm-/Apparatezerlegung.
 
 Quell-IDs sind unveränderte, groß-/kleinschreibungssensitive Strings. Führende Nullen bleiben erhalten.
 Eine angezeigte Kundennummer ist kein technischer Schlüssel. Kunden-/Lieferantenkontakte mit derselben
@@ -550,7 +562,8 @@ ohne die anderen Bereiche zu ersetzen. `FindCompanySettings` sucht ausschließli
 `CompanyKey` und liefert ohne individuellen Eintrag `null`; fremde Mandantenvorgaben werden nicht übernommen.
 Doppelte Mandantenbezüge sind ungültig, gleiche externe IDs verschiedener Installationen/Produktlinien erlaubt.
 Die Liste ist auf 256 Einträge begrenzt. Rufnummernregionen sind bekannte zweistellige ISO-Regionscodes,
-Ortsvorwahlen 1–16 Ziffern. Die Normalisierungsimplementierung folgt weiterhin in Phase 6.
+Ortsvorwahlen 1–16 Ziffern. Der Offline-Parser besteht seit Phase 6/Punkt 1; die Anwendung dieser
+Firmenvorgaben für Kontextwahl und lokale Vorwahlergänzung folgt in Punkt 2.
 
 Die bevorzugte Firma ist nur eine Präferenz. Sie stellt weder einen nachgewiesenen Lexware-Mandanten noch
 die aktuelle Auswahl dar und wird beim Start nicht automatisch in `CompanyContext` übernommen.

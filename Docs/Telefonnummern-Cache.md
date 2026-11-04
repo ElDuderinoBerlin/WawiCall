@@ -1,7 +1,8 @@
 # Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
 
 Stand: 04.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
-Anruferkennung. Die unten benannten Erweiterungen sind geplant und noch nicht implementiert.
+Anruferkennung. Der Offline-Parser aus Phase 6/Punkt 1 ist implementiert; Mehrfirmen-Cache,
+StartWidth-Abgleich, Auswahl und Viewanbindung bleiben noch umzusetzen.
 
 ## Grundentscheidung
 
@@ -66,12 +67,29 @@ flowchart LR
 
 ## Nummernnormalisierung und Länder-/Regionsanzeige
 
-Unsere DI-Adapter kapseln die Bibliothek. Gemeinsame Verträge verwenden eigene DTOs und reichen keine
+`IPhoneNumberParser` und der im gemeinsamen Host als Singleton registrierte `LibPhoneNumberParser`
+kapseln seit Phase 6/Punkt 1 die Bibliothek 9.0.42. Gemeinsame Verträge verwenden eigene DTOs und reichen keine
 `PhoneNumbers.PhoneNumber`-Objekte an Views oder fremde Module weiter.
 
 Erhalten bleiben Originalwert und Quellfeld. Zusätzlich werden E.164, explizite Extension, Parse-/
 Prüfstatus, Rufnummerntyp und verfügbare Länder-/Regionshinweise erfasst. Geocoder-Ausgaben sind
 lokalisierte Zusatzinformationen. Ihre Verfügbarkeit hängt vom Nummernbereich und den Metadaten ab.
+
+`Parse(originalValue, defaultRegion, source)` erhält Formatierung und optionales `SourceField` unverändert.
+`PhoneNumberParseResult` unterscheidet `Empty`, `Unparseable`, `Invalid`, `Possible`, `Valid` und
+`UnsupportedLength`. Nur `Valid` liefert E.164, begrenzt auf 15 Ziffern ohne Abschneiden. Auch eine von
+den Metadaten akzeptierte längere Nummer ist kein unterstützter E.164-Suchwert. Erwartete Eingabefehler
+liefern feste `number.*`-Codes statt Bibliotheksmeldungen. Nationale Nummern benötigen eine explizite
+ISO-Region; ohne Region werden internationale Nummern verarbeitet. Ein unbekannter expliziter
+Regionscode führt zum Fehler und wird nicht still durch DE ersetzt.
+
+Ergebnisse enthalten außerdem den national signifikanten Nummernteil einschließlich bedeutender
+führender Nullen, eigenen Nummerntyp, Ländercode, Region und gegebenenfalls eine deutsche Offline-
+Regionsbeschreibung. Die `ParserVersion` enthält die Paket-/Metadatenversion und unsere Regelversion.
+SIP-/SIPS-Adressen werden nicht als öffentliche Telefonnummer normalisiert. Der Parser greift weder
+auf Wawi/Datenbank noch Telefonie, Netzwerk oder UI zu und bestimmt keine Firma oder Apparatenummer.
+Die spätere Auswahl des Firmen-/Leitungskontexts, lokale Vorwahlergänzung und Präsentationszustände
+gehören zum nächsten Umsetzungspunkt.
 
 Für Quellstammdaten gelten die jeweiligen Firmenvorgaben für Land/Ortsvorwahl. Für eine eingehende
 Nummer ohne Ländercode gilt der explizite Anlagen-/Leitungskontext. Sie wird nicht nacheinander unter
@@ -192,7 +210,8 @@ Mit der lokal vorhandenen Version 9.0.42 wurden rein lokale synthetische Parsef�
 Bei den vollständigen Berliner Beispielen lieferte der Geocoder „Berlin“. Das bestätigt die
 unterschiedliche Verarbeitung von Format-Trennzeichen und expliziten Extensions. Es beweist weder
 reale Erreichbarkeit noch eine universelle Stamm-/Durchwahlerkennung. Nachweis:
-`.artifacts/phone-cache-analysis`. Das Produkt referenziert die Bibliothek noch nicht.
+`.artifacts/phone-cache-analysis`. Das Produkt referenziert inzwischen ebenfalls Version 9.0.42;
+die produktiven Adapter-/Vertrags-/DI-Prüfungen stehen unter `.artifacts/phase6-item1`.
 
 ## Verbindliche Strategie bei Treffern in mehreren Firmen
 
@@ -249,8 +268,9 @@ denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der R
 
 ## DI-Verträge, Persistenzlücke und Umsetzung
 
-Parsing/Regionsauflösung, Cachepflege, Mehrfirmensuche und Auswahl erhalten eigene Interfaces und
-werden per DI angebunden. Die konkreten APIs sind noch zu implementieren. Das bestehende
+Parsing/Regionsauflösung sind über `IPhoneNumberParser` implementiert und per DI an App/Console
+angebunden. Cachepflege, Mehrfirmensuche und Auswahl benötigen weiterhin eigene Interfaces und
+Implementierungen. Das bestehende
 `IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
 Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
 
@@ -270,7 +290,7 @@ Migration ab Version 6 mit Vertragsanpassung erforderlich, insbesondere:
   `StartWidth`, zerlegte Vorwahl/Stamm und abgeleitete Apparatenummer getrennt von Extension modellieren.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-zusätzliche Migration/Verträge, Paket-/Adapterintegration, Mehrfirmenkonfiguration, Cache-Repositories,
+zusätzliche Migration/Verträge, Nummernkontext-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Cache-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,
