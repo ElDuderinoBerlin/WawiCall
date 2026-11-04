@@ -1,7 +1,8 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkt 1. Diese Festlegung ist die Grundlage für die neuen Migrationen 1–5.
-Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Provider, DDL,
+Stand: 04.11.2026, Phase 3, Punkte 1–2. Diese Festlegung ist die Grundlage für die neuen Migrationen 1–5.
+Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
+ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung. FluentMigrator-Adapter, DDL,
 Dapper-Repositories und deren Transaktionstests folgen in den nächsten Punkten; es existiert noch keine
 erzeugte Kommunikationsdatenbank. Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
@@ -60,9 +61,31 @@ und eine ausdrückliche Datenmigration.
 
 ## Tabellen der Migrationen 1–5
 
-Jede Tabelle besitzt `id` als Primärschlüssel, ausgenommen die vom Runner verwaltete Versionstabelle.
+Jede Fachtabelle besitzt `id` als Primärschlüssel. Ausnahmen sind die Eigentumskennung und die vom
+Runner verwaltete Versionstabelle.
 Anwendungs-GUIDs werden vor dem Insert vergeben. Cache-Tabellen-IDs sind lokale technische IDs;
 öffentliche Abfragen verwenden weiterhin CompanyKey beziehungsweise PartyKey.
+
+### Version 1: wawicallpro_metadata
+
+Diese Kontrolltabelle wird als erster Teil der ersten eigenen Schema-Migration erstellt. Sie ist keine
+automatisch vom Provisioner auf bestehende Ziele geschriebene Besitzbehauptung.
+
+| Spalte | Typ | Regel |
+|---|---|---|
+| applicationid | text(64) ! | PK, genau eine Zeile mit WawiCallPro.Communications |
+| formatversion | i32 ! | Zunächst 1, unabhängig von der FluentMigrator-Schemaversion |
+| createdatutc | utc ! | Zeitpunkt der erstmaligen Initialisierung |
+
+Metadaten liegen unter main (SQLite), dbo (SQL Server), der Zieldatenbank (MySQL) beziehungsweise public
+(PostgreSQL). Ein anderes ApplicationId, fehlende/mehrfache/ungültige Kennungszeilen oder unerwartete
+Objekte außerhalb des Zielschemas werden nicht als aktuelle eigene Datenbank behandelt. Ein höheres
+Metadatenformat wird als neuerer Stand abgewiesen. Ohne Kennung werden Datenbanken mit fremden Tabellen
+vor Runnererzeugung gesperrt. Ein vollständig leerer SQLite-Bestand oder eine leere versioninfo ohne
+Fachtabellen ist als Initialisierungszustand erkennbar; das Lesen legt die Kennung nicht an.
+Für leere Serverziele verlangt der Migrator zusätzlich den prozesslokalen Create-Nachweis für dasselbe
+Zielobjekt. Damit wird ein mangels Katalogrechten unsichtbarer Fremdbestand nicht versehentlich initialisiert.
+Eine ausdrückliche Freigabe von DBA-vorbereiteten leeren Serverdatenbanken gehört zur Rechteprüfung in Punkt 5.
 
 ### Version 1: companies
 

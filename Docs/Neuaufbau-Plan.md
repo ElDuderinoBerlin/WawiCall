@@ -247,6 +247,7 @@ weiter SQL Anywhere unterstützen muss, erhält dies einen eigenen nachgewiesene
 | `numberparselogs` | Ungültige Quellnummern mit Produkt-/Mandanten-/Datensatzbezug und Fehlergrund |
 | `mailmessages` / `mailattachments` | Späterer Office-Ausbau: eindeutige Connector-ID, Beteiligte, Inhalt/Metadaten und Anhangsverweise |
 | FluentMigrator-Versionsinformationen | Ausschließlich Versionsverwaltung des neuen WawiCallPro-Schemas |
+| `wawicallpro_metadata` | Eigentumskennung der eigenen Kommunikationsdatenbank, Metadatenformat und Initialisierungszeit; Teil der ersten Migration |
 
 Das genaue Spaltenschema ist seit Phase 3, Punkt 1 in [Datenbankschema.md](Datenbankschema.md) festgelegt.
 Technische IDs, Fremdschlüssel,
@@ -513,7 +514,23 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Neue Schema-Markdowndatei einmal im Docs-Solutionordner referenziert und in Rider geöffnet.
   Logs: `.artifacts/phase3-item1`. Keine UI-Änderung; keine neue Renderprüfung nötig.
   Noch keine Provider, Migrationen, tatsächlichen CAS-/Rollback- oder SQL-Constrainttests; die Phase bleibt offen.
-- [ ] Eigene `DatabaseType`, `DatabaseFactory`, `DatabaseProvisioner`, Migrator-, Status- und Fortschrittsdienste erstellen.
+- [x] Eigene `DatabaseType`, `DatabaseFactory`, `DatabaseProvisioner`, Migrator-, Status- und Fortschrittsdienste erstellen. ✅
+  Nachweis: validierte und redigierte Datenbankziele, vier echte geschlossene ADO-Treiber, getrennte
+  Create-only-Provisionierung und lesender Metadatenstatus ohne Runner/VersionLoader. Normales Öffnen
+  einer SQLite-Verbindung erzeugt keine Datei; Status erzeugt weder Datenbank noch versioninfo.
+  Reservierte Systemdatenbanken und Attach-Ziele werden abgewiesen, Fehler enthalten keine Providertexte.
+  Fremd-/Metadatenformat-/Versionsprüfungen vor Migrationen; Eigentumskennung ist verbindlich für Migration 1
+  ergänzt. Leere Serverziele benötigen den Nachweis einer ausdrücklichen Neuanlage desselben Zielobjekts.
+  Migratorsteuerung verwendet eine explizite synchrone Runner-Adapterschnittstelle, prüft jeden bestätigten
+  Versionsschritt und wartet einen begonnenen Schritt bei Abbruch vollständig ab. Fortschritt/Fehler sind
+  feste Phasen/Codes; leerer Migrationskatalog und wirkungslose Adapter melden keinen Erfolg.
+  ADO-Pakete entsprechend LxTranslate eingebunden; die FluentMigrator-Pakete/Adapter bleiben Punkt 3.
+  Je 127 Tests bestanden, davon 34 Datenbanktests einschließlich 22 neuer Dienstprüfungen mit echten
+  isolierten SQLite-Dateien und einem ausdrücklich testinternen Migrationsadapter. Database, App und
+  Console beider Varianten in Debug ohne Warnungen/Fehler gebaut; vier Hoststarts und Runtime-/MMS-/
+  Produktlinien-/Solution-Prüfung erfolgreich. Logs: `.artifacts/phase3-item2`. Keine UI-Änderung/Renderprüfung.
+  Echte Serververbindungen/-Provisionierung, anbieterübergreifende Migrationssperre, produktive Migrationen
+  und Host-/Console-Anbindung sind noch offen. Die bekannte Bootstrap-/CI-Grenze bleibt bestehen.
 - [ ] FluentMigrator-Pakete/Runner für SQLite, SQL Server, MySQL und PostgreSQL kompatibel zum Referenzstand einbinden.
 - [ ] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen.
 - [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.

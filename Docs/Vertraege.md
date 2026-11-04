@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 3, Punkt 1 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -126,8 +126,9 @@ in derselben Transaktion. Office-Tabellen bleiben der späteren Office-Phase vor
 
 `ICompanyRepository`, `IPartyCacheRepository`, `ICallRepository`, `ICallNoteRepository`,
 `IRecordingRepository` und `INumberParseLogRepository` beschreiben ausschließlich die eigene
-Kommunikationsdatenbank. Es gibt noch keine Provider-/Dapper-Implementierung oder DI-Registrierung.
-Die Vertragsassembly enthält keine SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
+Kommunikationsdatenbank. Seit Punkt 2 bestehen die ADO-Infrastrukturdienste; konkrete Repositories und
+die Datenbank-DI-Registrierung im Host fehlen noch. Die Repository-Verträge enthalten keine
+SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
 Interfaces und Telephony, um die vorhandenen Snapshotregeln des Gesprächsautomaten wiederzuverwenden;
 dadurch wird weder ein Gespräch gestartet noch ein anderer Zustandsautomat eingeführt.
 
@@ -152,6 +153,62 @@ Datensätze, Identitätskollisionen, fremden Besitz und geänderte bereits gespe
 Reale Transaktionen, Konkurrenzkonflikte, UTC-/Unicode-SQL-Rundläufe und Fremdschlüssel werden erst mit
 den Provider-/Repository-Implementierungen getestet. Die vorliegenden Vertragsprüfungen nehmen diese
 Abnahme nicht vorweg.
+
+## Datenbankziele, Provisionierung und Migrationssteuerung
+
+`DatabaseType` unterscheidet Sqlite, SqlServer, MySql und PostgreSql. `DatabaseTarget` prüft den
+absoluten SQLite-Dateipfad beziehungsweise eine Server-Verbindungszeichenfolge mit explizitem Datenbanknamen.
+Systemdatenbanken, AttachDBFilename/UserInstance, unendliche Fristen, Alternate-Data-Streams und ungültige
+Namen werden abgewiesen. Ziele verwenden 1–300 Sekunden für Öffnung/Befehle. Serverkonfiguration wird
+mit dem tatsächlichen Treiberbuilder gelesen; seine internen Werte dürfen nicht als Diagnose erscheinen.
+ToString/JSON eines Targets geben nur Providertyp und Fristen frei. DPAPI-Entschlüsselung und Übergabe
+aus den Einstellungen werden erst bei der Hostanbindung ergänzt; Zielobjekte sind operationsgebunden.
+
+`DatabaseFactory` erzeugt geschlossene Microsoft.Data.Sqlite-, Microsoft.Data.SqlClient-, MySqlConnector-
+und Npgsql-Verbindungen. Der Aufrufer besitzt und entsorgt die Verbindung; deren ADO-ConnectionString ist
+die bewusste Klartextgrenze und darf nicht protokolliert/serialisiert werden. SQLite verwendet ohne Pooling
+ReadWrite für vorhandene Daten beziehungsweise ReadOnly für Status. Der Status aktiviert kein WAL und
+übernimmt nicht die schreibenden Open-Callbacks des LxTranslate-Optimizers. Die gewählten Modi verhindern
+automatisches Anlegen; SQLite-Await-APIs allein bewirken kein asynchrones I/O. Die SQLite-Infrastruktur
+wird deshalb ausdrücklich in abgewarteter Hintergrundarbeit ausgeführt.
+[SQLite-Verbindungsmodi](https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/connection-strings),
+[SQLite-Async-Grenzen](https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/async)
+
+`DatabaseProvisioner.CreateAsync` ist ausschließlich eine ausdrückliche Neuanlage. SQLite-Dateien werden
+mit CreateNew vor Überschreiben geschützt und erhalten einen leeren SQLite-Header, keine Fach-/
+Versionstabellen. Server verwenden CREATE DATABASE über eine getrennte Wartungsverbindung; Bezeichner
+werden providerbezogen gequotet. Ein bestehendes Ziel wird nicht übernommen, geleert oder gelöscht.
+Erfolgreiche Neuanlage liefert einen `DatabaseCreation`-Nachweis für genau dieses Zielobjekt. Bei Abbruch
+nach bereits erfolgter Anlage kann ein leerer Bestand zurückbleiben; Abbruch darf keinen Rollback einer
+nichttransaktionalen Server-DDL vortäuschen. Kein automatisches Löschen als Fehlerbehandlung.
+
+`DatabaseStatusService` liest Objektkatalog, die festgelegte Eigentumskennung wawicallpro_metadata und
+versioninfo direkt. Er erzeugt weder Datenbank noch Kennungs-/Versionstabelle und löst keinen Runner auf.
+Fehlende Datei, leerer Bestand, fehlende Migrationsdefinitionen, ausstehende Versionen, aktuell, neuer,
+fremd, widersprüchlich und Verbindungsfehler sind getrennte Zustände. Bei SQL Server/MySQL ist ein
+unsichtbarer Datenbankname ausdrücklich MissingOrInaccessible, keine bewiesene Nichtexistenz.
+Ein leerer realer Migrationskatalog wird niemals als aktuell ausgegeben. Die reine Leseprüfung wurde an
+ruhenden SQLite-Dateien durch unveränderte Dateihashes und Inventare geprüft; aktive WAL-Datenbanken
+können durch den SQLite-Leser eigene Lock-/Shared-Memory-Dateien benötigen. Das ersetzt keine spätere WAL-/Sicherungsprüfung.
+
+`DatabaseMigrator` steuert `IDatabaseMigrationEngine`, den Anschluss für den synchronen Standard-
+FluentMigrator-Runner aus Punkt 3. Der Adapter darf den Runner erst nach dem Status-/Eigentumspreflight
+im MigrateUp-Aufruf erzeugen. Fehlende/fremde/neuere Ziele werden nicht migriert; Provisionierung ist
+ein eigener Aufruf. Bei leeren Serverzielen ist zusätzlich der Create-Nachweis erforderlich. Nach jedem
+Schritt müssen die tatsächlich gespeicherten Versionen genau den erwarteten Katalogpräfix bestätigen.
+Es gibt keinen Down-Aufruf und keinen automatischen erfolgreich meldenden Ersatzadapter.
+
+`DatabaseMigrationProgress` enthält feste Phase, Version sowie erledigte/gesamte Schritte. Logging nutzt
+nur diese Metadaten und feste Fehlercodes. Der Migrator verwirft rohe Provider-/Adaptermeldungen beim
+Übergang zum `DatabaseOperationException`, einschließlich innerer Ausnahmen. Laufender synchroner Runnercode
+wird bei Benutzerabbruch vollständig abgewartet; Abbruch greift zwischen sicheren Schritten und meldet
+keinen vollständigen Erfolg. Überlappende Aufrufe derselben Dienstinstanz werden mit MigrationBusy
+abgewiesen. Dies ist noch keine Sperre zwischen Prozessen oder verschiedenen Instanzen; diese bleibt Punkt 5.
+
+Die Dienste sind noch nicht in App/Console registriert und öffnen dort keine Datenbank beim Start.
+Die 22 neuen Dienstprüfungen verwenden echte SQLite-Dateien sowie einen testinternen transaktionalen
+Adapter, keine WawiCallPro-Migrationen 1–5. ADO-Treiber und ihre Syntax sind vorhanden; tatsächliche
+SQL-Server-/MySQL-/PostgreSQL-Umgebungen, FluentMigrator-Adapter und Fachschema sind noch nicht abgenommen.
 
 ## Host und Plugins
 
@@ -383,8 +440,9 @@ in Phase 8/9. In diesem Block werden weder Controls umgebaut noch Audiogeräte g
 PostgreSql. SQLite nutzt einen lokalen Dateinamen ohne Verzeichnispfad; `null` steht für `communications.db`
 unter dem Konfigurationsverzeichnis. Server-Provider verlangen eine DPAPI-geschützte Verbindungszeichenfolge
 mit dem eigenen Zweck `communications-database-connection-string`; SIP-Kennworthüllen sind dafür ungültig.
-Dateiname und Server-Zeichenfolge schließen sich aus. Die tatsächlichen Provider, das Prüfen ihrer
-Verbindungsstring-Syntax sowie Zugriffe/Migrationen gehören zur Datenbankphase 3. Ein gespeicherter Provider
+Dateiname und Server-Zeichenfolge schließen sich aus. Die ADO-Factory aus Phase 3, Punkt 2 kann Syntax
+expliziter Datenbankziele prüfen; die Einstellungsprüfung nutzt diese Verbindungskomponente noch nicht.
+Migrationen und tatsächliche Hostzugriffe folgen weiter in Phase 3. Ein gespeicherter Provider
 ist noch kein Nachweis eines implementierten oder erreichbaren Datenbankservers.
 
 `ConfigurationStore` liest `connection.local.json` standardmäßig unter

@@ -96,14 +96,28 @@ geprüfte LxTranslate-Vorlage für SDK/CLI 1.2.161, Host-/Hookintegration, Paket
 im bestehenden `scripts/`-Ordner, finale Strip-/Signierreihenfolge und getrennte lokale/Remote-Stufen.
 Plan, Build-Dokumentation und Vertraege sind verknüpft; neue Datei im Docs-Solutionordner und in Rider.
 Phase 14 ist entsprechend konkretisiert, die eigentliche Umsetzung bleibt offen. Kein Referenzskript,
-Produktbuild, Installer oder Upload wurde für diesen Planungsblock ausgeführt. Nächster Fachpunkt bleibt 3.2.
+Produktbuild, Installer oder Upload wurde für diesen Planungsblock ausgeführt.
+
+Phase 3, Punkt 2 ist ebenfalls abgeschlossen: vier geschlossene ADO-Treiber, validierte redigierte
+DatabaseTargets, ausdrückliche Create-only-Provisionierung, lesender Status ohne VersionLoader und
+Migrationssteuerung mit synchroner Runner-Adapterschnittstelle. Eigentumskennung wawicallpro_metadata
+für Migration 1 im Schema ergänzt. Fremde/neuere/inkonsistente Bestände werden gesperrt, ein leerer
+Migrationskatalog liefert keinen Erfolg. Leere Serverziele benötigen den Create-Nachweis desselben Zielobjekts.
+Abbruch wartet einen begonnenen Schritt ab; Fortschritt/Fehler enthalten feste Phasen/Codes.
+Je 127 Tests bestanden, davon 34 Datenbanktests inklusive 22 neuer Dienstprüfungen mit echten SQLite-
+Dateien und einem testinternen Adapter. Database, App und Console beider Varianten in Debug ohne
+Warnungen/Fehler gebaut; vier Hoststarts und Runtime-/MMS-/Produktlinien-/Solution-Prüfung bestanden.
+Logs: `.artifacts/phase3-item2`. Keine UI-Änderung. Server-I/O/-Provisionierung, prozessübergreifende
+Migrationssperre, tatsächlicher FluentMigrator-Adapter, Fachmigrationen und Hostanbindung bleiben offen.
+Die bekannte Bootstrap-/CI-Abweichung und die Velopack-Planung bleiben erhalten.
 
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 3, Punkt 2: eigene DatabaseType-/Factory-/Provisioner-/Migrator-/Status-/Fortschrittsdienste.
-Vorher das neue Schema und die Repository-Verträge lesen; vorhandene LxTranslate-Referenz nutzt
-FluentMigrator 8.0.1. Providerpakete und die eigentlichen Migrationen sind weiterhin getrennte Planpunkte.
+Als Nächstes Phase 3, Punkt 3: FluentMigrator-Pakete/Runner für die vier Provider und den tatsächlichen
+IDatabaseMigrationEngine-Adapter einbinden. Vorhandene LxTranslate-Referenz nutzt FluentMigrator 8.0.1.
+Vorher aktualisiertes Schema und Infrastrukturdienste lesen; produktive Migrationen 1–5 bleiben Punkt 4,
+Rechte-/Migrationssperren Punkt 5. Keine Runnererzeugung in der reinen Statusabfrage.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes
 SIP-Konto, keine erfolgreiche Registrierung/Verbindung. Die neuen Benutzer-/Gerätepräferenzen und DB-Tokens

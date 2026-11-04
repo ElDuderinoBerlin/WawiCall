@@ -133,17 +133,25 @@ Skripttests, Installationen oder Uploads ausgeführt; die Umsetzung bleibt Phase
 ## Datenbankverträge und Tests
 
 Die Datenbankschema-/Repository-Verträge aus Phase 3, Punkt 1 stehen in `Docs/Datenbankschema.md` und
-`WawiCallPro.Database.Contracts`. `WawiCallPro.Database.Tests` prüft die Speicherwertkodierungen und
-Schreibanträge ohne angelegte Datenbank. Noch keine FluentMigrator-/Dapper-Implementierung oder neue
-Datenbank-DI-Registrierung. Beide Hosts starten deshalb weiterhin ohne Kommunikationsdatenbank.
+`WawiCallPro.Database.Contracts`. Seit Punkt 2 bestehen Factory, Create-only-Provisioner, Status und
+Migrationssteuerung. Der aktuelle Treiberstand entspricht der geprüften LxTranslate-Referenz:
+Microsoft.Data.Sqlite 10.0.14, SQLitePCLRaw.bundle_e_sqlite3 3.0.5, Microsoft.Data.SqlClient 7.1.1,
+MySqlConnector 2.6.2, Npgsql 10.0.3; Pkcs ist auf 10.0.14 festgelegt.
+`WawiCallPro.Database.Tests` prüft Speicherwerte/Schreibanträge sowie Dienste an isolierten SQLite-Dateien.
+Die vier Treibertypen werden geschlossen erzeugt, Serververbindungen/-Provisionierung sind noch offen.
+Noch keine FluentMigrator-/Dapper-Implementierung oder Datenbank-DI-Registrierung im Host. Beide Hosts
+starten deshalb weiterhin ohne Kommunikationsdatenbank. Der testinterne Migrationsadapter ist keine
+Produktmigration und kein Nachweis der neuen Migrationen 1–5.
 
 ```powershell
 dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=Pro
 dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 ```
 
-Die aktuelle Prüfung umfasst je 105 Tests pro Variante einschließlich zwölf neuer Datenbank-Vertragstests
-und Debug-Builds von Database, App und Console. Protokolle: `.artifacts/phase3-item1`.
+Die aktuelle Prüfung umfasst je 127 Tests pro Variante einschließlich 34 Datenbanktests
+(zwölf Vertrags- und 22 Dienstprüfungen) und Debug-Builds von Database, App und Console.
+Protokolle: `.artifacts/phase3-item2`. Vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-Prüfungen
+bestanden; App-/Console-Start erzeugt weiterhin nur Betriebslogs. Keine UI-/Renderänderung.
 
 ## Abhängigkeiten und CI
 
