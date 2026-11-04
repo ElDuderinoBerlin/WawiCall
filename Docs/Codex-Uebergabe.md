@@ -27,6 +27,15 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 
 ## Aktueller Stand
 
+Phase 3 ist vollständig abgeschlossen und lokal auf SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9
+und PostgreSQL 17.9 abgenommen. Aktueller Endnachweis: je 244/244 Tests für Pro/FinOffice,
+zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Abnahmeläufe für beide
+Produktlinien einschließlich realer Fehler/Wiederanläufe, Prozessgrenzen, DI-Host und Backup/Restore.
+Logs `.artifacts/phase3-item10`; alle eigenen Testinstanzen beendet. Migrationen 1–7 bestehen,
+Migrationen 1–6 wurden nach ihrem Abschluss nicht geändert. Jeder Checklistenpunkt wurde separat committed.
+Der reguläre nächste Planpunkt ist Phase 4; noch nicht begonnen. Die folgenden früheren Nachweise
+beschreiben jeweils den damaligen Einzelstand, nicht offene Phase-3-Arbeit.
+
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben ursprüngliche Checklistenpunkte und den Tools-Nachtrag.
 Phase 2 ist einschließlich ihrer lokalen Abnahme abgeschlossen: gemeinsame Fach-/Host-/Plugin-Verträge in
 `WawiCallPro.Interfaces`, Gesprächszustandsautomat in `WawiCallPro.Telephony`, Mandantenarbeitsbereiche
@@ -148,20 +157,20 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
-Aktueller Auftrag: Phase 3 vollständig abschließen, jeden offenen Checklistenpunkt einzeln prüfen und
-committen. Punkt 6 ist fertig: Migration 6 mit unabhängigen Kandidatenfirmen, Auswahl-FK, Match-/Suchstand-
+Der Auftrag, Phase 3 vollständig abzuschließen, ist erledigt. Punkte 1–10 sind einzeln geprüft und
+committed; der nächste reguläre Planpunkt ist Phase 4. Rückblick auf Punkt 6: Migration 6 mit unabhängigen Kandidatenfirmen, Auswahl-FK, Match-/Suchstand-
 Snapshots und versionierten Firmenprofilen/Organisationsblöcken. Alte Identität aus Gesprächsfirma
 nachgetragen, nicht vorhandene historische Firmennamen bleiben null. Acht neue Datenbanktests,
 je 225 Tests in Pro/FinOffice sowie Debug-/Hostprüfungen und native Daten-Upgrades auf SQL Server/
 MySQL/PostgreSQL bestanden. Nachweise `.artifacts/phase3-item6`. Eingefrorene Migrationen 1–5 unverändert.
-Nächster Punkt: sieben Dapper-Repositories, anschließend Sicherung, Host/Console und Gesamtabnahme.
+Die damals folgenden Punkte 7–10 (Dapper, Sicherung, Host/Console und Gesamtabnahme) sind ebenfalls abgeschlossen.
 Keine laufenden Testserver. Punkt 5 ist ebenfalls fertig: native Serversperren und SQLite-Sidecar, abbrechbare Wartefrist,
 Neulesen des Status unter der Sperre, Rechteprüfung und explizite DBA-Leerzielfreigabe. Fremde Routinen
 zählen als Fremdbestand; keine Freigabe ohne volle Metadatensicht. Separater TestWorker für echte
 Prozessgrenzen in der Solution, keine Produktabhängigkeit darauf. Sechs neue Tests, je 217 Tests in
 Pro/FinOffice, acht Debug-Builds, vier Hoststarts und native SQL-Server-/MySQL-/PostgreSQL-Prüfungen
 bestanden; `.artifacts/phase3-item5`. Instanzen gestoppt/entfernt.
-Phase 6/StartWidth bleibt während dieses ausdrücklich priorisierten Phase-3-Auftrags zurückgestellt.
+Phase 6/StartWidth wurde während dieses ausdrücklich priorisierten Phase-3-Auftrags zurückgestellt und bleibt offen.
 
 Neue Nutzeranforderung zur Aufnahme: `WawiCallPro_old/TestCSCoreRecording` mit WavMixer, SimpleMixer,
 SoundRecorder und WavToMp3Converter geprüft. Ziel: beide Gesprächsseiten zeitlich ausgerichtet als PCM-WAV,
@@ -267,8 +276,12 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Aktiver Nutzerauftrag: Phase 3 vollständig abschließen. Punkte 1–9 sind abgeschlossen; als Nächstes
-Punkt 10 Gesamtabnahme. Bis dahin Phase 3 nicht insgesamt als abgeschlossen melden.
+Nutzerauftrag erfüllt: Phase 3 einschließlich Punkt 10 ist vollständig abgeschlossen und lokal abgenommen.
+Je 244/244 Tests, zwölf Debug-Builds, vier Diagnose- und 26 Console-Datenbankprozesse sowie native
+Pro-/FinOffice-Läufe bestanden; `.artifacts/phase3-item10`. Reproduzierbare native Gesamtabnahme:
+scripts/test-database-backup.ps1 -FullAcceptance -LexwareProductLine Pro beziehungsweise FinOffice.
+Der zusätzliche Regressionstest prüft mehrere Gesprächsübergänge mit demselben Zeitstempel und
+wiederholte Ereignisse. Nächster regulärer Schritt ist Phase 4, kein verbleibender Phase-3-Punkt.
 Sieben Dapper-Repositories und neue Migration 7 (Cache-Parser-/Kontextstand) sind geprüft;
 je 231 Tests und native Repository-Szenarien auf allen vier Providern, `.artifacts/phase3-item7`.
 Migrationen 1–7 nicht rückwirkend ändern. Beide Hosts registrieren alle sieben Repositories,

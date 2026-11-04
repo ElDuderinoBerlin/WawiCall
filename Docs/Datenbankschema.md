@@ -1,6 +1,6 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–9. Die Migrationen 1–7 sind implementiert.
+Stand: 04.11.2026, Phase 3 vollständig abgeschlossen. Die Migrationen 1–7 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
@@ -500,7 +500,7 @@ Quellen: [Microsoft.Data.Sqlite Online Backup](https://learn.microsoft.com/dotne
 [MySQL 8.4 mysqldump](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html),
 [PostgreSQL 17 pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html).
 
-## Prüfnachweis und noch offene Abnahme
+## Prüfnachweis
 
 Zwölf Tests prüfen unabhängig berechnete Hashvektoren, Identitätstrennung einschließlich Rand-Leerzeichen/
 Unicode, UTC-Einzelticks, kanonische GUIDs, vollständige Cacheanträge, gemeinsame Nummern, getrennte
@@ -541,3 +541,17 @@ gemeldet und nicht durch eine neue ID pro Anruf ersetzt. Notizen nutzen Reposito
 Fachvertrag trägt noch keinen UI-Bearbeitungsstand, deshalb folgt UI-Konfliktbehandlung in Phase 8.
 Je 242 Tests, zwölf Debug-Builds und 30 echte Host-/Console-Prozessprüfungen bestanden;
 `.artifacts/phase3-item9` und scripts/test-database-console.ps1.
+
+Die Gesamtabnahme in Punkt 10 ergänzt einen identischen Ablauf auf allen vier Providern: echter Fehler
+der Produktmigration 6 an unmöglichem Altbestand, unveränderter Versionsstand 5, Reparatur und Upgrade
+mit historischen Daten auf Version 7; wiederholte Migration/Status ohne Inhaltsänderung, Zukunfts- und
+Fremdschema ohne Übernahme, zwei echte Prozesse mit Timeout/Abbruch und Freigabe nach Prozessabbruch.
+Ein zusätzlicher Regressionstest und dieselben nativen Prüfungen bestätigen mehrere zulässige
+Gesprächsübergänge mit identischen UTC-Zeitstempeln und idempotent wiederholten Ereignissen.
+Notizen und Aufnahmen behalten ihren Gesprächsbesitz. Native Läufe je Pro/FinOffice prüfen zusätzlich
+DPAPI-Konfiguration und wirkliche DI-Hosts mit Herkunft/Historie sowie Backup/Restore aller 15 Tabellen.
+Aufruf: scripts/test-database-backup.ps1 -FullAcceptance -LexwareProductLine Pro|FinOffice.
+Je 244/244 Tests, zwölf Debug-Builds und 30 Host-/Console-Prozessprüfungen erfolgreich;
+`.artifacts/phase3-item10`. Keine Migration 1–6 geändert, keine vorhandenen Lexware-Bestände verwendet.
+Alle eigenen Testinstanzen beendet und Datenverzeichnisse nach Pfad-/Prozessprüfung entfernt.
+Phase 3 ist lokal abgenommen; die unabhängige Bootstrap-/Remote-CI-Grenze bleibt dokumentiert.

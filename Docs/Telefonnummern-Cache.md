@@ -328,10 +328,11 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
 - CallerLookupSnapshot/PhoneNumberMatchEvidence erfassen Suchfirmen, vollständigen/fehlenden Cache,
   Parser-/Regel-/Cacheversionen, Trefferart, angewendete Präfixgrenze und Auswahlgrund. PhoneMatchingSettings
   und PhoneNumberBlockRule modellieren firmenbezogene Aktivierung/StartWidth sowie bestätigte/vermutete
-  Organisationsblöcke. Der IPhoneMatchingRepository-Vertrag ist vorhanden, seine Implementierung folgt.
+  Organisationsblöcke. IPhoneMatchingRepository ist mit Dapper implementiert und gemeinsam mit
+  dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Hostanbindung der geprüften Cache-/Regel-Repositories,
+SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, fachliche Nutzung der registrierten Cache-/Regel-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

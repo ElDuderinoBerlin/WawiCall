@@ -1,3 +1,8 @@
+param(
+    [switch]$FullAcceptance,
+    [ValidateSet('Pro','FinOffice')][string]$LexwareProductLine = 'Pro'
+)
+
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot
 $audit = Join-Path $repositoryRoot ('.artifacts/backup-audit-' + [guid]::NewGuid().ToString('N'))
@@ -7,24 +12,34 @@ New-Item -ItemType Directory -Path $runner | Out-Null
 @'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../../WawiCallPro.Database.Tests/WawiCallPro.Database.Tests.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../WawiCallPro.Database.Tests/WawiCallPro.Database.Tests.csproj" />
+    <ProjectReference Include="../../../WawiCallPro.Utilities.Tests/WawiCallPro.Utilities.Tests.csproj" />
+  </ItemGroup>
 </Project>
 '@ | Set-Content -LiteralPath (Join-Path $runner 'Runner.csproj') -Encoding utf8
 @'
 using System.Text.Json;
 using WawiCallPro.Database;
 using WawiCallPro.Database.Tests;
+using WawiCallPro.Utilities.Tests;
 var configurations = JsonSerializer.Deserialize<AuditTarget[]>(File.ReadAllText(args[0]))!;
 foreach(var item in configurations)
 {
     var target = DatabaseTarget.Server(Enum.Parse<DatabaseType>(item.Type), item.ConnectionString, 5, 30);
     var factory = new DatabaseFactory(); var engine = new FluentMigratorEngine(target.Type);
     var receipt = await new DatabaseProvisioner(factory).CreateAsync(target);
-    var status = await new DatabaseMigrator(factory, engine).MigrateAsync(target, creation: receipt);
-    if(status.State != DatabaseSchemaState.Current) throw new Exception("Schema creation failed");
+    if(args[4] == "full") await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
+    else
+    {
+        var status = await new DatabaseMigrator(factory, engine).MigrateAsync(target, creation: receipt);
+        if(status.State != DatabaseSchemaState.Current) throw new Exception("Schema creation failed");
+    }
     await RepositoryAcceptance.CompaniesAndCacheAsync(target);
     await RepositoryAcceptance.HistoryAsync(target);
     await RepositoryAcceptance.RulesAsync(target);
+    await RepositoryAcceptance.ConcurrencyAsync(target);
+    if(args[4] == "full") await NativeHostAcceptance.RunAsync(target.Type, item.ConnectionString, args[1]);
     await ServerBackupAcceptance.RunAsync(target, args[1], args[2], args[3]);
 }
 internal sealed record AuditTarget(string Type, string ConnectionString);
@@ -82,7 +97,8 @@ try {
         @{Type='MySql';ConnectionString="Server=127.0.0.1;Port=$mysqlPort;Database=$database;User ID=root;SslMode=None"},
         @{Type='PostgreSql';ConnectionString="Host=127.0.0.1;Port=$pgPort;Database=$database;Username=wcp_audit;SSL Mode=Disable"}
     ) | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8
-    & dotnet run --project (Join-Path $runner 'Runner.csproj') -c Debug -- $config $audit $mysqlBin $pgBin
+    $mode = if ($FullAcceptance) { 'full' } else { 'backup' }
+    & dotnet run --project (Join-Path $runner 'Runner.csproj') -c Debug "-p:LexwareProductLine=$LexwareProductLine" -- $config $audit $mysqlBin $pgBin $mode
     if ($LASTEXITCODE -ne 0) { throw 'Server schema audit failed' }
 } finally {
     if ($mysqlProcess -and -not $mysqlProcess.HasExited) {

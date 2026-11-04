@@ -139,7 +139,16 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
         }
         var machine = new CallStateMachine(old);
         // A persistence batch can contain several accepted transitions. Event sequence and domain revision remain separate.
-        foreach (var entry in events.Where(entry => entry.OccurredAtUtc >= old.StateChangedAtUtc && entry.OccurredAtUtc < next.StateChangedAtUtc && entry.State != machine.Current.State))
+        var transitions = new List<CallEvent>();
+        var state = old.State;
+        foreach (var entry in events.Where(entry => entry.OccurredAtUtc >= old.StateChangedAtUtc && entry.OccurredAtUtc <= next.StateChangedAtUtc))
+        {
+            if (entry.State == state) continue;
+            transitions.Add(entry); state = entry.State;
+        }
+        if (transitions.Count > 0 && transitions[^1].State == next.State && transitions[^1].OccurredAtUtc == next.StateChangedAtUtc)
+            transitions.RemoveAt(transitions.Count - 1);
+        foreach (var entry in transitions)
         {
             if (machine.Current.Revision >= next.Revision - 1 || machine.Apply(new(machine.Current.Revision + 1, entry.State, entry.OccurredAtUtc)) != CallChangeResult.Applied)
                 throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);

@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 04.11.2026. Grundlage: lokale Quellcodeanalyse; noch keine Fachimplementierung.
+Stand: 04.11.2026. Phasen 0–3 abgeschlossen; die folgenden Produktphasen bleiben wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -507,7 +507,7 @@ das Abwarten gestarteter Worker sind getestet. Die dokumentierte Grenze unkooper
 Die bekannte Abweichung des lokalen Pcfk-Core-Commits und die ausstehende entfernte CI-Abnahme aus Phase 1
 werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
 
-### Phase 3 – Datenbank und FluentMigrator vollständig neu ⬜
+### Phase 3 – Datenbank und FluentMigrator vollständig neu ✅
 
 - [x] Tabellen, Schlüssel, UTC-Konventionen und Repository-Verträge aus Abschnitt 6 verbindlich ausarbeiten. ✅
   Nachweis: `Docs/Datenbankschema.md` definiert alle Tabellen der Versionen 1–5 einschließlich
@@ -641,13 +641,26 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Acht neue Tests, je 242 Tests, zwölf Debug-Builds, vier Diagnose-Hoststarts und 26 echte
   Console-Datenbankprozesse bestanden. Skript scripts/test-database-console.ps1; `.artifacts/phase3-item9`.
   App kann dieselben Dienste auflösen; ihre Einstellungs-/Fortschrittsoberfläche folgt in Phase 8.
-- [ ] Tests: leere Datenbank → aktuelles Schema; wiederholter Lauf unverändert; ältere Version → Upgrade mit Daten;
+- [x] Tests: leere Datenbank → aktuelles Schema; wiederholter Lauf unverändert; ältere Version → Upgrade mit Daten; ✅
   Migration scheitert → korrekter Status/Wiederanlauf; zwei Starts → wirksame Sperre; neuere Schema-Version → Abbruch;
   Statusabfrage ohne Nebenwirkungen; UTC, Unicode, Fremdschlüssel und Mandantentrennung.
+  Abschließender gemeinsamer Abnahmelauf für SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9 und PostgreSQL 17.9.
+  Produktmigration 6 mit fehlerhaftem Altbestand real zum Scheitern gebracht, Versionsstand 5 erhalten,
+  Altbestand korrigiert und erfolgreich auf 7 fortgesetzt; historische Daten und Einzelticks geprüft.
+  Wiederholte Migration/Status ohne Inhaltsänderung, Fremd-/Zukunftsschema abgewiesen, zwei echte Prozesse
+  mit Timeout/Abbruch und Freigabe nach Prozessverlust auf jedem Provider. Gleiche Zeitstempel mehrerer
+  Gesprächsübergänge korrigiert und mit wiederholten Ereignissen sowie Notiz-/Aufnahmebesitz geprüft.
+  Native Serverläufe für beide Produktlinien einschließlich DPAPI-/DI-Host, Herkunft, Historie und
+  vollständigem Backup/Restore. Reproduzierbar: scripts/test-database-backup.ps1 -FullAcceptance
+  -LexwareProductLine Pro beziehungsweise FinOffice. Alle Testinstanzen anschließend beendet.
+  Je 244/244 Tests, zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Datenbankprozesse und
+  Runtime-/MMS-/Produktlinien-/Solutionprüfungen erfolgreich; `.artifacts/phase3-item10`.
+  Migrationen 1–6 und ihre eingefrorenen Definitionen bleiben unverändert. Keine WinForms-UI geändert.
 
-Abnahme: Alle vier Provider werden gegen echte isolierte Testdatenbanken geprüft. SQLite ist lokal automatisch
-prüfbar; fehlende Server-Testumgebungen werden als offene Abnahme geführt und nicht als grün markiert.
-Database-Projekt und beide Hosts bauen in Debug. Kein WawiCallPro-Schema landet in einer Lexware-Datenbank.
+Abnahme erfüllt: Alle vier Provider wurden gegen eigene isolierte Testdatenbanken geprüft.
+Database-Projekt und beide Hosts bauen in Debug für Pro und FinOffice; Lexware-Quelldatenbanken wurden
+nicht verwendet. Server-Backup/Restore ist als administratives Verfahren geprüft; die spätere App-Oberfläche
+und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/Remote-CI-Grenze aus Phase 1 bleibt bestehen.
 
 ### Phase 4 – Quantarix-Plugin-Laufzeit integrieren ⬜
 
@@ -894,7 +907,7 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   konkrete Skripte unter `scripts/`, lokaler Releaseablauf und gestufte Veröffentlichung mit Feed-Erhalt.
   Neue Markdowndatei im Docs-Solutionordner referenziert und in Rider geöffnet; Quellen, Links, Solution
   und Git-Diff geprüft. Reiner Planungsblock: keine Skripte ausgeführt, kein neuer Build-/Installationsnachweis.
-  Die folgenden Implementierungs-/Abnahmepunkte bleiben offen; der nächste reguläre Schritt bleibt Phase 3, Punkt 2.
+  Die folgenden Implementierungs-/Abnahmepunkte bleiben offen; Phase 3 ist abgeschlossen, der nächste reguläre Schritt ist Phase 4.
 - [ ] Velopack-SDK und lokale vpk-CLI gemeinsam pinnen; eigenes Toolmanifest mit Restore-/Versionsprüfung einbinden.
 - [ ] App-Einstieg mit frühem Velopack-Run, schlanker NoInlining-Grenze und UI-freien FastCallbacks umsetzen;
   automatische Anwendung beim Start ausdrücklich deaktivieren und Hook-/Diagnoseabläufe testen.

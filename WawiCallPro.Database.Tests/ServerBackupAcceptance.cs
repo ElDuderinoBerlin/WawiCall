@@ -124,7 +124,7 @@ public static class ServerBackupAcceptance
         }
     }
 
-    private static async Task<string[]> SnapshotAsync(DatabaseTarget target)
+    internal static async Task<string[]> SnapshotAsync(DatabaseTarget target)
     {
         await using var db = new DatabaseFactory().CreateConnection(target, readOnly: true); await db.OpenAsync();
         var result = new List<string>();

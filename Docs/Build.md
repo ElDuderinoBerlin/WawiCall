@@ -218,6 +218,20 @@ scripts/test-database-console.ps1 (nach Builds) und scripts/test-database-backup
 Nachweise `.artifacts/phase3-item9`, `.artifacts/database-console-*`, `.artifacts/backup-audit-*`.
 Keine geänderte WinForms-Oberfläche und daher keine neue Layout-/Renderprüfung erforderlich.
 
+Phase 3 ist inzwischen vollständig abgenommen. Abschließender Stand: je 244/244 Tests für Pro/FinOffice,
+zwölf Debug-Builds, vier Diagnose-Hoststarts und 26 Console-Datenbankprozesse. Die native Gesamtabnahme
+einschließlich Upgrade/realem Fehler/Wiederanlauf, Fremd-/Zukunftsschema, zwei Prozessen, DI-Host und
+Backup/Restore läuft für jede Produktlinie mit:
+
+```powershell
+.\scripts\test-database-backup.ps1 -FullAcceptance -LexwareProductLine Pro
+.\scripts\test-database-backup.ps1 -FullAcceptance -LexwareProductLine FinOffice
+```
+
+Beide Läufe auf eigenen SQL-Server-/MySQL-/PostgreSQL-Instanzen bestanden; SQLite verwendet denselben
+Abnahmeablauf in Database.Tests. Nachweise: `.artifacts/phase3-item10`. Alle eigenen Instanzen wurden beendet.
+Diese lokale Abnahme ändert die folgende Bootstrap-/Remote-CI-Grenze nicht.
+
 ## Abhängigkeiten und CI
 
 `bootstrap.ps1` klont nur fehlende Schwester-Repositories und verwendet dann die im Manifest fixierte Revision.

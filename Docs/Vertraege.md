@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–9 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3 vollständig und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -315,16 +315,16 @@ Eindeutigkeit. Die Format-/Längenregeln der Schreibverträge bleiben zusätzlic
 
 Jedes gespeicherte Gespräch erhält `workstationid`, `machinename` und `windowsusername`. Die beiden
 Namen sind Momentaufnahmen bei Gesprächsbeginn. Das Windows-Konto enthält das Domänen-/PC-Präfix und
-ist vom SIP-/Lexware-Benutzer unabhängig. Die zusätzliche eigene Arbeitsplatz-GUID soll bei Einrichtung
-einmal erzeugt und dauerhaft für App/Console gespeichert werden. Aktuell gibt es dafür Schema und
-Vertrag; automatische Erzeugung, gemeinsame Ablage und Betriebssystemerfassung folgen mit dem Host.
-Die ID wird weder bereits aus Windows gelesen noch pro Gespräch neu erzeugt.
+ist vom SIP-/Lexware-Benutzer unabhängig. Die zusätzliche eigene Arbeitsplatz-GUID wird seit Punkt 9
+bei ausdrücklicher Einrichtung einmal atomar gespeichert und von App/Console desselben lokalen Profils
+verwendet. ICallOriginProvider erfasst PC und effektives Windows-Konto für ICallJournal.
+Die GUID wird weder aus Windows abgeleitet noch pro Gespräch neu erzeugt.
 
 `CallOrigin` validiert Identität und Namen. `CallWrite` verlangt Origin und übernimmt es in seinen
 unveränderlichen `CallSnapshot`; ein vorhandener anderer Ursprung wird abgewiesen. Persistierte
 Snapshots enthalten Origin auch in Historienseiten. PC-/Kontoumbenennung und spätere Notizbearbeitung
 ändern keine historischen Herkunftswerte. `CallHistoryQuery` enthält optionale gemeinsame Filter für
-Arbeitsplatz-ID, PC-Name und Windows-Konto; die spätere Repositoryimplementierung muss diese anwenden.
+Arbeitsplatz-ID, PC-Name und Windows-Konto; die Repositories wenden diese gemeinsam und ordinal an.
 Die Felder sind keine Zugriffsberechtigungen und gehören nicht ins bereinigte Betriebslogging.
 
 Je 155 Tests für Pro/FinOffice bestanden, darunter 60 Datenbank- und 13 Interfaceprüfungen. Echte SQLite-
@@ -336,7 +336,9 @@ Database, App und Console beider Varianten in Debug ohne Warnungen/Fehler gebaut
 Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Hosts erzeugen weiterhin nur
 Betriebslogs. Nachweise: `.artifacts/phase3-item4`. Seit Punkt 5 bestehen Rechteprüfung und
 prozessübergreifende Sperren mit echtem Zwei-Prozess-/Servernachweis; `.artifacts/phase3-item5`.
-Keine UI-Änderung. Sicherung, Dapper-Repositories und tatsächliche Hostpersistenz bleiben offen.
+Dieser Nachweis stammt aus Punkt 4/5. Seit Punkt 10 ist Phase 3 vollständig abgenommen:
+je 244/244 Tests und native Pro-/FinOffice-Läufe auf allen Providern einschließlich Hostpersistenz,
+Sicherung/Wiederherstellung und Prozessgrenzen bestanden, `.artifacts/phase3-item10`. Keine UI-Änderung.
 
 ## Host und Plugins
 
@@ -608,10 +610,11 @@ in Phase 8/9. In diesem Block werden weder Controls umgebaut noch Audiogeräte g
 PostgreSql. SQLite nutzt einen lokalen Dateinamen ohne Verzeichnispfad; `null` steht für `communications.db`
 unter dem Konfigurationsverzeichnis. Server-Provider verlangen eine DPAPI-geschützte Verbindungszeichenfolge
 mit dem eigenen Zweck `communications-database-connection-string`; SIP-Kennworthüllen sind dafür ungültig.
-Dateiname und Server-Zeichenfolge schließen sich aus. Die ADO-Factory aus Phase 3, Punkt 2 kann Syntax
-expliziter Datenbankziele prüfen; die Einstellungsprüfung nutzt diese Verbindungskomponente noch nicht.
-Migrationen und tatsächliche Hostzugriffe folgen weiter in Phase 3. Ein gespeicherter Provider
-ist noch kein Nachweis eines implementierten oder erreichbaren Datenbankservers.
+Dateiname und Server-Zeichenfolge schließen sich aus. Die Einstellungsprüfung nutzt seit Phase 3/Punkt 9
+die echten Providerbuilder ohne Verbindungsöffnung. Unzulässige Systemziele werden abgewiesen;
+Fremdbestände sperrt die gesonderte Eigentumsprüfung vor Migration/Repositoryzugriff.
+Migrationen und tatsächliche Hostzugriffe sind implementiert und separat abgenommen. Ein gespeicherter
+Provider allein ist weiterhin kein Nachweis eines erreichbaren Datenbankservers.
 
 `ConfigurationStore` liest `connection.local.json` standardmäßig unter
 `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>`. App und Console derselben Variante verwenden denselben Pfad.

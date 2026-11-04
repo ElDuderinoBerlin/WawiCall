@@ -21,6 +21,7 @@ public sealed class RepositoryIntegrationTests
     [TestMethod] public async Task CallHistoryRetainsCandidatesNotesRecordingsAndImmutableEvents() => await RepositoryAcceptance.HistoryAsync(await CreateAsync());
     [TestMethod] public async Task MatchingRulesIncrementAggregateRevisionAndSurviveCacheReplacement() => await RepositoryAcceptance.RulesAsync(await CreateAsync());
     [TestMethod] public async Task ParallelWritersHaveOneWinnerAndCancellationLeavesNoPartialCache() => await RepositoryAcceptance.ConcurrencyAsync(await CreateAsync());
+    [TestMethod] public async Task BatchedTransitionsWithIdenticalTimesAndReplayedEventsFollowDomainRules() => await RepositoryAcceptance.BatchedTransitionsAsync(await CreateAsync());
 
     [TestMethod]
     public async Task SourceHashMismatchAndReadOnlyFilesAreHandledWithoutProviderDetails()
@@ -197,5 +198,26 @@ public static class RepositoryAcceptance
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
         await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => new DapperPartyCacheRepository(context).ReplaceAsync(new(key, 0, [], Time), canceled.Token));
         Assert.AreEqual(0L, (await new DapperPartyCacheRepository(context).GetStateAsync(key)).Revision);
+    }
+
+    public static async Task BatchedTransitionsAsync(DatabaseTarget target)
+    {
+        var calls = new DapperCallRepository(new(target, new())); var origin = new CallOrigin(Guid.NewGuid(), "BATCH-PC", "DOMAIN\\Batch");
+        var call = new CallSnapshot { Id = Guid.NewGuid(), Revision = 0, State = CallState.Ringing, Direction = CallDirection.Incoming, LocalAddress = new(NumberPresentation.Unknown), RemoteAddress = new(NumberPresentation.Unknown), StartedAtUtc = Time, StateChangedAtUtc = Time };
+        await calls.WriteAsync(new(call, null, [], [], origin));
+        var connected = new CallEvent(Guid.NewGuid(), call.Id, 100, Time.AddTicks(1), "call.connected", CallState.Connected);
+        var held = new CallEvent(Guid.NewGuid(), call.Id, 200, Time.AddTicks(1), "call.held", CallState.Held);
+        var heldCall = call with { Revision = 2, State = CallState.Held, AnsweredAtUtc = Time.AddTicks(1), StateChangedAtUtc = Time.AddTicks(1) };
+        var saved = await calls.WriteAsync(new(heldCall, 1, [], [connected, held], origin));
+        Assert.AreEqual(heldCall with { Origin = origin }, saved.History.Call);
+        var resumed = new CallEvent(Guid.NewGuid(), call.Id, 300, Time.AddTicks(2), "call.resumed", CallState.Connected);
+        saved = await calls.WriteAsync(new(heldCall with { Revision = 3, State = CallState.Connected, StateChangedAtUtc = Time.AddTicks(2) }, 2, [], [connected, held, resumed], origin));
+        Assert.AreEqual(3, saved.History.Events.Length); Assert.AreEqual(3L, saved.History.Call.Revision);
+        var second = call with { Id = Guid.NewGuid() }; await calls.WriteAsync(new(second, null, [], [], origin));
+        var notes = new DapperCallNoteRepository(new(target, new())); var id = Guid.NewGuid(); await notes.WriteAsync(new(call.Id, id, "Owned", null, Time));
+        await Conflict(() => notes.WriteAsync(new(second.Id, id, "Moved", 1, Time)), RepositoryConflictKind.OwnershipMismatch);
+        var recording = new Recording(Guid.NewGuid(), call.Id, "recordings/missing.wav", "wav", null, RecordingAvailability.Pending);
+        var recordings = new DapperRecordingRepository(new(target, new())); await recordings.WriteAsync(new(recording, null, Time));
+        await Conflict(() => recordings.WriteAsync(new(recording with { CallId = second.Id }, 1, Time)), RepositoryConflictKind.OwnershipMismatch);
     }
 }

@@ -410,14 +410,17 @@ sind implementiert und auf allen vier Providern geprüft.
 Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
 hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
 
+Phase 3 ist vollständig abgenommen: sieben Dapper-Repositories, SQLite-Backup, geprüfte administrative
+Server-Restores sowie gemeinsame DI-/Console-Anbindung mit dauerhafter Arbeitsplatz-GUID und
+Gesprächsherkunft. Je 244 Tests in Pro/FinOffice und reale isolierte Prüfungen aller vier Provider bestanden.
+
 Noch offen sind insbesondere:
 
-- Gesamtabnahme von Phase 3/Punkt 10; sieben Dapper-Repositories, SQLite-Backup, geprüfte administrative Server-Restores und gemeinsame Host-/Console-Anbindung sind implementiert.
 - Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
 - Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.
 - DI-Anbindung der fehlenden Module und Interfaces für die bisher konkrete Zustandssteuerung.
-- SIPSorcery-/CSCore-Betrieb, Repository-/Hostpersistenz und Herkunftserfassung.
+- SIPSorcery-/CSCore-Betrieb und Anbindung seiner Ereignisse an die vorhandene Journal-/Historienpersistenz.
 
 Dieses Dokument legt die Architektur fest; es meldet die offenen Teile nicht als implementiert.
 Details: [Fachverträge](Vertraege.md), [Umsetzungsplan](Neuaufbau-Plan.md),
