@@ -99,6 +99,21 @@ public sealed class PersistenceHostTests
     }
 
     [TestMethod]
+    public async Task IdentityReadWaitsForTransientWindowsSharingLockWithoutReplacingTheIdentifier()
+    {
+        var identity = new WorkstationIdentity(Paths); var expected = await identity.InitializeAsync();
+        Task<Guid?> read;
+        using (var blocked = new FileStream(Path.Combine(_root, "workstation.local.json"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            read = identity.GetAsync();
+            await Task.Delay(30);
+            Assert.IsFalse(read.IsCompleted);
+        }
+        Assert.AreEqual(expected, await read);
+        Assert.AreEqual(expected, await identity.InitializeAsync());
+    }
+
+    [TestMethod]
     public async Task CaptureRequiresExplicitSetupAndCancellationDoesNotInventAnIdentity()
     {
         var identity = new WorkstationIdentity(Paths);

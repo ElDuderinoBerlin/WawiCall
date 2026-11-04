@@ -657,6 +657,11 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Runtime-/MMS-/Produktlinien-/Solutionprüfungen erfolgreich; `.artifacts/phase3-item10`.
   Migrationen 1–6 und ihre eingefrorenen Definitionen bleiben unverändert. Keine WinForms-UI geändert.
 
+Nachtrag bei Beginn von Phase 4: Ein sporadischer Windows-Sharingkonflikt beim gleichzeitigen Lesen
+der atomar veröffentlichten Arbeitsplatzkennung wurde behoben. Ausschließlich Sharing-/Lock-Verletzungen
+werden kurz und begrenzt wiederholt; fehlerhafte Inhalte werden weiterhin abgewiesen. Ein gezielt
+gesperrter Dateihandle prüft das Warten ohne Kennungswechsel; beide Produktlinien in Debug geprüft.
+
 Abnahme erfüllt: Alle vier Provider wurden gegen eigene isolierte Testdatenbanken geprüft.
 Database-Projekt und beide Hosts bauen in Debug für Pro und FinOffice; Lexware-Quelldatenbanken wurden
 nicht verwendet. Server-Backup/Restore ist als administratives Verfahren geprüft; die spätere App-Oberfläche

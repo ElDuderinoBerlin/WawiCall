@@ -19,7 +19,7 @@ public sealed class WorkstationIdentity(ApplicationPaths paths) : IWorkstationId
     {
         try
         {
-            await using var file = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 1024, useAsync: true);
+            await using var file = await OpenReadAsync(cancellationToken).ConfigureAwait(false);
             if (file.Length is < 1 or > 1024) throw Invalid();
             using var document = await JsonDocument.ParseAsync(file, cancellationToken: cancellationToken).ConfigureAwait(false);
             var root = document.RootElement;
@@ -58,4 +58,18 @@ public sealed class WorkstationIdentity(ApplicationPaths paths) : IWorkstationId
     }
 
     private static ConfigurationException Invalid() => ConfigurationException.FileError("Die Arbeitsplatzkennung ist nicht verfügbar oder hat ein unbekanntes Format. Sie wurde nicht ersetzt.");
+
+    private async Task<FileStream> OpenReadAsync(CancellationToken token)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            token.ThrowIfCancellationRequested();
+            try { return new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 1024, useAsync: true); }
+            catch (IOException exception) when ((exception.HResult & 0xFFFF) is 32 or 33 && attempt < 10)
+            {
+                // A competing atomic publication can briefly hold Windows rename/delete access.
+                await Task.Delay(10, token).ConfigureAwait(false);
+            }
+        }
+    }
 }
