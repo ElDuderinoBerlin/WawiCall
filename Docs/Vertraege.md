@@ -1,6 +1,6 @@
 # Gemeinsame Fachverträge
 
-Stand: Phase 3, Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–3 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -206,9 +206,45 @@ keinen vollständigen Erfolg. Überlappende Aufrufe derselben Dienstinstanz werd
 abgewiesen. Dies ist noch keine Sperre zwischen Prozessen oder verschiedenen Instanzen; diese bleibt Punkt 5.
 
 Die Dienste sind noch nicht in App/Console registriert und öffnen dort keine Datenbank beim Start.
-Die 22 neuen Dienstprüfungen verwenden echte SQLite-Dateien sowie einen testinternen transaktionalen
-Adapter, keine WawiCallPro-Migrationen 1–5. ADO-Treiber und ihre Syntax sind vorhanden; tatsächliche
-SQL-Server-/MySQL-/PostgreSQL-Umgebungen, FluentMigrator-Adapter und Fachschema sind noch nicht abgenommen.
+Die 22 Dienstprüfungen aus Punkt 2 verwenden echte SQLite-Dateien sowie einen testinternen transaktionalen
+Adapter. Punkt 3 ergänzt den tatsächlichen FluentMigrator-Adapter und elf weitere Prüfungen. Die
+WawiCallPro-Migrationen 1–5 und tatsächliche SQL-Server-/MySQL-/PostgreSQL-Umgebungen bleiben offen.
+
+## FluentMigrator-Runner
+
+`FluentMigratorEngine` implementiert `IDatabaseMigrationEngine` mit FluentMigrator 8.0.1 entsprechend
+dem geprüften LxTranslate-Referenzstand. Pro Provider wird genau ein Runner registriert: SQLite,
+SQL Server 2016, MySQL 8 oder PostgreSQL 15. SQLite verwendet ausdrücklich Microsoft.Data.Sqlite,
+MySQL ausdrücklich MySqlConnector; SQL Server verwendet den Microsoft.Data.SqlClient-Processor,
+PostgreSQL Npgsql. Die Auswahl der SQL-Generatoren ist noch keine Server-Kompatibilitätsabnahme.
+
+Der stabile Katalog berücksichtigt ausschließlich konkrete Migrationstypen im exakten Namespace
+`WawiCallPro.Database.Migrations` der eigenen Database-Assembly. FluentMigrators Standardkonventionen
+filtern die Tags SQLite, SqlServer, MySQL beziehungsweise PostgreSQL einschließlich ungetaggter
+Migrationen. Die Typen werden beim Kataloglesen nicht instanziiert. Erst `DatabaseMigrator` führt nach
+seinem Preflight die synchronen `MigrateUp`-Aufrufe aus. Der Backendadapter ist kein Ersatz für diesen
+Preflight und wird nicht direkt als Hostaktion verwendet.
+
+Der Runner erhält ausschließlich diese ausgewählten Typen statt eines allgemeinen Assemblyscans.
+Plugin-/Nachbar-/Unter-Namespaces, fremde Profile, Maintenance-Migrationen und fremde Versionsmetadaten
+werden nicht geladen. Jeder Aufruf besitzt einen eigenen validierten DI-Provider und Scope; beide
+werden auch im Fehlerfall freigegeben. Verbindung und Command-Timeout stammen vom geprüften Ziel.
+`CommunicationVersionTable` legt versioninfo/version/appliedon/description sowie den eindeutigen Index
+uc_versioninfo_version fest. Die Standard-Schemas dbo/public werden nicht als Runner-Eigentum behandelt.
+
+`SafeRunnerLoggerProvider` leitet ausschließlich den Schweregrad als feste Meldung an den geliehenen
+Hostlogger weiter. SQL, freie Migrationstexte, Kategorien, Scopes, Formatierer und rohe Ausnahmen werden
+verworfen. Der Adapter liefert bei Runnerfehlern ausschließlich MigrationFailed ohne innere Ausnahme.
+Versions-/Phasenfortschritt meldet weiterhin der übergeordnete `DatabaseMigrator`.
+
+Elf neue Prüfungen lösen alle vier Generator-/Processor-Konfigurationen ohne Verbindungsöffnung auf.
+Echte FluentMigrator-Testmigrationen in der Testassembly prüfen SQLite-Versionstabelle, Unicode,
+unveränderte Wiederholung, Rollback des ersten und eines späteren Schritts, Wiederanlauf, Freigabe,
+Fremd-/Neuerschutz und redigierte Fehler/Logs. Das Produkt enthält weiterhin keine Migrationen 1–5;
+sein leerer Katalog meldet ausdrücklich fehlende Definitionen. Insgesamt je 138 Tests für Pro/FinOffice
+bestanden, darunter 45 Datenbanktests. Database, App und Console beider Varianten in Debug ohne
+Warnungen/Fehler gebaut; vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung
+bestanden. Nur Betriebslogs angelegt. Nachweise: `.artifacts/phase3-item3`. Keine UI-Änderung.
 
 ## Host und Plugins
 

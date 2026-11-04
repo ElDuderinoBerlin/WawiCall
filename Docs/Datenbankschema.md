@@ -1,10 +1,11 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–2. Diese Festlegung ist die Grundlage für die neuen Migrationen 1–5.
+Stand: 04.11.2026, Phase 3, Punkte 1–3. Diese Festlegung ist die Grundlage für die neuen Migrationen 1–5.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
-ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung. FluentMigrator-Adapter, DDL,
-Dapper-Repositories und deren Transaktionstests folgen in den nächsten Punkten; es existiert noch keine
-erzeugte Kommunikationsdatenbank. Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
+ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
+FluentMigrator-Adapter für alle vier Provider. Produkt-DDL, Dapper-Repositories und deren Transaktionstests
+folgen in den nächsten Punkten; es existiert noch keine erzeugte Kommunikationsdatenbank.
+Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
 
@@ -272,8 +273,11 @@ appliedon (nativer UTC-Datetime-Typ, nullable) und description (Unicode 1024, nu
 schreibt diese Tabelle. appliedon ist eine Runner-Verwaltungsangabe, ausdrücklich keine Domain-Tickspalte;
 für Fachzeiten gilt weiterhin ausschließlich `utc`. Der Referenzstand 8.0.1 erzeugt diese Felder und schreibt
 UTC über CurrentUTCDateTime beziehungsweise UtcNow. Statusabfragen dürfen den VersionLoader nicht vorschnell
-konstruieren, weil er beim Laden fehlende Versionsstrukturen erzeugt. Die konkrete Runner-Einbindung und
-nebenwirkungsfreie Statusprüfung folgen in den nächsten Punkten.
+konstruieren, weil er beim Laden fehlende Versionsstrukturen erzeugt. Die lesende Statusprüfung besteht
+seit Punkt 2. Seit Punkt 3 konfiguriert `CommunicationVersionTable` den realen Runner mit diesen Namen
+und dem eindeutigen Index uc_versioninfo_version; dbo/public bleiben fremdverwaltete Standard-Schemas
+(OwnsSchema=false). Echte SQLite-Testmigrationen bestätigen die Versionstabelle und deren Wiederanlauf
+nach zurückgerollter erster Migration. Das ist noch kein Nachweis der Fachmigrationen 1–5 oder der Server-DDL.
 [FluentMigrator 8.0.1 VersionLoader](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/VersionLoader.cs),
 [VersionMigration](https://github.com/fluentmigrator/fluentmigrator/blob/v8.0.1/src/FluentMigrator.Runner.Core/Versioning/VersionMigration.cs)
 

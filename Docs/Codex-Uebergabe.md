@@ -111,13 +111,30 @@ Logs: `.artifacts/phase3-item2`. Keine UI-Änderung. Server-I/O/-Provisionierung
 Migrationssperre, tatsächlicher FluentMigrator-Adapter, Fachmigrationen und Hostanbindung bleiben offen.
 Die bekannte Bootstrap-/CI-Abweichung und die Velopack-Planung bleiben erhalten.
 
+Phase 3, Punkt 3 ist abgeschlossen: FluentMigrator 8.0.1 mit den vier Runnerpaketen und dem realen
+`FluentMigratorEngine`-Adapter. Explizite Generatoren SQLite/SQL Server 2016/MySQL 8/PostgreSQL 15;
+SQLite ist auf Microsoft.Data.Sqlite, MySQL auf MySqlConnector festgelegt. Katalog ohne Konstruktoren,
+exakter eigener Migrationsnamespace, Standard-Tagfilter, kein Scan fremder Migrationen/Profiles/Maintenance.
+Lowercase-Versionstabelle ohne Schemaeigentum, eigener DI-Provider/Scope je synchronem Schritt,
+redigiertes Runnerlogging ohne SQL, Scope-, Formatierer- oder Ausnahmetexte. Erst der Migrator führt
+nach seinem Status-/Eigentumspreflight den Backendadapter aus. Keine Runnererzeugung im Statusdienst.
+Elf neue Runnerprüfungen mit echten SQLite-Testmigrationen: Unicode, Versionstabelle, Idempotenz,
+Rollback/Wiederanlauf auch bei Fehler in Version 1, Freigabe sowie Fremd-/Neuerschutz und Redigierung.
+Je 138 Tests inklusive 45 Datenbanktests bestanden; Database, App und Console beider Varianten in Debug
+ohne Warnungen/Fehler gebaut. Vier Diagnose-Starts, ausschließlich Betriebslogs sowie Runtime-/MMS-/
+Produktlinien-/Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item3`. Keine UI-Änderung.
+Der Produktkatalog ist bis Punkt 4 leer. Echte Serverabnahme, Fachmigrationen, prozessübergreifende
+Sperre und Hostanbindung bleiben offen; Bootstrap-/CI-Grenze und Velopack-Planung unverändert.
+
 ## Weiterarbeiten
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Als Nächstes Phase 3, Punkt 3: FluentMigrator-Pakete/Runner für die vier Provider und den tatsächlichen
-IDatabaseMigrationEngine-Adapter einbinden. Vorhandene LxTranslate-Referenz nutzt FluentMigrator 8.0.1.
-Vorher aktualisiertes Schema und Infrastrukturdienste lesen; produktive Migrationen 1–5 bleiben Punkt 4,
-Rechte-/Migrationssperren Punkt 5. Keine Runnererzeugung in der reinen Statusabfrage.
+Als Nächstes Phase 3, Punkt 4: produktive WawiCallPro-Migrationen 1–5 im exakten Namespace
+`WawiCallPro.Database.Migrations` entsprechend `Docs/Datenbankschema.md` neu implementieren.
+Keine Alt-/Übersetzungsdaten übernehmen. Eigentumskennung in Version 1, Provider-DDL, Constraints und
+Daten-Upgrades prüfen. Den bisher absichtlich leeren Produktkatalogtest entsprechend anpassen;
+Testfixture-Namespaces dürfen weiterhin nicht geladen werden. Rechte-/Migrationssperren bleiben Punkt 5.
+Keine Runnererzeugung in der reinen Statusabfrage.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes
 SIP-Konto, keine erfolgreiche Registrierung/Verbindung. Die neuen Benutzer-/Gerätepräferenzen und DB-Tokens

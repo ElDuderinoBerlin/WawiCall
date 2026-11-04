@@ -531,7 +531,23 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Produktlinien-/Solution-Prüfung erfolgreich. Logs: `.artifacts/phase3-item2`. Keine UI-Änderung/Renderprüfung.
   Echte Serververbindungen/-Provisionierung, anbieterübergreifende Migrationssperre, produktive Migrationen
   und Host-/Console-Anbindung sind noch offen. Die bekannte Bootstrap-/CI-Grenze bleibt bestehen.
-- [ ] FluentMigrator-Pakete/Runner für SQLite, SQL Server, MySQL und PostgreSQL kompatibel zum Referenzstand einbinden.
+- [x] FluentMigrator-Pakete/Runner für SQLite, SQL Server, MySQL und PostgreSQL kompatibel zum Referenzstand einbinden. ✅
+  Nachweis: FluentMigrator 8.0.1 samt Core und vier Runnerpaketen entsprechend LxTranslate eingebunden.
+  Realer synchroner `FluentMigratorEngine` mit SQLite-/SQL-Server-2016-/MySQL-8-/PostgreSQL-15-Generatoren,
+  ausdrücklich Microsoft.Data.Sqlite/MySqlConnector sowie Microsoft.Data.SqlClient/Npgsql.
+  Stabiler Katalog ohne Instanziierung von Migrationen, exakter eigener Namespace und Standard-Tagfilter.
+  Nur ausgewählte Migrationstypen im Runner; keine Plugin-/Unter-Namespace-/Profil-/Maintenance-Scans.
+  Lowercase-Versionstabelle ohne Schemaeigentum, geprüfte Ziel-/Timeoutoptionen, eigener validierter
+  DI-Provider/Scope pro Schritt und Freigabe bei Fehlern. Runnererzeugung erst hinter dem Migrator-Preflight.
+  Runnerlogging gibt nur feste Schweregradmeldungen weiter; SQL, Scopes, Formatierer und rohe Ausnahmen
+  werden verworfen. Keine Produktmigrationen vor Punkt 4; leerer Produktkatalog bleibt ausdrücklich erkennbar.
+  Elf neue Runnerprüfungen einschließlich echter SQLite-Migrationen, Unicode, Idempotenz, Rollback des
+  ersten/späteren Schritts, Wiederanlauf, Freigabe und Fremd-/Neuerschutz. Vier Provider-Konfigurationen
+  ohne Verbindungsöffnung aufgelöst; reale Server-DDL/-Verbindungen bleiben offene Abnahme.
+  Je 138 Tests inklusive 45 Datenbanktests bestanden. Database, App und Console beider Varianten in Debug
+  ohne Warnungen/Fehler gebaut; vier Diagnose-Hoststarts und Runtime-/MMS-/Produktlinien-/Solution-Prüfung
+  bestanden. Logs: `.artifacts/phase3-item3`. Keine UI-Änderung oder neue Renderprüfung.
+  Fachmigrationen, prozessübergreifende Sperre, Repositories und Hostanbindung bleiben offen.
 - [ ] WawiCallPro-Migrationen 1–5 vollständig neu schreiben; keine alte Migration oder Übersetzungsdaten übernehmen.
 - [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
 - [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.

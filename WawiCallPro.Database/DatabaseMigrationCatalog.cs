@@ -19,7 +19,7 @@ public sealed class DatabaseMigrationCatalog
 
 /// <summary>
 /// Adapter boundary for the standard FluentMigrator runner. One synchronous call must finish before returning.
-/// The future adapter must defer runner creation until MigrateUp, after the ownership/status preflight.
+/// Implementations defer runner creation until MigrateUp, after the ownership/status preflight.
 /// </summary>
 public interface IDatabaseMigrationEngine
 {
