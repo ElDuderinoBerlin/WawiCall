@@ -216,6 +216,20 @@ wird ausschließlich aus dem zugehörigen Gespräch rekonstruiert; unzugeordnete
 Kandidaten. Ein ausdrücklicher Wechsel des Gesprächsmandanten ersetzt Kandidaten in derselben Transaktion.
 Index `ix_callparties_party(partykeyhash, callid)` unterstützt den historischen Geschäftspartnerfilter.
 
+Diese implementierte Einschränkung ist für die neue [Mehrfirmen-Anruferkennung](Telefonnummern-Cache.md)
+noch zu erweitern. Das folgende Zielbild ersetzt die Version-3-Regeln erst nach zusätzlichen Migrationen
+ab Version 6 und angepassten Speicherverträgen; Migrationen 1–5 werden nicht rückwirkend geändert:
+
+- Jeder historische Kandidat erhält eine eigene Firmenidentität, unabhängig von `phonecalls.companyid`.
+  Vorhandene Kandidaten werden aus ihrer bisherigen Gesprächsfirma nachgetragen; vollständige
+  `CompanyKey`-/`PartyKey`-Identitäten und historische Firmen-/Geschäftspartnernamen bleiben rekonstruierbar.
+- Ein Gespräch ohne gewählte Firma darf Kandidaten aus mehreren Firmen enthalten. Höchstens ein
+  Kandidat ist ausgewählt und gehört dann zur Gesprächsfirma. Ein Firmenwechsel löscht die übrigen
+  Kandidaten nicht. Historische Kandidaten bleiben unabhängig vom löschbaren Geschäftspartnercache.
+- Suchfirmen, Trefferart, Auswahlgrund und Parser-/Regel-/Cacheversionen werden nachvollziehbar
+  erfasst. Bestätigte Rufnummernblockregeln erhalten eigene firmengebundene Daten statt freier
+  Präfixvergleiche. Konkrete Spalten/Tabellen und Backfill-/Upgradeprüfungen gehören in diesen neuen Schritt.
+
 `ux_callparties_selected` ist unter SQLite/PostgreSQL/SQL Server ein eindeutiger gefilterter Index auf
 callid für isselected=true. MySQL verwendet dafür eine berechnete nullable ASCII-Spalte selectedcallid
 (callid genau bei isselected=true) mit Unique-Index. Nicht ausgewählte Zeilen dürfen beliebig oft vorkommen;

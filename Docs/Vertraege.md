@@ -14,6 +14,13 @@ unter `WawiCallPro.Database.Contracts`; Plugins erhalten weiterhin ausschließli
 
 ## Identität und Stammdaten
 
+Für Parsing und Normalisierung ist `libphonenumber-csharp` festgelegt. Eigene DI-Verträge kapseln
+die Bibliothek; Firmen-/Geschäftspartnerzuordnung erfolgt über unseren Cache. Die geplante
+[Mehrfirmenstrategie](Telefonnummern-Cache.md) trennt angehakte Suchfirmen, aktive Hauptansicht und
+gewählten Firmenkontext je Anruf. Gleiche Nummern in verschiedenen Firmen bleiben getrennte Treffer.
+Rufnummernregionen beschreiben Nummernbereiche; öffentliche Durchwahlen und explizite Extensions
+werden getrennt von vermuteten Stammnummern behandelt. Diese Erweiterungen sind noch umzusetzen.
+
 | Typ | Bedeutung |
 |---|---|
 | `CompanyKey` | Produktlinie Pro/FinOffice + stabile Installationskennung + externe Mandanten-ID |
@@ -109,6 +116,10 @@ des Telefoniedienstes, nicht zu der eines Fensters oder Mandantenladevorgangs.
 
 `CallHistory` bündelt Gespräch, alle Zuordnungskandidaten, Auswahl, historische Namen/Nummern, Notizen,
 geordnete Ereignisse und Aufnahmereferenzen. Stammdatenaktualisierungen verändern diese Momentaufnahme nicht.
+Die derzeitige Speicherprüfung verlangt für alle Kandidaten dieselbe Gesprächsfirma. Das ist eine
+bekannte Grenze gegenüber dem neuen Mehrfirmenzielbild: eigene Firmenidentität pro Kandidat, Kandidaten
+auch vor Auswahl einer Gesprächsfirma und Erhalt nicht gewählter Alternativen benötigen angepasste
+Verträge und zusätzliche Migrationen ab Version 6. Die ausgewählte Partei muss zur Gesprächsfirma passen.
 `ICallHistoryService` beschreibt Abfragen und Notizspeicherung; die getrennten Repository-Verträge sind
 seit Phase 3, Punkt 1 festgelegt, Rohverbindungen bleiben Implementierungsdetails. Aufnahmeverfügbarkeit
 wird ausdrücklich modelliert; Dateipfade sind relativ

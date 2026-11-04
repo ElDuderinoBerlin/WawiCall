@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 		Docs\Vertraege.md = Docs\Vertraege.md
 		Docs\Architektur.md = Docs\Architektur.md
 		Docs\SIP-Einstellungen.md = Docs\SIP-Einstellungen.md
+		Docs\Telefonnummern-Cache.md = Docs\Telefonnummern-Cache.md
 		Docs\Datenbankschema.md = Docs\Datenbankschema.md
 		Docs\Velopack-Build-Plan.md = Docs\Velopack-Build-Plan.md
 	EndProjectSection

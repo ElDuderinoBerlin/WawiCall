@@ -576,6 +576,12 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Keine UI-Änderung. MySQL-DDL kann nach Fehlern teilweise bestehen bleiben; keine automatische Übernahme
   durch IF NOT EXISTS. Vollständige Providerfehler-/Rechte-/Sperr-/Backup-/Repositoryabnahme bleibt offen.
 - [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
+- [ ] Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
+  Migrationen ab Version 6 und passende Speicherverträge vorbereiten. Eigene Firma je historischem
+  Kandidaten mit Backfill aus der bisherigen Gesprächsfirma; Kandidaten vor Firmenauswahl zulassen,
+  höchstens eine Auswahl passend zur Gesprächsfirma, übrige Firmenalternativen erhalten.
+  Suchstand-/Treffer-/Auswahlmetadaten und firmengebundene Rufnummernblockregeln konkret ausarbeiten;
+  Migrationen 1–5 unverändert lassen. Upgrades mit Bestandsdaten auf allen vier Providern prüfen.
 - [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.
 - [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
 - [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
@@ -634,15 +640,33 @@ Produktlinienspezifische DLLs sind nur im passenden Pluginpaket vorhanden.
 
 ### Phase 6 – Rufnummernindex und Zuordnung ⬜
 
-- [ ] Normalisierung über vorhandenes `libphonenumber-csharp` fachlich kapseln; E.164 und Originalwert speichern.
-- [ ] Landes-/Ortsvorwahl, Nebenstellen, interne und unterdrückte Nummern nachvollziehbar behandeln.
-- [ ] Index nach Produktlinie, Installation und Mandant führen; Aktualisierung abbrechbar und ohne UI-Blockade ausführen.
-- [ ] Mehrfachtreffer, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
-- [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
-- [ ] Cache nach Mandantenwechsel/Änderungen korrekt erneuern; Gesprächshistorie bleibt als Momentaufnahme erhalten.
+Verbindliches Zielbild: [Telefonnummern-Cache.md](Telefonnummern-Cache.md). Die folgenden Punkte
+implementieren die Planung; die Bibliothek ist im Produkt noch nicht eingebunden.
 
-Abnahme: Repräsentative reale Nummernformate, Mehrfachtreffer, ungültige Nummern und Mandantentrennung sind
-getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden.
+- [ ] [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) einbinden und Parsing,
+  Normalisierung sowie Länder-/Regionsmetadaten über eigene DI-Interfaces kapseln. Original/Quellfeld,
+  E.164, Extension und Prüfstatus erhalten; Rufnummernregion nicht als tatsächlichen Aufenthaltsort ausgeben.
+- [ ] Firmenbezogenen Land-/Ortskontext für Stammdaten und expliziten Anlagenkontext für eingehende
+  Nummern verwenden. Öffentliche Direktdurchwahl, explizite Extension und bestätigte/vermutete
+  Rufnummernblöcke getrennt behandeln; interne, ungültige und unterdrückte Nummern nachvollziehbar behandeln.
+- [ ] Suchfirmenauswahl per DevExpress-CheckedListBox und vollständigen CompanyKeys persistieren;
+  Hakenstatus von Zeilenmarkierung, bevorzugter Firma und aktiver Hauptansicht trennen.
+- [ ] Stammdaten-/Nummerncache pro Firma atomar und abbrechbar erneuern; gemeinsamen Index für alle
+  angehakten berechtigten Firmen führen. Nummern dürfen mehreren vollständigen PartyKeys zugeordnet sein.
+  Cachealter, Vollständigkeit und Normalisierungsversionen berücksichtigen; UI und Gesprächsannahme nicht blockieren.
+- [ ] Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
+  Nur bei belastbarer Eindeutigkeit automatisch wählen; aktive Firma beeinflusst lediglich die Reihenfolge.
+  Konfigurierte Leitungszuordnung sichtbar berücksichtigen, Alternativen erhalten und widersprüchliche Treffer klären lassen.
+- [ ] Eigenen Firmen-/Viewkontext je Anruf und asynchrones Nachladen der gewählten Plugin-Details umsetzen.
+  Hauptansichten mit offenen Änderungen erhalten; späte Antworten gegen Anruf/CompanyKey/PartyKey/Revision prüfen.
+- [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
+- [ ] Suchfirmen-/Stammdatenänderungen und Neuindizierung bei Regel-/Metadatenwechsel behandeln;
+  Gesprächshistorie und frühere Auswahl bleiben als Momentaufnahme erhalten.
+
+Abnahme: Nationale/internationale Formate, explizite versus vermutete Durchwahlen, gleiche Nummern in
+zwei Firmen, mehrere Kontakte, fehlender/veralteter Cache, Kontextwechsel und verspätete Antworten sind
+getestet. Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden;
+die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrift-/Skinprüfung.
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜
 

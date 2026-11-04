@@ -1,0 +1,215 @@
+# Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
+
+Stand: 04.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
+Anruferkennung. Die unten benannten Erweiterungen sind geplant und noch nicht implementiert.
+
+## Grundentscheidung
+
+Wir verwenden [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) für Parsing,
+Normalisierung, Nummernprüfung und Rufnummern-Metadaten. Die Zuordnung zu Lexware-Firmen, Kunden,
+Lieferanten und Kontakten übernimmt unsere eigene Logik anhand des Telefon-Caches.
+
+Die Suchfirmen und die Firma einer Fachansicht sind getrennte Zustände. Ein Anruf wird in allen
+angehakten, berechtigten Firmen gesucht. Jede geöffnete Fachansicht erhält anschließend genau einen
+vollständigen Firmen- und Geschäftspartnerkontext. Mehrere Treffer werden nicht über Kundennummer,
+Anzeigename oder die momentan aktive Firma zusammengeführt.
+
+## Firmenauswahl mit DevExpress
+
+Das Hauptprogramm erhält eine Firmenauswahl mit `CheckedListBoxControl` entsprechend den
+DevExpress-Dokumentationen für WinForms. Die Liste zeigt Firmenname, Produktlinie, Installation
+und externe Firmen-ID; ergänzend Cachezustand und letzten erfolgreichen Abruf.
+
+- Auswahlwerte sind vollständige `CompanyKey`-Werte: Produktlinie + Installationskennung + externe Firmen-ID.
+- Datenbindung über `DataSource`, `ValueMember` für den stabilen Schlüssel, `DisplayMember` für den
+  lesbaren Text und `CheckMember` für den Hakenstatus eines eigenen UI-Modells.
+- Mehrere Firmen können angehakt werden; `CheckOnClick` erlaubt unmittelbares Umschalten.
+- Maßgeblich sind die Haken beziehungsweise `CheckedItems`. Markierte Zeile/SelectedIndex und
+  angehakte Firmen sind laut DevExpress unterschiedliche Zustände.
+- Kompakte Aktionen: alle berechtigten Firmen markieren, keine markieren, Cache aktualisieren.
+- Die Auswahl wird als Menge vollständiger Schlüssel in Benutzer-/Arbeitsplatzeinstellungen
+  persistiert. Anzeigenamen, Reihenfolge und die bevorzugte Firma ersetzen diese Menge nicht.
+- Nicht mehr vorhandene oder nicht berechtigte Firmen werden kenntlich gemacht. Alte gespeicherte
+  Schlüssel werden nicht auf eine gleichnamige andere Firma umgebogen.
+- Leere Auswahl bedeutet keine automatische Wawi-Zuordnung; Anrufsteuerung und Protokollierung bleiben möglich.
+
+Das Control gehört mit TableLayoutPanel und DevExpress-Eingaben in Designer/resx. Bindung, Persistenz
+und Cacheoperationen laufen über DI-Dienste. Die spätere Oberfläche benötigt die vorgeschriebene
+visuelle Prüfung; dieses Dokument erzeugt noch keine Controls.
+[DevExpress CheckedListBoxControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl),
+[Members](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl._members)
+
+## Datenfluss bei einem eingehenden Anruf
+
+```mermaid
+flowchart LR
+    SIP["Telefonieinterface: Nummer und Anruf-ID"] --> Parse["libphonenumber-Adapter"]
+    Parse --> Info["Anzeige: Originalnummer und Rufnummernregion"]
+    Parse --> Lookup["Suche in allen angehakten Firmen"]
+    Cache["Firmenweise Cache-Snapshots und Nummernindex"] --> Lookup
+    Lookup --> Decision["Eindeutig, mehrdeutig oder unvollständig"]
+    Decision --> Select["Firmen-/Datensatzauswahl je Anruf"]
+    Select --> Views["Plugin-Views mit festem CompanyKey und PartyKey"]
+```
+
+1. Sofort Nummer/Präsentationszustand und Gesprächsstatus anzeigen. Die Annahme des Gesprächs wartet
+   nicht auf Wawi-Zugriffe oder vollständige Cacheaktualisierungen.
+2. Telefonnummer parsen und Metadaten anzeigen. Unterdrückte/unbekannte Nummern lösen keinen
+   erfundenen Nummernvergleich aus. Interne Nummern und SIP-Adressen erhalten ihren eigenen Kontext.
+3. Suchfirmen, Nummernindex und Cacheversionen als unveränderlichen Suchstand erfassen.
+4. Alle Treffer innerhalb dieser Suchmenge sammeln und pro vollständigem `PartyKey` zusammenfassen.
+   Mehrere passende Rufnummern/Anschriften derselben Partei bleiben als Herkunftshinweise erhalten.
+5. Treffer bewerten und Firmen-/Datensatzauswahl bestimmen. Ein vorhandener oder neuer Nutzerentscheid
+   wird durch später eintreffende Hintergrundantworten nicht automatisch ersetzt.
+6. Stammdaten aus dem Cache anzeigen; aktuelle Detaildaten bei Bedarf asynchron über das passende
+   Wawi-Plugin nachladen. Späte Antworten müssen zu Anruf-ID, Firmen-/Datensatzkontext und Revision passen.
+
+## Nummernnormalisierung und Länder-/Regionsanzeige
+
+Unsere DI-Adapter kapseln die Bibliothek. Gemeinsame Verträge verwenden eigene DTOs und reichen keine
+`PhoneNumbers.PhoneNumber`-Objekte an Views oder fremde Module weiter.
+
+Erhalten bleiben Originalwert und Quellfeld. Zusätzlich werden E.164, explizite Extension, Parse-/
+Prüfstatus, Rufnummerntyp und verfügbare Länder-/Regionshinweise erfasst. Geocoder-Ausgaben sind
+lokalisierte Zusatzinformationen. Ihre Verfügbarkeit hängt vom Nummernbereich und den Metadaten ab.
+
+Für Quellstammdaten gelten die jeweiligen Firmenvorgaben für Land/Ortsvorwahl. Für eine eingehende
+Nummer ohne Ländercode gilt der explizite Anlagen-/Leitungskontext. Sie wird nicht nacheinander unter
+beliebigen Firmenländern interpretiert, um nachträglich irgendeinen Treffer zu erzwingen. Eindeutige
+internationale Nummern werden firmenübergreifend gegen die normalisierten Cachewerte verglichen.
+
+Die Bibliothek prüft Nummernpläne; eine mögliche/laut Metadaten gültige Nummer bestätigt weder
+Erreichbarkeit noch tatsächlichen Anschlussinhaber. `IsPossibleNumber` allein reicht nicht für eine
+bestätigte Zuordnung. Kürzel, unvollständige Nummern und fehlender Kontext bleiben als unklar erkennbar.
+[libphonenumber FAQ](https://github.com/google/libphonenumber/blob/master/FAQ.md)
+
+Die Anzeige lautet beispielsweise „Rufnummernregion: Berlin, Deutschland“. Das ist eine
+Nummernbereichszuordnung, keine Live-Ortung des Anrufers. Mobilfunk, VoIP, Umleitungen und nichtgeografische
+Nummern lassen oft keine belastbare Ortsangabe zu. Die erkannte Nummer ist keine Zugriffsberechtigung.
+[Offline-Geocoder](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberOfflineGeocoder.cs)
+
+## Stammnummer, öffentliche Durchwahl und Extension
+
+Diese drei Dinge werden fachlich getrennt behandelt:
+
+| Fall | Behandlung |
+|---|---|
+| Explizite Extension, etwa `ext. 42` oder `tel:...;ext=42` | Die von der Bibliothek erkannte Extension separat erhalten; E.164 enthält die Basisnummer |
+| Öffentliche Direktdurchwahl als Bestandteil der Rufnummer | Die vollständige E.164-Nummer ist der primäre Suchwert |
+| Vermuteter Firmenrufnummernblock/Stamm | Nur als begründete Regel oder gekennzeichnete Heuristik auswerten |
+
+Die Bibliothek kennt den Nummernplan, aber nicht die individuelle Nebenstellenanlage eines Kunden.
+Ein Bindestrich allein beweist keine Nebenstelle; es werden keine beliebigen letzten Ziffern abgeschnitten.
+Landes-/Ortsvorwahl ist ebenfalls kein ausreichender Firmenstamm.
+
+Zusätzliche Rufnummernblockregeln werden je externem Geschäftspartner und Firma geführt: Quelle der
+Regel, normalisiertes Präfix, erlaubte Suffixlängen/-bereiche und gegebenenfalls bekannte Durchwahlen.
+Ein solches Präfix ist nicht automatisch selbst eine vollständige gültige E.164-Nummer. Explizit bestätigte
+Blöcke sind von bloß aus ähnlichen Kontaktnummern vermuteten Blöcken zu unterscheiden.
+
+Innerhalb zulässiger Blockregeln wird das längste passende Präfix bevorzugt; mehrere passende
+Geschäftspartner/Firmen bleiben mehrere Kandidaten. Ein unbekanntes Suffix ergibt höchstens eine
+Zuordnung zur Organisation beziehungsweise einen Vorschlag, keine erfundene Kontaktperson.
+Auch `IsNumberMatch`/SHORT_NSN_MATCH ist nur ein Nummernvergleich und keine Identitätsbestätigung.
+
+Wird nur die Zentralnummer signalisiert, aber der Cache enthält verschiedene explizite Extensions,
+ist die angerufene Kontaktperson daraus nicht bestimmbar. Automatisches Nachsenden von DTMF-Ziffern
+folgt daraus ebenfalls nicht. Interne Nebenstellen werden nur im zugehörigen Anlagenkontext verglichen.
+
+### Lokaler Bibliotheksversuch
+
+Mit der lokal vorhandenen Version 9.0.42 wurden rein lokale synthetische Parsefälle ausgeführt:
+
+| Eingabe, Standardregion DE | Ergebnis |
+|---|---|
+| `+49 30 12345-42` | E.164 `+49301234542`, keine Extension |
+| `+49 30 12345 ext. 42` | E.164 `+493012345`, Extension `42` |
+| `tel:+493012345;ext=42` | E.164 `+493012345`, Extension `42` |
+| `0301234542` | E.164 `+49301234542` |
+| `1234` | possible=true, valid=false; keine bestätigte öffentliche Nummer |
+
+Bei den vollständigen Berliner Beispielen lieferte der Geocoder „Berlin“. Das bestätigt die
+unterschiedliche Verarbeitung von Format-Trennzeichen und expliziten Extensions. Es beweist weder
+reale Erreichbarkeit noch eine universelle Stamm-/Durchwahlerkennung. Nachweis:
+`.artifacts/phone-cache-analysis`. Das Produkt referenziert die Bibliothek noch nicht.
+
+## Verbindliche Strategie bei Treffern in mehreren Firmen
+
+Zunächst alle berechtigten angehakten Firmen durchsuchen. Die Ansichtsfirma wird daraus mit folgender
+Strategie bestimmt; „eindeutig“ setzt einen vollständigen, ausreichend aktuellen Suchstand voraus.
+
+| Ergebnis | Anzeige und Entscheidung |
+|---|---|
+| Genau ein belastbarer vollständiger Treffer | Firma und Geschäftspartner für diesen Anruf übernehmen; kontextgebundene Plugin-Views anzeigen |
+| Mehrere Parteien, alle in derselben Firma | Firma ist bestimmbar; Kunden-/Kontaktkandidaten anzeigen und Datensatz auswählen lassen |
+| Gleiche Nummer in mehreren Firmen | Nach Firma gruppierte Treffer zeigen; Firma/Datensatz mit einem Klick auswählen, keine stille Entscheidung nach aktiver Firma |
+| Verlässlich konfigurierte angerufene Leitung passt zu genau einer Trefferfirma | Diese Firma sichtbar bevorzugen; nur deren eindeutigen belastbaren Datensatz automatisch übernehmen. Alternative Firmen bleiben erreichbar |
+| Leitungsfirma und Stammdatentreffer widersprechen sich | Beide Informationen anzeigen und entscheiden lassen; keine automatische Umdeutung des Trefferkontexts |
+| Nur Stamm-/Kurznummernheuristik | Als mögliche Organisation/Treffer kennzeichnen; keine automatische Personenzuordnung |
+| Fehlender, veralteter oder gescheiterter Cache einer Suchfirma | Suchstand als unvollständig kennzeichnen; vorhandene Kandidaten anbieten, keine globale Eindeutigkeit behaupten |
+| Kein Treffer | Nummer/Region anzeigen, Gespräch normal bedienen und nachträgliche manuelle Zuordnung erlauben |
+
+Die aktuelle Ansichtsfirma, eine bevorzugte Firma und frühere manuelle Entscheidungen dürfen die
+Reihenfolge/Vorauswahl beeinflussen. Sie verdrängen keine gleichwertigen Treffer anderer Firmen.
+Es gibt keine automatische Entscheidung nach Umsatz, lexikografischer Reihenfolge oder zufällig zuerst
+antwortender Datenquelle. Eine Nummer kann in mehreren Firmen berechtigt vorkommen.
+
+Das Anruferfenster zeigt mindestens Firma/Installation, Rolle, Name, Kundennummer beziehungsweise
+Kontaktbesitzer, gefundene Nummer/Durchwahl, Trefferart und Cachestand. Wahl und Anrufannahme bleiben
+unabhängig voneinander bedienbar. Die Datenbereiche tragen die aktive Firma dauerhaft sichtbar.
+
+Ein Anruferbereich erhält seinen eigenen View-/Firmenkontext. Ein Anruf aus Firma B wechselt nicht
+unbemerkt eine gerade bearbeitete Hauptansicht aus Firma A. Ein ausdrückliches Öffnen/Wechseln beachtet
+offene Änderungen; mehrere Gesprächsbereiche erhalten getrennte Kontexte.
+
+## Cache und Datenzugriff
+
+Die eigene Kommunikationsdatenbank hält dauerhafte Firmen-/Geschäftspartner-/Adress-/Nummernsnapshots.
+Ein unveränderlicher Speicherindex beschleunigt die Suche: normalisierte Nummer auf eine Menge von
+Nummernvorkommen mit `CompanyKey`, `PartyKey`, Extension, Quellfeld und Cacheversion. Die Nummer ist
+kein eindeutiger Datenbankschlüssel. Parteien verschiedener Firmen werden nie allein wegen gleicher Nummern verschmolzen.
+
+Stammdaten wie Name, Rolle, Kunden-/Lieferantennummer, wichtige Kontakt-/Adressdaten und Originalnummern
+sind sofort verfügbar. Aufträge, Preise, Projekte, offene Posten und Auswertungen werden je View bei
+Bedarf aus dem exakt gewählten Firmenkontext nachgeladen; sie müssen nicht vollständig im Telefon-Cache liegen.
+
+Aktualisierung erfolgt im Hintergrund, paginiert und atomar pro Firma. Ein fehlgeschlagener/abgebrochener
+Abruf ersetzt keinen bisherigen vollständigen Snapshot. Änderungen an Region-/Normalisierungsregeln
+und Bibliotheksmetadaten erfordern eine versionierte Neuindizierung mit Regressionstests.
+An-/Abhaken ändert die Suchmenge, löscht aber keine Historie oder noch anderweitig benötigten Cachebestände.
+
+Ein firmengebundener Wawi-Client darf nicht parallel durch ungeschützte UseCompany-Wechsel umgeschaltet
+werden. Es werden nachweislich isolierte Firmenclients verwendet oder Firmenwechsel plus Abfrage über
+denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der Rückkehr von Antworten.
+
+## DI-Verträge, Persistenzlücke und Umsetzung
+
+Parsing/Regionsauflösung, Cachepflege, Mehrfirmensuche und Auswahl erhalten eigene Interfaces und
+werden per DI angebunden. Die konkreten APIs sind noch zu implementieren. Das bestehende
+`IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
+Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
+
+Wichtig: `callparties` der implementierten Version 3 rekonstruiert die Firma bisher aus `phonecalls`.
+`StorageContract.Call` verlangt derzeit dieselbe Firma für alle Kandidaten. Das kann die neue
+Mehrfirmen-Strategie noch nicht vollständig speichern. Vor Produktbetrieb ist daher eine zusätzliche
+Migration ab Version 6 mit Vertragsanpassung erforderlich, insbesondere:
+
+- Eigene Firmenidentität pro historischem Kandidaten; vorhandene Kandidaten aus der bisherigen
+  Gesprächsfirma nachtragen. Historische Firmen-/Namensinformationen und Auswahlbegründung erhalten.
+- Noch nicht zugeordnete Gespräche dürfen firmenübergreifende Kandidaten enthalten. Eine ausgewählte
+  Partei muss zur gewählten Gesprächsfirma passen; nicht ausgewählte Alternativen bleiben erhalten.
+- Höchstens ein ausgewählter Datensatz pro Gespräch; Änderungen von Cache/Firmenauswahl überschreiben
+  weder diese Auswahl noch alte Herkunfts- und Kandidatensnapshots.
+- Suchfirmenmenge, Parser-/Regel-/Cacheversionen, Trefferarten sowie bestätigte/heuristische
+  Rufnummernblockregeln in passenden eigenen Modellen berücksichtigen.
+
+Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
+zusätzliche Migration/Verträge, Paket-/Adapterintegration, Mehrfirmenkonfiguration, Cache-Repositories,
+Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
+explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
+Cachestand, Firmenwechsel und veraltete Antworten abdecken. Diese Planung meldet keine fertige Anruferkennung.
+
+Quellen: [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp),
+[PhoneNumberUtil](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberUtil.cs),
+[libphonenumber FAQ](https://github.com/google/libphonenumber/blob/master/FAQ.md),
+[DevExpress CheckedListBoxControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl).

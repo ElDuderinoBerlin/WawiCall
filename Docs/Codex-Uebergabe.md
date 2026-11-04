@@ -148,6 +148,26 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Neu festgelegt: `Docs/Telefonnummern-Cache.md` beschreibt libphonenumber-csharp hinter DI-Interfaces,
+Rufnummernregionen, explizite Extensions versus öffentliche Durchwahlen sowie belegte Stammnummernregeln.
+Mehrere berechtigte Suchfirmen werden per DevExpress-CheckedListBox gewählt; Haken, aktive Hauptansicht
+und Firmen-/Viewkontext je Anruf sind getrennt. In allen angehakten Firmen suchen, Treffer nach Firma
+gruppieren; bei gleichwertigen Treffern ausdrücklich auswählen lassen. Aktive/bevorzugte Firma sortiert,
+entscheidet aber nicht still. Verlässliche Leitungszuordnung kann sichtbar bevorzugen; unvollständige
+Caches erlauben keine globale Eindeutigkeit. Stammdaten sofort aus dem Cache, Detailviews asynchron
+aus genau der gewählten Firma; keine ungeschützten parallelen UseCompany-Wechsel eines gemeinsamen Clients.
+
+Wichtige neue Schemaaufgabe nach Phase 3/Punkt 5 und vor Repositories: Version 3 rekonstruiert alle
+callparties-Firmen aus phonecalls; StorageContract.Call verlangt dieselbe Firma für jeden Kandidaten.
+Zusätzliche Migrationen ab Version 6 und Vertragsanpassung für eigene Kandidatenfirmen mit Backfill,
+Kandidaten vor Gesprächsfirmenauswahl und Erhalt der übrigen Alternativen vorsehen. Migrationen 1–5
+nicht ändern. UserSettings hat bisher nur PreferredCompany; Mehrfirmenauswahl und übergreifende
+Index-/Suchverträge fehlen. Phase 6 ist entsprechend erweitert, keine neuen Punkte als erledigt markiert.
+Lokaler synthetischer Parseversuch mit Version 9.0.42: Bindestrich bleibt Teil der vollständigen Nummer,
+ext. 42 und ;ext=42 liefern separate Extension; Kurznummer 1234 ist nicht gültig. Nachweis unter
+`.artifacts/phone-cache-analysis`. Nur Dokumentation/Plan/Solutioneintrag geändert, kein Parser oder UI
+im Produkt eingebaut. Neue Markdowndatei im Docs-Solutionordner referenziert und im aktiven Rider geöffnet.
+
 DTMF-Analyse der ausdrücklich genannten WawiCallPro_old/WawiCallPro.old.sln: DtmfDetection und
 DtmfDetection.CSCore sind Audio-Erkennungsbibliotheken für .NET Framework 4.8; DtmfDetector ist ein
 Demo-EXE. SIPSorcery 10.0.17 bietet SendDtmf und OnDtmfTone für RTP-Ereignisse bereits. DTMF als

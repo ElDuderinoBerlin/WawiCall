@@ -275,6 +275,38 @@ Die bestehenden Fachinterfaces bleiben frei von WinForms, DevExpress, SIPSorcery
 Datenbanktypen. Der UI-Anschluss benötigt deshalb eine eigene Windows-spezifische Vertragsgrenze.
 Seine endgültige API und DI-Anbindung werden mit der Pluginlaufzeit umgesetzt.
 
+## Telefonnummern, Suchfirmen und Anruferzuordnung
+
+[libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp) übernimmt Parsing,
+Normalisierung und Rufnummern-Metadaten hinter eigenen DI-Interfaces. Die Bibliothek kennt weder
+Lexware-Geschäftspartner noch individuelle Telefonanlagen. Eine Rufnummernregion ist keine
+Live-Ortsangabe; Stammnummern und Durchwahlblöcke benötigen zusätzliche belegbare Regeln.
+
+Das verbindliche Detailkonzept steht in [Telefonnummern-Cache.md](Telefonnummern-Cache.md).
+Das Hauptprogramm bietet eine DevExpress-CheckedListBox für mehrere Suchfirmen. Die Haken bilden
+eine Menge vollständiger `CompanyKey`-Werte; aktuelle Ansichtsfirma und bevorzugte Firma sind davon
+getrennt. Der Telefon-Cache hält Stammdaten und Nummern je Firma, der gemeinsame Index liefert alle
+passenden Firmen-/Geschäftspartnerkandidaten. Detaildaten laden die Plugin-Views anschließend nur
+im ausdrücklich gewählten Firmenkontext nach.
+
+| Suchergebnis | Auswahl der Fachansichten |
+|---|---|
+| Genau ein belastbarer Treffer bei vollständigem Suchstand | Firma und Geschäftspartner für den Anruf übernehmen |
+| Mehrere Datensätze in einer Firma | Firma steht fest; Datensatzauswahl anbieten |
+| Gleiche Nummer in mehreren Firmen | Treffer nach Firma gruppieren und ausdrücklich auswählen lassen |
+| Nur Stammnummernheuristik oder unvollständiger Cache | Vorschläge beziehungsweise fehlenden Suchstand anzeigen; keine eindeutige Zuordnung behaupten |
+
+Aktive/bevorzugte Firma und frühere Entscheidungen beeinflussen die Reihenfolge, verdrängen aber
+keine gleichwertigen Treffer. Eine verlässlich konfigurierte angerufene Leitung kann ihre Firma
+sichtbar bevorzugen, wenn dort genau ein belastbarer Datensatz passt; Alternativen bleiben erhalten.
+Ein Anruferbereich erhält einen eigenen Firmen-/Viewkontext und wechselt keine Hauptansicht mit
+offenen Änderungen. Späte Antworten benötigen Anruf-ID, vollständige Quellidentität und Revision.
+
+Die bestehende Persistenz der Version 3 erlaubt bisher nur Kandidaten der Gesprächsfirma. Für
+firmenübergreifende historische Kandidaten sind zusätzliche Migrationen ab Version 6 und angepasste
+Verträge nötig. Migrationen 1–5 bleiben unverändert. Parser, Mehrfirmensuche, Auswahlkonfiguration und
+UI sind Zielbild, noch keine implementierte Anruferkennung.
+
 ## Daten und Lebenszyklus
 
 Ein Plugin lädt seine Warenwirtschaftsdaten über den passenden Adapter und liefert gemeinsame DTOs.
