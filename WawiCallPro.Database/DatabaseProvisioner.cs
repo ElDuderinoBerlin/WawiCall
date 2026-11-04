@@ -2,19 +2,47 @@ using System.Data.Common;
 
 namespace WawiCallPro.Database;
 
-/// <summary>A receipt proves that this exact target object was explicitly created during this process.</summary>
+/// <summary>A process-local receipt proves explicit creation or verified empty-target approval for this exact target.</summary>
 public sealed class DatabaseCreation
 {
     private readonly DatabaseTarget _target;
-    internal DatabaseCreation(DatabaseTarget target) => _target = target;
+    internal DatabaseCreation(DatabaseTarget target, bool wasCreated = true) { _target = target; WasCreated = wasCreated; }
     public DatabaseType Type => _target.Type;
+    public bool WasCreated { get; }
     internal bool Matches(DatabaseTarget target) => ReferenceEquals(target, _target);
     public override string ToString() => nameof(DatabaseCreation);
 }
 
 /// <summary>Explicit create-only provisioning; no schema migrations, adoption, replacement or deletion.</summary>
-public sealed class DatabaseProvisioner(DatabaseFactory factory)
+public sealed class DatabaseProvisioner
 {
+    private readonly DatabaseFactory factory;
+    private readonly IDatabaseMigrationLock _migrationLock;
+    private readonly IDatabaseMigrationPermissions _permissions;
+
+    public DatabaseProvisioner(DatabaseFactory factory) : this(factory, new DatabaseMigrationLock(), new DatabaseMigrationPermissions(factory)) { }
+    public DatabaseProvisioner(DatabaseFactory factory, IDatabaseMigrationLock migrationLock, IDatabaseMigrationPermissions permissions)
+    {
+        this.factory = factory ?? throw new ArgumentNullException(nameof(factory));
+        _migrationLock = migrationLock ?? throw new ArgumentNullException(nameof(migrationLock));
+        _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
+    }
+
+    /// <summary>Explicit DBA-prepared empty-target approval. Does not create or adopt a nonempty database.</summary>
+    public async Task<DatabaseCreation> ApproveEmptyAsync(DatabaseTarget target, CancellationToken cancellationToken = default)
+    {
+        var status = new DatabaseStatusService(factory, new DatabaseMigrationCatalog([]));
+        var before = await status.GetStatusAsync(target, cancellationToken).ConfigureAwait(false);
+        if (before.State != DatabaseSchemaState.EmptyDatabase) throw new DatabaseOperationException(before.Error ?? DatabaseErrorCode.ForeignDatabase);
+        await using var lease = await _migrationLock.AcquireAsync(target, TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+        await _permissions.EnsureAsync(target, cancellationToken).ConfigureAwait(false);
+        await _permissions.EnsureMetadataVisibilityAsync(target, cancellationToken).ConfigureAwait(false);
+        var verified = await status.GetStatusAsync(target, cancellationToken).ConfigureAwait(false);
+        if (verified.State != DatabaseSchemaState.EmptyDatabase) throw new DatabaseOperationException(verified.Error ?? DatabaseErrorCode.ForeignDatabase);
+        await lease.EnsureHeldAsync(cancellationToken).ConfigureAwait(false);
+        return new DatabaseCreation(target, wasCreated: false);
+    }
+
     public Task<DatabaseCreation> CreateAsync(DatabaseTarget target, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(target);

@@ -22,7 +22,9 @@ public enum DatabaseErrorCode
     MigrationBusy,
     MigrationFailed,
     MigrationVerificationFailed,
-    ProgressFailed
+    ProgressFailed,
+    MigrationLockTimeout,
+    MigrationLockLost
 }
 
 /// <summary>Fixed operational errors contain neither connection strings nor inner provider exceptions.</summary>
@@ -46,6 +48,8 @@ public sealed class DatabaseOperationException : Exception
         DatabaseErrorCode.MigrationFailed => "Die Datenbankmigration ist fehlgeschlagen. Den Schemastatus erneut prüfen.",
         DatabaseErrorCode.MigrationVerificationFailed => "Die Migration wurde nicht im erwarteten Schemastand bestätigt.",
         DatabaseErrorCode.ProgressFailed => "Der Datenbankfortschritt konnte nicht gemeldet werden.",
+        DatabaseErrorCode.MigrationLockTimeout => "Eine andere Anwendung aktualisiert die Datenbank. Die Wartefrist ist abgelaufen.",
+        DatabaseErrorCode.MigrationLockLost => "Die Datenbank-Migrationssperre ist nicht mehr gültig. Den Schemastatus erneut prüfen.",
         _ => throw new ArgumentOutOfRangeException(nameof(code))
     }) => Code = code;
 
@@ -55,10 +59,17 @@ public sealed class DatabaseOperationException : Exception
     {
         UnauthorizedAccessException => DatabaseErrorCode.AccessDenied,
         SqliteException { SqliteErrorCode: 11 or 26 } => DatabaseErrorCode.InvalidSchema,
-        SqliteException { SqliteErrorCode: 23 } => DatabaseErrorCode.AccessDenied,
+        SqliteException { SqliteErrorCode: 8 or 23 } => DatabaseErrorCode.AccessDenied,
         SqlException { Number: 229 or 262 or 916 } => DatabaseErrorCode.AccessDenied,
         PostgresException { SqlState: "42501" } => DatabaseErrorCode.AccessDenied,
         MySqlException { Number: 1044 or 1045 or 1142 } => DatabaseErrorCode.AccessDenied,
         _ => DatabaseErrorCode.ConnectionFailed
     };
+
+    internal static DatabaseErrorCode MigrationCode(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+            if (Classify(current) == DatabaseErrorCode.AccessDenied) return DatabaseErrorCode.AccessDenied;
+        return DatabaseErrorCode.MigrationFailed;
+    }
 }

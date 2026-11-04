@@ -403,13 +403,14 @@ werden mit leeren/befüllten Daten, kleineren Fenstern und größerer Schrift vi
 
 Vorhanden sind die Hostprojekte mit Standard-.NET-Host/DI-Grundlage, gemeinsame Fachverträge
 einschließlich `ITelephonyService`, Mandantenkontext/Dispatcher, Konfiguration und Gesprächszustandsautomat.
-Die Datenbankmigrationen 1–5 und die Herkunftsfelder sind implementiert und geprüft.
+Die Datenbankmigrationen 1–5, Herkunftsfelder und prozessübergreifenden Migrationssperren/Rechteprüfungen
+sind implementiert und auf allen vier Providern geprüft.
 Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
 hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
 
 Noch offen sind insbesondere:
 
-- Migrationssperre zwischen Prozessen und Rechteprüfung: nächster Umsetzungspunkt, Phase 3/Punkt 5.
+- Zusätzliche Mehrfirmenmigration ab Version 6, Repositories, Sicherung/Wiederherstellung und Hostanbindung.
 - Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
 - Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.

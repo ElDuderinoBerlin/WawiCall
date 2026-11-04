@@ -4,21 +4,31 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace WawiCallPro.Database;
 
 /// <summary>
-/// Orchestrates the standard runner adapter, never provisions or downgrades. Cross-process database leases are
-/// a separate integration step; this instance rejects overlapping calls rather than running two local updates.
+/// Orchestrates the standard runner after ownership, process lease and permission checks; never provisions or downgrades.
 /// </summary>
 public sealed class DatabaseMigrator
 {
     private readonly IDatabaseMigrationEngine _engine;
     private readonly DatabaseStatusService _status;
     private readonly ILogger<DatabaseMigrator> _logger;
+    private readonly IDatabaseMigrationLock _migrationLock;
+    private readonly IDatabaseMigrationPermissions _permissions;
+    private readonly TimeSpan _lockTimeout;
     private int _running;
 
     public DatabaseMigrator(DatabaseFactory factory, IDatabaseMigrationEngine engine, ILogger<DatabaseMigrator>? logger = null)
+        : this(factory, engine, new DatabaseMigrationLock(), new DatabaseMigrationPermissions(factory), TimeSpan.FromSeconds(30), logger) { }
+
+    public DatabaseMigrator(DatabaseFactory factory, IDatabaseMigrationEngine engine, IDatabaseMigrationLock migrationLock,
+        IDatabaseMigrationPermissions permissions, TimeSpan lockTimeout, ILogger<DatabaseMigrator>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(engine);
         _engine = engine;
+        _migrationLock = migrationLock ?? throw new ArgumentNullException(nameof(migrationLock));
+        _permissions = permissions ?? throw new ArgumentNullException(nameof(permissions));
+        if (lockTimeout <= TimeSpan.Zero || lockTimeout > TimeSpan.FromMinutes(5)) throw new DatabaseOperationException(DatabaseErrorCode.InvalidTarget);
+        _lockTimeout = lockTimeout;
         _status = new DatabaseStatusService(factory, engine.Catalog);
         _logger = logger ?? NullLogger<DatabaseMigrator>.Instance;
     }
@@ -36,20 +46,33 @@ public sealed class DatabaseMigrator
         try
         {
             if (_engine.Catalog.Versions.IsEmpty) throw new DatabaseOperationException(DatabaseErrorCode.MigrationDefinitionsMissing);
+            if (_engine is FluentMigratorEngine engine && engine.Type != target.Type) throw new DatabaseOperationException(DatabaseErrorCode.InvalidTarget);
             Report(progress, DatabaseMigrationPhase.Inspecting, null, 0, 0);
             var status = await _status.GetStatusAsync(target, cancellationToken).ConfigureAwait(false);
+            EnsureMigratable(status);
+            Report(progress, DatabaseMigrationPhase.WaitingForLock, null, 0, 0);
+            await using var lease = await _migrationLock.AcquireAsync(target, _lockTimeout, cancellationToken).ConfigureAwait(false);
+            // Another process may have completed the schema while this process was waiting.
+            status = await _status.GetStatusAsync(target, cancellationToken).ConfigureAwait(false);
             EnsureMigratable(status);
             if (status.State == DatabaseSchemaState.EmptyDatabase && target.Type != DatabaseType.Sqlite && creation?.Matches(target) != true)
                 throw new DatabaseOperationException(DatabaseErrorCode.OwnershipUnverified);
             total = status.PendingVersions.Length;
             var alreadyApplied = status.AppliedVersions.Length;
+            if (total > 0)
+            {
+                Report(progress, DatabaseMigrationPhase.CheckingPermissions, null, 0, total);
+                await _permissions.EnsureAsync(target, cancellationToken).ConfigureAwait(false);
+            }
             foreach (var version in status.PendingVersions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                await lease.EnsureHeldAsync(cancellationToken).ConfigureAwait(false);
                 applying = version;
                 Report(progress, DatabaseMigrationPhase.Applying, version, completed, total);
                 // A synchronous FluentMigrator step cannot be abandoned midway by a UI cancellation token.
                 await Task.Run(() => _engine.MigrateUp(target, version), CancellationToken.None).ConfigureAwait(false);
+                await lease.EnsureHeldAsync(CancellationToken.None).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 Report(progress, DatabaseMigrationPhase.Verifying, version, completed, total);
                 status = await _status.GetStatusAsync(target, cancellationToken).ConfigureAwait(false);
@@ -61,6 +84,7 @@ public sealed class DatabaseMigrator
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (status.State != DatabaseSchemaState.Current) throw new DatabaseOperationException(DatabaseErrorCode.MigrationVerificationFailed);
+            await lease.EnsureHeldAsync(cancellationToken).ConfigureAwait(false);
             Report(progress, DatabaseMigrationPhase.Completed, status.LatestAvailableVersion, completed, total);
             return status;
         }

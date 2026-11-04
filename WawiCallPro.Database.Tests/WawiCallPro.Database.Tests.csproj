@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Database.TestWorker\WawiCallPro.Database.TestWorker.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />
     <PackageReference Update="MSTest.TestFramework" Version="4.5.2" />
   </ItemGroup>

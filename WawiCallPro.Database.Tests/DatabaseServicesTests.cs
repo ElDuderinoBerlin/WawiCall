@@ -226,7 +226,8 @@ public sealed class DatabaseServicesTests
         var status = await migrator.MigrateAsync(target, progress: progress);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
         CollectionAssert.AreEqual(new long[] { 1, 2 }, engine.Calls.ToArray());
-        CollectionAssert.AreEqual(new[] { DatabaseMigrationPhase.Inspecting, DatabaseMigrationPhase.Applying,
+        CollectionAssert.AreEqual(new[] { DatabaseMigrationPhase.Inspecting, DatabaseMigrationPhase.WaitingForLock,
+            DatabaseMigrationPhase.CheckingPermissions, DatabaseMigrationPhase.Applying,
             DatabaseMigrationPhase.Verifying, DatabaseMigrationPhase.Applying, DatabaseMigrationPhase.Verifying,
             DatabaseMigrationPhase.Completed }, progress.Items.Select(item => item.Phase).ToArray());
         Assert.AreEqual(2, progress.Items[^1].CompletedSteps);

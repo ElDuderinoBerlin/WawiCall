@@ -575,7 +575,20 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item4`.
   Keine UI-Änderung. MySQL-DDL kann nach Fehlern teilweise bestehen bleiben; keine automatische Übernahme
   durch IF NOT EXISTS. Vollständige Providerfehler-/Rechte-/Sperr-/Backup-/Repositoryabnahme bleibt offen.
-- [ ] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
+- [x] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
+  Nachweis: exklusive SQLite-Sperrdatei beziehungsweise ungepoolte SQL-Server-AppLock-/MySQL-GET_LOCK-/
+  PostgreSQL-Advisory-Sitzungen. Abbrechbare Wartefrist, feste Timeout-/Sperrverlustcodes, Prüfung der
+  Sperre und erneuter Schemastatus unter der Sperre. DDL-/DML-Rechte vor anstehenden Schritten prüfen;
+  native Rechtefehler auch aus verschachtelten Runnerfehlern als bereinigtes AccessDenied erhalten.
+  DBA-vorbereitete Leerziele ausdrücklich mit ApproveEmptyAsync freigeben, nur bei vollständiger
+  Metadatensicht/Migrationsrechten; fremde Tabellen oder allein vorhandene Routinen sperren die Freigabe.
+  Sechs neue Datenbanktests, je 217 Tests für Pro/FinOffice bestanden; Database/TestWorker/App/Console
+  beider Varianten in Debug ohne Warnungen/Fehler gebaut. Vier isolierte Hoststarts und Runtime-/
+  Produktlinien-/MMS-/Solution-/Paketprüfung bestanden. Native Prüfungen auf eigenen SQL-Server-2019-
+  LocalDB-, MySQL-8.4.9- und PostgreSQL-17.9-Instanzen bestätigen zwei Prozesse, Timeout/Abbruch,
+  Freigabe nach Prozessverlust, Leerzielfreigabe, fremde Routinen, Rechteverweigerung und aktive MySQL-Rollen.
+  Instanzen gestoppt/entfernt, keine Lexware-Datenbanken geöffnet. Logs: `.artifacts/phase3-item5`.
+  Keine UI-Änderung/Renderprüfung; weitere Phasenpunkte bleiben offen.
 - [ ] Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
   Migrationen ab Version 6 und passende Speicherverträge vorbereiten. Eigene Firma je historischem
   Kandidaten mit Backfill aus der bisherigen Gesprächsfirma; Kandidaten vor Firmenauswahl zulassen,

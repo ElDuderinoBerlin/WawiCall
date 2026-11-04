@@ -1,10 +1,11 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–4. Die neuen Migrationen 1–5 sind implementiert.
+Stand: 04.11.2026, Phase 3, Punkte 1–5. Die neuen Migrationen 1–5 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
-Dapper-Repositories, prozessübergreifende Sperren und Hostanbindung folgen in den nächsten Punkten.
+Prozessübergreifende Sperren und Rechteprüfung bestehen seit Punkt 5; zusätzliche Migrationen,
+Dapper-Repositories, Sicherung und Hostanbindung folgen in den nächsten Punkten.
 Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
@@ -86,7 +87,30 @@ vor Runnererzeugung gesperrt. Ein vollständig leerer SQLite-Bestand oder eine l
 Fachtabellen ist als Initialisierungszustand erkennbar; das Lesen legt die Kennung nicht an.
 Für leere Serverziele verlangt der Migrator zusätzlich den prozesslokalen Create-Nachweis für dasselbe
 Zielobjekt. Damit wird ein mangels Katalogrechten unsichtbarer Fremdbestand nicht versehentlich initialisiert.
-Eine ausdrückliche Freigabe von DBA-vorbereiteten leeren Serverdatenbanken gehört zur Rechteprüfung in Punkt 5.
+Seit Punkt 5 kann ein DBA-vorbereitetes Leerziel ausdrücklich mit `ApproveEmptyAsync` freigegeben werden.
+Der Nachweis gilt nur für dasselbe Zielobjekt; WasCreated=false unterscheidet Freigabe und Neuanlage.
+Migrationsrechte und vollständige Metadatensicht sind erforderlich: SQL Server VIEW DEFINITION,
+PostgreSQL Datenbankbesitzerrolle, MySQL globale SELECT-/SHOW_ROUTINE-Rechte einschließlich aktiver Rollen.
+Fremde Tabellen, Views und Routinen werden nicht als leeres Ziel übernommen. Lesen erzeugt keinen Nachweis.
+
+### Migrationssperre und Rechte
+
+Der Migrator prüft lesend das Ziel, wartet auf die Sperre und liest den Status unter der Sperre erneut.
+SQLite verwendet einen exklusiven Dateihandle auf einer nicht gelöschten `.migration.lock` neben
+derselben kanonischen Datenbankdatei. Server nutzen dedizierte ungepoolte Sitzungen: Session-AppLock,
+datenbankbezogener MySQL-GET_LOCK-Name beziehungsweise PostgreSQL-Advisory-Lock. SQL-Server-
+Wiederverbindung ist für die Sperrsitzung deaktiviert. Sperrverlust beendet die Operation vor weiteren
+Schritten; während eines begonnenen synchronen Runners ist keine sichere sofortige Unterbrechung zugesagt.
+Die Sperre wird vor und nach jedem Schritt geprüft. Prozessende gibt die Sperre frei.
+
+Wartefrist: injizierbar, standardmäßig 30 Sekunden, höchstens fünf Minuten, abbrechbar. Timeout und
+Verlust melden feste Codes. Statusabfragen benutzen weder Sperre, Rechteprobe noch Runner. Rechteprüfungen
+erzeugen keine Probentabellen; ein unveränderter Current-Stand benötigt keine neue DDL-Prüfung.
+MySQL berücksichtigt aktive Rollen, PostgreSQL Schema-/Objektbesitz und SQL Server Schema-/Datenbankrechte.
+Providertexte und rohe Ausnahmen werden nicht als Produktmeldungen weitergegeben.
+[SQL Server AppLock](https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-getapplock-transact-sql),
+[MySQL SHOW GRANTS](https://dev.mysql.com/doc/refman/8.4/en/show-grants.html),
+[PostgreSQL Berechtigungen](https://www.postgresql.org/docs/17/functions-info.html).
 
 ### Version 1: companies
 
@@ -409,5 +433,7 @@ Die Migrationen verwenden ForwardOnlyMigration; SQLite/SQL Server/PostgreSQL kö
 Schritte transaktional ausführen. MySQL-DDL kann trotz fehlender Versionsbestätigung teilweise bestehen
 bleiben. Kein IF NOT EXISTS übernimmt einen solchen Bestand automatisch; vor Wiederanlauf sind Status
 und Sicherung zu prüfen und gegebenenfalls eine ausdrückliche Reparatur/Wiederherstellung nötig.
-Vollständige Provider-Fehlerszenarien, CAS-Konflikte, prozessübergreifende Sperre, Rechte-/Backup-/WAL-
-Abnahme und Repository-/Hostzugriffe bleiben den folgenden Punkten vorbehalten.
+Seit Punkt 5 bestätigen sechs weitere Datenbanktests und isolierte Serverinstanzen Sperren zwischen
+Prozessen, Timeout/Abbruch, Prozessverlust, Rechteverweigerung, aktive MySQL-Rollen, Leerzielfreigabe
+und fremde Routinen. Je 217 Tests und die Debug-/Hostprüfungen bestanden; `.artifacts/phase3-item5`.
+CAS-Konflikte, Backup-/WAL-Abnahme und Repository-/Hostzugriffe bleiben den folgenden Punkten vorbehalten.

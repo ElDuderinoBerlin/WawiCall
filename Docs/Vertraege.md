@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–4 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–5 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -247,7 +247,13 @@ nur diese Metadaten und feste Fehlercodes. Der Migrator verwirft rohe Provider-/
 Übergang zum `DatabaseOperationException`, einschließlich innerer Ausnahmen. Laufender synchroner Runnercode
 wird bei Benutzerabbruch vollständig abgewartet; Abbruch greift zwischen sicheren Schritten und meldet
 keinen vollständigen Erfolg. Überlappende Aufrufe derselben Dienstinstanz werden mit MigrationBusy
-abgewiesen. Dies ist noch keine Sperre zwischen Prozessen oder verschiedenen Instanzen; diese bleibt Punkt 5.
+abgewiesen. Seit Punkt 5 kommt eine prozessübergreifende, abbrechbare Sperre hinzu: SQLite-Dateihandle,
+SQL-Server-Session-AppLock, MySQL-GET_LOCK beziehungsweise PostgreSQL-Advisory-Lock. Nach Erwerb
+wird der Schemastand erneut gelesen; Rechte vor anstehenden Schritten und die Sperre vor/nach Schritten
+werden geprüft. Neue feste Phasen WaitingForLock/CheckingPermissions und Codes MigrationLockTimeout/
+MigrationLockLost. Separate nicht gepoolte Sperrsitzungen werden nicht automatisch wiederverbunden.
+ApproveEmptyAsync erzeugt einen ausdrücklichen Freigabenachweis für ein verifiziertes DBA-Leerziel,
+ohne Schemaanlage und nur mit vollständiger Metadatensicht. WasCreated unterscheidet dies von Neuanlage.
 
 Die Dienste sind noch nicht in App/Console registriert und öffnen dort keine Datenbank beim Start.
 Die 22 Dienstprüfungen aus Punkt 2 verwenden echte SQLite-Dateien sowie einen testinternen transaktionalen
@@ -317,8 +323,9 @@ MySQL-8.4.9- und PostgreSQL-17.9-Instanzen ausgeführt; dort wurden Status, Wied
 CHECKs, Unicode/Ticks und Auswahl-/Löschschutz geprüft. Keine vorhandenen Lexware-Bestände verwendet.
 Database, App und Console beider Varianten in Debug ohne Warnungen/Fehler gebaut; vier Diagnose-
 Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Hosts erzeugen weiterhin nur
-Betriebslogs. Nachweise: `.artifacts/phase3-item4`. Keine UI-Änderung. Prozessübergreifende Sperre,
-Rechte-/Sicherungsprüfung, Dapper-Repositories und tatsächliche Hostpersistenz bleiben offen.
+Betriebslogs. Nachweise: `.artifacts/phase3-item4`. Seit Punkt 5 bestehen Rechteprüfung und
+prozessübergreifende Sperren mit echtem Zwei-Prozess-/Servernachweis; `.artifacts/phase3-item5`.
+Keine UI-Änderung. Sicherung, Dapper-Repositories und tatsächliche Hostpersistenz bleiben offen.
 
 ## Host und Plugins
 

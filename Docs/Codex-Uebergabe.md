@@ -148,6 +148,16 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Aktueller Auftrag: Phase 3 vollständig abschließen, jeden offenen Checklistenpunkt einzeln prüfen und
+committen. Punkt 5 ist fertig: native Serversperren und SQLite-Sidecar, abbrechbare Wartefrist,
+Neulesen des Status unter der Sperre, Rechteprüfung und explizite DBA-Leerzielfreigabe. Fremde Routinen
+zählen als Fremdbestand; keine Freigabe ohne volle Metadatensicht. Separater TestWorker für echte
+Prozessgrenzen in der Solution, keine Produktabhängigkeit darauf. Sechs neue Tests, je 217 Tests in
+Pro/FinOffice, acht Debug-Builds, vier Hoststarts und native SQL-Server-/MySQL-/PostgreSQL-Prüfungen
+bestanden; `.artifacts/phase3-item5`. Instanzen gestoppt/entfernt. Nächster Punkt: Mehrfirmenmigration
+ab Version 6 samt Verträgen, anschließend Dapper-Repositories, Sicherung, Host/Console und Gesamtabnahme.
+Phase 6/StartWidth bleibt während dieses ausdrücklich priorisierten Phase-3-Auftrags zurückgestellt.
+
 Neue Nutzeranforderung zur Aufnahme: `WawiCallPro_old/TestCSCoreRecording` mit WavMixer, SimpleMixer,
 SoundRecorder und WavToMp3Converter geprüft. Ziel: beide Gesprächsseiten zeitlich ausgerichtet als PCM-WAV,
 danach asynchrone MP3-Konvertierung mit CSCore/Media Foundation, Dienste/Sitzungen über Interfaces/DI.
@@ -254,10 +264,9 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Im Datenbankplan weiterhin als Nächstes Phase 3, Punkt 5: Rechteprüfung, fehlende Datenbank, Provider-Tags, Fristen, Schemaversion
-und insbesondere eine wirksame prozessübergreifende Migrationssperre mit Timeout vervollständigen.
-Die vorhandenen Status-/Eigentumsgrenzen und bestätigten Versionspräfixe erhalten; neben echten
-Serverprüfungen auch zwei konkurrierende Prozesse und Fehler-/Abbruchfälle nachweisen.
+Im Datenbankplan als Nächstes Phase 3, Punkt 6: zusätzliche Mehrfirmenmigration und Speicherverträge.
+Punkt 5 ist mit Server-/Zwei-Prozess-/Rechteprüfung abgeschlossen. Die vorhandenen Status-/Eigentumsgrenzen
+und bestätigten Versionspräfixe erhalten. Migrationen 1–5 nicht rückwirkend ändern.
 Keine Runnererzeugung in der reinen Statusabfrage.
 Vorhandene Hostorchestrierung und sichere Meldungen erhalten.
 Format 1 und die DPAPI-Hülle sind unabhängig versioniert. `ConnectionConfigured` bedeutet vollständig geprüftes

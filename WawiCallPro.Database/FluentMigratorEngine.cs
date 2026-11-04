@@ -66,10 +66,10 @@ public sealed class FluentMigratorEngine : IDatabaseMigrationEngine
             using var scope = provider.CreateScope();
             scope.ServiceProvider.GetRequiredService<IMigrationRunner>().MigrateUp(version);
         }
-        catch
+        catch (Exception exception)
         {
             // Runner exceptions can contain SQL, connection strings and migration-supplied messages.
-            throw new DatabaseOperationException(DatabaseErrorCode.MigrationFailed);
+            throw new DatabaseOperationException(DatabaseOperationException.MigrationCode(exception));
         }
     }
 

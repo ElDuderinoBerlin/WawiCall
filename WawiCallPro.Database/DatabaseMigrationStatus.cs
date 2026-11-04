@@ -28,7 +28,9 @@ public enum DatabaseMigrationPhase
     Verifying,
     Completed,
     Failed,
-    Cancelled
+    Cancelled,
+    WaitingForLock,
+    CheckingPermissions
 }
 
 /// <summary>Progress reports fixed phases and numeric versions rather than raw migration/provider messages.</summary>
