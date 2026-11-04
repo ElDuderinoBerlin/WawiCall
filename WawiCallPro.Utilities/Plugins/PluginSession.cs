@@ -15,9 +15,10 @@ public sealed class WawiCallHostServices(ICompanyContext companies, IUiDispatche
     public IUiDispatcher UiDispatcher => dispatcher;
     public ICallHistoryService History => history;
 }
-public interface IPluginSession : IDisposable
+public interface IPluginSession : IDisposable, IAsyncDisposable
 {
     void Load(string absoluteDirectory);
+    Task LoadAsync(string absoluteDirectory);
     IReadOnlyList<IWawiCallPlugin> GetPlugins();
 }
 public interface IPluginSessionFactory
@@ -38,16 +39,31 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
         var scope = scopes.CreateScope();
         try
         {
-            var manager = managers.CreateWithActivation(tokens, type => (IPlugin)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type));
-            return new Session(scope, manager, services, application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice);
+            var activated = new List<IPlugin>();
+            var manager = managers.CreateWithActivation(tokens, type =>
+            {
+                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
+                activated.Add(plugin); return plugin;
+            });
+            return new Session(scope, manager, services, application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice, activated);
         }
         catch { scope.Dispose(); throw; }
     }
-    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product) : IPluginSession
+    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product, List<IPlugin> activated) : IPluginSession
     {
         private bool _loaded;
         private bool _disposed;
         public void Load(string absoluteDirectory)
+        {
+            try { LoadCore(absoluteDirectory); }
+            catch { Dispose(); throw new PluginRuntimeException(); }
+        }
+        public async Task LoadAsync(string absoluteDirectory)
+        {
+            try { LoadCore(absoluteDirectory); }
+            catch { await DisposeAsync().ConfigureAwait(false); throw new PluginRuntimeException(); }
+        }
+        private void LoadCore(string absoluteDirectory)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_loaded) throw new InvalidOperationException("Plugin session is already loaded.");
@@ -59,7 +75,7 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
                 plugin.Configure(services);
                 _loaded = true;
             }
-            catch { Dispose(); throw new PluginRuntimeException(); }
+            catch { throw new PluginRuntimeException(); }
         }
         public IReadOnlyList<IWawiCallPlugin> GetPlugins()
         {
@@ -70,7 +86,33 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
         {
             if (_disposed) return;
             _disposed = true;
-            try { manager.Dispose(); } finally { scope.Dispose(); }
+            try { manager.Dispose(); }
+            finally
+            {
+                try { foreach (var plugin in activated.OfType<IDisposable>()) plugin.Dispose(); }
+                finally { activated.Clear(); scope.Dispose(); }
+            }
+        }
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            foreach (var plugin in activated.OfType<IWawiCallPluginLifetime>()) await plugin.StopAsync(CancellationToken.None).ConfigureAwait(false);
+            await manager.UnloadAllAsync(async () =>
+            {
+                try
+                {
+                    foreach (var plugin in activated)
+                        if (plugin is IAsyncDisposable asynchronousPlugin) await asynchronousPlugin.DisposeAsync().ConfigureAwait(false);
+                        else if (plugin is IDisposable disposablePlugin) disposablePlugin.Dispose();
+                }
+                finally
+                {
+                    activated.Clear();
+                    if (scope is IAsyncDisposable asynchronous) await asynchronous.DisposeAsync().ConfigureAwait(false);
+                    else scope.Dispose();
+                }
+            }).ConfigureAwait(false);
+            _disposed = true;
         }
     }
 }

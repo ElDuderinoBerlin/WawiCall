@@ -10,6 +10,7 @@ using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.Plugins;
 
 namespace WawiCallPro.Utilities.Tests;
 
@@ -128,6 +129,64 @@ public sealed class PluginRuntimeTests
             Assert.ThrowsExactly<PluginRuntimeException>(() => session.Load(plugins));
             return Task.CompletedTask;
         });
+    }
+
+    [TestMethod]
+    public async Task RuntimeCancelsAndAwaitsWorkClosesResourcesAndReleasesCollectibleContext()
+    {
+        var context = await RunRuntimeScenarioAsync();
+        // Leave the inline async-stop continuation stack before testing collectible-ALC reclamation.
+        for (var index = 0; index < 20 && context.IsAlive; index++)
+        {
+            await Task.Delay(20);
+            GC.Collect(); GC.WaitForPendingFinalizers();
+        }
+        Assert.IsFalse(context.IsAlive, "Plugin context remains rooted after shutdown.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> RunRuntimeScenarioAsync()
+    {
+        var directory = DeploySignedFixture();
+        var host = WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
+        {
+            services.AddSingleton(new ConfigurationLocation(_root));
+            services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
+            services.AddProductPluginRuntime();
+            services.AddSingleton(new ProductPluginLocation(directory));
+        }).Build();
+        WeakReference? context = null;
+        await HostExecution.RunAsync(host, async token =>
+        {
+            var runtime = host.Services.GetRequiredService<IProductPluginRuntime>();
+            Assert.IsTrue(runtime.IsLoaded);
+            context = await runtime.UseAsync((plugin, _) => Task.FromResult(new WeakReference(AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!)), token);
+            var resource = new ProbeResource();
+            await runtime.UseAsync<IPluginLifetimeResource>((_, _) => Task.FromResult<IPluginLifetimeResource>(resource), token);
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var work = runtime.UseAsync(async (_, cancellation) => { entered.SetResult(); await Task.Delay(Timeout.Infinite, cancellation); return 0; }, token);
+            await entered.Task;
+            await host.Services.GetRequiredService<ProductPluginRuntime>().StopAsync(CancellationToken.None);
+            await Assert.ThrowsAsync<OperationCanceledException>(() => work);
+            Assert.IsTrue(resource.Disposed);
+            Assert.IsFalse(runtime.IsLoaded);
+        });
+        return context!;
+    }
+    private sealed class ProbeResource : IPluginLifetimeResource
+    {
+        public bool Disposed { get; private set; }
+        public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+    }
+
+    private string DeploySignedFixture([CallerFilePath] string source = "")
+    {
+        var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
+        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "SignedRuntimePlugin", "bin", "Debug", variant, "net10.0");
+        var plugins = Path.Combine(_root, "plugins"); var target = Path.Combine(plugins, "SignedRuntimePlugin");
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.GetFiles(output)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+        return plugins;
     }
 
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>

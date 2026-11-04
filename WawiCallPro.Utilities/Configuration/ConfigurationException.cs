@@ -39,6 +39,8 @@ public static class StartupFailureMessage
             persistenceFailure = persistenceErrors.Flatten().InnerExceptions.OfType<DatabaseOperationException>().FirstOrDefault();
             conflict = persistenceErrors.Flatten().InnerExceptions.OfType<RepositoryConflictException>().FirstOrDefault();
         }
-        return configurationFailure?.Message ?? operationalFailure?.Message ?? persistenceFailure?.Message ?? conflict?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
+        var pluginFailure = exception as WawiCallPro.Utilities.Plugins.PluginRuntimeException;
+        if (exception is AggregateException pluginErrors) pluginFailure = pluginErrors.Flatten().InnerExceptions.OfType<WawiCallPro.Utilities.Plugins.PluginRuntimeException>().FirstOrDefault();
+        return configurationFailure?.Message ?? operationalFailure?.Message ?? persistenceFailure?.Message ?? conflict?.Message ?? pluginFailure?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
     }
 }

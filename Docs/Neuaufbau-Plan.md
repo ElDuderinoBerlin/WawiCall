@@ -726,7 +726,16 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   Deploy entfernt auch alte Paketkopien; Prüfung verlangt identische Host-/Quellversionen und keine
   DLL-Duplikate in allen vier Hostbundles. Fixture bestätigt gleiche DI-/Dapper-Typen trotz privater Kopien.
   Je 250 Tests/Debug-/Hostprüfungen und Bundlevergleich bestanden; `.artifacts/phase4-item6`.
-- [ ] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben.
+- [x] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben. ✅
+  Signierte Produkt-Einstiegsklassen werden in App/Console tatsächlich per DI geladen, initialisiert und
+  konfiguriert. Lexware-Datenzugriffe melden bis Phase 5 NotSupported, keine erfolgreichen Leerantworten.
+  IProductPluginRuntime schützt Aufrufe, stoppt neue Arbeit, bricht laufende Aufrufe ab und wartet sie ab.
+  View-Handles werden vor Pluginstop auf dem UI-Dispatcher geschlossen; async Pluginstop und DI-Scope-
+  Freigabe erfolgen vor ALC-Unload (Quantarix 684cef2, Manifest angepasst). Abmeldungen und tatsächliche
+  GC-Freigabe mit signierter Fixture geprüft, ebenso UI-Thread-Erzeugung/-Dispose. Keine Produktview geändert.
+  PluginLoaded in Diagnose; DB-/Arbeitsplatz-Administration startet unabhängig vom Plugin.
+  Je 252 Tests, Debug-/Bundleprüfungen, vier echte Plugin-Hoststarts und 26 DB-Console-Prozesse bestanden;
+  `.artifacts/phase4-item7`. Rider konnte den MSTest-Einstieg nicht starten; Freigabenachweis über isolierte Tests.
 - [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
 
 Abnahme: App und Console laden das richtige Plugin über denselben Quantarix-Manager. Vertragstypen sind

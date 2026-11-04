@@ -13,7 +13,7 @@ try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
     var command = ConsoleCommand.Parse(args);
-    var host = ConsoleCompositionRoot.Build();
+    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && command.Name != "--workstation-init");
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {

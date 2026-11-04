@@ -6,13 +6,14 @@ using WawiCallPro.Interfaces.Directory;
 
 namespace RuntimePlugin;
 
-public sealed class LifecyclePlugin : IWawiCallPlugin
+public sealed class LifecyclePlugin : IWawiCallPlugin, IWawiCallPluginLifetime
 {
     private readonly IWawiCallHostServices? _injected;
     public LifecyclePlugin() { }
     public LifecyclePlugin(IWawiCallHostServices injected) => _injected = injected;
     public bool ServicesInjected => _injected is not null;
     public bool Configured { get; private set; }
+    private IWawiCallHostServices? _configuredServices;
     public LexwareProductLine ProductLine =>
 #if LX_PRO
         LexwareProductLine.Pro;
@@ -24,6 +25,8 @@ public sealed class LifecyclePlugin : IWawiCallPlugin
     {
         if (_host is null || !ReferenceEquals(services, _injected)) throw new InvalidOperationException("Initialization/injection order");
         Configured = true;
+        _configuredServices = services;
+        services.Companies.Changed += OnCompanyChanged;
     }
     private IPluginHost? _host;
     public string Name => "private-plugin-sentinel";
@@ -47,8 +50,12 @@ public sealed class LifecyclePlugin : IWawiCallPlugin
     }
     public void Shutdown()
     {
+        if (_configuredServices is { } services) services.Companies.Changed -= OnCompanyChanged;
+        _configuredServices = null;
         (_host ?? throw new InvalidOperationException("Initialize required")).Logger.LogInfo("private-plugin-sentinel stopped");
         _host = null;
         Shutdowns++;
     }
+    private void OnCompanyChanged(object? sender, CompanySelectionChangedEventArgs args) { }
+    public async ValueTask StopAsync(CancellationToken cancellationToken = default) => await Task.Delay(1, cancellationToken);
 }

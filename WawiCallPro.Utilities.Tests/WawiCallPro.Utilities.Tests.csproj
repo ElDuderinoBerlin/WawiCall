@@ -6,6 +6,7 @@
   <ItemGroup>
     <Compile Remove="Fixtures/**/*.cs" />
     <ProjectReference Include="Fixtures/RuntimePlugin/RuntimePlugin.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="Fixtures/SignedRuntimePlugin/SignedRuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />
   </ItemGroup>
   <ItemGroup>

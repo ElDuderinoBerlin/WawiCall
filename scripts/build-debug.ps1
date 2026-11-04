@@ -46,6 +46,7 @@ foreach ($selectedProductLine in $ProductLine) {
         if ($diagnostic.Application -ne 'WawiCallPro' -or $diagnostic.ProductLine -ne $selectedProductLine) {
             throw "Falsche Laufzeitidentität: $hostName/$selectedProductLine"
         }
+        if (!$diagnostic.HostStarted -or !$diagnostic.PluginLoaded) { throw "Plugin-Laufzeit nicht bereit: $hostName/$selectedProductLine" }
         Write-Output "$hostName/$selectedProductLine : $diagnosticText"
     }
 

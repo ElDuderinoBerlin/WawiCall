@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Threading;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -13,6 +14,8 @@ internal static class AppCompositionRoot
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
+                services.AddProductPluginRuntime();
+                services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();
                 services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
                 services.AddSingleton<IUiDispatcher>(_ => new SynchronizationContextUiDispatcher(uiContext));
                 services.AddSingleton<IHostLifetime, AppHostLifetime>();

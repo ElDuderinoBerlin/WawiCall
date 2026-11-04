@@ -19,6 +19,7 @@ internal static class DiagnosticTables
         new("SIP-Einrichtung", status.ConnectionConfigured ? "Vollständig geprüft" : "Nicht eingerichtet"),
         new("SIP-Verbindung", "Nicht verbunden"),
         new("Mandant", status.CompanySelected ? "Ausgewählt" : "Nicht ausgewählt"),
+        new("Warenwirtschaftsplugin", status.PluginLoaded ? "Geladen und konfiguriert" : "Nicht geladen"),
         new("Datenbank", "Nicht geprüft; --db-status liest den tatsächlichen Schemastatus"),
         new("Dispatcher", status.Dispatcher),
         new("Protokoll", "Bereinigtes JSONL; --logs zeigt abgeschlossene Einträge"),

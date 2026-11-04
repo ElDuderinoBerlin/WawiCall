@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><EnableDynamicLoading>true</EnableDynamicLoading><SignAssembly>true</SignAssembly><AssemblyOriginatorKeyFile>$(WawiCallPluginKeyFile)</AssemblyOriginatorKeyFile></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../RuntimePlugin/LifecyclePlugin.cs" Link="LifecyclePlugin.cs" />
+    <ProjectReference Include="../../../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
+    <PackageReference Include="Dapper" Version="2.1.89" />
+  </ItemGroup>
+</Project>

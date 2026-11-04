@@ -117,6 +117,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimePlugin", "WawiCallPr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugin.Windows", "WawiCallPro.Plugin.Windows\WawiCallPro.Plugin.Windows.csproj", "{7FBE0EA6-8859-4972-9EF0-E97339D405DF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignedRuntimePlugin", "WawiCallPro.Utilities.Tests\Fixtures\SignedRuntimePlugin\SignedRuntimePlugin.csproj", "{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -559,6 +561,18 @@ Global
 		{7FBE0EA6-8859-4972-9EF0-E97339D405DF}.Release|x64.Build.0 = Release|Any CPU
 		{7FBE0EA6-8859-4972-9EF0-E97339D405DF}.Release|x86.ActiveCfg = Release|Any CPU
 		{7FBE0EA6-8859-4972-9EF0-E97339D405DF}.Release|x86.Build.0 = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|x64.Build.0 = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Debug|x86.Build.0 = Debug|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x64.ActiveCfg = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x64.Build.0 = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x86.ActiveCfg = Release|Any CPU
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -578,5 +592,6 @@ Global
 		{60109D5A-98CD-497B-B996-1D242E6FF34D} = {3910C37C-A104-4147-93D5-82EBF4143017}
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7} = {3910C37C-A104-4147-93D5-82EBF4143017}
 		{260C801F-D9DB-4EFA-9B30-96380C82F784} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
+		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 	EndGlobalSection
 EndGlobal

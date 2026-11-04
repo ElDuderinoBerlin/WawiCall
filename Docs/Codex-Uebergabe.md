@@ -157,6 +157,13 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Phase 4/Punkt 7 abgeschlossen: echte signierte Produkt-Einstiegsklassen und Hosted-Runtime in beiden
+Composition Roots; PluginLoaded=true geprüft. Datenadapter noch ausdrücklich NotSupported (Phase 5).
+Gate/Abbruch/Abwarten, UI-Viewhandle-Dispatcher, async Stop→Shutdown→DI-Scope→ALC-Unload;
+Quantarix 684cef2, Manifest aktualisiert. Signierte Fixture mit Eventabmeldung und echter GC-Freigabe,
+UI-Threadtest, je 252 Tests, vier Pluginhoststarts und 26 Admin-Console-Prozesse bestanden.
+`.artifacts/phase4-item7`. Aktiver Gesamtauftrag Phase 4; letzter Punkt 8 Fehler-/Abnahmeprüfungen offen.
+
 Phase 4/Punkt 6 abgeschlossen: SharedPackage-Manifesterzeugung, Vorladen im Default-ALC und
 Quantarix-Zusatznamen-Hook 2867fb7; Manifest angepasst. DLL-Duplikate entfernt (einschließlich Serilog),
 identische Dateien/Versionen zwischen Host und Quelle geprüft. Fixture hat absichtlich private DI-/Dapper-

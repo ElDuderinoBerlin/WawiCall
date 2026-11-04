@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Interfaces.Plugins;
 
 namespace WawiCallPro.Utilities.Hosting;
 
@@ -16,10 +17,12 @@ public sealed record HostDiagnosticSnapshot(
     public bool ConfigurationFound { get; init; }
     public int SettingsFormatVersion { get; init; }
     public bool SettingsUpgradeRequired { get; init; }
+    public bool PluginLoaded { get; init; }
 }
 
 public sealed class HostDiagnostics(ApplicationDescriptor application, ICompanyContext companies,
-    IUiDispatcher dispatcher, IHostApplicationLifetime lifetime, ApplicationConfigurationService configuration)
+    IUiDispatcher dispatcher, IHostApplicationLifetime lifetime, ApplicationConfigurationService configuration,
+    IEnumerable<IProductPluginRuntime> plugins)
 {
     public async Task<HostDiagnosticSnapshot> CaptureAsync(CancellationToken cancellationToken = default)
     {
@@ -32,7 +35,8 @@ public sealed class HostDiagnostics(ApplicationDescriptor application, ICompanyC
             ConnectionConfigured = configuration.Current.IsSipConfigured,
             ConfigurationFound = configuration.Current.FileFound,
             SettingsFormatVersion = configuration.Current.FormatVersion,
-            SettingsUpgradeRequired = configuration.Current.RequiresUpgrade
+            SettingsUpgradeRequired = configuration.Current.RequiresUpgrade,
+            PluginLoaded = plugins.Any(plugin => plugin.IsLoaded)
         };
     }
 }
