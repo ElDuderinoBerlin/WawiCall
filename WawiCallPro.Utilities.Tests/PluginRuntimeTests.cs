@@ -64,6 +64,9 @@ public sealed class PluginRuntimeTests
             var echo = plugin.GetType().GetMethod("EchoCompany")!;
             Assert.AreSame(typeof(CompanyKey), echo.GetParameters()[0].ParameterType);
             Assert.AreSame(company, echo.Invoke(plugin, [company]));
+            var collection = new ServiceCollection();
+            Assert.AreSame(collection, plugin.GetType().GetMethod("EchoServices")!.Invoke(plugin, [collection]));
+            Assert.AreSame(typeof(Dapper.SqlMapper).Assembly, plugin.GetType().GetProperty("DapperAssembly")!.GetValue(plugin));
             Assert.AreEqual(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(typeof(CompanyKey).Assembly));
             Assert.AreEqual("private-plugin-sentinel", plugin.Name);
             Assert.AreEqual(new Version(1, 0), plugin.Version);
@@ -140,7 +143,7 @@ public sealed class PluginRuntimeTests
         var plugins = Path.Combine(_root, "plugins"); var destination = Path.Combine(plugins, "RuntimePlugin");
         Directory.CreateDirectory(destination);
         // Only the fixture and its dependency manifest; abstractions must resolve to the host's loaded contract.
-        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
+        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll", "Dapper.dll", "Microsoft.Extensions.DependencyInjection.Abstractions.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
         return plugins;
     }
 }

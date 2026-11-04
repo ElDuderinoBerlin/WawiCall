@@ -17,12 +17,12 @@ public sealed class QuantarixPluginManagerFactory(Quantarix.Plugin.Abstractions.
     {
         ArgumentNullException.ThrowIfNull(allowedPublicKeyTokens);
         contracts.EnsureLoaded();
-        return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal));
+        return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal), type => (Quantarix.Plugin.Abstractions.IPlugin)Activator.CreateInstance(type)!, contracts.GetSharedPackageAssemblyNames());
     }
     public PluginManager CreateWithActivation(IReadOnlySet<string> allowedPublicKeyTokens, Func<Type, Quantarix.Plugin.Abstractions.IPlugin> activate)
     {
         ArgumentNullException.ThrowIfNull(allowedPublicKeyTokens);
         contracts.EnsureLoaded();
-        return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal), activate);
+        return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal), activate, contracts.GetSharedPackageAssemblyNames());
     }
 }

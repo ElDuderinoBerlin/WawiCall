@@ -8,8 +8,10 @@
     <AssemblyOriginatorKeyFile>$(WawiCallPluginKeyFile)</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <SharedPackage Include="Serilog" />
     <SharedProjectAssembly Include="WawiCallPro.Interfaces;Quantarix.Plugin.Abstractions;WawiCallPro.Plugin.Windows" />
-    <!-- No third-party packages are part of the current UI-free contract. Future UI packages belong in SharedPackage. -->
+    <SharedPackage Include="Dapper;Microsoft.Extensions.Configuration;Microsoft.Extensions.Configuration.Abstractions;Microsoft.Extensions.Configuration.Binder;Microsoft.Extensions.DependencyInjection;Microsoft.Extensions.DependencyInjection.Abstractions;Microsoft.Extensions.Diagnostics;Microsoft.Extensions.Diagnostics.Abstractions;Microsoft.Extensions.Logging;Microsoft.Extensions.Logging.Abstractions;Microsoft.Extensions.Options;Microsoft.Extensions.Options.ConfigurationExtensions;Microsoft.Extensions.Primitives" />
+    <!-- Current shared packages each expose the matching assembly name. Packages such as DevExpress must specify RuntimeAssemblyNames explicitly. -->
   </ItemGroup>
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>

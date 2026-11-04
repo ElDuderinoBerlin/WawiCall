@@ -78,7 +78,7 @@
       "name": "Quantarix.Plugin.System",
       "url": "https://github.com/Quantarix/Quantarix.Plugin.System.git",
       "branch": "master",
-      "revision": "ec5be5289830106f33743e9730e1072f565528a4",
+      "revision": "2867fb75428584c2a9c23e196a16bce58b90fd1d",
       "projects": [
         "src/Quantarix.Plugin.Abstractions/Quantarix.Plugin.Abstractions.csproj",
         "src/Quantarix.Plugin.Hosting/Quantarix.Plugin.Hosting.csproj"

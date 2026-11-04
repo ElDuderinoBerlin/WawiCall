@@ -32,6 +32,8 @@ public sealed class LifecyclePlugin : IWawiCallPlugin
     public int Executions { get; private set; }
     public int Shutdowns { get; private set; }
     public CompanyKey EchoCompany(CompanyKey company) => company;
+    public Microsoft.Extensions.DependencyInjection.IServiceCollection EchoServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) => services;
+    public System.Reflection.Assembly DapperAssembly => typeof(Dapper.SqlMapper).Assembly;
     public void Initialize(IPluginHost host)
     {
         _host = host;

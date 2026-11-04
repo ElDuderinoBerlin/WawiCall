@@ -719,7 +719,13 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   Quelle/Ziel aller privaten Dateien und nativen Unterordner per SHA-256 verglichen.
   Vier Debug-Publishes, je 250 Tests, Debug-/Host-/Runtimeprüfungen bestanden; `.artifacts/phase4-item5`.
   Reproduzierbare Bundleprüfung: scripts/test-plugin-deployment.ps1. Allgemeine Duplikate folgen in Punkt 6.
-- [ ] Mehrfachkopien gemeinsamer DLLs vermeiden; keine UI-Steuerelemente oder Logger versehentlich doppelt laden.
+- [x] Mehrfachkopien gemeinsamer DLLs vermeiden; keine UI-Steuerelemente oder Logger versehentlich doppelt laden. ✅
+  Gemeinsame Microsoft-/Dapper-/Serilog-Pakete explizit vom Host bereitgestellt. Buildliste erzeugt
+  eingebettetes Runtime-Manifest; Packages werden vor Managererzeugung im Default-ALC geladen.
+  Quantarix-Hook für explizite Shared-Paketassemblynamen (2867fb7, Manifest aktualisiert).
+  Deploy entfernt auch alte Paketkopien; Prüfung verlangt identische Host-/Quellversionen und keine
+  DLL-Duplikate in allen vier Hostbundles. Fixture bestätigt gleiche DI-/Dapper-Typen trotz privater Kopien.
+  Je 250 Tests/Debug-/Hostprüfungen und Bundlevergleich bestanden; `.artifacts/phase4-item6`.
 - [ ] Laden, Konfigurieren, Betrieb und Shutdown festlegen; Ereignisse, Timer und DB-Zugriffe beim Entladen freigeben.
 - [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
 

@@ -157,6 +157,12 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Phase 4/Punkt 6 abgeschlossen: SharedPackage-Manifesterzeugung, Vorladen im Default-ALC und
+Quantarix-Zusatznamen-Hook 2867fb7; Manifest angepasst. DLL-Duplikate entfernt (einschließlich Serilog),
+identische Dateien/Versionen zwischen Host und Quelle geprüft. Fixture hat absichtlich private DI-/Dapper-
+Kopien; Typidentität bleibt gleich. Je 250 Tests/Debug-/Host-/Bundleprüfungen, `.artifacts/phase4-item6`.
+Als Nächstes Punkt 7: echte Produkt-Einstiegsklassen und Host-Lebenszyklus, dann Punkt 8 Fehlerabnahme.
+
 Phase 4/Punkt 5 abgeschlossen: IsPluginProject/EnableDynamicLoading, Import/adaptierter Sharedfilter
 mit geprüftem ReferenceCopyLocalPaths, rekursive Bundles für Build/Publish, keine Vertragskopien.
 Vier Publishes/je 250 Tests/Debug-/Hostprüfungen und scripts/test-plugin-deployment.ps1 bestanden;
