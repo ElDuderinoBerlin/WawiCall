@@ -7,7 +7,9 @@ public enum RepositoryConflictKind
     MissingRecord = 3,
     IdentityCollision = 4,
     OwnershipMismatch = 5,
-    AppendConflict = 6
+    AppendConflict = 6,
+    SnapshotMismatch = 7,
+    VersionExhausted = 8
 }
 
 /// <summary>Expected persistence conflicts expose a fixed code/message, never rejected record values or provider exception contents.</summary>
@@ -21,6 +23,8 @@ public sealed class RepositoryConflictException : Exception
         RepositoryConflictKind.IdentityCollision => "Die gespeicherte Quellidentität stimmt nicht mit dem Indexschlüssel überein.",
         RepositoryConflictKind.OwnershipMismatch => "Der Datensatz gehört zu einem anderen Gespräch oder Mandanten.",
         RepositoryConflictKind.AppendConflict => "Ein bereits gespeichertes Ereignis darf nicht verändert werden.",
+        RepositoryConflictKind.SnapshotMismatch => "Die Änderung widerspricht der gespeicherten Historie oder Zeitfolge.",
+        RepositoryConflictKind.VersionExhausted => "Der Versionszähler kann nicht weiter erhöht werden.",
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     }) => Kind = kind;
 

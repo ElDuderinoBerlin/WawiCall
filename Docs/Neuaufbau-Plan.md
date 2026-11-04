@@ -605,7 +605,18 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   fehlerhaftem Altbestand, Auswahl-FK und Regelconstraints auf SQL Server/MySQL/PostgreSQL erfolgreich.
   Nur eigene Testbestände, Instanzen gestoppt. Logs: `.artifacts/phase3-item6`.
   Migrationen 1–5 und ihre eingefrorenen DDL-Definitionen sind unverändert.
-- [ ] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen.
+- [x] Dapper-Repositories und SQL-Queries passend zum neuen Schema implementieren; SQL-Parameter und Seitenabfragen nutzen. ✅
+  Sieben konkrete Repositories mit Dapper 2.1.89: Firmen, vollständiger Parteien-/Adress-/Nummerncache,
+  Gesprächsaggregate, Notizen, Aufnahmemetadaten, unveränderliche Parsefehler und Telefonregeln.
+  Parametrisierte Werte, stabile SQL-Seiten mit HasMore, Originalvergleich nach Quellhash, getrennte
+  CAS-/Cache-/Regel-/Telefonieversionen, atomare Transaktionen und sicherer Commit-Unklarheitsfehler.
+  Historische Kandidaten bleiben bei Firmenwechsel erhalten; Ereignisse sind idempotent und unveränderlich.
+  Neue Migration 7 speichert Parser-/Kontextstand des Cache; Migrationen 1–6 bleiben unverändert.
+  Sechs neue Integrationstests, je 231 Tests in Pro/FinOffice, acht Debug-Builds und vier Hoststarts bestanden.
+  Dieselben Repository-Szenarien auf eigenen SQL-Server-/MySQL-/PostgreSQL-Instanzen geprüft, einschließlich
+  Unicode, UTC-Einzelticks, Mehrfirmenhistorie, Seiten, CAS und konkurrierenden Schreibern.
+  SQLite zusätzlich mit erzwungenem Transaktionsfehler und schreibgeschützter Datei geprüft.
+  Nachweise: `.artifacts/phase3-item7`. DI-/Konfigurationsanbindung folgt in Punkt 9.
 - [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
 - [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
   Dabei Arbeitsplatz-GUID bei Einrichtung einmal erzeugen und dauerhaft für App/Console verfügbar machen;

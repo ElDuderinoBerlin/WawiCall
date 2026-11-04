@@ -331,7 +331,7 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   Organisationsblöcke. Der IPhoneMatchingRepository-Vertrag ist vorhanden, seine Implementierung folgt.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, konkrete Cache-/Regel-Repositories,
+SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, Hostanbindung der geprüften Cache-/Regel-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

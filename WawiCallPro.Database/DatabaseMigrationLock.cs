@@ -49,7 +49,7 @@ public sealed class DatabaseMigrationLock : IDatabaseMigrationLock
                     if (!File.Exists(target.SqlitePath)) throw new DatabaseOperationException(DatabaseErrorCode.MissingDatabase);
                     try
                     {
-                        var file = new FileStream(target.SqlitePath + ".migration.lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                        var file = new FileStream(target.SqlitePath + ".migration.lock", FileMode.OpenOrCreate, FileAccess.Read, FileShare.None);
                         return new FileLease(file);
                     }
                     catch (IOException exception) when ((exception.HResult & 0xFFFF) is 32 or 33) { }
@@ -113,7 +113,7 @@ public sealed class DatabaseMigrationLock : IDatabaseMigrationLock
         public Task EnsureHeldAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!file.CanWrite) throw new DatabaseOperationException(DatabaseErrorCode.MigrationLockLost);
+            if (!file.CanRead) throw new DatabaseOperationException(DatabaseErrorCode.MigrationLockLost);
             return Task.CompletedTask;
         }
         // The sidecar stays in place: unlinking it permits a second lock inode/handle during an acquisition race.

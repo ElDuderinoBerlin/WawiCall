@@ -71,7 +71,7 @@ public sealed class MultiCompanySchemaTests
             Exec(db, $"UPDATE phonecalls SET companyid='{Id('1')}'");
         }
         engine.MigrateUp(target, 6);
-        Assert.AreEqual(DatabaseSchemaState.Current, (await new DatabaseStatusService(new(), engine.Catalog).GetStatusAsync(target)).State);
+        Assert.AreEqual(DatabaseSchemaState.MigrationRequired, (await new DatabaseStatusService(new(), engine.Catalog).GetStatusAsync(target)).State);
     }
 
     [TestMethod]

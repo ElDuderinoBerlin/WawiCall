@@ -38,7 +38,7 @@ public sealed class FluentMigratorEngineTests
         var target = Target();
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
         Assert.AreSame(engine.Catalog, engine.Catalog);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6 }, engine.Catalog.Versions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7 }, engine.Catalog.Versions.ToArray());
         var status = await new DatabaseStatusService(_factory, engine.Catalog).GetStatusAsync(target);
         Assert.AreEqual(DatabaseSchemaState.MissingDatabase, status.State);
         var failure = await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => new DatabaseMigrator(_factory, engine).MigrateAsync(target));

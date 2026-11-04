@@ -104,7 +104,7 @@ internal static class StorageContract
         Text(source.FieldName, 128, nameof(source.FieldName), required: true);
     }
 
-    private static void E164(string? value)
+    internal static void E164(string? value)
     {
         if (value is not null && (value.Length is < 3 or > 16 || value[0] != '+' || value[1] is < '1' or > '9'
             || value.AsSpan(1).ContainsAnyExceptInRange('0', '9')))

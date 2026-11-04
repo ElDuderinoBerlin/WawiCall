@@ -370,8 +370,15 @@ Ein vollständiger Suchstand verlangt vollständige kompatible Caches aller ausg
 Indexnamen der neuen Kandidatentabelle tragen v6; Filterindex beziehungsweise MySQL-Spalte selectedcallid
 erzwingen weiter höchstens eine Auswahl. Der zusätzliche Parent-Index ux_phonecalls_id_company ermöglicht
 den Firmen-FK der Auswahl. Ohne Auswahl darf ein Gespräch mit companyid=NULL mehrere Firmenkandidaten haben.
-Der neue IPhoneMatchingRepository-Vertrag beschreibt Profile/Blöcke; konkrete Repositories folgen in Punkt 7.
+Der neue IPhoneMatchingRepository-Vertrag beschreibt Profile/Blöcke; konkrete Repositories bestehen seit Punkt 7.
 SQLite- und native Serverprüfungen bestätigen Daten-Upgrades und Constraints; `.artifacts/phase3-item6`.
+
+## Version 7: Cache-Herkunft
+
+Migration 7 ergänzt `companies.cacheparserversion` und `cachecontextversion` als nullable text(256).
+Beide sind gemeinsam null (unbekannter Altstand) oder beide nicht leer bei cacheversion > 0.
+Ein Cacheersatz speichert diese Angaben zusammen mit Revision und Zeitpunkt atomar; alte Aufrufer
+ohne Metadaten erzeugen ausdrücklich keinen als kompatibel ausgewiesenen Cache.
 
 ## Späterer Office-Ausbau
 
@@ -389,7 +396,7 @@ Dateien sind zunächst ebenfalls extern. Noch keine Office-Repositoryregistrieru
 
 ## Repository- und Transaktionsregeln
 
-Die sechs Schnittstellen liegen ausschließlich unter `WawiCallPro.Database.Contracts`. Plugins erhalten
+Die sieben Schnittstellen liegen ausschließlich unter `WawiCallPro.Database.Contracts`. Plugins erhalten
 weiter die fachlichen Interfaces, keine DbConnection, Transaktion, Dapper-/FluentMigrator-Typen oder
 Repositoryinstanzen. `CallStateMachine` wird nur zur Wiederverwendung seiner Snapshotregeln referenziert;
 die Datenbank hält keinen eigenen Zustand und startet keine Telefonie.
@@ -402,6 +409,7 @@ die Datenbank hält keinen eigenen Zustand und startet keine Telefonie.
 | ICallNoteRepository | Stabile ID und fester Gesprächsbesitz; unabhängige optimistische Änderungen |
 | IRecordingRepository | Nur Metadaten, fester Gesprächsbesitz und unabhängige Version |
 | INumberParseLogRepository | Unveränderliches Append mit idempotenter Wiederholung genau gleicher ID/Inhalte; paginierte Mandantenabfrage |
+| IPhoneMatchingRepository | CAS für Firmenprofil und Organisationsblöcke; jede Änderung erhöht die gemeinsame Regelrevision |
 
 `ExpectedVersion=null` heißt ausschließlich anlegen; bereits vorhanden ergibt AlreadyExists. Änderungen
 benötigen die zuletzt gelesene positive Version. UPDATE enthält ID **und** erwartete Version; genau eine
@@ -467,4 +475,16 @@ und Sicherung zu prüfen und gegebenenfalls eine ausdrückliche Reparatur/Wieder
 Seit Punkt 5 bestätigen sechs weitere Datenbanktests und isolierte Serverinstanzen Sperren zwischen
 Prozessen, Timeout/Abbruch, Prozessverlust, Rechteverweigerung, aktive MySQL-Rollen, Leerzielfreigabe
 und fremde Routinen. Je 217 Tests und die Debug-/Hostprüfungen bestanden; `.artifacts/phase3-item5`.
-CAS-Konflikte, Backup-/WAL-Abnahme und Repository-/Hostzugriffe bleiben den folgenden Punkten vorbehalten.
+Seit Punkt 7 sind alle sieben Repositories mit Dapper 2.1.89 implementiert. Jede Operation benutzt eine
+eigene Transaktion unter derselben Datenbanksperre wie Migrationen; SQLite läuft auf dem Threadpool.
+Dies serialisiert vorerst auch lesende Repositoryzugriffe und verhindert Schemawechsel zwischen Prüfung
+und Abfrage. Eine spätere Lockerung benötigt einen gleichwertigen Schutz und neue Nebenläufigkeitstests.
+Ein begonnener Commit wird ohne Abbruchtoken abgewartet; ein Verbindungsfehler liefert CommitUncertain.
+Kandidaten werden nach vollständigem PartyKey zusammengeführt; vorhandene Namen/Belege bleiben
+unverändert, weggelassene Alternativen bleiben unselektiert erhalten. Ein vorhandener Suchstand bleibt
+bis auf selectionreason unveränderlich. Notizen und Aufnahmezeilen sind unabhängige CAS-Aggregate.
+PostgreSQL-Listen verwenden ANY, andere Provider Dappers Parameterexpansion. SQL Server/MySQL verwenden
+explizite Binärvergleiche einschließlich Länge für Herkunftsfilter. Null-Metadaten bleiben unbekannt.
+Sechs zusätzliche Integrationstests und native Prüfungen auf allen Providern bestätigen diese Regeln;
+je 231 Tests und die Debug-/Hostprüfungen bestanden, `.artifacts/phase3-item7`.
+Sicherung/WAL und Hostzugriffe folgen in den nächsten Punkten.

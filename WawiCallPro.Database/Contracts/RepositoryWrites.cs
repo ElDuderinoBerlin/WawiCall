@@ -31,6 +31,10 @@ public sealed record CompanyWrite
 public sealed record PartyCacheReplacement
 {
     public PartyCacheReplacement(CompanyKey company, long expectedRevision, ImmutableArray<Party> parties, DateTimeOffset refreshedAtUtc)
+        : this(company, expectedRevision, parties, refreshedAtUtc, null, null) { }
+
+    public PartyCacheReplacement(CompanyKey company, long expectedRevision, ImmutableArray<Party> parties, DateTimeOffset refreshedAtUtc,
+        string? parserVersion, string? contextVersion)
     {
         StorageContract.CompanyKey(company);
         ArgumentOutOfRangeException.ThrowIfNegative(expectedRevision);
@@ -47,12 +51,18 @@ public sealed record PartyCacheReplacement
         ExpectedRevision = expectedRevision;
         Parties = parties;
         RefreshedAtUtc = refreshedAtUtc;
+        if ((parserVersion is null) != (contextVersion is null)) throw new ArgumentException("Cache metadata requires both parser and context version.");
+        StorageContract.Text(parserVersion, 256, nameof(parserVersion), required: parserVersion is not null);
+        StorageContract.Text(contextVersion, 256, nameof(contextVersion), required: contextVersion is not null);
+        ParserVersion = parserVersion; ContextVersion = contextVersion;
     }
 
     public CompanyKey Company { get; }
     public long ExpectedRevision { get; }
     public ImmutableArray<Party> Parties { get; }
     public DateTimeOffset RefreshedAtUtc { get; }
+    public string? ParserVersion { get; }
+    public string? ContextVersion { get; }
 }
 
 /// <summary>

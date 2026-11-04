@@ -410,7 +410,7 @@ hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unt
 
 Noch offen sind insbesondere:
 
-- Konkrete Repositories, Sicherung/Wiederherstellung und Hostanbindung.
+- Sicherung/Wiederherstellung und Hostanbindung; die sieben Dapper-Repositories sind seit Phase 3/Punkt 7 implementiert und auf allen vier Providern geprüft.
 - Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
 - Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.

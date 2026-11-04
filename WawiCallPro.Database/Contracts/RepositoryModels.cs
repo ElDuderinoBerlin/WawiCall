@@ -8,7 +8,11 @@ namespace WawiCallPro.Database.Contracts;
 public sealed record StoredCompany(Company Company, long Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 /// <summary>Revision zero with no refresh time denotes a registered company whose cache has never been replaced.</summary>
-public sealed record PartyCacheState(CompanyKey Company, long Revision, DateTimeOffset? RefreshedAtUtc);
+public sealed record PartyCacheState(CompanyKey Company, long Revision, DateTimeOffset? RefreshedAtUtc)
+{
+    public string? ParserVersion { get; init; }
+    public string? ContextVersion { get; init; }
+}
 
 /// <summary>Version is the persistence compare-and-swap token, separate from telephony revision and event sequence.</summary>
 public sealed record StoredCall(CallHistory History, long Version);
