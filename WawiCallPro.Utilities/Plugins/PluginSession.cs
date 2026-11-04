@@ -23,14 +23,16 @@ public interface IPluginSession : IDisposable
 public interface IPluginSessionFactory
 {
     IPluginSession Create(IReadOnlySet<string> tokens);
+    IPluginSession CreateTrusted();
 }
 public sealed class PluginRuntimeException : Exception
 {
     public PluginRuntimeException() : base("Das Warenwirtschaftsplugin konnte nicht geladen oder konfiguriert werden.") { }
 }
 public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginManagerFactory managers,
-    IWawiCallHostServices services, ApplicationDescriptor application) : IPluginSessionFactory
+    IWawiCallHostServices services, ApplicationDescriptor application, IPluginTrust trust) : IPluginSessionFactory
 {
+    public IPluginSession CreateTrusted() => Create(trust.GetAllowedTokens());
     public IPluginSession Create(IReadOnlySet<string> tokens)
     {
         var scope = scopes.CreateScope();

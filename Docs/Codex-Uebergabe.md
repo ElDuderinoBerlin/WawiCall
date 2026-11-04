@@ -157,6 +157,11 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Phase 4/Punkt 4 abgeschlossen: starke Namen für Plugins/Interfaces/Windowsvertrag mit vorhandener
+Quantarix-Plugin-Keydatei (konfigurierbar, nicht kopiert). IPluginTrust/CreateTrusted verwendet den
+signierten Hostvertrag als Anchor, nie eine Plugin-DLL. Je 250 Tests und Token-/Debug-/Hostprüfungen;
+`.artifacts/phase4-item4`. Als Nächstes Punkt 5: wirklicher Filterimport und Deployment.
+
 Phase 4/Punkt 3 abgeschlossen: Quantarix-Hook ec5be52 (separat committed, Manifest angepasst),
 Plugin-DI-Scope/ActivatorUtilities, geliehene Hostdienste, Initialize→Configure und Produktlinienprüfung.
 Neuer Shared-Vertrag WawiCallPro.Plugin.Windows: reine Schnittstellen/DTOs für UI-Thread-View-Leases;

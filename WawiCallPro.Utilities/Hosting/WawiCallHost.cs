@@ -49,6 +49,7 @@ public static class WawiCallHost
                 services.AddSingleton<ISharedPluginContracts, SharedPluginContracts>();
                 services.AddSingleton<IWawiCallHostServices, WawiCallHostServices>();
                 services.AddSingleton<IPluginSessionFactory, PluginSessionFactory>();
+                services.AddSingleton<IPluginTrust, PluginTrust>();
                 services.AddHostedService<RuntimeFailureMonitor>();
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();

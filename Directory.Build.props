@@ -1,5 +1,12 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)Solution.props" />
+  <PropertyGroup>
+    <WawiCallPluginKeyFile Condition="'$(WawiCallPluginKeyFile)' == ''">$(MSBuildThisFileDirectory)..\Quantarix.Plugin.System\PluginKey.snk</WawiCallPluginKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Interfaces' or '$(MSBuildProjectName)' == 'WawiCallPro.Plugin.Windows' or '$(MSBuildProjectName)' == 'WawiCallPro.Plugins.Lexware.Pro' or '$(MSBuildProjectName)' == 'WawiCallPro.Plugins.Lexware.FinOffice'">
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(WawiCallPluginKeyFile)</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <SharedProjectAssembly Include="WawiCallPro.Interfaces;Quantarix.Plugin.Abstractions;WawiCallPro.Plugin.Windows" />
     <!-- No third-party packages are part of the current UI-free contract. Future UI packages belong in SharedPackage. -->

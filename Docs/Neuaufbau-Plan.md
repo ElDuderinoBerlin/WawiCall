@@ -702,7 +702,13 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   Windows-spezifischer Shared-Vertrag WawiCallPro.Plugin.Windows mit View-Lease und UI-Thread-Besitz,
   in beiden Hosts vorgeladen; Fachverträge bleiben UI-frei. Noch keine konkreten Views.
   Je 249 Tests, Debug-Builds und vier Hoststarts bestanden; `.artifacts/phase4-item3`.
-- [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
+- [x] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln. ✅
+  Beide Plugins sowie gemeinsame Vertragsassemblies verwenden den vorhandenen Quantarix-Plugin-Schlüssel
+  über WawiCallPluginKeyFile (überschreibbar); keine Schlüsselkopie im Produktrepository.
+  IPluginTrust gewinnt die nichtleere Produktions-Allowlist aus dem signierten Hostvertrag;
+  CreateTrusted verwendet sie, unsignierte Fixtures werden abgelehnt. Metadaten beider Varianten geprüft.
+  Je 250 Tests/Debug-/Hostprüfungen erfolgreich; `.artifacts/phase4-item4`. Strong Names sind Identität,
+  keine Sicherheits-Sandbox; Authenticode bleibt Releasephase.
 - [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
   Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.
   IsPluginProject und SharedProjectAssembly/SharedPackage setzen, FilterSharedAssembliesAndPackages

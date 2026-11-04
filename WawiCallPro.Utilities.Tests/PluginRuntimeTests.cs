@@ -112,6 +112,21 @@ public sealed class PluginRuntimeTests
         });
     }
 
+    [TestMethod]
+    public async Task ProductionTrustComesFromSignedHostContractAndRejectsUnsignedFixtures()
+    {
+        var plugins = DeployFixture(); var host = CreateHost();
+        await HostExecution.RunAsync(host, _ =>
+        {
+            var trust = host.Services.GetRequiredService<IPluginTrust>().GetAllowedTokens();
+            Assert.AreEqual(1, trust.Count);
+            Assert.AreEqual(16, trust.Single().Length);
+            using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+            Assert.ThrowsExactly<PluginRuntimeException>(() => session.Load(plugins));
+            return Task.CompletedTask;
+        });
+    }
+
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
     {
         services.AddSingleton(new ConfigurationLocation(_root));
