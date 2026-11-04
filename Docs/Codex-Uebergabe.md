@@ -148,6 +148,12 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Zusätzliche Nutzerfestlegung: Die Views für Kundenstammdaten, Bestellungen, Kundenpreislisten,
+Projekte und Artikel-zu-Bestellungen-Statistik gehören in jedes unterstützte Warenwirtschaftsplugin,
+einschließlich ihrer produktspezifischen Zugriffe. App ist Rahmen/Navigation/Kontext; gemeinsame
+Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability-/Designer-/Renderprüfung
+in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
+
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
 Als Nächstes Phase 3, Punkt 5: Rechteprüfung, fehlende Datenbank, Provider-Tags, Fristen, Schemaversion
 und insbesondere eine wirksame prozessübergreifende Migrationssperre mit Timeout vervollständigen.

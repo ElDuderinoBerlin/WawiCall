@@ -278,6 +278,22 @@ Rechte-/Sicherungsprüfung, Dapper-Repositories und tatsächliche Hostpersistenz
 
 ## Host und Plugins
 
+Verbindliche UI-Zuordnung laut Nutzer: Jedes unterstützte Warenwirtschaftssystem liefert im eigenen
+Plugin die Ansichten für Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
+Artikel-zu-Bestellungen-Statistik. Das umfasst jeweils die konkrete Oberfläche und ihre
+produktspezifischen Datenzugriffe. Die App stellt den gemeinsamen Fenster-/Navigationsrahmen,
+Mandanten-/Gesprächskontext, Telefonie und Historie bereit und bindet die Pluginansichten dort ein.
+Diese fünf Ansichten werden nicht als konkrete Warenwirtschaftsoberflächen im App-Projekt implementiert.
+
+Der UI-Anschluss wird an der Windows-Grenze der Pluginlaufzeit umgesetzt; die gemeinsamen
+`WawiCallPro.Interfaces` bleiben frei von WinForms-/DevExpress-Typen. Die Diagnosekonsole darf Plugins
+ohne Erzeugung ihrer Views laden. Ansichten entstehen auf dem UI-Thread nach erfolgreicher
+Pluginkonfiguration, übernehmen den aktuellen Mandantenkontext und werden vor dem Entladen freigegeben.
+Für Plugin-Forms/-Controls gelten dieselben Designer-/resx-/TableLayoutPanel-/DevExpress- und
+gezielten visuellen Prüfregeln wie für die App. Der UI-Vertrag und die konkreten Views sind noch offen.
+Die Capability-Matrix muss alle fünf Bereiche je Warenwirtschaftssystem nachweisen; fehlende
+API-Unterstützung wird sichtbar ausgewiesen und nicht durch Demo-/Leerdaten ersetzt.
+
 `IWawiCallPlugin` erweitert das vorhandene Quantarix-`IPlugin` um Produktlinie, `IBusinessDirectory` und
 `Configure(IWawiCallHostServices)`. Quantarix `Initialize(IPluginHost)` stellt weiterhin das Logging bereit.
 Nach dem Laden und vor Fachoperationen konfiguriert der Host die typisierten Dienste. Durchsetzung dieser

@@ -30,6 +30,12 @@ wird dadurch vermieden.
 `IWawiCallHostServices` samt Fachverträgen deklariert; Details stehen in `Docs/Vertraege.md`.
 Das tatsächliche Laden vor Erzeugung des Managers und das Konfigurieren der Hostdienste bleiben Aufgaben von Phase 4.
 
+Die konkreten Views für Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
+Artikel-zu-Bestellungen-Statistik liegen laut Nutzer ebenfalls im jeweiligen Warenwirtschaftsplugin,
+zusammen mit den produktspezifischen Datenzugriffen. Die App stellt den gemeinsamen Rahmen und Kontext.
+Ein Windows-spezifischer UI-Anschluss folgt mit der Pluginlaufzeit; die gemeinsamen Fachinterfaces
+bleiben UI-frei und die Konsole erzeugt keine Views. Die UI-/Capability-Abnahme bleibt Phase 5/8/10.
+
 Seit Phase 2, Punkt 6 verbindet `QuantarixLogAdapter` den tatsächlichen Plugin-Loggervertrag mit dem
 Standard-`ILogger` und dem bereinigten JSONL-Provider. Keine freien Plugin-/Ausnahmetexte gelangen ins Log.
 Der lokale Quantarix-Textlogger verschluckt Schreibfehler und wird deshalb nicht als beobachtbarer Dateisink

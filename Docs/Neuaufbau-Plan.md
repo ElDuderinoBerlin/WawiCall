@@ -584,6 +584,8 @@ Database-Projekt und beide Hosts bauen in Debug. Kein WawiCallPro-Schema landet 
 - [ ] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen.
 - [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
 - [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
+  Windows-spezifischen Anschluss für plugin-eigene Views vorsehen; gemeinsame Fachinterfaces bleiben
+  UI-frei. Die Diagnosekonsole lädt Plugins ohne Views; Erzeugung/Freigabe auf dem UI-Thread und vor Unload.
 - [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
 - [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
   Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.
@@ -602,6 +604,8 @@ kompatibel; Fehler im Plugin werden verständlich gemeldet. Debug-Build und auss
 - [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
 - [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
+  Verbindliche Pluginbereiche: Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und
+  Artikel-zu-Bestellungen-Statistik. Datenzugriffe und konkrete Views gehören zum jeweiligen Wawi-Plugin.
 - [ ] Teilweise/nicht verfügbare Funktionen über Fähigkeiten kenntlich machen; keine erfolgreichen Leerantworten vortäuschen.
 - [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
 
@@ -641,6 +645,8 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
 - [ ] Hauptfenster, Verbindungs-/Mandantenauswahl, Kunden-/Lieferantensuche, Wähldialog und Historie erstellen.
+  Der Host bindet die fünf Wawi-Views aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
+  Keine konkreten Wawi-Oberflächen im App-Projekt nachbauen; Plugin-Views unterliegen denselben UI-Prüfregeln.
 - [ ] Anruferfenster mit Treffern, Nummer, Mandant, Gesprächsstatus und Notizen anbinden.
 - [ ] Einstellungen für SIP, Geräte, Datenbank, Hotkeys, Autostart und Benachrichtigungen bereitstellen.
 - [ ] Tray und globale Tastenkürzel integrieren; Fokus, Mehrfachfenster und Beenden mit aktivem Gespräch definieren.
@@ -670,6 +676,8 @@ Gesprächsabbruch geprüft. Betroffene Audio-Views visuell geprüft, Debug-Build
 
 ### Phase 10 – Erweiterte Lexware-Kundenübersicht ⬜
 
+- [ ] Kundenstammdaten, Bestellungen, Kundenpreislisten, Projekte und Artikel-zu-Bestellungen-Statistik
+  als echte Views im jeweiligen Warenwirtschaftsplugin vervollständigen und im gemeinsamen Host anzeigen.
 - [ ] Überblick, Adressen, Kontaktpersonen und kundenbezogene Historie vollständig anbinden.
 - [ ] Aufträge zu Artikeln und Artikel zu Aufträgen, offene Posten, Zahlungsmoral, Kontakte, Dokumente, Termine und Projekte
   anhand der Capability-Matrix je Produktlinie ergänzen.
