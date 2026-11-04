@@ -33,7 +33,7 @@ zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Ab
 Produktlinien einschließlich realer Fehler/Wiederanläufe, Prozessgrenzen, DI-Host und Backup/Restore.
 Logs `.artifacts/phase3-item10`; alle eigenen Testinstanzen beendet. Migrationen 1–7 bestehen,
 Migrationen 1–6 wurden nach ihrem Abschluss nicht geändert. Jeder Checklistenpunkt wurde separat committed.
-Der reguläre nächste Planpunkt ist Phase 4; noch nicht begonnen. Die folgenden früheren Nachweise
+Phase 4/Punkt 1 ist inzwischen abgeschlossen; als Nächstes folgt Punkt 2. Die folgenden früheren Nachweise
 beschreiben jeweils den damaligen Einzelstand, nicht offene Phase-3-Arbeit.
 
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben ursprüngliche Checklistenpunkte und den Tools-Nachtrag.
@@ -156,6 +156,15 @@ MySQL-DDL kann teilweise bestehen bleiben; keine automatische Übernahme/reparie
 Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Repositories und Host bleiben offen.
 
 ## Weiterarbeiten
+
+Phase 4/Punkt 1 ist abgeschlossen: gemeinsame IPluginManagerFactory/QuantarixPluginManagerFactory
+erzeugt den echten Quantarix-Manager über DI, mit Hostlogger und kopierter Tokenliste. Kein eigener
+Loader, keine Produktplugin-Aktivierung beim Start. Testfixture RuntimePlugin im Solution-Ordner
+Test Fixtures mit echten Lifecycle-Zählern, ALC- und Logging-/Tokenprüfung. Je 248 Tests/Debug-/Host-
+prüfungen für Pro/FinOffice, `.artifacts/phase4-item1`. Als Nächstes Phase 4/Punkt 2: Shared-Verträge
+und Buildlisten, bevor ein produktiver Manager erzeugt wird. Aktivierungshook folgt gesondert in Punkt 3.
+Zusätzlich wurde der sporadische Windows-Sharingfehler beim Lesen der Arbeitsplatzkennung separat
+behoben und mit absichtlich gesperrtem Handle geprüft; beschädigte/neue Formate bleiben gesperrt.
 
 Der Auftrag, Phase 3 vollständig abzuschließen, ist erledigt. Punkte 1–10 sind einzeln geprüft und
 committed; der nächste reguläre Planpunkt ist Phase 4. Rückblick auf Punkt 6: Migration 6 mit unabhängigen Kandidatenfirmen, Auswahl-FK, Match-/Suchstand-

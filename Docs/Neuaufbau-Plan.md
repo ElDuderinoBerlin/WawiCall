@@ -669,7 +669,17 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
 
 ### Phase 4 – Quantarix-Plugin-Laufzeit integrieren ⬜
 
-- [ ] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen.
+- [x] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen. ✅
+  Bestehende Referenzen geprüft; IPluginManagerFactory/QuantarixPluginManagerFactory in beiden Hosts
+  gemeinsam über DI registriert. Sie erzeugt den unveränderten Quantarix-PluginManager mit dem
+  bereinigten Hostlogger und einer unabhängigen Kopie der ausdrücklich übergebenen Tokenliste.
+  Keine eigene Loaderimplementierung; im neuen Produkt existiert kein MMS-Loader.
+  Isoliertes Testplugin im Solution-Ordner Test Fixtures prüft echte Initialize-/Execute-/Shutdown-Aufrufe,
+  sammelbaren ALC, bereinigte Meldungen und Signaturablehnung nach Änderung der ursprünglichen Tokenliste.
+  Drei neue Pluginprüfungen plus Arbeitsplatz-Sperrregression; je 248 Tests in Pro/FinOffice,
+  zwölf Debug-Builds, vier Diagnose-Hoststarts und Runtime-/MMS-/Produktlinien-/Solutionprüfungen.
+  Nachweise: `.artifacts/phase4-item1`. Kein automatisches Laden beim Hoststart; Produktplugins,
+  Shared-Buildfilter, Konstruktoraktivierung und Signierung folgen in den getrennten Punkten.
 - [ ] Fachverträge als Shared Assembly konfigurieren und vor Konstruktion des Managers laden.
   SharedAssembly-Attribut und Buildlisten für WawiCallPro.Interfaces sowie den späteren UI-Vertrag
   abstimmen; Drittanbieterpakete über SharedPackage teilen. Runtime-Typidentität tatsächlich nachweisen.

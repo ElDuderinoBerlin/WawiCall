@@ -30,6 +30,11 @@ wird dadurch vermieden.
 `IWawiCallHostServices` samt Fachverträgen deklariert; Details stehen in `Docs/Vertraege.md`.
 Das tatsächliche Laden vor Erzeugung des Managers und das Konfigurieren der Hostdienste bleiben Aufgaben von Phase 4.
 
+Phase 4/Punkt 1: Die gemeinsame IPluginManagerFactory erzeugt den vorhandenen Quantarix-Manager
+mit dem DI-Hostlogger und einer kopierten Tokenliste. Ein isoliertes RuntimePlugin-Testprojekt prüft
+wirkliches Laden, Ausführen und Shutdown ohne Lexware-/SIP-Zugriff. Die produktive Shared-/Build-/DI-
+Aktivierung bleibt in den folgenden Punkten offen. Nachweise: `.artifacts/phase4-item1`.
+
 Die konkreten Fachviews des [erweiterten Katalogs](Architektur.md), einschließlich LxOutlook-Reitern
 für Top-Artikel, offene Posten, Zahlungsverhalten und Umsatzentwicklung, liegen im jeweiligen Warenwirtschaftsplugin,
 zusammen mit den produktspezifischen Datenzugriffen. Die App stellt den gemeinsamen Rahmen und Kontext.

@@ -14,6 +14,7 @@ using WawiCallPro.Database.Contracts;
 using WawiCallPro.Database.Repositories;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Utilities.Persistence;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.Utilities.Hosting;
 
@@ -44,6 +45,7 @@ public static class WawiCallHost
                 services.AddSingleton<RuntimeFailureState>();
                 services.AddSingleton<ILoggerProvider, SafeFileLoggerProvider>();
                 services.AddSingleton<Quantarix.Plugin.Abstractions.ILogger, QuantarixLogAdapter>();
+                services.AddSingleton<IPluginManagerFactory, QuantarixPluginManagerFactory>();
                 services.AddHostedService<RuntimeFailureMonitor>();
                 services.AddSingleton<ISecretProtector, WindowsUserSecretProtector>();
                 services.AddSingleton<ApplicationOptionsValidator>();

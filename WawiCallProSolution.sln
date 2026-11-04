@@ -110,6 +110,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Database.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Database.TestWorker", "WawiCallPro.Database.TestWorker\WawiCallPro.Database.TestWorker.csproj", "{501ECA30-C8BE-459D-BE00-EF6E612DCB0F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test Fixtures", "Test Fixtures", "{A8F92B06-E402-1E79-886D-1B1750DFB640}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimePlugin", "WawiCallPro.Utilities.Tests\Fixtures\RuntimePlugin\RuntimePlugin.csproj", "{260C801F-D9DB-4EFA-9B30-96380C82F784}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -528,6 +532,18 @@ Global
 		{501ECA30-C8BE-459D-BE00-EF6E612DCB0F}.Release|x64.Build.0 = Release|Any CPU
 		{501ECA30-C8BE-459D-BE00-EF6E612DCB0F}.Release|x86.ActiveCfg = Release|Any CPU
 		{501ECA30-C8BE-459D-BE00-EF6E612DCB0F}.Release|x86.Build.0 = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|x64.Build.0 = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Debug|x86.Build.0 = Debug|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|Any CPU.Build.0 = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|x64.ActiveCfg = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|x64.Build.0 = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|x86.ActiveCfg = Release|Any CPU
+		{260C801F-D9DB-4EFA-9B30-96380C82F784}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -546,5 +562,6 @@ Global
 		{D578AED2-A5FF-4EFC-AAD2-82331449C889} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{60109D5A-98CD-497B-B996-1D242E6FF34D} = {3910C37C-A104-4147-93D5-82EBF4143017}
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7} = {3910C37C-A104-4147-93D5-82EBF4143017}
+		{260C801F-D9DB-4EFA-9B30-96380C82F784} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 	EndGlobalSection
 EndGlobal

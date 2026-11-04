@@ -136,6 +136,13 @@ Der Designer löst keine Laufzeitdienste auf und öffnet keine Datenbankverbindu
 
 ## Quantarix-Pluginvertrag: Attribute, Build und Laufzeit
 
+Seit Phase 4/Punkt 1 erzeugt die gemeinsame DI-registrierte IPluginManagerFactory den vorhandenen
+Quantarix-PluginManager mit dem Hostlogger. Jeder Aufrufer besitzt und entsorgt seinen Manager vor
+dem Host-Shutdown. Die ausdrücklich übergebene Tokenliste wird kopiert; eine leere Liste ist nur für
+unsignierte Entwicklungsfixtures vorgesehen. Erstellung der Factory lädt keine Plugins.
+Das isolierte Testplugin prüft den tatsächlichen Quantarix-Lebenszyklus; Produktplugin-Aktivierung,
+rechtzeitiges Laden aller Shared-Verträge und Build-/Signierregeln bleiben die nächsten Planpunkte.
+
 Geprüft wurde der aktuelle Quellcode unter `D:\Application-Development\Quantarix.Plugin.System`,
 Stand `1e43c99068cd17bfa32586d86099c6e66fae4076`. Maßgeblich sind die tatsächlichen C#-/MSBuild-Dateien.
 In diesem Stand liegen die Buildregeln in `Directory.Build.props`, `Directory.Build.targets` und im
