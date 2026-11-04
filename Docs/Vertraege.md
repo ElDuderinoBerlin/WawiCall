@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–7 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–8 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -174,8 +174,9 @@ in derselben Transaktion. Office-Tabellen bleiben der späteren Office-Phase vor
 `IRecordingRepository` und `INumberParseLogRepository` beschreiben ausschließlich die eigene
 Kommunikationsdatenbank. Seit Punkt 6 kommt IPhoneMatchingRepository für gemeinsame Firmenprofile
 und bestätigte/vermutete Organisationsblöcke mit eigenen CAS-Schreibverträgen hinzu.
-Seit Punkt 2 bestehen die ADO-Infrastrukturdienste; konkrete Repositories und
-die Datenbank-DI-Registrierung im Host fehlen noch. Die Repository-Verträge enthalten keine
+Seit Punkt 7 bestehen alle sieben Dapper-Repositories; Punkt 8 prüft SQLite-WAL-Sicherung und
+native Server-Backup-/Restoreverfahren. Die Datenbank-DI-Registrierung im Host folgt in Punkt 9.
+Die Repository-Verträge enthalten keine
 SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
 Interfaces und Telephony, um die vorhandenen Snapshotregeln des Gesprächsautomaten wiederzuverwenden;
 dadurch wird weder ein Gespräch gestartet noch ein anderer Zustandsautomat eingeführt.

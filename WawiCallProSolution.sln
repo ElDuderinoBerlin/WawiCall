@@ -84,6 +84,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A50D7C-E0E2-4F86-927E-075304786242}"
 	ProjectSection(SolutionItems) = preProject
 		scripts\build-debug.ps1 = scripts\build-debug.ps1
+		scripts\test-database-backup.ps1 = scripts\test-database-backup.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{3910C37C-A104-4147-93D5-82EBF4143017}"

@@ -1,11 +1,12 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–6. Die Migrationen 1–6 sind implementiert.
+Stand: 04.11.2026, Phase 3, Punkte 1–8. Die Migrationen 1–7 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
 Prozessübergreifende Sperren/Rechteprüfung bestehen seit Punkt 5, Mehrfirmen-Verträge und Schema 6
-seit Punkt 6. Dapper-Repositories, Sicherung und Hostanbindung folgen in den nächsten Punkten.
+seit Punkt 6, Dapper-Repositories seit Punkt 7. Sicherung/Wiederherstellung ist in Punkt 8 geprüft;
+die Hostanbindung folgt in Punkt 9.
 Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
@@ -454,6 +455,47 @@ Alle Operationen nehmen CancellationToken an, warten ihr I/O ab und verwenden pa
 Vor Commit beobachteter Abbruch/Fehler erhält den bisherigen Zustand. Ist ein Commit trotz Verbindungsverlust
 bereits erfolgt, darf Abbruch keinen sicheren Rollback vortäuschen; erneut laden und anhand IDs/Versionen
 klären, nicht blind erneut anlegen. Keine automatischen destruktiven Lösch-/Down-APIs in diesen Verträgen.
+
+## Sicherung und Wiederherstellung
+
+Sicherung umfasst die eigene Kommunikationsdatenbank einschließlich Eigentumskennung, Versionshistorie,
+Cache und Gesprächshistorie. Audiodateien liegen außerhalb der DB. Für eine Gesamtsicherung Aufnahmen
+und MP3-Konvertierung abschließen oder ihren offenen Zustand erfassen und das konfigurierte Aufnahmeverzeichnis
+mit relativen Pfaden separat sichern. Eine vollständige Wiederherstellung verlangt DB und zugehörige Dateien;
+fehlende Audiodateien bleiben als Metadaten sichtbar. Zugangsdaten und lokale Konfiguration werden separat behandelt.
+
+Vor jeder Schemaänderung Sicherung auf ein eigenes Ziel erzeugen und Wiederherstellbarkeit prüfen.
+Restore erfolgt zunächst in einen neuen isolierten Bestand; dort Eigentumskennung, Versionspräfix,
+Inhalte und Fremdschlüssel prüfen. Erst nach dieser Prüfung und gestoppten Clients die lokale
+Konfiguration auf das neue Ziel umstellen. Bestehende Produkt-/Lexware-Datenbanken werden nicht überschrieben.
+Die gemeinsame Anwendungssperre verhindert parallele Migrationen und Repositoryschreibzugriffe während
+der Sicherung; sie ersetzt keine DBA-Abstimmung mit externen Werkzeugen.
+
+| Provider | Verfahren und geprüfte Wiederherstellung |
+|---|---|
+| SQLite | `ISqliteDatabaseBackup`/`SqliteDatabaseBackup`: Online-Backup-API auf Workerthread, Quelle lesend, Staging-Datei, journal_mode=DELETE, integrity_check und foreign_key_check, Eigentums-/Versionsprüfung, Veröffentlichung ohne Überschreiben. RestoreNewAsync erzeugt ausschließlich eine neue Datei. Auch vorhandene WAL-/SHM-/Journal-Zieldateien sperren das Ziel. |
+| SQL Server | `BACKUP DATABASE ... WITH COPY_ONLY,CHECKSUM`, neues Backupmedium; `RESTORE VERIFYONLY ... WITH CHECKSUM`, anschließend echte Wiederherstellung unter neuem DB-Namen mit FILELISTONLY/MOVE auf neue Dateien, ohne REPLACE. Serverdienst benötigt Zugriff auf serverseitige Pfade; ein Clientpfad ist nicht automatisch ein Serverpfad. |
+| MySQL | InnoDB-Dump mit `--single-transaction --quick --routines --events --triggers --no-tablespaces --set-gtid-purged=OFF --skip-add-drop-table`; eine DB ohne `--databases` exportieren, anschließend in ausdrücklich neu angelegtes leeres Schema importieren. Währenddessen keine externe DDL. Nichttransaktionale Tabellen wären gesondert zu sperren; das Produktschema nutzt InnoDB. |
+| PostgreSQL | Passendes `pg_dump --format=custom --no-owner --no-privileges`; Wiederherstellung in ausdrücklich neu angelegte DB mit `pg_restore --single-transaction --exit-on-error --no-owner --no-privileges`. Rollen/Rechte und serverweite Einstellungen werden vom DBA separat bereitgestellt. |
+
+SQL Server/MySQL/PostgreSQL werden in Phase 3 als getestete administrative Verfahren bereitgestellt;
+es gibt noch keinen automatischen produktiven Server-Restore aus der App. Native Tools müssen zum
+Server passen. Produktive TLS-/Zertifikat-/Passwort-/Berechtigungsoptionen legt der Administrator fest.
+Das reproduzierbare `scripts/test-database-backup.ps1` verwendet ausschließlich eigene temporäre
+LocalDB-/MySQL-/PostgreSQL-Instanzen auf Loopback und deren neu angelegte Datenbanken; vorhandene
+Lexware-Dienste werden nicht verwendet. Benötigt SqlLocalDB/sqlcmd, mysqld/mysqldump/mysql/mysqladmin
+und initdb/pg_ctl/pg_dump/pg_restore/psql im PATH. Es prüft alle 15 Tabellen mit Daten einschließlich
+Stammdaten, Adressen, Telefonnummern, Gesprächsbelegen, Notizen, Aufnahmereferenzen und UTC-Ticks;
+die Instanzen werden beendet und ihre Datenverzeichnisse nach Pfad-/Prozessprüfung entfernt.
+Testkennwörter gelangen nur in die Umgebung des jeweiligen Kindprozesses, nie in Befehlsargumente.
+Die produktive SQLite-API erzeugt keine native Shell und ersetzt keine vorhandene Datei.
+Ein synchron begonnenes SQLite-Backup wird vor Abbruch beendet, aber bei beobachtetem Abbruch nicht veröffentlicht.
+
+Quellen: [Microsoft.Data.Sqlite Online Backup](https://learn.microsoft.com/dotnet/standard/data/sqlite/backup),
+[SQL Server Copy-only](https://learn.microsoft.com/en-us/sql/relational-databases/backup-restore/copy-only-backups-sql-server),
+[SQL Server Restore](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-for-restoring-recovering-and-managing-backups-transact-sql),
+[MySQL 8.4 mysqldump](https://dev.mysql.com/doc/refman/8.4/en/mysqldump.html),
+[PostgreSQL 17 pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html).
 
 ## Prüfnachweis und noch offene Abnahme
 

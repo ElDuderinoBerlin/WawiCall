@@ -267,11 +267,15 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Aktiver Nutzerauftrag: Phase 3 vollständig abschließen. Punkte 1–7 sind abgeschlossen; als Nächstes
-Punkt 8 Sicherung/Wiederherstellung, danach 9 Host-/Arbeitsplatzanbindung und 10 Gesamtabnahme.
+Aktiver Nutzerauftrag: Phase 3 vollständig abschließen. Punkte 1–8 sind abgeschlossen; als Nächstes
+Punkt 9 Host-/Arbeitsplatzanbindung und danach 10 Gesamtabnahme.
 Sieben Dapper-Repositories und neue Migration 7 (Cache-Parser-/Kontextstand) sind geprüft;
 je 231 Tests und native Repository-Szenarien auf allen vier Providern, `.artifacts/phase3-item7`.
-Migrationen 1–6 nicht rückwirkend ändern. Noch keine produktive Hostregistrierung der Repositories.
+Migrationen 1–7 nicht rückwirkend ändern. Noch keine produktive Hostregistrierung der Repositories.
+SQLite-Online-Backup/RestoreNew ist implementiert und einschließlich WAL geprüft. Native Server-
+Sicherungen/Wiederherstellungen mit Vergleich aller 15 Tabellen sind geprüft; administrative Verfahren
+stehen in Datenbankschema.md, reproduzierbares Skript scripts/test-database-backup.ps1.
+Je 234 Tests/Debug-/Hostprüfungen bestanden; `.artifacts/phase3-item8` und `.artifacts/backup-audit-*`.
 Punkt 5 ist mit Server-/Zwei-Prozess-/Rechteprüfung abgeschlossen. Die vorhandenen Status-/Eigentumsgrenzen
 und bestätigten Versionspräfixe erhalten. Migrationen 1–5 nicht rückwirkend ändern.
 Keine Runnererzeugung in der reinen Statusabfrage.

@@ -617,7 +617,16 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Unicode, UTC-Einzelticks, Mehrfirmenhistorie, Seiten, CAS und konkurrierenden Schreibern.
   SQLite zusätzlich mit erzwungenem Transaktionsfehler und schreibgeschützter Datei geprüft.
   Nachweise: `.artifacts/phase3-item7`. DI-/Konfigurationsanbindung folgt in Punkt 9.
-- [ ] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen.
+- [x] Sicherung/Wiederherstellung anbieterspezifisch planen und testen; SQLite-Sicherung unter WAL konsistent erzeugen. ✅
+  Produktive SQLite-Backup-/RestoreNew-API mit Online-Backup statt Dateikopie, Integritäts-/FK-/Versionsprüfung,
+  unveröffentlichtem Staging und Schutz bestehender Dateien einschließlich WAL-/SHM-/Journal-Resten.
+  Drei neue Tests prüfen echte WAL-Daten, unabhängige Wiederherstellung, Altversion/Upgrade, Abbruch,
+  fremde Quellen und unveränderte Bestandsziele. Je 234 Tests sowie acht Debug-Builds und vier Hoststarts bestanden.
+  Native COPY_ONLY/CHECKSUM-/mysqldump-/pg_dump-Verfahren einschließlich echter Wiederherstellung
+  und Inhaltsvergleich aller 15 Tabellen auf eigenen SQL-Server-/MySQL-/PostgreSQL-Instanzen geprüft.
+  Reproduzierbares Skript `scripts/test-database-backup.ps1`, Verfahren/Grenzen in Datenbankschema.md.
+  Server-Restore ist ein administratives Verfahren; automatische App-Ausführung ist nicht Teil dieses Punkts.
+  Audiodateien werden neben der DB gesichert. Nachweise: `.artifacts/phase3-item8`, `.artifacts/backup-audit-*`.
 - [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
   Dabei Arbeitsplatz-GUID bei Einrichtung einmal erzeugen und dauerhaft für App/Console verfügbar machen;
   gemeinsame Ablage festlegen, PC-Name und ausführendes Windows-Konto bei Gesprächsbeginn erfassen.

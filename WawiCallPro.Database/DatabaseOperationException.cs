@@ -25,7 +25,8 @@ public enum DatabaseErrorCode
     ProgressFailed,
     MigrationLockTimeout,
     MigrationLockLost,
-    CommitUncertain
+    CommitUncertain,
+    BackupFailed
 }
 
 /// <summary>Fixed operational errors contain neither connection strings nor inner provider exceptions.</summary>
@@ -52,6 +53,7 @@ public sealed class DatabaseOperationException : Exception
         DatabaseErrorCode.MigrationLockTimeout => "Eine andere Anwendung aktualisiert die Datenbank. Die Wartefrist ist abgelaufen.",
         DatabaseErrorCode.MigrationLockLost => "Die Datenbank-Migrationssperre ist nicht mehr gültig. Den Schemastatus erneut prüfen.",
         DatabaseErrorCode.CommitUncertain => "Der Speicherabschluss konnte nicht bestätigt werden. Vor einer Wiederholung den Datensatz erneut laden.",
+        DatabaseErrorCode.BackupFailed => "Die Datenbanksicherung oder Wiederherstellung ist fehlgeschlagen. Das Ziel wurde nicht veröffentlicht.",
         _ => throw new ArgumentOutOfRangeException(nameof(code))
     }) => Code = code;
 
