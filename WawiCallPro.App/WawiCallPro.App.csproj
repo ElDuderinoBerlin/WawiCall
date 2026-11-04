@@ -9,6 +9,7 @@
     <ForceDesignerDpiUnaware>false</ForceDesignerDpiUnaware>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../WawiCallPro.Plugin.Windows/WawiCallPro.Plugin.Windows.csproj" />
     <ProjectReference Include="..\..\Quantarix.DevExpress\Quantarix.DevExpress.csproj" />
     <ProjectReference Include="..\..\Quantarix.Interop\Quantarix.Interop.csproj" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Lexware.Pro\WawiCallPro.Plugins.Lexware.Pro.csproj"

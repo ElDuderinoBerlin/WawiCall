@@ -157,6 +157,12 @@ Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Reposito
 
 ## Weiterarbeiten
 
+Phase 4/Punkt 3 abgeschlossen: Quantarix-Hook ec5be52 (separat committed, Manifest angepasst),
+Plugin-DI-Scope/ActivatorUtilities, geliehene Hostdienste, Initialize→Configure und Produktlinienprüfung.
+Neuer Shared-Vertrag WawiCallPro.Plugin.Windows: reine Schnittstellen/DTOs für UI-Thread-View-Leases;
+keine konkrete Oberfläche. Je 249 Tests/Debug-/Hostprüfungen, `.artifacts/phase4-item3`.
+Nächster offener Punkt 4: Signierung/Trustliste; Gesamtauftrag Phase 4 bleibt aktiv.
+
 Aktiver Auftrag: Phase 4 vollständig fertig machen. Punkt 2 ist abgeschlossen und geprüft:
 Default-ALC-Vertragsbootstrap vor Managerkonstruktion, zentrale SharedProjectAssembly-Liste,
 Typidentitätsprüfung trotz privater DLL-Kopien. Je 248 Tests/Debug-/Hostprüfungen bestanden;

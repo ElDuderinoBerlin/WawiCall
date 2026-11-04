@@ -7,6 +7,7 @@
     <RootNamespace>WawiCallPro.ConsoleApp</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../WawiCallPro.Plugin.Windows/WawiCallPro.Plugin.Windows.csproj" />
     <InternalsVisibleTo Include="WawiCallPro.Console.Tests" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Lexware.Pro\WawiCallPro.Plugins.Lexware.Pro.csproj"
                       ReferenceOutputAssembly="false" Condition="'$(LexwareProductLinePro)' == 'true'" />

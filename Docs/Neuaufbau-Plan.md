@@ -690,12 +690,18 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   Instanz bleiben identisch mit den Hosttypen. Buildlisten beider Plugins ausgewertet.
   Je 248 Tests, zwölf Debug-Builds, vier Hoststarts und Runtime-/Solutionprüfungen bestanden;
   `.artifacts/phase4-item2`. Tatsächlicher Filterimport und Deployment folgen in Punkt 5.
-- [ ] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen.
+- [x] Typisierte WawiCallPro-Hostdienste über den in Abschnitt 3.3 beschriebenen Konfigurationsschritt anschließen. ✅
   DI-Aktivierung und Konstruktorinjektion an die Quantarix-Laufzeit anbinden; geliehene Hostdienste und
   plugin-eigene Lebenszyklen trennen. Keine globale Service-Locator-Nutzung oder duplizierten Host-Singletons.
   Dafür den derzeit fehlenden Aktivierungshook im bestehenden Quantarix-Manager gesondert ergänzen und prüfen.
   Windows-spezifischen Anschluss für plugin-eigene Views vorsehen; gemeinsame Fachinterfaces bleiben
   UI-frei. Die Diagnosekonsole lädt Plugins ohne Views; Erzeugung/Freigabe auf dem UI-Thread und vor Unload.
+  Quantarix-Manager um rückwärtskompatiblen Aktivierungsdelegaten ergänzt (ec5be52, Manifest aktualisiert).
+  IPluginSessionFactory erzeugt eigene DI-Scopes und aktiviert Einstiegsklassen per ActivatorUtilities;
+  danach Quantarix Initialize, Produktlinienprüfung und Configure mit geliehenen IWawiCallHostServices.
+  Windows-spezifischer Shared-Vertrag WawiCallPro.Plugin.Windows mit View-Lease und UI-Thread-Besitz,
+  in beiden Hosts vorgeladen; Fachverträge bleiben UI-frei. Noch keine konkreten Views.
+  Je 249 Tests, Debug-Builds und vier Hoststarts bestanden; `.artifacts/phase4-item3`.
 - [ ] Pro-/FinOffice-Pluginprojekte signieren; erlaubte Tokens aus der vorgesehenen Schlüsselstrategie ermitteln.
 - [ ] Plugin-Ausgaben mit `.deps.json` und benötigten privaten/native Abhängigkeiten korrekt bereitstellen.
   Build-Targets tatsächlich importieren/adaptieren; Root-Targets des Schwester-Repositories gelten nicht automatisch hier.

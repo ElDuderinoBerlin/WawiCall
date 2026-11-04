@@ -95,6 +95,23 @@ public sealed class PluginRuntimeTests
         });
     }
 
+    [TestMethod]
+    public async Task PluginSessionUsesConstructorInjectionAndConfiguresBorrowedHostServices()
+    {
+        var plugins = DeployFixture(); var host = CreateHost();
+        await HostExecution.RunAsync(host, _ =>
+        {
+            using var session = host.Services.GetRequiredService<IPluginSessionFactory>().Create(new HashSet<string>());
+            session.Load(plugins);
+            var plugin = session.GetPlugins().Single();
+            Assert.AreEqual(true, plugin.GetType().GetProperty("ServicesInjected")!.GetValue(plugin));
+            Assert.AreEqual(true, plugin.GetType().GetProperty("Configured")!.GetValue(plugin));
+            session.Dispose();
+            Assert.IsNotNull(host.Services.GetRequiredService<IWawiCallHostServices>().Companies.Current);
+            return Task.CompletedTask;
+        });
+    }
+
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
     {
         services.AddSingleton(new ConfigurationLocation(_root));

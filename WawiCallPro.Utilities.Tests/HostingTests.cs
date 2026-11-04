@@ -116,7 +116,7 @@ public sealed class HostingTests
             Assert.IsNull(host.Services.GetService<IBusinessDirectory>());
             Assert.IsNotNull(host.Services.GetService<ICallHistoryService>());
             Assert.IsNull(host.Services.GetService<ITelephonyService>());
-            Assert.IsNull(host.Services.GetService<IWawiCallHostServices>());
+            Assert.IsNotNull(host.Services.GetService<IWawiCallHostServices>());
             return Task.CompletedTask;
         });
     }

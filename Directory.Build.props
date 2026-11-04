@@ -1,7 +1,7 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)Solution.props" />
   <ItemGroup>
-    <SharedProjectAssembly Include="WawiCallPro.Interfaces;Quantarix.Plugin.Abstractions" />
+    <SharedProjectAssembly Include="WawiCallPro.Interfaces;Quantarix.Plugin.Abstractions;WawiCallPro.Plugin.Windows" />
     <!-- No third-party packages are part of the current UI-free contract. Future UI packages belong in SharedPackage. -->
   </ItemGroup>
   <PropertyGroup>

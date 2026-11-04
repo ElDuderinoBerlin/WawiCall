@@ -7,6 +7,7 @@ public interface IPluginManagerFactory
 {
     /// <summary>The explicit token set is snapshotted. An empty set permits unsigned development fixtures.</summary>
     PluginManager Create(IReadOnlySet<string> allowedPublicKeyTokens);
+    PluginManager CreateWithActivation(IReadOnlySet<string> allowedPublicKeyTokens, Func<Type, Quantarix.Plugin.Abstractions.IPlugin> activate);
 }
 
 /// <summary>Composition boundary for Quantarix; does not discover plugins or activate their services at host startup.</summary>
@@ -17,5 +18,11 @@ public sealed class QuantarixPluginManagerFactory(Quantarix.Plugin.Abstractions.
         ArgumentNullException.ThrowIfNull(allowedPublicKeyTokens);
         contracts.EnsureLoaded();
         return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal));
+    }
+    public PluginManager CreateWithActivation(IReadOnlySet<string> allowedPublicKeyTokens, Func<Type, Quantarix.Plugin.Abstractions.IPlugin> activate)
+    {
+        ArgumentNullException.ThrowIfNull(allowedPublicKeyTokens);
+        contracts.EnsureLoaded();
+        return new PluginManager(logger, new HashSet<string>(allowedPublicKeyTokens, StringComparer.Ordinal), activate);
     }
 }

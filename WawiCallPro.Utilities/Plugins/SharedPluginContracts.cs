@@ -11,11 +11,13 @@ public interface ISharedPluginContracts
 }
 
 /// <summary>Explicit contract roots, evaluated before Quantarix snapshots the default load context.</summary>
-public sealed class SharedPluginContracts : ISharedPluginContracts
+public sealed record SharedPluginContractAssembly(Assembly Assembly);
+
+public sealed class SharedPluginContracts(IEnumerable<SharedPluginContractAssembly> additional) : ISharedPluginContracts
 {
     public void EnsureLoaded()
     {
-        foreach (var assembly in new[] { typeof(IPlugin).Assembly, typeof(IWawiCallPlugin).Assembly })
+        foreach (var assembly in new[] { typeof(IPlugin).Assembly, typeof(IWawiCallPlugin).Assembly }.Concat(additional.Select(item => item.Assembly)))
             if (AssemblyLoadContext.GetLoadContext(assembly) != AssemblyLoadContext.Default || assembly.GetCustomAttribute<SharedAssemblyAttribute>() is null)
                 throw new InvalidOperationException("Plugin contracts must be shared assemblies in the default load context.");
     }

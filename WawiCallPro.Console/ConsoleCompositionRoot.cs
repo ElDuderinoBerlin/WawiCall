@@ -10,6 +10,10 @@ namespace WawiCallPro.ConsoleApp;
 internal static class ConsoleCompositionRoot
 {
     internal static IHost Build() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
-        .ConfigureServices(services => services.AddSingleton<IUiDispatcher, InlineUiDispatcher>())
+        .ConfigureServices(services =>
+        {
+            services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
+            services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
+        })
         .Build();
 }
