@@ -627,9 +627,20 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Reproduzierbares Skript `scripts/test-database-backup.ps1`, Verfahren/Grenzen in Datenbankschema.md.
   Server-Restore ist ein administratives Verfahren; automatische App-Ausführung ist nicht Teil dieses Punkts.
   Audiodateien werden neben der DB gesichert. Nachweise: `.artifacts/phase3-item8`, `.artifacts/backup-audit-*`.
-- [ ] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig.
+- [x] Status und Fortschritt in Console und später App anbinden; Anmeldung an Lexware ist davon unabhängig. ✅
   Dabei Arbeitsplatz-GUID bei Einrichtung einmal erzeugen und dauerhaft für App/Console verfügbar machen;
   gemeinsame Ablage festlegen, PC-Name und ausführendes Windows-Konto bei Gesprächsbeginn erfassen.
+  Gemeinsame DI-Registrierung aller sieben Repositories, SQLite-Backup, ICommunicationDatabase,
+  ICallHistoryService, ICallJournal und ICallOriginProvider für beide Hosts. Ziele werden nach geladenen
+  Einstellungen lazily aufgelöst; Serverwerte sind DPAPI-zweckgebunden und werden ohne I/O validiert.
+  Console: --db-status, --db-init, --db-migrate, --db-approve-empty, --db-backup/--db-restore und
+  --workstation-init; feste Fortschrittsmeldungen und N/P/G/Q-Tabellen, vollständige Umleitung.
+  Arbeitsplatzkennung atomar in workstation.local.json neben der gemeinsamen Hostkonfiguration;
+  bewusst installations-/benutzer-/produktlinienbezogen, keine Hardware-ID. ICallJournal erfasst beim
+  Neuanlegen Environment.MachineName und das effektive WindowsIdentity-Konto; Historie bleibt unverändert.
+  Acht neue Tests, je 242 Tests, zwölf Debug-Builds, vier Diagnose-Hoststarts und 26 echte
+  Console-Datenbankprozesse bestanden. Skript scripts/test-database-console.ps1; `.artifacts/phase3-item9`.
+  App kann dieselben Dienste auflösen; ihre Einstellungs-/Fortschrittsoberfläche folgt in Phase 8.
 - [ ] Tests: leere Datenbank → aktuelles Schema; wiederholter Lauf unverändert; ältere Version → Upgrade mit Daten;
   Migration scheitert → korrekter Status/Wiederanlauf; zwei Starts → wirksame Sperre; neuere Schema-Version → Abbruch;
   Statusabfrage ohne Nebenwirkungen; UTC, Unicode, Fremdschlüssel und Mandantentrennung.

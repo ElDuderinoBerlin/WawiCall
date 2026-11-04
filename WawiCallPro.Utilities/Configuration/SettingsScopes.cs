@@ -33,7 +33,7 @@ public sealed record CompanySettings
     public override string ToString() => nameof(CompanySettings);
 }
 
-/// <summary>Configuration tokens for the future provider factory; these do not constitute implemented DB providers.</summary>
+/// <summary>Configured provider of the application's owned communications database.</summary>
 public enum CommunicationDatabaseProvider
 {
     Sqlite = 1,
@@ -47,7 +47,7 @@ public sealed record CommunicationDatabaseSettings
 {
     public const string ConnectionStringPurpose = "communications-database-connection-string";
     public CommunicationDatabaseProvider Provider { get; init; } = CommunicationDatabaseProvider.Sqlite;
-    // Null uses communications.db under the configuration directory when the database module is implemented.
+    // Null uses communications.db under the shared App/Console configuration directory.
     public string? SqliteFileName { get; init; }
     public ProtectedSecret? ConnectionString { get; init; }
     public override string ToString() => nameof(CommunicationDatabaseSettings);

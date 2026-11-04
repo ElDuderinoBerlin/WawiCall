@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Database;
+using WawiCallPro.Database.Contracts;
 
 namespace WawiCallPro.Utilities.Configuration;
 
@@ -30,6 +32,13 @@ public static class StartupFailureMessage
         var operationalFailure = exception as OperationException;
         if (exception is AggregateException errors)
             operationalFailure = errors.Flatten().InnerExceptions.OfType<OperationException>().FirstOrDefault();
-        return configurationFailure?.Message ?? operationalFailure?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
+        var persistenceFailure = exception as DatabaseOperationException;
+        var conflict = exception as RepositoryConflictException;
+        if (exception is AggregateException persistenceErrors)
+        {
+            persistenceFailure = persistenceErrors.Flatten().InnerExceptions.OfType<DatabaseOperationException>().FirstOrDefault();
+            conflict = persistenceErrors.Flatten().InnerExceptions.OfType<RepositoryConflictException>().FirstOrDefault();
+        }
+        return configurationFailure?.Message ?? operationalFailure?.Message ?? persistenceFailure?.Message ?? conflict?.Message ?? $"Hoststart oder Beenden fehlgeschlagen ({exception.GetType().Name}).";
     }
 }

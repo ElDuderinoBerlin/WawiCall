@@ -1,12 +1,12 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3, Punkte 1–8. Die Migrationen 1–7 sind implementiert.
+Stand: 04.11.2026, Phase 3, Punkte 1–9. Die Migrationen 1–7 sind implementiert.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
 Prozessübergreifende Sperren/Rechteprüfung bestehen seit Punkt 5, Mehrfirmen-Verträge und Schema 6
 seit Punkt 6, Dapper-Repositories seit Punkt 7. Sicherung/Wiederherstellung ist in Punkt 8 geprüft;
-die Hostanbindung folgt in Punkt 9.
+die gemeinsame Hostanbindung besteht seit Punkt 9.
 Keine dieser Tabellen gehört in eine Lexware-Quelldatenbank.
 
 ## Speicherwerte und Identitäten
@@ -220,10 +220,13 @@ Zusätzlich `ix_phonecalls_workstation(workstationid, startedatutc DESC, id ASC)
 `ix_phonecalls_machine(machinename, startedatutc DESC, id ASC)` und
 `ix_phonecalls_user(windowsusername, startedatutc DESC, id ASC)` für die PC-/Benutzerhistorie.
 PC-Name und Windows-Benutzer sind unveränderliche Herkunftswerte des Gesprächs, keine Stammdatenverweise
-und keine Kennung des späteren Notizbearbeiters. Die eigene Arbeitsplatz-GUID soll bei der Einrichtung
-einmal erzeugt, dauerhaft gespeichert und von App/Console gemeinsam verwendet werden. Erzeugung und
-gemeinsame Ablage im Host sind noch nicht implementiert; sie stammen weder aus einer bereits vorhandenen
-Windows-ID noch aus der Migration. PC-/Benutzerumbenennungen schreiben alte Gesprächswerte nicht um.
+und keine Kennung des späteren Notizbearbeiters. Die eigene Arbeitsplatz-GUID wird seit Punkt 9 bei
+--db-init beziehungsweise --workstation-init einmal atomar in workstation.local.json neben
+connection.local.json angelegt. App/Console mit demselben Konfigurationsverzeichnis verwenden dieselbe
+GUID; unterschiedliche Benutzer-/Produktlinienprofile haben eigene Kennungen. Es ist eine lokale
+Installationskennung, keine globale physische PC-ID und keine aus Windows oder der Migration abgeleitete
+Kennung. ICallJournal erfasst über ICallOriginProvider den aktuellen PC und das effektive Windows-Konto
+beim Neuanlegen. PC-/Benutzerumbenennungen schreiben alte Gesprächswerte nicht um.
 
 ### Version 3: callparties
 
@@ -529,4 +532,12 @@ PostgreSQL-Listen verwenden ANY, andere Provider Dappers Parameterexpansion. SQL
 explizite Binärvergleiche einschließlich Länge für Herkunftsfilter. Null-Metadaten bleiben unbekannt.
 Sechs zusätzliche Integrationstests und native Prüfungen auf allen Providern bestätigen diese Regeln;
 je 231 Tests und die Debug-/Hostprüfungen bestanden, `.artifacts/phase3-item7`.
-Sicherung/WAL und Hostzugriffe folgen in den nächsten Punkten.
+Sicherung/WAL ist seit Punkt 8 geprüft; seit Punkt 9 registrieren beide Hosts alle Repositories,
+ICommunicationDatabase, ICallHistoryService, ICallJournal und ICallOriginProvider über DI.
+Die Zielquelle liest ausschließlich den geladenen Konfigurationsstand. Regulärer Hoststart und
+--diagnostics öffnen keine DB und erzeugen keine Arbeitsplatzkennung. Explizite Einrichtung benötigt
+keine Lexware-Anmeldung. Ein fehlender Arbeitsplatz wird beim Gesprächsbeginn als Einrichtungsfehler
+gemeldet und nicht durch eine neue ID pro Anruf ersetzt. Notizen nutzen Repository-CAS; der bestehende
+Fachvertrag trägt noch keinen UI-Bearbeitungsstand, deshalb folgt UI-Konfliktbehandlung in Phase 8.
+Je 242 Tests, zwölf Debug-Builds und 30 echte Host-/Console-Prozessprüfungen bestanden;
+`.artifacts/phase3-item9` und scripts/test-database-console.ps1.

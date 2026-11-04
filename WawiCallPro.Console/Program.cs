@@ -7,36 +7,39 @@ using System.Text;
 using WawiCallPro.ConsoleApp.Diagnostics;
 using WawiCallPro.ConsoleApp.Presentation;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Persistence;
 
 try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
-    var command = args switch
-    {
-        [] => "--status",
-        ["--status" or "--paths" or "--logs" or "--diagnostics" or "--help"] => args[0],
-        _ => throw new DiagnosticException("Unbekannter Aufruf. Erlaubt: --status, --paths, --logs, --diagnostics, --help.")
-    };
+    var command = ConsoleCommand.Parse(args);
     var host = ConsoleCompositionRoot.Build();
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {
         diagnostic = await host.Services.GetRequiredService<HostDiagnostics>().CaptureAsync(stoppingToken);
-        if (command != "--diagnostics")
+        if (command.Name != "--diagnostics")
         {
             var paths = host.Services.GetRequiredService<ApplicationPaths>();
-            var table = command switch
+            var table = command.Name switch
             {
                 "--paths" => DiagnosticTables.Paths(paths, host.Services.GetRequiredService<ConfigurationLocation>()),
                 "--logs" => DiagnosticTables.Logs(DiagnosticLogReader.Read(paths)),
                 "--help" => DiagnosticTables.Help(),
                 _ => DiagnosticTables.Status(diagnostic)
             };
+            if (command.UsesDatabase)
+                table = await DatabaseCommands.ExecuteAsync(command, host.Services.GetRequiredService<ICommunicationDatabase>(), stoppingToken);
+            else if (command.Name == "--workstation-init")
+            {
+                var id = await host.Services.GetRequiredService<IWorkstationIdentity>().InitializeAsync(stoppingToken);
+                table = new("Arbeitsplatz eingerichtet", "Merkmal", "Wert", [new("Arbeitsplatz-GUID", id.ToString("D"))]);
+            }
             await new TablePager(new SystemConsoleTerminal()).WriteAsync(table, stoppingToken);
         }
     });
 
-    if (command == "--diagnostics") Console.WriteLine(JsonSerializer.Serialize(diagnostic));
+    if (command.Name == "--diagnostics") Console.WriteLine(JsonSerializer.Serialize(diagnostic));
     return 0;
 }
 catch (Exception exception)

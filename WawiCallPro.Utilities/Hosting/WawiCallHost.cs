@@ -9,6 +9,11 @@ using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
 using WawiCallPro.Utilities.Operations;
 using Microsoft.Extensions.Logging;
+using WawiCallPro.Database;
+using WawiCallPro.Database.Contracts;
+using WawiCallPro.Database.Repositories;
+using WawiCallPro.Interfaces.History;
+using WawiCallPro.Utilities.Persistence;
 
 namespace WawiCallPro.Utilities.Hosting;
 
@@ -48,6 +53,26 @@ public static class WawiCallHost
                 services.AddSingleton<ConfigurationStore>();
                 services.AddSingleton<ApplicationConfigurationService>();
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());
+                services.AddSingleton(TimeProvider.System);
+                services.AddSingleton<DatabaseFactory>();
+                services.AddSingleton<IDatabaseTargetSource, ConfiguredDatabaseTarget>();
+                services.AddSingleton<IDatabaseMigrationEngineFactory, DatabaseMigrationEngineFactory>();
+                services.AddSingleton<IDatabaseMigrationLock, DatabaseMigrationLock>();
+                services.AddSingleton<IDatabaseMigrationPermissions, DatabaseMigrationPermissions>();
+                services.AddSingleton<DatabaseRepositoryContext>();
+                services.AddSingleton<ICompanyRepository, DapperCompanyRepository>();
+                services.AddSingleton<IPartyCacheRepository, DapperPartyCacheRepository>();
+                services.AddSingleton<ICallRepository, DapperCallRepository>();
+                services.AddSingleton<ICallNoteRepository, DapperCallNoteRepository>();
+                services.AddSingleton<IRecordingRepository, DapperRecordingRepository>();
+                services.AddSingleton<INumberParseLogRepository, DapperNumberParseLogRepository>();
+                services.AddSingleton<IPhoneMatchingRepository, DapperPhoneMatchingRepository>();
+                services.AddSingleton<ISqliteDatabaseBackup, SqliteDatabaseBackup>();
+                services.AddSingleton<IWorkstationIdentity, WorkstationIdentity>();
+                services.AddSingleton<ICallOriginProvider, WindowsCallOriginProvider>();
+                services.AddSingleton<ICallJournal, DatabaseCallJournal>();
+                services.AddSingleton<ICallHistoryService, DatabaseCallHistory>();
+                services.AddSingleton<ICommunicationDatabase, CommunicationDatabase>();
                 services.AddSingleton<CompanyContext>();
                 services.AddSingleton<ICompanyContext>(provider => provider.GetRequiredService<CompanyContext>());
                 services.AddHostedService<CompanyContextLifetime>();

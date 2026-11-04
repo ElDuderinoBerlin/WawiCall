@@ -383,8 +383,10 @@ Ereignisse über ihre Interfaces. Gespräch, Herkunft, Zuordnung, Notizen und Au
 Das WawiCallPro-Schema wird nicht in einer Lexware-Quelldatenbank angelegt.
 
 Jedes gespeicherte Gespräch enthält PC-Name und Windows-Benutzer als historische Momentaufnahmen.
-Die zusätzliche Arbeitsplatz-ID ist eine eigene, dauerhaft vorgesehene GUID. Ihre einmalige Erzeugung
-und gemeinsame Ablage für App/Console sowie die Windows-Erfassung sind noch umzusetzen.
+Die zusätzliche Arbeitsplatz-ID ist seit Phase 3/Punkt 9 eine atomar gespeicherte GUID in
+workstation.local.json neben der Hostkonfiguration. App/Console desselben lokalen Benutzer-/Produktprofils
+verwenden dieselbe Kennung. ICallJournal erfasst mit ICallOriginProvider PC und effektives Windows-Konto
+beim Neuanlegen eines Gesprächs; diese Kennung ist keine Hardware-ID.
 Spätere PC-/Kontoumbenennungen ändern vorhandene Herkunftswerte nicht.
 
 Beim Start gilt: Konfiguration prüfen → DI-Host aufbauen → zulässige Plugins laden und konfigurieren →
@@ -403,14 +405,14 @@ werden mit leeren/befüllten Daten, kleineren Fenstern und größerer Schrift vi
 
 Vorhanden sind die Hostprojekte mit Standard-.NET-Host/DI-Grundlage, gemeinsame Fachverträge
 einschließlich `ITelephonyService`, Mandantenkontext/Dispatcher, Konfiguration und Gesprächszustandsautomat.
-Die Datenbankmigrationen 1–6, Herkunftsfelder und prozessübergreifenden Migrationssperren/Rechteprüfungen
+Die Datenbankmigrationen 1–7, Herkunftsfelder und prozessübergreifenden Migrationssperren/Rechteprüfungen
 sind implementiert und auf allen vier Providern geprüft.
 Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
 hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
 
 Noch offen sind insbesondere:
 
-- Sicherung/Wiederherstellung und Hostanbindung; die sieben Dapper-Repositories sind seit Phase 3/Punkt 7 implementiert und auf allen vier Providern geprüft.
+- Gesamtabnahme von Phase 3/Punkt 10; sieben Dapper-Repositories, SQLite-Backup, geprüfte administrative Server-Restores und gemeinsame Host-/Console-Anbindung sind implementiert.
 - Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
 - Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using WawiCallPro.Utilities.Security;
 using System.Globalization;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Database;
 
 namespace WawiCallPro.Utilities.Configuration;
 
@@ -93,10 +94,24 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         {
             using var connection = secrets.Unprotect(database.ConnectionString, CommunicationDatabaseSettings.ConnectionStringPurpose);
             if (connection.IsEmpty) issues.Add(new("database.connectionString", "Die geschützte Verbindungszeichenfolge ist leer."));
+            else
+            {
+                var type = database.Provider switch
+                {
+                    CommunicationDatabaseProvider.SqlServer => DatabaseType.SqlServer,
+                    CommunicationDatabaseProvider.MySql => DatabaseType.MySql,
+                    _ => DatabaseType.PostgreSql
+                };
+                _ = DatabaseTarget.Server(type, connection.Reveal());
+            }
         }
         catch (SecretProtectionException)
         {
             issues.Add(new("database.connectionString", "Die geschützte Verbindungszeichenfolge ist nicht verfügbar oder beschädigt."));
+        }
+        catch (DatabaseOperationException)
+        {
+            issues.Add(new("database.connectionString", "Die Verbindungszeichenfolge passt nicht zum Provider oder bezeichnet kein zulässiges eigenes Datenbankziel."));
         }
     }
 

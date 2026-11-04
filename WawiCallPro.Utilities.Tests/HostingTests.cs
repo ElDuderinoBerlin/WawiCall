@@ -114,7 +114,7 @@ public sealed class HostingTests
         await HostExecution.RunAsync(host, _ =>
         {
             Assert.IsNull(host.Services.GetService<IBusinessDirectory>());
-            Assert.IsNull(host.Services.GetService<ICallHistoryService>());
+            Assert.IsNotNull(host.Services.GetService<ICallHistoryService>());
             Assert.IsNull(host.Services.GetService<ITelephonyService>());
             Assert.IsNull(host.Services.GetService<IWawiCallHostServices>());
             return Task.CompletedTask;

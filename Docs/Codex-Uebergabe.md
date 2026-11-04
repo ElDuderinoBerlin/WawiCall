@@ -267,11 +267,19 @@ Fachinterfaces bleiben UI-frei. Windows-UI-Anschluss, Lebensdauer und Capability
 in Phase 4/5/8/10 berücksichtigen. Nur Dokumentation/Plan geändert, keine Views bereits implementiert.
 
 Zuerst `AGENTS.md`, `Docs/Neuaufbau-Plan.md`, `Docs/Build.md` und `Docs/Quantarix-Zuordnung.md` lesen sowie Git-Status prüfen.
-Aktiver Nutzerauftrag: Phase 3 vollständig abschließen. Punkte 1–8 sind abgeschlossen; als Nächstes
-Punkt 9 Host-/Arbeitsplatzanbindung und danach 10 Gesamtabnahme.
+Aktiver Nutzerauftrag: Phase 3 vollständig abschließen. Punkte 1–9 sind abgeschlossen; als Nächstes
+Punkt 10 Gesamtabnahme. Bis dahin Phase 3 nicht insgesamt als abgeschlossen melden.
 Sieben Dapper-Repositories und neue Migration 7 (Cache-Parser-/Kontextstand) sind geprüft;
 je 231 Tests und native Repository-Szenarien auf allen vier Providern, `.artifacts/phase3-item7`.
-Migrationen 1–7 nicht rückwirkend ändern. Noch keine produktive Hostregistrierung der Repositories.
+Migrationen 1–7 nicht rückwirkend ändern. Beide Hosts registrieren alle sieben Repositories,
+ICommunicationDatabase, ICallHistoryService, ICallJournal und ICallOriginProvider gemeinsam über DI.
+DB-Ziele werden nach Konfigurationsstart aufgelöst; Diagnose/Start öffnen keine DB.
+Console --db-status/--db-init/--db-migrate/--db-approve-empty sowie SQLite --db-backup/--db-restore;
+--workstation-init richtet die atomare workstation.local.json neben connection.local.json ein.
+GUID gilt für dieses lokale Benutzer-/Produktprofil; App/Console teilen sie. ICallJournal erfasst
+PC und effektives Windows-Konto beim Neuanlegen, bestehende Historie bleibt unverändert.
+Je 242 Tests, zwölf Debug-Builds, vier Diagnose- und 26 Console-Datenbankprozesse bestanden.
+scripts/test-database-console.ps1, `.artifacts/phase3-item9`. App-Fortschritts-UI folgt in Phase 8.
 SQLite-Online-Backup/RestoreNew ist implementiert und einschließlich WAL geprüft. Native Server-
 Sicherungen/Wiederherstellungen mit Vergleich aller 15 Tabellen sind geprüft; administrative Verfahren
 stehen in Datenbankschema.md, reproduzierbares Skript scripts/test-database-backup.ps1.

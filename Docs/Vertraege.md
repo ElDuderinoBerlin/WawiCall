@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3, Punkte 1–8 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phase 3, Punkte 1–9 und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -163,7 +163,7 @@ berücksichtigt. Gleichzeitige Mandanten-/Geschäftspartnerfilter müssen widers
 
 ## Datenbankschema und Repository-Verträge
 
-Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–6 mit Spalten, Längen,
+Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–7 mit Spalten, Längen,
 Nullbarkeit, Schlüsseln, Indizes und Löschregeln. `partyaddresses` ergänzt den bereits vereinbarten
 Geschäftspartner-/Nummerncache, damit die vorhandenen Anschriften-DTOs vollständig gespeichert werden
 können. Historische Kandidaten und Nummernfehler besitzen keinen FK auf veränderliche Cachezeilen.
@@ -175,7 +175,13 @@ in derselben Transaktion. Office-Tabellen bleiben der späteren Office-Phase vor
 Kommunikationsdatenbank. Seit Punkt 6 kommt IPhoneMatchingRepository für gemeinsame Firmenprofile
 und bestätigte/vermutete Organisationsblöcke mit eigenen CAS-Schreibverträgen hinzu.
 Seit Punkt 7 bestehen alle sieben Dapper-Repositories; Punkt 8 prüft SQLite-WAL-Sicherung und
-native Server-Backup-/Restoreverfahren. Die Datenbank-DI-Registrierung im Host folgt in Punkt 9.
+native Server-Backup-/Restoreverfahren. Seit Punkt 9 sind sie in beiden Hosts über DI registriert.
+ICommunicationDatabase liefert Status, Fortschritt und ausdrückliche Einrichtung unabhängig von Lexware.
+ICallHistoryService verwendet echte Repositories. ICallJournal legt neue Gespräche mit ICallOriginProvider
+und dauerhaft eingerichteter Arbeitsplatz-GUID an; PC und effektives Windows-Konto werden dabei erfasst.
+workstation.local.json liegt neben connection.local.json; beide Hosts desselben Benutzer-/Produktprofils
+teilen die Kennung. Reguläre Diagnose legt weder DB noch Kennung an. Die spätere SIP-Ereignisverarbeitung
+ruft diesen Journaldienst auf; eine SIP-Laufzeit ist dadurch noch nicht implementiert.
 Die Repository-Verträge enthalten keine
 SQL-Verbindungen oder Runner-Typen. Das Database-Projekt referenziert
 Interfaces und Telephony, um die vorhandenen Snapshotregeln des Gesprächsautomaten wiederzuverwenden;
@@ -184,8 +190,8 @@ dadurch wird weder ein Gespräch gestartet noch ein anderer Zustandsautomat eing
 Schreibanträge prüfen Quellidentität, Grenzen, UTC, Besitz und initialisierte Sammlungen vor einem
 späteren Repositoryaufruf. `SourceIdentityHash` kodiert Identitätskomponenten mit getrennten Domänen,
 UTF-8-Bytelängen und SHA-256; IDs werden nicht getrimmt, umgeschrieben oder Unicode-normalisiert.
-Die späteren Repositories müssen nach Hashsuche zusätzlich alle Originalkomponenten ordinal vergleichen
-und eine Kollision abweisen. `DatabaseId` speichert GUIDs als 32 kleine Hexzeichen; `DatabaseUtc` bildet
+Die Repositories vergleichen nach Hashsuche zusätzlich alle Originalkomponenten ordinal
+und weisen Kollisionen ab. `DatabaseId` speichert GUIDs als 32 kleine Hexzeichen; `DatabaseUtc` bildet
 Zeitpunkte auf Int64-UTC-Ticks ab und erhält einzelne 100-ns-Ticks. SQL-Zeitzonen-/Sortierdefaults bestimmen
 damit nicht die gespeicherte Fachidentität oder Gesprächschronologie.
 
@@ -199,9 +205,8 @@ Abruf darf weder einen leeren Cache vortäuschen noch einen neueren Snapshot ers
 
 `RepositoryConflictException` liefert feste Codes/Meldungen für veraltete Versionen, vorhandene/fehlende
 Datensätze, Identitätskollisionen, fremden Besitz und geänderte bereits gespeicherte Ereignisse.
-Reale Transaktionen, Konkurrenzkonflikte, UTC-/Unicode-SQL-Rundläufe und Fremdschlüssel werden erst mit
-den Provider-/Repository-Implementierungen getestet. Die vorliegenden Vertragsprüfungen nehmen diese
-Abnahme nicht vorweg.
+Reale Transaktionen, Konkurrenzkonflikte, UTC-/Unicode-SQL-Rundläufe und Fremdschlüssel sind seit
+Punkt 7 auf allen vier Providern geprüft. Host-/Console-/Arbeitsplatzprüfungen ergänzen Punkt 9.
 
 ## Datenbankziele, Provisionierung und Migrationssteuerung
 
@@ -210,8 +215,9 @@ absoluten SQLite-Dateipfad beziehungsweise eine Server-Verbindungszeichenfolge m
 Systemdatenbanken, AttachDBFilename/UserInstance, unendliche Fristen, Alternate-Data-Streams und ungültige
 Namen werden abgewiesen. Ziele verwenden 1–300 Sekunden für Öffnung/Befehle. Serverkonfiguration wird
 mit dem tatsächlichen Treiberbuilder gelesen; seine internen Werte dürfen nicht als Diagnose erscheinen.
-ToString/JSON eines Targets geben nur Providertyp und Fristen frei. DPAPI-Entschlüsselung und Übergabe
-aus den Einstellungen werden erst bei der Hostanbindung ergänzt; Zielobjekte sind operationsgebunden.
+ToString/JSON eines Targets geben nur Providertyp und Fristen frei. Seit Punkt 9 übernimmt die gemeinsame
+Zielquelle die DPAPI-Entschlüsselung nach Konfigurationsstart und hält das validierte Ziel pro Hostlauf.
+Die Anwendungskonfiguration validiert Server-Verbindungszeichenfolgen ohne Verbindungsöffnung.
 
 `DatabaseFactory` erzeugt geschlossene Microsoft.Data.Sqlite-, Microsoft.Data.SqlClient-, MySqlConnector-
 und Npgsql-Verbindungen. Der Aufrufer besitzt und entsorgt die Verbindung; deren ADO-ConnectionString ist

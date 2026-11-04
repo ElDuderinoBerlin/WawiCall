@@ -159,9 +159,9 @@ Migrationsnamespace, Provider-Tags und redigiertem Logging bereit. Die vier Konf
 Serververbindung aufgelöst; echte Runner-Testmigrationen prüfen SQLite einschließlich Rollback/Wiederanlauf.
 Seit Punkt 4 implementieren fünf eigene ForwardOnlyMigration-Klassen die Produktversionen 1–5 mit
 providerabhängiger DDL. Gesprächsherkunft enthält Arbeitsplatz-ID, PC-Name und Windows-Benutzer;
-Erzeugung/Persistenz der Arbeitsplatz-ID sowie Betriebssystemerfassung folgen bei der Hostanbindung.
-Noch keine Dapper-Implementierung oder Datenbank-DI-Registrierung im Host.
-Beide Hosts starten deshalb weiterhin ohne Kommunikationsdatenbank. Testmigrationen liegen ausschließlich
+Seit Punkt 9 sind Erzeugung/Persistenz der Arbeitsplatz-ID, Betriebssystemerfassung und alle sieben
+Dapper-Repositories in beiden Hosts über DI angebunden. Beide Hosts starten weiterhin ohne automatische
+DB-Öffnung/-Anlage. Testmigrationen liegen ausschließlich
 in der Testassembly und können nicht in den Produktkatalog gelangen.
 
 ```powershell
@@ -169,7 +169,7 @@ dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.cs
 dotnet test --project .\WawiCallPro.Database.Tests\WawiCallPro.Database.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
 ```
 
-Die aktuelle Prüfung umfasst je 155 Tests pro Variante einschließlich 60 Datenbanktests
+Der damalige Nachweis zu Punkt 4 umfasst je 155 Tests pro Variante einschließlich 60 Datenbanktests
 (13 Vertrags-, 22 Dienst-, elf Runner- und 14 Schemaprüfungen) und Debug-Builds von Database, App und Console.
 Protokolle: `.artifacts/phase3-item4`. Vier Diagnose-Hoststarts und Runtime-/Produktlinien-/MMS-Prüfungen
 bestanden; App-/Console-Start erzeugt weiterhin nur Betriebslogs. Keine UI-/Renderänderung.
@@ -179,6 +179,44 @@ Alle fünf Migrationen, Versionsstatus, Wiederholung, Unicode/Ticks, ausgewählt
 Eindeutigkeit und Löschschutz bestanden. Nur diese Testinstanzen wurden gestoppt/entfernt; Lexware-
 Bestände blieben unberührt. Diese begrenzte Prüfung ersetzt keine Rechte-, Sperr-, Backup- oder vollständige
 Provider-/Repositoryabnahme. MySQL-DDL besitzt keinen versprochenen vollständigen Schrittrücklauf.
+
+## Datenbankverwaltung und Arbeitsplatz einrichten
+
+Beide Hosts verwenden dieselben DI-Dienste und denselben geladenen Konfigurationsstand. SQLite verwendet
+standardmäßig communications.db neben connection.local.json. Server-Verbindungszeichenfolgen bleiben
+zweckgebunden DPAPI-geschützt; Providerbuilder validieren sie vor dem Start ohne Netzwerkzugriff.
+Die Console bietet folgende ausdrückliche Aktionen (Beispiel Pro):
+
+```powershell
+$console = '.\WawiCallPro.Console\bin\Debug\Pro\net10.0-windows\WawiCallPro.Console.Pro.exe'
+& $console --db-status
+& $console --db-init
+& $console --db-migrate
+& $console --workstation-init
+& $console --db-backup 'D:\Backups\communications-new.db'
+```
+
+--db-init erzeugt ausschließlich ein neues Ziel und migriert es; anschließend wird die Arbeitsplatz-GUID
+angelegt. --db-migrate aktualisiert ausschließlich einen vorhandenen eigenen Bestand; vorher Sicherung prüfen.
+--db-approve-empty ist die ausdrückliche Freigabe eines zuvor vom DBA erstellten, vollständig leeren Ziels.
+Ein nach Anlage abgebrochener leerer Serverbestand benötigt diese Freigabe. --db-status liest ausschließlich.
+--db-restore mit absolutem SQLite-Sicherungspfad stellt in das konfigurierte, noch nicht existierende Ziel
+wieder her; zum Testen WAWICALLPRO_CONFIG_DIR auf ein eigenes absolutes Testverzeichnis setzen.
+Bestehende Dateien einschließlich WAL-/SHM-/Journal-Resten werden nicht ersetzt. Serververfahren stehen
+in [Datenbankschema.md](Datenbankschema.md); Aufnahmen separat sichern.
+
+workstation.local.json neben connection.local.json enthält Format 1 und eine dauerhafte GUID.
+App/Console im selben lokalen Benutzer-/Produktprofil teilen sie; kopierte Profile sind keine neue
+physische PC-Erkennung. Kennungsdatei nicht zwischen Arbeitsplätzen duplizieren. Bei unbekanntem Format
+oder beschädigter Datei wird keine neue Kennung erfunden. Regulärer Hoststart/--diagnostics erzeugen
+weder DB noch Kennung. ICallJournal erfasst beim Gesprächsbeginn PC und effektives Windows-Konto.
+Die spätere SIP-Ereignisverarbeitung und App-Einstellungsoberfläche bleiben Phase 7/8.
+
+Aktueller Nachweis Punkt 9: je 242 Tests für Pro/FinOffice, zwölf explizite Debug-Builds, vier
+Diagnose-Hoststarts und 26 Console-Datenbankprozesse. Skripte:
+scripts/test-database-console.ps1 (nach Builds) und scripts/test-database-backup.ps1 (eigene native Instanzen).
+Nachweise `.artifacts/phase3-item9`, `.artifacts/database-console-*`, `.artifacts/backup-audit-*`.
+Keine geänderte WinForms-Oberfläche und daher keine neue Layout-/Renderprüfung erforderlich.
 
 ## Abhängigkeiten und CI
 
