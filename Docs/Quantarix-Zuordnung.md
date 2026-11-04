@@ -3,6 +3,13 @@
 Stand: Phase 1, Punkt 6. Die Referenzen sind im neuen Projektgraphen eingebunden; fachliche Portierungen folgen
 in ihren jeweiligen Phasen. Alte MMS-DLLs werden nicht übernommen.
 
+Aktualisierung Phase 4: Die Laufzeitintegration ist vollständig abgenommen. Der bestehende Quantarix-
+Manager besitzt Aktivierungs-/Sharednamen-/async Unload-Hooks und Fehlerzähler (Commit 1f80ba2,
+in deps.json fixiert). Beide Hosts laden signierte Produktplugins mit DI und typisierten Hostdiensten.
+Shared-Buildfilter/-Pakete, rekursive Bereitstellung, UI-Leases und Shutdown sind umgesetzt.
+Je 265 Tests sowie Build-/Publish-/Host-/Fehlerprüfungen, `.artifacts/phase4-item8`.
+Die folgenden früheren Analysen dokumentieren den Ausgangsstand; seine Phase-4-Lücken sind geschlossen.
+
 | Altverwendung | Verifizierter neuer Anschluss | Einbindung |
 |---|---|---|
 | `MMS.Utility.Reflection.ReflectionHelper` | `Quantarix.Core.Reflection.ReflectionHelper` | Utilities → Quantarix.Core |

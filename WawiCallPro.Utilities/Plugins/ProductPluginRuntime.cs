@@ -58,8 +58,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
             _resources.Clear();
             if (_session is not null)
             {
-                try { await _session.DisposeAsync().ConfigureAwait(false); } catch (Exception exception) { failures.Add(exception); }
-                finally { _session = null; }
+                try { await _session.DisposeAsync().ConfigureAwait(false); _session = null; } catch (Exception exception) { failures.Add(exception); }
             }
             if (failures.Count != 0) throw new PluginRuntimeException();
         }

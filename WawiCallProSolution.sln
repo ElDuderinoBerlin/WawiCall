@@ -87,6 +87,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A5
 		scripts\test-database-backup.ps1 = scripts\test-database-backup.ps1
 		scripts\test-database-console.ps1 = scripts\test-database-console.ps1
 		scripts\test-plugin-deployment.ps1 = scripts\test-plugin-deployment.ps1
+		scripts\test-plugin-native.ps1 = scripts\test-plugin-native.ps1
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{3910C37C-A104-4147-93D5-82EBF4143017}"
@@ -118,6 +119,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugin.Windows", "WawiCallPro.Plugin.Windows\WawiCallPro.Plugin.Windows.csproj", "{7FBE0EA6-8859-4972-9EF0-E97339D405DF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignedRuntimePlugin", "WawiCallPro.Utilities.Tests\Fixtures\SignedRuntimePlugin\SignedRuntimePlugin.csproj", "{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrivateDependency", "WawiCallPro.Utilities.Tests\Fixtures\PrivateDependency\PrivateDependency.csproj", "{E6551505-1C89-40F1-8C14-683858376962}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -573,6 +576,18 @@ Global
 		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x64.Build.0 = Release|Any CPU
 		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x86.ActiveCfg = Release|Any CPU
 		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9}.Release|x86.Build.0 = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|x64.Build.0 = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Debug|x86.Build.0 = Debug|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|x64.ActiveCfg = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|x64.Build.0 = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|x86.ActiveCfg = Release|Any CPU
+		{E6551505-1C89-40F1-8C14-683858376962}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -593,5 +608,6 @@ Global
 		{A782647E-60B5-45D3-BC1A-E85B59221EC7} = {3910C37C-A104-4147-93D5-82EBF4143017}
 		{260C801F-D9DB-4EFA-9B30-96380C82F784} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
+		{E6551505-1C89-40F1-8C14-683858376962} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 	EndGlobalSection
 EndGlobal

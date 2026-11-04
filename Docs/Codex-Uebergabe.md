@@ -33,7 +33,7 @@ zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Ab
 Produktlinien einschließlich realer Fehler/Wiederanläufe, Prozessgrenzen, DI-Host und Backup/Restore.
 Logs `.artifacts/phase3-item10`; alle eigenen Testinstanzen beendet. Migrationen 1–7 bestehen,
 Migrationen 1–6 wurden nach ihrem Abschluss nicht geändert. Jeder Checklistenpunkt wurde separat committed.
-Phase 4/Punkt 1 ist inzwischen abgeschlossen; als Nächstes folgt Punkt 2. Die folgenden früheren Nachweise
+Phase 4 ist inzwischen vollständig abgeschlossen; als Nächstes folgt Phase 5. Die folgenden früheren Nachweise
 beschreiben jeweils den damaligen Einzelstand, nicht offene Phase-3-Arbeit.
 
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben ursprüngliche Checklistenpunkte und den Tools-Nachtrag.
@@ -156,6 +156,19 @@ MySQL-DDL kann teilweise bestehen bleiben; keine automatische Übernahme/reparie
 Migration. Rechte-/Sperr-/Backup-/vollständige Providerfehlerprüfung, Repositories und Host bleiben offen.
 
 ## Weiterarbeiten
+
+Aktueller Endstand: Nutzerauftrag „Phase 4 fertig machen“ erfüllt. Alle acht Punkte separat geprüft und
+committed; je 265/265 Tests, zwölf Debug-Builds, vier Publishes, acht Debug-/Publish-Pluginhoststarts,
+vier native Dependency-Prozesse und 26 Admin-Console-Prozesse bestanden. `.artifacts/phase4-item8`.
+Quantarix-Plugin.System ist bis 1f80ba2 angepasst und separat committed; deps.json zeigt darauf.
+Der schon vorher unversionierte README im Schwesterrepo wurde erhalten. Keine Pushes.
+Produktplugins werden tatsächlich signiert, bereitgestellt, mit DI geladen und heruntergefahren;
+konkrete ERP-Abfragen melden weiterhin NotSupported und folgen in Phase 5. Kein erfolgreicher Datenstub.
+Fehlende/falsche DLLs, Token, Konstruktor/Initialize/Configure, private/native Dependencies,
+Produktlinie, Teilfehler, Shutdown und Stop-Wiederholung geprüft. Native Tests sind prozessisoliert.
+Rider konnte den MSTest-Einstieg nicht starten; tatsächliche ALC-Freigabe wurde isoliert per WeakReference/GC
+nach Verlassen des asynchronen Fortsetzungsstapels nachgewiesen. Agent-Breakpoint entfernt, Benutzerzustand erhalten.
+Nächster regulärer Punkt: Phase 5/Punkt 1, keine verbleibende Phase-4-Arbeit.
 
 Phase 4/Punkt 7 abgeschlossen: echte signierte Produkt-Einstiegsklassen und Hosted-Runtime in beiden
 Composition Roots; PluginLoaded=true geprüft. Datenadapter noch ausdrücklich NotSupported (Phase 5).

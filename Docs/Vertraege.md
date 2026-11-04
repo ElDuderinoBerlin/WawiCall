@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phase 3 vollständig und Phase 6/Punkte 1–2 abgeschlossen; Phase 2 und Tools-Nachtrag abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phasen 0–4 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -341,6 +341,17 @@ je 244/244 Tests und native Pro-/FinOffice-Läufe auf allen Providern einschlie�
 Sicherung/Wiederherstellung und Prozessgrenzen bestanden, `.artifacts/phase3-item10`. Keine UI-Änderung.
 
 ## Host und Plugins
+
+Phase 4 ist vollständig abgenommen. IProductPluginRuntime schützt alle Pluginaufrufe und ihre
+Lebensdauer; die BusinessDirectory-Proxy in beiden Produkt-Hosts führt Aufrufe im Plugin aus.
+Die Produkt-Einstiegsklassen besitzen echte Konstruktorinjektion und werden mit IWawiCallHostServices
+konfiguriert. Ihre noch fehlenden Datenadapter werfen NotSupported bis zur Umsetzung in Phase 5.
+WawiCallPro.Plugin.Windows kapselt optionale Windows-Views; PluginViewAccess dispatcht Erzeugung und
+Freigabe auf den UI-Thread. Runtime-registrierte IPluginLifetimeResource-Handles schließen vor Shutdown.
+Stop wartet laufende Operationen, optionales IWawiCallPluginLifetime.StopAsync und Scope-Freigabe ab;
+erst dann wird der ALC entladen. Fehlerhafte Stops verhindern voreilige Freigabe und bleiben sichtbar.
+Default-ALC-Typidentität trotz privater Vertrags-/Paketkopien, Signierung, Fehlerpfade, native Auflösung,
+UI-Threadbesitz und tatsächliche verwaltete GC-Freigabe sind geprüft; je 265 Tests, `.artifacts/phase4-item8`.
 
 Im Hauptprogramm liegen allgemeine Einstellungen, Plugin-Manager mit Oberfläche und
 SIPSorcery-Einstellungen. Gemeinsamer Rahmen, Navigation, Anrufsteuerung und Historie bleiben

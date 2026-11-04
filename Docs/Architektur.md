@@ -140,20 +140,25 @@ Seit Phase 4/Punkt 1 erzeugt die gemeinsame DI-registrierte IPluginManagerFactor
 Quantarix-PluginManager mit dem Hostlogger. Jeder Aufrufer besitzt und entsorgt seinen Manager vor
 dem Host-Shutdown. Die ausdrücklich übergebene Tokenliste wird kopiert; eine leere Liste ist nur für
 unsignierte Entwicklungsfixtures vorgesehen. Erstellung der Factory lädt keine Plugins.
-Das isolierte Testplugin prüft den tatsächlichen Quantarix-Lebenszyklus; Produktplugin-Aktivierung,
-rechtzeitiges Laden aller Shared-Verträge und Build-/Signierregeln bleiben die nächsten Planpunkte.
+Phase 4 ist vollständig implementiert: echte Produkt-Einstiegsklassen in beiden Hosts, DI-Aktivierung,
+Shared-Verträge/-Pakete, Signierung, rekursive Build-/Publish-Bundles und geordneter Shutdown.
 
 Punkt 2 ergänzt ISharedPluginContracts: markierte Interfaces/Abstractions werden vor jeder
 Managerkonstruktion im Default-ALC geladen und geprüft. SharedProjectAssembly listet beide Namen
-zentral in Directory.Build.props; SharedPackage bleibt ohne derzeitige Drittanbieter-Vertragspakete leer.
+zentral in Directory.Build.props. SharedPackage enthält inzwischen Dapper, Microsoft-Hosting-/DI-/
+Logging-Abhängigkeiten und Serilog. Ein beim Build eingebettetes Manifest nennt die Runtime-Assemblies;
+abweichende Paket-/Assemblynamen werden über RuntimeAssemblyNames beschrieben. Die Pakete erhalten
+keine fremden SharedAssembly-Attribute, sondern explizite Shared-Namen im Quantarix-Manager.
 Der Fixture-Test liefert trotz privater Vertragskopien exakt dieselben CompanyKey-Typen/Instanzen.
-Der Windows-UI-Vertrag wird in Punkt 3 ergänzt, der wirksame Filterimport folgt in Punkt 5.
+Der Windows-UI-Vertrag WawiCallPro.Plugin.Windows ist ebenfalls markiert und vorgeladen; der Sharedfilter
+ist wirksam importiert/adaptiert. Identische Quell-/Host-DLLs und fehlende Bundleduplikate sind geprüft.
 
 Geprüft wurde der aktuelle Quellcode unter `D:\Application-Development\Quantarix.Plugin.System`,
-Stand `1e43c99068cd17bfa32586d86099c6e66fae4076`. Maßgeblich sind die tatsächlichen C#-/MSBuild-Dateien.
+Ursprungsstand `1e43c99068cd17bfa32586d86099c6e66fae4076`, für Phase 4 bis `1f80ba2` erweitert.
+Maßgeblich sind die tatsächlichen C#-/MSBuild-Dateien.
 In diesem Stand liegen die Buildregeln in `Directory.Build.props`, `Directory.Build.targets` und im
 TestHost-Projekt; eine `Solution.props` existiert dort nicht. WawiCallPro besitzt seine eigene
-`Solution.props`, importiert dadurch aber noch keine Targets des Schwester-Repositories.
+`Solution.props`; seine Directory.Build.targets importiert/adaptiert die Plugin-Buildfilter ausdrücklich.
 
 | Mechanismus | Konkrete Bedeutung für WawiCallPro |
 |---|---|
@@ -180,15 +185,14 @@ optionalen Windows-View-/Leasevertrag und wird in beiden Composition Roots als S
 Der ursprüngliche Loader verwendet ohne diesen Hook `Activator.CreateInstance(type)` und ruft anschließend
 `Initialize(this)` auf. `IPluginHost` stellt dabei ausschließlich den Quantarix-Logger bereit.
 Unser `Configure(IWawiCallHostServices)` ist ein nachgelagerter typisierter Anschluss; er ist keine
-bereits vorhandene Konstruktorinjektion. Für die verbindliche DI-Aktivierung auch der Einstiegsklasse
-ist daher ein Factory-/Aktivierungshook im bestehenden Quantarix-Manager erforderlich. Dessen konkrete
-API muss gesondert im Quantarix-Repository umgesetzt und geprüft werden. Es entsteht kein zweiter Loader
-und keine globale Service-Locator-Lösung als Ersatz für DI.
+Konstruktorinjektion. Diese übernimmt jetzt der implementierte Aktivierungshook mit ActivatorUtilities
+und eigenem DI-Scope; Configure wird danach mit denselben geliehenen Hostdiensten aufgerufen.
+Es gibt keinen zweiten Loader und keinen globalen Service-Locator als Ersatz für DI.
 
-Die vorhandene öffentliche Manager-API bietet LoadFromDirectory, ExecuteAll und UnloadAll. Ein
-gezieltes Entladen einzelner Plugins oder ein asynchroner Stopvertrag ist damit noch nicht gegeben.
-Entsprechende Bedienaktionen des Plugin-Managers müssen vor ihrer Implementierung auf diese
-Laufzeitgrenzen abgestimmt werden.
+Die Manager-API ergänzt UnloadAllAsync: Shutdown, abgewartete Scope-Freigabe und anschließend
+ALC-Unload. Die Host-Runtime stoppt vorher neue Aufrufe, cancelt/awaitet laufende Arbeit und schließt
+View-Leases auf dem UI-Dispatcher. IWawiCallPluginLifetime bietet den optionalen async Stopvertrag.
+Einzelne Plugins werden weiterhin nicht während aktiver Sitzungen ausgetauscht; die GUI folgt Phase 8.
 
 Vor Entladen: Aufrufe stoppen und asynchrone Arbeit vollständig abwarten, Views/Ereignisbindungen
 freigeben, im geordneten Shutdown die Plugin-DI-Ressourcen freigeben und anschließend den ALC entladen.
@@ -196,9 +200,10 @@ Der Manager ruft `Shutdown` synchron vor `Unload` auf. `Unload` fordert die Entl
 verhindern sie. Die Integration muss Typidentität, private/native Auflösung, fehlerhafte Plugins und
 tatsächliche Freigabe prüfen. Strong Names/ALCs bilden keine Sicherheits-Sandbox.
 
-MSBuild-Auswertung des Iststands: WawiCallPro-Pro-Plugin noch ohne IsPluginProject/Shared-Listen und
-ohne Signierung; Quantarix-Sample mit gesetztem Pluginflag, Signierung und SharedProjectAssembly.
-Diese Lücke bleibt Phase 4, nicht eine bereits erledigte Buildintegration.
+Aktuelle MSBuild-Auswertung: IsPluginProject/EnableDynamicLoading, Signierung und Sharedlisten sind
+gesetzt; Build und Publish liefern private/native Dependencies unter plugins/<AssemblyName>.
+Der vorhandene Quantarix-Schlüssel wird über WawiCallPluginKeyFile referenziert, nicht kopiert.
+Die Produktions-Allowlist kommt aus dem signierten Hostvertrag; keine deaktivierte Prüfung beim Hoststart.
 
 Quellen:
 [SharedAssemblyAttribute](../../Quantarix.Plugin.System/src/Quantarix.Plugin.Abstractions/SharedAssemblyAttribute.cs),
@@ -435,8 +440,8 @@ Gesprächsherkunft. Je 244 Tests in Pro/FinOffice und reale isolierte Prüfungen
 
 Noch offen sind insbesondere:
 
-- Pluginlaufzeit im Host, DI-Aktivierungshook im Quantarix-Manager, Build-/Shared-/Signierintegration und Plugin-Manager-Oberfläche.
-- Windows-spezifischer Plugin-UI-Vertrag und tatsächliche Fachviews laut erweitertem Katalog je Plugin.
+- Plugin-Manager-Oberfläche; Laufzeit, DI-Hook und Build-/Shared-/Signierintegration sind mit Phase 4 abgeschlossen.
+- Konkrete Fachviews laut erweitertem Katalog je Plugin; die Windows-spezifische Vertrags-/Leasegrenze ist implementiert.
 - Erweiterte Fach-/Capability-Verträge insbesondere für Bestellungen und Kundenpreislisten.
 - DI-Anbindung der fehlenden Module und Interfaces für die bisher konkrete Zustandssteuerung.
 - SIPSorcery-/CSCore-Betrieb und Anbindung seiner Ereignisse an die vorhandene Journal-/Historienpersistenz.

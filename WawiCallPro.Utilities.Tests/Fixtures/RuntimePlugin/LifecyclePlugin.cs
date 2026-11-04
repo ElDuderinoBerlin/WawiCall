@@ -6,23 +6,27 @@ using WawiCallPro.Interfaces.Directory;
 
 namespace RuntimePlugin;
 
-public sealed class LifecyclePlugin : IWawiCallPlugin, IWawiCallPluginLifetime
+public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IWawiCallPlugin, IWawiCallPluginLifetime
 {
     private readonly IWawiCallHostServices? _injected;
     public LifecyclePlugin() { }
-    public LifecyclePlugin(IWawiCallHostServices injected) => _injected = injected;
+    public LifecyclePlugin(IWawiCallHostServices injected)
+    {
+        Fault("constructor"); _injected = injected;
+    }
     public bool ServicesInjected => _injected is not null;
     public bool Configured { get; private set; }
     private IWawiCallHostServices? _configuredServices;
     public LexwareProductLine ProductLine =>
 #if LX_PRO
-        LexwareProductLine.Pro;
+        Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT") == "wrong-product" ? LexwareProductLine.FinOffice : LexwareProductLine.Pro;
 #else
-        LexwareProductLine.FinOffice;
+        Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT") == "wrong-product" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice;
 #endif
     public IBusinessDirectory Directory => throw new NotSupportedException("Fixture has no ERP access.");
     public void Configure(IWawiCallHostServices services)
     {
+        Fault("configure");
         if (_host is null || !ReferenceEquals(services, _injected)) throw new InvalidOperationException("Initialization/injection order");
         Configured = true;
         _configuredServices = services;
@@ -40,6 +44,8 @@ public sealed class LifecyclePlugin : IWawiCallPlugin, IWawiCallPluginLifetime
     public void Initialize(IPluginHost host)
     {
         _host = host;
+        Fault("initialize");
+        if (Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT") == "native") _ = ProbeNative();
         Initializations++;
         host.Logger.LogInfo("private-plugin-sentinel initialized");
     }
@@ -55,7 +61,15 @@ public sealed class LifecyclePlugin : IWawiCallPlugin, IWawiCallPluginLifetime
         (_host ?? throw new InvalidOperationException("Initialize required")).Logger.LogInfo("private-plugin-sentinel stopped");
         _host = null;
         Shutdowns++;
+        Fault("shutdown");
     }
     private void OnCompanyChanged(object? sender, CompanySelectionChangedEventArgs args) { }
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default) => await Task.Delay(1, cancellationToken);
+    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+    {
+        Fault("stop"); await Task.Delay(1, cancellationToken);
+    }
+    private static void Fault(string phase)
+    {
+        if (Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT") == phase) throw new InvalidOperationException("fixture-private-secret-" + phase);
+    }
 }

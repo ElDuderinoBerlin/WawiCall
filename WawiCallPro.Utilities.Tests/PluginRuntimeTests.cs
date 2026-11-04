@@ -11,20 +11,22 @@ using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Plugins;
+using System.Text.Json.Nodes;
 
 namespace WawiCallPro.Utilities.Tests;
 
-[TestClass]
+[TestClass, DoNotParallelize]
 public sealed class PluginRuntimeTests
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-plugin-runtime-" + Guid.NewGuid().ToString("N"));
     [TestCleanup]
-    public void Cleanup()
+    public async Task Cleanup()
     {
         // Quantarix requests collectible-ALC unloading; Windows releases mapped DLLs after collection.
         for (var attempt = 0; attempt < 3; attempt++)
         {
             GC.Collect(); GC.WaitForPendingFinalizers();
+            await Task.Delay(20);
         }
         if (Directory.Exists(_root)) Directory.Delete(_root, true);
     }
@@ -186,7 +188,90 @@ public sealed class PluginRuntimeTests
         var plugins = Path.Combine(_root, "plugins"); var target = Path.Combine(plugins, "SignedRuntimePlugin");
         Directory.CreateDirectory(target);
         foreach (var file in Directory.GetFiles(output)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+        AddNativeProbe(target);
         return plugins;
+    }
+
+    [TestMethod]
+    [DataRow("missing-directory")]
+    [DataRow("missing-dll")]
+    [DataRow("bad-image")]
+    [DataRow("wrong-dll")]
+    [DataRow("wrong-token")]
+    [DataRow("constructor")]
+    [DataRow("initialize")]
+    [DataRow("configure")]
+    [DataRow("missing-dependency")]
+    [DataRow("mixed-good-bad")]
+    [DataRow("wrong-product")]
+    public async Task LoadFailuresRejectTheSessionAndKeepPrivateValuesOutOfErrors(string fault)
+    {
+        var directory = DeploySignedFixture(); var bundle = Path.Combine(directory, "SignedRuntimePlugin");
+        if (fault == "missing-directory") directory = Path.Combine(_root, "absent");
+        if (fault == "missing-dll") File.Delete(Path.Combine(bundle, "SignedRuntimePlugin.dll"));
+        if (fault == "bad-image") File.WriteAllText(Path.Combine(bundle, "SignedRuntimePlugin.dll"), "not an assembly");
+        if (fault == "wrong-dll") File.Copy(Path.Combine(bundle, "PrivateDependency.dll"), Path.Combine(bundle, "SignedRuntimePlugin.dll"), overwrite: true);
+        if (fault == "missing-dependency") File.Delete(Path.Combine(bundle, "PrivateDependency.dll"));
+        if (fault == "mixed-good-bad") { var bad = Path.Combine(directory, "bad"); System.IO.Directory.CreateDirectory(bad); File.WriteAllText(Path.Combine(bad, "bad.dll"), "bad"); }
+        var previous = Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT");
+        Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", fault);
+        try
+        {
+            var host = CreateHost();
+            await HostExecution.RunAsync(host, async _ =>
+            {
+                var factory = host.Services.GetRequiredService<IPluginSessionFactory>();
+                await using var session = fault == "wrong-token" ? factory.Create(new HashSet<string> { "0000000000000000" }) : factory.CreateTrusted();
+                var failure = await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => session.LoadAsync(directory));
+                Assert.DoesNotContain("fixture-private-secret", failure.ToString());
+            });
+        }
+        finally { Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", previous); }
+        var logs = string.Join('\n', System.IO.Directory.GetFiles(Path.Combine(_root, "logs")).Select(File.ReadAllText));
+        Assert.DoesNotContain("fixture-private-secret", logs);
+    }
+
+    [TestMethod]
+    public async Task ShutdownFailureIsVisibleAfterScopesAreReleased()
+    {
+        var directory = DeploySignedFixture(); var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            await using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+            await session.LoadAsync(directory);
+            var previous = Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT");
+            try
+            {
+                Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", "shutdown");
+                await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => session.DisposeAsync().AsTask());
+            }
+            finally { Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", previous); }
+        });
+    }
+
+    [TestMethod]
+    public async Task FailedAsyncStopRemainsVisibleAndCanFinishBeforeUnloading()
+    {
+        var directory = DeploySignedFixture();
+        var host = WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
+        {
+            services.AddSingleton(new ConfigurationLocation(_root));
+            services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
+            services.AddProductPluginRuntime(); services.AddSingleton(new ProductPluginLocation(directory));
+        }).Build();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            var runtime = host.Services.GetRequiredService<ProductPluginRuntime>();
+            var previous = Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT");
+            try
+            {
+                Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", "stop");
+                await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => runtime.StopAsync(CancellationToken.None));
+                Assert.IsFalse(runtime.IsLoaded);
+            }
+            finally { Environment.SetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT", previous); }
+            await runtime.StopAsync(CancellationToken.None);
+        });
     }
 
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
@@ -202,7 +287,20 @@ public sealed class PluginRuntimeTests
         var plugins = Path.Combine(_root, "plugins"); var destination = Path.Combine(plugins, "RuntimePlugin");
         Directory.CreateDirectory(destination);
         // Only the fixture and its dependency manifest; abstractions must resolve to the host's loaded contract.
-        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll", "Dapper.dll", "Microsoft.Extensions.DependencyInjection.Abstractions.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
+        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll", "Dapper.dll", "Microsoft.Extensions.DependencyInjection.Abstractions.dll", "PrivateDependency.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
         return plugins;
+    }
+    private static void AddNativeProbe(string target)
+    {
+        var rid = System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier;
+        var relative = "runtimes/" + rid + "/native/wcp-native-probe.dll";
+        var file = Path.Combine(target, relative); Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "version.dll"), file);
+        var manifest = Path.Combine(target, "SignedRuntimePlugin.deps.json");
+        var json = JsonNode.Parse(File.ReadAllText(manifest))!;
+        var framework = json["runtimeTarget"]!["name"]!.GetValue<string>();
+        var dependency = json["targets"]![framework]!.AsObject().First(item => item.Key.StartsWith("PrivateDependency/", StringComparison.Ordinal)).Value!;
+        dependency["runtimeTargets"] = new JsonObject { [relative] = new JsonObject { ["rid"] = rid, ["assetType"] = "native" } };
+        File.WriteAllText(manifest, json.ToJsonString());
     }
 }

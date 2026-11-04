@@ -234,6 +234,24 @@ Diese lokale Abnahme ändert die folgende Bootstrap-/Remote-CI-Grenze nicht.
 
 ## Abhängigkeiten und CI
 
+Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;
+WawiCallPluginKeyFile zeigt standardmäßig auf den vorhandenen Quantarix-Plugin-Schlüssel im
+Schwesterrepository und kann explizit überschrieben werden. Keine zusätzliche private Schlüsselkopie.
+SharedProjectAssembly/SharedPackage stehen zentral in Directory.Build.props; ein eingebettetes
+Runtime-Manifest und der Quantarix-Zusatznamen-Hook sichern die Default-ALC-Auflösung.
+Directory.Build.targets importiert/adaptiert den Sharedfilter und liefert rekursive Pluginbundles
+nach Build/Publish. Die Bundleprüfung kontrolliert Hashgleichheit und das Fehlen gemeinsamer Kopien:
+
+```powershell
+.\scripts\test-plugin-deployment.ps1
+.\scripts\test-plugin-native.ps1
+```
+
+Nachweis je Pro/FinOffice: 265 Tests, Debug-Builds, vier Publishes und deren Pluginhoststarts,
+private/native Fehlerszenarien und geordneter Shutdown; `.artifacts/phase4-item8`.
+Native Proben nutzen lokale OS-Testkopien nur unter .artifacts und eigene Prozesse, keine Testbinärdateien
+im Produktrepository. Konkrete Lexware-Adapter und Fachviews bleiben in ihren folgenden Fachphasen.
+
 `bootstrap.ps1` klont nur fehlende Schwester-Repositories und verwendet dann die im Manifest fixierte Revision.
 Vorhandene Arbeitskopien werden nie automatisch gepullt, zurückgesetzt oder auf einen anderen Commit umgestellt.
 Lokale Änderungen werden gemeldet und erhalten. `-RequireClean` lehnt solche Änderungen für einen reproduzierbaren

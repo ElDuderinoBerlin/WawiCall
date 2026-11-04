@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 04.11.2026. Phasen 0–3 abgeschlossen; die folgenden Produktphasen bleiben wie markiert offen.
+Stand: 04.11.2026. Phasen 0–4 abgeschlossen; die folgenden Produktphasen bleiben wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -667,7 +667,7 @@ Database-Projekt und beide Hosts bauen in Debug für Pro und FinOffice; Lexware-
 nicht verwendet. Server-Backup/Restore ist als administratives Verfahren geprüft; die spätere App-Oberfläche
 und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/Remote-CI-Grenze aus Phase 1 bleibt bestehen.
 
-### Phase 4 – Quantarix-Plugin-Laufzeit integrieren ⬜
+### Phase 4 – Quantarix-Plugin-Laufzeit integrieren ✅
 
 - [x] Vorhandene `Quantarix.Plugin.Abstractions` und `.Hosting` referenzieren; alten MMS-Loader vollständig ersetzen. ✅
   Bestehende Referenzen geprüft; IPluginManagerFactory/QuantarixPluginManagerFactory in beiden Hosts
@@ -736,10 +736,23 @@ und die SIP-/ERP-Laufzeit gehören in ihre Fachphasen. Die bekannte Bootstrap-/R
   PluginLoaded in Diagnose; DB-/Arbeitsplatz-Administration startet unabhängig vom Plugin.
   Je 252 Tests, Debug-/Bundleprüfungen, vier echte Plugin-Hoststarts und 26 DB-Console-Prozesse bestanden;
   `.artifacts/phase4-item7`. Rider konnte den MSTest-Einstieg nicht starten; Freigabenachweis über isolierte Tests.
-- [ ] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen.
+- [x] Fehlendes Plugin, falsche DLL, nicht freigegebener Token, Initialisierungsfehler und fehlende Dependency testen. ✅
+  Fehlender Ordner/DLL, beschädigte und falsche verwaltete DLL, falscher Token, Konstruktor-/Initialize-/
+  Configure-Fehler, falsche Produktlinie, fehlende private Dependency und gemischter guter/schlechter
+  Bestand werden abgewiesen. Quantarix zählt Lade-/Shutdownfehler und gibt fehlgeschlagene ALCs frei
+  (1f80ba2, Manifest angepasst). Kein falscher Erfolg bei teilweise geladenem Bestand.
+  Shutdownfehler und wiederholbarer async Stop geprüft. Private Ausnahmeinhalte bleiben aus Meldungen/Logs.
+  Native Dependency mit erfolgreichem Aufruf und fehlendem Asset in je zwei separaten Prozessen pro
+  Produktlinie geprüft; lokale OS-Testkopie, keine native Binärdatei im Repository.
+  Je 265/265 Tests, zwölf Debug-Builds, vier Debug-Publishes, vier veröffentlichte und vier reguläre
+  Pluginhoststarts, vier native Proben sowie 26 Admin-Console-Prozesse erfolgreich.
+  `.artifacts/phase4-item8`; scripts/test-plugin-deployment.ps1 und scripts/test-plugin-native.ps1.
 
-Abnahme: App und Console laden das richtige Plugin über denselben Quantarix-Manager. Vertragstypen sind
-kompatibel; Fehler im Plugin werden verständlich gemeldet. Debug-Build und aussagekräftiger Plugin-Hosttest bestehen.
+Abnahme erfüllt: App und Console laden das signierte Plugin ihrer Produktlinie über denselben
+Quantarix-Manager mit echter DI-Aktivierung. Typidentität, Fehlerpfade, Scope-/UI-Ressourcenfreigabe
+und tatsächliche verwaltete ALC-Freigabe sind geprüft. Lexware-Datenadapter und konkrete Fachviews
+bleiben Phase 5/8/10; ihre fehlende Implementierung wird ausdrücklich gemeldet. Die dokumentierte
+Bootstrap-/Remote-CI-Grenze bleibt unabhängig von dieser lokalen Abnahme bestehen.
 
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 

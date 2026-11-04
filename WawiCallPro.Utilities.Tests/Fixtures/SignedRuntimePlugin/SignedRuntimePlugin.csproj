@@ -3,6 +3,7 @@
   <ItemGroup>
     <Compile Include="../RuntimePlugin/LifecyclePlugin.cs" Link="LifecyclePlugin.cs" />
     <ProjectReference Include="../../../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="../PrivateDependency/PrivateDependency.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
     <PackageReference Include="Dapper" Version="2.1.89" />
   </ItemGroup>

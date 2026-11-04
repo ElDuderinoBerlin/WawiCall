@@ -8,6 +8,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
     <PackageReference Include="Dapper" Version="2.1.89" />
     <ProjectReference Include="../../../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="../PrivateDependency/PrivateDependency.csproj" />
     <ProjectReference Include="../../../../Quantarix.Plugin.System/src/Quantarix.Plugin.Abstractions/Quantarix.Plugin.Abstractions.csproj" />
   </ItemGroup>
 </Project>

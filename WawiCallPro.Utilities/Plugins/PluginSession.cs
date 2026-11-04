@@ -71,7 +71,7 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
             try
             {
                 manager.LoadFromDirectory(absoluteDirectory);
-                if (manager.Plugins.Count != 1 || manager.Plugins[0] is not IWawiCallPlugin plugin || plugin.ProductLine != product) throw new PluginRuntimeException();
+                if (manager.LoadFailureCount != 0 || manager.Plugins.Count != 1 || manager.Plugins[0] is not IWawiCallPlugin plugin || plugin.ProductLine != product) throw new PluginRuntimeException();
                 plugin.Configure(services);
                 _loaded = true;
             }
@@ -113,6 +113,7 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
                 }
             }).ConfigureAwait(false);
             _disposed = true;
+            if (manager.ShutdownFailureCount != 0) throw new PluginRuntimeException();
         }
     }
 }
