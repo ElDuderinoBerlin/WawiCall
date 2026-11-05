@@ -24,6 +24,7 @@ internal static class AppBootstrap
         services.AddSingleton<CrashReportQueue>();
         services.AddSingleton<ICrashReporter, CrashReporter>();
         services.AddSingleton<AppExceptionBoundary>();
+        services.AddSingleton<IAppInstanceGuard, AppInstanceGuard>();
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

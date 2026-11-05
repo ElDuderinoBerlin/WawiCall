@@ -273,6 +273,20 @@ Nachweis: je 83 Utilities-/sieben App-Tests, sechs Debug-Builds und vier Diagnos
 `.artifacts/startup-integration`. Tests verwenden kurzlebige RSA-Schlüssel, echte Signaturen/DPAPI
 und isolierte HTTP-Antworten; keine echte Aktivierung oder Übertragung ausgeführt.
 
+Normaler App-Start nutzt einen Windows-Mutex je Benutzer, Produktlinie und Konfigurationsprofil.
+Zweitstarts fordern die Wiederherstellung/Aktivierung der bestehenden Hauptansicht an; Anforderungen
+während des Starts bleiben vorgemerkt. Pro und Financial Office können parallel laufen. Diagnose
+und Audit beanspruchen diesen Schutz nicht. StartMinimized aus den bestehenden Benutzervorgaben
+wird beim normalen Start berücksichtigt.
+
+Abschließender Stand: 325 Tests Pro/292 FinOffice, vier Debug-Hostbuilds und vier Diagnose-Hoststarts,
+Bundle-/Hash-/Shared- sowie native Abhängigkeitsprüfung bestanden. Gezielte unsichtbare Renderprüfung
+für MainForm und FrmLicenseKeyInput im aktiven Skin Basic, leer/befüllt, kleine/größere Fenster und
+10-/16-Punkt-Schrift: 64 PNGs unter `.artifacts/startup-integration/ui`, visuell kontrolliert.
+150% ist eine Layoutsimulation, kein nativer Monitor-/DPI-Test; Vordergrundwechsel wurden nicht
+automatisiert auf dem Benutzerdesktop ausgelöst. Der Test erstellt auch Kindhandles ausdrücklich,
+damit unangezeigte Forms tatsächlich ihre Inhalte statt leerer Flächen rendern.
+
 Nachtrag Programmstart: lokale Crashberichte liegen unter `<Konfigurationsverzeichnis>/crash-reports`.
 Je Prozess wird der erste fatale Fehler einmal gespeichert, auch vor erfolgreichem Hoststart.
 Die Queue enthält maximal 64 atomare JSON-Dateien mit bereinigten Methodenstacks und keinen

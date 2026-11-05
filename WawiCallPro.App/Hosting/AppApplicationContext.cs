@@ -6,6 +6,8 @@ using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Operations;
 using Microsoft.Extensions.Logging;
 using WawiCallPro.Utilities.Diagnostics;
+using WawiCallPro.Interfaces.Hosting;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -18,6 +20,10 @@ internal sealed class AppApplicationContext : ApplicationContext
     private readonly TaskCompletionSource _closeRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private MainForm? _form;
     private readonly AppExceptionBoundary _exceptions;
+    private readonly IAppInstanceGuard _instance;
+    private readonly IUiDispatcher _dispatcher;
+    private readonly CancellationTokenSource _activationStopping = new();
+    private readonly CancellationToken _activationToken;
 
     internal AppApplicationContext(IHost host, bool diagnostics, string? auditDirectory)
     {
@@ -27,6 +33,10 @@ internal sealed class AppApplicationContext : ApplicationContext
         _exceptions = host.Services.GetRequiredService<AppExceptionBoundary>();
         _exceptions.Attach(host.Services.GetRequiredService<RuntimeFailureState>(),
             host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("WawiCallPro.App"));
+        _instance = host.Services.GetRequiredService<IAppInstanceGuard>();
+        _activationToken = _activationStopping.Token;
+        _dispatcher = host.Services.GetRequiredService<IUiDispatcher>();
+        _instance.ActivationRequested += OnActivationRequested;
         Application.Idle += StartOnIdle;
     }
 
@@ -54,8 +64,11 @@ internal sealed class AppApplicationContext : ApplicationContext
                     _form.ShowInTaskbar = false;
                     _form.Opacity = 0;
                 }
+                else if (_host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User.StartMinimized)
+                    _form.WindowState = FormWindowState.Minimized;
                 using var stopRegistration = stoppingToken.Register(() => _closeRequested.TrySetResult());
                 _form.Show();
+                OnActivationRequested(this, EventArgs.Empty);
                 if (_diagnostics)
                 {
                     var diagnostics = _host.Services.GetRequiredService<HostDiagnostics>();
@@ -74,6 +87,8 @@ internal sealed class AppApplicationContext : ApplicationContext
         }
         finally
         {
+            _instance.ActivationRequested -= OnActivationRequested;
+            await _activationStopping.CancelAsync();
             try
             {
                 if (_form is not null)
@@ -87,11 +102,26 @@ internal sealed class AppApplicationContext : ApplicationContext
             {
                 Failure = Failure is null ? exception : new AggregateException(Failure, exception);
             }
-            finally { ExitThread(); }
+            finally { _activationStopping.Dispose(); ExitThread(); }
         }
     }
 
     private MainForm CreateMainForm() => ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
+
+    private async void OnActivationRequested(object? sender, EventArgs args)
+    {
+        try
+        {
+            await _dispatcher.InvokeAsync(() =>
+            {
+                if (_form is not { IsDisposed: false, Visible: true } || !_instance.TryConsumeActivation()) return;
+                if (_form.WindowState == FormWindowState.Minimized) _form.WindowState = FormWindowState.Normal;
+                _form.Activate();
+            }, _activationToken);
+        }
+        catch (OperationCanceledException) when (_activationToken.IsCancellationRequested) { }
+        catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }
+    }
 
     private void MainFormClosing(object? sender, FormClosingEventArgs e)
     {

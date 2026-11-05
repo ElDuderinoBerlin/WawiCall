@@ -51,6 +51,19 @@ Nachprüfung Lizenzdialog: IAppLicensePrompt ist asynchron und verwendet explizi
 damit Host-Workerthreads keinen WinForms-Dialog direkt erzeugen. Abbruch vor Anzeige ist geprüft;
 je acht App-Tests sowie beide Hostbuilds für Pro/FinOffice bestanden, kein sichtbarer Dialogtest.
 
+Dritter Block abgeschlossen: IAppInstanceGuard mit Windows-Mutex/benanntem Signal je SID/Produkt/
+Profil, vorgemerkter Aktivierung vor Fenstererzeugung, UI-Dispatcher und abgebrochenen Aufrufen beim
+Schließen. AppUiStartup registriert DevExpress-Skins/-Dialoge vor Lizenzgate und Hauptansicht.
+StartMinimized wird beim normalen Start angewandt; Diagnose/Audit beanspruchen keinen Mutex.
+Endstand des Programmstart-Auftrags: 325 Tests Pro/292 FinOffice, vier Debug-Hostbuilds, vier
+Diagnose-Hoststarts, Bundle-/Native-Prüfungen sowie gezielter Rider-Build bestanden. 64 unsichtbare
+Renderings von MainForm/FrmLicenseKeyInput im Skin Basic visuell geprüft, leer/befüllt, klein/groß,
+Schrift 10/16 und gesonderte 150%-Layoutsimulation. Keine sichtbaren Tests oder nativen Fokus-/DPI-
+Nachweise behauptet. Renderharness erstellt Kindhandles ohne Show/ShowDialog; sonst blieben Bitmaps leer.
+Betreiberwerte (Serverregistrierung, URL und öffentliche Signaturschlüssel) fehlen weiterhin;
+keine fremden Werte übernommen. Velopack/Splash und weitergehende UI-/Produkteinstellungen bleiben
+ihren geplanten Phasen zugeordnet. Nächste reguläre Aufbauarbeit bleibt Phase 5/Punkt 2.
+
 Phase 3 ist vollständig abgeschlossen und lokal auf SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9
 und PostgreSQL 17.9 abgenommen. Aktueller Endnachweis: je 244/244 Tests für Pro/FinOffice,
 zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Abnahmeläufe für beide

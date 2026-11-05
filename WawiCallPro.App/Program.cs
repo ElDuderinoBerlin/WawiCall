@@ -28,7 +28,13 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(uiContext);
             var auditDirectory = args is ["--ui-audit", var directory] ? directory : null;
             var mode = new StartupExecutionMode(diagnostics || auditDirectory is not null);
-            var host = AppCompositionRoot.Build(uiContext, exceptions, mode);
+            var instance = bootstrap.GetRequiredService<IAppInstanceGuard>();
+            if (!mode.SuppressNetwork && !instance.TryAcquire())
+            {
+                instance.RequestExistingInstanceActivation();
+                return 0;
+            }
+            var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance);
             using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();

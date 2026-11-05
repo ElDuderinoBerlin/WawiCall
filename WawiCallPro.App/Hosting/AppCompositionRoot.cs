@@ -12,11 +12,12 @@ namespace WawiCallPro.App.Hosting;
 internal static class AppCompositionRoot
 {
     internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
-        StartupExecutionMode mode) =>
+        StartupExecutionMode mode, IAppInstanceGuard instance) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
                 services.AddSingleton(exceptions);
+                services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();

@@ -37,6 +37,7 @@ public sealed class ApplicationLifetimeTests
                     services.AddSingleton<ICrashReporter, CrashReporter>();
                     services.AddSingleton<AppExceptionBoundary>();
                     services.AddSingleton(new AppWindowOptions(Hidden: true));
+                    services.AddSingleton<IAppInstanceGuard, NoInstanceGuard>();
                 }).Build();
                 using var exceptions = host.Services.GetRequiredService<AppExceptionBoundary>();
                 exceptions.Install();
@@ -77,5 +78,14 @@ public sealed class ApplicationLifetimeTests
         {
             if (!thread.IsAlive && Directory.Exists(directory)) Directory.Delete(directory, true);
         }
+    }
+
+    private sealed class NoInstanceGuard : IAppInstanceGuard
+    {
+        public bool TryAcquire() => true;
+        public void RequestExistingInstanceActivation() { }
+        public bool TryConsumeActivation() => false;
+        public event EventHandler? ActivationRequested { add { } remove { } }
+        public void Dispose() { }
     }
 }

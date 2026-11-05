@@ -769,7 +769,18 @@ Lizenzierung gehört zum entsprechenden eigenen Punkt in Phase 14; Velopack blei
   bestanden. Reale fehlerhafte Startkonfiguration schreibt genau einen Bericht ohne sichtbares Fenster.
   Vorhandener UI-Fehlertest läuft nun unsichtbar und prüft Queue plus geordnetes Stoppen.
   Logs: `.artifacts/startup-integration`; keine Layoutänderung und kein sichtbarer GUI-Test.
-- [ ] Instanzschutz und produktbezogene UI-Startvorgaben über DI ergänzen und prüfen.
+- [x] ✅ Instanzschutz und produktbezogene UI-Startvorgaben über DI ergänzen und prüfen.
+  Windows-Mutex und benanntes Aktivierungssignal je Benutzer-SID/Produktlinie/Konfigurationsprofil;
+  während des Starts eingehende Aktivierung bleibt bis zur Hauptansicht vorgemerkt. Expliziter
+  Zweitstart fordert UI-Aktivierung/Wiederherstellung an, ohne einen zweiten normalen Host zu starten.
+  Diagnose/Audit bleiben unabhängig. Bestehendes StartMinimized wird beim normalen Start angewandt.
+  AppUiStartup registriert BonusSkins, Formskins und DevExpress-Dialoge über den UI-Dispatcher vor
+  Lizenzdialog/Hauptansicht; vorhandene PerMonitorV2-/Schrift-/Designerbasis bleibt erhalten.
+  Gesamtnachweis: 325 Tests Pro/292 FinOffice, vier Debug-Hostbuilds, gezielter Rider-Build, vier
+  Diagnose-Hoststarts sowie Bundle-/Native-Prüfungen. Beide betroffenen Typen MainForm und
+  FrmLicenseKeyInput mit leeren/befüllten Daten, kleinen Fenstern und 10-/16-Punkt-Schrift unsichtbar
+  gerendert und visuell geprüft (64 PNGs, Skin Basic). 150%-Layoutsimulation gesondert ausgewiesen;
+  keine Behauptung eines nativen Monitor-/DPI-/Vordergrundtests. `.artifacts/startup-integration`.
 
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 
