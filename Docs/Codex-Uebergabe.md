@@ -47,6 +47,9 @@ Vertrauensbasis noch vom Betreiber zu liefern: öffentliche Schlüssel als einge
 startup.local.json; Details und eigene Serverkennungen in Build.md. Keine fremden Keys/Serverdaten.
 Debug ist standardmäßig expliziter Entwicklungsmodus, andere Konfigurationen lizenzpflichtig;
 Diagnose/Audit unterdrücken Netzwerk und Dialoge. Instanzschutz/UI-Startvorgaben bleiben nächster Block.
+Nachprüfung Lizenzdialog: IAppLicensePrompt ist asynchron und verwendet explizit IUiDispatcher,
+damit Host-Workerthreads keinen WinForms-Dialog direkt erzeugen. Abbruch vor Anzeige ist geprüft;
+je acht App-Tests sowie beide Hostbuilds für Pro/FinOffice bestanden, kein sichtbarer Dialogtest.
 
 Phase 3 ist vollständig abgeschlossen und lokal auf SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9
 und PostgreSQL 17.9 abgenommen. Aktueller Endnachweis: je 244/244 Tests für Pro/FinOffice,

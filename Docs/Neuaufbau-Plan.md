@@ -1037,6 +1037,8 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   Betreiberwerte noch einzurichten: eigene Serverregistrierung, Lizenzserver-URL und öffentliche
   Signaturschlüssel über eingebettete Buildressource. Leere Trustvorlage akzeptiert keine Lizenz.
   Keine fremden Schlüssel/Serveradressen übernommen oder echten Aktivierungen/Uploads ausgelöst.
+  Nachprüfung: Aktivierungsdialog explizit über IUiDispatcher aufrufen und abwarten, da der Host
+  Startdienste auf einem Workerthread fortsetzen kann. Abbruch vor Anzeige geprüft; jetzt je acht App-Tests.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

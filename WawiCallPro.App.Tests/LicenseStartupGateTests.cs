@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Licensing;
+using WawiCallPro.Interfaces.Hosting;
 
 namespace WawiCallPro.App.Tests;
 
@@ -45,13 +46,36 @@ public sealed class LicenseStartupGateTests
     }
 
     private static LicenseProductIdentity Product => new("WAWICALLPRO_PRO", new Guid(LicenseProductIdentity.ProApplicationId), "test", true);
+    [TestMethod]
+    public async Task ActivationPromptAwaitsUiDispatcherAndObservesCancellationBeforeShowingAnything()
+    {
+        var dispatcher = new QueuedDispatcher();
+        var prompt = new AppLicensePrompt(dispatcher);
+        using var cancellation = new CancellationTokenSource();
+        var request = Task.Run(() => prompt.RequestKeyAsync("synthetic-machine", cancellation.Token));
+        await dispatcher.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsFalse(request.IsCompleted);
+        await cancellation.CancelAsync();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => request);
+    }
+    private sealed class QueuedDispatcher : IUiDispatcher
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource _pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public ValueTask InvokeAsync(Action callback, CancellationToken cancellationToken)
+        {
+            Entered.SetResult();
+            return new ValueTask(_pending.Task.WaitAsync(cancellationToken));
+        }
+    }
     private sealed class ProbeWorker : IHostedService
     {
         public bool Started { get; private set; }
         public Task StartAsync(CancellationToken cancellationToken) { Started = true; return Task.CompletedTask; }
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
-    private sealed class Prompt : IAppLicensePrompt { public string? RequestKey(string machineId) => throw new AssertFailedException("Unexpected visible dialog."); }
+    private sealed class Prompt : IAppLicensePrompt { public Task<string?> RequestKeyAsync(string machineId,
+        CancellationToken cancellationToken) => throw new AssertFailedException("Unexpected visible dialog."); }
     private sealed class LicenseProbe : IProductLicenseService
     {
         public int Calls { get; private set; }
