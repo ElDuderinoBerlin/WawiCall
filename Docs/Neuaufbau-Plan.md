@@ -294,8 +294,8 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 0 | ✅ | Referenzen geprüft, Regeln übernommen, vollständiger Plan dokumentiert | Dieser Auftrag |
 | 1 | ✅ | Solution-/Build-Grundlage wie LxTranslate | 0 |
 | 2 | ✅ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
-| 3 | ⬜ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
-| 4 | ⬜ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
+| 3 | ✅ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
+| 4 | ✅ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
 | 5 | ⬜ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ⬜ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | ⬜ | Vollständiger SIP-Gesprächsablauf | 2, 3 |
@@ -575,7 +575,7 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-Prüfung bestanden. Logs: `.artifacts/phase3-item4`.
   Keine UI-Änderung. MySQL-DDL kann nach Fehlern teilweise bestehen bleiben; keine automatische Übernahme
   durch IF NOT EXISTS. Vollständige Providerfehler-/Rechte-/Sperr-/Backup-/Repositoryabnahme bleibt offen.
-- [x] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen.
+- [x] Provider-Tags, Connection-Timeouts, Rechteprüfung, fehlende Datenbank, Schema-Version und Migrationssperre umsetzen. ✅
   Nachweis: exklusive SQLite-Sperrdatei beziehungsweise ungepoolte SQL-Server-AppLock-/MySQL-GET_LOCK-/
   PostgreSQL-Advisory-Sitzungen. Abbrechbare Wartefrist, feste Timeout-/Sperrverlustcodes, Prüfung der
   Sperre und erneuter Schemastatus unter der Sperre. DDL-/DML-Rechte vor anstehenden Schritten prüfen;
@@ -589,7 +589,7 @@ werden durch diese lokale Phase-2-Abnahme nicht aufgehoben.
   Freigabe nach Prozessverlust, Leerzielfreigabe, fremde Routinen, Rechteverweigerung und aktive MySQL-Rollen.
   Instanzen gestoppt/entfernt, keine Lexware-Datenbanken geöffnet. Logs: `.artifacts/phase3-item5`.
   Keine UI-Änderung/Renderprüfung; weitere Phasenpunkte bleiben offen.
-- [x] Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
+- [x] ✅ Mehrfirmen-Zuordnung gemäß [Telefonnummern-Cache.md](Telefonnummern-Cache.md) durch zusätzliche
   Migrationen ab Version 6 und passende Speicherverträge vorbereiten. Eigene Firma je historischem
   Kandidaten mit Backfill aus der bisherigen Gesprächsfirma; Kandidaten vor Firmenauswahl zulassen,
   höchstens eine Auswahl passend zur Gesprächsfirma, übrige Firmenalternativen erhalten.
