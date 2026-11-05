@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 04.11.2026. Phasen 0–4 abgeschlossen; die folgenden Produktphasen bleiben wie markiert offen.
+Stand: 05.11.2026. Phasen 0–4 und Phase 5/Punkt 1 abgeschlossen; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -756,7 +756,22 @@ Bootstrap-/Remote-CI-Grenze bleibt unabhängig von dieser lokalen Abnahme besteh
 
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 
-- [ ] Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.
+- [x] ✅ Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.
+  Nachweis: plugin-eigenes DI-Modul über optionales `PluginServicesAttribute`, eigener Container/Scope
+  und Freigabe vor ALC-Unload, synchron wie asynchron. Registry liefert Daten-/API-Servicepfade;
+  `CompanyPsParser` liest Namen aus Company-Dateien. Nur der erfolgreiche API-Katalog bestimmt die
+  zugänglichen Firmen; PropertyStore ergänzt Namen, ohne Berechtigungen oder API-Fehler zu ersetzen.
+  Installationskennung aus kanonischem API-Endpunkt, explizit überschreibbar für Serveralias/Umzüge.
+  `IProApiSession`/Clientfactory kapseln den echten `ILexwareApiServiceClient`, Tokenwiederverwendung,
+  Erneuerung nach fünf Minuten beziehungsweise genau einmal nach expliziter Tokenablehnung und
+  serialisierte `UseCompany`-Scopes. Fremde Produktlinie/Installation, Teildaten, fehlende Felder,
+  Verbindungsfehler und Abbruch liefern keine erfolgreiche Leerantwort. Feste Fehlercodes ohne Rohdaten.
+  33 isolierte API-/PropertyStore-Tests; insgesamt 299 Tests Pro und 266 FinOffice, zehn explizite
+  Debug-Builds, vier Diagnose-Hoststarts, Bundle-/Hash-/Shared- und vier native Prüfprozesse bestanden.
+  Zusätzlich gezielter Rider-Build mit unveränderten aktiven IDE-Einstellungen erfolgreich.
+  Logs: `.artifacts/phase5-item1`. Keine UI-Änderung/Renderprüfung und kein Zugriff auf echte Firmendaten.
+  Zugangsdaten/Client-Identität bleiben bis Punkt 8 bewusst unkonfiguriert; keine Demo-Keys übernommen.
+  Kunden-/Lieferanten-/Kontaktabbildung und Fähigkeiten folgen in ihren gesonderten Punkten.
 - [ ] FinOffice-Adapter auf Pcfk-Installationserkennung, Mandantenverwaltung und DataAccess aufbauen.
 - [ ] Kunden, Lieferanten und Ansprechpartner in gemeinsame DTOs abbilden; externe IDs und Quelltypen erhalten.
 - [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.

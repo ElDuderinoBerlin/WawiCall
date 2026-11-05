@@ -1,6 +1,6 @@
 # WawiCallPro: Architektur
 
-Stand: 04.11.2026. Verbindliches Zielbild nach den Nutzerfestlegungen zu Hauptprogramm,
+Stand: 05.11.2026. Verbindliches Zielbild nach den Nutzerfestlegungen zu Hauptprogramm,
 Warenwirtschaftsplugins, Dependency Injection und austauschbarer Telefonie.
 Der tatsächliche Umsetzungsstand steht am Dokumentende.
 
@@ -188,6 +188,14 @@ Unser `Configure(IWawiCallHostServices)` ist ein nachgelagerter typisierter Ansc
 Konstruktorinjektion. Diese übernimmt jetzt der implementierte Aktivierungshook mit ActivatorUtilities
 und eigenem DI-Scope; Configure wird danach mit denselben geliehenen Hostdiensten aufgerufen.
 Es gibt keinen zweiten Loader und keinen globalen Service-Locator als Ersatz für DI.
+
+Seit Phase 5/Punkt 1 können Einstiegsklassen ihre privaten Registrierungen mit
+`[PluginServices(typeof(...))]` und einem `IPluginServiceModule` bereitstellen. Die Session baut den
+privaten Container und Scope vor der Konstruktoraktivierung auf. Das Pro-Modul registriert
+Installationserkennung, PropertyStore, Client-/Transportfactory, API-Sitzung und Firmenverzeichnis.
+Geschäftsdienste erhalten ihre Abhängigkeiten über Konstruktoren; nur die typisierten Factories
+erzeugen auftragsbezogene Clients/Transporte. Synchrones und asynchrones Entladen geben den Scope
+und den privaten Container nach Shutdown und vor ALC-Unload frei. Hostdienste bleiben im Besitz des Hosts.
 
 Die Manager-API ergänzt UnloadAllAsync: Shutdown, abgewartete Scope-Freigabe und anschließend
 ALC-Unload. Die Host-Runtime stoppt vorher neue Aufrufe, cancelt/awaitet laufende Arbeit und schließt
@@ -433,6 +441,13 @@ Die Datenbankmigrationen 1–7, Herkunftsfelder und prozessübergreifenden Migra
 sind implementiert und auf allen vier Providern geprüft.
 Hinzu kommen der offline arbeitende libphonenumber-Adapter und die Firmen-/Leitungskontextanwendung
 hinter eigenen DI-Interfaces, einschließlich lokaler Vorwahl sowie interner/unterdrückter Nummern.
+
+Phase 5/Punkt 1 ist implementiert und isoliert geprüft: Pro-Installationserkennung, PropertyStore-Namen,
+API-Anmeldung/Tokenverwaltung, berechtigter Firmenkatalog und serialisierte Mandantenscopes.
+Produktive Zugangsdaten/Client-Identität, konkrete Geschäftspartnerabbildung, FinOffice-Adapter und
+Fähigkeitsnachweise sind weiterhin eigene offene Phase-5-Punkte. Geprüfter Stand: 299 Tests Pro,
+266 FinOffice, zehn Debug-Builds, vier Diagnose-Hoststarts und Bundle-/Native-Prüfungen;
+`.artifacts/phase5-item1`. Keine neuen Fachviews oder UI-Änderungen in diesem Punkt.
 
 Phase 3 ist vollständig abgenommen: sieben Dapper-Repositories, SQLite-Backup, geprüfte administrative
 Server-Restores sowie gemeinsame DI-/Console-Anbindung mit dauerhafter Arbeitsplatz-GUID und

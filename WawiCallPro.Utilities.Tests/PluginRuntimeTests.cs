@@ -112,10 +112,51 @@ public sealed class PluginRuntimeTests
             var plugin = session.GetPlugins().Single();
             Assert.AreEqual(true, plugin.GetType().GetProperty("ServicesInjected")!.GetValue(plugin));
             Assert.AreEqual(true, plugin.GetType().GetProperty("Configured")!.GetValue(plugin));
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceInjected")!.GetValue(plugin));
+            bool? disposedAtUnload = null;
+            var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
+            Action<AssemblyLoadContext> unloading = _ =>
+                disposedAtUnload = (bool)plugin.GetType().GetProperty("PrivateServiceDisposed")!.GetValue(plugin)!;
+            context.Unloading += unloading;
             session.Dispose();
+            context.Unloading -= unloading;
+            Assert.AreEqual(true, disposedAtUnload);
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceDisposed")!.GetValue(plugin));
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceDisposedAfterShutdown")!.GetValue(plugin));
             Assert.IsNotNull(host.Services.GetRequiredService<IWawiCallHostServices>().Companies.Current);
+            // MSTest retains completed task/closure state through cleanup; release the observed plugin.
+            plugin = null!;
+            context = null!;
             return Task.CompletedTask;
         });
+    }
+
+    [TestMethod]
+    public async Task PluginOwnedScopedServicesAreAwaitedBeforeContextRelease()
+    {
+        var plugins = DeploySignedFixture(); var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            await using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+            await session.LoadAsync(plugins);
+            var plugin = session.GetPlugins().Single();
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceInjected")!.GetValue(plugin));
+            bool? disposedAtUnload = null;
+            var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
+            Action<AssemblyLoadContext> unloading = _ =>
+                disposedAtUnload = (bool)plugin.GetType().GetProperty("PrivateServiceDisposedAsynchronously")!.GetValue(plugin)!;
+            context.Unloading += unloading;
+            await session.DisposeAsync();
+            context.Unloading -= unloading;
+            Assert.AreEqual(true, disposedAtUnload);
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceDisposedAsynchronously")!.GetValue(plugin));
+            Assert.AreEqual(true, plugin.GetType().GetProperty("PrivateServiceDisposedAfterShutdown")!.GetValue(plugin));
+            Assert.IsNotNull(host.Services.GetRequiredService<IWawiCallHostServices>().Companies.Current);
+            plugin = null!;
+            context = null!;
+        });
+        // Leave the async service-disposal continuation before cleanup collects its load context.
+        await Task.Delay(20);
     }
 
     [TestMethod]

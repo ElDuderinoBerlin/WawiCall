@@ -232,6 +232,24 @@ Beide Läufe auf eigenen SQL-Server-/MySQL-/PostgreSQL-Instanzen bestanden; SQLi
 Abnahmeablauf in Database.Tests. Nachweise: `.artifacts/phase3-item10`. Alle eigenen Instanzen wurden beendet.
 Diese lokale Abnahme ändert die folgende Bootstrap-/Remote-CI-Grenze nicht.
 
+## Pro-Adapter: isolierte Prüfung
+
+Phase 5/Punkt 1 ergänzt `WawiCallPro.Plugins.Lexware.Pro.Tests` in der Solution. Die vorhandenen
+Produktlinienfilter schließen das Pro-Testprojekt bei FinOffice zusammen mit dem Pro-Adapter aus.
+
+```powershell
+dotnet test --project .\WawiCallPro.Plugins.Lexware.Pro.Tests\WawiCallPro.Plugins.Lexware.Pro.Tests.csproj -c Debug -p:LexwareProductLine=Pro
+```
+
+33 Fälle prüfen den echten Quantarix-Client mit isoliertem HTTP-Handler und PropertyStore-Dateien:
+Mehrfirmenkatalog/Berechtigungen, leere und fehlerhafte Antworten, Tokenablehnung/Erneuerungsgrenze,
+parallele Firmenscopes, Fehlercodes, Abbruch und private Transportfreigabe. Produktive Credentials
+und Client-Identität werden damit nicht eingerichtet; diese bleiben Phase 5/Punkt 8 zugeordnet.
+Der ergänzte Infrastrukturtest prüft private scoped DI-Dienste und ihre vollständige Freigabe vor
+ALC-Unload. Nachweis: 299 Tests Pro/266 FinOffice, zehn explizite Debug-Builds der betroffenen Projekte
+und beider Hosts, vier Diagnose-Hoststarts sowie Deployment-/Hash-/Shared- und Native-Prüfungen.
+Logs unter `.artifacts/phase5-item1`. Kein echter Lexware-Datenzugriff und keine geänderte UI-Fläche.
+
 ## Abhängigkeiten und CI
 
 Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;

@@ -33,8 +33,26 @@ zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Ab
 Produktlinien einschließlich realer Fehler/Wiederanläufe, Prozessgrenzen, DI-Host und Backup/Restore.
 Logs `.artifacts/phase3-item10`; alle eigenen Testinstanzen beendet. Migrationen 1–7 bestehen,
 Migrationen 1–6 wurden nach ihrem Abschluss nicht geändert. Jeder Checklistenpunkt wurde separat committed.
-Phase 4 ist inzwischen vollständig abgeschlossen; als Nächstes folgt Phase 5. Die folgenden früheren Nachweise
+Phase 4 und Phase 5/Punkt 1 sind inzwischen abgeschlossen; als Nächstes folgt Phase 5/Punkt 2 (FinOffice-Adapter).
+Die folgenden früheren Nachweise
 beschreiben jeweils den damaligen Einzelstand, nicht offene Phase-3-Arbeit.
+
+Aktueller Block vom 05.11.2026: Pro-Adapter mit Registry-/PropertyStore-Auflösung, echtem Quantarix-API-Client,
+Tokenwiederverwendung/-erneuerung, serialisierten Mandantenscopes und autoritativem API-Firmenkatalog.
+PropertyStore-Namen ergänzen ausschließlich bereits berechtigte Firmen. Keine Fallback-Leerdaten bei Fehlern.
+`PluginServicesAttribute`/`IPluginServiceModule` erlauben private DI-Container/Scopes in der bestehenden
+Quantarix-Session. Scoped-Dienste werden synchron beziehungsweise abgewartet asynchron vor ALC-Unload
+freigegeben; die Prüfung beobachtet den tatsächlichen Unloading-Callback. Die GC-/Dateibereinigung
+des asynchronen Tests verlässt zuerst den Service-Disposal-Continuationstack.
+Neue Pro.Tests: 33 isolierte Tests mit synthetischen Credentials/HTTP-Antworten und echten PropertyStore-Dateien.
+Insgesamt 299 Tests Pro/266 FinOffice, zehn Debug-Builds, vier Diagnose-Hoststarts, Bundle-/Hash-/Shared-
+und vier native Prüfprozesse bestanden, `.artifacts/phase5-item1`. Keine neuen UI-Flächen.
+Wichtig: ProConnectionOptions bleiben im Produkt ohne Credentials/ClientKey; sichere Konfiguration ist
+weiterhin Punkt 8. Geschäftspartner und Fähigkeiten bleiben explizit nicht unterstützt bis zu ihren Punkten.
+Die Installation-ID basiert auf dem kanonischen API-Endpunkt (Loopback mit Rechnername), nicht Firmennamen;
+bei Serveralias/Umzügen explizit stabil vorgeben. Keine echten API-/Firmendaten abgefragt oder Schlüssel kopiert.
+Die vorbestehende Änderung im Schwesterrepo Quantarix.Lexware.APIService am Console-csproj blieb unberührt;
+auch die dokumentierte Pcfk.Core-Revisions-/Bootstrapgrenze wurde nicht geändert.
 
 Phase 0 und Phase 1 sind abgeschlossen. Phase 1 hat sieben ursprüngliche Checklistenpunkte und den Tools-Nachtrag.
 Phase 2 ist einschließlich ihrer lokalen Abnahme abgeschlossen: gemeinsame Fach-/Host-/Plugin-Verträge in

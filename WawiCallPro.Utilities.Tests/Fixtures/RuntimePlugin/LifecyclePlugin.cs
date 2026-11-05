@@ -3,9 +3,11 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Directory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace RuntimePlugin;
 
+[PluginServices(typeof(FixtureServices))]
 public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IWawiCallPlugin, IWawiCallPluginLifetime
 {
     private readonly IWawiCallHostServices? _injected;
@@ -14,6 +16,12 @@ public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IW
     {
         Fault("constructor"); _injected = injected;
     }
+    public LifecyclePlugin(IWawiCallHostServices injected, FixtureService service) : this(injected) => _service = service;
+    private readonly FixtureService? _service;
+    public bool PrivateServiceInjected => _service is not null;
+    public bool PrivateServiceDisposed => _service?.Disposed == true;
+    public bool PrivateServiceDisposedAsynchronously => _service?.AsyncDisposed == true;
+    public bool PrivateServiceDisposedAfterShutdown => _service?.ShutdownObserved == true;
     public bool ServicesInjected => _injected is not null;
     public bool Configured { get; private set; }
     private IWawiCallHostServices? _configuredServices;
@@ -61,6 +69,7 @@ public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IW
         (_host ?? throw new InvalidOperationException("Initialize required")).Logger.LogInfo("private-plugin-sentinel stopped");
         _host = null;
         Shutdowns++;
+        if (_service is not null) _service.ShutdownObserved = true;
         Fault("shutdown");
     }
     private void OnCompanyChanged(object? sender, CompanySelectionChangedEventArgs args) { }
@@ -72,4 +81,18 @@ public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IW
     {
         if (Environment.GetEnvironmentVariable("WCP_PLUGIN_FIXTURE_FAULT") == phase) throw new InvalidOperationException("fixture-private-secret-" + phase);
     }
+}
+
+public sealed class FixtureServices : IPluginServiceModule
+{
+    public void ConfigureServices(IServiceCollection services) => services.AddScoped<FixtureService>();
+}
+
+public sealed class FixtureService : IDisposable, IAsyncDisposable
+{
+    public bool Disposed { get; private set; }
+    public bool AsyncDisposed { get; private set; }
+    public bool ShutdownObserved { get; set; }
+    public void Dispose() => Disposed = true;
+    public async ValueTask DisposeAsync() { await Task.Delay(1).ConfigureAwait(false); Disposed = true; AsyncDisposed = true; }
 }

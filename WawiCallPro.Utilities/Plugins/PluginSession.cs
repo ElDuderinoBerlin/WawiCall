@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 using Quantarix.Plugin.Abstractions;
 using Quantarix.Plugin.Hosting;
 using WawiCallPro.Interfaces.Companies;
@@ -40,16 +41,45 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
         try
         {
             var activated = new List<IPlugin>();
+            var containers = new List<PluginServiceScope>();
             var manager = managers.CreateWithActivation(tokens, type =>
             {
-                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
+                var provider = scope.ServiceProvider;
+                if (type.GetCustomAttribute<PluginServicesAttribute>() is { } registration)
+                {
+                    var module = (IPluginServiceModule)ActivatorUtilities.CreateInstance(provider, registration.ModuleType);
+                    var collection = new ServiceCollection();
+                    collection.AddSingleton(services);
+                    collection.AddSingleton(provider.GetRequiredService<TimeProvider>());
+                    module.ConfigureServices(collection);
+                    var container = new PluginServiceScope(collection.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }));
+                    containers.Add(container);
+                    provider = container.Services;
+                }
+                var plugin = (IPlugin)ActivatorUtilities.CreateInstance(provider, type);
                 activated.Add(plugin); return plugin;
             });
-            return new Session(scope, manager, services, application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice, activated);
+            return new Session(scope, manager, services, application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice, activated, containers);
         }
         catch { scope.Dispose(); throw; }
     }
-    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product, List<IPlugin> activated) : IPluginSession
+    private sealed class PluginServiceScope(ServiceProvider container) : IDisposable, IAsyncDisposable
+    {
+        private readonly AsyncServiceScope _scope = container.CreateAsyncScope();
+        public IServiceProvider Services => _scope.ServiceProvider;
+        public void Dispose()
+        {
+            try { _scope.Dispose(); }
+            finally { container.Dispose(); }
+        }
+        public async ValueTask DisposeAsync()
+        {
+            try { await _scope.DisposeAsync().ConfigureAwait(false); }
+            finally { await container.DisposeAsync().ConfigureAwait(false); }
+        }
+    }
+
+    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product, List<IPlugin> activated, List<PluginServiceScope> containers) : IPluginSession
     {
         private bool _loaded;
         private bool _disposed;
@@ -85,35 +115,56 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
         public void Dispose()
         {
             if (_disposed) return;
+            manager.UnloadAllAsync(ReleaseServices).AsTask().GetAwaiter().GetResult();
             _disposed = true;
-            try { manager.Dispose(); }
-            finally
-            {
-                try { foreach (var plugin in activated.OfType<IDisposable>()) plugin.Dispose(); }
-                finally { activated.Clear(); scope.Dispose(); }
-            }
+            if (manager.ShutdownFailureCount != 0) throw new PluginRuntimeException();
         }
         public async ValueTask DisposeAsync()
         {
             if (_disposed) return;
             foreach (var plugin in activated.OfType<IWawiCallPluginLifetime>()) await plugin.StopAsync(CancellationToken.None).ConfigureAwait(false);
-            await manager.UnloadAllAsync(async () =>
+            await manager.UnloadAllAsync(ReleaseServicesAsync).ConfigureAwait(false);
+            _disposed = true;
+            if (manager.ShutdownFailureCount != 0) throw new PluginRuntimeException();
+        }
+
+        private ValueTask ReleaseServices()
+        {
+            var failed = false;
+            foreach (var plugin in activated.OfType<IDisposable>())
+                try { plugin.Dispose(); } catch { failed = true; }
+            activated.Clear();
+            foreach (var container in containers.AsEnumerable().Reverse())
+                try { container.Dispose(); } catch { failed = true; }
+            containers.Clear();
+            try { scope.Dispose(); } catch { failed = true; }
+            if (failed) throw new PluginRuntimeException();
+            return ValueTask.CompletedTask;
+        }
+
+        private async ValueTask ReleaseServicesAsync()
+        {
+            var failed = false;
+            foreach (var plugin in activated)
             {
                 try
                 {
-                    foreach (var plugin in activated)
-                        if (plugin is IAsyncDisposable asynchronousPlugin) await asynchronousPlugin.DisposeAsync().ConfigureAwait(false);
-                        else if (plugin is IDisposable disposablePlugin) disposablePlugin.Dispose();
+                    if (plugin is IAsyncDisposable asynchronousPlugin) await asynchronousPlugin.DisposeAsync().ConfigureAwait(false);
+                    else if (plugin is IDisposable disposablePlugin) disposablePlugin.Dispose();
                 }
-                finally
-                {
-                    activated.Clear();
-                    if (scope is IAsyncDisposable asynchronous) await asynchronous.DisposeAsync().ConfigureAwait(false);
-                    else scope.Dispose();
-                }
-            }).ConfigureAwait(false);
-            _disposed = true;
-            if (manager.ShutdownFailureCount != 0) throw new PluginRuntimeException();
+                catch { failed = true; }
+            }
+            activated.Clear();
+            foreach (var container in containers.AsEnumerable().Reverse())
+                try { await container.DisposeAsync().ConfigureAwait(false); } catch { failed = true; }
+            containers.Clear();
+            try
+            {
+                if (scope is IAsyncDisposable asynchronous) await asynchronous.DisposeAsync().ConfigureAwait(false);
+                else scope.Dispose();
+            }
+            catch { failed = true; }
+            if (failed) throw new PluginRuntimeException();
         }
     }
 }

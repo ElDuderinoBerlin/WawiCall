@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phasen 0–4 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phasen 0–4, Phase 5/Punkt 1 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -76,6 +76,36 @@ Die DTOs führen selbst weder Nummernnormalisierung noch Quellenabfragen durch.
 Jede Fachabfrage enthält die Quellidentität. `PartyPage` liefert den Mandanten auch bei leerer Seite zurück.
 Seitengrößen liegen zwischen 1 und 500. Adapter müssen eine stabile Reihenfolge verwenden und Such-/Typfilter
 vor der Seitenauswahl anwenden; die konkrete Suchsemantik folgt mit den Adaptern in Phase 5.
+
+Seit Phase 5/Punkt 1 implementiert das Pro-Plugin die Firmenauflistung durch `ProBusinessDirectory`.
+Die Registry-Auflösung verwendet Quantarix.Lexware.Core und liest ausschließlich Pfad-/Endpunktmetadaten.
+`CompanyPsParser` ergänzt fehlende Namen aus dem PropertyStore. Der erfolgreiche API-Katalog des
+angemeldeten Benutzers bestimmt allein die auswählbaren IDs; lokale zusätzliche Firmen werden nicht
+als Berechtigung übernommen. Ein leerer API-Katalog bleibt leer, API-/Anmeldefehler bleiben Fehler.
+Die Installationskennung ist ein Hash des kanonischen API-Endpunkts, bei Loopback mit Rechnername
+statt localhost. Abweichende Serveralias beziehungsweise Umzüge benötigen eine explizite dauerhafte
+`InstallationId`, damit Installationen weder still zusammengeführt noch umgedeutet werden.
+
+`IProApiSession` und `IProApiConnectionFactory` bleiben im Pro-Plugin; Lexware-Typen gelangen nicht in
+gemeinsame Fachverträge. Eine Sitzung serialisiert API-Zugriffe, verwaltet den Token und setzt den
+vollständigen Firmenkontext über `UseCompany`. Der globale Firmenkatalog erbt keinen CompanyId-Header.
+Token werden höchstens fünf Minuten wiederverwendet und bei expliziter Ablehnung (HTTP 401 oder
+GraphQL 3001/3002) für eine Leseoperation einmal erneuert. Andere oder gemischte Fehler werden nicht wiederholt.
+Opaque Tokens werden nicht als verifizierte JWTs interpretiert. GraphQL-Teildaten/fehlende Katalogfelder,
+HTTP-Fehler und Abbruch werden vor Rückgabe geprüft; `ProAdapterException` enthält nur einen festen Code.
+Die Clientfactory unterbindet die ungefilterten Rohdatenlogs der Quantarix-Bibliothek.
+
+Die produktiven `ProConnectionOptions` enthalten bislang keine Zugangsdaten oder Client-Identität;
+deren sichere Einrichtung/Persistenz folgt in Phase 5/Punkt 8. Die 33 Vertragstests injizieren ausschließlich
+synthetische Werte und verwenden den echten Client mit isoliertem HTTP-Handler sowie echte PropertyStore-Dateien.
+Geschäftspartnerzugriffe und der Fähigkeitsbericht werfen bis zu ihren eigenen Punkten weiterhin
+`NotSupportedException`; sie liefern keine scheinbar erfolgreichen leeren Ergebnisse.
+
+Das optionale Klassenattribut `PluginServicesAttribute` verweist auf ein `IPluginServiceModule`.
+Die Session aktiviert dieses über DI und erstellt vor dem Plugin-Einstieg einen eigenen privaten
+Container samt Scope. Hostdienste bleiben geliehen. Private Dienste werden nach Shutdown und vor
+ALC-Unload freigegeben, bei asynchroner Freigabe vollständig abgewartet. Der vorhandene Quantarix-Loader,
+seine Assemblyattribute, Sharedlisten und Signaturprüfung bleiben maßgeblich.
 
 ## Fähigkeiten und Fehler
 
