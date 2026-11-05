@@ -234,6 +234,14 @@ Diese lokale Abnahme ändert die folgende Bootstrap-/Remote-CI-Grenze nicht.
 
 ## Pro-Adapter: isolierte Prüfung
 
+Nachtrag Programmstart: lokale Crashberichte liegen unter `<Konfigurationsverzeichnis>/crash-reports`.
+Je Prozess wird der erste fatale Fehler einmal gespeichert, auch vor erfolgreichem Hoststart.
+Die Queue enthält maximal 64 atomare JSON-Dateien mit bereinigten Methodenstacks und keinen
+rohen Fehlermeldungen, Exception.Data oder Quellpfaden. Diagnose-Starts bleiben fensterlos;
+normale Abbrüche erzeugen keine Crashmeldung. Nachweis `.artifacts/startup-integration`:
+je 69 Utilities-/vier App-Tests, vier Debug-Hostbuilds und vier Hostdiagnosen für Pro/FinOffice
+sowie ein realer Startfehler mit genau einem gespeicherten Bericht.
+
 Phase 5/Punkt 1 ergänzt `WawiCallPro.Plugins.Lexware.Pro.Tests` in der Solution. Die vorhandenen
 Produktlinienfilter schließen das Pro-Testprojekt bei FinOffice zusammen mit dem Pro-Adapter aus.
 

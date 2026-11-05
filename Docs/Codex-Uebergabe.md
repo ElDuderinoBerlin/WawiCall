@@ -27,6 +27,15 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 
 ## Aktueller Stand
 
+Aktiver Nutzerauftrag: Program.cs von LxTranslate analysieren und fehlende Lizenz-/Crash-/Startdienste
+einbauen. Analyse wurde vor Änderungen kurz ausgegeben. Erster abgeschlossener Block: früher
+`AppExceptionBoundary`, eigene Bootstrap-DI und lokale `ICrashReporter`-/Queue-Dienste. UI-/Task-/
+AppDomain-Fehler werden einmal erfasst, reine Abbrüche ausgenommen, bestehender Host-Shutdown bleibt.
+Je 69 Utilities- und vier App-Tests, vier Debug-Builds/Diagnose-Hoststarts sowie ein realer
+Startkonfigurationsfehler mit genau einem lokalen Bericht bestanden; `.artifacts/startup-integration`.
+Keine Rohmeldungen/Daten/Quellpfade in Berichten, bisher kein Upload. Lizenzierung und Instanzschutz
+werden als nächste separate Blöcke bearbeitet; die Server-/Public-Key-Frage wurde asynchron gestellt.
+
 Phase 3 ist vollständig abgeschlossen und lokal auf SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9
 und PostgreSQL 17.9 abgenommen. Aktueller Endnachweis: je 244/244 Tests für Pro/FinOffice,
 zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Abnahmeläufe für beide

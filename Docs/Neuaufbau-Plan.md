@@ -754,6 +754,23 @@ und tatsächliche verwaltete ALC-Freigabe sind geprüft. Lexware-Datenadapter un
 bleiben Phase 5/8/10; ihre fehlende Implementierung wird ausdrücklich gemeldet. Die dokumentierte
 Bootstrap-/Remote-CI-Grenze bleibt unabhängig von dieser lokalen Abnahme bestehen.
 
+### Nachtrag 05.11.2026 – Programmstart nach LxTranslate
+
+Nutzerauftrag: `LxTranslate.App/Program.cs` und seine aufgerufenen Dienste vergleichen und die
+fehlenden produktbezogenen Startfunktionen übernehmen. Vorhandene Host-/DI-/Shutdownarchitektur erhalten.
+Lizenzierung gehört zum entsprechenden eigenen Punkt in Phase 14; Velopack bleibt mit dessen Packaging verbunden.
+
+- [x] ✅ Frühe globale Fehlerhandler und lokale Crash-Erfassung über DI einbauen.
+  Handler für UI, unbeobachtete Tasks und AppDomain-Prozessfehler greifen vor UI-/Hostaufbau.
+  Erster fataler Fehler wird einmal atomar gespeichert und an den bestehenden Host-Shutdown übergeben.
+  Reine Abbrüche bleiben Abbrüche. Queue mit maximal 64 Berichten; Typen/Methodenstacks statt roher
+  Fehlermeldungen, Daten, Dateipfade oder Verbindungswerte. Keine automatische Übertragung in diesem Block.
+  Je 69 Utilities- und vier App-Tests Pro/FinOffice, vier Debug-Hostbuilds und vier Diagnose-Hoststarts
+  bestanden. Reale fehlerhafte Startkonfiguration schreibt genau einen Bericht ohne sichtbares Fenster.
+  Vorhandener UI-Fehlertest läuft nun unsichtbar und prüft Queue plus geordnetes Stoppen.
+  Logs: `.artifacts/startup-integration`; keine Layoutänderung und kein sichtbarer GUI-Test.
+- [ ] Instanzschutz und produktbezogene UI-Startvorgaben über DI ergänzen und prüfen.
+
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 
 - [x] ✅ Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.

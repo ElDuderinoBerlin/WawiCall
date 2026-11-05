@@ -5,6 +5,7 @@ using WawiCallPro.App.Diagnostics;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Operations;
 using Microsoft.Extensions.Logging;
+using WawiCallPro.Utilities.Diagnostics;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -16,14 +17,16 @@ internal sealed class AppApplicationContext : ApplicationContext
     private readonly string? _auditDirectory;
     private readonly TaskCompletionSource _closeRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private MainForm? _form;
-    private RuntimeFailureState? _runtimeFailures;
-    private ILogger? _logger;
+    private readonly AppExceptionBoundary _exceptions;
 
     internal AppApplicationContext(IHost host, bool diagnostics, string? auditDirectory)
     {
         _host = host;
         _diagnostics = diagnostics;
         _auditDirectory = auditDirectory;
+        _exceptions = host.Services.GetRequiredService<AppExceptionBoundary>();
+        _exceptions.Attach(host.Services.GetRequiredService<RuntimeFailureState>(),
+            host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("WawiCallPro.App"));
         Application.Idle += StartOnIdle;
     }
 
@@ -34,10 +37,6 @@ internal sealed class AppApplicationContext : ApplicationContext
         Application.Idle -= StartOnIdle;
         try
         {
-            _runtimeFailures = _host.Services.GetRequiredService<RuntimeFailureState>();
-            _logger = _host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("WawiCallPro.App");
-            Application.ThreadException += OnThreadException;
-            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
             HostDiagnosticSnapshot? diagnostic = null;
             await HostExecution.RunAsync(_host, async stoppingToken =>
             {
@@ -50,7 +49,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 // The context owns the form so DI can never dispose a WinForms control on a worker thread.
                 _form = CreateMainForm();
                 _form.FormClosing += MainFormClosing;
-                if (_diagnostics)
+                if (_diagnostics || _host.Services.GetRequiredService<AppWindowOptions>().Hidden)
                 {
                     _form.ShowInTaskbar = false;
                     _form.Opacity = 0;
@@ -70,12 +69,11 @@ internal sealed class AppApplicationContext : ApplicationContext
         }
         catch (Exception exception)
         {
+            _exceptions.Report(exception, CrashOrigin.Host);
             Failure = exception;
         }
         finally
         {
-            Application.ThreadException -= OnThreadException;
-            TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
             try
             {
                 if (_form is not null)
@@ -94,19 +92,6 @@ internal sealed class AppApplicationContext : ApplicationContext
     }
 
     private MainForm CreateMainForm() => ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
-
-    private void OnThreadException(object sender, ThreadExceptionEventArgs e)
-    {
-        _runtimeFailures!.Report(e.Exception);
-        OperationEvents.Write(_logger!, OperationEvent.UiFailed, e.Exception);
-    }
-
-    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        _runtimeFailures!.Report(e.Exception);
-        OperationEvents.Write(_logger!, OperationEvent.BackgroundFailed, e.Exception);
-        e.SetObserved();
-    }
 
     private void MainFormClosing(object? sender, FormClosingEventArgs e)
     {

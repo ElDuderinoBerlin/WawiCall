@@ -7,6 +7,7 @@ using WawiCallPro.Core.Threading;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Diagnostics;
 
 namespace WawiCallPro.App.Tests;
 
@@ -31,7 +32,14 @@ public sealed class ApplicationLifetimeTests
                     services.AddSingleton(new ConfigurationLocation(directory));
                     services.AddSingleton<IUiDispatcher>(new SynchronizationContextUiDispatcher(synchronization));
                     services.AddSingleton<Microsoft.Extensions.Hosting.IHostLifetime, AppHostLifetime>();
+                    services.AddSingleton<CrashReportQueue>();
+                    services.AddSingleton(new CrashApplicationInfo("test", "test"));
+                    services.AddSingleton<ICrashReporter, CrashReporter>();
+                    services.AddSingleton<AppExceptionBoundary>();
+                    services.AddSingleton(new AppWindowOptions(Hidden: true));
                 }).Build();
+                using var exceptions = host.Services.GetRequiredService<AppExceptionBoundary>();
+                exceptions.Install();
                 using var context = new AppApplicationContext(host, false, null);
                 MainForm? observedForm = null;
                 using var timer = new System.Windows.Forms.Timer { Interval = 20 };
@@ -61,6 +69,9 @@ public sealed class ApplicationLifetimeTests
             Assert.Contains("UiFailed", logs);
             Assert.Contains("HostStopped", logs);
             Assert.DoesNotContain(expected.Message, logs);
+            var report = File.ReadAllText(Directory.GetFiles(Path.Combine(directory, "crash-reports")).Single());
+            Assert.Contains("UiThread", report);
+            Assert.DoesNotContain(expected.Message, report);
         }
         finally
         {
