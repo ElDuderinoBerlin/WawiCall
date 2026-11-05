@@ -124,6 +124,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PrivateDependency", "WawiCa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugins.Lexware.Pro.Tests", "WawiCallPro.Plugins.Lexware.Pro.Tests\WawiCallPro.Plugins.Lexware.Pro.Tests.csproj", "{ACA9D191-F63C-4C1A-AE75-0737FDD5E4AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.License.Client", "..\Quantarix.License.System\Quantarix.License.Client\Quantarix.License.Client.csproj", "{173395C1-B7AB-4529-90B8-0DB35B808714}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.License.Core", "..\Quantarix.License.System\Quantarix.License.Core\Quantarix.License.Core.csproj", "{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -602,6 +606,30 @@ Global
 		{ACA9D191-F63C-4C1A-AE75-0737FDD5E4AD}.Release|x64.Build.0 = Release|Any CPU
 		{ACA9D191-F63C-4C1A-AE75-0737FDD5E4AD}.Release|x86.ActiveCfg = Release|Any CPU
 		{ACA9D191-F63C-4C1A-AE75-0737FDD5E4AD}.Release|x86.Build.0 = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|x64.Build.0 = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Debug|x86.Build.0 = Debug|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|Any CPU.Build.0 = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|x64.ActiveCfg = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|x64.Build.0 = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|x86.ActiveCfg = Release|Any CPU
+		{173395C1-B7AB-4529-90B8-0DB35B808714}.Release|x86.Build.0 = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|x64.Build.0 = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Debug|x86.Build.0 = Debug|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x64.ActiveCfg = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x64.Build.0 = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x86.ActiveCfg = Release|Any CPU
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -623,5 +651,7 @@ Global
 		{260C801F-D9DB-4EFA-9B30-96380C82F784} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 		{681A55F6-53E1-4CAB-A55B-85BBDC52D5F9} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 		{E6551505-1C89-40F1-8C14-683858376962} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
+		{173395C1-B7AB-4529-90B8-0DB35B808714} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

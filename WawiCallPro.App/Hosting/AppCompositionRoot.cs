@@ -5,17 +5,20 @@ using WawiCallPro.Core.Threading;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
+using WawiCallPro.Utilities.Diagnostics;
 
 namespace WawiCallPro.App.Hosting;
 
 internal static class AppCompositionRoot
 {
-    internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions) =>
+    internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
+        StartupExecutionMode mode) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
                 services.AddSingleton(exceptions);
                 services.AddSingleton(new AppWindowOptions());
+                services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();
                 services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));

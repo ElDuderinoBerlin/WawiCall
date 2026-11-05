@@ -232,7 +232,46 @@ Beide Läufe auf eigenen SQL-Server-/MySQL-/PostgreSQL-Instanzen bestanden; SQLi
 Abnahmeablauf in Database.Tests. Nachweise: `.artifacts/phase3-item10`. Alle eigenen Instanzen wurden beendet.
 Diese lokale Abnahme ändert die folgende Bootstrap-/Remote-CI-Grenze nicht.
 
-## Pro-Adapter: isolierte Prüfung
+## Programmstart, Crashberichte und Lizenzierung
+
+Lizenz-/Startdienste verwenden `Quantarix.License.System` (Client/Core, in deps.json fixiert).
+`WawiLicenseRequired` ist in Debug standardmäßig `false` (Entwicklungsmodus), sonst `true`;
+eine ausdrückliche Buildvorgabe überschreibt dies. Ein fehlendes Policy-Metadatum aktiviert die Prüfung.
+Diagnose und UI-Audit führen keine Aktivierung, Lizenzserverabfrage oder Crashübertragung aus.
+
+Eigene Serverregistrierung: Pro `WAWICALLPRO_PRO`, GUID `65c66e82-4607-4c4e-b7db-c9d9abf1ede2`;
+FinOffice `WAWICALLPRO_FINOFFICE`, GUID `df533b52-a06c-48a5-ad60-9f69fd94a4a9`.
+Öffentliche RSA-Signaturschlüssel werden als JSON-Mapping von KeyId auf Public-Key-PEM über
+`-p:WawiLicensePublicKeysFile=<absoluter-pfad>` eingebettet. Die Repositoryvorlage ist bewusst `{}`
+und akzeptiert keine Lizenz. Keine privaten Signaturschlüssel in Produkt oder Repository ablegen.
+Die Serverregistrierung und die konkreten öffentlichen Schlüssel sind vor produktiver Nutzung erforderlich.
+
+Öffentliche Betreiberkonfiguration: `<Konfigurationsverzeichnis>/startup.local.json`, beispielsweise:
+
+```json
+{
+  "licenseServerUrl": "https://lizenzserver.example.invalid/",
+  "uploadCrashReports": false,
+  "requestTimeoutSeconds": 10,
+  "licenseCheckIntervalSeconds": 600,
+  "crashFlushIntervalSeconds": 30
+}
+```
+
+Die Beispieladresse ist kein betriebsbereiter Server. Optional `serverThumbprint` mit SHA-1-/SHA-256-
+Zertifikatfingerabdruck; ohne Pin gilt die Windows-TLS-Vertrauensprüfung. Keine globalen LxTranslate-
+oder Quantarix-Umgebungswerte beziehungsweise Dev-Zertifikate werden automatisch übernommen.
+HTTP ist ausschließlich für ausdrücklich konfigurierte Loopback-Testserver erlaubt. Unbekannte oder
+doppelte Felder, Zugangsdaten und ungültige Werte verhindern den Start.
+
+Lizenzen und Aktivierungsnachweis liegen CurrentUser-DPAPI-geschützt unter `license` im Produktprofil.
+Der gemeinsame Quantarix-Dialog wird bei erforderlicher Online-Aktivierung verwendet; kein Dialog bei
+Diagnose-/Auditläufen. Regelmäßige Status-/Zeitprüfungen stoppen die Anwendung bei Sperrung/Ablauf;
+Transportfehler erhalten nur die noch gültige signierte Offlinefrist. Crashupload ist Opt-in,
+authentifiziert und löscht Berichte erst nach bestätigtem HTTP-Erfolg.
+Nachweis: je 83 Utilities-/sieben App-Tests, sechs Debug-Builds und vier Diagnose-Hoststarts;
+`.artifacts/startup-integration`. Tests verwenden kurzlebige RSA-Schlüssel, echte Signaturen/DPAPI
+und isolierte HTTP-Antworten; keine echte Aktivierung oder Übertragung ausgeführt.
 
 Nachtrag Programmstart: lokale Crashberichte liegen unter `<Konfigurationsverzeichnis>/crash-reports`.
 Je Prozess wird der erste fatale Fehler einmal gespeichert, auch vor erfolgreichem Hoststart.
@@ -241,6 +280,8 @@ rohen Fehlermeldungen, Exception.Data oder Quellpfaden. Diagnose-Starts bleiben 
 normale Abbrüche erzeugen keine Crashmeldung. Nachweis `.artifacts/startup-integration`:
 je 69 Utilities-/vier App-Tests, vier Debug-Hostbuilds und vier Hostdiagnosen für Pro/FinOffice
 sowie ein realer Startfehler mit genau einem gespeicherten Bericht.
+
+## Pro-Adapter: isolierte Prüfung
 
 Phase 5/Punkt 1 ergänzt `WawiCallPro.Plugins.Lexware.Pro.Tests` in der Solution. Die vorhandenen
 Produktlinienfilter schließen das Pro-Testprojekt bei FinOffice zusammen mit dem Pro-Adapter aus.

@@ -3,8 +3,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <WawiLicensePublicKeysFile Condition="'$(WawiLicensePublicKeysFile)' == ''">$(MSBuildThisFileDirectory)Licensing\license-public-keys.json</WawiLicensePublicKeysFile>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="$(WawiLicensePublicKeysFile)" LogicalName="WawiCallPro.LicensePublicKeys" />
+    <ProjectReference Include="..\..\Quantarix.License.System\Quantarix.License.Client\Quantarix.License.Client.csproj" />
     <ProjectReference Include="..\..\Quantarix.Core\Quantarix.Core.csproj" />
     <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\Quantarix.Plugin.Hosting.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />

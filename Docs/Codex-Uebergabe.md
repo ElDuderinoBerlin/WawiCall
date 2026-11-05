@@ -36,6 +36,18 @@ Startkonfigurationsfehler mit genau einem lokalen Bericht bestanden; `.artifacts
 Keine Rohmeldungen/Daten/Quellpfade in Berichten, bisher kein Upload. Lizenzierung und Instanzschutz
 werden als nächste separate Blöcke bearbeitet; die Server-/Public-Key-Frage wurde asynchron gestellt.
 
+Zweiter Block inzwischen abgeschlossen: Quantarix-Lizenz-Client/Core eingebunden und in deps.json
+fixiert; eigene Produktcodes/GUIDs, DI-Startupgate vor Plugins, Signatur-/Produkt-/App-/Versions-/
+Maschinen-/Zeitprüfung, atomare CurrentUser-DPAPI-Dateien, Aktivierung, Offlinefrist, Statusmonitor und
+persistierte Sperren. Tatsächlicher Server meldet Sperren mit HTTP 400 und Problems-Codes; dies ist
+geprüft und wird von Transportausfällen getrennt. Opt-in-Crashupload mit Aktivierungsheadern und
+Löschung nur nach HTTP-Erfolg. Je 83 Utilities-/sieben App-Tests und sechs Debug-Builds bestanden.
+Vertrauensbasis noch vom Betreiber zu liefern: öffentliche Schlüssel als eingebettetes JSON-Mapping
+über WawiLicensePublicKeysFile; Vorlage `{}` akzeptiert keine Lizenz. URL/Pin/Uploadvorgaben in
+startup.local.json; Details und eigene Serverkennungen in Build.md. Keine fremden Keys/Serverdaten.
+Debug ist standardmäßig expliziter Entwicklungsmodus, andere Konfigurationen lizenzpflichtig;
+Diagnose/Audit unterdrücken Netzwerk und Dialoge. Instanzschutz/UI-Startvorgaben bleiben nächster Block.
+
 Phase 3 ist vollständig abgeschlossen und lokal auf SQLite, SQL Server 2019 LocalDB, MySQL 8.4.9
 und PostgreSQL 17.9 abgenommen. Aktueller Endnachweis: je 244/244 Tests für Pro/FinOffice,
 zwölf Debug-Builds, vier Diagnose-Hoststarts, 26 Console-Prozesse und native Abnahmeläufe für beide

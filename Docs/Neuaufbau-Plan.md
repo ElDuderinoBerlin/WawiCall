@@ -1022,8 +1022,21 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
 - [ ] Pester-Skriptprüfungen mit lokalen Prozessdoubles und echten Paketprüfungen für beide Produktlinien ergänzen;
   Restore-/Build-/Pack-/Signatur-/Timeout-/Transferfehler, falsche Kanäle und vertrauliche Inhalte abweisen.
 - [ ] Erststart und Verbindungseinrichtung für beide Produktlinien ausarbeiten.
-- [ ] Quantarix-Lizenzierung mit eigener Produktidentität anbinden, sofern im Zielprodukt verwendet;
+- [x] ✅ Quantarix-Lizenzierung mit eigener Produktidentität anbinden, sofern im Zielprodukt verwendet;
   keine fremden Lizenz-/API-Schlüssel übernehmen.
+  Vorgezogen auf Nutzerauftrag zum Program.cs-Abgleich: Client/Core aus Quantarix.License.System,
+  eigene WAWICALLPRO_PRO-/WAWICALLPRO_FINOFFICE-Kennungen und verschiedene Anwendungs-GUIDs.
+  DI-Lizenzgate vor Plugin-/Workerstart, XML-Signatur/Produkt/App/Version/Maschine/Gültigkeit/
+  Offlinegrenze/Uhrrückstellung; CurrentUser-DPAPI, atomare Lizenzdateien und gebundener Aktivierungsnachweis.
+  Online-Aktivierung über bestehenden Quantarix-Dialog, Statusprüfung während des Betriebs und
+  persistente Sperre bei ausdrücklicher Serverablehnung. Serverausfall verlängert keine signierte Offlinefrist.
+  Opt-in-Crashupload mit Lizenz-/Maschinen-/Aktivierungsheadern; Queue erst nach HTTP-Erfolg löschen.
+  Debug standardmäßig Entwicklungsmodus, andere Konfigurationen lizenzpflichtig; Diagnose/Audit
+  ohne Netzwerk/Dialogs und ohne behaupteten gültigen Lizenzstatus. Je 83 Utilities-/sieben App-Tests,
+  sechs Debug-Builds, gezielter Rider-Build und vier Hostdiagnosen bestanden; `.artifacts/startup-integration`.
+  Betreiberwerte noch einzurichten: eigene Serverregistrierung, Lizenzserver-URL und öffentliche
+  Signaturschlüssel über eingebettete Buildressource. Leere Trustvorlage akzeptiert keine Lizenz.
+  Keine fremden Schlüssel/Serveradressen übernommen oder echten Aktivierungen/Uploads ausgelöst.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

@@ -26,6 +26,8 @@ public static class StartupFailureMessage
     /// <summary>Allowlisted configuration messages are safe to show; all other failures are summarized by type only.</summary>
     public static string Format(Exception exception)
     {
+        if (exception is WawiCallPro.Utilities.Licensing.LicenseAccessException license)
+            return $"Die WawiCallPro-Lizenz konnte nicht bestätigt werden ({license.Status}). Bitte Lizenz oder Lizenzserver-Einrichtung prüfen.";
         var configurationFailure = exception as ConfigurationException;
         if (exception is AggregateException aggregate)
             configurationFailure = aggregate.Flatten().InnerExceptions.OfType<ConfigurationException>().FirstOrDefault();

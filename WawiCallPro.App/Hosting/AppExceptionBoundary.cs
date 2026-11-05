@@ -1,6 +1,7 @@
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Operations;
 using Microsoft.Extensions.Logging;
+using WawiCallPro.Utilities.Licensing;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -40,7 +41,7 @@ internal sealed class AppExceptionBoundary(ICrashReporter reports) : IDisposable
         {
             if (Failure is not null) return;
             Failure = exception;
-            Receipt = reports.Capture(exception, origin);
+            if (exception is not LicenseAccessException) Receipt = reports.Capture(exception, origin);
             if (_logger is not null)
                 OperationEvents.Write(_logger, origin == CrashOrigin.UiThread ? OperationEvent.UiFailed : OperationEvent.BackgroundFailed, exception);
             _runtime?.Report(exception);

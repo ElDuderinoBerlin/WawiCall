@@ -27,7 +27,8 @@ internal static class Program
             using var uiContext = new WindowsFormsSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(uiContext);
             var auditDirectory = args is ["--ui-audit", var directory] ? directory : null;
-            var host = AppCompositionRoot.Build(uiContext, exceptions);
+            var mode = new StartupExecutionMode(diagnostics || auditDirectory is not null);
+            var host = AppCompositionRoot.Build(uiContext, exceptions, mode);
             using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();

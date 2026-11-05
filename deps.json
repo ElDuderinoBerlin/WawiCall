@@ -92,6 +92,16 @@
       "projects": [
         "System.Data.SQLite/System.Data.SQLite.NetStandard21.csproj"
       ]
+    },
+    {
+      "name": "Quantarix.License.System",
+      "url": "https://github.com/Quantarix/Quantarix.License.System.git",
+      "branch": "master",
+      "revision": "d03bcbf0f151d6fe9b467fe0dc16b09c4bd72201",
+      "projects": [
+        "Quantarix.License.Client/Quantarix.License.Client.csproj",
+        "Quantarix.License.Core/Quantarix.License.Core.csproj"
+      ]
     }
   ]
 }

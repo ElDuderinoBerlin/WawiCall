@@ -54,6 +54,9 @@
   <ItemGroup>
     <AssemblyMetadata Include="LexwareProductLine" Value="$(LexwareProductLine)" />
   </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App'">
+    <AssemblyMetadata Include="WawiLicenseRequired" Value="$(WawiLicenseRequired)" />
+  </ItemGroup>
   <Target Name="ValidateLexwareProductLine" BeforeTargets="_GenerateRestoreGraphProjectEntry;PrepareForBuild">
     <Error Condition="'$(LexwareProductLine)' != 'Pro' and '$(LexwareProductLine)' != 'FinOffice'"
            Text="Ungültige LexwareProductLine '$(LexwareProductLine)'. Erlaubt sind Pro und FinOffice." />
