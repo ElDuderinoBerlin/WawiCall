@@ -1026,9 +1026,13 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   Neue Markdowndatei im Docs-Solutionordner referenziert und in Rider geöffnet; Quellen, Links, Solution
   und Git-Diff geprüft. Reiner Planungsblock: keine Skripte ausgeführt, kein neuer Build-/Installationsnachweis.
   Die folgenden Implementierungs-/Abnahmepunkte bleiben offen; Phase 3 ist abgeschlossen, der nächste reguläre Schritt ist Phase 4.
-- [ ] Velopack-SDK und lokale vpk-CLI gemeinsam pinnen; eigenes Toolmanifest mit Restore-/Versionsprüfung einbinden.
-- [ ] App-Einstieg mit frühem Velopack-Run, schlanker NoInlining-Grenze und UI-freien FastCallbacks umsetzen;
-  automatische Anwendung beim Start ausdrücklich deaktivieren und Hook-/Diagnoseabläufe testen.
+- [x] ✅ Velopack-SDK und lokale vpk-CLI gemeinsam auf 1.2.161 gepinnt; eigenes Toolmanifest mit lokalem Restore.
+- [x] ✅ App-Einstieg mit frühem Velopack-Run und schlanker NoInlining-Grenze umgesetzt;
+  automatische Anwendung beim Start ausdrücklich deaktiviert. Keine eigenen Installationsaktionen erforderlich.
+  Nachweis vom 06.11.2026 auf Nutzerauftrag für die fehlenden Buildskripte: Tool-Restore, Rider-Rebuild
+  beider Hosts in der aktiven Konfiguration, 13 App-Tests und zwei fensterlose FinOffice-Diagnosestarts bestanden.
+  Echter Fast-Exit-Prozess ohne DevExpress-/DI-/Lizenzassemblies und mit ungültiger appsettings.json beendet sich
+  innerhalb der Frist erfolgreich. Installation, Updatekoordination und Monitor-/Fokusprüfungen bleiben offen.
 - [ ] Updateprüfung, Download und Anwendung getrennt in den Host integrieren; Gespräch, Aufnahme, Migration
   und laufende Companion-Prozesse berücksichtigen. Erst nach vollständig erfolgreichem Shutdown anwenden/neustarten.
 - [ ] Release-Build-/Publish-/Pack-Orchestrierung und gemeinsame Hilfen im bestehenden `scripts/`-Ordner anlegen;

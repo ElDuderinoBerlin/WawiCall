@@ -2,7 +2,9 @@
 
 Stand: 04.11.2026. Geprüfte Planung auf Basis von LxTranslate; Umsetzung und Installationsabnahme sind
 offene Punkte in Phase 14. Dieser Block ergänzt ausschließlich Dokumentation und Solution-Verweise.
-WawiCallPro hat noch kein Velopack-SDK, Toolmanifest, Release-Skript oder installiertes Updateverhalten.
+Nachtrag 06.11.2026: SDK und lokale CLI sind auf 1.2.161 gepinnt; der frühe UI-freie App-Einstieg ist
+mit Fast-Exit-Prozess und Hostdiagnosen geprüft. Automatische Updateanwendung beim Start ist deaktiviert.
+Release-Skripte und installiertes Updateverhalten sind zu diesem Nachtragsstand noch offen.
 Der nächste reguläre Implementierungspunkt bleibt Phase 3, Punkt 2.
 
 ## Geprüfte Referenzen in LxTranslate

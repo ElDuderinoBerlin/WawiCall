@@ -3,6 +3,8 @@ using WawiCallPro.App.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using System.Text;
 using System.Runtime.ExceptionServices;
+using System.Runtime.CompilerServices;
+using Velopack;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Utilities.Diagnostics;
 
@@ -12,6 +14,23 @@ internal static class Program
 {
     [STAThread]
     private static int Main(string[] args)
+    {
+        try
+        {
+            // Installer hooks must finish before UI, licensing or host services are loaded.
+            VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
+        }
+        catch (Exception)
+        {
+            Console.Error.WriteLine("WawiCallPro: Installationsstart fehlgeschlagen.");
+            return 1;
+        }
+
+        return RunApplication(args);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int RunApplication(string[] args)
     {
         var diagnostics = args is ["--diagnostics"];
         ServiceProvider? bootstrap = null;

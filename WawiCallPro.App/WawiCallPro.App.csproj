@@ -23,6 +23,7 @@
     <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <InternalsVisibleTo Include="WawiCallPro.App.Tests" />
     <PackageReference Include="DevExpress.Win.Design" Version="$(DevExpressVersion)" />
   </ItemGroup>
