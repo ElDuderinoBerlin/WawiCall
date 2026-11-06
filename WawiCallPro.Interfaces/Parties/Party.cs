@@ -23,6 +23,9 @@ public enum PhoneKind
 /// </summary>
 public sealed record SourceField(string RecordType, string RecordId, string FieldName);
 
+/// <summary>Identifies the native source entity without exposing a product-specific model.</summary>
+public sealed record SourceRecord(string RecordType, string RecordId);
+
 /// <summary>A source phone value; normalization in phase 6 must preserve the original and any extension.</summary>
 public sealed record PartyPhone(
     string OriginalValue,
@@ -58,6 +61,7 @@ public sealed record Party
     public required PartyKey Key { get; init; }
     public required string DisplayName { get; init; }
     public string? Number { get; init; }
+    public SourceRecord? Source { get; init; }
     public string? Email { get; init; }
     public bool IsInactive { get; init; }
     public DateTimeOffset? SourceUpdatedAtUtc { get; init; }

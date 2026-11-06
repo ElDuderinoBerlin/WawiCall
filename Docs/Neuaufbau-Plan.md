@@ -840,7 +840,21 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Finaler FinOffice-Release-Publish samt beiden Diagnosen und Velopack-Setup inklusive privater nativer
   SQLite-Datei bestanden (861 Publishdateien, Paketinhalt mit Hashes abgeglichen). Nachweise `.artifacts/finoffice-*`.
   Kunden-/Lieferantenabbildung, Capability-Matrix und konkrete Fachviews bleiben die folgenden Punkte.
-- [ ] Kunden, Lieferanten und Ansprechpartner in gemeinsame DTOs abbilden; externe IDs und Quelltypen erhalten.
+- [x] ✅ Kunden, Lieferanten und Ansprechpartner in gemeinsame DTOs abgebildet; externe IDs und Quelltypen erhalten.
+  `Party.Source` ergänzt den nativen Entitätstyp samt Datensatz-ID; gemeinsame Verträge bleiben frei von
+  Lexware-/Datenbanktypen. Kunden-/Lieferantennummern bleiben getrennt von internen IDs, Kontaktidentitäten
+  enthalten Besitzer und Rolle. Derselbe Kontakt kann mehreren Besitzern zugeordnet bleiben.
+  Pro nutzt schmale GraphQL-Abfragen über den bestehenden Client/Firmenscope; explizite Pflichtfelder,
+  Null-/Duplikat-/Teilfehlerprüfung und direkte Detailabfrage ohne Bankdaten/Freifelder. FinOffice liest
+  Quantarix-Repositories und explizite Kontakt-FKs innerhalb einer Read-only-Mandantensitzung; keine
+  Interpretation allgemeiner Zuordnungscodes als Besitzer oder Typ. Fehlende/falsche Zuordnungen sind Fehler.
+  Beide Adapter implementieren Typ-/Textsuche, stabile Reihenfolge und Paging nach vollständigem Abruf;
+  bestätigtes Nichtvorhandensein bleibt von Fehlern/Abbruch getrennt. Unbekannte Quellzeitzonen bleiben null.
+  Nachweis: 52 Pro-/34 FinOffice-Adapterfälle, darunter 33 neue Abbildungsfälle, sowie gemeinsame
+  Vertrags-/Core-/Utilities-/Datenbanktests, Debug-Builds/Hostdiagnosen beider Varianten und gezielter
+  Rider-Rebuild in unveränderter aktiver Konfiguration bestanden. Bundle-/Hash-/Shared-/Native-Prüfung bestanden.
+  Logs `.artifacts/phase5-parties`; keine echten Lexware-Daten oder geänderten Oberflächen.
+  Anschriften/Rufnummern, Mandantenwechsel, Capability-Matrix und Zugangskonfiguration bleiben die folgenden Punkte.
 - [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
 - [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.

@@ -5,6 +5,8 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
+using WawiCallPro.Interfaces.Common;
+using WawiCallPro.Interfaces.Parties;
 
 namespace WawiCallPro.Plugins.Lexware.Pro.Tests;
 
@@ -331,6 +333,184 @@ public sealed class ProAdapterTests
         var error = Assert.ThrowsExactly<ProAdapterException>(() => new ProInstallationSource(new FakeRegistry(new(null, null, null)), new ProConnectionOptions()).Detect());
         Assert.AreEqual(ProFailure.InstallationUnavailable, error.Failure);
     }
+
+    private const string PartyCustomer = """
+        {"id":1,"number":"00042","matchcode":"fallback","inactive":1,"modifiedDate":"2026-11-06T12:00:00",
+         "invoiceAddress":{"company":"Kunde Ä","email":"customer@example.invalid"},
+         "contactPersons":[{"id":7,"firstName":"Ada","lastName":"Kundenkontakt","email1":"ada@example.invalid"}]}
+        """;
+    private const string PartySupplier = """
+        {"id":1,"number":"00042","invoiceAddress":{"firstName":"Ben","lastName":"Lieferant"},
+         "contactPersons":[{"id":7,"firstName":"Ben","lastName":"Lieferantenkontakt","email1":"ben@example.invalid"}]}
+        """;
+
+    [TestMethod]
+    public async Task PartySnapshotsKeepNativeIdsRolesOwnersAndSourcesSeparate()
+    {
+        var handler = PartyHandler();
+        await using var provider = Build(handler);
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var page = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest()));
+        Assert.AreEqual(company, page.Company);
+        Assert.HasCount(4, page.Page.Items);
+        Assert.IsFalse(page.Page.HasMore);
+        Assert.HasCount(4, page.Page.Items.Select(party => party.Key).Distinct().ToArray());
+        var customer = page.Page.Items.Single(party => party.Key.Kind == PartyKind.Customer);
+        Assert.AreEqual("1", customer.Key.ExternalId);
+        Assert.AreEqual("00042", customer.Number);
+        Assert.AreEqual(new SourceRecord("fk_kunde", "1"), customer.Source);
+        Assert.AreEqual("Kunde Ä", customer.DisplayName);
+        Assert.IsTrue(customer.IsInactive);
+        Assert.IsNull(customer.SourceUpdatedAtUtc);
+        var supplier = page.Page.Items.Single(party => party.Key.Kind == PartyKind.Supplier);
+        Assert.AreEqual(new SourceRecord("fk_lieferant", "1"), supplier.Source);
+        Assert.AreEqual("Ben Lieferant", supplier.DisplayName);
+        foreach (var contact in page.Page.Items.Where(party => party.Key.OwnerExternalId is not null))
+        {
+            Assert.AreEqual("7", contact.Key.ExternalId);
+            Assert.AreEqual("1", contact.Key.OwnerExternalId);
+            Assert.AreEqual(new SourceRecord("fk_kontaktperson", "7"), contact.Source);
+        }
+        Assert.IsTrue(handler.Requests.Where(request => !IsLogin(request)).All(request => request.Headers["CompanyId"] == "1"));
+        Assert.IsFalse(handler.Requests.Any(request => request.Query.Contains("bankAccount", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    [DataRow(PartyKind.Customer)]
+    [DataRow(PartyKind.Supplier)]
+    [DataRow(PartyKind.CustomerContact)]
+    [DataRow(PartyKind.SupplierContact)]
+    public async Task PartyKindQueriesReadOnlyTheRequiredOwnerRole(PartyKind kind)
+    {
+        var handler = PartyHandler();
+        await using var provider = Build(handler);
+        var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "2"), new PageRequest(), Kind: kind));
+        Assert.HasCount(1, page.Page.Items);
+        Assert.AreEqual(kind, page.Page.Items[0].Key.Kind);
+        Assert.HasCount(1, handler.Requests.Where(request => !IsLogin(request)).ToArray());
+    }
+
+    [TestMethod]
+    public async Task PartySearchFindsContactsBeyondTheFirstUnfilteredPageAndPagingIsStable()
+    {
+        await using var provider = Build(PartyHandler());
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var first = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(limit: 1)));
+        var second = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(offset: 1, limit: 1)));
+        Assert.IsTrue(first.Page.HasMore);
+        Assert.AreEqual(PartyKind.Customer, first.Page.Items.Single().Key.Kind);
+        Assert.AreEqual(PartyKind.Supplier, second.Page.Items.Single().Key.Kind);
+        var found = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(limit: 1), "BEN@EXAMPLE.INVALID"));
+        Assert.AreEqual(PartyKind.SupplierContact, found.Page.Items.Single().Key.Kind);
+        Assert.IsFalse(found.Page.HasMore);
+    }
+
+    [TestMethod]
+    public async Task PartyDetailsResolveAnExactContactOwnerAndConfirmedNotFound()
+    {
+        await using var provider = Build(PartyHandler());
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var key = new PartyKey(company, PartyKind.SupplierContact, "7", "1");
+        Assert.AreEqual(key, (await directory.GetPartyAsync(key))!.Key);
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.SupplierContact, "8", "1")));
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.Customer, "99")));
+        await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetPartyAsync(new PartyKey(company, PartyKind.Customer, "01")));
+    }
+
+    [TestMethod]
+    public async Task TheSameContactIdOnDifferentCustomersKeepsBothOwnerKeys()
+    {
+        var second = PartyCustomer.Replace("\"id\":1,", "\"id\":2,", StringComparison.Ordinal);
+        await using var provider = Build(DefaultHandler("{\"data\":{\"parties\":[" + second + "," + PartyCustomer + "]}}"));
+        var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.CustomerContact));
+        Assert.HasCount(2, page.Page.Items);
+        CollectionAssert.AreEqual(new[] { "1", "2" }, page.Page.Items.Select(party => party.Key.OwnerExternalId).ToArray());
+        Assert.IsTrue(page.Page.Items.All(party => party.Key.ExternalId == "7"));
+        Assert.AreNotEqual(page.Page.Items[0].Key, page.Page.Items[1].Key);
+    }
+
+    [TestMethod]
+    [DataRow("{\"data\":{}}")]
+    [DataRow("{\"data\":{\"parties\":null}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"0001\",\"invoiceAddress\":null}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":0,\"number\":\"0001\",\"invoiceAddress\":null,\"contactPersons\":[]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":null,\"invoiceAddress\":null,\"contactPersons\":[]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"1\",\"invoiceAddress\":null,\"contactPersons\":[{\"id\":0}]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[null]}}")]
+    [DataRow("{\"data\":{\"parties\":[]},\"errors\":[{\"message\":\"private-source-value\"}]}")]
+    public async Task IncompletePartyResponsesNeverBecomeSuccessfulEmptySnapshots(string response)
+    {
+        await using var provider = Build(DefaultHandler(response));
+        var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(
+            new PartyQuery(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.Customer)));
+        Assert.AreEqual(ProFailure.InvalidResponse, error.Failure);
+        Assert.DoesNotContain("private-source-value", error.ToString());
+    }
+
+    [TestMethod]
+    public async Task DuplicatePartyOrContactIdsCannotBeSilentlyMerged()
+    {
+        foreach (var records in new[] { PartyCustomer + "," + PartyCustomer,
+            PartyCustomer.Replace("\"id\":7,\"firstName\":\"Ada\",\"lastName\":\"Kundenkontakt\",\"email1\":\"ada@example.invalid\"",
+                "\"id\":7},{\"id\":7", StringComparison.Ordinal) })
+        {
+            await using var provider = Build(DefaultHandler("{\"data\":{\"parties\":[" + records + "]}}"));
+            await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(
+                new PartyQuery(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.Customer)));
+        }
+    }
+
+    [TestMethod]
+    public async Task EmptyPartyListIsSuccessButMissingDetailFieldIsAnError()
+    {
+        await using (var provider = Build(DefaultHandler("""{"data":{"parties":[]}}""")))
+        {
+            var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+                new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.Customer));
+            Assert.IsEmpty(page.Page.Items);
+            Assert.IsFalse(page.Page.HasMore);
+        }
+        await using var invalid = Build(DefaultHandler("""{"data":{}}"""));
+        await Assert.ThrowsExactlyAsync<ProAdapterException>(() => invalid.GetRequiredService<IBusinessDirectory>()
+            .GetPartyAsync(new PartyKey(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), PartyKind.Customer, "1")));
+    }
+
+    [TestMethod]
+    public async Task PartyReadsObserveCancellationAndCannotCrossProductOrInstallation()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new ScriptedHandler(async (request, token) =>
+        {
+            if (IsLogin(request)) return Json("""{"data":{"token":"opaque-token"}}""");
+            entered.SetResult();
+            await Task.Delay(Timeout.Infinite, token);
+            throw new InvalidOperationException();
+        });
+        await using var provider = Build(handler);
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        foreach (var company in new[] { new CompanyKey(LexwareProductLine.FinOffice, "isolated-installation", "1"), new CompanyKey(LexwareProductLine.Pro, "foreign", "1") })
+            await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetPartiesAsync(new PartyQuery(company, new PageRequest())));
+        Assert.IsEmpty(handler.Requests);
+        using var cancellation = new CancellationTokenSource();
+        var read = directory.GetPartiesAsync(new PartyQuery(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest()), cancellation.Token);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => read);
+    }
+
+    private static ScriptedHandler PartyHandler() => new((request, _) =>
+    {
+        if (IsLogin(request)) return Task.FromResult(Json("""{"data":{"token":"opaque-token"}}"""));
+        var supplier = request.Query.Contains("supplier", StringComparison.Ordinal);
+        if (request.Query.Contains("party:", StringComparison.Ordinal))
+            return Task.FromResult(Json("{\"data\":{\"party\":" + (request.Query.Contains("id: 99", StringComparison.Ordinal) ? "null" : supplier ? PartySupplier : PartyCustomer) + "}}"));
+        return Task.FromResult(Json("{\"data\":{\"parties\":[" + (supplier ? PartySupplier : PartyCustomer) + "]}}"));
+    });
 
     private static ServiceProvider Build(ScriptedHandler handler, string? store = null, MutableClock? clock = null, ProConnectionOptions? options = null)
     {

@@ -342,6 +342,16 @@ Host-Projektreferenzen kopieren Plugininhalte nicht zusätzlich ins Hostroot; da
 stellt das vollständige private Bundle bereit. Die Produktlinienfilter schließen das jeweils fremde Testprojekt aus.
 Nachweise `.artifacts/finoffice-*`; keine geänderte Oberfläche und keine GUI-Prüfung erforderlich.
 
+## Geschäftspartnerabbildung
+
+Phase 5/Punkt 3 ergänzt Geschäftspartnerabfragen in beiden Adaptern. Pro verwendet isolierte Antworten
+mit dem echten API-Client; FinOffice eigene SQLite-Dateien und den echten Repository-/Verbindungsstack.
+52 Pro- und 34 FinOffice-Adapterfälle prüfen Identitäten, Rollen/Owner, Quelltypen, Suche/Paging,
+bestätigtes Nichtvorhandensein, defekte/mehrdeutige Daten, Mandantengrenzen und Abbruch. Gemeinsame
+Vertrags-/Core-/Utilities-/Datenbanktests sowie Builds/Diagnosen beider Produktlinien und die
+Deployment-/Native-Prüfung liegen unter `.artifacts/phase5-parties`. Keine produktiven Wawi-Zugriffe.
+Anschriften/Rufnummern und die Capability-Matrix sind damit noch nicht implementiert.
+
 ## Abhängigkeiten und CI
 
 Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;

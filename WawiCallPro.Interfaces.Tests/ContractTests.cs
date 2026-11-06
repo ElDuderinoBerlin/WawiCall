@@ -103,6 +103,7 @@ public sealed class ContractTests
             Key = new PartyKey(CreateCompany(), PartyKind.Customer, "00042"),
             DisplayName = "Müller & Söhne",
             Number = "K-0042",
+            Source = new SourceRecord("fk_kunde", "00042"),
             Addresses =
             [
                 new PartyAddress
@@ -120,6 +121,7 @@ public sealed class ContractTests
 
         Assert.AreEqual(party.Key, restored.Key);
         Assert.AreEqual("K-0042", restored.Number);
+        Assert.AreEqual(party.Source, restored.Source);
         Assert.AreEqual("Müller & Söhne", restored.DisplayName);
         Assert.AreEqual("01234", restored.Addresses[0].PostalCode);
         Assert.AreEqual(phone, restored.Addresses[0].Phones[0]);

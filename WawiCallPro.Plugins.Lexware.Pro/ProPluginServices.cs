@@ -16,6 +16,7 @@ public sealed class ProPluginServices : IPluginServiceModule
         services.AddSingleton<IProHttpHandlerFactory, ProHttpHandlerFactory>();
         services.AddSingleton<IProApiConnectionFactory, ProApiConnectionFactory>();
         services.AddSingleton<IProApiSession, ProApiSession>();
+        services.AddSingleton<ProPartyDirectory>();
         services.AddSingleton<IBusinessDirectory, ProBusinessDirectory>();
     }
 }

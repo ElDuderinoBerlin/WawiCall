@@ -14,6 +14,7 @@ public sealed class FinOfficePluginServices : IPluginServiceModule
         services.AddSingleton<IPcfkInstallationManager, PcfkInstallationManager>();
         services.AddSingleton<IFinOfficeInstallationSource, FinOfficeInstallationSource>();
         services.AddSingleton<IFinOfficeCompanySession, FinOfficeCompanySession>();
+        services.AddSingleton<FinOfficePartyDirectory>();
         services.AddSingleton<IBusinessDirectory, FinOfficeBusinessDirectory>();
     }
 }

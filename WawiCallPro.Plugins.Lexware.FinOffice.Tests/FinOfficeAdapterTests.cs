@@ -7,8 +7,11 @@ using Quantarix.Pcfk.DataAccess.Entities;
 using Quantarix.Pcfk.DataAccess.Infrastructure;
 using Quantarix.Pcfk.DataAccess.Manager;
 using Quantarix.Pcfk.DataAccess.Repositories;
+using Quantarix.Pcfk.DataAccess.Sql;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
+using WawiCallPro.Interfaces.Common;
+using WawiCallPro.Interfaces.Parties;
 
 namespace WawiCallPro.Plugins.Lexware.FinOffice.Tests;
 
@@ -219,6 +222,165 @@ public sealed class FinOfficeAdapterTests
         Assert.IsInstanceOfType<PcfkInstallationManager>(provider.GetRequiredService<IPcfkInstallationManager>());
         Assert.IsInstanceOfType<FinOfficeBusinessDirectory>(provider.GetRequiredService<IBusinessDirectory>());
         Assert.IsInstanceOfType<FinOfficeCompanySession>(provider.GetRequiredService<IFinOfficeCompanySession>());
+    }
+
+    [TestMethod]
+    public async Task PartySnapshotsKeepNumbersNativeIdsRolesAndContactOwners()
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1");
+        var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(company, new PageRequest()));
+        Assert.AreEqual(company, page.Company);
+        Assert.HasCount(6, page.Page.Items);
+        Assert.HasCount(6, page.Page.Items.Select(party => party.Key).Distinct().ToArray());
+        var customer = page.Page.Items.Single(party => party.Key.Kind == PartyKind.Customer && party.Key.ExternalId == "11");
+        var supplier = page.Page.Items.Single(party => party.Key.Kind == PartyKind.Supplier);
+        Assert.AreEqual("00042", customer.Number);
+        Assert.AreEqual(customer.Number, supplier.Number);
+        Assert.AreNotEqual(customer.Key, supplier.Key);
+        Assert.AreEqual("Kunde Ä", customer.DisplayName);
+        Assert.IsTrue(customer.IsInactive);
+        Assert.IsNull(customer.SourceUpdatedAtUtc);
+        Assert.AreEqual(new SourceRecord("fk_kd_view", "11"), customer.Source);
+        var customerContact = page.Page.Items.Single(party => party.Key.Kind == PartyKind.CustomerContact && party.Key.OwnerExternalId == "11");
+        var supplierContact = page.Page.Items.Single(party => party.Key.Kind == PartyKind.SupplierContact);
+        Assert.AreEqual("77", customerContact.Key.ExternalId);
+        Assert.AreEqual(customerContact.Key.ExternalId, supplierContact.Key.ExternalId);
+        Assert.AreEqual("12", supplierContact.Key.OwnerExternalId);
+        Assert.AreEqual(new SourceRecord("fk_kontaktperson", "77"), supplierContact.Source);
+        Assert.IsFalse(page.Page.Items.Any(party => party.Key.ExternalId == "99"));
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    [DataRow(PartyKind.Customer, 2)]
+    [DataRow(PartyKind.Supplier, 1)]
+    [DataRow(PartyKind.CustomerContact, 2)]
+    [DataRow(PartyKind.SupplierContact, 1)]
+    public async Task PartyQueriesSelectExactRolesWithoutConfusingTheContactAssignmentCode(PartyKind kind, int count)
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest(), Kind: kind));
+        Assert.HasCount(count, page.Page.Items);
+        Assert.IsTrue(page.Page.Items.All(party => party.Key.Kind == kind));
+    }
+
+    [TestMethod]
+    public async Task PartyPagingSearchAndCompanyIsolationUseCompleteStableSnapshots()
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1");
+        var first = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(limit: 1)));
+        var second = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(offset: 1, limit: 1)));
+        Assert.IsTrue(first.Page.HasMore);
+        Assert.AreEqual("11", first.Page.Items.Single().Key.ExternalId);
+        Assert.AreEqual("13", second.Page.Items.Single().Key.ExternalId);
+        var search = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(limit: 1), "ALICE@EXAMPLE.INVALID", PartyKind.SupplierContact));
+        Assert.AreEqual(PartyKind.SupplierContact, search.Page.Items.Single().Key.Kind);
+        Assert.IsFalse(search.Page.HasMore);
+        var other = await directory.GetPartiesAsync(new PartyQuery(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "2"), new PageRequest()));
+        Assert.IsEmpty(other.Page.Items);
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    public async Task PartyDetailsRequireTheExactOwnerAndPreserveConfirmedNotFound()
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1");
+        var key = new PartyKey(company, PartyKind.SupplierContact, "77", "12");
+        Assert.AreEqual(key, (await directory.GetPartyAsync(key))!.Key);
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.CustomerContact, "77", "13")));
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.Customer, "00042")));
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.Customer, "011")));
+        Assert.IsNull(await directory.GetPartyAsync(new PartyKey(company, PartyKind.Customer, "12")));
+    }
+
+    [TestMethod]
+    [DataRow("orphan-owner")]
+    [DataRow("orphan-contact")]
+    [DataRow("duplicate-link")]
+    [DataRow("duplicate-id")]
+    [DataRow("invalid-contact")]
+    public async Task InconsistentContactRelationsCannotBecomeEmptyOrMisassignedParties(string fault)
+    {
+        await SeedPartiesAsync();
+        using (var connection = await Open(_manager.CompanyPath(1), false))
+        {
+            await connection.ExecuteAsync(fault switch
+            {
+                "orphan-owner" => "INSERT INTO fk_kunde2kontaktperson VALUES (800, 2000, 77)",
+                "orphan-contact" => "INSERT INTO fk_kunde2kontaktperson VALUES (800, 11, 2000)",
+                "duplicate-link" => "INSERT INTO fk_kunde2kontaktperson VALUES (800, 11, 77)",
+                "duplicate-id" => "UPDATE fk_kd_view SET lNr = 11 WHERE lNr = 12",
+                _ => "UPDATE fk_kontaktperson SET lID = 0 WHERE lID = 77"
+            });
+        }
+        await using var provider = Build();
+        var error = await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(
+            new PartyQuery(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest())));
+        Assert.AreEqual(FinOfficeFailure.InvalidCatalog, error.Failure);
+        Assert.DoesNotContain(_root, error.ToString());
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    public async Task MissingPartySchemaIsReadFailureRatherThanSuccessfulEmptyData()
+    {
+        await using var provider = Build();
+        var error = await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(
+            new PartyQuery(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest())));
+        Assert.AreEqual(FinOfficeFailure.ReadFailed, error.Failure);
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    public async Task PartyReadsRejectForeignCompaniesAndAlreadyCancelledOperations()
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        foreach (var company in new[] { new CompanyKey(LexwareProductLine.Pro, "isolated-fin", "1"), new CompanyKey(LexwareProductLine.FinOffice, "foreign", "1") })
+            await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => directory.GetPartiesAsync(new PartyQuery(company, new PageRequest())));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => directory.GetPartiesAsync(
+            new PartyQuery(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest()), cancellation.Token));
+        Assert.IsEmpty(_manager.Connections);
+    }
+
+    private async Task SeedPartiesAsync()
+    {
+        foreach (var nr in new[] { 1, 2 })
+        {
+            using var connection = await Open(_manager.CompanyPath(nr), false);
+            await connection.ExecuteAsync("""
+                CREATE TABLE fk_kd_view (lNr INTEGER, iKennung INTEGER, szKundenNr TEXT, szFirma TEXT,
+                  szVorName TEXT, szName TEXT, szMatchcode TEXT, szEMail TEXT, fGeloescht INTEGER, datGeaendert INTEGER);
+                CREATE TABLE fk_kontaktperson (lID INTEGER, szVorname TEXT, szName TEXT, szEmail1 TEXT);
+                CREATE TABLE fk_kunde2kontaktperson (lID INTEGER, lIdKunde INTEGER, lIdKontaktperson INTEGER);
+                -- General assignment codes are deliberately unrelated to the customer owner ID.
+                CREATE TABLE fk_kontaktperson2zuordnung (lId INTEGER, lIdKontaktperson INTEGER, lIdZuordnung INTEGER);
+                """);
+            if (nr != 1) continue;
+            await connection.ExecuteAsync("""
+                INSERT INTO fk_kd_view VALUES (11, 0, @number, @name, null, null, 'match', 'customer@example.invalid', 1, @modified);
+                INSERT INTO fk_kd_view VALUES (12, 1, '00042', 'Lieferant', null, null, null, null, 0, null);
+                INSERT INTO fk_kd_view VALUES (13, 0, '00013', null, 'Chris', 'Kunde', null, null, 0, null);
+                INSERT INTO fk_kontaktperson VALUES (77, 'Alice', 'Kontakt', 'alice@example.invalid');
+                INSERT INTO fk_kontaktperson VALUES (78, 'Chris', 'Kontakt', 'chris@example.invalid');
+                INSERT INTO fk_kontaktperson VALUES (99, 'Ohne', 'Zuordnung', null);
+                INSERT INTO fk_kunde2kontaktperson VALUES (1, 11, 77), (2, 12, 77), (3, 13, 78);
+                INSERT INTO fk_kontaktperson2zuordnung VALUES (1, 99, 11);
+                """, new { number = PcfkDbString.Ansi("00042", 20), name = PcfkDbString.Ansi("Kunde Ä", 60), modified = PcfkDateTimeConverter.ToLxDate(new DateOnly(2026, 11, 6)) });
+        }
     }
 
     private void AssertConnectionsDisposed()

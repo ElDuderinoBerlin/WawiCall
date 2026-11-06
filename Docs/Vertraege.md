@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phasen 0–4, Phase 5/Punkt 1 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phasen 0–4, Phase 5/Punkte 1–3 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -33,6 +33,7 @@ Firmen/Parteien erfordern weiterhin eine Auswahl. Konkrete Einstellungs-/Suchver
 | `PartyKey` | Mandant + Quelltyp + externe Datensatz-ID; Kontaktpersonen zusätzlich mit ID des Kunden/Lieferanten |
 | `Company` | Quellidentität und Anzeigename eines Mandanten |
 | `Party` | Abgelöste Momentaufnahme eines Kunden, Lieferanten oder einer Kontaktperson |
+| `SourceRecord` | Optionaler nativer Entitätstyp und Datensatz-ID der Party; keine native Lexware-/PCFK-Instanz |
 | `PartyAddress` | Rechnungs-, Liefer-, Zusatz- oder Kontaktanschrift einschließlich ihrer Nummern |
 | `PartyPhone` / `SourceField` | Originalnummer, optional E.164/Nebenstelle, Nummerntyp und genaue Quellstelle |
 | `IPhoneNumberParser` / `PhoneNumberParseResult` | Offline-Parsing mit expliziter Standardregion, Original/Quelle, E.164/Extension, Prüfstatus, eigenem Nummerntyp, Länder-/Regionshinweisen und Parserversion |
@@ -75,7 +76,37 @@ Die DTOs führen selbst weder Nummernnormalisierung noch Quellenabfragen durch.
 `IBusinessDirectory` beschreibt Mandantenauflistung, Fähigkeiten und paginierte Geschäftspartnerabfragen.
 Jede Fachabfrage enthält die Quellidentität. `PartyPage` liefert den Mandanten auch bei leerer Seite zurück.
 Seitengrößen liegen zwischen 1 und 500. Adapter müssen eine stabile Reihenfolge verwenden und Such-/Typfilter
-vor der Seitenauswahl anwenden; die konkrete Suchsemantik folgt mit den Adaptern in Phase 5.
+vor der Seitenauswahl anwenden. Seit Phase 5/Punkt 3 filtern beide Adapter Anzeigename, Geschäftsnummer und
+primäre E-Mail-Adresse ohne Beachtung der Groß-/Kleinschreibung. Reihenfolge: PartyKind, Besitzer-ID,
+Datensatz-ID, jeweils ordinal. Die derzeitigen flachen Quellabfragen lesen den vollständigen Bestand,
+bevor sie die begrenzte Ergebnisseite bilden; `HasMore` wird aus einem zusätzlichen Treffer bestimmt.
+Ein erneuter Abruf liest erneut; eine transaktionsübergreifende Änderungssperre oder serverseitiges Paging
+wird dadurch nicht zugesagt.
+
+Beide Adapter implementieren Kunden, Lieferanten und Kontaktpersonen. Technische IDs werden unabhängig
+von der unveränderten Geschäftsnummer als invariant formatierte Quell-Integer abgebildet. Ein Kontakt
+behält seine eigene ID und den vollständigen Besitzerbezug aus PartyKey. Pro verwendet `fk_kunde`,
+`fk_lieferant` und `fk_kontaktperson` als SourceRecord-Typen; FinOffice `fk_kd_view` und `fk_kontaktperson`.
+FinOffice entfernt nur terminale NUL-/Leerzeichenpolster fester Textfelder. Bestehende Snapshots ohne
+SourceRecord bleiben lesbar; die Eigenschaft ist ergänzend und nicht Teil des Identitätsschlüssels.
+
+Pro liest schmale eigene GraphQL-Abfragen über den bestehenden Quantarix-Client und IProApiSession,
+ohne Bankdaten/Freifelder. Kontakte stammen ausschließlich aus der betreffenden Kunden-/Lieferantenantwort.
+Fehlende Pflichtfelder, Null-Listen, doppelte IDs oder Teilfehler sind Fehler. Ein Detail-`null` ist nur bei
+explizit vorhandenem, erfolgreichem `party: null` erlaubt; ein falscher zurückgelieferter Besitzer wird abgewiesen.
+Nichtkanonische numerische Besitzerschlüssel werden nicht still auf eine andere ID umgedeutet.
+
+FinOffice liest über die bestehende Read-only-Mandantensitzung und die Quantarix-Repositories. Die
+gemeinsame physische `fk_kd_view.lNr` muss für Kunden/Lieferanten eindeutig sein; `iKennung` trennt die
+beiden Rollen. Nur `fk_kunde2kontaktperson.lIdKunde/lIdKontaktperson` bindet Kontakte an diesen Datensatz.
+Die allgemeine `fk_kontaktperson2zuordnung.lIdZuordnung` wird nicht als Besitzer- oder Rollencode gedeutet.
+Mehrfachzuordnung eines Kontakts an verschiedene Besitzer bleibt erhalten; verwaiste oder doppelte Links
+führen zu einem Fehler. Nicht zugeordnete Kontaktpersonen werden keiner Firma oder Rolle zugeschlagen.
+Ungültige Kataloge, fehlende Schemateile, Leseprobleme und Abbruch liefern keine erfolgreiche Leerantwort.
+
+Unbekannte Zeitzonen und reine PCFK-Änderungsdaten werden nicht zu UTC-Zeitpunkten erfunden. Lediglich
+ein tatsächlich mit UTC-Kennung gelieferter Pro-Zeitpunkt belegt SourceUpdatedAtUtc. Anschriften und
+Rufnummern sowie die Capability-Matrix werden in ihren nächsten Phase-5-Punkten ergänzt.
 
 Seit Phase 5/Punkt 1 implementiert das Pro-Plugin die Firmenauflistung durch `ProBusinessDirectory`.
 Die Registry-Auflösung verwendet Quantarix.Lexware.Core und liest ausschließlich Pfad-/Endpunktmetadaten.

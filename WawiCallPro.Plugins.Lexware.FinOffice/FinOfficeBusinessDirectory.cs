@@ -6,7 +6,7 @@ using WawiCallPro.Interfaces.Parties;
 
 namespace WawiCallPro.Plugins.Lexware.FinOffice;
 
-public sealed class FinOfficeBusinessDirectory(IFinOfficeInstallationSource source) : IBusinessDirectory
+public sealed class FinOfficeBusinessDirectory(IFinOfficeInstallationSource source, FinOfficePartyDirectory parties) : IBusinessDirectory
 {
     public async Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default)
         => (await source.DetectAsync(cancellationToken).ConfigureAwait(false)).Companies;
@@ -18,14 +18,8 @@ public sealed class FinOfficeBusinessDirectory(IFinOfficeInstallationSource sour
     }
 
     public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        throw new NotSupportedException("Die Geschäftspartnerabbildung folgt im gesonderten Phase-5-Punkt.");
-    }
+        => parties.GetPartiesAsync(query, cancellationToken);
 
     public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        throw new NotSupportedException("Die Geschäftspartnerabbildung folgt im gesonderten Phase-5-Punkt.");
-    }
+        => parties.GetPartyAsync(key, cancellationToken);
 }

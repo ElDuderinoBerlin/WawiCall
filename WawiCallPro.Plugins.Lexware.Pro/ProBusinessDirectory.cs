@@ -7,7 +7,7 @@ using WawiCallPro.Interfaces.Parties;
 
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
-public sealed class ProBusinessDirectory(IProApiSession session, IProPropertyStore propertyStore) : IBusinessDirectory
+public sealed class ProBusinessDirectory(IProApiSession session, IProPropertyStore propertyStore, ProPartyDirectory parties) : IBusinessDirectory
 {
     public async Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default)
     {
@@ -36,14 +36,8 @@ public sealed class ProBusinessDirectory(IProApiSession session, IProPropertySto
     }
 
     public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        throw new NotSupportedException("Die Geschäftspartnerabbildung folgt im gesonderten Phase-5-Punkt.");
-    }
+        => parties.GetPartiesAsync(query, cancellationToken);
 
     public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        throw new NotSupportedException("Die Geschäftspartnerabbildung folgt im gesonderten Phase-5-Punkt.");
-    }
+        => parties.GetPartyAsync(key, cancellationToken);
 }
