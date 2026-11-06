@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C577-441C-8512-D027A41E98FD}"
@@ -75,8 +75,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 		Directory.Build.props = Directory.Build.props
 		Directory.Build.targets = Directory.Build.targets
 		deps.json = deps.json
-		bootstrap.ps1 = bootstrap.ps1
-		debug-build.bat = debug-build.bat
 		.github\workflows\debug.yml = .github\workflows\debug.yml
 		global.json = global.json
 		Solution.props = Solution.props
@@ -84,6 +82,28 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A50D7C-E0E2-4F86-927E-075304786242}"
 	ProjectSection(SolutionItems) = preProject
+		bootstrap.ps1 = bootstrap.ps1
+		debug-build.bat = debug-build.bat
+		debug-publish.bat = debug-publish.bat
+		release-build.bat = release-build.bat
+		release-publish.bat = release-publish.bat
+		velopack-pack.bat = velopack-pack.bat
+		velopack-release.bat = velopack-release.bat
+		velopack-release-all.bat = velopack-release-all.bat
+		velopack-release-pro.bat = velopack-release-pro.bat
+		velopack-release-finoffice.bat = velopack-release-finoffice.bat
+		generate-git-update-list.ps1 = generate-git-update-list.ps1
+		generate-git-update-list-azure.bat = generate-git-update-list-azure.bat
+		package-update.bat = package-update.bat
+		update-nuget-packages.ps1 = update-nuget-packages.ps1
+		scripts\Release.Common.psm1 = scripts\Release.Common.psm1
+		scripts\build-release.ps1 = scripts\build-release.ps1
+		scripts\publish-release.ps1 = scripts\publish-release.ps1
+		scripts\Assert-ReleasePackage.ps1 = scripts\Assert-ReleasePackage.ps1
+		scripts\Invoke-VelopackRelease.ps1 = scripts\Invoke-VelopackRelease.ps1
+		scripts\Invoke-VelopackReleaseUpload.ps1 = scripts\Invoke-VelopackReleaseUpload.ps1
+		scripts\Set-VelopackSetupFileName.ps1 = scripts\Set-VelopackSetupFileName.ps1
+		scripts\test-release-scripts.ps1 = scripts\test-release-scripts.ps1
 		scripts\build-debug.ps1 = scripts\build-debug.ps1
 		scripts\test-database-backup.ps1 = scripts\test-database-backup.ps1
 		scripts\test-database-console.ps1 = scripts\test-database-console.ps1

@@ -1035,8 +1035,17 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   innerhalb der Frist erfolgreich. Installation, Updatekoordination und Monitor-/Fokusprüfungen bleiben offen.
 - [ ] Updateprüfung, Download und Anwendung getrennt in den Host integrieren; Gespräch, Aufnahme, Migration
   und laufende Companion-Prozesse berücksichtigen. Erst nach vollständig erfolgreichem Shutdown anwenden/neustarten.
-- [ ] Release-Build-/Publish-/Pack-Orchestrierung und gemeinsame Hilfen im bestehenden `scripts/`-Ordner anlegen;
-  Root-BAT-Dateien nur als Aufrufwrapper, reguläre Debug-Ausgaben erhalten, Produkt-/Versions-/Staginggrenzen prüfen.
+- [x] ✅ Release-Build-/Publish-/Pack-Orchestrierung und gemeinsame Hilfen im bestehenden `scripts/`-Ordner angelegt;
+  Root-BAT-Dateien als PowerShell-7-Wrapper im Scripts-Solutionordner. Separate Pro-/FinOffice-Filter,
+  explizite Konfiguration/Plattform, gemeinsame SemVer und neue Stagingordner ohne Bereinigung alter Ausgaben.
+  App/Console nutzen dieselbe Desktop-Laufzeit; Hashkonflikte beim Zusammenführen brechen den Lauf ab.
+  Release-Tests verwenden ihre tatsächliche Konfiguration für Pluginfixtures und Datenbank-Testworker.
+  Zusätzlich Git-Änderungsliste und explizite NuGet-Paketpflege nur für eigene Projekte übernommen.
+  Nachweise vom 06.11.2026 unter `.artifacts/*-check.log` und `.artifacts/release`:
+  Release-Builds/Tests, beide Hostpublishes mit Diagnosen und lokale win-x64-Setups beider Produktlinien;
+  43 selbstständig ausführbare Skriptprüfungen einschließlich Fehler/Frist/Hash/Feed-Erhalt.
+  `deps.json` übernimmt die vorhandene Pcfk.Core-Revision 13227fe (MSTest-Aktualisierung), keine Arbeitskopie zurückgesetzt.
+  Produktive Signierung, Installation, Updates und die weitergehenden Abnahmepunkte bleiben offen.
 - [ ] Paketprüfung, versionierten Setupnamen samt assets.win.json und finalen Release-/Hashnachweis umsetzen;
   StripDxLicenseInformation nach letztem Kopieren auch auf eigene Plugin-Unterordner anwenden und korrekt signieren.
 - [ ] Prepare/Upload nach dem geprüften Skriptmuster trennen; eigene stabile Feedadressen, geprüfte unveränderliche

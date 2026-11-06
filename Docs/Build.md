@@ -358,3 +358,63 @@ entsprechend geprüft werden. Die lokalen erfolgreichen Builds beweisen nicht be
 Buildprotokolle und erzeugte Solution-Filter liegen unter `.artifacts/build` und werden nicht eingecheckt.
 Die GitHub-Ausführung benötigt weiterhin einen ausdrücklichen Push-Auftrag; lokale Commits erfolgen pro
 abgeschlossenem Checklistenpunkt.
+
+## Release-, Publish- und Velopack-Skripte
+
+Die Root-Aufrufe stehen wie bei LxTranslate im Solution-Ordner `Scripts`. Sie verwenden PowerShell 7;
+die Arbeitslogik liegt unter `scripts`. Ohne Produktvorgabe laufen Pro und FinOffice nacheinander.
+BAT-Aufrufe erhalten benannte PowerShell-Parameter; die positionsbezogene LxTranslate-Syntax wird nicht übernommen.
+`-Version` ist optional und verwendet sonst die Version aus `Solution.props`.
+
+```powershell
+.\release-build.bat -ProductLine Pro -Version 0.1.0
+.\release-publish.bat -ProductLine Pro -Version 0.1.0
+.\debug-publish.bat -ProductLine FinOffice
+.\velopack-release-pro.bat -Version 0.1.0
+.\velopack-release-finoffice.bat -Version 0.1.0
+.\velopack-release-all.bat -Version 0.1.0
+.\velopack-pack.bat -ProductLine Pro -Version 0.1.0
+.\scripts\test-release-scripts.ps1
+```
+
+`release-build` baut einen Produktlinienfilter und führt die eigenen passenden Testprojekte aus.
+`release-publish` veröffentlicht App und Console self-contained für win-x64, ohne SingleFile/Trimming.
+Beide Hosts verwenden dieselbe Desktop-Laufzeit; abweichende gemeinsame Dateien sind ein Fehler.
+Plugins werden rekursiv mitgenommen; nach dem Zusammenführen bereinigt das vorhandene StripDx-Tool
+alle eigenen Assemblies einschließlich Pluginunterordnern und verwendet den bestehenden Plugin-Schlüssel.
+Paketprüfung, zwei fensterlose Hostdiagnosen und ein SHA-256-Inventar schließen jeden Publish ab.
+`debug-publish` nutzt denselben Ablauf mit Debug ohne die Release-Metadatenbereinigung.
+
+`velopack-release` führt Build/Tests → Publish → Pack/Paketprüfung aus, `velopack-pack` verwendet den
+letzten erfolgreichen Release-Publish derselben Produktlinie und Version. SDK und lokale CLI sind
+gemeinsam auf 1.2.161 fixiert. Paketidentitäten: `WawiCallPro.Pro` / `WawiCallPro.FinOffice`, Kanal `win`.
+Ein optionales `-Icon` akzeptiert eine vorhandene ICO-Datei. Setupnamen enthalten die Paketversion.
+Die Skripte ändern keine aktive IDE-Konfiguration und starten keine sichtbare Anwendung.
+
+Jeder Lauf erhält einen neuen Ordner unter `.artifacts/release/<Produktlinie>/<Version>/runs/`.
+Vorhandene Ausgaben werden nicht gelöscht. `latest-Release-publish.json` bzw. `latest-Debug-publish.json`
+verweisen erst nach vollständiger Prüfung auf einen neuen Publish. Protokolle, Publish-/Release-Manifeste
+mit Commit, Dirty-Status, Abhängigkeitsrevisionen und Dateihashes liegen beim jeweiligen Lauf.
+Reguläre Buildausgaben bleiben unter `bin/<Konfiguration>/<Produktlinie>` erhalten.
+
+Es gibt keine WawiCallPro-Demoidentitäten und keine Übernahme fremder Uploadserver. Pakete werden lokal
+ohne Authenticode erstellt; produktive Signierung, Installation und N→N+1-Updateabnahme sind noch offen.
+Die frühe Velopack-Integration installiert keine automatische Updateprüfung oder Updateanwendung.
+Der getrennte Uploadhelfer unterstützt ein ausdrücklich angegebenes lokales/UNC-Feedverzeichnis:
+
+```powershell
+.\scripts\Invoke-VelopackReleaseUpload.ps1 -Mode Prepare -ProductLine Pro -Version 0.1.0 -ReleasesDirectory '<packages>'
+# Nur bei ausdrücklich gewünschter Veröffentlichung:
+.\scripts\Invoke-VelopackReleaseUpload.ps1 -Mode Upload -ProductLine Pro -Version 0.1.0 -ReleasesDirectory '<packages>' -DestinationDirectory 'D:\ReleaseFeed\pro\win-x64'
+```
+
+Der Helfer prüft Produkt, Version, Größe und SHA-1 aus dem Velopack-Feed, kopiert unveränderliche Nutzdateien
+vor dem Feed und ersetzt zuletzt die Feeddatei im Ziel. Frühere Versionen bleiben im Feed enthalten.
+Vorhandene Dateien mit abweichendem Inhalt führen zum Fehler. Netzwerk-/Hosterbetrieb und konkurrierende
+Veröffentlichungen sind damit noch nicht abgenommen; pro Feed nur einen Veröffentlichungsprozess verwenden.
+
+`generate-git-update-list.ps1` entspricht der LxTranslate-Vorlage mit WawiCallPro-Titel; Azure-Übersetzung
+ist optional und benötigt einen eigenen Schlüssel über die Umgebung oder interaktive Eingabe.
+`package-update.bat -ListOnly` zeigt Paketupdates an. Änderungen erfordern explizit
+`-Package PaketId@Version` und betreffen nur eigene Projekte der gewählten Produktlinie, keine
+Schwester-Repositories. Velopack/DevExpress bleiben zentral gemeinsam zu aktualisieren.

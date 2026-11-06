@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -155,8 +156,9 @@ public sealed class MigrationConcurrencyTests
         var output = new DirectoryInfo(AppContext.BaseDirectory);
         var variant = output.Parent!.Name;
         var root = Path.GetFullPath(Path.Combine(output.FullName, "../../../../.."));
-        var worker = Path.Combine(root, "WawiCallPro.Database.TestWorker", "bin", "Debug", variant, "net10.0", "WawiCallPro.Database.TestWorker.dll");
-        Assert.IsTrue(File.Exists(worker), "Worker must be built in regular Debug output.");
+        var configuration = typeof(MigrationConcurrencyTests).Assembly.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>()!.Configuration;
+        var worker = Path.Combine(root, "WawiCallPro.Database.TestWorker", "bin", configuration, variant, "net10.0", "WawiCallPro.Database.TestWorker.dll");
+        Assert.IsTrue(File.Exists(worker), "Worker must be built in the same regular output configuration as the tests.");
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         start.ArgumentList.Add(worker);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);

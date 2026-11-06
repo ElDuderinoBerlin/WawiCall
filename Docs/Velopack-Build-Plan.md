@@ -1,11 +1,17 @@
 # Velopack und Release-Skripte
 
-Stand: 04.11.2026. Geprüfte Planung auf Basis von LxTranslate; Umsetzung und Installationsabnahme sind
-offene Punkte in Phase 14. Dieser Block ergänzt ausschließlich Dokumentation und Solution-Verweise.
+Planungsbasis: 04.11.2026, LxTranslate. Implementierungsstand: 06.11.2026.
 Nachtrag 06.11.2026: SDK und lokale CLI sind auf 1.2.161 gepinnt; der frühe UI-freie App-Einstieg ist
 mit Fast-Exit-Prozess und Hostdiagnosen geprüft. Automatische Updateanwendung beim Start ist deaktiviert.
-Release-Skripte und installiertes Updateverhalten sind zu diesem Nachtragsstand noch offen.
-Der nächste reguläre Implementierungspunkt bleibt Phase 3, Punkt 2.
+Release-/Publish-/Pack-Skripte, Paketprüfung und versionierte Setups sind inzwischen umgesetzt; konkrete
+Aufrufe und lokale Prüfungsgrenzen stehen in [Build.md](Build.md#release--publish--und-velopack-skripte).
+Jeder Lauf verwendet einen neuen Stagingordner unter `runs/`; der letzte erfolgreiche Publish wird
+über einen konfigurationsbezogenen JSON-Nachweis gefunden. Paketprüfung berücksichtigt die drei von
+vpk ergänzten Laufzeitdateien und den von vpk ausgeschlossenen optionalen Dumphelfer.
+Prepare/Upload für ein ausdrücklich angegebenes lokales/UNC-Ziel ist mit kleinen isolierten Feeds geprüft;
+keine Serveradresse oder Signieridentität ist vorgegeben. Die folgenden Abschnitte bleiben das weitergehende
+Zielbild: Authenticode, geordnete Updatekoordination, Installerabnahme, Remotehosting und Pester-Suite sind offen.
+Nächster Nutzerauftrag: Phase 5; daraus folgt keine bereits erfolgte Installationsabnahme.
 
 ## Geprüfte Referenzen in LxTranslate
 

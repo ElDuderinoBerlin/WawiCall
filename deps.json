@@ -60,7 +60,7 @@
       "name": "Quantarix.Pcfk.Core",
       "url": "https://github.com/Quantarix/Quantarix.Pcfk.Core.git",
       "branch": "master",
-      "revision": "da59daa69ed09f45c3049b019045f52041d2205a",
+      "revision": "13227fe559450f6afc45f1e6191f60f56786c673",
       "projects": [
         "Quantarix.Pcfk.Core.csproj"
       ]

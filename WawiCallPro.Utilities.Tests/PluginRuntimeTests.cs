@@ -225,7 +225,8 @@ public sealed class PluginRuntimeTests
     private string DeploySignedFixture([CallerFilePath] string source = "")
     {
         var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
-        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "SignedRuntimePlugin", "bin", "Debug", variant, "net10.0");
+        var configuration = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "SignedRuntimePlugin", "bin", configuration, variant, "net10.0");
         var plugins = Path.Combine(_root, "plugins"); var target = Path.Combine(plugins, "SignedRuntimePlugin");
         Directory.CreateDirectory(target);
         foreach (var file in Directory.GetFiles(output)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
@@ -324,7 +325,8 @@ public sealed class PluginRuntimeTests
     private string DeployFixture([CallerFilePath] string source = "")
     {
         var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
-        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "RuntimePlugin", "bin", "Debug", variant, "net10.0");
+        var configuration = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "RuntimePlugin", "bin", configuration, variant, "net10.0");
         var plugins = Path.Combine(_root, "plugins"); var destination = Path.Combine(plugins, "RuntimePlugin");
         Directory.CreateDirectory(destination);
         // Only the fixture and its dependency manifest; abstractions must resolve to the host's loaded contract.
