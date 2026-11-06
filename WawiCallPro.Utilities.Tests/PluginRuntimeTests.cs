@@ -316,6 +316,85 @@ public sealed class PluginRuntimeTests
         });
     }
 
+    [TestMethod]
+    public async Task ConcurrentOrRepeatedStartsKeepExactlyOneOwnedPluginSession()
+    {
+        var directory = DeploySignedFixture();
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            var sessions = new CountingSessions(host.Services.GetRequiredService<IPluginSessionFactory>());
+            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(directory));
+            var starts = await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
+            {
+                try { await runtime.StartAsync(CancellationToken.None); return true; }
+                catch (InvalidOperationException) { return false; }
+            }));
+            Assert.AreEqual(1, starts.Count(started => started));
+            Assert.AreEqual(1, sessions.Created);
+            var original = await runtime.UseAsync((plugin, _) => Task.FromResult(plugin));
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => runtime.StartAsync(CancellationToken.None));
+            Assert.AreSame(original, await runtime.UseAsync((plugin, _) => Task.FromResult(plugin)));
+            Assert.IsTrue(runtime.IsLoaded);
+            await runtime.StopAsync(CancellationToken.None);
+            Assert.IsFalse(runtime.IsLoaded);
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => runtime.StartAsync(CancellationToken.None));
+            Assert.AreEqual(1, sessions.Created);
+        });
+    }
+
+    [TestMethod]
+    public async Task StoppedRuntimeCannotCreateItsFirstPluginSessionLater()
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            var sessions = new CountingSessions(host.Services.GetRequiredService<IPluginSessionFactory>());
+            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root));
+            await runtime.StopAsync(CancellationToken.None);
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => runtime.StartAsync(CancellationToken.None));
+            Assert.AreEqual(0, sessions.Created);
+        });
+    }
+
+    [TestMethod]
+    public async Task StopDuringLoadingAwaitsAndReleasesTheOnlySession()
+    {
+        var sessions = new LoadingSession();
+        await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root));
+        var start = runtime.StartAsync(CancellationToken.None);
+        await sessions.Entered.Task;
+        var stop = runtime.StopAsync(CancellationToken.None);
+        Assert.IsFalse(stop.IsCompleted);
+        sessions.Continue.SetResult();
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => start);
+        await stop;
+        Assert.AreEqual(1, sessions.Disposed);
+        Assert.IsFalse(runtime.IsLoaded);
+    }
+
+    private sealed class LoadingSession : IPluginSessionFactory, IPluginSession
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Continue { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int Disposed { get; private set; }
+        public IPluginSession Create(IReadOnlySet<string> tokens) => this;
+        public IPluginSession CreateTrusted() => this;
+        public void Load(string absoluteDirectory) => throw new NotSupportedException();
+        public async Task LoadAsync(string absoluteDirectory) { Entered.SetResult(); await Continue.Task; }
+        public IReadOnlyList<IWawiCallPlugin> GetPlugins() => [];
+        public void Dispose() => Disposed++;
+        public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+    }
+
+    private sealed class CountingSessions(IPluginSessionFactory inner) : IPluginSessionFactory
+    {
+        private int _created;
+        public int Created => _created;
+        public IPluginSession Create(IReadOnlySet<string> tokens) { Interlocked.Increment(ref _created); return inner.Create(tokens); }
+        public IPluginSession CreateTrusted() { Interlocked.Increment(ref _created); return inner.CreateTrusted(); }
+    }
+
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
     {
         services.AddSingleton(new ConfigurationLocation(_root));

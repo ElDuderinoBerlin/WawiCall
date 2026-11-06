@@ -797,8 +797,13 @@ Der Host stellt den Rahmen, das jeweils aktive Plugin liefert seine individuelle
 Zu jeder Zeit höchstens ein Warenwirtschaftsplugin je Hostprozess; Wechsel erst nach vollständiger
 Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontexts.
 
-- [ ] Erneuten oder parallelen Start der Produktpluginlaufzeit vor einer zweiten Sitzung abweisen;
-  bestehende Sitzung bei einem abgewiesenen Start erhalten und genau einmal freigeben.
+- [x] ✅ Erneuten oder parallelen Start der Produktpluginlaufzeit vor einer zweiten Sitzung abgewiesen;
+  bestehende Sitzung bleibt nutzbar. Start/Stop verwenden dasselbe Lebenszyklusgate; Stop während des
+  Ladens wartet die Freigabe ab und hinterlässt keine geladene Sitzung. Nach Stop kein erneuter Start.
+  Drei zusätzliche Tests mit echter signierter Pluginfixture bzw. kontrolliert blockiertem Laden;
+  je 86 Utilities-Tests für Pro/FinOffice, Debug-Hosts beider Varianten und vier Hostdiagnosen bestanden.
+  Gezielter Rider-Rebuild in unveränderter aktiver Konfiguration erfolgreich. Nachweise `.artifacts/single-plugin-*`.
+  Die eigentlichen Plugin-Tabs und die Plugin-Manager-Oberfläche folgen in den UI-Phasen.
 
 - [x] ✅ Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.
   Nachweis: plugin-eigenes DI-Modul über optionales `PluginServicesAttribute`, eigener Container/Scope

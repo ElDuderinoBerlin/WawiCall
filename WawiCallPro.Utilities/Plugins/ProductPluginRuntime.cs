@@ -19,14 +19,28 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
     private IPluginSession? _session;
     private volatile bool _loaded;
     private bool _disposed;
+    private bool _startCalled;
     private readonly List<IPluginLifetimeResource> _resources = [];
     public bool IsLoaded => _loaded;
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        _session = sessions.CreateTrusted();
-        try { await _session.LoadAsync(location.Directory).ConfigureAwait(false); _loaded = true; }
-        catch { await _session.DisposeAsync().ConfigureAwait(false); _session = null; throw; }
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_startCalled || _stopping.IsCancellationRequested)
+                throw new InvalidOperationException("Die Warenwirtschaftspluginlaufzeit wurde bereits gestartet oder beendet.");
+            _startCalled = true;
+            _session = sessions.CreateTrusted();
+            try
+            {
+                await _session.LoadAsync(location.Directory).ConfigureAwait(false);
+                _stopping.Token.ThrowIfCancellationRequested();
+                _loaded = true;
+            }
+            catch { await _session.DisposeAsync().ConfigureAwait(false); _session = null; throw; }
+        }
+        finally { _gate.Release(); }
     }
     public async Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default)
     {
@@ -51,6 +65,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
         await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
         {
+            _loaded = false;
             var failures = new List<Exception>();
             foreach (var resource in _resources.AsEnumerable().Reverse())
                 try { await resource.DisposeAsync().ConfigureAwait(false); } catch (Exception exception) { failures.Add(exception); }
