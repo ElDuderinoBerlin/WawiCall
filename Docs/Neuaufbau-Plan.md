@@ -791,6 +791,15 @@ Lizenzierung gehört zum entsprechenden eigenen Punkt in Phase 14; Velopack blei
 
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 
+Nutzerpräzisierung vom 06.11.2026: Oberfläche nach LxTranslate mit plugin-eigenen Kunden-/Lieferanten-Tabs
+(Stammdaten, Aufträge/Bestellungen, Projekte, Top-Artikel und weitere unterstützte Fachbereiche).
+Der Host stellt den Rahmen, das jeweils aktive Plugin liefert seine individuellen Views und Datenzugriffe.
+Zu jeder Zeit höchstens ein Warenwirtschaftsplugin je Hostprozess; Wechsel erst nach vollständiger
+Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontexts.
+
+- [ ] Erneuten oder parallelen Start der Produktpluginlaufzeit vor einer zweiten Sitzung abweisen;
+  bestehende Sitzung bei einem abgewiesenen Start erhalten und genau einmal freigeben.
+
 - [x] ✅ Pro-Adapter auf Registry/PropertyStore und APIService aufbauen; Anmeldung, Tokenerneuerung und Mandantenkontext kapseln.
   Nachweis: plugin-eigenes DI-Modul über optionales `PluginServicesAttribute`, eigener Container/Scope
   und Freigabe vor ALC-Unload, synchron wie asynchron. Registry liefert Daten-/API-Servicepfade;
