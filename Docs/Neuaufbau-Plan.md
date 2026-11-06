@@ -821,7 +821,25 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Logs: `.artifacts/phase5-item1`. Keine UI-Änderung/Renderprüfung und kein Zugriff auf echte Firmendaten.
   Zugangsdaten/Client-Identität bleiben bis Punkt 8 bewusst unkonfiguriert; keine Demo-Keys übernommen.
   Kunden-/Lieferanten-/Kontaktabbildung und Fähigkeiten folgen in ihren gesonderten Punkten.
-- [ ] FinOffice-Adapter auf Pcfk-Installationserkennung, Mandantenverwaltung und DataAccess aufbauen.
+- [x] ✅ FinOffice-Adapter auf Pcfk-Installationserkennung, Mandantenverwaltung und DataAccess aufgebaut.
+  Plugin-eigenes DI-Modul registriert den echten `PcfkInstallationManager` ohne Zugriff beim Hoststart.
+  Installation/Mandanten werden erst beim Abruf auf einem Worker über `readOnly: true` erkannt/gelesen.
+  Stabile Installationskennung aus dem kanonischen Katalogpfad; persistente Kennung explizit überschreibbar.
+  Katalogprüfung verwirft fehlende/mehrfache IDs, fehlende Namen, inkonsistente Pfade und fehlende Dateien.
+  `IFinOfficeCompanySession` öffnet je explizitem CompanyKey eine eigene Read-only-Verbindung; keine
+  Fallbackfirma, kein globaler aktiver DB-Kontext. Fehlercodes enthalten keine Quellpfade/Rohfehler.
+  Abbruch wird vor/nach den nicht abbrechbaren Quantarix-Aufrufen geprüft; laufende Verbindungen werden
+  vor Rückkehr/Abbruch freigegeben, verspätete Ergebnisse verworfen. Kein vorzeitiges Entladen laufender Arbeit.
+  Native SQLite.Interop aus dem fixierten Schwesterrepository liegt nur im FinOffice-Pluginpaket;
+  Debug verwendet die vorhandene native Releasebibliothek, wenn kein passender nativer Debug-Build vorliegt.
+  20 isolierte Tests mit echtem Quantarix-FirmaRepository/SQLite-Factory, zwei Testmandanten, Schreibschutz,
+  Parallelität, Abbruch, Freigabe und Fehlerfällen bestanden. Registry-/Installationserkennung über injizierten
+  Manager isoliert, kein Lesen echter Lexware-Bestände und keine Behauptung API-basierter Benutzerrechte.
+  Debug-Hosts/Diagnosen beider Varianten, gezielter Rider-Rebuild, Bundle-/Hash-/Shared-/Native-Prüfungen,
+  33 Pro-Regressionstests, dieselben 20 FinOffice-Tests auch in Release und 43 Skriptprüfungen bestanden.
+  Finaler FinOffice-Release-Publish samt beiden Diagnosen und Velopack-Setup inklusive privater nativer
+  SQLite-Datei bestanden (861 Publishdateien, Paketinhalt mit Hashes abgeglichen). Nachweise `.artifacts/finoffice-*`.
+  Kunden-/Lieferantenabbildung, Capability-Matrix und konkrete Fachviews bleiben die folgenden Punkte.
 - [ ] Kunden, Lieferanten und Ansprechpartner in gemeinsame DTOs abbilden; externe IDs und Quelltypen erhalten.
 - [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
 - [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.

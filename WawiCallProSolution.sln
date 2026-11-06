@@ -149,6 +149,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.License.Client", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.License.Core", "..\Quantarix.License.System\Quantarix.License.Core\Quantarix.License.Core.csproj", "{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugins.Lexware.FinOffice.Tests", "WawiCallPro.Plugins.Lexware.FinOffice.Tests\WawiCallPro.Plugins.Lexware.FinOffice.Tests.csproj", "{634B951E-956E-4B2F-9F28-170D000CD8D5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -651,6 +653,18 @@ Global
 		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x64.Build.0 = Release|Any CPU
 		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x86.ActiveCfg = Release|Any CPU
 		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C}.Release|x86.Build.0 = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|x64.Build.0 = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Debug|x86.Build.0 = Debug|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|x64.ActiveCfg = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|x64.Build.0 = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|x86.ActiveCfg = Release|Any CPU
+		{634B951E-956E-4B2F-9F28-170D000CD8D5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

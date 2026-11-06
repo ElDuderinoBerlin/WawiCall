@@ -319,6 +319,29 @@ ALC-Unload. Nachweis: 299 Tests Pro/266 FinOffice, zehn explizite Debug-Builds d
 und beider Hosts, vier Diagnose-Hoststarts sowie Deployment-/Hash-/Shared- und Native-Prüfungen.
 Logs unter `.artifacts/phase5-item1`. Kein echter Lexware-Datenzugriff und keine geänderte UI-Fläche.
 
+## FinOffice-Adapter: isolierte Prüfung
+
+Phase 5/Punkt 2 verwendet den vorhandenen PcfkInstallationManager, Mandantenkatalog und DataAccess.
+Die Installation wird erst bei einem expliziten Verzeichnisabruf erkannt, nicht beim Hoststart.
+Alle Quellverbindungen sind read-only. CompanyKey enthält Produktlinie, Installationskennung und
+Mandantennummer; unbekannte oder fremde Schlüssel werden ohne Verbindung zu einer anderen Firma abgewiesen.
+Lokale Dateirechte bestimmen den Zugriff; eine API-basierte Lexware-Benutzerberechtigung wird nicht behauptet.
+
+```powershell
+dotnet test --project .\WawiCallPro.Plugins.Lexware.FinOffice.Tests\WawiCallPro.Plugins.Lexware.FinOffice.Tests.csproj -c Debug -p:LexwareProductLine=FinOffice
+```
+
+20 Fälle nutzen ausschließlich eigene temporäre SQLite-Dateien und den echten Quantarix-Repository-/
+Verbindungsstack. Die Registry-Erkennung wird über IPcfkInstallationManager isoliert. Lesen, tatsächlicher
+Schreibschutz, zwei getrennte Mandanten, parallele Aufrufe, Abbruch, Freigabe und feste Fehlercodes sind geprüft.
+Die System.Data.SQLite-Laufzeit benötigt die passende native SQLite.Interop.dll aus dem fixierten
+sqlite-Schwesternrepository. Sie wird in das FinOffice-Pluginbundle kopiert; fehlt sie, schlägt der Build fehl.
+Bei fehlendem nativen Debug-x64-Build dient die dort vorhandene native Release-DLL wie in LxTranslate.
+Ein expliziter Pfad ist über `WawiFinOfficeSqliteInteropPath` möglich. Keine native DLL im Pro-Paket.
+Host-Projektreferenzen kopieren Plugininhalte nicht zusätzlich ins Hostroot; das vorhandene Deploymenttarget
+stellt das vollständige private Bundle bereit. Die Produktlinienfilter schließen das jeweils fremde Testprojekt aus.
+Nachweise `.artifacts/finoffice-*`; keine geänderte Oberfläche und keine GUI-Prüfung erforderlich.
+
 ## Abhängigkeiten und CI
 
 Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;
