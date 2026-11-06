@@ -61,8 +61,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 _form.FormClosing += MainFormClosing;
                 if (_diagnostics || _host.Services.GetRequiredService<AppWindowOptions>().Hidden)
                 {
-                    _form.ShowInTaskbar = false;
-                    _form.Opacity = 0;
+                    _form.PrepareForBackgroundRun();
                 }
                 else if (_host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User.StartMinimized)
                     _form.WindowState = FormWindowState.Minimized;

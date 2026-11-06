@@ -9,6 +9,7 @@ public partial class MainForm : XtraForm
 {
     private readonly ApplicationDescriptor? _application;
     private readonly ApplicationConfigurationService? _configuration;
+    private bool _backgroundRun;
 
     public MainForm()
     {
@@ -25,6 +26,26 @@ public partial class MainForm : XtraForm
     {
         ArgumentNullException.ThrowIfNull(configuration);
         _configuration = configuration;
+    }
+
+    /// <summary>Background diagnostics retain the real message loop without activating an invisible window.</summary>
+    internal void PrepareForBackgroundRun()
+    {
+        _backgroundRun = true;
+        ShowInTaskbar = false;
+        Opacity = 0;
+    }
+
+    protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var parameters = base.CreateParams;
+            if (_backgroundRun) parameters.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE also prevents activation by mouse input.
+            return parameters;
+        }
     }
 
     private void MainForm_Load(object? sender, EventArgs e)

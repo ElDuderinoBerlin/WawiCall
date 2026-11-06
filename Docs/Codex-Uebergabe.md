@@ -27,6 +27,15 @@ Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an 
 
 ## Aktueller Stand
 
+06.11.2026: AGENTS-Audit der letzten Startpipeline-/Planänderungen. Gemeinsamer Regelblock stimmt
+mit der kanonischen Fassung überein; Designertripel/resx, DI, einzelne Commits und Nachweise geprüft.
+Gefundene Lücke nachgebessert: transparente Diagnosefenster hatten keinen expliziten Aktivierungsschutz.
+MainForm.PrepareForBackgroundRun setzt zusätzlich ShowWithoutActivation/WS_EX_NOACTIVATE;
+normales Aktivierungsverhalten bleibt erhalten. Je zwölf App-Tests sowie beide Diagnose-Starts
+bestanden; nativer HWND-/Vordergrundtest nur für den unsichtbaren Hintergrundmodus. Layout unverändert.
+Native Monitor-DPI-Prüfung weiterhin offen; frühere 150%-Bilder sind eine Layoutsimulation.
+Nachweise `.artifacts/agents-audit`; keine sichtbaren Tests oder GUI-Fokuswechsel ausgelöst.
+
 Aktiver Nutzerauftrag: Program.cs von LxTranslate analysieren und fehlende Lizenz-/Crash-/Startdienste
 einbauen. Analyse wurde vor Änderungen kurz ausgegeben. Erster abgeschlossener Block: früher
 `AppExceptionBoundary`, eigene Bootstrap-DI und lokale `ICrashReporter`-/Queue-Dienste. UI-/Task-/

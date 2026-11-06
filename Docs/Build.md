@@ -287,6 +287,12 @@ für MainForm und FrmLicenseKeyInput im aktiven Skin Basic, leer/befüllt, klein
 automatisiert auf dem Benutzerdesktop ausgelöst. Der Test erstellt auch Kindhandles ausdrücklich,
 damit unangezeigte Forms tatsächlich ihre Inhalte statt leerer Flächen rendern.
 
+AGENTS-Nachprüfung vom 06.11.2026: Hintergrundfenster verwenden zusätzlich ShowWithoutActivation
+und WS_EX_NOACTIVATE, da Opacity=0 allein keine Aktivierung verhindert. Der native Test prüft den
+HWND-Stil und dass das Diagnosefenster nicht Vordergrundfenster wird; normale Fenster behalten
+ihren bisherigen Stil. Je zwölf App-Tests und Diagnose-Starts für Pro/FinOffice bestanden;
+`.artifacts/agents-audit`. Kein neuer Nachweis für Monitor-DPI, Splash oder Zweitinstanz-Fokusübergabe.
+
 Nachtrag Programmstart: lokale Crashberichte liegen unter `<Konfigurationsverzeichnis>/crash-reports`.
 Je Prozess wird der erste fatale Fehler einmal gespeichert, auch vor erfolgreichem Hoststart.
 Die Queue enthält maximal 64 atomare JSON-Dateien mit bereinigten Methodenstacks und keinen

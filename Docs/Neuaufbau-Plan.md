@@ -781,6 +781,13 @@ Lizenzierung gehört zum entsprechenden eigenen Punkt in Phase 14; Velopack blei
   FrmLicenseKeyInput mit leeren/befüllten Daten, kleinen Fenstern und 10-/16-Punkt-Schrift unsichtbar
   gerendert und visuell geprüft (64 PNGs, Skin Basic). 150%-Layoutsimulation gesondert ausgewiesen;
   keine Behauptung eines nativen Monitor-/DPI-/Vordergrundtests. `.artifacts/startup-integration`.
+  AGENTS-Nachprüfung 06.11.2026: Gemeinsamer Regelblock identisch zur kanonischen Fassung,
+  Designer-/Ressourcenaufteilung und vorhandene Prüfungsnachweise abgeglichen. Diagnosefenster
+  zusätzlich durch ShowWithoutActivation und WS_EX_NOACTIVATE gegen Aktivierung geschützt;
+  normale Fenster behalten ihr Aktivierungsverhalten. Je zwölf App-Tests und beide Diagnose-Starts
+  bestanden; nativer HWND-/Vordergrundtest ausdrücklich nur für den unsichtbaren Hintergrundmodus.
+  Keine Layoutänderung, keine sichtbaren GUI-Tests. Echter Monitor-DPI-Nachweis weiterhin offen;
+  150%-Layoutsimulation ersetzt ihn nicht. Nachweise `.artifacts/agents-audit`.
 
 ### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
 
