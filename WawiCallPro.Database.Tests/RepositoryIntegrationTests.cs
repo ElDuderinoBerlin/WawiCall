@@ -70,6 +70,63 @@ public sealed class RepositoryIntegrationTests
         Assert.IsNull(await cache.GetAsync(new(key, PartyKind.Customer, "bad")));
     }
 
+    [TestMethod]
+    public async Task AddressAndPartyProvenanceCountryTextAndDistinctPhoneSourcesSurviveCacheReload()
+    {
+        var target = await CreateAsync();
+        var context = new DatabaseRepositoryContext(target, new());
+        var company = new CompanyKey(LexwareProductLine.Pro, "address-fixture", "1");
+        await new DapperCompanyRepository(context).WriteAsync(new(new(company, "Firma"), null, RepositoryAcceptance.Time));
+        var phone = new PartyPhone(" +49 (0)351 / 12-34 ", PhoneKind.Telephone, new SourceField("fk_kunde", "1", "invoiceAddress.telephone"));
+        var second = phone with { Source = new SourceField("fk_kunde", "1", "invoiceAddress.telephone2") };
+        var address = new PartyAddress
+        {
+            ExternalId = "1/invoiceAddress", Kind = AddressKind.Billing,
+            Source = new SourceField("fk_kunde", "1", "invoiceAddress"), Street = "Hauptstraße", HouseNumber = "3a",
+            AddressLine2 = "Haus B", PostalCode = "01234", Country = "Deutschland", CountryCode = "DE", Phones = [phone, second]
+        };
+        var party = new Party
+        {
+            Key = new PartyKey(company, PartyKind.Customer, "1"), DisplayName = "Kunde", Source = new SourceRecord("fk_kunde", "1"),
+            Addresses = [address]
+        };
+        var cache = new DapperPartyCacheRepository(context);
+        await cache.ReplaceAsync(new(company, 0, [party], RepositoryAcceptance.Time));
+        var reloaded = (await cache.GetAsync(party.Key))!;
+        Assert.AreEqual(party.Source, reloaded.Source);
+        Assert.AreEqual(address.Source, reloaded.Addresses.Single().Source);
+        Assert.AreEqual("Deutschland", reloaded.Addresses[0].Country);
+        Assert.AreEqual("01234", reloaded.Addresses[0].PostalCode);
+        Assert.AreEqual("3a", reloaded.Addresses[0].HouseNumber);
+        CollectionAssert.AreEqual(new[] { phone, second }, reloaded.Addresses[0].Phones.ToArray());
+        await cache.ReplaceAsync(new(company, 1, [party with { Source = null, Addresses = [address with { Source = null, Country = null }] }], RepositoryAcceptance.Time.AddTicks(1)));
+        reloaded = (await cache.GetAsync(party.Key))!;
+        Assert.IsNull(reloaded.Source);
+        Assert.IsNull(reloaded.Addresses[0].Source);
+        Assert.IsNull(reloaded.Addresses[0].Country);
+    }
+
+    [TestMethod]
+    public async Task PartialStoredAddressSourceIsRejectedInsteadOfLosingItsProvenance()
+    {
+        var target = await CreateAsync();
+        var context = new DatabaseRepositoryContext(target, new());
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "address-fixture", "1");
+        await new DapperCompanyRepository(context).WriteAsync(new(new(company, "Firma"), null, RepositoryAcceptance.Time));
+        var party = new Party { Key = new(company, PartyKind.Customer, "1"), DisplayName = "Kunde",
+            Addresses = [new PartyAddress { ExternalId = "1/main", Kind = AddressKind.Billing }] };
+        var cache = new DapperPartyCacheRepository(context);
+        await cache.ReplaceAsync(new(company, 0, [party], RepositoryAcceptance.Time));
+        await using (var db = new DatabaseFactory().CreateConnection(target))
+        {
+            await db.OpenAsync();
+            using var command = db.CreateCommand();
+            command.CommandText = "UPDATE partyaddresses SET sourcerecordid='1'";
+            await command.ExecuteNonQueryAsync();
+        }
+        await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => cache.GetAsync(party.Key));
+    }
+
     private async Task<DatabaseTarget> CreateAsync()
     {
         var target = DatabaseTarget.Sqlite(Path.Combine(_root, "calls.db"));

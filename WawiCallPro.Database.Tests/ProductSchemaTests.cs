@@ -27,7 +27,7 @@ public sealed class ProductSchemaTests
         var migrator = new DatabaseMigrator(new(), engine);
         var status = await migrator.MigrateAsync(target);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7 }, status.AppliedVersions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8 }, status.AppliedVersions.ToArray());
         using (var db = Open(target))
         {
             Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordings,versioninfo,wawicallpro_metadata",
@@ -51,8 +51,8 @@ public sealed class ProductSchemaTests
         var target = Target();
         await new DatabaseProvisioner(new()).CreateAsync(target);
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
-        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15];
-        for (var version = 1; version <= 7; version++)
+        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15, 15];
+        for (var version = 1; version <= 8; version++)
         {
             engine.MigrateUp(target, version);
             using var db = Open(target);
@@ -200,6 +200,31 @@ public sealed class ProductSchemaTests
             Execute(db, "DROP TABLE recordings"); // Remove only the deliberate test collision.
         }
         Assert.AreEqual(DatabaseSchemaState.Current, (await migrator.MigrateAsync(target)).State);
+    }
+
+    [TestMethod]
+    public async Task VersionEightAddsNullableProvenanceWithoutChangingVersionSevenCacheData()
+    {
+        var target = Target();
+        await new DatabaseProvisioner(new()).CreateAsync(target);
+        var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
+        engine.MigrateUp(target, 7);
+        using (var db = Open(target))
+        {
+            Insert(db, "companies", Company());
+            Insert(db, "parties", Party('3', '1', 'c'));
+            Insert(db, "partyaddresses", Address());
+            Insert(db, "partyphones", Phone('6', '3', '5'));
+        }
+        await new DatabaseMigrator(new(), engine).MigrateAsync(target);
+        using (var db = Open(target))
+        {
+            Assert.AreEqual(1L, Scalar(db, "SELECT COUNT(*) FROM partyaddresses"));
+            Assert.AreEqual(1L, Scalar(db, "SELECT COUNT(*) FROM partyphones"));
+            Assert.AreEqual(1L, Scalar(db, "SELECT COUNT(*) FROM parties WHERE sourcerecordtype IS NULL AND sourcerecordid IS NULL"));
+            Assert.AreEqual(1L, Scalar(db, "SELECT COUNT(*) FROM partyaddresses WHERE sourcecountry IS NULL AND sourcerecordtype IS NULL AND sourcerecordid IS NULL AND sourcefield IS NULL"));
+            Assert.AreEqual("ok", Scalar(db, "PRAGMA integrity_check"));
+        }
     }
 
     [TestMethod]

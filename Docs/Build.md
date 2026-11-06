@@ -350,7 +350,13 @@ mit dem echten API-Client; FinOffice eigene SQLite-Dateien und den echten Reposi
 bestätigtes Nichtvorhandensein, defekte/mehrdeutige Daten, Mandantengrenzen und Abbruch. Gemeinsame
 Vertrags-/Core-/Utilities-/Datenbanktests sowie Builds/Diagnosen beider Produktlinien und die
 Deployment-/Native-Prüfung liegen unter `.artifacts/phase5-parties`. Keine produktiven Wawi-Zugriffe.
-Anschriften/Rufnummern und die Capability-Matrix sind damit noch nicht implementiert.
+Phase 5/Punkt 4 ergänzt Anschriften und Nummern: 61 Pro-/38 FinOffice-Adapterfälle sowie 88
+Datenbankfälle prüfen Felder/Quellen, Format-/Typenerhalt, Adressbezug, Cache-Rücklauf und Migration 8.
+Die Migration erweitert Stammdaten-/Adressprovenienz und den ursprünglichen Ländertext; bestehende
+Versionen werden nicht geändert. PCFK bietet im geprüften Schema keine separaten Zusatzanschriften
+oder Mobilnummern im Hauptstamm; entsprechende Grenzen stehen in [Vertraege.md](Vertraege.md).
+Builds/Diagnosen und gemeinsame Regressionen beider Produktlinien sowie Bundle-/Native-Prüfungen liegen
+unter `.artifacts/phase5-addresses`. Die Capability-Matrix und Mandantenwechsel bleiben gesonderte Punkte.
 
 ## Abhängigkeiten und CI
 

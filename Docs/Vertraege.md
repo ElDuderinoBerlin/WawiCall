@@ -3,7 +3,7 @@
 Das verbindliche [Architekturbild](Architektur.md) beschreibt die Aufteilung zwischen Hauptprogramm
 und plugin-eigenen Warenwirtschaftsviews sowie die durchgängige DI- und Telefonieinterface-Architektur.
 
-Stand: Phasen 0–4, Phase 5/Punkte 1–3 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
+Stand: Phasen 0–4, Phase 5/Punkte 1–4 und Phase 6/Punkte 1–2 abgeschlossen. Die gemeinsamen Fachverträge liegen in
 `WawiCallPro.Interfaces` (`net10.0`, bereits als Quantarix-Shared-Assembly markiert).
 Sie enthalten keine WinForms-/DevExpress-, Lexware-, SIPSorcery- oder Datenbanktypen.
 `WawiCallPro.Telephony` enthält den UI-unabhängigen Gesprächszustandsautomaten,
@@ -34,7 +34,7 @@ Firmen/Parteien erfordern weiterhin eine Auswahl. Konkrete Einstellungs-/Suchver
 | `Company` | Quellidentität und Anzeigename eines Mandanten |
 | `Party` | Abgelöste Momentaufnahme eines Kunden, Lieferanten oder einer Kontaktperson |
 | `SourceRecord` | Optionaler nativer Entitätstyp und Datensatz-ID der Party; keine native Lexware-/PCFK-Instanz |
-| `PartyAddress` | Rechnungs-, Liefer-, Zusatz- oder Kontaktanschrift einschließlich ihrer Nummern |
+| `PartyAddress` | Rechnungs-, Liefer-, Zusatz- oder Kontaktanschrift einschließlich Nummern, optionaler SourceField-Herkunft und ursprünglichem Ländertext |
 | `PartyPhone` / `SourceField` | Originalnummer, optional E.164/Nebenstelle, Nummerntyp und genaue Quellstelle |
 | `IPhoneNumberParser` / `PhoneNumberParseResult` | Offline-Parsing mit expliziter Standardregion, Original/Quelle, E.164/Extension, Prüfstatus, eigenem Nummerntyp, Länder-/Regionshinweisen und Parserversion |
 | `IPhoneNumberInterpreter` / `PhoneNumberInterpretation` | Getrennte Firmen-/Leitungskontexte, lokale Vorwahl, explizite Eingabeart und bereinigte CallAddress; keine Geschäftspartnerzuordnung |
@@ -105,8 +105,34 @@ führen zu einem Fehler. Nicht zugeordnete Kontaktpersonen werden keiner Firma o
 Ungültige Kataloge, fehlende Schemateile, Leseprobleme und Abbruch liefern keine erfolgreiche Leerantwort.
 
 Unbekannte Zeitzonen und reine PCFK-Änderungsdaten werden nicht zu UTC-Zeitpunkten erfunden. Lediglich
-ein tatsächlich mit UTC-Kennung gelieferter Pro-Zeitpunkt belegt SourceUpdatedAtUtc. Anschriften und
-Rufnummern sowie die Capability-Matrix werden in ihren nächsten Phase-5-Punkten ergänzt.
+ein tatsächlich mit UTC-Kennung gelieferter Pro-Zeitpunkt belegt SourceUpdatedAtUtc. Die Capability-Matrix
+wird im gesonderten Phase-5-Punkt ergänzt.
+
+Seit Phase 5/Punkt 4 stehen Rechnungs-/Liefer- und zusätzliche Quellanschriften einschließlich Nummern
+in Party.Addresses. Party.Phones enthält direkt zur Person gehörende Nummern, insbesondere Kontakttelefone.
+Verbraucher berücksichtigen beide Sammlungen; Adressnummern werden nicht zusätzlich als direkte
+Personennummern dupliziert. Identische Werte in verschiedenen Quellfeldern bleiben getrennt.
+OriginalValue behält Format und Leerzeichen; nur PCFK-Festtextpolster am Ende werden entfernt.
+Fax bleibt Fax; weder E.164 noch Extension werden aus der Formatierung oder einem Adresszusatz erfunden.
+
+Eingebettete Pro-Adressen ohne native ID erhalten einen stabilen Locator `<Besitzer-ID>/<GraphQL-Feld>`;
+SourceField enthält den wirklichen Besitzerdatensatz und Feldpfad. Zusätzliche Kundenanschriften haben
+ihre eigene fk_anschrift-ID. Die Lieferanten-Bestellanschrift ist eine Additional-Adresse mit
+Source.FieldName=orderAddress, nicht die Lieferanschrift. SupplierShippingAddress.Exists=false erzeugt
+keine Adresse. Kontakt-Adressverweise werden nur bei expliziter, gültiger Zuordnung übernommen und
+enthalten keine geerbten Firmennummern. Fehlende angeforderte Adresssammlungen bleiben Fehler.
+
+Pro erhält Telefon 1/2/3 und Fax an Anschriften, bei Kunden zusätzlich Mobil; Kontaktpersonen besitzen
+Telefon 1/2, Mobil und Fax. Das geprüfte FinOffice-Schema bietet Haupt-/Lieferanschrift, Telefon 1/2,
+Fax und Liefertelefon sowie Kontakt-Telefon 1/2/Mobil/Fax. Separate PCFK-Zusatzanschriften und Mobilnummern
+des Hauptstamms sind dort nicht belegt; es erfolgt keine Zuordnung eines allgemeinen Codes zu einer
+vermeintlichen Zusatzanschrift. Straße/Hausnummer bleiben in FinOffice kombiniert, wenn sie so vorliegen.
+
+PartyAddress.Country bewahrt den ursprünglichen Ländertext; CountryCode nimmt nur eine vorhandene
+zweistellige ASCII-Kennung in Großbuchstaben auf. Ein Ländername wird nicht als ISO-Code ausgegeben.
+Cache-Migration 8 erhält Country und SourceField sowie Party.Source ohne Änderungen an bestehenden
+Identitätshashes. Alte Cachezeilen haben nullable Metadaten; unvollständige gespeicherte Quellbezüge
+werden beim Lesen abgewiesen.
 
 Seit Phase 5/Punkt 1 implementiert das Pro-Plugin die Firmenauflistung durch `ProBusinessDirectory`.
 Die Registry-Auflösung verwendet Quantarix.Lexware.Core und liest ausschließlich Pfad-/Endpunktmetadaten.
@@ -224,7 +250,7 @@ berücksichtigt. Gleichzeitige Mandanten-/Geschäftspartnerfilter müssen widers
 
 ## Datenbankschema und Repository-Verträge
 
-Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–7 mit Spalten, Längen,
+Das verbindliche [Datenbankschema](Datenbankschema.md) beschreibt Versionen 1–8 mit Spalten, Längen,
 Nullbarkeit, Schlüsseln, Indizes und Löschregeln. `partyaddresses` ergänzt den bereits vereinbarten
 Geschäftspartner-/Nummerncache, damit die vorhandenen Anschriften-DTOs vollständig gespeichert werden
 können. Historische Kandidaten und Nummernfehler besitzen keinen FK auf veränderliche Cachezeilen.

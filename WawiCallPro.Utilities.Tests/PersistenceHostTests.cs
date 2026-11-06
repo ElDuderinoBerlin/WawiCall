@@ -56,7 +56,7 @@ public sealed class PersistenceHostTests
             var database = host.Services.GetRequiredService<ICommunicationDatabase>(); var progress = new ProgressCapture();
             Assert.AreEqual(DatabaseSchemaState.Current, (await database.CreateAndMigrateAsync(progress, token)).State);
             Assert.AreEqual(DatabaseMigrationPhase.Completed, progress.Values.Last().Phase);
-            CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7 }, progress.Values.Where(value => value.Phase == DatabaseMigrationPhase.Applying).Select(value => value.Version!.Value).ToArray());
+            CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8 }, progress.Values.Where(value => value.Phase == DatabaseMigrationPhase.Applying).Select(value => value.Version!.Value).ToArray());
             id = (await host.Services.GetRequiredService<IWorkstationIdentity>().GetAsync(token))!.Value;
             var started = DateTimeOffset.UtcNow;
             var call = new CallSnapshot { Id = Guid.NewGuid(), Revision = 0, Direction = CallDirection.Outgoing, State = CallState.Created,

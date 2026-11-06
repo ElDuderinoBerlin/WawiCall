@@ -110,6 +110,8 @@ public sealed class ContractTests
                 {
                     ExternalId = "009",
                     Kind = AddressKind.Additional,
+                    Source = new SourceField("fk_anschrift", "009", "additionalAddresses"),
+                    Country = "Deutschland",
                     PostalCode = "01234",
                     City = "Dresden",
                     Phones = [phone]
@@ -124,6 +126,8 @@ public sealed class ContractTests
         Assert.AreEqual(party.Source, restored.Source);
         Assert.AreEqual("Müller & Söhne", restored.DisplayName);
         Assert.AreEqual("01234", restored.Addresses[0].PostalCode);
+        Assert.AreEqual("Deutschland", restored.Addresses[0].Country);
+        Assert.AreEqual(party.Addresses[0].Source, restored.Addresses[0].Source);
         Assert.AreEqual(phone, restored.Addresses[0].Phones[0]);
         Assert.IsTrue(restored.Phones.IsEmpty);
         Assert.AreEqual(party.Key, RoundTrip(new PartyKey(CreateCompany(), PartyKind.Customer, "00042")));

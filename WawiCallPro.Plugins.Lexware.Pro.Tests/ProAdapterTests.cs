@@ -336,11 +336,11 @@ public sealed class ProAdapterTests
 
     private const string PartyCustomer = """
         {"id":1,"number":"00042","matchcode":"fallback","inactive":1,"modifiedDate":"2026-11-06T12:00:00",
-         "invoiceAddress":{"company":"Kunde Ä","email":"customer@example.invalid"},
+         "invoiceAddress":{"company":"Kunde Ä","email":"customer@example.invalid"},"shippingAddress":null,"additionalAddresses":[],
          "contactPersons":[{"id":7,"firstName":"Ada","lastName":"Kundenkontakt","email1":"ada@example.invalid"}]}
         """;
     private const string PartySupplier = """
-        {"id":1,"number":"00042","invoiceAddress":{"firstName":"Ben","lastName":"Lieferant"},
+        {"id":1,"number":"00042","invoiceAddress":{"firstName":"Ben","lastName":"Lieferant"},"shippingAddress":null,"orderAddress":null,
          "contactPersons":[{"id":7,"firstName":"Ben","lastName":"Lieferantenkontakt","email1":"ben@example.invalid"}]}
         """;
 
@@ -437,10 +437,10 @@ public sealed class ProAdapterTests
     [TestMethod]
     [DataRow("{\"data\":{}}")]
     [DataRow("{\"data\":{\"parties\":null}}")]
-    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"0001\",\"invoiceAddress\":null}]}}")]
-    [DataRow("{\"data\":{\"parties\":[{\"id\":0,\"number\":\"0001\",\"invoiceAddress\":null,\"contactPersons\":[]}]}}")]
-    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":null,\"invoiceAddress\":null,\"contactPersons\":[]}]}}")]
-    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"1\",\"invoiceAddress\":null,\"contactPersons\":[{\"id\":0}]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"0001\",\"invoiceAddress\":null,\"shippingAddress\":null,\"additionalAddresses\":[]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":0,\"number\":\"0001\",\"invoiceAddress\":null,\"shippingAddress\":null,\"additionalAddresses\":[],\"contactPersons\":[]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":null,\"invoiceAddress\":null,\"shippingAddress\":null,\"additionalAddresses\":[],\"contactPersons\":[]}]}}")]
+    [DataRow("{\"data\":{\"parties\":[{\"id\":1,\"number\":\"1\",\"invoiceAddress\":null,\"shippingAddress\":null,\"additionalAddresses\":[],\"contactPersons\":[{\"id\":0}]}]}}")]
     [DataRow("{\"data\":{\"parties\":[null]}}")]
     [DataRow("{\"data\":{\"parties\":[]},\"errors\":[{\"message\":\"private-source-value\"}]}")]
     public async Task IncompletePartyResponsesNeverBecomeSuccessfulEmptySnapshots(string response)
@@ -502,6 +502,120 @@ public sealed class ProAdapterTests
         cancellation.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => read);
     }
+
+    private const string AddressCustomer = """
+        {"id":1,"number":"00042","invoiceAddress":{"company":"Kunde","street":"Hauptstraße","houseNumber":"3a",
+          "extension":"Haus B, 2. OG","postalcode":"01234","city":"Dresden","country":"Deutschland",
+          "telephone":" +49 (0)351 / 12-34 ","telephone2":"0351/44","telephone3":" ","cellphone":"0170 123 45","fax":"0351/99"},
+         "shippingAddress":{"street":"Lieferweg","houseNumber":"5","postalcode":"00123","country":"de","telephone":"0351/55"},
+         "additionalAddresses":[{"id":101,"businessPartnerId":1,"company":"Lager","country":"AT","telephone":"0043 1 234","cellphone":"0043 1 234"}],
+         "contactPersons":[{"id":7,"firstName":"Ada","phone1":"030/1","phone2":"030/2","mobil":"0171-1","fax":"030/9",
+           "additionalAddressId":101,"contactPersonAddressType":"ADDITIONAL_ADDRESS"}]}
+        """;
+
+    [TestMethod]
+    public async Task CustomerAddressesKeepOriginalNumbersPostalFieldsAndExactSourceLocations()
+    {
+        await using var provider = Build(AddressHandler(AddressCustomer));
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var page = await directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(), Kind: PartyKind.Customer));
+        var customer = page.Page.Items.Single();
+        Assert.HasCount(3, customer.Addresses);
+        var billing = customer.Addresses.Single(address => address.Kind == AddressKind.Billing);
+        Assert.AreEqual("Hauptstraße", billing.Street);
+        Assert.AreEqual("3a", billing.HouseNumber);
+        Assert.AreEqual("Haus B, 2. OG", billing.AddressLine2);
+        Assert.AreEqual("01234", billing.PostalCode);
+        Assert.AreEqual("Deutschland", billing.Country);
+        Assert.IsNull(billing.CountryCode);
+        Assert.AreEqual(new SourceField("fk_kunde", "1", "invoiceAddress"), billing.Source);
+        Assert.HasCount(4, billing.Phones);
+        Assert.AreEqual(" +49 (0)351 / 12-34 ", billing.Phones[0].OriginalValue);
+        Assert.AreEqual(new SourceField("fk_kunde", "1", "invoiceAddress.telephone"), billing.Phones[0].Source);
+        Assert.AreEqual(PhoneKind.Mobile, billing.Phones[2].Kind);
+        Assert.IsTrue(billing.Phones.All(phone => phone.E164 is null && phone.Extension is null));
+        var shipping = customer.Addresses.Single(address => address.Kind == AddressKind.Shipping);
+        Assert.AreEqual("00123", shipping.PostalCode);
+        Assert.AreEqual("DE", shipping.CountryCode);
+        Assert.AreEqual("de", shipping.Country);
+        var additional = customer.Addresses.Single(address => address.Kind == AddressKind.Additional);
+        Assert.AreEqual("101", additional.ExternalId);
+        Assert.AreEqual(new SourceField("fk_anschrift", "101", "additionalAddresses"), additional.Source);
+        Assert.HasCount(2, additional.Phones);
+        Assert.AreEqual(additional.Phones[0].OriginalValue, additional.Phones[1].OriginalValue);
+        Assert.AreNotEqual(additional.Phones[0].Source, additional.Phones[1].Source);
+        Assert.IsEmpty(customer.Phones);
+        var detail = await directory.GetPartyAsync(customer.Key);
+        Assert.AreEqual(billing.Source, detail!.Addresses[0].Source);
+        Assert.AreEqual(billing.Phones[0], detail.Addresses[0].Phones[0]);
+    }
+
+    [TestMethod]
+    public async Task ContactsKeepTheirOwnNumbersAndOnlyExplicitlyReferencedPostalAddresses()
+    {
+        await using var provider = Build(AddressHandler(AddressCustomer));
+        var contact = (await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.CustomerContact))).Page.Items.Single();
+        Assert.HasCount(4, contact.Phones);
+        Assert.AreEqual(new SourceField("fk_kontaktperson", "7", "mobil"), contact.Phones.Single(phone => phone.Kind == PhoneKind.Mobile).Source);
+        Assert.AreEqual("0171-1", contact.Phones.Single(phone => phone.Kind == PhoneKind.Mobile).OriginalValue);
+        var address = contact.Addresses.Single();
+        Assert.AreEqual(AddressKind.Contact, address.Kind);
+        Assert.AreEqual("101", address.ExternalId);
+        Assert.IsEmpty(address.Phones);
+        Assert.AreEqual("Lager", address.CompanyName);
+    }
+
+    [TestMethod]
+    public async Task SupplierOrderAddressIsAnAdditionalLocationAndAbsentShippingDoesNotBecomeAPhantomAddress()
+    {
+        const string supplier = """
+            {"id":1,"number":"00042","invoiceAddress":{"company":"Lieferant","telephone":"040/1"},
+             "shippingAddress":{"exists":false,"telephone":"must-not-be-used"},
+             "orderAddress":{"street":"Bestellweg","telephone2":"040/2"},"contactPersons":[]}
+            """;
+        var handler = AddressHandler(supplier);
+        await using var provider = Build(handler);
+        var party = (await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest(), Kind: PartyKind.Supplier))).Page.Items.Single();
+        Assert.HasCount(2, party.Addresses);
+        var order = party.Addresses.Single(address => address.Kind == AddressKind.Additional);
+        Assert.AreEqual(new SourceField("fk_lieferant", "1", "orderAddress"), order.Source);
+        Assert.AreEqual("040/2", order.Phones.Single().OriginalValue);
+        Assert.IsFalse(party.Addresses.SelectMany(address => address.Phones).Any(phone => phone.OriginalValue == "must-not-be-used"));
+        var query = handler.Requests.Last().Query;
+        Assert.IsFalse(query.Contains("cellphone", StringComparison.Ordinal));
+        Assert.IsFalse(query.Contains("additionalAddresses {", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    [DataRow("foreign-owner")]
+    [DataRow("missing-id")]
+    [DataRow("duplicate")]
+    [DataRow("null-list")]
+    [DataRow("missing-field")]
+    [DataRow("unknown-contact-address")]
+    public async Task InvalidAddressOwnershipOrIncompleteCollectionsFailInsteadOfDroppingData(string fault)
+    {
+        var record = fault switch
+        {
+            "foreign-owner" => AddressCustomer.Replace("\"businessPartnerId\":1", "\"businessPartnerId\":2", StringComparison.Ordinal),
+            "missing-id" => AddressCustomer.Replace("\"id\":101,", "\"id\":0,", StringComparison.Ordinal),
+            "duplicate" => AddressCustomer.Replace("\"additionalAddresses\":[", "\"additionalAddresses\":[{\"id\":101},", StringComparison.Ordinal),
+            "null-list" => PartyCustomer.Replace("\"additionalAddresses\":[]", "\"additionalAddresses\":null", StringComparison.Ordinal),
+            "missing-field" => PartyCustomer.Replace("\"additionalAddresses\":[],", "", StringComparison.Ordinal),
+            _ => AddressCustomer.Replace("\"additionalAddressId\":101", "\"additionalAddressId\":999", StringComparison.Ordinal)
+        };
+        await using var provider = Build(AddressHandler(record));
+        var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(
+            new PartyQuery(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), new PageRequest())));
+        Assert.AreEqual(ProFailure.InvalidResponse, error.Failure);
+    }
+
+    private static ScriptedHandler AddressHandler(string record) => new((request, _) => Task.FromResult(IsLogin(request)
+        ? Json("""{"data":{"token":"opaque-token"}}""")
+        : Json(request.Query.Contains("party:", StringComparison.Ordinal) ? "{\"data\":{\"party\":" + record + "}}" : "{\"data\":{\"parties\":[" + record + "]}}")));
 
     private static ScriptedHandler PartyHandler() => new((request, _) =>
     {

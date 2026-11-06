@@ -59,6 +59,7 @@ public sealed class FinOfficePartyDirectory(IFinOfficeCompanySession sessions)
                 supplier.Vorname, supplier.Name, supplier.Matchcode, supplier.EMail, supplier.Geloescht));
         }
         if (parties.Select(party => party.Key.ExternalId).Distinct(StringComparer.Ordinal).Count() != parties.Count) throw InvalidCatalog();
+        await FinOfficePartyAddresses.ApplyAsync(connection, parties, token).ConfigureAwait(false);
         var owners = parties.ToDictionary(party => party.Key.ExternalId, StringComparer.Ordinal);
         var people = (await new PcfkKontaktRepository(connection).GetKontaktpersonenAsync().ConfigureAwait(false)).ToArray();
         if (people.Any(person => person.Id <= 0) || people.Select(person => person.Id).Distinct().Count() != people.Length) throw InvalidCatalog();
@@ -78,7 +79,10 @@ public sealed class FinOfficePartyDirectory(IFinOfficeCompanySession sessions)
             {
                 Key = key, Source = new SourceRecord("fk_kontaktperson", Id(contact.Id)),
                 DisplayName = Name(null, contact.Vorname, contact.Name, contact.EMail1, null, Id(contact.Id)),
-                Email = Clean(contact.EMail1), IsInactive = owner.IsInactive
+                Email = Clean(contact.EMail1), IsInactive = owner.IsInactive,
+                Phones = FinOfficePartyAddresses.ContactPhones(Id(contact.Id),
+                    (contact.Telefon1, PhoneKind.Telephone, "szTel1"), (contact.Telefon2, PhoneKind.Telephone, "szTel2"),
+                    (contact.Mobil, PhoneKind.Mobile, "szMobil"), (contact.Fax, PhoneKind.Fax, "szFax"))
             });
         }
         token.ThrowIfCancellationRequested();

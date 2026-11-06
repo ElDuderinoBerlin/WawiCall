@@ -1,6 +1,7 @@
 # Kommunikationsdatenbank: Schema und Repository-Verträge
 
-Stand: 04.11.2026, Phase 3 vollständig abgeschlossen. Die Migrationen 1–7 sind implementiert.
+Stand: 06.11.2026, Phase 3 vollständig abgeschlossen. Die Migrationen 1–8 sind implementiert;
+Migration 8 ergänzt auf Phase-5-Auftrag die Stammdaten-/Adressherkunft und ursprünglichen Ländertext.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
@@ -383,6 +384,27 @@ Migration 7 ergänzt `companies.cacheparserversion` und `cachecontextversion` al
 Beide sind gemeinsam null (unbekannter Altstand) oder beide nicht leer bei cacheversion > 0.
 Ein Cacheersatz speichert diese Angaben zusammen mit Revision und Zeitpunkt atomar; alte Aufrufer
 ohne Metadaten erzeugen ausdrücklich keinen als kompatibel ausgewiesenen Cache.
+
+## Version 8: Herkunft der Stammdaten und Anschriften
+
+Migration 8 ergänzt ausschließlich nullable Unicode-Spalten:
+
+| Tabelle | Neue Spalten |
+|---|---|
+| parties | sourcerecordtype text(128), sourcerecordid text(256) |
+| partyaddresses | sourcecountry text(512), sourcerecordtype text(128), sourcerecordid text(256), sourcefield text(256) |
+
+Damit bleiben Party.Source, PartyAddress.Source und der ursprüngliche Ländertext bei einem Cacheersatz
+und nach erneutem Lesen erhalten. countrycode bleibt die getrennte zweistellige Kennung.
+Quellmetadaten gehören nicht zu den bestehenden Identitätshashes; ein Update ändert daher keine
+Geschäftspartner-/Adressidentität. Altzeilen erhalten NULL, keine erfundenen Quellwerte.
+Der Speichervertrag validiert Länge und vollständige Quellbezüge; unvollständige Metadaten werden beim
+Lesen abgewiesen. SQLite prüft die neuen Textlängen zusätzlich über CHECK.
+
+Nachweis: gefüllter SQLite-Bestand Version 7 → 8 einschließlich Adress-/Telefonzeilen,
+Unversehrtheit und nullable Altwerte; Cache-Rücklauf mit Ländername, Postleitzahl, Quellmetadaten und
+gleichen Nummern aus verschiedenen Feldern. `.artifacts/phase5-addresses`. Für Version 8 wurde kein
+zusätzlicher nativer Serverlauf ausgeführt; historische Servernachweise gelten für ihre dokumentierten Stände.
 
 ## Späterer Office-Ausbau
 

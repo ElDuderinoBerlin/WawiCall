@@ -39,6 +39,7 @@ public sealed record PartyAddress
 {
     public required string ExternalId { get; init; }
     public required AddressKind Kind { get; init; }
+    public SourceField? Source { get; init; }
     public string? CompanyName { get; init; }
     public string? FirstName { get; init; }
     public string? LastName { get; init; }
@@ -48,6 +49,8 @@ public sealed record PartyAddress
     public string? PostalCode { get; init; }
     public string? City { get; init; }
     public string? CountryCode { get; init; }
+    /// <summary>Original source country text; may be a name rather than a two-letter code.</summary>
+    public string? Country { get; init; }
     public string? Email { get; init; }
     public ImmutableArray<PartyPhone> Phones { get; init; } = [];
 }

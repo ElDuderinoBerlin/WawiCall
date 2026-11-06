@@ -855,7 +855,26 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Rider-Rebuild in unveränderter aktiver Konfiguration bestanden. Bundle-/Hash-/Shared-/Native-Prüfung bestanden.
   Logs `.artifacts/phase5-parties`; keine echten Lexware-Daten oder geänderten Oberflächen.
   Anschriften/Rufnummern, Mandantenwechsel, Capability-Matrix und Zugangskonfiguration bleiben die folgenden Punkte.
-- [ ] Rechnungs-, Liefer- und Zusatzanschriften samt Telefon-/Mobilnummern erfassen.
+- [x] ✅ Rechnungs-, Liefer- und Zusatzanschriften samt verfügbaren Telefon-/Mobilnummern erfasst.
+  Pro liest vollständige Kunden-Rechnungs-/Liefer-/Zusatzanschriften und die Rechnungs-/Liefer-/Bestellanschrift
+  des Lieferanten. Bestellanschriften bleiben als zusätzliche Adresse mit eigener Quelle `orderAddress`
+  unterscheidbar. Eingebettete Adressen ohne native ID erhalten einen stabilen Besitzer-/Feld-Locator;
+  Zusatzanschriften behalten ihre native ID. Falsche Besitzer, doppelte IDs, fehlende Pflichtsammlungen
+  und ungültige Kontakt-Adressverweise werden abgewiesen. Explizit nicht vorhandene Lieferanschriften bleiben aus.
+  FinOffice liest die geprüften Felder aus `fk_kd_view`: Haupt-/Lieferanschrift, Telefon 1/2, Fax und
+  Liefertelefon. Mobilnummern stammen aus den expliziten Kontaktpersonen. Separate Zusatzanschriften oder
+  Mobilfelder des Hauptstamms sind im geprüften PCFK-Schema nicht belegt und werden nicht erfunden.
+  Alle Nummern behalten Originalformat, Typ und genaue SourceField-Herkunft; keine automatische E.164-/
+  Nebenstellenableitung und keine Zusammenlegung gleicher Werte aus verschiedenen Feldern.
+  Kontaktpersonen erhalten eigene Nummern; eine explizit referenzierte gemeinsame Postanschrift übernimmt
+  keine allgemeinen Firmennummern. Ursprüngliche Ländertexte und eindeutige zweistellige Länderkennungen
+  bleiben getrennt. FinOffice-Hausnummern werden nicht aus kombinierten Straßenwerten geraten.
+  Migration 8 ergänzt nullable Quellmetadaten/Ländertext im Cache, einschließlich Party.Source aus Punkt 3;
+  bisherige Migrationen unverändert, gefüllter Version-7-Testbestand erhalten und Cache-Rücklauf geprüft.
+  61 Pro-/38 FinOffice-Adapterfälle, 88 Datenbankfälle, gemeinsame Regressionstests, Debug-Builds und vier
+  Diagnosestarts beider Varianten sowie gezielter Rider-Rebuild und Bundle-/Native-Prüfungen bestanden.
+  Nachweise `.artifacts/phase5-addresses`; isolierte API-/SQLite-Daten, keine echten Wawi-Zugriffe oder UI-Änderungen.
+  Neue Migration nativ auf SQLite geprüft; keine zusätzliche native Server-/Live-API-Abnahme in diesem Block.
 - [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
   Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,

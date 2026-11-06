@@ -356,6 +356,81 @@ public sealed class FinOfficeAdapterTests
         Assert.IsEmpty(_manager.Connections);
     }
 
+    [TestMethod]
+    [DataRow(PartyKind.Customer, "11")]
+    [DataRow(PartyKind.Supplier, "12")]
+    public async Task MainAndShippingAddressesKeepPcfkPhoneFieldsAndCountryNames(PartyKind kind, string id)
+    {
+        await SeedPartiesAsync();
+        using (var db = await Open(_manager.CompanyPath(1), false))
+            await db.ExecuteAsync("""
+                UPDATE fk_kd_view SET szStrasse=@street, szZusatz=@extra, szPLZ=@postal, szOrt='Dresden',
+                  szLand='DE', szLandBez='Deutschland', szTel1=@phone, szTel2=@phone, szFax='0351/99',
+                  szLieferStrasse='Lieferweg 5', szLieferZusatz='Lager', szLieferPLZ='00123',
+                  szLieferOrt='Wien', szLieferLand='AT', szLandBezLiefer=@country, szLieferTel='0043 1 234'
+                WHERE lNr=@id
+                """, new { id, street = PcfkDbString.Ansi("Hauptstraße 3a", 35), extra = PcfkDbString.Ansi("Haus B", 60),
+                    postal = PcfkDbString.Ansi("01234", 10), phone = PcfkDbString.Ansi(" +49 (0)351 / 12-34", 20), country = PcfkDbString.Ansi("Österreich", 35) });
+        await using var provider = Build();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var key = new PartyKey(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), kind, id);
+        var party = (await directory.GetPartyAsync(key))!;
+        Assert.HasCount(2, party.Addresses);
+        var billing = party.Addresses.Single(address => address.Kind == AddressKind.Billing);
+        Assert.AreEqual("Hauptstraße 3a", billing.Street);
+        Assert.IsNull(billing.HouseNumber);
+        Assert.AreEqual("Haus B", billing.AddressLine2);
+        Assert.AreEqual("01234", billing.PostalCode);
+        Assert.AreEqual("DE", billing.CountryCode);
+        Assert.AreEqual("Deutschland", billing.Country);
+        Assert.AreEqual(new SourceField("fk_kd_view", id, "szStrasse"), billing.Source);
+        Assert.HasCount(3, billing.Phones);
+        Assert.AreEqual(" +49 (0)351 / 12-34", billing.Phones[0].OriginalValue);
+        Assert.AreEqual(billing.Phones[0].OriginalValue, billing.Phones[1].OriginalValue);
+        Assert.AreNotEqual(billing.Phones[0].Source, billing.Phones[1].Source);
+        Assert.AreEqual(new SourceField("fk_kd_view", id, "szTel1"), billing.Phones[0].Source);
+        Assert.IsTrue(billing.Phones.All(phone => phone.E164 is null && phone.Extension is null));
+        var shipping = party.Addresses.Single(address => address.Kind == AddressKind.Shipping);
+        Assert.AreEqual("00123", shipping.PostalCode);
+        Assert.AreEqual("Österreich", shipping.Country);
+        Assert.AreEqual(new SourceField("fk_kd_view", id, "szLieferTel"), shipping.Phones.Single().Source);
+        Assert.IsEmpty(party.Phones);
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    public async Task ContactPhoneAndMobileFieldsStayOwnedByEachExplicitContactKey()
+    {
+        await SeedPartiesAsync();
+        using (var db = await Open(_manager.CompanyPath(1), false))
+            await db.ExecuteAsync("UPDATE fk_kontaktperson SET szTel1='030/1', szTel2='030/2', szMobil='0171-1', szFax='030/9' WHERE lID=77");
+        await using var provider = Build();
+        var result = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest()));
+        var contacts = result.Page.Items.Where(party => party.Key.ExternalId == "77").ToArray();
+        Assert.HasCount(2, contacts);
+        foreach (var contact in contacts)
+        {
+            Assert.HasCount(4, contact.Phones);
+            Assert.AreEqual("0171-1", contact.Phones.Single(phone => phone.Kind == PhoneKind.Mobile).OriginalValue);
+            Assert.AreEqual(new SourceField("fk_kontaktperson", "77", "szMobil"), contact.Phones.Single(phone => phone.Kind == PhoneKind.Mobile).Source);
+            Assert.IsEmpty(contact.Addresses);
+        }
+    }
+
+    [TestMethod]
+    public async Task MissingShippingAndBlankNumbersStayEmptyWithoutInventingAdditionalAddresses()
+    {
+        await SeedPartiesAsync();
+        using (var db = await Open(_manager.CompanyPath(1), false))
+            await db.ExecuteAsync("UPDATE fk_kd_view SET szTel1=@phone, szTel2='', szLieferTel=''", new { phone = PcfkDbString.Ansi("   ", 20) });
+        await using var provider = Build();
+        var result = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), new PageRequest(), Kind: PartyKind.Customer));
+        Assert.IsTrue(result.Page.Items.All(party => party.Addresses.Length == 1 && party.Addresses[0].Kind == AddressKind.Billing));
+        Assert.IsTrue(result.Page.Items.All(party => party.Addresses[0].Phones.IsEmpty));
+    }
+
     private async Task SeedPartiesAsync()
     {
         foreach (var nr in new[] { 1, 2 })
@@ -363,20 +438,20 @@ public sealed class FinOfficeAdapterTests
             using var connection = await Open(_manager.CompanyPath(nr), false);
             await connection.ExecuteAsync("""
                 CREATE TABLE fk_kd_view (lNr INTEGER, iKennung INTEGER, szKundenNr TEXT, szFirma TEXT,
-                  szVorName TEXT, szName TEXT, szMatchcode TEXT, szEMail TEXT, fGeloescht INTEGER, datGeaendert INTEGER);
-                CREATE TABLE fk_kontaktperson (lID INTEGER, szVorname TEXT, szName TEXT, szEmail1 TEXT);
+                  szVorName TEXT, szName TEXT, szMatchcode TEXT, szEMail TEXT, fGeloescht INTEGER, datGeaendert INTEGER, szStrasse TEXT, szZusatz TEXT, szPLZ TEXT, szOrt TEXT, szLand TEXT, szLandBez TEXT, szTel1 TEXT, szTel2 TEXT, szFax TEXT, szLieferStrasse TEXT, szLieferZusatz TEXT, szLieferPLZ TEXT, szLieferOrt TEXT, szLieferLand TEXT, szLandBezLiefer TEXT, szLieferTel TEXT);
+                CREATE TABLE fk_kontaktperson (lID INTEGER, szVorname TEXT, szName TEXT, szEmail1 TEXT, szTel1 TEXT, szTel2 TEXT, szMobil TEXT, szFax TEXT);
                 CREATE TABLE fk_kunde2kontaktperson (lID INTEGER, lIdKunde INTEGER, lIdKontaktperson INTEGER);
                 -- General assignment codes are deliberately unrelated to the customer owner ID.
                 CREATE TABLE fk_kontaktperson2zuordnung (lId INTEGER, lIdKontaktperson INTEGER, lIdZuordnung INTEGER);
                 """);
             if (nr != 1) continue;
             await connection.ExecuteAsync("""
-                INSERT INTO fk_kd_view VALUES (11, 0, @number, @name, null, null, 'match', 'customer@example.invalid', 1, @modified);
-                INSERT INTO fk_kd_view VALUES (12, 1, '00042', 'Lieferant', null, null, null, null, 0, null);
-                INSERT INTO fk_kd_view VALUES (13, 0, '00013', null, 'Chris', 'Kunde', null, null, 0, null);
-                INSERT INTO fk_kontaktperson VALUES (77, 'Alice', 'Kontakt', 'alice@example.invalid');
-                INSERT INTO fk_kontaktperson VALUES (78, 'Chris', 'Kontakt', 'chris@example.invalid');
-                INSERT INTO fk_kontaktperson VALUES (99, 'Ohne', 'Zuordnung', null);
+                INSERT INTO fk_kd_view (lNr,iKennung,szKundenNr,szFirma,szVorName,szName,szMatchcode,szEMail,fGeloescht,datGeaendert) VALUES (11, 0, @number, @name, null, null, 'match', 'customer@example.invalid', 1, @modified);
+                INSERT INTO fk_kd_view (lNr,iKennung,szKundenNr,szFirma,szVorName,szName,szMatchcode,szEMail,fGeloescht,datGeaendert) VALUES (12, 1, '00042', 'Lieferant', null, null, null, null, 0, null);
+                INSERT INTO fk_kd_view (lNr,iKennung,szKundenNr,szFirma,szVorName,szName,szMatchcode,szEMail,fGeloescht,datGeaendert) VALUES (13, 0, '00013', null, 'Chris', 'Kunde', null, null, 0, null);
+                INSERT INTO fk_kontaktperson (lID,szVorname,szName,szEmail1) VALUES (77, 'Alice', 'Kontakt', 'alice@example.invalid');
+                INSERT INTO fk_kontaktperson (lID,szVorname,szName,szEmail1) VALUES (78, 'Chris', 'Kontakt', 'chris@example.invalid');
+                INSERT INTO fk_kontaktperson (lID,szVorname,szName,szEmail1) VALUES (99, 'Ohne', 'Zuordnung', null);
                 INSERT INTO fk_kunde2kontaktperson VALUES (1, 11, 77), (2, 12, 77), (3, 13, 78);
                 INSERT INTO fk_kontaktperson2zuordnung VALUES (1, 99, 11);
                 """, new { number = PcfkDbString.Ansi("00042", 20), name = PcfkDbString.Ansi("Kunde Ä", 60), modified = PcfkDateTimeConverter.ToLxDate(new DateOnly(2026, 11, 6)) });

@@ -60,6 +60,11 @@ internal static class StorageContract
         Text(party.DisplayName, 512, nameof(party.DisplayName), required: true);
         Text(party.Number, 128, nameof(party.Number));
         Text(party.Email, 320, nameof(party.Email));
+        if (party.Source is { } partySource)
+        {
+            Text(partySource.RecordType, 128, nameof(partySource.RecordType), required: true);
+            Text(partySource.RecordId, 256, nameof(partySource.RecordId), required: true);
+        }
         if (party.SourceUpdatedAtUtc is { } updated) Utc(updated);
         Array(party.Phones);
         Array(party.Addresses);
@@ -80,6 +85,8 @@ internal static class StorageContract
             Text(address.PostalCode, 32, nameof(address.PostalCode));
             Text(address.City, 256, nameof(address.City));
             Text(address.CountryCode, 2, nameof(address.CountryCode));
+            Text(address.Country, 512, nameof(address.Country));
+            if (address.Source is { } source) Source(source);
             Text(address.Email, 320, nameof(address.Email));
             Array(address.Phones);
             foreach (var phone in address.Phones) Phone(phone);

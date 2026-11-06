@@ -90,6 +90,7 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
                     ["id"] = id, ["companyid"] = company.Text("id"), ["sourcehash"] = hash, ["kind"] = (int)party.Key.Kind,
                     ["externalid"] = party.Key.ExternalId, ["ownerexternalid"] = party.Key.OwnerExternalId, ["displayname"] = party.DisplayName,
                     ["number"] = party.Number, ["email"] = party.Email, ["isinactive"] = party.IsInactive,
+                    ["sourcerecordtype"] = party.Source?.RecordType, ["sourcerecordid"] = party.Source?.RecordId,
                     ["sourceupdatedatutc"] = party.SourceUpdatedAtUtc is { } changed ? DatabaseUtc.Encode(changed) : null,
                     ["refreshedatutc"] = DatabaseUtc.Encode(replacement.RefreshedAtUtc), ["searchname"] = party.DisplayName.ToUpperInvariant(), ["searchnumber"] = party.Number?.ToUpperInvariant()
                 }).ConfigureAwait(false);
@@ -104,7 +105,9 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
                         ["id"] = addressId, ["partyid"] = id, ["sourcehash"] = addressHash, ["externalid"] = address.ExternalId, ["kind"] = (int)address.Kind, ["position"] = index,
                         ["companyname"] = address.CompanyName, ["firstname"] = address.FirstName, ["lastname"] = address.LastName,
                         ["street"] = address.Street, ["housenumber"] = address.HouseNumber, ["addressline2"] = address.AddressLine2,
-                        ["postalcode"] = address.PostalCode, ["city"] = address.City, ["countrycode"] = address.CountryCode, ["email"] = address.Email
+                        ["postalcode"] = address.PostalCode, ["city"] = address.City, ["countrycode"] = address.CountryCode, ["email"] = address.Email,
+                        ["sourcecountry"] = address.Country, ["sourcerecordtype"] = address.Source?.RecordType,
+                        ["sourcerecordid"] = address.Source?.RecordId, ["sourcefield"] = address.Source?.FieldName
                     }).ConfigureAwait(false);
                     foreach (var phone in address.Phones) await InsertPhoneAsync(db, id, addressId, position++, phone).ConfigureAwait(false);
                 }
@@ -163,6 +166,8 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
             var party = new Party
             {
                 Key = key, DisplayName = row.Text("displayname"), Number = row.OptionalText("number"), Email = row.OptionalText("email"), IsInactive = row.Bool("isinactive"), SourceUpdatedAtUtc = row.OptionalUtc("sourceupdatedatutc"),
+                Source = row.OptionalText("sourcerecordtype") is null && row.OptionalText("sourcerecordid") is null
+                    ? null : new SourceRecord(row.Text("sourcerecordtype"), row.Text("sourcerecordid")),
                 Phones = ownedPhones.Where(phone => phone.Value("addressid") is null).Select(Phone).ToImmutableArray(),
                 Addresses = ownedAddresses.Select(address =>
                 {
@@ -172,6 +177,9 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
                     {
                         ExternalId = address.Text("externalid"), Kind = kind, CompanyName = address.OptionalText("companyname"), FirstName = address.OptionalText("firstname"), LastName = address.OptionalText("lastname"),
                         Street = address.OptionalText("street"), HouseNumber = address.OptionalText("housenumber"), AddressLine2 = address.OptionalText("addressline2"), PostalCode = address.OptionalText("postalcode"), City = address.OptionalText("city"), CountryCode = address.OptionalText("countrycode"), Email = address.OptionalText("email"),
+                        Country = address.OptionalText("sourcecountry"),
+                        Source = address.OptionalText("sourcerecordtype") is null && address.OptionalText("sourcerecordid") is null && address.OptionalText("sourcefield") is null
+                            ? null : new SourceField(address.Text("sourcerecordtype"), address.Text("sourcerecordid"), address.Text("sourcefield")),
                         Phones = ownedPhones.Where(phone => phone.OptionalText("addressid") == address.Text("id")).Select(Phone).ToImmutableArray()
                     };
                 }).ToImmutableArray()

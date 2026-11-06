@@ -12,12 +12,6 @@ namespace WawiCallPro.Plugins.Lexware.Pro;
 /// <summary>Reads detached master data with explicit company scope and without financial or bank fields.</summary>
 public sealed class ProPartyDirectory(IProApiSession session)
 {
-    private const string Fields = """
-        id number matchcode inactive modifiedDate
-        invoiceAddress { company firstName lastName email }
-        contactPersons { id firstName lastName email1 }
-        """;
-
     public async Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -30,7 +24,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
             var root = ownerKind == PartyKind.Customer ? "customers" : "suppliers";
             var response = await session.ReadCompanyAsync<PartyListResponse>(query.Company,
                 (client, token, ct) => client.CallApiWithTokenAsync<PartyListResponse>(token,
-                    "query { parties: " + root + " { " + Fields + " } }", ct), cancellationToken).ConfigureAwait(false);
+                    "query { parties: " + root + " { " + ProPartyAddresses.Fields(ownerKind) + " } }", ct), cancellationToken).ConfigureAwait(false);
             var owners = response.Data?.Parties ?? throw InvalidResponse();
             var ids = new HashSet<int>();
             foreach (var owner in owners)
@@ -64,7 +58,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
         var root = ownerKind == PartyKind.Customer ? "customer" : "supplier";
         var response = await session.ReadCompanyAsync<PartyDetailResponse>(key.Company,
             (client, token, ct) => client.CallApiWithTokenAsync<PartyDetailResponse>(token,
-                "query { party: " + root + "(id: " + ownerId + ") { " + Fields + " } }", ct), cancellationToken).ConfigureAwait(false);
+                "query { party: " + root + "(id: " + ownerId + ") { " + ProPartyAddresses.Fields(ownerKind) + " } }", ct), cancellationToken).ConfigureAwait(false);
         var data = response.Data ?? throw InvalidResponse();
         cancellationToken.ThrowIfCancellationRequested();
         if (data.Party is null) return null;
@@ -81,6 +75,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
         var sourceType = kind == PartyKind.Customer ? "fk_kunde" : "fk_lieferant";
         var address = owner.InvoiceAddress;
         var inactive = owner.Inactive is not null and not 0;
+        var addresses = ProPartyAddresses.Map(owner, kind);
         var parties = new List<Party>
         {
             new()
@@ -89,6 +84,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
                 Source = new SourceRecord(sourceType, id),
                 DisplayName = DisplayName(address?.Company, address?.FirstName, address?.LastName, owner.Matchcode, owner.Number, id),
                 Email = address?.Email, IsInactive = inactive,
+                Addresses = addresses,
                 // The source has no declared timezone for unspecified/local timestamps.
                 SourceUpdatedAtUtc = owner.ModifiedDate is { Kind: DateTimeKind.Utc } utc ? new DateTimeOffset(utc) : null
             }
@@ -103,7 +99,9 @@ public sealed class ProPartyDirectory(IProApiSession session)
                 Key = new PartyKey(company, kind == PartyKind.Customer ? PartyKind.CustomerContact : PartyKind.SupplierContact, contactId, id),
                 Source = new SourceRecord("fk_kontaktperson", contactId),
                 DisplayName = DisplayName(null, contact.FirstName, contact.LastName, contact.Email1, null, contactId),
-                Email = contact.Email1, IsInactive = inactive
+                Email = contact.Email1, IsInactive = inactive,
+                Phones = ContactPhones(contact, contactId),
+                Addresses = ContactAddresses(contact, addresses)
             });
         }
         return parties;
@@ -125,6 +123,31 @@ public sealed class ProPartyDirectory(IProApiSession session)
     }
     private static ProAdapterException InvalidResponse() => new(ProFailure.InvalidResponse);
 
+    private static ImmutableArray<PartyPhone> ContactPhones(ContactPerson contact, string id)
+    {
+        var values = new[] { (contact.Phone1, PhoneKind.Telephone, "phone1"), (contact.Phone2, PhoneKind.Telephone, "phone2"),
+            (contact.Mobil, PhoneKind.Mobile, "mobil"), (contact.Fax, PhoneKind.Fax, "fax") };
+        return values.Where(value => !string.IsNullOrWhiteSpace(value.Item1))
+            .Select(value => new PartyPhone(value.Item1!, value.Item2, new SourceField("fk_kontaktperson", id, value.Item3))).ToImmutableArray();
+    }
+
+    private static ImmutableArray<PartyAddress> ContactAddresses(ContactPerson contact, ImmutableArray<PartyAddress> addresses)
+    {
+        if (contact.ContactPersonAddressType is null or ContactPersonAddressType.None) return [];
+        var address = contact.ContactPersonAddressType switch
+        {
+            ContactPersonAddressType.InvoiceAddress => addresses.SingleOrDefault(value => value.Kind == AddressKind.Billing),
+            ContactPersonAddressType.ShippingAddress => addresses.SingleOrDefault(value => value.Kind == AddressKind.Shipping),
+            ContactPersonAddressType.OrderAddress => addresses.SingleOrDefault(value => value.Source?.FieldName == "orderAddress"),
+            ContactPersonAddressType.AdditionalAddress => addresses.SingleOrDefault(value => value.Source?.RecordType == "fk_anschrift"
+                && value.ExternalId == contact.AdditionalAddressId?.ToString(CultureInfo.InvariantCulture)),
+            _ => throw InvalidResponse()
+        };
+        if (address is null) throw InvalidResponse();
+        // The shared postal location does not make the owner's general telephone numbers contact numbers.
+        return [address with { Kind = AddressKind.Contact, Phones = [] }];
+    }
+
     // Required fields distinguish a confirmed empty/not-found result from a malformed successful response.
     public sealed class PartyListResponse { [JsonPropertyName("data")] public PartyListData? Data { get; set; } }
     public sealed class PartyListData { [JsonRequired, JsonPropertyName("parties")] public List<PartyRecord>? Parties { get; set; } }
@@ -132,19 +155,38 @@ public sealed class ProPartyDirectory(IProApiSession session)
     public sealed class PartyDetailData { [JsonRequired, JsonPropertyName("party")] public PartyRecord? Party { get; set; } }
     public sealed class PartyRecord
     {
+        private PartyName? _orderAddress;
         [JsonRequired, JsonPropertyName("id")] public int Id { get; set; }
         [JsonRequired, JsonPropertyName("number")] public string? Number { get; set; }
         [JsonPropertyName("matchcode")] public string? Matchcode { get; set; }
         [JsonPropertyName("inactive")] public int? Inactive { get; set; }
         [JsonPropertyName("modifiedDate")] public DateTime? ModifiedDate { get; set; }
         [JsonRequired, JsonPropertyName("invoiceAddress")] public PartyName? InvoiceAddress { get; set; }
+        [JsonRequired, JsonPropertyName("shippingAddress")] public PartyName? ShippingAddress { get; set; }
+        [JsonPropertyName("orderAddress")] public PartyName? OrderAddress { get => _orderAddress; set { _orderAddress = value; HasOrderAddress = true; } }
+        [JsonIgnore] public bool HasOrderAddress { get; private set; }
+        [JsonPropertyName("additionalAddresses")] public List<PartyName>? AdditionalAddresses { get; set; }
         [JsonRequired, JsonPropertyName("contactPersons")] public List<ContactPerson>? ContactPersons { get; set; }
     }
     public sealed class PartyName
     {
+        [JsonPropertyName("id")] public int? Id { get; set; }
+        [JsonPropertyName("businessPartnerId")] public int? BusinessPartnerId { get; set; }
         [JsonPropertyName("company")] public string? Company { get; set; }
         [JsonPropertyName("firstName")] public string? FirstName { get; set; }
         [JsonPropertyName("lastName")] public string? LastName { get; set; }
         [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("street")] public string? Street { get; set; }
+        [JsonPropertyName("houseNumber")] public string? HouseNumber { get; set; }
+        [JsonPropertyName("extension")] public string? Extension { get; set; }
+        [JsonPropertyName("postalcode")] public string? Postalcode { get; set; }
+        [JsonPropertyName("city")] public string? City { get; set; }
+        [JsonPropertyName("country")] public string? Country { get; set; }
+        [JsonPropertyName("telephone")] public string? Telephone { get; set; }
+        [JsonPropertyName("telephone2")] public string? Telephone2 { get; set; }
+        [JsonPropertyName("telephone3")] public string? Telephone3 { get; set; }
+        [JsonPropertyName("cellphone")] public string? Cellphone { get; set; }
+        [JsonPropertyName("fax")] public string? Fax { get; set; }
+        [JsonPropertyName("exists")] public bool? Exists { get; set; }
     }
 }
