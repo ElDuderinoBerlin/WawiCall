@@ -60,6 +60,8 @@ und die Artikel-zu-Bestellungen-Statistik bleiben zusätzlich Bestandteil des Ka
 Die Umsetzung erfolgt als designerfähige DevExpress-/WinForms-Pluginansichten. Alle Bereiche werden
 je Warenwirtschaftssystem, Produktlinie, Mandant und Kunden-/Lieferantenkontext in der Capability-Matrix
 geprüft. Die Vorlage belegt keine automatische Funktionsparität der WawiCallPro-Adapter.
+Die [aktuelle Capability-Matrix](Capability-Matrix.md) trennt implementierte Stammdatenabrufe,
+Anschlüsse der Referenzbibliotheken und offene Fachansichten für beide Produktlinien.
 
 Die Referenz trennt beispielsweise `ArticleRevenueTab`, `SupplierArticlePurchasesTab`,
 `SupplierPurchaseStatisticsTab`, `OpenItemsTab`, `SupplierPerformanceTab` und `ProjectsTab`.

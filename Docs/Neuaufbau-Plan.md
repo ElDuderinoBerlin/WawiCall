@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 07.11.2026. Phasen 0–4 und Phase 5/Punkte 1–5 abgeschlossen; weitere Produktphasen wie markiert offen.
+Stand: 07.11.2026. Phasen 0–4 und Phase 5/Punkte 1–6 abgeschlossen; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -911,11 +911,16 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Gegen die echte Schemaerzeugung abgeglichen; Solutioneintrag und Rider-Editor ergänzt.
   Je Variante 89 Datenbank- und 87 Utilities-Tests, reguläre Debug-/Any-CPU-Hostbuilds, unveränderter
   Rider-Rebuild sowie sämtliche nativen Fünf-Engine-Prüfungen erneut bestanden. `.artifacts/fluent-migrations`.
-- [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
-  Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,
-  Artikel-zu-Belegen-Statistik, offene Posten, Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte.
-  LxOutlook-Vorlage in OutlookBlazorAddin berücksichtigen; Kunden-/Lieferantenkontext und Datenumfang trennen.
-  Datenzugriffe und konkrete Views gehören zum jeweiligen Wawi-Plugin.
+- [x] ✅ [Capability-Matrix](Capability-Matrix.md) pro Produktlinie für Stammdaten, Schreiboperationen
+  und erweiterte Kunden-/Lieferantenansichten erstellt. Alle neun verbindlichen Pluginbereiche,
+  vorhandene BusinessFeature-Werte und fehlende Merkmale erfasst. Implementierte Adapterabrufe,
+  Teilumfang und ausschließlich in Referenzbibliotheken vorhandene Anschlüsse getrennt.
+  Pro-/Pcfk-Quellen und LxOutlook einschließlich belegbasierter Zahlungsgrenzen, Währungen,
+  Gutschriften und Stornos gelesen; Lieferantenprojekte und Preisparität nicht vorausgesetzt.
+  Quellen-, Vollständigkeits-, UTF-8-/Markdown- und Linkprüfung bestanden; Solutioneintrag und
+  Rider-Editor ergänzt. Reine Dokumentation ohne neue Live-ERP-Tests oder GUI-Läufe.
+  Laufzeit-Fähigkeitsberichte, Vertragslücken und die Anzeige eingeschränkter Funktionen bleiben
+  Punkt 7; konkrete Datenabfragen und Fachtabs folgen in ihren Produkt-/UI-Phasen.
 - [ ] Teilweise/nicht verfügbare Funktionen über Fähigkeiten kenntlich machen; keine erfolgreichen Leerantworten vortäuschen.
 - [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
 

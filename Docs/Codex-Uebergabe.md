@@ -3,6 +3,14 @@
 Diese Datei überträgt den fachlichen Arbeitsstand in einen neuen Codex-Chat in der neuen Rider-Solution.
 Sie verschiebt nicht den ursprünglichen Chatverlauf. Der bisherige Chat war an die separate Solution WawiCall gebunden.
 
+Aktueller Nachtrag vom 07.11.2026: Phase 5/Punkt 6 ist mit der
+[Capability-Matrix](Capability-Matrix.md) abgeschlossen. Implementierte Stammdatenabrufe,
+Referenzanschlüsse und offene Fachabfragen/Views sind je Produktlinie und Kunden-/Lieferantenkontext
+getrennt. Die Matrix enthält auch Schreiboperationen und Lücken der bestehenden BusinessFeature-Werte.
+Nächster regulärer Punkt ist der Laufzeit-Fähigkeitsbericht samt Darstellung von Einschränkungen;
+`GetCapabilitiesAsync` wirft in beiden Adaptern noch NotSupportedException. Die folgenden älteren
+Phasenangaben sind historische Nachweise. Dieser Nachtrag ändert keine Adapter oder Oberflächen.
+
 ## Verbindliche Ziele
 
 - Neuaufbau unter `D:\Application-Development\WawiCallPro`, Solution `WawiCallProSolution.sln`.
