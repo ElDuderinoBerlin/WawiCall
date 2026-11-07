@@ -7,6 +7,9 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Core.Companies;
+using WawiCallPro.Core.Threading;
+using WawiCallPro.Interfaces.Hosting;
 
 namespace WawiCallPro.Plugins.Lexware.Pro.Tests;
 
@@ -501,6 +504,52 @@ public sealed class ProAdapterTests
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         cancellation.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => read);
+    }
+
+    [TestMethod]
+    public async Task SwitchingDuringAnApiReadDropsTheOldResultAndLoadsTheNewCompanyScope()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new ScriptedHandler(async (request, _) =>
+        {
+            if (IsLogin(request)) return Json("""{"data":{"token":"opaque-token"}}""");
+            var company = request.Headers["CompanyId"];
+            if (company == "1")
+            {
+                entered.TrySetResult();
+                await release.Task; // Deliberately ignore HTTP cancellation.
+            }
+            return Json("{\"data\":{\"parties\":[" + PartyCustomer.Replace("Kunde Ä", "Company " + company, StringComparison.Ordinal) + "]}}");
+        });
+        await using var provider = Build(handler);
+        await using var context = new CompanyContext();
+        var first = new Company(new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1"), "First");
+        await context.SelectAsync(first);
+        using var old = ((ICompanyContext)context).BeginOperation();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        Task<PartyPage> Read(CompanyKey company, CancellationToken token) =>
+            directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(), Kind: PartyKind.Customer), token);
+        PartyPage? bound = null;
+        var oldRead = old.LoadAndPublishAsync(new InlineUiDispatcher(), Read, _ => Assert.Fail("Stale party data."), _ => Assert.Fail("Stale error view."));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task<bool>? currentRead = null;
+        var second = first with { Key = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "2") };
+        await context.SelectAsync(second);
+        using var current = ((ICompanyContext)context).BeginOperation();
+        try
+        {
+            currentRead = current.LoadAndPublishAsync(new InlineUiDispatcher(), Read, page => bound = page);
+            Assert.IsFalse(oldRead.IsCompleted);
+            Assert.IsFalse(currentRead.IsCompleted);
+        }
+        finally { release.TrySetResult(); }
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => oldRead);
+        Assert.IsTrue(await currentRead!);
+        Assert.AreEqual(second.Key, bound!.Company);
+        Assert.AreEqual("Company 2", bound.Page.Items.Single().DisplayName);
+        Assert.AreEqual(1, handler.MaximumConcurrent);
     }
 
     private const string AddressCustomer = """

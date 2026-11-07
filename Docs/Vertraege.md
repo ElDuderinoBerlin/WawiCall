@@ -499,7 +499,9 @@ wird vollständig abgewartet; Fehler werden an den Aufrufer weitergegeben. Die K
 `CompanyContext.SelectAsync` ersetzt die Auswahl sofort und bricht alte Arbeitsbereiche asynchron ab.
 Auch erneute Auswahl desselben Mandanten erhöht die Revision. `BeginOperation` erfasst eine konkrete
 Auswahl und verknüpft deren Lebensdauer mit dem Abbruchtoken des Aufrufers. Ohne Mandant ist kein solcher
-Arbeitsbereich möglich. Verbraucher geben den `CompanyOperation` nach dem abgewarteten Vorgang frei.
+Arbeitsbereich möglich. Der gemeinsame Vertrag `ICompanyContext.BeginOperation` liefert `ICompanyOperation`;
+auch ein dynamisch geladenes Plugin kann den Arbeitsbereich über die geliehenen Hostdienste nutzen, ohne
+Core- oder UI-Typen zu referenzieren. Verbraucher geben ihn nach dem abgewarteten Vorgang frei.
 Ein einzelner Verbraucher kann andere Verbraucher nicht über sein eigenes Abbruchtoken stoppen.
 
 Nach einem Laden wird ausschließlich über `CompanyOperation.PublishAsync` an die Oberfläche gebunden.
@@ -509,7 +511,38 @@ Der kurze synchrone Bindevorgang ist gegenüber parallelem Auswahlwechsel gesper
 blockierendes Warten oder weitere asynchrone Arbeiten starten. Es dürfen keine `async`-Lambdas in die
 `Action`-Schnittstelle übergeben werden.
 
+`ICompanyOperation.LoadAndPublishAsync` verbindet den Quellaufruf mit derselben geschützten Veröffentlichung.
+Der Ladecallback bekommt den beim Start erfassten vollständigen `CompanyKey` und das verknüpfte Abbruchtoken;
+nach einem `await` darf er den Mandanten nicht erneut aus `Current` beziehen. Beispiel für eine Plugin-View:
+
+```csharp
+using var operation = hostServices.Companies.BeginOperation(cancellationToken);
+await operation.LoadAndPublishAsync(hostServices.UiDispatcher,
+    (company, token) => directory.GetPartiesAsync(new PartyQuery(company, pageRequest), token),
+    BindParties, BindLoadFailure);
+```
+
+Erfolgs- und optionale Fehlercallbacks werden erst auf dem Dispatcher und unter der Revisionssperre geprüft.
+Ein verspäteter Quellfehler darf die Fehleranzeige des neuen Mandanten ebenso wenig ersetzen wie ein verspäteter
+Erfolg dessen Daten. Quellfehler bleiben nach der gegebenenfalls ausgeführten Fehlerbindung als ursprüngliche
+Exception beobachtbar; Fehler beim Binden werden davon getrennt, zwei Fehler gegebenenfalls aggregiert.
+Aufrufer warten den Task ab und dürfen Fehler nicht zusätzlich außerhalb des geschützten Callbacks anzeigen.
+Abbruch erzeugt keine Fehleransicht. Erfolgreich leere Quellantworten bleiben erfolgreiche Ergebnisse.
+Eine verworfene Veröffentlichung liefert `false` oder bei einem abbrechenden Dispatcher `OperationCanceledException`;
+beides erlaubt keine Übernahme des alten Ergebnisses. Auch ein Dispatcher, der sein Token ignoriert, kann keine
+bereits abgebrochene Verbraucheroperation veröffentlichen.
+
+Hauptauswahl, eigenständige Gesprächs-/Viewkontexte und explizite Mehrmandantenabrufe bleiben getrennt.
+Der Arbeitsbereich hängt nur an seinem eigenen Auswahlkontext. `IBusinessDirectory` behält seine expliziten
+Mandantenparameter und wird nicht global an die Hauptauswahl gekoppelt. Ein Wechsel 1 → 2 → 1, die Neuauswahl
+derselben Firma sowie eine gleichlautende Firmen-ID einer anderen Installation erhalten jeweils neue Revisionen.
+Die konkreten Kunden-/Lieferanten-Tabs und deren Anzeigezustände folgen weiterhin in den UI-Phasen.
+
 API-/Datenbankzugriffe laufen außerhalb des UI-Callbacks und werden mit dem Arbeitsbereichstoken abgewartet.
+Eine Quelle, die Abbruch ignoriert, wird bis zu ihrem tatsächlichen Abschluss abgewartet; kein vorzeitiges
+`WaitAsync(token)` umgeht die Lebensdauersperre. Die Pluginlaufzeit prüft Abbruch zusätzlich nach dem Gate und
+nach der Quellantwort. Zurückgegebene Pluginressourcen werden vor dem Verwerfen registriert und beim Stop
+freigegeben; ein abgelaufenes Stop-Token erlaubt weiterhin kein Entladen laufender Pluginarbeit.
 Bibliothekscode verwendet dafür `ConfigureAwait(false)`. `Task.Run` ist für tatsächlich rechenintensive
 Arbeit vorgesehen, nicht als Hülle um bereits asynchrone Abfragen. Abbruch ist keine Garantie, dass eine
 bereits ausgeführte externe Änderung rückgängig wird. Eine neue Mandantenauswahl ändert außerdem weder die

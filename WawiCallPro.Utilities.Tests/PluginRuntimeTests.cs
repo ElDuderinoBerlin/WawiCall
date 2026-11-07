@@ -11,6 +11,7 @@ using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Core.Companies;
 using System.Text.Json.Nodes;
 
 namespace WawiCallPro.Utilities.Tests;
@@ -220,6 +221,76 @@ public sealed class PluginRuntimeTests
     {
         public bool Disposed { get; private set; }
         public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+    }
+
+    [TestMethod]
+    public async Task CompanySwitchCancelsQueuedWorkAndRetainsRunningResourcesUntilStopCompletes()
+    {
+        var context = await RunCompanySwitchScenarioAsync();
+        // Let shutdown continuations leave the stack before asserting collectible context reclamation.
+        for (var index = 0; index < 20 && context.IsAlive; index++)
+        {
+            await Task.Delay(20);
+            GC.Collect(); GC.WaitForPendingFinalizers();
+        }
+        Assert.IsFalse(context.IsAlive, "Company operation retained the unloaded plugin context.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task<WeakReference> RunCompanySwitchScenarioAsync()
+    {
+        var directory = DeploySignedFixture();
+        var host = CreateHost();
+        WeakReference? pluginContext = null;
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            var context = host.Services.GetRequiredService<CompanyContext>();
+            var borrowed = host.Services.GetRequiredService<IWawiCallHostServices>();
+            var product = Enum.Parse<LexwareProductLine>(ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly()));
+            await context.SelectAsync(new Company(new CompanyKey(product, "isolated", "1"), "First"));
+            using var operation = borrowed.Companies.BeginOperation();
+            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory));
+            await runtime.StartAsync(CancellationToken.None);
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource<ProbeResource>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var resource = new ProbeResource();
+            IWawiCallPlugin? runningPlugin = null;
+            var work = operation.LoadAndPublishAsync(borrowed.UiDispatcher, (company, token) => runtime.UseAsync((plugin, _) =>
+            {
+                Assert.AreEqual("1", company.ExternalId);
+                runningPlugin = plugin;
+                pluginContext = new WeakReference(AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!);
+                entered.SetResult();
+                return release.Task;
+            }, token), _ => Assert.Fail("Stale result published."), _ => Assert.Fail("Cancellation became an error view."));
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var queued = runtime.UseAsync((_, _) => { Assert.Fail("Cancelled queued work entered the plugin."); return Task.FromResult(0); }, operation.CancellationToken);
+            Task? stop = null;
+            try
+            {
+                await context.SelectAsync(new Company(new CompanyKey(product, "isolated", "2"), "Second"));
+                await Assert.ThrowsAsync<OperationCanceledException>(() => queued);
+                Assert.IsFalse(work.IsCompleted);
+                using var deadline = new CancellationTokenSource();
+                deadline.Cancel();
+                stop = runtime.StopAsync(deadline.Token);
+                Assert.IsFalse(stop.IsCompleted);
+                Assert.IsFalse(resource.Disposed);
+                Assert.AreEqual(0, runningPlugin!.GetType().GetProperty("Shutdowns")!.GetValue(runningPlugin));
+            }
+            finally { release.TrySetResult(resource); }
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() => work);
+            await stop!.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(resource.Disposed, "Cancelled returned resources must remain owned by the runtime.");
+            Assert.AreEqual(1, runningPlugin!.GetType().GetProperty("Shutdowns")!.GetValue(runningPlugin));
+            runningPlugin = null;
+            // Completed task state must not keep the collectible fixture alive through MSTest cleanup.
+            work = null!;
+            queued = null!;
+            stop = null;
+        });
+        return pluginContext!;
     }
 
     private string DeploySignedFixture([CallerFilePath] string source = "")

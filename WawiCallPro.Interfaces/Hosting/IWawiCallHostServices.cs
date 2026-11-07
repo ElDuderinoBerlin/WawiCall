@@ -11,6 +11,9 @@ public interface ICompanyContext
 {
     CompanySelection Current { get; }
     event EventHandler<CompanySelectionChangedEventArgs>? Changed;
+
+    /// <summary>Captures this view's selection and links caller cancellation without affecting other consumers.</summary>
+    ICompanyOperation BeginOperation(CancellationToken cancellationToken = default);
 }
 
 public sealed class CompanySelectionChangedEventArgs(CompanySelection selection) : EventArgs

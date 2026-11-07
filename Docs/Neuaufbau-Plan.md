@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 05.11.2026. Phasen 0–4 und Phase 5/Punkt 1 abgeschlossen; weitere Produktphasen wie markiert offen.
+Stand: 07.11.2026. Phasen 0–4 und Phase 5/Punkte 1–5 abgeschlossen; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -875,7 +875,21 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Diagnosestarts beider Varianten sowie gezielter Rider-Rebuild und Bundle-/Native-Prüfungen bestanden.
   Nachweise `.artifacts/phase5-addresses`; isolierte API-/SQLite-Daten, keine echten Wawi-Zugriffe oder UI-Änderungen.
   Neue Migration nativ auf SQLite geprüft; keine zusätzliche native Server-/Live-API-Abnahme in diesem Block.
-- [ ] Mandantenwechsel einschließlich laufender Ladeoperationen behandeln; alte Ergebnisse nicht im neuen Mandanten anzeigen.
+- [x] ✅ Mandantenwechsel einschließlich laufender Ladeoperationen behandelt; Daten und Fehleranzeigen
+  überholter Auswahlen werden vor dem Binden unter derselben Revisionssperre verworfen.
+  Gemeinsames `ICompanyOperation` über `ICompanyContext.BeginOperation` auch für dynamisch geladene Plugins
+  verfügbar; `LoadAndPublishAsync` reicht den erfassten vollständigen CompanyKey und das Abbruchtoken an
+  den Quellabruf. Fehler bleiben beobachtbar, Abbruch erzeugt keine Fehleransicht; leere Erfolge bleiben erhalten.
+  Neuauswahl, Abwahl, 1 → 2 → 1, identische Firmen-ID einer anderen Installation sowie bereits eingereihte
+  Daten-/Fehlercallbacks geprüft. Eigene Gesprächs-/Viewkontexte und explizite Quellenzugriffe bleiben unabhängig.
+  Pluginlaufzeit verwirft zusätzlich abgebrochene Rückgaben und behält deren freizugebende Ressourcen;
+  laufende nicht abbrechbare Arbeit wird vor Stop/Unload vollständig abgewartet, auch bei abgelaufenem Stop-Token.
+  Isolierter Pro-API-Test mit verspäteter Antwort und FinOffice-Test mit verzögerter Read-only-Verbindung:
+  alter Abruf abgebrochen, neuer Mandantenkontext korrekt, alte Verbindung vor Rückkehr freigegeben.
+  337 Tests Pro / 314 FinOffice, Debug-/Any-CPU-Builds beider Varianten, vier fensterlose Hostdiagnosen,
+  gezielter Rider-Build in unveränderter Konfiguration sowie Bundle-/Shared-/Hash- und Native-Prüfungen bestanden.
+  Nachweise `.artifacts/phase5-company-switch`; keine echten Wawi-Zugriffe oder UI-Änderungen.
+  Konkrete Plugin-Tabs und deren sichtbare Zustände bleiben den UI-Phasen zugeordnet.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
   Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,
   Artikel-zu-Belegen-Statistik, offene Posten, Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte.

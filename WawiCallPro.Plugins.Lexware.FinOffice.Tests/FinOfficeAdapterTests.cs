@@ -12,6 +12,8 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Core.Companies;
+using WawiCallPro.Core.Threading;
 
 namespace WawiCallPro.Plugins.Lexware.FinOffice.Tests;
 
@@ -431,6 +433,47 @@ public sealed class FinOfficeAdapterTests
         Assert.IsTrue(result.Page.Items.All(party => party.Addresses[0].Phones.IsEmpty));
     }
 
+    [TestMethod]
+    public async Task SwitchingDuringConnectionCreationDisposesTheOldReadBeforePublishingNewParties()
+    {
+        await SeedPartiesAsync();
+        await using var provider = Build();
+        await using var context = new CompanyContext();
+        var first = new Company(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), "First");
+        var second = new Company(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "2"), "Second");
+        await context.SelectAsync(first);
+        using var old = context.BeginOperation();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _manager.ConnectionOpened = async mandant =>
+        {
+            if (mandant.Nr != 1) return;
+            entered.TrySetResult();
+            await release.Task; // Simulate non-cancellable upstream connection creation.
+        };
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        Task<PartyPage> Read(CompanyKey company, CancellationToken token) =>
+            directory.GetPartiesAsync(new PartyQuery(company, new PageRequest(), Kind: PartyKind.Customer), token);
+        var dispatcher = new InlineUiDispatcher();
+        var oldRead = old.LoadAndPublishAsync(dispatcher, Read, _ => Assert.Fail("Stale party data."), _ => Assert.Fail("Stale error view."));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        PartyPage? bound = null;
+        try
+        {
+            await context.SelectAsync(second);
+            using var current = context.BeginOperation();
+            Assert.IsTrue(await current.LoadAndPublishAsync(dispatcher, Read, page => bound = page));
+            Assert.AreEqual(second.Key, bound!.Company);
+            Assert.IsEmpty(bound.Page.Items, "The second fixture company is genuinely empty, not a cancelled first-company result.");
+            Assert.IsFalse(oldRead.IsCompleted);
+        }
+        finally { release.TrySetResult(); }
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => oldRead);
+        Assert.AreEqual(second.Key, bound!.Company);
+        AssertConnectionsDisposed();
+    }
+
     private async Task SeedPartiesAsync()
     {
         foreach (var nr in new[] { 1, 2 })
@@ -483,6 +526,7 @@ public sealed class FinOfficeAdapterTests
         public ConcurrentBag<IDbConnection> Connections { get; } = [];
         public Exception? DetectionError { get; set; }
         public Func<PcfkInstallationInfo, PcfkInstallationInfo>? Transform { get; set; }
+        public Func<PcfkMandantInfo, Task>? ConnectionOpened { get; set; }
         public string CompanyPath(int nr) => Path.Combine(root, nr.ToString("D8"), "fkstdcompany.dbs");
         public async Task<PcfkInstallationInfo> GetInstallationAsync(bool readOnly = true)
         {
@@ -502,6 +546,7 @@ public sealed class FinOfficeAdapterTests
             ReadOnlyRequests.Add(readOnly);
             var connection = await Open(mandant.DatabasePath, readOnly);
             Connections.Add(connection);
+            if (ConnectionOpened is not null) await ConnectionOpened(mandant);
             return connection;
         }
     }

@@ -356,7 +356,23 @@ Die Migration erweitert Stammdaten-/Adressprovenienz und den ursprünglichen Lä
 Versionen werden nicht geändert. PCFK bietet im geprüften Schema keine separaten Zusatzanschriften
 oder Mobilnummern im Hauptstamm; entsprechende Grenzen stehen in [Vertraege.md](Vertraege.md).
 Builds/Diagnosen und gemeinsame Regressionen beider Produktlinien sowie Bundle-/Native-Prüfungen liegen
-unter `.artifacts/phase5-addresses`. Die Capability-Matrix und Mandantenwechsel bleiben gesonderte Punkte.
+unter `.artifacts/phase5-addresses`. Die Capability-Matrix bleibt ein gesonderter Punkt.
+
+Phase 5/Punkt 5 verbindet Quellabruf und revisionsgeschützte Veröffentlichung über den gemeinsamen
+`ICompanyOperation`-Vertrag. Auch Plugins erreichen ihn über `ICompanyContext.BeginOperation` ohne
+Core-Abhängigkeit. Daten und Fehlercallbacks alter Auswahlen werden gleichermaßen gesperrt; eigene
+Gesprächs-/Viewkontexte und explizite Mehrmandantenabrufe bleiben von der Hauptauswahl unabhängig.
+Die Pluginlaufzeit verwirft abgebrochene Rückgaben erst nach tatsächlichem Abschluss der Quellarbeit
+und behält zurückgegebene Ressourcen bis zur Freigabe. Ein eigener Fixture-Test prüft zusätzlich
+abgebrochene wartende Aufrufe, Stop trotz abgelaufenem Token und den freigegebenen Collectible-Ladekontext.
+
+Nachweis: 337 Tests Pro / 314 FinOffice (je 14 Verträge, 86 Core, 87 Utilities, 88 Datenbank und
+62 Pro- beziehungsweise 39 FinOffice-Adapterfälle), Builds beider Produktlinien mit explizitem
+`-c Debug -p:Platform="Any CPU"` in regulären Ausgabeordnern, vier fensterlose Hostdiagnosen und
+gezielter Rider-Build ohne Konfigurationswechsel bestanden. Isolierte API-/SQLite-Tests verknüpfen
+laufende Adapterabrufe mit einem echten Auswahlwechsel; neue Daten bleiben der neuen Firma zugeordnet.
+Bundle-/Hash-/Shared-Prüfung und vier Native-Szenarien bestanden. Logs `.artifacts/phase5-company-switch`.
+Keine geänderten Oberflächen, sichtbaren GUI-Läufe, echten ERP-Zugriffe oder neuen Releasepakete in diesem Block.
 
 ## Abhängigkeiten und CI
 

@@ -63,6 +63,8 @@ public sealed class CompanyContext : ICompanyContext, IAsyncDisposable
         }
     }
 
+    ICompanyOperation ICompanyContext.BeginOperation(CancellationToken cancellationToken) => BeginOperation(cancellationToken);
+
     internal bool TryPublish(CompanySelection selection, Action callback)
     {
         lock (_gate)

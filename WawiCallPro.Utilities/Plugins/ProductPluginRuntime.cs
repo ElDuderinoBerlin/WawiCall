@@ -51,8 +51,11 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
         try
         {
             if (!_loaded) throw new PluginRuntimeException();
+            linked.Token.ThrowIfCancellationRequested();
             var result = await operation(_session!.GetPlugins().Single(), linked.Token).ConfigureAwait(false);
             if (result is IPluginLifetimeResource resource) _resources.Add(resource);
+            // Track returned resources before rejecting cancelled results; StopAsync still owns their cleanup.
+            linked.Token.ThrowIfCancellationRequested();
             return result;
         }
         finally { _gate.Release(); }
