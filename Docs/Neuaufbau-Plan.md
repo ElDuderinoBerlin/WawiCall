@@ -902,6 +902,15 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   erfolgreich. Wiederholbarer Einstieg `scripts/test-database-providers.ps1`; Nachweise
   `.artifacts/provider-compatibility`. Repositoryvorgaben um diese Prüfpflicht und vollständige
   Migrationsklassen ergänzt. Keine bestehenden Datenbanken oder sichtbaren GUIs verwendet.
+- [x] ✅ Nutzerpräzisierung: Eigene SchemaTable-Abstraktion durch echte FluentMigrator-Statements für
+  Tabellen/Spalten, Indizes und Schemaänderungen ersetzt. Notwendige Inline-CHECKs und zusammengesetzte
+  FKs bleiben an regulären Tabellenexpressionen erhalten; `AsString` nutzt in MySQL/MariaDB ausdrücklich
+  utf8mb4. Bestehende Schlüssel, Daten und fachliche Speicherregeln bleiben erhalten.
+  [Deutsches Tabellen-/Spaltenverzeichnis](Datenbank-Tabellen-und-Spalten.md) dokumentiert den Zweck aller
+  15 Tabellen und jede der 168 Spalten einschließlich NULL-Bedeutung, Einheiten und Beziehungen.
+  Gegen die echte Schemaerzeugung abgeglichen; Solutioneintrag und Rider-Editor ergänzt.
+  Je Variante 89 Datenbank- und 87 Utilities-Tests, reguläre Debug-/Any-CPU-Hostbuilds, unveränderter
+  Rider-Rebuild sowie sämtliche nativen Fünf-Engine-Prüfungen erneut bestanden. `.artifacts/fluent-migrations`.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
   Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,
   Artikel-zu-Belegen-Statistik, offene Posten, Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte.

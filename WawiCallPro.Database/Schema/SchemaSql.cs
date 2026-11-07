@@ -10,6 +10,27 @@ namespace WawiCallPro.Database.Schema;
 internal sealed class SchemaSql(DatabaseType type)
 {
     internal DatabaseType Type { get; } = type;
+    internal string? SchemaName => Type switch
+    {
+        DatabaseType.SqlServer => "dbo", DatabaseType.PostgreSql => "public", _ => null
+    };
+
+    internal string TextCheck(string column, int maximum, bool nullable = false, bool nonBlank = false)
+    {
+        var value = Quote(column);
+        var check = $"{Length(value)} <= {maximum}";
+        if (Type == DatabaseType.Sqlite) check += $" AND typeof({value}) = 'text' AND instr({value}, char(0)) = 0";
+        if (nonBlank) check += " AND " + NonBlank(value);
+        return nullable ? $"{value} IS NULL OR ({check})" : check;
+    }
+
+    internal string IntegerCheck(string column, long minimum, long maximum, bool nullable = false)
+    {
+        var value = Quote(column);
+        var check = $"{value} BETWEEN {minimum} AND {maximum}";
+        if (Type == DatabaseType.Sqlite) check += $" AND typeof({value}) = 'integer'";
+        return nullable ? $"{value} IS NULL OR ({check})" : check;
+    }
     internal string Table(string name) => DatabaseSql.Table(Type, name);
     internal string Quote(string name) => Type switch
     {
@@ -101,100 +122,4 @@ internal sealed class SchemaSql(DatabaseType type)
         }
         return $"{Length(value)} BETWEEN 3 AND 16 AND {plus} = '+' AND {first} BETWEEN '1' AND '9' AND {AllowedAscii(rest, "0-9")}";
     }
-}
-
-internal sealed class SchemaTable(SchemaSql sql, string name)
-{
-    private readonly List<string> _columns = [];
-    private readonly List<string> _constraints = [];
-    private readonly List<string> _indexes = [];
-
-    internal SchemaTable Id(string column = "id", bool nullable = false, bool primaryKey = false)
-    {
-        Column(column, sql.HexType(32), nullable);
-        Check(column, Nullable(column, nullable, $"{sql.Hex(sql.Quote(column), 32)} AND {sql.Quote(column)} <> '00000000000000000000000000000000'"));
-        if (primaryKey) PrimaryKey(column);
-        return this;
-    }
-
-    internal SchemaTable Hash(string column)
-    {
-        Column(column, sql.HexType(64), false);
-        return Check(column, sql.Hex(sql.Quote(column), 64));
-    }
-
-    internal SchemaTable Text(string column, int length, bool nullable = false, bool nonBlank = false)
-    {
-        Column(column, sql.UnicodeType(length), nullable);
-        var value = sql.Quote(column);
-        var check = $"{sql.Length(value)} <= {length}";
-        if (sql.Type == DatabaseType.Sqlite) check += $" AND typeof({value}) = 'text' AND instr({value}, char(0)) = 0";
-        if (nonBlank) check += " AND " + sql.NonBlank(value);
-        return Check(column, Nullable(column, nullable, check));
-    }
-
-    internal SchemaTable Integer(string column, long minimum, long maximum, bool nullable = false, bool wide = false)
-    {
-        Column(column, sql.Type == DatabaseType.Sqlite ? "INTEGER" : wide ? "BIGINT" : "INT", nullable);
-        var value = sql.Quote(column);
-        var check = $"{value} BETWEEN {minimum} AND {maximum}";
-        if (sql.Type == DatabaseType.Sqlite) check += $" AND typeof({value}) = 'integer'";
-        return Check(column, Nullable(column, nullable, check));
-    }
-
-    internal SchemaTable Counter(string column, long minimum = 1, bool nullable = false) => Integer(column, minimum, long.MaxValue, nullable, wide: true);
-    internal SchemaTable Utc(string column, bool nullable = false) => Integer(column, 0, 3155378975999999999, nullable, wide: true);
-    internal SchemaTable Boolean(string column) => Integer(column, 0, 1);
-
-    internal SchemaTable Check(string suffix, string expression)
-    {
-        _constraints.Add($"CONSTRAINT {sql.Quote("ck_" + name + "_" + suffix)} CHECK ({sql.Expression(expression)})");
-        return this;
-    }
-
-    internal SchemaTable ForeignKey(string suffix, string[] columns, string parent, params string[] parentColumns)
-    {
-        _constraints.Add($"CONSTRAINT {sql.Quote("fk_" + name + "_" + suffix)} FOREIGN KEY ({Join(columns)}) REFERENCES {sql.Table(parent)} ({Join(parentColumns)}) ON DELETE NO ACTION ON UPDATE NO ACTION");
-        return this;
-    }
-
-    internal SchemaTable Unique(string index, params string[] columns)
-    {
-        _indexes.Add($"CREATE UNIQUE INDEX {sql.Quote(index)} ON {sql.Table(name)} ({Join(columns)})");
-        return this;
-    }
-
-    internal SchemaTable PrimaryKey(params string[] columns)
-    {
-        _constraints.Add($"CONSTRAINT {sql.Quote("pk_" + name)} PRIMARY KEY ({Join(columns)})");
-        return this;
-    }
-
-    internal SchemaTable StoredGeneratedColumn(string column, string dataType, string expression)
-    {
-        _columns.Add($"{sql.Quote(column)} {dataType} GENERATED ALWAYS AS ({expression}) STORED");
-        return this;
-    }
-
-    internal SchemaTable Index(string index, params string[] columns)
-    {
-        var ordered = columns.Select(column =>
-        {
-            var parts = column.Split(' ');
-            return sql.Quote(parts[0]) + (parts.Length == 2 ? " " + parts[1] : string.Empty);
-        });
-        _indexes.Add($"CREATE INDEX {sql.Quote(index)} ON {sql.Table(name)} ({string.Join(", ", ordered)})");
-        return this;
-    }
-
-    internal IEnumerable<string> Statements()
-    {
-        var options = sql.Type == DatabaseType.MySql ? " ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4" : string.Empty;
-        yield return $"CREATE TABLE {sql.Table(name)} (\n{string.Join(",\n", _columns.Concat(_constraints))}\n){options}";
-        foreach (var index in _indexes) yield return index;
-    }
-
-    private void Column(string column, string type, bool nullable) => _columns.Add($"{sql.Quote(column)} {type} {(nullable ? "NULL" : "NOT NULL")}");
-    private string Nullable(string column, bool nullable, string check) => nullable ? $"{sql.Quote(column)} IS NULL OR ({check})" : check;
-    private string Join(IEnumerable<string> columns) => string.Join(", ", columns.Select(sql.Quote));
 }

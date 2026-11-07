@@ -401,6 +401,11 @@ Die früheren Sammelklassen `InitialSchema` und `MultiCompanySchema` sind entfer
 kanonische IDs, UTC-Ticks, Zeitbezüge und Gesprächszustände; FK-/Unique-Indizes sichern Besitzer und
 Eindeutigkeit. Die Format-/Längenregeln der Schreibverträge bleiben zusätzlich erforderlich.
 
+Die Migrationen verwenden die reguläre FluentMigrator-API für Tabellen, Spalten, Indizes und Änderungen.
+Der eigene SchemaTable-Builder ist entfernt; nur notwendige Inline-Constraints ergänzen die normalen
+Generatoren. Das [deutsche Tabellen- und Spaltenverzeichnis](Datenbank-Tabellen-und-Spalten.md)
+erklärt alle aktuellen 15 Tabellen und 168 Spalten einschließlich der berechneten MySQL-/MariaDB-Hilfsspalte.
+
 Jedes gespeicherte Gespräch erhält `workstationid`, `machinename` und `windowsusername`. Die beiden
 Namen sind Momentaufnahmen bei Gesprächsbeginn. Das Windows-Konto enthält das Domänen-/PC-Präfix und
 ist vom SIP-/Lexware-Benutzer unabhängig. Die zusätzliche eigene Arbeitsplatz-GUID wird seit Punkt 9

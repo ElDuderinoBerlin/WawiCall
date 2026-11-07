@@ -9,19 +9,35 @@ public sealed class Migration008PartyAddressSources(DatabaseType databaseType) :
     public override void Up()
     {
         var sql = new SchemaSql(databaseType);
-        Add("parties", "sourcerecordtype", 128);
-        Add("parties", "sourcerecordid", 256);
-        Add("partyaddresses", "sourcecountry", 512);
-        Add("partyaddresses", "sourcerecordtype", 128);
-        Add("partyaddresses", "sourcerecordid", 256);
-        Add("partyaddresses", "sourcefield", 256);
-
-        void Add(string table, string column, int length)
+        if (databaseType == DatabaseType.Sqlite)
         {
-            var quoted = sql.Quote(column);
-            var add = databaseType == DatabaseType.SqlServer ? " ADD " : " ADD COLUMN ";
-            Execute.Sql($"ALTER TABLE {sql.Table(table)}{add}{quoted} {sql.UnicodeType(length)} NULL" +
-                (databaseType == DatabaseType.Sqlite ? $" CHECK ({quoted} IS NULL OR {sql.Length(quoted)}<={length})" : ""));
+            // SQLite does not enforce VARCHAR lengths, so each new column keeps its inline CHECK.
+            Alter.Table("parties").AddColumn("sourcerecordtype")
+                .AsCustom("TEXT CHECK (sourcerecordtype IS NULL OR length(sourcerecordtype)<=128)").Nullable();
+            Alter.Table("parties").AddColumn("sourcerecordid")
+                .AsCustom("TEXT CHECK (sourcerecordid IS NULL OR length(sourcerecordid)<=256)").Nullable();
+            Alter.Table("partyaddresses").AddColumn("sourcecountry")
+                .AsCustom("TEXT CHECK (sourcecountry IS NULL OR length(sourcecountry)<=512)").Nullable();
+            Alter.Table("partyaddresses").AddColumn("sourcerecordtype")
+                .AsCustom("TEXT CHECK (sourcerecordtype IS NULL OR length(sourcerecordtype)<=128)").Nullable();
+            Alter.Table("partyaddresses").AddColumn("sourcerecordid")
+                .AsCustom("TEXT CHECK (sourcerecordid IS NULL OR length(sourcerecordid)<=256)").Nullable();
+            Alter.Table("partyaddresses").AddColumn("sourcefield")
+                .AsCustom("TEXT CHECK (sourcefield IS NULL OR length(sourcefield)<=256)").Nullable();
+            return;
         }
+
+        Alter.Table("parties").InSchema(sql.SchemaName)
+            .AddColumn("sourcerecordtype").AsString(128).Nullable();
+        Alter.Table("parties").InSchema(sql.SchemaName)
+            .AddColumn("sourcerecordid").AsString(256).Nullable();
+        Alter.Table("partyaddresses").InSchema(sql.SchemaName)
+            .AddColumn("sourcecountry").AsString(512).Nullable();
+        Alter.Table("partyaddresses").InSchema(sql.SchemaName)
+            .AddColumn("sourcerecordtype").AsString(128).Nullable();
+        Alter.Table("partyaddresses").InSchema(sql.SchemaName)
+            .AddColumn("sourcerecordid").AsString(256).Nullable();
+        Alter.Table("partyaddresses").InSchema(sql.SchemaName)
+            .AddColumn("sourcefield").AsString(256).Nullable();
     }
 }

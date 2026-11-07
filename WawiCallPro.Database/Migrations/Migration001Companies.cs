@@ -9,7 +9,45 @@ public sealed class Migration001Companies(DatabaseType databaseType) : ForwardOn
 {
     public override void Up()
     {
-        foreach (var statement in Statements(databaseType)) Execute.Sql(statement);
+        var sql = new SchemaSql(databaseType);
+
+        var metadata = Create.Table("wawicallpro_metadata").InSchema(sql.SchemaName)
+            .WithColumn("applicationid").AsString(64).NotNullable().PrimaryKey("pk_wawicallpro_metadata")
+            .WithColumn("formatversion").AsInt32().NotNullable()
+            .WithColumn("createdatutc").AsInt64().NotNullable();
+        metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_applicationid", sql.TextCheck("applicationid", 64, nonBlank: true));
+        metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_formatversion", sql.IntegerCheck("formatversion", 1, int.MaxValue));
+        metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_createdatutc", sql.IntegerCheck("createdatutc", 0, 3155378975999999999));
+        metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_identity", sql.Exact(sql.Quote("applicationid"), "WawiCallPro.Communications"));
+
+        var companies = Create.Table("companies").InSchema(sql.SchemaName)
+            .WithColumn("id").AsCustom(sql.HexType(32)).NotNullable().PrimaryKey("pk_companies")
+            .WithColumn("sourcehash").AsCustom(sql.HexType(64)).NotNullable()
+            .WithColumn("productline").AsInt32().NotNullable()
+            .WithColumn("installationid").AsString(256).NotNullable()
+            .WithColumn("externalid").AsString(256).NotNullable()
+            .WithColumn("displayname").AsString(512).NotNullable()
+            .WithColumn("writeversion").AsInt64().NotNullable()
+            .WithColumn("cacheversion").AsInt64().NotNullable()
+            .WithColumn("cacherefreshedatutc").AsInt64().Nullable()
+            .WithColumn("createdatutc").AsInt64().NotNullable()
+            .WithColumn("updatedatutc").AsInt64().NotNullable();
+        companies.WithCheckConstraint(sql, "ck_companies_id", $"{sql.Hex(sql.Quote("id"), 32)} AND {sql.Quote("id")} <> '00000000000000000000000000000000'");
+        companies.WithCheckConstraint(sql, "ck_companies_sourcehash", sql.Hex(sql.Quote("sourcehash"), 64));
+        companies.WithCheckConstraint(sql, "ck_companies_productline", sql.IntegerCheck("productline", 1, 2));
+        companies.WithCheckConstraint(sql, "ck_companies_installationid", sql.TextCheck("installationid", 256, nonBlank: true));
+        companies.WithCheckConstraint(sql, "ck_companies_externalid", sql.TextCheck("externalid", 256, nonBlank: true));
+        companies.WithCheckConstraint(sql, "ck_companies_displayname", sql.TextCheck("displayname", 512, nonBlank: true));
+        companies.WithCheckConstraint(sql, "ck_companies_writeversion", sql.IntegerCheck("writeversion", 1, long.MaxValue));
+        companies.WithCheckConstraint(sql, "ck_companies_cacheversion", sql.IntegerCheck("cacheversion", 0, long.MaxValue));
+        companies.WithCheckConstraint(sql, "ck_companies_cacherefreshedatutc", sql.IntegerCheck("cacherefreshedatutc", 0, 3155378975999999999, nullable: true));
+        companies.WithCheckConstraint(sql, "ck_companies_createdatutc", sql.IntegerCheck("createdatutc", 0, 3155378975999999999));
+        companies.WithCheckConstraint(sql, "ck_companies_updatedatutc", sql.IntegerCheck("updatedatutc", 0, 3155378975999999999));
+        companies.WithCheckConstraint(sql, "ck_companies_chronology", "[createdatutc] <= [updatedatutc]");
+        companies.WithCheckConstraint(sql, "ck_companies_cache", "([cacheversion] = 0 AND [cacherefreshedatutc] IS NULL) OR ([cacheversion] > 0 AND [cacherefreshedatutc] IS NOT NULL)");
+        Create.Index("ux_companies_sourcehash").OnTable("companies").InSchema(sql.SchemaName).OnColumn("sourcehash").Ascending().WithOptions().Unique();
+        Create.Index("ix_companies_productline").OnTable("companies").InSchema(sql.SchemaName).OnColumn("productline").Ascending().OnColumn("sourcehash").Ascending();
+
         var insert = Insert.IntoTable("wawicallpro_metadata");
         if (databaseType == DatabaseType.SqlServer) insert.InSchema("dbo");
         if (databaseType == DatabaseType.PostgreSql) insert.InSchema("public");
@@ -19,35 +57,5 @@ public sealed class Migration001Companies(DatabaseType databaseType) : ForwardOn
             formatversion = 1,
             createdatutc = DateTime.UtcNow.Ticks
         });
-    }
-
-    internal static IEnumerable<string> Statements(DatabaseType type)
-    {
-        var sql = new SchemaSql(type);
-        var metadata = new SchemaTable(sql, "wawicallpro_metadata")
-            .Text("applicationid", 64, nonBlank: true)
-            .Integer("formatversion", 1, int.MaxValue)
-            .Utc("createdatutc")
-            .PrimaryKey("applicationid")
-            .Check("identity", sql.Exact(sql.Quote("applicationid"), "WawiCallPro.Communications"));
-
-        var companies = new SchemaTable(sql, "companies")
-            .Id(primaryKey: true)
-            .Hash("sourcehash")
-            .Integer("productline", 1, 2)
-            .Text("installationid", 256, nonBlank: true)
-            .Text("externalid", 256, nonBlank: true)
-            .Text("displayname", 512, nonBlank: true)
-            .Counter("writeversion")
-            .Counter("cacheversion", 0)
-            .Utc("cacherefreshedatutc", nullable: true)
-            .Utc("createdatutc")
-            .Utc("updatedatutc")
-            .Check("chronology", "[createdatutc] <= [updatedatutc]")
-            .Check("cache", "([cacheversion] = 0 AND [cacherefreshedatutc] IS NULL) OR ([cacheversion] > 0 AND [cacherefreshedatutc] IS NOT NULL)")
-            .Unique("ux_companies_sourcehash", "sourcehash")
-            .Index("ix_companies_productline", "productline", "sourcehash");
-
-        return metadata.Statements().Concat(companies.Statements());
     }
 }

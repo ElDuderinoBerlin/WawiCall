@@ -2,6 +2,11 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using WawiCallPro.Database.Schema;
 using WawiCallPro.Database.Migrations;
+using FluentMigrator;
+using FluentMigrator.Expressions;
+using FluentMigrator.Infrastructure;
+using FluentMigrator.Runner.Processors;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WawiCallPro.Database.Tests;
 
@@ -282,14 +287,27 @@ public sealed class ProductSchemaTests
     {
         var engine = new FluentMigratorEngine(type);
         CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, engine.Catalog.Versions.Take(5).ToArray());
-        var ddl = string.Join(";\n", new[]
+        var target = type == DatabaseType.Sqlite ? Target() : DatabaseTarget.Server(type,
+            type == DatabaseType.PostgreSql ? "Host=localhost;Database=ddl_fixture" : "Server=localhost;Database=ddl_fixture");
+        using var provider = engine.BuildServices(target);
+        using var scope = provider.CreateScope();
+        var processor = scope.ServiceProvider.GetRequiredService<IMigrationProcessor>();
+        var generator = scope.ServiceProvider.GetRequiredService<IMigrationGenerator>();
+        IMigration[] migrations = [new Migration001Companies(type), new Migration002PartyCache(type),
+            new Migration003CallHistory(type), new Migration004Recordings(type), new Migration005NumberParseLogs(type)];
+        var expressions = migrations.SelectMany(migration =>
         {
-            Migration001Companies.Statements(type),
-            Migration002PartyCache.Statements(type),
-            Migration003CallHistory.Statements(type),
-            Migration004Recordings.Statements(type),
-            Migration005NumberParseLogs.Statements(type)
-        }.SelectMany(statements => statements));
+            var context = new MigrationContext(processor, scope.ServiceProvider, target.ConnectionString);
+            migration.GetUpExpressions(context);
+            return context.Expressions;
+        });
+        var ddl = string.Join(";\n", expressions.Select(expression => expression switch
+        {
+            CreateTableExpression table => generator.Generate(table),
+            CreateIndexExpression index => generator.Generate(index),
+            ExecuteSqlStatementExpression statement => statement.SqlStatement,
+            _ => ""
+        }));
         Assert.AreEqual(11, ddl.Split("CREATE TABLE", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("DROP ", ddl);
         Assert.DoesNotContain("CASCADE", ddl);
@@ -304,7 +322,7 @@ public sealed class ProductSchemaTests
         {
             Assert.DoesNotContain("REGEXP_LIKE", ddl);
             Assert.Contains("COLLATE utf8mb4_bin REGEXP", ddl);
-            Assert.Contains("ENGINE=InnoDB", ddl);
+            Assert.IsTrue(System.Text.RegularExpressions.Regex.IsMatch(ddl, "ENGINE\\s*=\\s*INNODB", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
             Assert.Contains("CHARACTER SET ascii COLLATE ascii_bin", ddl);
             Assert.Contains("LONGTEXT CHARACTER SET utf8mb4", ddl);
             Assert.Contains("GENERATED ALWAYS AS", ddl);

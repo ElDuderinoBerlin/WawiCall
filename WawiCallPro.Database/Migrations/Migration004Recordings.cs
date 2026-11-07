@@ -9,28 +9,31 @@ public sealed class Migration004Recordings(DatabaseType databaseType) : ForwardO
 {
     public override void Up()
     {
-        foreach (var statement in Statements(databaseType)) Execute.Sql(statement);
-    }
+        var sql = new SchemaSql(databaseType);
 
-    internal static IEnumerable<string> Statements(DatabaseType type)
-    {
-        var sql = new SchemaSql(type);
-        var recordings = new SchemaTable(sql, "recordings")
-            .Id(primaryKey: true)
-            .Id("callid")
-            .Text("relativepath", 1024, nonBlank: true)
-            .Text("format", 32, nonBlank: true)
-            .Counter("durationticks", 0, nullable: true)
-            .Integer("availability", 0, 3)
-            .Counter("writeversion")
-            .Utc("createdatutc")
-            .Utc("updatedatutc")
-            .Check("chronology", "[createdatutc] <= [updatedatutc]")
-            // Full Windows device/alias/reparse validation stays in the write contract and file layer.
-            .Check("path", "[relativepath] NOT LIKE '/%' AND [relativepath] NOT LIKE '%/' AND [relativepath] NOT LIKE '%:%' AND [relativepath] NOT LIKE '%//%' AND [relativepath] <> '.' AND [relativepath] <> '..' AND [relativepath] NOT LIKE './%' AND [relativepath] NOT LIKE '../%' AND [relativepath] NOT LIKE '%/./%' AND [relativepath] NOT LIKE '%/../%' AND [relativepath] NOT LIKE '%/.' AND [relativepath] NOT LIKE '%/..'")
-            .Check("separator", $"{sql.Length(sql.Quote("relativepath"))} = {sql.Length($"REPLACE({sql.Quote("relativepath")}, {sql.Character(92)}, '')")}")
-            .ForeignKey("call", ["callid"], "phonecalls", "id")
-            .Index("ix_recordings_call", "callid", "id");
-        return recordings.Statements();
+        var recordings = Create.Table("recordings").InSchema(sql.SchemaName)
+            .WithColumn("id").AsCustom(sql.HexType(32)).NotNullable().PrimaryKey("pk_recordings")
+            .WithColumn("callid").AsCustom(sql.HexType(32)).NotNullable()
+            .WithColumn("relativepath").AsString(1024).NotNullable()
+            .WithColumn("format").AsString(32).NotNullable()
+            .WithColumn("durationticks").AsInt64().Nullable()
+            .WithColumn("availability").AsInt32().NotNullable()
+            .WithColumn("writeversion").AsInt64().NotNullable()
+            .WithColumn("createdatutc").AsInt64().NotNullable()
+            .WithColumn("updatedatutc").AsInt64().NotNullable();
+        recordings.WithCheckConstraint(sql, "ck_recordings_id", $"{sql.Hex(sql.Quote("id"), 32)} AND {sql.Quote("id")} <> '00000000000000000000000000000000'");
+        recordings.WithCheckConstraint(sql, "ck_recordings_callid", $"{sql.Hex(sql.Quote("callid"), 32)} AND {sql.Quote("callid")} <> '00000000000000000000000000000000'");
+        recordings.WithCheckConstraint(sql, "ck_recordings_relativepath", sql.TextCheck("relativepath", 1024, nonBlank: true));
+        recordings.WithCheckConstraint(sql, "ck_recordings_format", sql.TextCheck("format", 32, nonBlank: true));
+        recordings.WithCheckConstraint(sql, "ck_recordings_durationticks", sql.IntegerCheck("durationticks", 0, long.MaxValue, nullable: true));
+        recordings.WithCheckConstraint(sql, "ck_recordings_availability", sql.IntegerCheck("availability", 0, 3));
+        recordings.WithCheckConstraint(sql, "ck_recordings_writeversion", sql.IntegerCheck("writeversion", 1, long.MaxValue));
+        recordings.WithCheckConstraint(sql, "ck_recordings_createdatutc", sql.IntegerCheck("createdatutc", 0, 3155378975999999999));
+        recordings.WithCheckConstraint(sql, "ck_recordings_updatedatutc", sql.IntegerCheck("updatedatutc", 0, 3155378975999999999));
+        recordings.WithCheckConstraint(sql, "ck_recordings_chronology", "[createdatutc] <= [updatedatutc]");
+        recordings.WithCheckConstraint(sql, "ck_recordings_path", "[relativepath] NOT LIKE '/%' AND [relativepath] NOT LIKE '%/' AND [relativepath] NOT LIKE '%:%' AND [relativepath] NOT LIKE '%//%' AND [relativepath] <> '.' AND [relativepath] <> '..' AND [relativepath] NOT LIKE './%' AND [relativepath] NOT LIKE '../%' AND [relativepath] NOT LIKE '%/./%' AND [relativepath] NOT LIKE '%/../%' AND [relativepath] NOT LIKE '%/.' AND [relativepath] NOT LIKE '%/..'");
+        recordings.WithCheckConstraint(sql, "ck_recordings_separator", $"{sql.Length(sql.Quote("relativepath"))} = {sql.Length($"REPLACE({sql.Quote("relativepath")}, {sql.Character(92)}, '')")}");
+        recordings.WithForeignKeyConstraint(sql, "fk_recordings_call", ["callid"], "phonecalls", "id");
+        Create.Index("ix_recordings_call").OnTable("recordings").InSchema(sql.SchemaName).OnColumn("callid").Ascending().OnColumn("id").Ascending();
     }
 }

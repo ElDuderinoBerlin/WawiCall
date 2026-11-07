@@ -12,6 +12,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MySqlConnector;
+using WawiCallPro.Database.Schema;
+using FluentMigrator.Runner.Generators.SQLite;
+using FluentMigrator.Runner.Generators.SqlServer;
+using FluentMigrator.Runner.Generators.MySql;
+using FluentMigrator.Runner.Generators.Postgres;
 
 namespace WawiCallPro.Database;
 
@@ -104,6 +109,10 @@ public sealed class FluentMigratorEngine : IDatabaseMigrationEngine
                 .WithRunnerConventions(DefaultMigrationRunnerConventions.Instance)
                 .WithVersionTable(new CommunicationVersionTable(Type));
         });
+        services.AddScoped<SQLiteGenerator, ConstraintSQLiteGenerator>();
+        services.AddScoped<SqlServer2016Generator, ConstraintSqlServerGenerator>();
+        services.AddScoped<MySql8Generator, ConstraintMySqlGenerator>();
+        services.AddScoped<Postgres15_0Generator, ConstraintPostgresGenerator>();
         // Supply only the selected concrete types. No assembly scan can pick up plugin migrations,
         // profiles, maintenance migrations or foreign version-table metadata.
         services.AddSingleton<IMigrationSourceItem>(new MigrationTypes(_migrationTypes));

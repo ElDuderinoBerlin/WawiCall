@@ -3,6 +3,10 @@
 Stand: 06.11.2026, Phase 3 vollständig abgeschlossen. Die Migrationen 1–8 sind implementiert;
 Migration 8 ergänzt auf Phase-5-Auftrag die Stammdaten-/Adressherkunft und ursprünglichen Ländertext.
 
+Die vollständige deutsche Bedeutung jeder Tabelle und Spalte steht im
+[Tabellen- und Spaltenverzeichnis](Datenbank-Tabellen-und-Spalten.md): 15 Tabellen und 168 Spalten
+einschließlich der ausschließlich in MySQL/MariaDB berechneten Auswahlspalte.
+
 ## Aufbau der Migrationsklassen
 
 Jede Klasse unter `WawiCallPro.Database/Migrations` enthält ihren vollständigen Schemaänderungsschritt.
@@ -19,12 +23,25 @@ Tabellen, Spalten, Constraints, Indizes und Datenübernahmen sind dort gemeinsam
 | 7 | [Migration007CacheProvenance](../WawiCallPro.Database/Migrations/Migration007CacheProvenance.cs): Parser-/Kontextstand des Caches |
 | 8 | [Migration008PartyAddressSources](../WawiCallPro.Database/Migrations/Migration008PartyAddressSources.cs): Quellmetadaten und Ländertext |
 
-Die Schema-Sammelklassen `InitialSchema` und `MultiCompanySchema` sind entfernt. `SchemaSql`/`SchemaTable`
-enthalten nur allgemeine Datentyp-, Constraint- und Dialekthilfen; keine nach Version ausgewählten
-Tabellenschemata. Auch die berechnete Auswahlspalte und ihr Unique-Index stehen in Migration 3 beziehungsweise 6.
-Versionsnummern und Datensatzidentitäten werden durch die Aufteilung nicht geändert. Das vor/nach der
-Aufteilung erzeugte SQL der Versionen 1–6 war zunächst für alle vier Dialekte bytegleich; nach den
-anschließenden MySQL-/MariaDB-Korrekturen bleiben SQLite, SQL Server und PostgreSQL bytegleich.
+Tabellen und Spalten verwenden unmittelbar die FluentMigrator-API `Create.Table(...).WithColumn(...)`,
+Indizes `Create.Index(...)`, neue Spalten `Alter.Table(...)`, die Tabellenübernahme in Version 6
+`Delete.Table(...)` und `Rename.Table(...)`. Der eigene `SchemaTable`-Builder sowie die Sammelklassen
+`InitialSchema` und `MultiCompanySchema` sind entfernt. Auch die berechnete Auswahlspalte und ihr
+Unique-Index stehen in Migration 3 beziehungsweise 6; die Spalte verwendet FluentMigrators `Computed`.
+
+`SchemaSql` kapselt verbleibende Datentyp-/Prädikatunterschiede. Für CHECK-Bedingungen besitzt
+FluentMigrator 8 keine eigene Tabellen-Builder-API; SQLite benötigt diese Bedingungen zusammen mit
+der Tabellenerzeugung. `TableConstraintExtensions` ergänzt deshalb CHECKs und zusammengesetzte FKs
+an der regulären FluentMigrator-Tabellenexpression. Die Generatorergänzungen erhalten ansonsten die
+normalen FluentMigrator-Typen und die strenge Prüfung unbekannter Features. Es gibt keine Trigger als Ersatz.
+Die MySQL-Typabbildung sorgt dafür, dass `AsString` VARCHAR/LONGTEXT mit utf8mb4 erzeugt;
+nationales NVARCHAR mit implizitem utf8mb3 würde unter anderem Supplementzeichen verlieren.
+
+Versionsnummern, Datensatzidentitäten und fachliche Speicherverträge bleiben erhalten. Die erste reine
+Aufteilung war bytegleich; nach dem hier beschriebenen Wechsel auf die regulären Generatoren sind
+SQL-Formatierung und manche gleichwertigen Typnamen anders. SQLite verwendet Textaffinität auch bei
+VARCHAR/NVARCHAR-Deklarationen. Abnahmegrundlage sind Constraints, Daten-Upgrades und Repositoryrückläufe,
+kein behaupteter unveränderter SQL-Text.
 
 MySQL und MariaDB verwenden gemeinsam `DatabaseType.MySql` mit MySqlConnector, werden aber getrennt
 getestet. Der gemeinsame Dialekt nutzt den `REGEXP`-Operator statt `REGEXP_LIKE`. ASCII-Schlüssel werden

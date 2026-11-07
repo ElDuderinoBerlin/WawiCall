@@ -392,6 +392,14 @@ Serverläufe bestanden; `.artifacts/provider-compatibility`. Neuaufbau 1–8, ge
 Quellmetadaten/Unicode/Feldgrenzen sowie MySQL-/MariaDB-Rollen sind geprüft. Die vollständigen
 Schemadefinitionen stehen jetzt in den einzelnen Migrationsklassen. Details: [Datenbankschema](Datenbankschema.md).
 
+Der anschließende Nutzerauftrag verwendet nun unmittelbar FluentMigrators `Create.Table`/`WithColumn`,
+`Create.Index`, `Alter.Table`, `Delete.Table`, `Rename.Table` und `Computed`; kein SchemaTable-Builder.
+Die Generatorergänzung übernimmt nur fehlende Inline-Constraints und die utf8mb4-Abbildung von `AsString`.
+89 Datenbanktests und 87 Hosttests je Variante sowie die nativen Neuaufbau-/Upgrade-/Repository-/Hostläufe
+auf allen fünf Engines wurden für diesen Stand erneut ausgeführt; `.artifacts/fluent-migrations`.
+Das vollständige [deutsche Spaltenverzeichnis](Datenbank-Tabellen-und-Spalten.md) wurde gegen das tatsächlich
+erzeugte Schema abgeglichen, einschließlich NULL-Angaben, Datentypen, Einheiten und Beziehungen.
+
 Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;
 WawiCallPluginKeyFile zeigt standardmäßig auf den vorhandenen Quantarix-Plugin-Schlüssel im
 Schwesterrepository und kann explizit überschrieben werden. Keine zusätzliche private Schlüsselkopie.

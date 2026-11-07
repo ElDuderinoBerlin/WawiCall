@@ -211,6 +211,11 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
   Versions-Switch oder versteckte tabellenspezifische Schemas außerhalb der jeweiligen Migration aufbauen.
   Allgemeine Hilfen für Datentypen, Quotierung und SQL-Dialektunterschiede dürfen gemeinsam bleiben.
   Bestehende Versionsnummern und Daten erhalten; spätere fachliche Schemaänderungen erhalten eine neue Migration.
+- Tabellen, Spalten, Indizes und Änderungen mit der regulären FluentMigrator-API wie
+  `Create.Table(...).WithColumn(...).AsString(...)`, `Create.Index(...)` und `Alter.Table(...)` definieren;
+  keinen eigenen SchemaTable-Builder verwenden. Erforderliche nicht unterstützte Inline-Constraints
+  und Dialektbesonderheiten getrennt kapseln. Englische Tabellen-/Spaltennamen vollständig auf Deutsch
+  in `Docs/Datenbank-Tabellen-und-Spalten.md` erklären; jede Spalte erhält eine eigene Beschreibungszeile.
 
 ### Telefonie und Audio
 

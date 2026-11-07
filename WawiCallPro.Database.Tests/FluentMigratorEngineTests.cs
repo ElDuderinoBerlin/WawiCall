@@ -65,7 +65,7 @@ public sealed class FluentMigratorEngineTests
         using var scope = provider.CreateScope();
         var services = scope.ServiceProvider;
         var generator = services.GetRequiredService<IMigrationGenerator>();
-        Assert.AreEqual(generatorName, generator.GetType().Name);
+        Assert.AreEqual(generatorName, generator.GetType().BaseType!.Name);
         var processor = services.GetRequiredService<IMigrationProcessor>();
         Assert.AreEqual(generatorName.Replace("Generator", "Processor", StringComparison.Ordinal), processor.GetType().Name);
         var expression = new CreateTableExpression { TableName = "fixture_table", SchemaName = schema };

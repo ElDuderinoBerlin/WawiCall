@@ -204,6 +204,8 @@ elf Produkttabellen plus versioninfo, fester neuer SQL-Aufbau ohne Alt-/Überset
 Die vollständigen Schemadefinitionen stehen seit dem Nachtrag vom 07.11.2026 in ihren Migrationsklassen;
 SchemaSql kapselt allgemeine Provider-Typen, Collations und SQL-Prädikate. Die Sammelklassen
 InitialSchema/MultiCompanySchema sind entfernt. Bereits ausgelieferte fachliche Definitionen später nicht rückwirkend ändern.
+Die anschließende Nutzerpräzisierung verwendet jetzt reguläre FluentMigrator-Statements statt SchemaTable.
+Alle aktuellen Tabellen und Spalten sind im [deutschen Verzeichnis](Datenbank-Tabellen-und-Spalten.md) erklärt.
 Auf Nutzerwunsch enthält phonecalls zusätzlich machinename/windowsusername sowie eine eigene
 workstationid. CallOrigin validiert die Herkunft; CallWrite verlangt sie und übernimmt sie in den
 Snapshot. Bestehende Herkunft darf nicht durch Bearbeitung oder Umbenennungen umgeschrieben werden.
