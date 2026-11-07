@@ -1,5 +1,8 @@
 param(
     [switch]$FullAcceptance,
+    [switch]$ProviderCompatibility,
+    [string]$MariaDbBin,
+    [ValidateSet('SQL Server','MySQL','PostgreSQL','MariaDB')][string[]]$Engine,
     [ValidateSet('Pro','FinOffice')][string]$LexwareProductLine = 'Pro'
 )
 
@@ -29,7 +32,18 @@ foreach(var item in configurations)
     var target = DatabaseTarget.Server(Enum.Parse<DatabaseType>(item.Type), item.ConnectionString, 5, 30);
     var factory = new DatabaseFactory(); var engine = new FluentMigratorEngine(target.Type);
     var receipt = await new DatabaseProvisioner(factory).CreateAsync(target);
-    if(args[4] == "full") await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
+    var full = args[4] is "full" or "providers";
+    if(args[4] == "providers")
+    {
+        await using(var connection = factory.CreateConnection(target))
+        {
+            await connection.OpenAsync();
+            Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
+        }
+        await ProviderCompatibilityAcceptance.RunAsync(target);
+        Console.WriteLine(item.Engine + ": migrations 1-8, populated 7-to-8 upgrade, source metadata, Unicode, field limits, queries and repeated migration passed.");
+    }
+    if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else
     {
         var status = await new DatabaseMigrator(factory, engine).MigrateAsync(target, creation: receipt);
@@ -39,10 +53,11 @@ foreach(var item in configurations)
     await RepositoryAcceptance.HistoryAsync(target);
     await RepositoryAcceptance.RulesAsync(target);
     await RepositoryAcceptance.ConcurrencyAsync(target);
-    if(args[4] == "full") await NativeHostAcceptance.RunAsync(target.Type, item.ConnectionString, args[1]);
-    await ServerBackupAcceptance.RunAsync(target, args[1], args[2], args[3]);
+    if(full) await NativeHostAcceptance.RunAsync(target.Type, item.ConnectionString, args[1]);
+    if(args[4] != "providers") await ServerBackupAcceptance.RunAsync(target, args[1], args[2], args[3]);
+    Console.WriteLine(item.Engine + ": repository acceptance passed.");
 }
-internal sealed record AuditTarget(string Type, string ConnectionString);
+internal sealed record AuditTarget(string Type, string ConnectionString, string Engine);
 '@ | Set-Content -LiteralPath (Join-Path $runner 'Program.cs') -Encoding utf8
 $runId = [guid]::NewGuid().ToString('N')
 $runRoot = Join-Path $audit ('servers-' + $runId)
@@ -54,8 +69,24 @@ $pgData = Join-Path $runRoot 'postgres'
 $instance = 'WcpSchema' + $runId
 $database = 'wcp_schema_' + $runId
 $mysqlProcess = $null
+$mariaProcess = $null
 $pgProcess = $null
 $sqlCreated = $false
+if ($ProviderCompatibility) {
+    if (!$MariaDbBin) {
+        $mariaCommand = Get-Command mariadbd.exe -ErrorAction SilentlyContinue
+        if ($mariaCommand) { $MariaDbBin = Split-Path $mariaCommand.Source }
+        else {
+            $mariaInstallation = Get-ChildItem -LiteralPath $env:ProgramFiles -Directory -Filter 'MariaDB *' |
+                Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bin/mariadbd.exe') } |
+                Sort-Object Name -Descending | Select-Object -First 1
+            if ($mariaInstallation) { $MariaDbBin = Join-Path $mariaInstallation.FullName 'bin' }
+        }
+    }
+    foreach ($binary in @('mariadbd.exe','mysql_install_db.exe','mysqladmin.exe')) {
+        if (!$MariaDbBin -or !(Test-Path -LiteralPath (Join-Path $MariaDbBin $binary))) { throw "MariaDB-Testwerkzeuge fehlen; -MariaDbBin angeben ($binary)." }
+    }
+}
 function FreePort {
     $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
     $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop(); return $port
@@ -81,6 +112,16 @@ try {
     $mysqlProcess = Start-Process -FilePath (Join-Path $mysqlBin 'mysqld.exe') -ArgumentList @('--no-defaults',"--basedir=`"$mysqlBase`"","--datadir=`"$mysqlData`"",'--bind-address=127.0.0.1',"--port=$mysqlPort",'--mysqlx=0','--skip-log-bin','--innodb-buffer-pool-size=32M',"--log-error=`"$(Join-Path $runRoot 'mysql-server.log')`"") -WindowStyle Hidden -PassThru
     WaitPort $mysqlPort
     Write-Output 'Disposable MySQL instance started.'
+    if ($ProviderCompatibility) {
+        $mariaPort = FreePort
+        $mariaData = Join-Path $runRoot 'mariadb'
+        $init = Start-Process -FilePath (Join-Path $MariaDbBin 'mysql_install_db.exe') -ArgumentList @("--datadir=`"$mariaData`"", "--port=$mariaPort", '--silent') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'mariadb-init.log') -RedirectStandardError (Join-Path $runRoot 'mariadb-init.err')
+        if (-not $init.WaitForExit(45000)) { $init.Kill($true); throw 'MariaDB initialization timeout' }
+        if ($init.ExitCode -ne 0) { throw 'MariaDB initialization failed' }
+        $mariaProcess = Start-Process -FilePath (Join-Path $MariaDbBin 'mariadbd.exe') -ArgumentList @('--no-defaults', "--basedir=`"$(Split-Path $MariaDbBin)`"", "--datadir=`"$mariaData`"", '--bind-address=127.0.0.1', "--port=$mariaPort", '--skip-log-bin', '--innodb-buffer-pool-size=32M', "--log-error=`"$(Join-Path $runRoot 'mariadb-server.log')`"") -WindowStyle Hidden -PassThru
+        WaitPort $mariaPort
+        Write-Output 'Disposable MariaDB instance started.'
+    }
     $pgPort = FreePort
     $init = Start-Process -FilePath (Join-Path $pgBin 'initdb.exe') -ArgumentList @('-D',"`"$pgData`"",'--username=wcp_audit','--auth=trust','--encoding=UTF8','--locale=C') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runRoot 'postgres-init.log') -RedirectStandardError (Join-Path $runRoot 'postgres-init.err')
     if (-not $init.WaitForExit(45000)) { $init.Kill($true); throw 'PostgreSQL initialization timeout' }
@@ -92,15 +133,25 @@ try {
     WaitPort $pgPort
     Write-Output 'Disposable PostgreSQL instance started.'
     $config = Join-Path $audit 'server-config.json'
-    @(
-        @{Type='SqlServer';ConnectionString="Server=(localdb)\$instance;Database=$database;Integrated Security=True;Encrypt=False"},
-        @{Type='MySql';ConnectionString="Server=127.0.0.1;Port=$mysqlPort;Database=$database;User ID=root;SslMode=None"},
-        @{Type='PostgreSql';ConnectionString="Host=127.0.0.1;Port=$pgPort;Database=$database;Username=wcp_audit;SSL Mode=Disable"}
-    ) | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8
-    $mode = if ($FullAcceptance) { 'full' } else { 'backup' }
-    & dotnet run --project (Join-Path $runner 'Runner.csproj') -c Debug "-p:LexwareProductLine=$LexwareProductLine" -- $config $audit $mysqlBin $pgBin $mode
+    $targets = @(
+        @{Type='SqlServer';Engine='SQL Server';ConnectionString="Server=(localdb)\$instance;Database=$database;Integrated Security=True;Encrypt=False"},
+        @{Type='MySql';Engine='MySQL';ConnectionString="Server=127.0.0.1;Port=$mysqlPort;Database=$database;User ID=root;SslMode=None"},
+        @{Type='PostgreSql';Engine='PostgreSQL';ConnectionString="Host=127.0.0.1;Port=$pgPort;Database=$database;Username=wcp_audit;SSL Mode=Disable"}
+    )
+    if ($ProviderCompatibility) {
+        $targets += @{Type='MySql';Engine='MariaDB';ConnectionString="Server=127.0.0.1;Port=$mariaPort;Database=$database;User ID=root;SslMode=None"}
+    }
+    if ($Engine) { $targets = @($targets | Where-Object { $_.Engine -in $Engine }) }
+    if ($targets.Count -eq 0) { throw 'Keine passenden nativen Prüffälle ausgewählt.' }
+    ConvertTo-Json -InputObject @($targets) | Set-Content -LiteralPath $config -Encoding utf8
+    $mode = if ($ProviderCompatibility) { 'providers' } elseif ($FullAcceptance) { 'full' } else { 'backup' }
+    & dotnet run --project (Join-Path $runner 'Runner.csproj') -c Debug '-p:Platform=Any CPU' "-p:LexwareProductLine=$LexwareProductLine" -- $config $audit $mysqlBin $pgBin $mode
     if ($LASTEXITCODE -ne 0) { throw 'Server schema audit failed' }
 } finally {
+    if ($mariaProcess -and -not $mariaProcess.HasExited) {
+        & (Join-Path $MariaDbBin 'mysqladmin.exe') '--no-defaults' '--protocol=TCP' '-h127.0.0.1' "-P$mariaPort" '-uroot' 'shutdown' 2>&1 | Out-Null
+        if (-not $mariaProcess.WaitForExit(15000)) { $mariaProcess.Kill($true) }
+    }
     if ($mysqlProcess -and -not $mysqlProcess.HasExited) {
         & (Join-Path $mysqlBin 'mysqladmin.exe') '--no-defaults' '--protocol=TCP' '-h127.0.0.1' "-P$mysqlPort" '-uroot' 'shutdown' 2>&1 | Out-Null
         if (-not $mysqlProcess.WaitForExit(15000)) { $mysqlProcess.Kill($true) }

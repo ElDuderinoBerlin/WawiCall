@@ -376,6 +376,22 @@ Keine geänderten Oberflächen, sichtbaren GUI-Läufe, echten ERP-Zugriffe oder 
 
 ## Abhängigkeiten und CI
 
+Für Änderungen an Migrationen oder produktivem SQL ist zusätzlich die native Prüfung aller Zielsysteme
+verbindlich; MySQL und MariaDB werden getrennt ausgeführt:
+
+```powershell
+.\scripts\test-database-providers.ps1 -LexwareProductLine FinOffice
+.\scripts\test-database-providers.ps1 -LexwareProductLine Pro
+```
+
+Die Prüfung verwendet die installierten MySQL-/PostgreSQL-Kommandozeilenwerkzeuge, SQL Server LocalDB
+und MariaDB (`-MariaDbBin` optional explizit). Sie läuft in Debug / Any CPU, startet eigene unsichtbare
+Loopback-Instanzen und beendet diese auch bei Fehlern. Nachtrag vom 07.11.2026: je 89 Datenbank- und
+87 Utilities-Tests, Builds beider Hosts/Varianten, unveränderter aktiver Rider-Build und alle nativen
+Serverläufe bestanden; `.artifacts/provider-compatibility`. Neuaufbau 1–8, gefülltes Upgrade 7 → 8,
+Quellmetadaten/Unicode/Feldgrenzen sowie MySQL-/MariaDB-Rollen sind geprüft. Die vollständigen
+Schemadefinitionen stehen jetzt in den einzelnen Migrationsklassen. Details: [Datenbankschema](Datenbankschema.md).
+
 Phase 4 ist lokal vollständig abgenommen. Pluginprojekte sind signiert und dynamisch ladbar;
 WawiCallPluginKeyFile zeigt standardmäßig auf den vorhandenen Quantarix-Plugin-Schlüssel im
 Schwesterrepository und kann explizit überschrieben werden. Keine zusätzliche private Schlüsselkopie.

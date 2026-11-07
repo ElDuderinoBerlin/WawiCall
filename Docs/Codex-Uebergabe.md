@@ -201,8 +201,9 @@ Sperre und Hostanbindung bleiben offen; Bootstrap-/CI-Grenze und Velopack-Planun
 
 Phase 3, Punkt 4 ist abgeschlossen: fünf eigene ForwardOnlyMigration-Klassen für Versionen 1–5,
 elf Produkttabellen plus versioninfo, fester neuer SQL-Aufbau ohne Alt-/Übersetzungsdaten.
-SchemaSql/InitialSchema unterscheiden Provider-Typen, Collations, CHECKs, FK-/Unique-Indizes und den
-ausgewählten Gesprächskandidaten. Bereits ausgelieferte Definitionen später nicht rückwirkend ändern.
+Die vollständigen Schemadefinitionen stehen seit dem Nachtrag vom 07.11.2026 in ihren Migrationsklassen;
+SchemaSql kapselt allgemeine Provider-Typen, Collations und SQL-Prädikate. Die Sammelklassen
+InitialSchema/MultiCompanySchema sind entfernt. Bereits ausgelieferte fachliche Definitionen später nicht rückwirkend ändern.
 Auf Nutzerwunsch enthält phonecalls zusätzlich machinename/windowsusername sowie eine eigene
 workstationid. CallOrigin validiert die Herkunft; CallWrite verlangt sie und übernimmt sie in den
 Snapshot. Bestehende Herkunft darf nicht durch Bearbeitung oder Umbenennungen umgeschrieben werden.

@@ -88,23 +88,34 @@ public sealed class DatabaseMigrationPermissions(DatabaseFactory factory) : IDat
 
     private static async Task CheckMySqlAsync(DbConnection connection, DatabaseTarget target, CancellationToken token, bool fullMetadata = false)
     {
+        var mariaDb = connection.ServerVersion.Contains("MariaDB", StringComparison.OrdinalIgnoreCase);
         var roles = new List<string>();
-        await using (var command = DatabaseFactory.Command(connection, target, "SELECT ROLE_NAME, ROLE_HOST FROM information_schema.enabled_roles"))
+        var roleQuery = mariaDb ? "SELECT ROLE_NAME FROM information_schema.enabled_roles" :
+            "SELECT ROLE_NAME, ROLE_HOST FROM information_schema.enabled_roles";
+        await using (var command = DatabaseFactory.Command(connection, target, roleQuery))
         await using (var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false))
         {
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
+                // MariaDB represents SET ROLE NONE with a single NULL ROLE_NAME row.
+                if (mariaDb && reader.IsDBNull(0)) continue;
+                if (reader.IsDBNull(0) || !mariaDb && reader.IsDBNull(1))
+                    throw new DatabaseOperationException(DatabaseErrorCode.AccessDenied);
                 if (roles.Count >= 256) throw new DatabaseOperationException(DatabaseErrorCode.AccessDenied);
-                roles.Add(Quote(reader.GetString(0)) + "@" + Quote(reader.GetString(1)));
+                roles.Add(Quote(reader.GetString(0)) + (mariaDb ? "" : "@" + Quote(reader.GetString(1))));
             }
         }
         var needed = new HashSet<string>(["CREATE", "ALTER", "DROP", "INDEX", "REFERENCES", "SELECT", "INSERT", "UPDATE", "DELETE"], StringComparer.OrdinalIgnoreCase);
         var statements = new List<(string Privileges, string Pattern, bool Global)>();
         var metadataVisible = !fullMetadata;
-        await using (var command = DatabaseFactory.Command(connection, target,
-            "SHOW GRANTS FOR CURRENT_USER" + (roles.Count == 0 ? "" : " USING " + string.Join(',', roles))))
-        await using (var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false))
+        // MySQL expands active roles with USING. MariaDB exposes role names without hosts and
+        // requires a separate SHOW GRANTS for each enabled role; assigned but inactive roles do not count.
+        var grantQueries = mariaDb ? new[] { "SHOW GRANTS FOR CURRENT_USER" }.Concat(roles.Select(role => "SHOW GRANTS FOR " + role)) :
+            ["SHOW GRANTS FOR CURRENT_USER" + (roles.Count == 0 ? "" : " USING " + string.Join(',', roles))];
+        foreach (var query in grantQueries)
         {
+            await using var command = DatabaseFactory.Command(connection, target, query);
+            await using var reader = await command.ExecuteReaderAsync(token).ConfigureAwait(false);
             while (await reader.ReadAsync(token).ConfigureAwait(false))
             {
                 var match = Regex.Match(reader.GetString(0), @"^GRANT (.+?) ON (\*|`(?:``|[^`])*`)\.\* TO ", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));

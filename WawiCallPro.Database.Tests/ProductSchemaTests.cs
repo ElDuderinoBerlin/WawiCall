@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Security.Cryptography;
 using WawiCallPro.Database.Schema;
+using WawiCallPro.Database.Migrations;
 
 namespace WawiCallPro.Database.Tests;
 
@@ -281,7 +282,14 @@ public sealed class ProductSchemaTests
     {
         var engine = new FluentMigratorEngine(type);
         CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5 }, engine.Catalog.Versions.Take(5).ToArray());
-        var ddl = string.Join(";\n", Enumerable.Range(1, 5).SelectMany(version => InitialSchema.Statements(type, version)));
+        var ddl = string.Join(";\n", new[]
+        {
+            Migration001Companies.Statements(type),
+            Migration002PartyCache.Statements(type),
+            Migration003CallHistory.Statements(type),
+            Migration004Recordings.Statements(type),
+            Migration005NumberParseLogs.Statements(type)
+        }.SelectMany(statements => statements));
         Assert.AreEqual(11, ddl.Split("CREATE TABLE", StringSplitOptions.None).Length - 1);
         Assert.DoesNotContain("DROP ", ddl);
         Assert.DoesNotContain("CASCADE", ddl);
@@ -294,6 +302,8 @@ public sealed class ProductSchemaTests
         Assert.AreEqual(constraintNames.Length, constraintNames.Distinct(StringComparer.Ordinal).Count());
         if (type == DatabaseType.MySql)
         {
+            Assert.DoesNotContain("REGEXP_LIKE", ddl);
+            Assert.Contains("COLLATE utf8mb4_bin REGEXP", ddl);
             Assert.Contains("ENGINE=InnoDB", ddl);
             Assert.Contains("CHARACTER SET ascii COLLATE ascii_bin", ddl);
             Assert.Contains("LONGTEXT CHARACTER SET utf8mb4", ddl);

@@ -2,6 +2,36 @@
 
 Stand: 06.11.2026, Phase 3 vollständig abgeschlossen. Die Migrationen 1–8 sind implementiert;
 Migration 8 ergänzt auf Phase-5-Auftrag die Stammdaten-/Adressherkunft und ursprünglichen Ländertext.
+
+## Aufbau der Migrationsklassen
+
+Jede Klasse unter `WawiCallPro.Database/Migrations` enthält ihren vollständigen Schemaänderungsschritt.
+Tabellen, Spalten, Constraints, Indizes und Datenübernahmen sind dort gemeinsam prüfbar:
+
+| Version | Vollständige Definition |
+|---|---|
+| 1 | [Migration001Companies](../WawiCallPro.Database/Migrations/Migration001Companies.cs): Eigentumskennung und Mandanten |
+| 2 | [Migration002PartyCache](../WawiCallPro.Database/Migrations/Migration002PartyCache.cs): Geschäftspartner, Anschriften und Rufnummern |
+| 3 | [Migration003CallHistory](../WawiCallPro.Database/Migrations/Migration003CallHistory.cs): Gespräche, historische Kandidaten, Notizen und Ereignisse |
+| 4 | [Migration004Recordings](../WawiCallPro.Database/Migrations/Migration004Recordings.cs): Aufnahmemetadaten |
+| 5 | [Migration005NumberParseLogs](../WawiCallPro.Database/Migrations/Migration005NumberParseLogs.cs): Nummernfehler |
+| 6 | [Migration006MultiCompanyLookup](../WawiCallPro.Database/Migrations/Migration006MultiCompanyLookup.cs): Firmenbezüge, Übernahme alter Kandidaten und Nummernregeln |
+| 7 | [Migration007CacheProvenance](../WawiCallPro.Database/Migrations/Migration007CacheProvenance.cs): Parser-/Kontextstand des Caches |
+| 8 | [Migration008PartyAddressSources](../WawiCallPro.Database/Migrations/Migration008PartyAddressSources.cs): Quellmetadaten und Ländertext |
+
+Die Schema-Sammelklassen `InitialSchema` und `MultiCompanySchema` sind entfernt. `SchemaSql`/`SchemaTable`
+enthalten nur allgemeine Datentyp-, Constraint- und Dialekthilfen; keine nach Version ausgewählten
+Tabellenschemata. Auch die berechnete Auswahlspalte und ihr Unique-Index stehen in Migration 3 beziehungsweise 6.
+Versionsnummern und Datensatzidentitäten werden durch die Aufteilung nicht geändert. Das vor/nach der
+Aufteilung erzeugte SQL der Versionen 1–6 war zunächst für alle vier Dialekte bytegleich; nach den
+anschließenden MySQL-/MariaDB-Korrekturen bleiben SQLite, SQL Server und PostgreSQL bytegleich.
+
+MySQL und MariaDB verwenden gemeinsam `DatabaseType.MySql` mit MySqlConnector, werden aber getrennt
+getestet. Der gemeinsame Dialekt nutzt den `REGEXP`-Operator statt `REGEXP_LIKE`. ASCII-Schlüssel werden
+vor der Regexprüfung ausdrücklich nach utf8mb4 konvertiert, damit die Collation zu ihrem Zeichensatz passt.
+`RTRIM(callid)` macht die gespeicherte Auswahlspalte unabhängig vom CHAR-Padding des SQL-Modus;
+kanonische 32-stellige Hex-IDs ändern dadurch ihren Wert nicht. Die Rechteprüfung unterscheidet
+MySQL-Rollen samt Host/`USING` von MariaDB-Rollennamen, separaten Grants und dem NULL-Eintrag bei `SET ROLE NONE`.
 Die Verträge und Speicherwertkodierungen sind implementiert und separat prüfbar. Seit Punkt 2 bestehen
 ADO-Factory, ausdrückliche Provisionierung und Metadaten-/Migrationssteuerung; seit Punkt 3 der reale
 FluentMigrator-Adapter für alle vier Provider. Seit Punkt 4 bestehen Produkt-DDL und Schema-/Upgradeprüfungen.
@@ -404,7 +434,9 @@ Lesen abgewiesen. SQLite prüft die neuen Textlängen zusätzlich über CHECK.
 Nachweis: gefüllter SQLite-Bestand Version 7 → 8 einschließlich Adress-/Telefonzeilen,
 Unversehrtheit und nullable Altwerte; Cache-Rücklauf mit Ländername, Postleitzahl, Quellmetadaten und
 gleichen Nummern aus verschiedenen Feldern. `.artifacts/phase5-addresses`. Für Version 8 wurde kein
-zusätzlicher nativer Serverlauf ausgeführt; historische Servernachweise gelten für ihre dokumentierten Stände.
+zusätzlicher nativer Serverlauf in diesem ursprünglichen Block ausgeführt.
+Der Nachtrag vom 07.11.2026 prüft nun die Neuinstallation aller acht Versionen und den gefüllten Übergang
+7 → 8 zusätzlich nativ auf SQL Server, PostgreSQL, MySQL und MariaDB; siehe den aktuellen Prüfnachweis unten.
 
 ## Späterer Office-Ausbau
 
@@ -523,6 +555,39 @@ Quellen: [Microsoft.Data.Sqlite Online Backup](https://learn.microsoft.com/dotne
 [PostgreSQL 17 pg_dump](https://www.postgresql.org/docs/17/app-pgdump.html).
 
 ## Prüfnachweis
+
+Aktueller Nachtrag vom 07.11.2026: In beiden Produktvarianten bestehen je 89 Datenbanktests und
+87 Utilities-/Hosttests sowie die nativen Providerprüfungen. Tatsächlich verwendete Engines:
+
+| Engine | Version | Nachweis |
+|---|---|---|
+| SQLite | 3.53.4 über Microsoft.Data.Sqlite 10.0.14 | Neuaufbau, alle Versionspräfixe und gefülltes Upgrade 7 → 8 |
+| SQL Server LocalDB | 15.00.4382 | Neuaufbau 1–8 und gefülltes Upgrade 7 → 8 |
+| PostgreSQL | 17.9 | Neuaufbau 1–8 und gefülltes Upgrade 7 → 8 |
+| MySQL | 8.4.9 | Neuaufbau 1–8, gefülltes Upgrade 7 → 8 und aktive/inaktive Rollen |
+| MariaDB | 11.1.2 | Derselbe Prüfablauf wie MySQL, separat ausgeführt |
+
+Die zusätzlichen Prüfungen laden vorhandene Adress-/Telefonzeilen nach dem Upgrade ohne ID-Wechsel,
+prüfen NULL-Metadaten alter Zeilen, Unicode einschließlich Supplementzeichen, Original-Ländertexte,
+zulässige Feldgrenzen und die Ablehnung überlanger Werte. Cacheersetzen, Rücklesen, Suchen, E.164-Abfrage,
+explizites Löschen optionaler Metadaten und unveränderte Migrationswiederholung laufen auf denselben Engines.
+Die bisherige gemeinsame Repositoryabnahme prüft zudem Mandanten, Historie, Notizen, Aufnahmen,
+Nummernregeln, konkurrierende Schreiber und Abbruch. Reale Migrationfehler/Wiederanlauf, Prozesssperren
+und DI-Hostpersistenz sind in jedem nativen Serverlauf enthalten.
+
+```powershell
+.\scripts\test-database-providers.ps1 -LexwareProductLine FinOffice
+.\scripts\test-database-providers.ps1 -LexwareProductLine Pro
+# Bei nicht auffindbarer MariaDB-Installation:
+.\scripts\test-database-providers.ps1 -MariaDbBin 'C:\Program Files\MariaDB 11.1\bin'
+```
+
+Der Einstieg baut und prüft in Debug / Any CPU und startet ausschließlich eigene, fensterlose
+Loopback-Testinstanzen mit freien Ports sowie eine eigene LocalDB-Instanz. Vorhandene Dienste und
+Datenbanken werden nicht verwendet. Die Instanzen werden im `finally` beendet; Diagnoseordner bleiben
+unter `.artifacts/backup-audit-*` erhalten. Zusammengefasste Nachweise dieser Änderung liegen unter
+`.artifacts/provider-compatibility`. Eine neue MariaDB-Backup-/Restore-Abnahme ist damit nicht behauptet;
+der Providerprüfmodus führt Schema-, Repository- und Hostprüfungen aus.
 
 Zwölf Tests prüfen unabhängig berechnete Hashvektoren, Identitätstrennung einschließlich Rand-Leerzeichen/
 Unicode, UTC-Einzelticks, kanonische GUIDs, vollständige Cacheanträge, gemeinsame Nummern, getrennte

@@ -63,7 +63,8 @@ internal sealed class SchemaSql(DatabaseType type)
     {
         DatabaseType.Sqlite => $"{value} NOT GLOB '*[^{characters}]*'",
         DatabaseType.SqlServer => $"{value} COLLATE Latin1_General_100_BIN2 NOT LIKE '%[^{characters}]%'",
-        DatabaseType.MySql => $"REGEXP_LIKE({value}, '^[{characters}]+$', 'c')",
+        // The REGEXP operator exists in both MySQL and MariaDB; REGEXP_LIKE is MySQL-specific.
+        DatabaseType.MySql => $"CONVERT({value} USING utf8mb4) COLLATE utf8mb4_bin REGEXP '^[{characters}]+$'",
         _ => $"{value} ~ '^[{characters}]+$'"
     };
 
@@ -87,7 +88,7 @@ internal sealed class SchemaSql(DatabaseType type)
 
     internal string E164(string value)
     {
-        if (Type == DatabaseType.MySql) return $"REGEXP_LIKE({value}, '^[+][1-9][0-9]{{1,14}}$', 'c')";
+        if (Type == DatabaseType.MySql) return $"{value} COLLATE utf8mb4_bin REGEXP '^[+][1-9][0-9]{{1,14}}$'";
         if (Type == DatabaseType.PostgreSql) return $"{value} ~ '^[+][1-9][0-9]{{1,14}}$'";
         var rest = $"substr({value}, 2)";
         var first = $"substr({value}, 2, 1)";
@@ -169,6 +170,12 @@ internal sealed class SchemaTable(SchemaSql sql, string name)
         return this;
     }
 
+    internal SchemaTable StoredGeneratedColumn(string column, string dataType, string expression)
+    {
+        _columns.Add($"{sql.Quote(column)} {dataType} GENERATED ALWAYS AS ({expression}) STORED");
+        return this;
+    }
+
     internal SchemaTable Index(string index, params string[] columns)
     {
         var ordered = columns.Select(column =>
@@ -177,18 +184,6 @@ internal sealed class SchemaTable(SchemaSql sql, string name)
             return sql.Quote(parts[0]) + (parts.Length == 2 ? " " + parts[1] : string.Empty);
         });
         _indexes.Add($"CREATE INDEX {sql.Quote(index)} ON {sql.Table(name)} ({string.Join(", ", ordered)})");
-        return this;
-    }
-
-    internal SchemaTable SelectedCallIndex()
-    {
-        if (sql.Type == DatabaseType.MySql)
-        {
-            _columns.Add($"{sql.Quote("selectedcallid")} {sql.HexType(32)} GENERATED ALWAYS AS (CASE WHEN {sql.Quote("isselected")} = 1 THEN {sql.Quote("callid")} ELSE NULL END) STORED");
-            Unique("ux_callparties_selected", "selectedcallid");
-        }
-        else
-            _indexes.Add($"CREATE UNIQUE INDEX {sql.Quote("ux_callparties_selected")} ON {sql.Table(name)} ({sql.Quote("callid")}) WHERE {sql.Quote("isselected")} = 1");
         return this;
     }
 

@@ -395,8 +395,9 @@ Produktschematests bestehen; seit Punkt 6 enthält der Produktkatalog Versionen 
 
 Die fünf `ForwardOnlyMigration`-Klassen im eigenen Migrationsnamespace erzeugen Eigentumskennung/
 Mandanten, Geschäftspartner-/Adress-/Nummerncache, Gesprächshistorie, Aufnahmemetadaten und Nummernfehler.
-Keine Alt- oder Übersetzungsdaten werden übernommen. `SchemaSql`/`InitialSchema` erzeugen ausschließlich
-DDL aus festen Schemadefinitionen für den ausgewählten Provider. Inline-CHECKs sichern Wertebereiche,
+Keine Alt- oder Übersetzungsdaten werden übernommen. Die vollständigen Tabellen-/Spalten-/Indexdefinitionen
+stehen in den jeweiligen Migrationsklassen; `SchemaSql` übernimmt allgemeine SQL-Dialektunterschiede.
+Die früheren Sammelklassen `InitialSchema` und `MultiCompanySchema` sind entfernt. Inline-CHECKs sichern Wertebereiche,
 kanonische IDs, UTC-Ticks, Zeitbezüge und Gesprächszustände; FK-/Unique-Indizes sichern Besitzer und
 Eindeutigkeit. Die Format-/Längenregeln der Schreibverträge bleiben zusätzlich erforderlich.
 

@@ -890,6 +890,18 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   gezielter Rider-Build in unveränderter Konfiguration sowie Bundle-/Shared-/Hash- und Native-Prüfungen bestanden.
   Nachweise `.artifacts/phase5-company-switch`; keine echten Wawi-Zugriffe oder UI-Änderungen.
   Konkrete Plugin-Tabs und deren sichtbare Zustände bleiben den UI-Phasen zugeordnet.
+- [x] ✅ Nachtrag vom 07.11.2026: Migrationen 1–8 und produktive SQL-Zugriffe auf SQLite, PostgreSQL,
+  SQL Server, MySQL und separat MariaDB geprüft. Jede Migrationsklasse enthält ihren vollständigen
+  Schemaänderungsschritt; die Sammelklassen InitialSchema/MultiCompanySchema sind entfernt.
+  Bei der reinen Aufteilung war das SQL der Versionen 1–6 für alle Dialekte identisch. MySQL/MariaDB
+  verwenden anschließend kompatible Regexprüfungen samt Zeichensatzkonvertierung und eine vom CHAR-Padding
+  unabhängige berechnete Auswahlspalte. Die Rechteprüfung berücksichtigt beide unterschiedlichen Rollenmodelle.
+  Native Neuinstallation, gefülltes Upgrade 7 → 8, nullable Altmetadaten, Unicode, Feldgrenzen,
+  Repositoryabrufe, aktive/inaktive Rollen, Fehler/Wiederanlauf, Prozesssperren und Hostpersistenz bestanden.
+  Je Produktvariante 89 Datenbank- und 87 Utilities-Tests, Builds beider Hosts und gezielter Rider-Rebuild
+  erfolgreich. Wiederholbarer Einstieg `scripts/test-database-providers.ps1`; Nachweise
+  `.artifacts/provider-compatibility`. Repositoryvorgaben um diese Prüfpflicht und vollständige
+  Migrationsklassen ergänzt. Keine bestehenden Datenbanken oder sichtbaren GUIs verwendet.
 - [ ] Capability-Matrix pro Produktlinie für Stammdaten, Schreiboperationen und sämtliche erweiterten Kundenansichten erstellen.
   Verbindliche Pluginbereiche: Stammdaten, Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel,
   Artikel-zu-Belegen-Statistik, offene Posten, Zahlungsverhalten, Umsatz-/Einkaufsentwicklung und Projekte.

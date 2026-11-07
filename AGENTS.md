@@ -200,6 +200,18 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Datenbank und Migrationen
+
+- Migrationen und produktiver SQL-Code müssen SQLite, PostgreSQL, SQL Server sowie MySQL und MariaDB
+  unterstützen. Betroffene Migrationen und SQL-Zugriffe auf den tatsächlichen Engines prüfen; generierter
+  SQL-Text oder SQLite-Tests allein ersetzen die Serverprüfung nicht. MySQL und MariaDB getrennt nachweisen.
+  Der wiederholbare Einstieg ist `scripts/test-database-providers.ps1`; ausschließlich isolierte Testinstanzen nutzen.
+- Jede Migrationsklasse enthält ihren vollständigen Schemaänderungsschritt mit Tabellen, Spalten,
+  Constraints, Indizes und gegebenenfalls Datenübernahme. Keine zentralen Schemadefinitionen mit
+  Versions-Switch oder versteckte tabellenspezifische Schemas außerhalb der jeweiligen Migration aufbauen.
+  Allgemeine Hilfen für Datentypen, Quotierung und SQL-Dialektunterschiede dürfen gemeinsam bleiben.
+  Bestehende Versionsnummern und Daten erhalten; spätere fachliche Schemaänderungen erhalten eine neue Migration.
+
 ### Telefonie und Audio
 
 - Use SIPSorcery exclusively for telephony. Do not implement TAPI, CAPI, Dialogic, PJSIP, or other legacy backends.
