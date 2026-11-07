@@ -16,6 +16,19 @@ namespace WawiCallPro.Utilities.Tests;
 [TestClass]
 public sealed class SettingsVersionTests
 {
+    [TestMethod]
+    public async Task VersionOneNumberContextsDoNotAutomaticallyEnablePhoneCacheSources()
+    {
+        RequireWindows();
+        using var directory = new SettingsDirectory();
+        const string json = "{\"formatVersion\":1,\"settings\":{\"companies\":[{\"company\":{\"productLine\":\"Pro\",\"installationId\":\"fixture\",\"externalId\":\"01\"},\"defaultPhoneRegion\":\"DE\"}]}}";
+        await File.WriteAllTextAsync(directory.Location.FilePath, json);
+        var snapshot = await directory.Store.LoadAsync();
+        Assert.AreEqual(1, snapshot.FormatVersion);
+        Assert.IsTrue(snapshot.RequiresUpgrade);
+        Assert.IsFalse(snapshot.Options.Companies.Single().IncludeInPhoneCache);
+        Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
+    }
     private static CompanyKey Company(string installation = "installation-A", LexwareProductLine product = LexwareProductLine.Pro) =>
         new(product, installation, "0007");
 
@@ -47,7 +60,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(ConfigurationFormat.CurrentVersion, current.FormatVersion);
         Assert.IsFalse(current.RequiresUpgrade);
         var savedJson = await File.ReadAllTextAsync(directory.Location.FilePath);
-        Assert.Contains("\"formatVersion\": 1", savedJson);
+        Assert.Contains("\"formatVersion\": 2", savedJson);
         Assert.DoesNotContain("synthetic-migration-password", savedJson);
         Assert.AreEqual(JsonSerializer.Serialize(password), JsonSerializer.Serialize(current.Options.SipAccount!.Password));
     }
@@ -96,7 +109,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         string[] invalid =
         [
-            "{\"formatVersion\":2,\"settings\":{}}",
+            "{\"formatVersion\":3,\"settings\":{}}",
             "{\"formatVersion\":0,\"settings\":{}}",
             "{\"formatVersion\":-1,\"settings\":{}}",
             "{\"formatVersion\":\"synthetic-value\",\"settings\":{}}",
@@ -275,7 +288,7 @@ public sealed class SettingsVersionTests
             {
                 var diagnostic = await host.Services.GetRequiredService<HostDiagnostics>().CaptureAsync(token);
                 Assert.AreEqual(legacy ? 0 : 1, diagnostic.SettingsFormatVersion);
-                Assert.AreEqual(legacy, diagnostic.SettingsUpgradeRequired);
+                Assert.IsTrue(diagnostic.SettingsUpgradeRequired);
                 Assert.IsFalse(diagnostic.CompanySelected);
                 Assert.DoesNotContain("synthetic-tenant-marker", JsonSerializer.Serialize(diagnostic));
             });

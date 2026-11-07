@@ -1,0 +1,15 @@
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+     viewBox="0 0 32 32" style="enable-background:new 0 0 32 32;" xml:space="preserve">
+  <style type="text/css">
+    .Blue{fill:#1177D7;}
+    .Green{fill:#039C23;}
+    .White{fill:#FFFFFF;}
+    .Gray{fill:#727272;}
+  </style>
+    <path class="Blue" d="M8,3h14c1.1,0,2,0.9,2,2v22c0,1.1-0.9,2-2,2H8c-1.1,0-2-0.9-2-2V5C6,3.9,6.9,3,8,3z"/>
+    <path class="White" d="M9,7h12v2H9V7z M9,13h8v2H9V13z M9,19h8v2H9V19z"/>
+    <path class="Green" d="M25.7,8.3l1.5,1.5L22,15l-3.2-3.2l1.5-1.5l1.7,1.7L25.7,8.3z"/>
+    <path class="White" d="M25.7,19.3l1.5,1.5L22,26l-3.2-3.2l1.5-1.5l1.7,1.7L25.7,19.3z"/>
+    <path class="Gray" d="M12,1h6c0.6,0,1,0.4,1,1v2h-8V2C11,1.4,11.4,1,12,1z"/>
+    <circle class="White" cx="15" cy="3" r="1"/>
+</svg>

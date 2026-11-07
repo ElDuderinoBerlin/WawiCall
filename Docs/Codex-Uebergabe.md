@@ -13,6 +13,13 @@ Phasenangaben sind historische Nachweise. Dieser Nachtrag ändert keine Adapter 
 
 ## Verbindliche Ziele
 
+Aktueller Nutzerauftrag Main-App vom 07.11.2026: Ribbon, echte Dockpanels Navigation/Ausgabe/Hilfe
+und DocumentManager/TabbedView nach LxTranslate.App sind umgesetzt. Kein Mandantenfeld im
+Hauptfenster; mehrere Cachequellen ausschließlich im Einstellungsdialog (Format 2, Altbestände lesbar).
+Basisverwaltung ist mit vorhandenen Diensten verbunden; volle Telefonie, Geräte, Cacheaufbau,
+Pluginzugänge und konkrete Fach-Tabs sind weiterhin offene Facharbeit. Die vorherigen Aussagen
+zum nächsten Phase-5-Punkt bleiben für den regulären Aufbau gültig.
+
 - Neuaufbau unter `D:\Application-Development\WawiCallPro`, Solution `WawiCallProSolution.sln`.
 - Altprojekt zur fachlichen Analyse: `D:\Application-Development\WawiCallPro_old`.
 - Repository: `https://github.com/ElDuderinoBerlin/WawiCall.git`; bislang ausschließlich lokale Commits, kein Push.

@@ -56,14 +56,17 @@ public sealed class StartupAppearanceTests
                     try
                     {
                         using var form = CreateView(surface, populated, root);
+                        if (form is MainForm main) main.PrepareForBackgroundRun();
                         form.Font = font;
                         _ = form.Handle;
                         // Bind the real Load handlers, without Show/ShowDialog or a foreground window.
                         typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
-                        form.ClientSize = surface == "MainForm" ? small ? new Size(440, 260) : new Size(720, 420)
+                        if (surface == "MainForm") form.MinimumSize = Size.Empty;
+                        form.ClientSize = surface == "MainForm" ? small ? new Size(900, 700) : new Size(1240, 780)
                             : small ? new Size(500, 360) : new Size(760, 420);
                         form.PerformLayout();
                         CreateHandles(form);
+                        if (form is MainForm) { form.Show(); Application.DoEvents(); }
                         var name = $"{surface}-{(populated ? "populated" : "empty")}-{(small ? "small" : "normal")}-font{fontSize:0}";
                         Save(form, Path.Combine(output, name + ".png"));
                         CheckBounds(form);
@@ -71,7 +74,8 @@ public sealed class StartupAppearanceTests
                         form.PerformLayout();
                         Save(form, Path.Combine(output, name + "-scale150.png"));
                         CheckBounds(form);
-                        Assert.IsFalse(form.Visible);
+                        if (form is MainForm) { Assert.AreEqual(0d, form.Opacity); Assert.IsFalse(form.ShowInTaskbar); }
+                        else Assert.IsFalse(form.Visible);
                     }
                     finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
                 }
@@ -100,8 +104,7 @@ public sealed class StartupAppearanceTests
 
     private static void Save(Form form, string path)
     {
-        using var bitmap = new Bitmap(form.Width, form.Height);
-        form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+        using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
         bitmap.Save(path, ImageFormat.Png);
     }
 
@@ -113,7 +116,7 @@ public sealed class StartupAppearanceTests
             if (control.Parent is TableLayoutPanel && control is LabelControl or SimpleButton or TextEdit)
             {
                 Assert.IsTrue(control.Left >= 0 && control.Top >= 0 && control.Right <= parent.ClientSize.Width + 1
-                    && control.Bottom <= parent.ClientSize.Height + 1, $"Clipped control: {control.Name}");
+                    && control.Bottom <= parent.ClientSize.Height + 1, $"Clipped control: {control.Name} ({control.GetType().Name}) {control.Bounds} in {parent.ClientSize}");
             }
             CheckBounds(control);
         }

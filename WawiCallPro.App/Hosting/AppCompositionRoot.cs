@@ -19,6 +19,8 @@ internal static class AppCompositionRoot
                 services.AddSingleton(exceptions);
                 services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
+                services.AddSingleton<AppWorkspace>();
+                services.AddSingleton<AppUiState>();
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();

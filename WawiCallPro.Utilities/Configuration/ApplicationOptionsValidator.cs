@@ -130,6 +130,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
                 issues.Add(new("companies", "Mandantenbezüge müssen vollständig und eindeutig sein."));
                 continue;
             }
+            if (settings.DisplayName is { } name && (string.IsNullOrWhiteSpace(name) || name.Length > 512 || name.Any(char.IsControl)))
+                issues.Add(new("companies.displayName", "Der optionale Mandantenname muss lesbar sein und darf höchstens 512 Zeichen enthalten."));
             if (!IsValidRegion(settings.DefaultPhoneRegion))
                 issues.Add(new("companies.defaultPhoneRegion", "Ein gültiger zweistelliger ISO-Ländercode in Großbuchstaben ist erforderlich."));
             if (settings.LocalAreaCode is { } areaCode && (areaCode.Length is < 1 or > 16 || !areaCode.All(char.IsAsciiDigit)))

@@ -28,6 +28,8 @@ public sealed record AudioDeviceSettings
 public sealed record CompanySettings
 {
     public required CompanyKey Company { get; init; }
+    public bool IncludeInPhoneCache { get; init; }
+    public string? DisplayName { get; init; }
     public string DefaultPhoneRegion { get; init; } = "DE";
     public string? LocalAreaCode { get; init; }
     public override string ToString() => nameof(CompanySettings);

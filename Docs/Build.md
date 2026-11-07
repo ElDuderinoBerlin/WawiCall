@@ -376,6 +376,16 @@ Keine geänderten Oberflächen, sichtbaren GUI-Läufe, echten ERP-Zugriffe oder 
 
 ## Abhängigkeiten und CI
 
+Nachtrag Main-App vom 07.11.2026: Der gemeinsame Rahmen folgt direkt LxTranslate.App mit Ribbon,
+DockManager und DocumentManager/TabbedView. Der Einstellungsdialog enthält die Mehrfachauswahl
+der Cache-Mandanten; das Hauptfenster besitzt keine Mandantenanzeige. Format 2 ergänzt
+`companies[].includeInPhoneCache` und den optionalen Anzeigenamen. Versionen 0/1 bleiben lesbar,
+erhalten beim Lesen unverändert ihre Versionskennung und werden erst beim ausdrücklichen Speichern
+auf 2 umgestellt. Keine automatische Cachefreigabe aus alten Nummernkontexten.
+AppShellTests prüfen den Einstellungs-/Konfliktpfad, Mandantentrennung, echte SQLite-Historie/Notizen,
+View-Lebensdauer und wartenden Abbruch. Gezielte Bildprüfungen liegen unter `.artifacts/app-shell`
+und `.artifacts/startup-integration/ui`; keine SIP-/Live-ERP-Abnahme in diesem UI-Schritt.
+
 Für Änderungen an Migrationen oder produktivem SQL ist zusätzlich die native Prüfung aller Zielsysteme
 verbindlich; MySQL und MariaDB werden getrennt ausgeführt:
 

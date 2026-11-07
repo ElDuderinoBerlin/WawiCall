@@ -122,9 +122,14 @@ internal sealed class AppApplicationContext : ApplicationContext
         catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }
     }
 
-    private void MainFormClosing(object? sender, FormClosingEventArgs e)
+    private async void MainFormClosing(object? sender, FormClosingEventArgs e)
     {
         e.Cancel = true;
-        _closeRequested.TrySetResult();
+        try
+        {
+            if (_form is not null) await _form.PrepareToCloseAsync();
+        }
+        catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }
+        finally { _closeRequested.TrySetResult(); }
     }
 }

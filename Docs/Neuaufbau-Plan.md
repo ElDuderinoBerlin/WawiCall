@@ -1018,9 +1018,27 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Vorgezogener Nutzerauftrag vom 07.11.2026: Main-App-Basis nach der direkten Vorlage
+  `LxTranslate.App` aufgebaut: Ribbon, persistierte DevExpress-Dockpanels für Navigation/Ausgabe/Hilfe,
+  DocumentManager/TabbedView, wiederverwendbare Arbeits-Tabs, Einstellungsdialog und Skin-/Schriftauswahl.
+  Datenbankstatus, explizite Anlage/Migration, SQLite-Sicherung/RestoreNew und echte Historie mit Notizen
+  an die vorhandenen DI-Dienste angeschlossen; Pluginmetadaten und Fachview-Leases eingebunden.
+  Kein Mandantenfeld im Hauptfenster. Cachequellen werden per eingebauter Checkbox-Mehrfachauswahl
+  ausschließlich in den Einstellungen gespeichert, einschließlich vollständiger Quellidentität.
+  Einstellungsformat 2 ergänzt Auswahl und Anzeigenamen; Altformate bleiben ohne Schreibzugriff lesbar
+  und übernehmen keinen Mandanten automatisch. Konto-/Datenbank-/Geräteänderungen gelten nach Neustart.
+  Laufende Seitenaktionen werden vor dem Beenden abgebrochen und abgewartet. Isolierte App-/Speicher-
+  und Konfigurationstests (je 19 App- und 88 Utilities-Fälle), Debug-/Any-CPU-Builds beider Produktlinien und gezielte Renderprüfung der
+  betroffenen Seiten/Dialoge mit leeren/gefüllten Daten, kleinerem Fenster, größerer Schrift und
+  150%-Layoutsimulation geprüft. Nachweise `.artifacts/app-shell` und `.artifacts/startup-integration/ui`.
+  Der Hintergrundrenderer berücksichtigt nicht aktivierte DocumentManager-Dokumente; native Control-
+  Einbindung/Bounds im Rider-Debugger geprüft. Keine sichtbare Bedienung des Benutzerdesktops.
+  Telefonregistrierung, Mediengeräte, tatsächlicher Cacheaufbau/Rufnummernindex, Wawi-Zugangseinrichtung,
+  konkrete Wawi-Fachtabs, globale Hotkeys und Autostart bleiben ihren Fachpunkten zugeordnet.
 - [ ] Allgemeine Einstellungen, Plugin-Manager-Oberfläche und SIPSorcery-Einstellungen im Hauptprogramm
   erstellen und über DI mit den gemeinsamen Diensten verbinden; fachliche Wawi-Views bleiben im Plugin.
-- [ ] Hauptfenster, Verbindungs-/Mandantenauswahl, Kunden-/Lieferantensuche, Wähldialog und Historie erstellen.
+- [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
+  Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
   Keine konkreten Wawi-Oberflächen im App-Projekt nachbauen; Plugin-Views unterliegen denselben UI-Prüfregeln.
 - [ ] Anruferfenster mit Treffern, Nummer, Mandant, Gesprächsstatus und Notizen anbinden.
@@ -1031,7 +1049,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 - [ ] Auf die betroffenen Views begrenzte Renderprüfung entsprechend `LX_UI_AUDIT_SURFACES` aus der Vorlage einrichten.
   Diese Renderinfrastruktur ist im neuen Repository erst zu implementieren.
 
-Abnahme Kernprodukt: Mandant wählen → Kunden laden → Anruf empfangen → zuordnen → bedienen → Notiz speichern →
+Abnahme Kernprodukt: Cache-Mandanten in Einstellungen wählen → Kunden laden → Anruf empfangen → zuordnen → bedienen → Notiz speichern →
 Gespräch nach Neustart in der Historie wiederfinden. Zusätzlich ausgehender Anruf und verpasster Anruf.
 Beide Produktlinien in Debug bauen. Betroffene Views mit befüllten/leeren Daten, kleinem Fenster,
 größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
