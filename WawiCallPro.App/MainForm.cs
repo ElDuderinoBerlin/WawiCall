@@ -79,6 +79,7 @@ public partial class MainForm : RibbonForm
         {
             case "settings":
                 var settings = new SettingsPage(); if (_workspace is not null) settings.Bind(_workspace);
+                settings.ConfigureLayoutPersistence(_state);
                 content = settings; caption = "Einstellungen"; break;
             case "database":
                 var database = new DatabasePage(); if (_workspace is not null) database.Bind(_workspace);
@@ -204,6 +205,7 @@ public partial class MainForm : RibbonForm
     private void OpenSettings()
     {
         using var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace);
+        settings.ConfigureLayoutPersistence(_state);
         settings.ShowDialog(this);
     }
     private void ShowNavigation_Click(object sender, ItemClickEventArgs e) => navigationDock.Show();

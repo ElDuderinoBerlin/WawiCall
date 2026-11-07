@@ -10,6 +10,7 @@ public partial class FrmSettings : XtraForm
     public FrmSettings() { InitializeComponent(); Load += Settings_Load; }
     public FrmSettings(AppWorkspace workspace) : this() => settingsPage.Bind(workspace);
     internal Task StopAsync() => settingsPage.StopAsync();
+    internal void ConfigureLayoutPersistence(AppUiState? state) => settingsPage.ConfigureLayoutPersistence(state);
     private void Close_Click(object? sender, EventArgs e) => Close();
     private async void Settings_Load(object? sender, EventArgs e) => await settingsPage.ReloadAsync();
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)

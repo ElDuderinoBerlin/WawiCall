@@ -56,6 +56,11 @@ partial class SettingsPage
     private DevExpress.XtraGrid.GridControl cacheGrid;
     private DevExpress.XtraGrid.Views.Grid.GridView cacheView;
     private DevExpress.XtraGrid.Columns.GridColumn mandantColumn;
+    private System.Windows.Forms.TableLayoutPanel cacheActions;
+    private DevExpress.XtraEditors.SimpleButton refreshCacheButton;
+    private DevExpress.XtraEditors.SimpleButton cancelCacheButton;
+    private DevExpress.XtraGrid.Columns.GridColumn cacheStatusColumn;
+    private DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit cacheTextEdit;
 
     protected override void Dispose(bool disposing)
     {
@@ -70,6 +75,11 @@ partial class SettingsPage
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        cacheActions = new System.Windows.Forms.TableLayoutPanel();
+        refreshCacheButton = new DevExpress.XtraEditors.SimpleButton();
+        cancelCacheButton = new DevExpress.XtraEditors.SimpleButton();
+        cacheStatusColumn = new DevExpress.XtraGrid.Columns.GridColumn();
+        cacheTextEdit = new DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit();
         layout = new System.Windows.Forms.TableLayoutPanel();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         statusLabel = new DevExpress.XtraEditors.LabelControl();
@@ -470,7 +480,7 @@ partial class SettingsPage
         cacheHint.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         cacheHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         loadCompaniesButton.Name = "loadCompaniesButton";
-        loadCompaniesButton.Text = "Verfügbare Mandanten laden";
+        loadCompaniesButton.Text = "Mandanten laden";
         loadCompaniesButton.AutoSize = true;
         loadCompaniesButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         loadCompaniesButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
@@ -481,14 +491,43 @@ partial class SettingsPage
         cacheLayout.RowStyles[2].SizeType = System.Windows.Forms.SizeType.Percent;
         cacheLayout.RowStyles[2].Height = 100F;
         cacheLayout.Controls.Add(cacheHint, 0, 0);
-        cacheLayout.Controls.Add(loadCompaniesButton, 0, 1);
+        cacheActions.AutoSize = true;
+        cacheActions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        cacheActions.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left;
+        cacheActions.Margin = new System.Windows.Forms.Padding(0);
+        cacheActions.ColumnCount = 3;
+        cacheActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        cacheActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        cacheActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        cacheActions.RowCount = 1;
+        cacheActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        cacheActions.Controls.Add(loadCompaniesButton, 0, 0);
+        cacheActions.Controls.Add(refreshCacheButton, 1, 0);
+        cacheActions.Controls.Add(cancelCacheButton, 2, 0);
+        cacheLayout.Controls.Add(cacheActions, 0, 1);
+        refreshCacheButton.Name = "refreshCacheButton";
+        refreshCacheButton.Text = "Cache aktualisieren";
+        refreshCacheButton.ToolTip = "Speichert zuerst die Einstellungen und aktualisiert den Telefon-Cache der ausgewählten Mandanten.";
+        refreshCacheButton.AutoSize = true;
+        refreshCacheButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        refreshCacheButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        refreshCacheButton.Click += RefreshCache_Click;
+        cancelCacheButton.Name = "cancelCacheButton";
+        cancelCacheButton.Text = "Abbrechen";
+        cancelCacheButton.AutoSize = true;
+        cancelCacheButton.Enabled = false;
+        cancelCacheButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        cancelCacheButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        cancelCacheButton.Click += CancelCache_Click;
         cacheLayout.Controls.Add(cacheGrid, 0, 2);
         cacheGrid.Dock = System.Windows.Forms.DockStyle.Fill;
         cacheGrid.MainView = cacheView;
+        cacheGrid.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { cacheTextEdit });
         cacheGrid.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] { cacheView });
         cacheView.GridControl = cacheGrid;
         cacheView.OptionsBehavior.Editable = false;
         cacheView.OptionsView.ShowGroupPanel = false;
+        cacheView.OptionsView.RowAutoHeight = true;
         cacheView.OptionsFind.AlwaysVisible = true;
         cacheView.OptionsSelection.MultiSelect = true;
         cacheView.OptionsSelection.MultiSelectMode = DevExpress.XtraGrid.Views.Grid.GridMultiSelectMode.CheckBoxRowSelect;
@@ -512,9 +551,16 @@ partial class SettingsPage
         cacheView.OptionsBehavior.AutoPopulateColumns = false;
         mandantColumn.FieldName = "Mandant";
         mandantColumn.Caption = "Mandant";
+        mandantColumn.ColumnEdit = cacheTextEdit;
         mandantColumn.Visible = true;
         mandantColumn.VisibleIndex = 0;
         cacheView.Columns.Add(mandantColumn);
+        cacheStatusColumn.Caption = "Telefon-Cache";
+        cacheStatusColumn.FieldName = "CacheStatus";
+        cacheStatusColumn.ColumnEdit = cacheTextEdit;
+        cacheStatusColumn.Visible = true;
+        cacheStatusColumn.VisibleIndex = 1;
+        cacheView.Columns.Add(cacheStatusColumn);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         Name = "SettingsPage";

@@ -966,10 +966,22 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   positiven Geschäftspartnertreffer; N zählt nach der Vorwahl. Den Rest als Apparatenummer getrennt
   von Extension führen. Passenden Präfixindex und Regelversionen vorsehen; bei Mehrfachtreffern auswählen lassen.
   Konfigurierte/ausdrücklich bestätigte Rufnummernblöcke und unbestätigte Vermutungen getrennt ausweisen.
-- [ ] Suchfirmenauswahl per DevExpress-CheckedListBox und vollständigen CompanyKeys persistieren;
-  Hakenstatus von Zeilenmarkierung, bevorzugter Firma und aktiver Hauptansicht trennen.
-- [ ] Stammdaten-/Nummerncache pro Firma atomar und abbrechbar erneuern; gemeinsamen Index für alle
-  angehakten berechtigten Firmen führen. Nummern dürfen mehreren vollständigen PartyKeys zugeordnet sein.
+- [x] ✅ Suchfirmenauswahl mit vollständigen CompanyKeys ausschließlich in den Einstellungen persistieren;
+  eingebaute DevExpress-Grid-Checkboxauswahl verwenden, aktive Hauptansicht davon unabhängig halten.
+  Nutzerentscheidung vom 07.11.2026 ersetzt die ursprünglich geplante CheckedListBox im Hauptfenster.
+- [x] ✅ Stammdaten-/Nummerncache pro Firma atomar und abbrechbar erneuern.
+  `IPhoneCacheService` prüft die gespeicherte Auswahl gegen den aktuellen Berechtigungskatalog,
+  liest alle Quellseiten und normalisiert direkte sowie adressgebundene Nummern mit Quellbezug.
+  Revisionsgeschützter Cacheersatz erhält den bisherigen Bestand bei Abruffehlern, Abbruch,
+  Auswahl-/Kontextänderungen oder konkurrierenden Schreibzugriffen. Bestätigte Leerbestände sind zulässig;
+  identische Rufnummern bleiben mehreren vollständigen PartyKeys zugeordnet. Parser-/Kontextstand
+  werden mitgeführt; feste Nummernfehlercodes unabhängig protokolliert. Settings-Aktion mit Fortschritt,
+  Abbruch und Ergebnis je Mandant; leere Auswahl ohne DB-/Wawi-Zugriff, geändertes DB-Ziel erst nach Neustart.
+  Nachweis: zwölf neue SQLite-/Diensttests und ein App-Bedienungstest mit tatsächlicher Persistenz,
+  wartendem Abbruch und wiederhergestellten Buttons; gezielte Renderprüfung der Einstellungsseite.
+  Je 100 Utilities- und 20 App-Tests für Pro/FinOffice bestanden; vier Hostbuilds in Debug / Any CPU
+  und abschließender Rider-Build ohne Warnungen/Fehler. Keine SQL-/Migrationsänderungen oder Live-Wawi-Prüfung.
+- [ ] Gemeinsamen Index für alle angehakten berechtigten Firmen führen.
   Cachealter, Vollständigkeit und Normalisierungsversionen berücksichtigen; UI und Gesprächsannahme nicht blockieren.
 - [ ] Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
   Nur bei belastbarer Eindeutigkeit automatisch wählen; aktive Firma beeinflusst lediglich die Reihenfolge.
@@ -1033,7 +1045,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   150%-Layoutsimulation geprüft. Nachweise `.artifacts/app-shell` und `.artifacts/startup-integration/ui`.
   Der Hintergrundrenderer berücksichtigt nicht aktivierte DocumentManager-Dokumente; native Control-
   Einbindung/Bounds im Rider-Debugger geprüft. Keine sichtbare Bedienung des Benutzerdesktops.
-  Telefonregistrierung, Mediengeräte, tatsächlicher Cacheaufbau/Rufnummernindex, Wawi-Zugangseinrichtung,
+  Telefonregistrierung, Mediengeräte, gemeinsamer Rufnummernindex, Wawi-Zugangseinrichtung,
   konkrete Wawi-Fachtabs, globale Hotkeys und Autostart bleiben ihren Fachpunkten zugeordnet.
 - [ ] Allgemeine Einstellungen, Plugin-Manager-Oberfläche und SIPSorcery-Einstellungen im Hauptprogramm
   erstellen und über DI mit den gemeinsamen Diensten verbinden; fachliche Wawi-Views bleiben im Plugin.

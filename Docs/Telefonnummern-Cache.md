@@ -1,8 +1,9 @@
 # Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
 
-Stand: 04.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
-Anruferkennung. Offline-Parser und Nummernkontext aus Phase 6/Punkten 1–2 sind implementiert; Mehrfirmen-Cache,
-StartWidth-Abgleich, Auswahl und Viewanbindung bleiben noch umzusetzen.
+Stand: 07.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
+Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
+Aktualisierung sind implementiert. Gemeinsamer Suchindex, StartWidth-Abgleich, Trefferauswahl
+und Anruf-/Viewanbindung bleiben noch umzusetzen.
 
 ## Grundentscheidung
 
@@ -17,28 +18,27 @@ Anzeigename oder die momentan aktive Firma zusammengeführt.
 
 ## Firmenauswahl mit DevExpress
 
-Das Hauptprogramm erhält eine Firmenauswahl mit `CheckedListBoxControl` entsprechend den
-DevExpress-Dokumentationen für WinForms. Die Liste zeigt Firmenname, Produktlinie, Installation
-und externe Firmen-ID; ergänzend Cachezustand und letzten erfolgreichen Abruf.
+Die Cachequellen werden ausschließlich unter **Einstellungen → Telefon-Cache** ausgewählt.
+Das Hauptfenster enthält keine Mandantenanzeige oder Mandantenauswahl. Der DevExpress-GridView
+zeigt den Mandantennamen und das Ergebnis der letzten Aktualisierung in diesem Dialog;
+technische Schlüssel bleiben intern. Beim erneuten Öffnen steht der Status auf „Status nicht geprüft“.
 
 - Auswahlwerte sind vollständige `CompanyKey`-Werte: Produktlinie + Installationskennung + externe Firmen-ID.
-- Datenbindung über `DataSource`, `ValueMember` für den stabilen Schlüssel, `DisplayMember` für den
-  lesbaren Text und `CheckMember` für den Hakenstatus eines eigenen UI-Modells.
-- Mehrere Firmen können angehakt werden; `CheckOnClick` erlaubt unmittelbares Umschalten.
-- Maßgeblich sind die Haken beziehungsweise `CheckedItems`. Markierte Zeile/SelectedIndex und
-  angehakte Firmen sind laut DevExpress unterschiedliche Zustände.
-- Kompakte Aktionen: alle berechtigten Firmen markieren, keine markieren, Cache aktualisieren.
+- Die eingebaute Checkbox-Mehrfachauswahl (`CheckBoxRowSelect`) bindet über `CheckBoxSelectorField`
+  an den Auswahlwert des UI-Modells. Die aktive Fachansicht bestimmt diese Menge nicht.
+- Eingebautes Find Panel, Checkbox im Spaltenkopf für die Mehrfachauswahl und persistiertes
+  Spaltenlayout unter dem versionierten HKCU-Pfad der App; Tests unterdrücken die Persistenz.
+- Kompakte Aktionen: Mandanten laden, Cache aktualisieren, Abbrechen. Die Aktualisierung speichert
+  zuerst die angezeigten Einstellungen und meldet anschließend Fortschritt und Ergebnis je Mandant.
 - Die Auswahl wird als Menge vollständiger Schlüssel in Benutzer-/Arbeitsplatzeinstellungen
   persistiert. Anzeigenamen, Reihenfolge und die bevorzugte Firma ersetzen diese Menge nicht.
-- Nicht mehr vorhandene oder nicht berechtigte Firmen werden kenntlich gemacht. Alte gespeicherte
-  Schlüssel werden nicht auf eine gleichnamige andere Firma umgebogen.
+- Nicht mehr vorhandene oder nicht berechtigte Firmen erhalten beim Aktualisieren einen eigenen Status.
+  Alte gespeicherte Schlüssel werden nicht auf eine gleichnamige andere Firma umgebogen.
 - Leere Auswahl bedeutet keine automatische Wawi-Zuordnung; Anrufsteuerung und Protokollierung bleiben möglich.
 
-Das Control gehört mit TableLayoutPanel und DevExpress-Eingaben in Designer/resx. Bindung, Persistenz
-und Cacheoperationen laufen über DI-Dienste. Die spätere Oberfläche benötigt die vorgeschriebene
-visuelle Prüfung; dieses Dokument erzeugt noch keine Controls.
-[DevExpress CheckedListBoxControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl),
-[Members](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl._members)
+Die Oberfläche besteht aus designerfähigen Controls mit TableLayoutPanel und Designer/resx.
+Bindung, Persistenz und Cacheoperationen laufen über DI-Dienste. Gezielte Hintergrundrenderings
+prüfen leere/gefüllte Daten, kleine Fenster, größere Schrift und 150%-Layoutsimulation.
 
 ## Datenfluss bei einem eingehenden Anruf
 
@@ -302,6 +302,26 @@ Abruf ersetzt keinen bisherigen vollständigen Snapshot. Änderungen an Region-/
 und Bibliotheksmetadaten erfordern eine versionierte Neuindizierung mit Regressionstests.
 An-/Abhaken ändert die Suchmenge, löscht aber keine Historie oder noch anderweitig benötigten Cachebestände.
 
+`IPhoneCacheService` liest die gespeicherte Auswahl neu und prüft vollständige CompanyKeys gegen
+den aktuellen Berechtigungskatalog des einzigen geladenen Plugins. Eine leere Auswahl öffnet weder
+Warenwirtschaft noch Datenbank. Die Kommunikationsdatenbank muss zuvor ausdrücklich eingerichtet sein;
+nach einer Änderung ihres Zieles ist ein Neustart erforderlich.
+Alle Quellseiten einer Firma werden vor Veröffentlichung vollständig gelesen und geprüft. Direkte
+Nummern und Anschriftennummern werden mit dem gespeicherten Land-/Ortskontext normalisiert.
+Originalwert, Quelle und explizite Extension bleiben erhalten; ein alter E.164-Wert wird bei einem
+nicht auflösbaren Original entfernt. Gleiche Nummern dürfen mehreren Geschäftspartnern gehören.
+
+Der Cacheersatz verwendet die erwartete Revision und eine Transaktion pro Firma. Abruffehler,
+ungültige Seiten, geänderte Auswahl/Normalisierungsvorgaben und konkurrierende Cacheänderungen
+verhindern die Veröffentlichung des veralteten Ergebnisses. Die Einstellungen werden vor dem
+Speichern nochmals geprüft. Parser-/Metadatenversion und ein Fingerabdruck aus Interpreterversion,
+vollständigem CompanyKey und Nummernkontext kennzeichnen auch einen erfolgreich leeren Cache.
+Ein Abbruch wartet auf den Quellaufruf: Bereits abgeschlossene Firmen bleiben gespeichert,
+die laufende Firma behält ihren bisherigen Cache. Ein Fehler einer Firma hält andere ausgewählte
+Firmen nicht auf. Unauflösbare Nummern werden mit festen Fehlercodes und Quellbezug unabhängig
+protokolliert; diese Beobachtungen können auch bei einem späteren Abbruch oder Revisionskonflikt bleiben.
+Eine Diagnoseoberfläche dafür sowie die firmenübergreifende Suche stehen noch aus.
+
 Ein firmengebundener Wawi-Client darf nicht parallel durch ungeschützte UseCompany-Wechsel umgeschaltet
 werden. Es werden nachweislich isolierte Firmenclients verwendet oder Firmenwechsel plus Abfrage über
 denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der Rückkehr von Antworten.
@@ -310,8 +330,9 @@ denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der R
 
 Parsing/Regionsauflösung, Kontextwahl und Interpretation sind über `IPhoneNumberParser`,
 `IPhoneNumberInterpreter` und `ICompanyPhoneNumberContextProvider` implementiert und per DI an
-App/Console angebunden. Cachepflege, Mehrfirmensuche und Auswahl benötigen weiterhin eigene Interfaces und
-Implementierungen. Das bestehende
+App/Console angebunden. `IPhoneCacheService` ist mit der Pluginlaufzeit in beiden Hosts per DI
+registriert und wird in der App über die Einstellungen aufgerufen. Mehrfirmensuche und Trefferauswahl
+benötigen weiterhin eigene Interfaces und Implementierungen. Das bestehende
 `IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
 Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
 
@@ -332,7 +353,7 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignis-/StartWidth-Anbindung, Mehrfirmenkonfiguration, fachliche Nutzung der registrierten Cache-/Regel-Repositories,
+SIP-Ereignis-/StartWidth-Anbindung, fachliche Nutzung der registrierten Regel-Repositories,
 Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,
@@ -342,4 +363,4 @@ Kollisionen zwischen Stamm und Volltreffer sowie Regelwechsel prüfen. Diese Pla
 Quellen: [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber-csharp),
 [PhoneNumberUtil](https://github.com/twcclegg/libphonenumber-csharp/blob/main/csharp/PhoneNumbers/PhoneNumberUtil.cs),
 [libphonenumber FAQ](https://github.com/google/libphonenumber/blob/master/FAQ.md),
-[DevExpress CheckedListBoxControl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraEditors.CheckedListBoxControl).
+[DevExpress GridView-Checkboxauswahl](https://docs.devexpress.com/WindowsForms/DevExpress.XtraGrid.Views.Grid.GridOptionsSelection.CheckBoxSelectorField).

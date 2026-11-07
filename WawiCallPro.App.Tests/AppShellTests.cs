@@ -12,6 +12,7 @@ using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Core.Threading;
 using WawiCallPro.Database;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
@@ -35,6 +36,7 @@ public sealed class AppShellTests
     [TestMethod]
     public Task SettingsDialogRendersEveryPageWithEmptyAndPopulatedDataWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
+        AppUiStartup.Apply();
         var originalFont = WindowsFormsSettings.DefaultFont;
         var originalAppearance = AppearanceObject.DefaultFont;
         try
@@ -73,6 +75,8 @@ public sealed class AppShellTests
                 form.Scale(new SizeF(1.5F, 1.5F));
                 form.PerformLayout();
                 CheckTableBounds(form);
+                using var scaled = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                scaled.Save(Path.Combine(RenderOutput(), $"Settings-Telefon-Cache-{populated}-{fontSize:0}-{small}-scale150.png"), ImageFormat.Png);
                 Assert.IsFalse(form.Visible);
             }
         }
@@ -115,6 +119,55 @@ public sealed class AppShellTests
         await page.SaveAsync(CancellationToken.None);
         Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.Companies.Any(company => company.IncludeInPhoneCache));
         Assert.IsNull(typeof(MainForm).GetField("companyLookup", BindingFlags.Instance | BindingFlags.NonPublic));
+    });
+
+    [TestMethod]
+    public Task CacheRefreshSavesSelectionReportsResultsAndRestoresButtonsAfterCancellation() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        using var page = new SettingsPage();
+        page.Bind(workspace);
+        page.ConfigureLayoutPersistence(services.GetRequiredService<AppUiState>());
+        await InvokeActionAsync(page, "LoadCompanies_Click");
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "cacheView");
+        view.SelectRow(0);
+        await InvokeActionAsync(page, "RefreshCache_Click");
+        var selected = (await workspace.Settings.LoadAsync()).Options.Companies.Single(company => company.IncludeInPhoneCache);
+        var cache = services.GetRequiredService<IPartyCacheRepository>();
+        Assert.AreEqual(1, (await cache.GetStateAsync(selected.Company)).Revision);
+        Assert.AreEqual("+49301234567", (await cache.GetAsync(new(selected.Company, PartyKind.Customer, "01")))!.Phones.Single().E164);
+        Assert.Contains("1 von 1", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.Contains("1 Nummern", view.GetRowCellValue(0, "CacheStatus").ToString()!);
+        Assert.IsNull(workspace.Companies.Current.Company);
+
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var directory = (TestDirectory)workspace.Directory;
+        directory.Read = async query =>
+        {
+            entered.SetResult();
+            await release.Task;
+            return new(query.Company, new([], false));
+        };
+        typeof(SettingsPage).GetMethod("RefreshCache_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [null, EventArgs.Empty]);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.IsFalse(Field<SimpleButton>(page, "refreshCacheButton").Enabled);
+            Assert.IsFalse(Field<GridControl>(page, "cacheGrid").Enabled);
+            Assert.IsTrue(Field<SimpleButton>(page, "cancelCacheButton").Enabled);
+            typeof(SettingsPage).GetMethod("CancelCache_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [null, EventArgs.Empty]);
+            Assert.IsTrue(Field<PageOperation>(page, "_operation").IsRunning, "Cancellation must await the source response.");
+        }
+        finally { release.TrySetResult(); }
+        // StopAsync also exercises closing the dialog while a cancelled source call is still completing.
+        await page.StopAsync();
+        Assert.AreEqual(1, (await cache.GetStateAsync(selected.Company)).Revision);
+        Assert.IsTrue(Field<SimpleButton>(page, "refreshCacheButton").Enabled);
+        Assert.IsTrue(Field<SimpleButton>(page, "saveButton").Enabled);
+        Assert.IsTrue(Field<GridControl>(page, "cacheGrid").Enabled);
+        Assert.IsFalse(Field<SimpleButton>(page, "cancelCacheButton").Enabled);
+        Assert.Contains("abgebrochen", Field<LabelControl>(page, "statusLabel").Text);
     });
 
     [TestMethod]
@@ -235,6 +288,7 @@ public sealed class AppShellTests
             services.AddSingleton<IUiDispatcher>(new SynchronizationContextUiDispatcher(context));
             services.AddSingleton<IBusinessDirectory, TestDirectory>();
             services.AddSingleton<IProductPluginRuntime>(new TestRuntime(plugin));
+            services.AddSingleton<WawiCallPro.Interfaces.PhoneNumbers.IPhoneCacheService, WawiCallPro.Utilities.Persistence.PhoneCacheService>();
             services.AddSingleton<IPluginViewAccess, PluginViewAccess>();
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
@@ -284,13 +338,19 @@ public sealed class AppShellTests
         await done.Task.WaitAsync(TimeSpan.FromSeconds(40));
         Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2)));
     }
-    private sealed class TestDirectory : IBusinessDirectory
+    private sealed class TestDirectory(ApplicationDescriptor application) : IBusinessDirectory
     {
+        internal Func<PartyQuery, Task<PartyPage>>? Read;
+        private LexwareProductLine ProductLine => Enum.Parse<LexwareProductLine>(application.ProductLine);
         public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default) => Task.FromResult(ImmutableArray.Create(
-            new Company(new(LexwareProductLine.Pro, "installation-A", "1"), "Firma A"),
-            new Company(new(LexwareProductLine.Pro, "installation-B", "1"), "Firma B")));
+            new Company(new(ProductLine, "installation-A", "1"), "Firma A"),
+            new Company(new(ProductLine, "installation-B", "1"), "Firma B")));
         public Task<CapabilitySet> GetCapabilitiesAsync(CompanyKey company, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken = default) => Read is not null ? Read(query) : Task.FromResult(new PartyPage(query.Company, new([new Party
+        {
+            Key = new(query.Company, PartyKind.Customer, "01"), DisplayName = "Testkunde",
+            Phones = [new("+49 30 1234567", PhoneKind.Telephone, new("fixture", "01", "telephone"))]
+        }], false)));
         public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
     private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime

@@ -6,6 +6,7 @@ using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Plugin.Windows;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
@@ -19,7 +20,7 @@ namespace WawiCallPro.App.Hosting;
 public sealed class AppWorkspace(ApplicationDescriptor application, ApplicationConfigurationService configuration,
     ConfigurationStore settings, ISecretProtector secrets, ICommunicationDatabase database,
     IBusinessDirectory directory, IProductPluginRuntime plugins, CompanyContext companies,
-    ICallHistoryService history, ApplicationPaths paths, IPluginViewAccess views, IUiDispatcher dispatcher)
+    ICallHistoryService history, ApplicationPaths paths, IPluginViewAccess views, IUiDispatcher dispatcher, IPhoneCacheService phoneCache)
 {
     public ApplicationDescriptor Application { get; } = application;
     public ApplicationConfigurationService Configuration { get; } = configuration;
@@ -33,6 +34,7 @@ public sealed class AppWorkspace(ApplicationDescriptor application, ApplicationC
     public ApplicationPaths Paths { get; } = paths;
     public IPluginViewAccess Views { get; } = views;
     public IUiDispatcher Dispatcher { get; } = dispatcher;
+    public IPhoneCacheService PhoneCache { get; } = phoneCache;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

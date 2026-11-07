@@ -386,6 +386,21 @@ AppShellTests prüfen den Einstellungs-/Konfliktpfad, Mandantentrennung, echte S
 View-Lebensdauer und wartenden Abbruch. Gezielte Bildprüfungen liegen unter `.artifacts/app-shell`
 und `.artifacts/startup-integration/ui`; keine SIP-/Live-ERP-Abnahme in diesem UI-Schritt.
 
+Nachtrag Telefon-Cache vom 07.11.2026: `PhoneCacheServiceTests` prüft zwölf isolierte Szenarien
+mit echten SQLite-Repositories und ersetzter Wawi-Quelle: vollständige Quellidentität, direkte und
+adressgebundene Nummern, Duplikate, Quellfehler, bestätigte Leerbestände, Abbruch, Auswahländerungen,
+Revisionskonflikte, Normalisierungsversionen sowie DB-Zielwechsel. Ein AppShell-Bedienungstest
+prüft Speichern der Auswahl, tatsächlichen Cacheaufbau, Status, Buttons und wartenden Abbruch.
+Die geänderte Telefon-Cache-Seite wird ohne sichtbare Fenster mit leeren/gefüllten Daten,
+kleinem Fenster, 10/16-Punkt-Schrift und 150%-Layoutsimulation geprüft;
+Bilder: `.artifacts/app-shell/settings-ui`. Die fokussierte Renderprüfung lässt sich mit
+`--filter FullyQualifiedName~SettingsDialogRenders` hinter dem Testhost-Trenner `--` aufrufen.
+Für weitere App-Tests begrenzt `LX_UI_AUDIT_SURFACES=FrmSettings` die allgemeinen Startup-Renderings.
+Kein neuer SQL- oder Migrationscode, keine Live-Wawi- oder SIP-Prüfung in diesem Schritt.
+Abschlussprüfung: je 100 Utilities- und 20 App-Tests für Pro/FinOffice bestanden;
+App und Console beider Produktlinien in Debug / Any CPU ohne Warnungen/Fehler gebaut.
+Der gezielte abschließende Rider-Build ist mit unveränderter IDE-Konfiguration ebenfalls erfolgreich.
+
 Für Änderungen an Migrationen oder produktivem SQL ist zusätzlich die native Prüfung aller Zielsysteme
 verbindlich; MySQL und MariaDB werden getrennt ausgeführt:
 

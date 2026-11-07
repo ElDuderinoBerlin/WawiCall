@@ -4,6 +4,7 @@ using WawiCallPro.Utilities.Configuration;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.App.Views;
 
@@ -13,6 +14,8 @@ public partial class SettingsPage : XtraUserControl
     private ConfigurationSnapshot? _snapshot;
     private PageOperation? _operation;
     private List<CacheCompanyRow> _cacheCompanies = [];
+    private AppUiState? _state;
+    private CancellationTokenSource? _cacheCancellation;
     public SettingsPage()
     {
         InitializeComponent();
@@ -28,7 +31,17 @@ public partial class SettingsPage : XtraUserControl
         Apply(workspace.Configuration.Current);
     }
     internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
-    private void DisposePage() => _operation?.Dispose();
+    private void DisposePage()
+    {
+        _operation?.Dispose();
+        _state?.Save(cacheView, "CacheSources");
+    }
+
+    internal void ConfigureLayoutPersistence(AppUiState? state)
+    {
+        _state = state;
+        _state?.Restore(cacheView, "CacheSources");
+    }
 
     internal void Apply(ConfigurationSnapshot snapshot)
     {
@@ -132,6 +145,7 @@ public partial class SettingsPage : XtraUserControl
         [Browsable(false)] public bool FromSource { get; } = fromSource;
         public string Mandant { get; } = mandant;
         public bool Selected { get; set; } = selected;
+        public string CacheStatus { get; set; } = "Status nicht geprüft";
     }
 
     internal async Task SaveAsync(CancellationToken token)
@@ -149,4 +163,64 @@ public partial class SettingsPage : XtraUserControl
     {
         await ReloadAsync();
     }
+
+    private async void RefreshCache_Click(object? sender, EventArgs e)
+    {
+        if (_operation is null || _operation.IsRunning) return;
+        await _operation.RunAsync(async stopping =>
+        {
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(stopping);
+            _cacheCancellation = cancellation;
+            SetCacheBusy(true);
+            try
+            {
+                await SaveAsync(cancellation.Token);
+                var progress = new Progress<PhoneCacheProgress>(value =>
+                {
+                    if (IsDisposed || !ReferenceEquals(_cacheCancellation, cancellation) || cancellation.IsCancellationRequested) return;
+                    var phase = value.Phase switch { PhoneCacheRefreshPhase.Reading => "Daten lesen", PhoneCacheRefreshPhase.Normalizing => "Rufnummern verarbeiten", _ => "Cache speichern" };
+                    statusLabel.Text = $"{value.CompanyNumber}/{value.CompanyCount}: {value.CompanyName} – {phase} ({value.PartyCount} Geschäftspartner)";
+                });
+                var result = await _workspace!.PhoneCache.RefreshAsync(progress, cancellation.Token);
+                foreach (var row in _cacheCompanies)
+                    if (result.Companies.FirstOrDefault(company => company.Company == row.Key) is { } company)
+                        row.CacheStatus = DescribeCacheResult(company);
+                cacheGrid.RefreshDataSource();
+                var updated = result.Companies.Count(company => company.State == PhoneCacheRefreshState.Updated);
+                statusLabel.Text = result.Companies.IsEmpty ? "Keine Cache-Mandanten ausgewählt."
+                    : $"Cache aktualisiert: {updated} von {result.Companies.Length} Mandanten. Einzelheiten stehen in der Mandantenliste.";
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                statusLabel.Text = "Cacheaktualisierung abgebrochen. Bereits abgeschlossene Mandanten bleiben gespeichert; der laufende Mandant behält seinen bisherigen Cache.";
+            }
+            finally
+            {
+                _cacheCancellation = null;
+                SetCacheBusy(false);
+            }
+        });
+    }
+
+    private void CancelCache_Click(object? sender, EventArgs e) => _cacheCancellation?.Cancel();
+
+    private void SetCacheBusy(bool busy)
+    {
+        refreshCacheButton.Enabled = loadCompaniesButton.Enabled = saveButton.Enabled = reloadButton.Enabled = cacheGrid.Enabled = !busy;
+        cancelCacheButton.Enabled = busy;
+    }
+
+    private static string DescribeCacheResult(PhoneCacheCompanyResult company) => company.State switch
+    {
+        PhoneCacheRefreshState.Updated => $"{company.PhoneCount} Nummern ({company.UnresolvedPhoneCount} nicht zuordenbar)",
+        PhoneCacheRefreshState.NotAuthorized => "Nicht berechtigt oder nicht verfügbar",
+        PhoneCacheRefreshState.SelectionChanged => "Einstellungen geändert; bisheriger Cache erhalten",
+        _ => company.Failure switch
+        {
+            PhoneCacheRefreshFailure.Conflict => "Zwischenzeitlich geändert; bitte erneut aktualisieren",
+            PhoneCacheRefreshFailure.StorageUnavailable => "Speichern fehlgeschlagen; bisheriger Cache erhalten",
+            PhoneCacheRefreshFailure.Unsupported => "Vom Plugin nicht unterstützt",
+            _ => "Abruf fehlgeschlagen; bisheriger Cache erhalten"
+        }
+    };
 }
