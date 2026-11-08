@@ -4,7 +4,8 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 08.11.2026. Phasen 0–4 und Phase 5/Punkte 1–7 abgeschlossen; weitere Produktphasen wie markiert offen.
+Stand: 09.11.2026. Phasen 0–4 sowie die technischen Punkte von Phase 5 einschließlich Zugangskonfiguration
+abgeschlossen; produktive Pro-Client-Freigabe und weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -41,6 +42,9 @@ Die Designer-, Layout-, Build-, Prüf- und Commitregeln gelten vollständig.
 - ✅ beziehungsweise `[x]`: tatsächlich abgeschlossen und geprüft.
 - ⬜ beziehungsweise `[ ]`: geplant, noch nicht abgeschlossen.
 - Eine Phase erhält erst nach ihrer Abnahme ein grünes Häkchen.
+- Nach jeder abgeschlossenen und geprüften Phase ohne erneute Aufforderung das ✅ in der
+  Phasenübersicht und der zugehörigen Phasenüberschrift setzen und den Arbeitsstand am Dokumentanfang
+  aktualisieren. Einzelpunkte und Phasenstatus im selben Abschlusscommit synchron halten.
 - Geprüfte Quellcodevorlagen bedeuten nicht, dass die entsprechende WawiCallPro-Funktion bereits implementiert ist.
 
 ## 2. Was aus dem Altprojekt erhalten werden soll
