@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Parties;
@@ -23,6 +24,71 @@ public sealed class ProAdapterTests
         ApiUrl = ApiUrl, InstallationId = "isolated-installation", Username = "synthetic-user",
         Password = "synthetic-password", ClientKey = "{11111111-1111-1111-1111-111111111111}"
     };
+
+    [TestMethod]
+    public async Task CapabilitiesCheckAuthorizedCompanyAndKeepRoleLimits()
+    {
+        var handler = new ScriptedHandler((request, _) => Task.FromResult(IsLogin(request)
+            ? Json("""{"data":{"token":"opaque-token"}}""")
+            : request.Query.Contains("companies", StringComparison.Ordinal)
+                ? Json("""{"data":{"companies":[{"id":1,"name":"Test"}]}}""")
+                : Json("""{"data":{"company":{"companyName1":"Test"}}}""")));
+        await using var provider = Build(handler);
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var report = await directory.GetCapabilitiesAsync(company);
+        Assert.AreEqual(company, report.Context!.Company);
+        Assert.AreEqual(FeatureAvailability.Supported, report.Context.Customers.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Partial, report.Context.Suppliers.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Partial, report.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.Orders));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.UpdateAddresses));
+        Assert.AreEqual(Enum.GetValues<BusinessFeature>().Length, report.Entries.Count);
+        Assert.AreEqual("1", handler.Requests.Last().Headers["CompanyId"]);
+        var restored = JsonSerializer.Deserialize<CapabilitySet>(JsonSerializer.Serialize(report))!;
+        Assert.AreEqual(company, restored.Context!.Company);
+        Assert.AreEqual(FeatureAvailability.Partial, restored.Context.Suppliers.GetAvailability(BusinessFeature.AdditionalAddresses));
+        await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCapabilitiesAsync(
+            new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "2")));
+        await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCapabilitiesAsync(
+            new CompanyKey(LexwareProductLine.Pro, "other", "1")));
+    }
+
+    [TestMethod]
+    public async Task CapabilitiesDoNotHideApiFailureOrCancellation()
+    {
+        await using var provider = Build(DefaultHandler("""{"errors":[{"extensions":{"code":"2001"}}]}"""));
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCapabilitiesAsync(company));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => directory.GetCapabilitiesAsync(company, cancellation.Token));
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task CapabilitiesDoNotPublishWhenScopedCompanyReadFailsOrIsCancelled(bool cancel)
+    {
+        using var cancellation = new CancellationTokenSource();
+        var handler = new ScriptedHandler((request, _) =>
+        {
+            if (IsLogin(request)) return Task.FromResult(Json("""{"data":{"token":"opaque-token"}}"""));
+            if (request.Query.Contains("companies", StringComparison.Ordinal))
+                return Task.FromResult(Json("""{"data":{"companies":[{"id":1,"name":"Test"}]}}"""));
+            if (cancel) cancellation.Cancel();
+            return Task.FromResult(Json(cancel ? """{"data":{"company":{"companyName1":"Late"}}}"""
+                : """{"errors":[{"extensions":{"code":"2001"}}]}"""));
+        });
+        await using var provider = Build(handler);
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        if (cancel)
+            await Assert.ThrowsAsync<OperationCanceledException>(() => directory.GetCapabilitiesAsync(company, cancellation.Token));
+        else
+            await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCapabilitiesAsync(company));
+    }
 
     [TestCleanup]
     public void Cleanup()

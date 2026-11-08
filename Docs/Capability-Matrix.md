@@ -1,6 +1,6 @@
 # Funktionsmatrix der Warenwirtschaftsplugins
 
-Stand: 07.11.2026, Phase 5/Punkt 6, WawiCallPro nach Commit `cf29b2f`.
+Stand: 08.11.2026, Phase 5/Punkte 6–7.
 Diese Matrix trennt implementierte Adapterabrufe von Anschlüssen der Referenzbibliotheken und
 offenen Fachansichten. Kunden und Lieferanten werden je Produktlinie getrennt bewertet.
 
@@ -11,11 +11,18 @@ beziehungsweise SQLite-Testbeständen geprüft. **Teilumfang** nennt die abgebil
 **Offen** bedeutet: entsprechender WawiCallPro-Dienst oder Fachansicht fehlen. Eine Referenzmethode
 belegt weder ihre Freigabe für einen konkreten Mandanten noch eine erfolgreiche Live-Ausführung.
 
-Beide `GetCapabilitiesAsync`-Implementierungen werfen noch `NotSupportedException`.
-Diese Dokumentation ist daher kein Laufzeit-Fähigkeitsbericht. Dessen Umsetzung und die Anzeige
-eingeschränkter Funktionen bilden den nächsten Planpunkt. Die WinForms-Fachtabs folgen in den
-UI-Phasen. Datenzugriff und Views gehören zum jeweiligen Plugin; der Host stellt den Rahmen und
-lädt gleichzeitig genau ein Wawi-Plugin.
+Beide `GetCapabilitiesAsync`-Implementierungen liefern nun einen Laufzeitbericht für den vollständigen
+CompanyKey. `CapabilitySet.Context.Customers` und `.Suppliers` halten den Kunden-/Lieferantenumfang
+getrennt; `Entries` fasst ihn konservativ zusammen. Unterschiede ergeben `Partial` mit deutscher
+Erläuterung. Gleiche Verfügbarkeit bleibt auch bei unterschiedlichen Erläuterungen erhalten.
+Pro prüft zuvor Installation, autorisierten Firmenkatalog und einen firmenspezifischen API-Abruf;
+Financial Office öffnet die explizite Read-only-Mandantenverbindung und gibt sie vor Rückkehr frei.
+Der Bericht beschreibt implementierten Adapterumfang und erteilt keine Benutzer-/Schreibrechte.
+Die Verbindungsprüfung garantiert keine Feld-/Schemafreigabe für spätere Einzelabrufe; deren Fehler
+bleiben weiterhin Fehler. Es werden keine Geschäftspartnerdaten für den Bericht geladen.
+Die deutschen `Details` erklären Teilumfang und fehlende Funktionen für spätere Fachansichten.
+Die konkrete Anzeige in Plugin-Manager und WinForms-Fachtabs folgt in den UI-Phasen.
+Datenzugriff und Views gehören zum jeweiligen Plugin; der Host lädt gleichzeitig genau ein Wawi-Plugin.
 
 ## Stammdaten: aktueller Adapterumfang
 
@@ -102,7 +109,7 @@ Tests auf geeigneten Quelltestbeständen nötig. Eine vorhandene Methode erteilt
 ## Abdeckung der bestehenden Fähigkeitsverträge
 
 Die Werte stammen aus [CapabilitySet.cs](../WawiCallPro.Interfaces/Capabilities/CapabilitySet.cs).
-Der spätere Laufzeitbericht muss für Produktlinie, Installation und konkreten Mandanten gelten.
+Der Laufzeitbericht gilt für Produktlinie, Installation und konkreten Mandanten.
 
 | Bestehendes `BusinessFeature` | Aktueller WawiCallPro-Adapterumfang |
 |---|---|
@@ -119,11 +126,22 @@ Der spätere Laufzeitbericht muss für Produktlinie, Installation und konkreten 
 | `Appointments` | Offen; kein eigenständiger Terminanschluss nachgewiesen, Liefertermin ist kein Kalendertermin |
 | `Projects` | Offen; Kunden-/Lieferantenzuordnung getrennt bewerten |
 
-Für vollständige Stammdatensichten, allgemeine Aufträge/Bestellungen, Kundenpreislisten, Top-Artikel
-und Umsatz-/Einkaufsentwicklung fehlen ausdrückliche Merkmale. Auch einzelne Schreibaktionen und
-Unterschiede zwischen Kunden-/Lieferantenkontext lassen sich noch nicht vollständig ausdrücken.
-Diese Vertragslücken gehören zum anschließenden Fähigkeitspunkt. Diese Dokumentationsänderung
-erweitert keine Enums und meldet keine neuen Funktionen als unterstützt.
+Die bisherigen Enumwerte 1–15 bleiben unverändert. Ergänzte Merkmale schließen die
+Vertragslücken für die neun Fachbereiche und getrennte Schreibaktionen:
+
+| Ergänztes `BusinessFeature` | Laufzeitbericht beider Produktlinien |
+|---|---|
+| `MasterData` | `Partial`: lesender Snapshot; kein vollständiger Stammdateneditor |
+| `Orders`, `CustomerPriceLists`, `TopArticles`, `RevenueDevelopment` | `Unsupported`: noch keine entsprechenden WawiCallPro-Fachdienste |
+| `CreateParties`, `UpdateMasterData`, `UpdateContactPersons`, `UpdatePrices` | `Unsupported`: keine entsprechenden Schreibverträge |
+| `CreateOrders`, `CreateOrderNotes`, `AssignDocuments`, `CreateProjects` | `Unsupported`: keine entsprechenden Schreibverträge |
+
+Alle 28 Merkmale erhalten explizite Einträge und deutsche Erläuterungen. `Customers` ist im
+Lieferantenkontext und `Suppliers` im Kundenkontext nicht anwendbar. Pro unterscheidet insbesondere
+vollständige Kunden-Zusatzanschriften von der allein verfügbaren Lieferanten-Bestellanschrift.
+Financial Office meldet Lieferanschriften und Kontaktpersonen mit den oben genannten Grenzen als
+`Partial`, Zusatzanschriften als `Unsupported`. Neue Merkmale werden bis zu ihrer Implementierung
+als `Unsupported` behandelt. Vorhandene Referenzmethoden schalten keine Funktion frei.
 
 `FeatureAvailability.Partial` braucht eine konkrete deutsche Erläuterung. Fehlende Einträge bedeuten
 `Unsupported`. Verbindungs-/Berechtigungsfehler bleiben Fehler; sie werden weder zu leeren Erfolgen
@@ -159,3 +177,9 @@ Nachweise unter `.artifacts/phase5-addresses` und `.artifacts/phase5-company-swi
 Stammdaten-/Adressabrufe und Mandantenwechsel. Diese Matrix ist durch Quellen-, Vollständigkeits-
 und Linkprüfung validiert; neue Live-ERP-Tests, Schreibtests und visuell geprüfte Fachtabs sind damit
 nicht nachgewiesen.
+
+Laufzeitnachweis vom 08.11.2026: isolierte Pro-API-Antworten und Financial-Office-Testmandanten,
+vollständige Kontext-/Rollenberichte und JSON-Rücklauf, fremde/nicht verfügbare Mandanten,
+API-/Installationsfehler, exklusiv gesperrte Quelldatei, vorzeitiger und verspäteter Abbruch sowie
+Freigabe der schreibgeschützten Verbindung geprüft. Logs: `.artifacts/phase5-capabilities`.
+Keine neue Live-ERP-Abnahme, keine SQL-/Schemaänderung und keine geänderte Oberfläche.

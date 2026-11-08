@@ -29,10 +29,19 @@ public sealed class ProBusinessDirectory(IProApiSession session, IProPropertySto
             .ThenBy(company => company.Key.ExternalId, StringComparer.Ordinal).ToImmutableArray();
     }
 
-    public Task<CapabilitySet> GetCapabilitiesAsync(CompanyKey company, CancellationToken cancellationToken = default)
+    public async Task<CapabilitySet> GetCapabilitiesAsync(CompanyKey company, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        throw new NotSupportedException("Der nachgewiesene Fähigkeitsbericht folgt in Phase 5.");
+        ArgumentNullException.ThrowIfNull(company);
+        var installation = await session.GetInstallationAsync(cancellationToken).ConfigureAwait(false);
+        if (company.ProductLine != LexwareProductLine.Pro || company.InstallationId != installation.Id)
+            throw new ProAdapterException(ProFailure.ForeignCompany);
+        var companies = await GetCompaniesAsync(cancellationToken).ConfigureAwait(false);
+        if (!companies.Any(candidate => candidate.Key == company))
+            throw new ProAdapterException(ProFailure.ForeignCompany);
+        await session.ReadCompanyAsync(company, (client, token, ct) => client.GetCompanyAsync(token, ct), cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ProCapabilities.Create(company);
     }
 
     public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken cancellationToken = default)

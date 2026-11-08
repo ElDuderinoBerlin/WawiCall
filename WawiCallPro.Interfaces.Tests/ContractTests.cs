@@ -94,6 +94,24 @@ public sealed class ContractTests
     }
 
     [TestMethod]
+    public void CompanyCapabilitiesPreserveRoleDifferencesAndRejectMissingRoles()
+    {
+        var customers = new CapabilitySet(ImmutableDictionary<BusinessFeature, CapabilitySupport>.Empty
+            .Add(BusinessFeature.AdditionalAddresses, new(FeatureAvailability.Supported, "Zusatzanschriften.")));
+        var suppliers = new CapabilitySet(ImmutableDictionary<BusinessFeature, CapabilitySupport>.Empty
+            .Add(BusinessFeature.AdditionalAddresses, new(FeatureAvailability.Partial, "Nur Bestellanschrift.")));
+        var report = RoundTrip(new CapabilitySet(CreateCompany(), customers, suppliers));
+        Assert.AreEqual(CreateCompany(), report.Context!.Company);
+        Assert.AreEqual(FeatureAvailability.Supported, report.Context.Customers.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Partial, report.Context.Suppliers.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Partial, report.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.UpdatePrices));
+        Assert.ThrowsExactly<ArgumentNullException>(() => new CapabilitySet(CreateCompany(), null!, suppliers));
+        Assert.ThrowsExactly<ArgumentNullException>(() => new CapabilitySet(CreateCompany(), customers, null!));
+        Assert.ThrowsExactly<ArgumentNullException>(() => new CapabilitySet(null!, customers, suppliers));
+    }
+
+    [TestMethod]
     public void PartyRoundTripPreservesOpaqueIdsAddressesAndPhoneSources()
     {
         var phone = new PartyPhone("030 / 12345-67", PhoneKind.Telephone,

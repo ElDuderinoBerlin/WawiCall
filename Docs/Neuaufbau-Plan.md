@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 07.11.2026. Phasen 0–4 und Phase 5/Punkte 1–6 abgeschlossen; weitere Produktphasen wie markiert offen.
+Stand: 08.11.2026. Phasen 0–4 und Phase 5/Punkte 1–7 abgeschlossen; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -921,7 +921,21 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Rider-Editor ergänzt. Reine Dokumentation ohne neue Live-ERP-Tests oder GUI-Läufe.
   Laufzeit-Fähigkeitsberichte, Vertragslücken und die Anzeige eingeschränkter Funktionen bleiben
   Punkt 7; konkrete Datenabfragen und Fachtabs folgen in ihren Produkt-/UI-Phasen.
-- [ ] Teilweise/nicht verfügbare Funktionen über Fähigkeiten kenntlich machen; keine erfolgreichen Leerantworten vortäuschen.
+- [x] ✅ Teilweise/nicht verfügbare Funktionen über mandantenbezogene Laufzeit-Fähigkeiten kenntlich gemacht;
+  keine erfolgreichen Leerantworten. Beide Adapter liefern alle 28 Merkmale mit deutschen Erläuterungen,
+  vollständigem CompanyKey und getrennten Kunden-/Lieferantenberichten; die Zusammenfassung erhält
+  Unterschiede als Teilumfang. Bestehende Enumwerte bleiben erhalten; fehlende Merkmale für Fachbereiche
+  und Schreiboperationen ergänzt. Pro prüft Installation, autorisierten Katalog und firmenspezifischen
+  API-Abruf; FinOffice öffnet und schließt die Read-only-Mandantenverbindung. Dies beschreibt den
+  Adapterumfang und erteilt keine Benutzer-/Schreibrechte oder pauschale Schema-/Feldfreigabe.
+  Fremde/nicht verfügbare Firmen, Quellenfehler, gesperrte Datenbankdatei und Abbruch vor/während
+  des Zugriffs ergeben keinen Bericht. Keine zusätzlichen Geschäftspartnerabrufe für den Bericht.
+  Capability-Matrix aktualisiert; konkrete Anzeige in Plugin-Manager/Fachtabs bleibt in den UI-Phasen.
+  Nachweis: 66 Pro-/43 FinOffice-Adaptertests, je 15 Vertrags- und 100 Utilities-Tests bestanden
+  (181 Pro / 158 FinOffice). Vier reguläre Debug-/Any-CPU-Hostbuilds ohne Warnungen/Fehler,
+  vier fensterlose Hostdiagnosen, gezielter Rider-Rebuild in unveränderter Konfiguration und
+  Bundle-/Shared-/Hashprüfung bestanden. Logs `.artifacts/phase5-capabilities`.
+  Keine SQL-/Schemaänderung, Live-Wawi-Abnahme oder UI-Änderung/Renderprüfung.
 - [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
 
 Abnahme: Beide Plugins lesen echte oder geeignete isolierte Lexware-Testbestände, einschließlich mehrerer

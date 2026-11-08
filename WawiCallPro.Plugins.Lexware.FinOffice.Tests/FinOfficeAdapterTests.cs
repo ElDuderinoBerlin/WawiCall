@@ -9,6 +9,7 @@ using Quantarix.Pcfk.DataAccess.Manager;
 using Quantarix.Pcfk.DataAccess.Repositories;
 using Quantarix.Pcfk.DataAccess.Sql;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Parties;
@@ -40,6 +41,59 @@ public sealed class FinOfficeAdapterTests
             using var connection = await Open(path, readOnly: false);
             await connection.ExecuteAsync("CREATE TABLE sentinel (value TEXT); INSERT INTO sentinel VALUES (@value);", new { value = "company-" + nr });
         }
+    }
+
+    [TestMethod]
+    public async Task CapabilitiesKeepCompanyRoleAndSourceLimitsAndDisposeReadOnlyConnection()
+    {
+        await using var provider = Build();
+        var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1");
+        var report = await directory.GetCapabilitiesAsync(company);
+        Assert.AreEqual(company, report.Context!.Company);
+        Assert.AreEqual(FeatureAvailability.Partial, report.Context.Customers.GetAvailability(BusinessFeature.ShippingAddresses));
+        Assert.AreEqual(FeatureAvailability.Partial, report.Context.Suppliers.GetAvailability(BusinessFeature.ContactPersons));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.AdditionalAddresses));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.CreateParties));
+        Assert.AreEqual(FeatureAvailability.Unsupported, report.GetAvailability(BusinessFeature.CustomerPriceLists));
+        Assert.AreEqual(Enum.GetValues<BusinessFeature>().Length, report.Entries.Count);
+        Assert.IsTrue(report.Entries.Values.All(support => !string.IsNullOrWhiteSpace(support.Details)));
+        Assert.IsTrue(_manager.ReadOnlyRequests.All(readOnly => readOnly));
+        AssertConnectionsDisposed();
+        await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => directory.GetCapabilitiesAsync(
+            new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "99")));
+        await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => directory.GetCapabilitiesAsync(
+            new CompanyKey(LexwareProductLine.FinOffice, "other", "1")));
+    }
+
+    [TestMethod]
+    public async Task CapabilitiesDoNotPublishAfterCancellationDuringConnectionOpen()
+    {
+        using var cancellation = new CancellationTokenSource();
+        _manager.ConnectionOpened = _ => { cancellation.Cancel(); return Task.CompletedTask; };
+        await using var provider = Build();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => provider.GetRequiredService<IBusinessDirectory>()
+            .GetCapabilitiesAsync(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1"), cancellation.Token));
+        AssertConnectionsDisposed();
+    }
+
+    [TestMethod]
+    public async Task CapabilitiesDoNotHideInstallationFailure()
+    {
+        _manager.DetectionError = new IOException("private-source-value");
+        await using var provider = Build();
+        await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>()
+            .GetCapabilitiesAsync(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1")));
+    }
+
+    [TestMethod]
+    public async Task CapabilitiesDoNotHideConnectionFailure()
+    {
+        // The catalog can enumerate a company whose database cannot be opened.
+        using var lockedDatabase = File.Open(_manager.CompanyPath(1), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        await using var provider = Build();
+        await Assert.ThrowsExactlyAsync<FinOfficeAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>()
+            .GetCapabilitiesAsync(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1")));
     }
 
     [TestCleanup]
