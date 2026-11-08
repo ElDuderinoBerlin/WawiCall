@@ -936,7 +936,26 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   vier fensterlose Hostdiagnosen, gezielter Rider-Rebuild in unveränderter Konfiguration und
   Bundle-/Shared-/Hashprüfung bestanden. Logs `.artifacts/phase5-capabilities`.
   Keine SQL-/Schemaänderung, Live-Wawi-Abnahme oder UI-Änderung/Renderprüfung.
-- [ ] Zugangsdaten/Client-Identität für WawiCallPro konfigurieren; keine LxTranslate-Client-Keys ungeprüft kopieren.
+- [x] ✅ Technischen Zugangskonfigurationsweg für WawiCallPro umgesetzt (08.11.2026).
+  Format 3 ergänzt getrennte ERP-Einstellungen; unversionierte und Version-1/2-Dateien bleiben lesbar
+  und werden erst beim ausdrücklichen Speichern übernommen. Pro-Kennwort und expliziter Client-Key
+  werden mit getrennten benutzergebundenen DPAPI-Zwecken gespeichert. Keine automatische Erzeugung
+  oder Übernahme fremder Client-Keys. Gemeinsamer `IPluginConnectionConfiguration`-Vertrag reicht den
+  validierten Start-Snapshot an den privaten Produktplugincontainer; FinOffice liest ausschließlich
+  seine optionale Installationskennung. Änderungen erfordern einen Neustart.
+  `--erp-configure` bietet lokale interaktive Einrichtung, verdeckte Kennwort-/Key-Eingabe, Abbruch,
+  Schutz vor Dateiänderungskonflikten und Erhalt anderer Einstellungen. Keine Zugangsdatenargumente
+  oder Umleitung, kein ERP-Zugriff bei Einrichtung/Hoststart. Status und Hilfe ergänzt;
+  [Einrichtung und Grenzen](Vertraege.md#warenwirtschaftszugang-und-lokale-einrichtung-08112026) dokumentiert.
+  103 Utilities-/19 Console-Tests je Variante sowie 67 Pro-/44 FinOffice-Adaptertests bestanden;
+  darunter DPAPI-/Format-/Snapshotprüfungen und echte Host-/Pluginstarts mit synthetischen Zugangsdaten.
+  Vier reguläre Debug-/Any-CPU-Hostbuilds ohne Warnungen/Fehler, vier fensterlose Diagnosen und
+  gezielter Rider-Rebuild erfolgreich. Keine UI-/SQL-/Schemaänderungen oder produktive Wawi-Anmeldung.
+  Nachweise `.artifacts/phase5-credentials`.
+- [ ] Produktive Pro-Client-Identität für WawiCallPro freigeben und lokal mit den tatsächlichen
+  Zugangsdaten einrichten. Noch kein freigegebener WawiCallPro-Client-Key belegt; keine LxTranslate-
+  Client-Keys kopiert und kein erfundener Schlüssel produktiv gespeichert. Technische Einrichtung
+  ist vorbereitet; Phase 5 bleibt bis zu dieser Voraussetzung und ihrer Abnahme offen.
 
 Abnahme: Beide Plugins lesen echte oder geeignete isolierte Lexware-Testbestände, einschließlich mehrerer
 Mandanten, leerer Daten und Verbindungsfehlern. API-Vertragstests plus Debug-Build beider Varianten bestehen.

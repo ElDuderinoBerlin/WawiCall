@@ -14,6 +14,7 @@ public enum SipTransport
 /// <summary>Independent scopes in one immutable settings snapshot; no company setting overrides workstation credentials.</summary>
 public sealed record ApplicationOptions
 {
+    public ErpConnectionSettings Erp { get; init; } = new();
     public SipAccountOptions? SipAccount { get; init; }
     public UserSettings User { get; init; } = new();
     public AudioDeviceSettings Devices { get; init; } = new();

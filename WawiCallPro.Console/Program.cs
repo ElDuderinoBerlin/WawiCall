@@ -13,7 +13,7 @@ try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
     var command = ConsoleCommand.Parse(args);
-    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && command.Name != "--workstation-init");
+    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && command.Name is not ("--workstation-init" or "--erp-configure"));
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {
@@ -30,6 +30,10 @@ try
             };
             if (command.UsesDatabase)
                 table = await DatabaseCommands.ExecuteAsync(command, host.Services.GetRequiredService<ICommunicationDatabase>(), stoppingToken);
+            else if (command.Name == "--erp-configure")
+                table = await ErpSetupCommands.ExecuteAsync(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine,
+                    host.Services.GetRequiredService<ConfigurationStore>(),
+                    host.Services.GetRequiredService<WawiCallPro.Utilities.Security.ISecretProtector>(), new ErpSetupInput(), stoppingToken);
             else if (command.Name == "--workstation-init")
             {
                 var id = await host.Services.GetRequiredService<IWorkstationIdentity>().InitializeAsync(stoppingToken);

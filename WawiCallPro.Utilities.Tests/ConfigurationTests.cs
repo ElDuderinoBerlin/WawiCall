@@ -218,6 +218,74 @@ public sealed class ConfigurationTests
         Assert.DoesNotContain(Sentinel, StartupFailureMessage.Format(new AggregateException(failure)));
     }
 
+    [TestMethod]
+    public async Task ErpCredentialsStayProtectedAndPluginReadsOnlyStartupSnapshot()
+    {
+        RequireWindows();
+        using var directory = new TestDirectory();
+        var key = "{22222222-2222-2222-2222-222222222222}";
+        var erp = new ErpConnectionSettings { Pro = new ProErpSettings
+        {
+            Username = "synthetic-erp-user", ApiUrl = new Uri("https://isolated.invalid:9710"),
+            InstallationId = "isolated-installation", Password = directory.Protector.Protect(Sentinel, ProErpSettings.PasswordPurpose),
+            ClientKey = directory.Protector.Protect(key, ProErpSettings.ClientKeyPurpose)
+        }, FinOfficeInstallationId = "isolated-fin" };
+        await directory.Store.SaveAsync(new ApplicationOptions { Erp = erp });
+        var text = await File.ReadAllTextAsync(directory.Location.FilePath);
+        Assert.DoesNotContain(Sentinel, text); Assert.DoesNotContain(key, text);
+        var configuration = new ApplicationConfigurationService(directory.Store);
+        await configuration.StartAsync(default);
+        var bridge = new PluginConnectionConfiguration(configuration, directory.Protector);
+        var connection = bridge.ReadPro()!;
+        Assert.AreEqual(Sentinel, connection.Password);
+        Assert.AreEqual(key, connection.ClientKey);
+        Assert.AreEqual("isolated-installation", connection.InstallationId);
+        Assert.AreEqual("isolated-fin", bridge.ReadFinOfficeInstallationId());
+        Assert.DoesNotContain(Sentinel, connection.ToString());
+        Assert.DoesNotContain(key, JsonSerializer.Serialize(connection));
+        var snapshot = await directory.Store.LoadAsync();
+        await directory.Store.SaveAsync(snapshot.Options with { Erp = new() }, snapshot);
+        Assert.AreEqual(Sentinel, bridge.ReadPro()!.Password);
+        await configuration.StartAsync(default);
+        Assert.IsNull(bridge.ReadPro());
+    }
+
+    [TestMethod]
+    public void ErpValidationRejectsWrongPurposeMissingIdentityAndUnsafeUrlsWithoutLeakingInputs()
+    {
+        RequireWindows();
+        using var directory = new TestDirectory();
+        var valid = new ProErpSettings
+        {
+            Username = "synthetic-user", Password = directory.Protector.Protect(Sentinel, ProErpSettings.PasswordPurpose),
+            ClientKey = directory.Protector.Protect("{22222222-2222-2222-2222-222222222222}", ProErpSettings.ClientKeyPurpose)
+        };
+        var validator = new ApplicationOptionsValidator(directory.Protector);
+        validator.Validate(new ApplicationOptions { Erp = new() { Pro = valid } });
+        foreach (var invalid in new[] { valid with { ClientKey = null }, valid with { Password = valid.ClientKey },
+            valid with { ClientKey = directory.Protector.Protect(Sentinel, ProErpSettings.ClientKeyPurpose) },
+            valid with { ApiUrl = new Uri("https://user:synthetic-password@isolated.invalid") },
+            valid with { ApiUrl = new Uri("relative", UriKind.Relative) }, valid with { TimeoutSeconds = 0 } })
+        {
+            var error = Assert.ThrowsExactly<ConfigurationException>(() => validator.Validate(new ApplicationOptions { Erp = new() { Pro = invalid } }));
+            Assert.DoesNotContain(Sentinel, error.ToString());
+            Assert.DoesNotContain("synthetic-password", error.ToString());
+        }
+    }
+
+    [TestMethod]
+    public async Task VersionTwoSettingsUpgradePreservesExistingValuesWithoutCreatingErpCredentials()
+    {
+        using var directory = new TestDirectory();
+        Directory.CreateDirectory(directory.Path);
+        await File.WriteAllTextAsync(directory.Location.FilePath, """{"formatVersion":2,"settings":{"user":{"preferredCompany":null}}}""");
+        var snapshot = await directory.Store.LoadAsync();
+        Assert.IsTrue(snapshot.RequiresUpgrade);
+        Assert.IsNull(snapshot.Options.Erp.Pro);
+        await directory.Store.SaveAsync(snapshot.Options, snapshot);
+        Assert.AreEqual(3, (await directory.Store.LoadAsync()).FormatVersion);
+    }
+
     private static IHostBuilder CreateHost(ConfigurationLocation location) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
         {

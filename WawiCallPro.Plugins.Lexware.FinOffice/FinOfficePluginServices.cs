@@ -10,7 +10,10 @@ public sealed class FinOfficePluginServices : IPluginServiceModule
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton(new FinOfficeConnectionOptions());
+        services.AddSingleton(provider => new FinOfficeConnectionOptions
+        {
+            InstallationId = provider.GetService<IPluginConnectionConfiguration>()?.ReadFinOfficeInstallationId()
+        });
         services.AddSingleton<IPcfkInstallationManager, PcfkInstallationManager>();
         services.AddSingleton<IFinOfficeInstallationSource, FinOfficeInstallationSource>();
         services.AddSingleton<IFinOfficeCompanySession, FinOfficeCompanySession>();

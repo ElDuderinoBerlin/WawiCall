@@ -522,3 +522,12 @@ ist optional und benötigt einen eigenen Schlüssel über die Umgebung oder inte
 `package-update.bat -ListOnly` zeigt Paketupdates an. Änderungen erfordern explizit
 `-Package PaketId@Version` und betreffen nur eigene Projekte der gewählten Produktlinie, keine
 Schwester-Repositories. Velopack/DevExpress bleiben zentral gemeinsam zu aktualisieren.
+
+## Warenwirtschaftszugang (08.11.2026)
+
+Das aktuelle Einstellungsformat ist Version 3; unversionierte sowie Version-1/2-Dateien bleiben
+lesbar. Die lokale Einrichtung erfolgt über die passende Console-EXE mit `--erp-configure`.
+Ablauf, DPAPI-Schutz, Start-Snapshot und notwendige Pro-Client-Freigabe stehen in
+[Vertraege.md – Warenwirtschaftszugang](Vertraege.md#warenwirtschaftszugang-und-lokale-einrichtung-08112026).
+Diese Einrichtung führt keine Anmeldung und keinen Fachabruf aus; ein erfolgreicher Build oder
+Hostdiagnosestart belegt keine produktive Freigabe der Client-Identität.

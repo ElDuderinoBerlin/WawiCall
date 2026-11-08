@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Companies;
 using WawiCallPro.Core.PhoneNumbers;
 using WawiCallPro.Interfaces.Hosting;
+using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
@@ -58,6 +59,7 @@ public static class WawiCallHost
                 services.AddSingleton<ICompanyPhoneNumberContextProvider, CompanyPhoneNumberContextProvider>();
                 services.AddSingleton<ConfigurationStore>();
                 services.AddSingleton<ApplicationConfigurationService>();
+                services.AddSingleton<IPluginConnectionConfiguration, PluginConnectionConfiguration>();
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<DatabaseFactory>();

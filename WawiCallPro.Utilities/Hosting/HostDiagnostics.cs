@@ -17,6 +17,7 @@ public sealed record HostDiagnosticSnapshot(
     public bool ConfigurationFound { get; init; }
     public int SettingsFormatVersion { get; init; }
     public bool SettingsUpgradeRequired { get; init; }
+    public bool ErpConnectionConfigured { get; init; }
     public bool PluginLoaded { get; init; }
 }
 
@@ -36,6 +37,7 @@ public sealed class HostDiagnostics(ApplicationDescriptor application, ICompanyC
             ConfigurationFound = configuration.Current.FileFound,
             SettingsFormatVersion = configuration.Current.FormatVersion,
             SettingsUpgradeRequired = configuration.Current.RequiresUpgrade,
+            ErpConnectionConfigured = application.ProductLine == "Pro" ? configuration.Current.Options.Erp.Pro is not null : true,
             PluginLoaded = plugins.Any(plugin => plugin.IsLoaded)
         };
     }

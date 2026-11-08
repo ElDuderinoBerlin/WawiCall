@@ -8,8 +8,16 @@ public sealed class ProPluginServices : IPluginServiceModule
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        // No demo credentials or implicit client identity. The later configuration point replaces these inputs.
-        services.AddSingleton(new ProConnectionOptions());
+        services.AddSingleton(provider =>
+        {
+            var settings = provider.GetService<IPluginConnectionConfiguration>()?.ReadPro();
+            return settings is null ? new ProConnectionOptions() : new ProConnectionOptions
+            {
+                ApiUrl = settings.ApiUrl, InstallationId = settings.InstallationId,
+                Username = settings.Username, Password = settings.Password, ClientKey = settings.ClientKey,
+                TimeoutSeconds = settings.TimeoutSeconds, TokenTimeoutSeconds = settings.TokenTimeoutSeconds
+            };
+        });
         services.AddSingleton<IProRegistry, ProRegistry>();
         services.AddSingleton<IProInstallationSource, ProInstallationSource>();
         services.AddSingleton<IProPropertyStore, ProPropertyStore>();

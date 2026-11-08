@@ -14,6 +14,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         var issues = ImmutableArray.CreateBuilder<ConfigurationIssue>();
         if (options.SipAccount is { } account) ValidateSip(account, issues);
         if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
+        ValidateErp(options.Erp, issues);
         ValidateDevices(options.Devices, issues);
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
@@ -47,6 +48,36 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
                 issues.Add(new("sipAccount.password", "Das geschützte Kennwort ist für dieses Benutzerkonto nicht verfügbar oder beschädigt."));
             }
         }
+    }
+
+    private void ValidateErp(ErpConnectionSettings? erp, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        if (erp is null) { issues.Add(new("erp", "Warenwirtschaftseinstellungen dürfen nicht null sein.")); return; }
+        foreach (var id in new[] { erp.FinOfficeInstallationId, erp.Pro?.InstallationId })
+            if (id is not null && (string.IsNullOrWhiteSpace(id) || id != id.Trim() || id.Length > 200 || id.Any(char.IsControl)))
+                issues.Add(new("erp.installationId", "Die optionale Installationskennung ist ungültig."));
+        if (erp.Pro is not { } pro) return;
+        if (pro.ApiUrl is { } url && (!url.IsAbsoluteUri || url.Scheme is not ("http" or "https")
+            || !string.IsNullOrEmpty(url.UserInfo) || !string.IsNullOrEmpty(url.Query) || !string.IsNullOrEmpty(url.Fragment)))
+            issues.Add(new("erp.pro.apiUrl", "Eine absolute HTTP-/HTTPS-Adresse ohne Zugangsdaten, Query oder Fragment ist erforderlich."));
+        if (!IsValidUsername(pro.Username)) issues.Add(new("erp.pro.username", "Ein gültiger API-Benutzername ist erforderlich."));
+        if (pro.TimeoutSeconds is < 1 or > 300 || pro.TokenTimeoutSeconds is < 1 or > 300)
+            issues.Add(new("erp.pro.timeout", "Zeitlimits müssen zwischen 1 und 300 Sekunden liegen."));
+        ValidateErpSecret(pro.Password, ProErpSettings.PasswordPurpose, false, issues);
+        ValidateErpSecret(pro.ClientKey, ProErpSettings.ClientKeyPurpose, true, issues);
+    }
+
+    private void ValidateErpSecret(ProtectedSecret? secret, string purpose, bool clientKey, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        var field = clientKey ? "erp.pro.clientKey" : "erp.pro.password";
+        if (secret is null) { issues.Add(new(field, "Ein geschützter Wert ist erforderlich.")); return; }
+        try
+        {
+            using var value = secrets.Unprotect(secret, purpose);
+            if (value.IsEmpty || (clientKey && (!Guid.TryParseExact(value.Reveal(), "B", out var id) || id == Guid.Empty)))
+                issues.Add(new(field, clientKey ? "Ein ausdrücklich freigegebener Client-Key im GUID-Format mit geschweiften Klammern ist erforderlich." : "Das Kennwort darf nicht leer sein."));
+        }
+        catch (SecretProtectionException) { issues.Add(new(field, "Der geschützte Wert ist für dieses Benutzerkonto nicht verfügbar oder beschädigt.")); }
     }
 
     private static void ValidateDevices(AudioDeviceSettings? devices, ImmutableArray<ConfigurationIssue>.Builder issues)

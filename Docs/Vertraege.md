@@ -965,3 +965,49 @@ Lokaler Paketbau und Veröffentlichung sind getrennt; ein fehlerhafter Upload er
 Details zu Dateiverträgen, eigenen Identitäten, Quellen und offenen Installations-/Skriptprüfungen stehen
 im Detailplan. Die neue Markdowndatei ist in der Solution referenziert und in Rider geöffnet. Keine neuen
 Builds oder Tests für diesen reinen Dokumentationsblock; der zuvor nachgewiesene Stand bleibt unverändert.
+
+## Warenwirtschaftszugang und lokale Einrichtung (08.11.2026)
+
+Die gemeinsame Einstellungsdatei verwendet jetzt Formatversion 3. Alte unversionierte Dateien und
+Versionen 1/2 bleiben lesbar und werden erst beim ausdrücklichen Speichern übernommen. Fehlende
+`erp`-Einstellungen erzeugen weder Pro-Zugangsdaten noch einen Client-Key. SIP, Geräte,
+Kommunikationsdatenbank und Firmenauswahl behalten ihre eigenen Einstellungen.
+
+Die produktlinienspezifische Konsole bietet `--erp-configure` zur lokalen Einrichtung an, beispielsweise:
+
+```powershell
+.\WawiCallPro.Console\bin\Debug\Pro\net10.0-windows\WawiCallPro.Console.Pro.exe --erp-configure
+.\WawiCallPro.Console\bin\Debug\FinOffice\net10.0-windows\WawiCallPro.Console.FinOffice.exe --erp-configure
+```
+
+Pro fragt API-Adresse (leer für Installationserkennung), optionale dauerhafte Installationskennung,
+API-Benutzer, Kennwort und einen ausdrücklich für WawiCallPro freigegebenen Client-Key ab.
+Der Client-Key muss eine nichtleere GUID mit geschweiften Klammern sein. Das Format belegt keine
+Freigabe durch Lexware; diese muss separat vorliegen. Es wird kein Schlüssel generiert, aus einer
+anderen Anwendung kopiert oder aus deren Lexware-Konfiguration geladen. Ohne solche Freigabe
+bleibt die produktive Pro-Einrichtung ausstehend. Kennwörter und Schlüssel lokal eingeben, nicht in
+Kommandozeilenargumenten, Chat oder Umleitungsdateien hinterlegen.
+
+Kennwort und Client-Key werden ohne Echo abgefragt und mit getrennten, an WawiCallPro gebundenen
+DPAPI-Zwecken für den aktuellen Windows-Benutzer verschlüsselt gespeichert. Die Einrichtung benötigt
+interaktive Ein- und Ausgabe; Umleitung wird abgewiesen. Escape beziehungsweise Ctrl+C brechen vor
+dem Speichern ab. Vorhandene Fremdeinstellungen bleiben erhalten; eine zwischenzeitliche Änderung
+der Datei verhindert das Überschreiben über die vorhandene Revisionsprüfung. Bestehende
+Pro-Zugangsdaten werden beim erneuten Aufruf ausdrücklich neu eingegeben; eine fehlgeschlagene
+Eingabe verändert den gespeicherten Stand nicht.
+
+Financial Office verwendet die vorhandene Installationserkennung und schreibgeschützte
+Mandantenverbindungen. Es benötigt hierfür keinen Pro-API-Benutzer und keinen Client-Key.
+Die Einrichtung fragt ausschließlich die optionale dauerhafte Installationskennung ab.
+Ohne Überschreibung bleibt die Identität aus dem erkannten Katalogpfad erhalten.
+
+Nach dem Speichern App und Console neu starten. `IPluginConnectionConfiguration` liefert den
+validierten Start-Snapshot über den gemeinsam geladenen Pluginvertrag an den jeweiligen privaten
+Plugincontainer. Das Pro-Plugin übernimmt die Eingaben in seine API-Optionen, Financial Office liest
+ausschließlich seine Installationskennung. Der Host referenziert keine konkreten Adaptertypen.
+Das bloße Laden oder Konfigurieren öffnet keine ERP-Verbindung; Benutzerrechte und tatsächliche
+Anmeldung werden beim ersten expliziten Fachabruf geprüft. Die Konsole meldet Konfigurationsstatus
+und noch ungeprüften Quellzugriff getrennt. Diagnosen enthalten keine Verbindungseingaben.
+
+Prüfnachweise: `.artifacts/phase5-credentials`. Isolierte DPAPI-/Datei-/Adaptertests ersetzen keine
+produktive Freigabe oder Anmeldung mit einem tatsächlichen WawiCallPro-Client-Key.

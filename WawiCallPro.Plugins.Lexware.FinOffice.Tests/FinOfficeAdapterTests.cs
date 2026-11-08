@@ -96,6 +96,22 @@ public sealed class FinOfficeAdapterTests
             .GetCapabilitiesAsync(new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1")));
     }
 
+    [TestMethod]
+    public void PluginModuleConsumesOnlyFinOfficeHostSettingsWithoutSourceAccess()
+    {
+        var services = new ServiceCollection();
+        new FinOfficePluginServices().ConfigureServices(services);
+        services.AddSingleton<WawiCallPro.Interfaces.Plugins.IPluginConnectionConfiguration>(new ConnectionSettings());
+        using var provider = services.BuildServiceProvider();
+        Assert.AreEqual("host-fin-installation", provider.GetRequiredService<FinOfficeConnectionOptions>().InstallationId);
+    }
+
+    private sealed class ConnectionSettings : WawiCallPro.Interfaces.Plugins.IPluginConnectionConfiguration
+    {
+        public WawiCallPro.Interfaces.Plugins.ProConnectionConfiguration? ReadPro() => throw new AssertFailedException("Wrong product settings requested.");
+        public string? ReadFinOfficeInstallationId() => "host-fin-installation";
+    }
+
     [TestCleanup]
     public void Cleanup()
     {

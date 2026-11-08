@@ -60,7 +60,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(ConfigurationFormat.CurrentVersion, current.FormatVersion);
         Assert.IsFalse(current.RequiresUpgrade);
         var savedJson = await File.ReadAllTextAsync(directory.Location.FilePath);
-        Assert.Contains("\"formatVersion\": 2", savedJson);
+        Assert.Contains("\"formatVersion\": 3", savedJson);
         Assert.DoesNotContain("synthetic-migration-password", savedJson);
         Assert.AreEqual(JsonSerializer.Serialize(password), JsonSerializer.Serialize(current.Options.SipAccount!.Password));
     }
@@ -109,7 +109,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         string[] invalid =
         [
-            "{\"formatVersion\":3,\"settings\":{}}",
+            "{\"formatVersion\":4,\"settings\":{}}",
             "{\"formatVersion\":0,\"settings\":{}}",
             "{\"formatVersion\":-1,\"settings\":{}}",
             "{\"formatVersion\":\"synthetic-value\",\"settings\":{}}",

@@ -17,6 +17,7 @@ internal static class DiagnosticTables
         new("Dateiformat", status.ConfigurationFound ? status.SettingsFormatVersion.ToString(CultureInfo.InvariantCulture) : "Keine Datei"),
         new("Formatübernahme", status.SettingsUpgradeRequired ? "Beim nächsten ausdrücklichen Speichern" : "Nicht erforderlich"),
         new("SIP-Einrichtung", status.ConnectionConfigured ? "Vollständig geprüft" : "Nicht eingerichtet"),
+        new("Wawi-Einrichtung", status.ProductLine == "FinOffice" ? "Automatische Installationserkennung; Quellzugriff nicht geprüft" : status.ErpConnectionConfigured ? "Konfiguration vorhanden; Quellzugriff nicht geprüft" : "Nicht eingerichtet; --erp-configure verwenden"),
         new("SIP-Verbindung", "Nicht verbunden"),
         new("Mandant", status.CompanySelected ? "Ausgewählt" : "Nicht ausgewählt"),
         new("Warenwirtschaftsplugin", status.PluginLoaded ? "Geladen und konfiguriert" : "Nicht geladen"),
@@ -54,6 +55,7 @@ internal static class DiagnosticTables
         new("--db-approve-empty", "Vorhandenes leeres DBA-Ziel ausdrücklich freigeben und migrieren"),
         new("--db-backup <absoluter Pfad>", "SQLite-Sicherung in eine neue Datei; WAL wird konsistent berücksichtigt"),
         new("--db-restore <absoluter Pfad>", "SQLite-Sicherung in das konfigurierte, noch nicht existierende Ziel wiederherstellen"),
+        new("--erp-configure", "Warenwirtschaft lokal einrichten; verdeckte Kennwort-/Client-Key-Eingabe, keine Umleitung; Neustart erforderlich"),
         new("--workstation-init", "Lokale Arbeitsplatz-GUID einmal anlegen; bestehende Kennung erhalten"),
         new("N/P/G/Q + Enter", "Nächste/vorige Seite, Seitenzahl eingeben, Ausgabe beenden. ? = ungültige Eingabe."),
         new("Umleitung", "Bei umgeleiteter Ein- oder Ausgabe alle Zeilen ohne Tastaturabfrage; Ctrl+C bricht interaktiv ab.")

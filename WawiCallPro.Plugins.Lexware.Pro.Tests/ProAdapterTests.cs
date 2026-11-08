@@ -90,6 +90,29 @@ public sealed class ProAdapterTests
             await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCapabilitiesAsync(company));
     }
 
+    [TestMethod]
+    public void PluginModuleConsumesHostConnectionSettingsWithoutSourceAccess()
+    {
+        var services = new ServiceCollection();
+        new ProPluginServices().ConfigureServices(services);
+        services.AddSingleton<WawiCallPro.Interfaces.Plugins.IPluginConnectionConfiguration>(new ConnectionSettings());
+        using var provider = services.BuildServiceProvider();
+        var settings = provider.GetRequiredService<ProConnectionOptions>();
+        Assert.AreEqual("synthetic-from-host", settings.Password);
+        Assert.AreEqual("host-installation", settings.InstallationId);
+        Assert.AreEqual(42, settings.TimeoutSeconds);
+    }
+
+    private sealed class ConnectionSettings : WawiCallPro.Interfaces.Plugins.IPluginConnectionConfiguration
+    {
+        public WawiCallPro.Interfaces.Plugins.ProConnectionConfiguration? ReadPro() => new()
+        {
+            ApiUrl = new Uri("https://isolated.invalid"), Username = "test-user", Password = "synthetic-from-host",
+            ClientKey = "{44444444-4444-4444-4444-444444444444}", InstallationId = "host-installation", TimeoutSeconds = 42
+        };
+        public string? ReadFinOfficeInstallationId() => throw new AssertFailedException("Wrong product settings requested.");
+    }
+
     [TestCleanup]
     public void Cleanup()
     {

@@ -51,6 +51,8 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
                     var collection = new ServiceCollection();
                     collection.AddSingleton(services);
                     collection.AddSingleton(provider.GetRequiredService<TimeProvider>());
+                    if (provider.GetService<IPluginConnectionConfiguration>() is { } configuration)
+                        collection.AddSingleton(configuration);
                     module.ConfigureServices(collection);
                     var container = new PluginServiceScope(collection.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true }));
                     containers.Add(container);
