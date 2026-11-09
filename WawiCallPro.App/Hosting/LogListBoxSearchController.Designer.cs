@@ -43,8 +43,10 @@ partial class LogListBoxSearchController
         searchLabel.Name = "searchLabel";
         searchLabel.Text = "Suche";
         searchLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        searchLabel.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
         _txtSearch.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-            _txtSearch.Name = "txtSearch";
+        _txtSearch.Name = "txtSearch";
+        _txtSearch.Margin = new System.Windows.Forms.Padding(0);
 
         _txtSearch.Properties.NullValuePrompt = "Mindestens 2 Zeichen";
         _txtSearch.Properties.NullValuePromptShowForEmptyValue = true;
@@ -52,10 +54,12 @@ partial class LogListBoxSearchController
         _txtSearch.KeyDown += SearchKeyDown;
         _lblResult.Name = "lblResult";
         _lblResult.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        _lblResult.Margin = new System.Windows.Forms.Padding(6, 0, 6, 0);
         closeButton.Name = "closeButton";
         closeButton.Text = "X";
         closeButton.AutoSize = true;
         closeButton.Anchor = System.Windows.Forms.AnchorStyles.Right;
+        closeButton.Margin = new System.Windows.Forms.Padding(0);
         closeButton.ToolTip = "Suche schließen";
         closeButton.Click += CloseSearch_Click;
         AutoScaleDimensions = new System.Drawing.SizeF(9F, 19F);
@@ -63,7 +67,8 @@ partial class LogListBoxSearchController
         AutoSize = true;
         AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         Dock = System.Windows.Forms.DockStyle.Bottom;
-        Padding = new System.Windows.Forms.Padding(8);
+        Padding = new System.Windows.Forms.Padding(6, 2, 6, 2);
+        Margin = new System.Windows.Forms.Padding(0);
         Visible = false;
         Controls.Add(searchLayout);
         ResumeLayout(false);

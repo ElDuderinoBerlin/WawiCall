@@ -1095,6 +1095,13 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Log-Suchpanel flacher: zusaetzliche aeussere Raender entfernt, vertikale
+  Innenabstaende auf eine kompakte Editorzeile begrenzt. Suche bleibt unten; Escape gibt
+  die Flaeche an die Liste zurueck. Gezielter Such-/Layouttest, helle/dunkle Skins,
+  10/16-Punkt-Schrift und 150%-Renderpruefung sowie App-Rebuild (Debug/Any CPU) bestanden.
+  Nachweis `.artifacts/lx-startup-log/flat-search.log`.
+
+
 - [x] ✅ Startseiten-Aktionen kompakt und gleich breit: gemeinsame bevorzugte
   Textbreite statt Dehnung ueber die Fensterbreite, passende Umbrueche bei Platzmangel.
   Breiten/Textplatz sowie helle/dunkle Skins, 10/16-Punkt-Schrift und 150%-Simulation

@@ -299,6 +299,8 @@ public sealed class AppShellTests
                 panel.Size = new Size(width, 260);
                 CreateHandles(panel); panel.PerformLayout(); CheckTableBounds(panel);
                 Assert.IsTrue(list.Bottom <= search.Top, "The search bar belongs below the log list, as in LxTranslate.");
+                Assert.IsTrue(search.Height <= Math.Ceiling(search.Font.GetHeight() * 2),
+                    $"Search bar is too tall for a single input row: {search.Height}");
                 using var bitmap = new Bitmap(panel.Width, panel.Height);
                 panel.DrawToBitmap(bitmap, new Rectangle(Point.Empty,panel.Size));
                 var destination = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
@@ -316,6 +318,11 @@ public sealed class AppShellTests
                     Assert.Contains("0 Treffer", Field<LabelControl>(search, "_lblResult").Text);
                     CheckTableBounds(panel);
                 }
+                var listHeightWithSearch = list.Height;
+                typeof(LogListBoxSearchController).GetMethod("SearchKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(search, [null, new KeyEventArgs(Keys.Escape)]);
+                panel.PerformLayout();
+                Assert.IsTrue(list.Height > listHeightWithSearch, "Closing search must return its space to the log list.");
                 Assert.IsFalse(panel.FindForm()?.Visible ?? false);
             }
         }
