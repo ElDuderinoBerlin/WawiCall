@@ -293,6 +293,7 @@ public sealed class AppShellTests
                 Assert.Contains("<backcolor=Yellow>", list.Items[0].ToString()!);
                 panel.Size = new Size(width, 260);
                 CreateHandles(panel); panel.PerformLayout(); CheckTableBounds(panel);
+                Assert.IsTrue(list.Bottom <= search.Top, "The search bar belongs below the log list, as in LxTranslate.");
                 using var bitmap = new Bitmap(panel.Width, panel.Height);
                 panel.DrawToBitmap(bitmap, new Rectangle(Point.Empty,panel.Size));
                 var destination = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");

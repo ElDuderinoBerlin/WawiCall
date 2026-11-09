@@ -1095,6 +1095,13 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Log-Suchleiste wie LxTranslate unterhalb der Log-Liste angeordnet.
+  Vorhandene Suche/Treffermarkierung und leere Liste gezielt getestet; helle/dunkle Skins,
+  kleine Breite, 10/16-Punkt-Schrift und 150%-Simulation unsichtbar visuell geprueft.
+  App in aktiver Debug-/Any-CPU-Konfiguration rekompiliert.
+  Nachweis `.artifacts/lx-startup-log/search-bottom.log`.
+
+
 - [x] ✅ Major/Minor/Revision wie LxTranslate: zentrale WawiVersionMajor/Minor-Werte
   (zunaechst 0.1), Assembly-/Dateiversion Major.Minor.0.GitCommitanzahl; sichtbare Version
   Major.Minor.GitCommitanzahl in Splash, Startseite und Ueber. Host-Metadaten und Standard-
