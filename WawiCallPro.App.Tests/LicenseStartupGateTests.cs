@@ -50,7 +50,8 @@ public sealed class LicenseStartupGateTests
     public async Task ActivationPromptAwaitsUiDispatcherAndObservesCancellationBeforeShowingAnything()
     {
         var dispatcher = new QueuedDispatcher();
-        var prompt = new AppLicensePrompt(dispatcher);
+        await using var splash = new StartupSplash();
+        var prompt = new AppLicensePrompt(dispatcher, splash);
         using var cancellation = new CancellationTokenSource();
         var request = Task.Run(() => prompt.RequestKeyAsync("synthetic-machine", cancellation.Token));
         await dispatcher.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));

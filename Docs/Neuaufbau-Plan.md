@@ -1095,6 +1095,22 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Nutzerauftrag vom 09.11.2026: Splash entsprechend LxTranslate mit SVG-Logo,
+  Anwendungstitel, Status, Version und animiertem Quantarix-Fortschrittsbalken ergänzt.
+  Eigener STA-Thread hält die Animation während des Hoststarts am Leben. Gespeicherte Schrift,
+  Skin und Palette werden vorab übernommen; automatische Mindesthöhe erhält umbrochenen Text.
+  Diagnose-/Render-/versteckte und minimierte Starts öffnen keinen sichtbaren Splash.
+  Lizenzdialog, Startfehler und Shutdown schließen ihn; das Hauptfenster übernimmt den Fokus
+  vor dem Schließen ausschließlich bei eigenem Vordergrund. Fremder Vordergrund wird bereits
+  beim Anzeigen des Hauptfensters berücksichtigt. Bestehende Zweitinstanz-Aktivierung bleibt erhalten.
+  Je Edition elf gezielte App-Tests sowie vier Debug-/Any-CPU-Hostbuilds mit echten Diagnose-Starts
+  und Pluginpaketprüfungen bestanden; gezielter Rider-Rebuild erfolgreich. Unsichtbare Renderprüfung
+  mit leerem/langem Status, kleiner Breite, 10/16-Punkt-Schrift, hellem/dunklem Skin und 150%-Simulation
+  einschließlich laufender Fortschrittsanimation visuell geprüft. Threadbeendigung und ausbleibende
+  Aktivierung der unsichtbaren Testfenster nativ geprüft; Übergabereihenfolge/Fehlerpfade getestet.
+  Ein sichtbarer Explorer-Start mit/ohne bewussten Programmwechsel wurde nicht durchgeführt und ist
+  damit noch kein nativer Nachweis der sichtbaren Fokusübergabe. Nachweise `.artifacts/lx-startup-log`.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Logbereich entsprechend LxTranslate als DevExpress-Liste
   mit Zeitstempeln, Warn-/Fehlerfarben, Strg+F-Suche, Treffermarkierung/-navigation,
   Mehrfachauswahl, Kopieren/Löschen und vollständigem Tooltip übernommen. Designerfähiges

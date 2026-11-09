@@ -29,7 +29,9 @@ internal static class AppStartupServices
         services.AddSingleton<ILicenseServerSessionFactory, LicenseServerSessionFactory>();
         services.AddSingleton<IProductLicenseService, ProductLicenseService>();
         services.AddSingleton<IAppLicensePrompt, AppLicensePrompt>();
+        services.AddSingleton<StartupSplash>();
         services.AddHostedService<AppUiStartup>();
+        services.AddHostedService<StartupSplashHost>();
         services.AddHostedService<LicenseStartupGate>();
         services.AddHostedService<LicenseMonitor>();
         services.AddHostedService<CrashReportUploader>();

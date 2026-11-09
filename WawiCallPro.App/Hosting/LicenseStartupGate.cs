@@ -11,10 +11,11 @@ internal interface IAppLicensePrompt
     Task<string?> RequestKeyAsync(string machineId, CancellationToken cancellationToken);
 }
 
-internal sealed class AppLicensePrompt(IUiDispatcher dispatcher) : IAppLicensePrompt
+internal sealed class AppLicensePrompt(IUiDispatcher dispatcher, StartupSplash splash) : IAppLicensePrompt
 {
     public async Task<string?> RequestKeyAsync(string machineId, CancellationToken cancellationToken)
     {
+        await splash.CloseAsync();
         string? key = null;
         await dispatcher.InvokeAsync(() =>
         {

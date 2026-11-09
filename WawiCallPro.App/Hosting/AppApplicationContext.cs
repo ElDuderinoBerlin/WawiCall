@@ -24,6 +24,7 @@ internal sealed class AppApplicationContext : ApplicationContext
     private readonly IUiDispatcher _dispatcher;
     private readonly CancellationTokenSource _activationStopping = new();
     private readonly CancellationToken _activationToken;
+    private readonly StartupSplash? _splash;
 
     internal AppApplicationContext(IHost host, bool diagnostics, string? auditDirectory)
     {
@@ -36,6 +37,7 @@ internal sealed class AppApplicationContext : ApplicationContext
         _instance = host.Services.GetRequiredService<IAppInstanceGuard>();
         _activationToken = _activationStopping.Token;
         _dispatcher = host.Services.GetRequiredService<IUiDispatcher>();
+        _splash = host.Services.GetService<StartupSplash>();
         _instance.ActivationRequested += OnActivationRequested;
         Application.Idle += StartOnIdle;
     }
@@ -57,6 +59,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 }
 
                 // The context owns the form so DI can never dispose a WinForms control on a worker thread.
+                if (_splash is not null) await _splash.UpdateAsync("Hauptfenster wird vorbereitet …", 4, stoppingToken);
                 _form = CreateMainForm();
                 _form.FormClosing += MainFormClosing;
                 if (_diagnostics || _host.Services.GetRequiredService<AppWindowOptions>().Hidden)
@@ -66,7 +69,12 @@ internal sealed class AppApplicationContext : ApplicationContext
                 else if (_host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User.StartMinimized)
                     _form.WindowState = FormWindowState.Minimized;
                 using var stopRegistration = stoppingToken.Register(() => _closeRequested.TrySetResult());
-                _form.Show();
+                _form.ShowAfterStartup(_splash?.ShouldPreserveForeground() == true);
+                if (_splash is not null)
+                {
+                    await _splash.UpdateAsync("WawiCallPro ist bereit.", 5, stoppingToken);
+                    await _splash.CompleteAsync(_form);
+                }
                 OnActivationRequested(this, EventArgs.Empty);
                 if (_diagnostics)
                 {
@@ -90,11 +98,15 @@ internal sealed class AppApplicationContext : ApplicationContext
             await _activationStopping.CancelAsync();
             try
             {
-                if (_form is not null)
+                try { if (_splash is not null) await _splash.CloseAsync(); }
+                finally
                 {
-                    _form.FormClosing -= MainFormClosing;
-                    try { _form.Close(); }
-                    finally { _form.Dispose(); }
+                    if (_form is not null)
+                    {
+                        _form.FormClosing -= MainFormClosing;
+                        try { _form.Close(); }
+                        finally { _form.Dispose(); }
+                    }
                 }
             }
             catch (Exception exception)

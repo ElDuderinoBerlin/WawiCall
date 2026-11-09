@@ -22,21 +22,38 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
-            if (key?.GetValue("Skin") is string skin)
-            {
-                if (key.GetValue("Palette") is string palette && palette.Length != 0) UserLookAndFeel.Default.SetSkinStyle(skin, palette);
-                else UserLookAndFeel.Default.SetSkinStyle(skin);
-            }
-            if (key?.GetValue("Font") is string text && new FontConverter().ConvertFromInvariantString(text) is Font font)
-            {
-                WindowsFormsSettings.DefaultFont = DevExpress.Utils.AppearanceObject.DefaultFont = font;
-                form.Font = font;
-            }
+            ApplyAppearance(form, key);
             if (key?.GetValue("Width") is int width && key.GetValue("Height") is int height)
                 form.Size = new Size(Math.Clamp(width, 760, 2400), Math.Clamp(height, 520, 1600));
             if (key?.GetValue("Maximized") is int maximized && maximized == 1) form.WindowState = FormWindowState.Maximized;
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
+    }
+
+    internal void RestoreAppearance()
+    {
+        if (!Enabled) return;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
+            ApplyAppearance(null, key);
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
+    }
+
+    private static void ApplyAppearance(Form? form, RegistryKey? key)
+    {
+        if (key?.GetValue("Skin") is string skin)
+        {
+            if (key.GetValue("Palette") is string palette && palette.Length != 0) UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+            else UserLookAndFeel.Default.SetSkinStyle(skin);
+        }
+
+        if (key?.GetValue("Font") is string text && new FontConverter().ConvertFromInvariantString(text) is Font font)
+        {
+            WindowsFormsSettings.DefaultFont = DevExpress.Utils.AppearanceObject.DefaultFont = font;
+            if (form is not null) form.Font = font;
+        }
     }
 
     internal void Save(Form form)

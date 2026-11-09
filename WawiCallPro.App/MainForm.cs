@@ -27,6 +27,7 @@ public partial class MainForm : RibbonForm
     private PageOperation? _operation;
     private Task _selectionTask = Task.CompletedTask;
     private bool _backgroundRun;
+    private bool _startupWithoutActivation;
     private bool _removingDocument;
     private bool _loaded;
     private bool _closing;
@@ -46,7 +47,14 @@ public partial class MainForm : RibbonForm
         ShowInTaskbar = false;
         Opacity = 0;
     }
-    protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
+    internal void ShowAfterStartup(bool preserveForeground)
+    {
+        _startupWithoutActivation = preserveForeground;
+        try { Show(); }
+        finally { _startupWithoutActivation = false; }
+    }
+
+    protected override bool ShowWithoutActivation => _backgroundRun || _startupWithoutActivation || base.ShowWithoutActivation;
     protected override CreateParams CreateParams
     {
         get
