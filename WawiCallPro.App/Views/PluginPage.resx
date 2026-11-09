@@ -1,7 +1,42 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="PluginCard.Template" xml:space="preserve">
+    <value>&lt;div class="card"&gt;&lt;div class="heading"&gt;&lt;img class="icon" src="${Icon}"&gt;&lt;div class="identity"&gt;&lt;div class="name"&gt;${Plugin}&lt;/div&gt;&lt;div class="version"&gt;${Version}&lt;/div&gt;&lt;/div&gt;&lt;div class="badge"&gt;${Status}&lt;/div&gt;&lt;/div&gt;&lt;div class="description"&gt;${Description}&lt;/div&gt;&lt;div class="commands"&gt;&lt;div id="details" class="details"&gt;Details anzeigen&lt;/div&gt;&lt;div id="activate" class="button"&gt;Aktivieren&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</value>
+  </data>
+  <data name="PluginCard.ActiveTemplate" xml:space="preserve">
+    <value>&lt;div class="card active"&gt;&lt;div class="heading"&gt;&lt;img class="icon" src="${Icon}"&gt;&lt;div class="identity"&gt;&lt;div class="name"&gt;${Plugin}&lt;/div&gt;&lt;div class="version"&gt;${Version}&lt;/div&gt;&lt;/div&gt;&lt;div class="badge"&gt;${Status}&lt;/div&gt;&lt;/div&gt;&lt;div class="description"&gt;${Description}&lt;/div&gt;&lt;div class="commands"&gt;&lt;div id="details" class="details"&gt;Details anzeigen&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</value>
+  </data>
+  <data name="PluginCard.Styles" xml:space="preserve">
+    <value>.card { margin: 6px; padding: 14px; border: 1px solid @border; border-radius: 8px; background-color: @surface; color: @text; }
+.card.active { border-left: 4px solid @success; }
+.heading { display: flex; flex-direction: row; align-items: center; }
+.icon { width: 36px; height: 36px; margin-right: 12px; }
+.identity { flex-grow: 1; flex-shrink: 1; }
+.name { font-size: 1.1em; font-weight: bold; }
+.version { margin-top: 4px; color: @muted; }
+.badge { margin-left: 8px; padding: 4px 8px; border-radius: 10px; background-color: @badge; color: @text; }
+.active .badge { color: @success; }
+.description { margin-top: 12px; margin-bottom: 12px; color: @muted; }
+.commands { display: flex; flex-direction: row; justify-content: space-between; align-items: center; }
+.details { color: @accent; padding: 6px 0; cursor: pointer; }
+.button { padding: 7px 16px; border: 1px solid @accent; border-radius: 5px; color: @accent; cursor: pointer; }
+.button:hover { background-color: @badge; }
+.details:hover { text-decoration: underline; }
+.empty { padding: 24px; color: @muted; }</value>
+  </data>
+  <data name="PluginCard.EmptyTemplate" xml:space="preserve">
+    <value>&lt;div class="empty"&gt;&lt;div class="name"&gt;Keine Plugins installiert&lt;/div&gt;&lt;div&gt;Installierte Warenwirtschaftsplugins werden hier angezeigt.&lt;/div&gt;&lt;/div&gt;</value>
+  </data>
 </root>

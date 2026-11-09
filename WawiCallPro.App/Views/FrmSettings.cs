@@ -7,6 +7,23 @@ public partial class FrmSettings : XtraForm
 {
     private bool _canClose;
     private bool _closing;
+    private bool _backgroundRun;
+    internal void PrepareForBackgroundRun()
+    {
+        _backgroundRun = true;
+        Opacity = 0;
+        ShowInTaskbar = false;
+    }
+    protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var parameters = base.CreateParams;
+            if (_backgroundRun) parameters.ExStyle |= 0x08000000;
+            return parameters;
+        }
+    }
     public FrmSettings() { InitializeComponent(); Load += Settings_Load; }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
     {

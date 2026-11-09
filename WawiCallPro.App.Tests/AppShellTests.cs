@@ -36,6 +36,117 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task PluginCardActivationIsSingleFlightAndClosingCancelsThePendingSwitch() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var page = new PluginPage();
+        page.Bind(workspace, null);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var cancelled = false;
+        page.ConfigureSelection(async (id, token) =>
+        {
+            calls++;
+            Assert.AreEqual("Test.Dummy", id);
+            entered.TrySetResult();
+            try { await Task.Delay(Timeout.Infinite, token); }
+            finally { cancelled = token.IsCancellationRequested; }
+        });
+        page.RefreshCatalog(); CreateHandles(page);
+        Field<GridControl>(page, "catalogGrid").ForceInitialize();
+        await page.HandleCardActionAsync("activate", 0);
+        Assert.AreEqual(0, calls, "The active plugin must not be activated again.");
+        var pending = page.HandleCardActionAsync("activate", 1);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsFalse(Field<GridControl>(page, "catalogGrid").Enabled);
+        await page.HandleCardActionAsync("activate", 1);
+        await page.HandleCardActionAsync("details", 0);
+        Assert.AreEqual(1, calls);
+        await page.StopAsync(); await pending;
+        Assert.IsTrue(cancelled);
+        Assert.AreEqual("Test.Lexware", ((IProductPluginSelection)workspace.Plugins).ActivePluginId);
+    });
+
+    [TestMethod]
+    public Task PluginCardsRenderInSettingsWithEmptyCatalogBothSkinsAndLargeFonts() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var fontBefore = WindowsFormsSettings.DefaultFont;
+        var appearanceBefore = AppearanceObject.DefaultFont;
+        var skinBefore = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var paletteBefore = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        try
+        {
+            foreach (var skin in new[] { skinBefore, "Office 2019 Black" }.Distinct())
+            foreach (var fontSize in new[] { 10F, 16F })
+            foreach (var small in new[] { true, false })
+            foreach (var populated in new[] { false, true })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                ((TestRuntime)workspace.Plugins).HasCatalog = populated;
+                using var main = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+                using var settings = main.CreateSettingsDialog(true);
+                settings.PrepareForBackgroundRun();
+                settings.Show();
+                await Field<SettingsPage>(settings, "settingsPage").ReloadAsync();
+                settings.SelectPluginsTab();
+                settings.MinimumSize = Size.Empty;
+                CreateHandles(settings);
+                settings.ClientSize = small ? new Size(720, 650) : new Size(980, 760);
+                settings.PerformLayout();
+                var management = Field<PluginPage>(Field<SettingsPage>(settings, "settingsPage"), "pluginPage");
+                var grid = Field<GridControl>(management, "catalogGrid");
+                grid.ForceInitialize();
+                var cards = Field<DevExpress.XtraGrid.Views.Items.ItemsView>(management, "catalogView");
+                cards.LayoutChanged();
+                Assert.AreEqual(populated ? 2 : 0, cards.RowCount);
+                CheckTableBounds(settings);
+                var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "plugin-cards");
+                Directory.CreateDirectory(output);
+                using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                bitmap.Save(Path.Combine(output, $"Plugins-{skin}-{fontSize}-{small}-{populated}.png"), ImageFormat.Png);
+                if (populated)
+                {
+                    await management.HandleCardActionAsync("details", 1);
+                    Assert.IsTrue(Field<GroupControl>(management, "detailsGroup").Visible);
+                    Assert.IsFalse(Field<SimpleButton>(management, "capabilitiesButton").Enabled);
+                    await management.HandleCardActionAsync("details", 0);
+                    Assert.IsTrue(Field<SimpleButton>(management, "capabilitiesButton").Enabled);
+                    settings.PerformLayout();
+                    using var details = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                    details.Save(Path.Combine(output, $"Details-{skin}-{fontSize}-{small}.png"), ImageFormat.Png);
+                    var detailsScroll = Field<XtraScrollableControl>(management, "detailsScroll");
+                    var capabilities = Field<SimpleButton>(management, "capabilitiesButton");
+                    detailsScroll.ScrollControlIntoView(capabilities);
+                    var buttonPosition = detailsScroll.PointToClient(capabilities.PointToScreen(Point.Empty));
+                    Assert.IsTrue(buttonPosition.Y >= 0 && buttonPosition.Y + capabilities.Height <= detailsScroll.ClientSize.Height,
+                        "The capabilities action must remain reachable with a large font.");
+                    using var bottom = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                    bottom.Save(Path.Combine(output, $"Details-{skin}-{fontSize}-{small}-bottom.png"), ImageFormat.Png);
+                }
+                if (small && populated)
+                {
+                    Field<SimpleButton>(management, "backButton").PerformClick();
+                    settings.Scale(new SizeF(1.5F, 1.5F)); settings.PerformLayout(); CheckTableBounds(settings);
+                    using var scaled = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                    scaled.Save(Path.Combine(output, $"Plugins-{skin}-{fontSize}-scale150.png"), ImageFormat.Png);
+                }
+                Assert.AreEqual(0d, settings.Opacity);
+                Assert.IsFalse(settings.ShowInTaskbar);
+                Assert.AreNotEqual(settings.Handle, Quantarix.Windows.Win32.User32.GetForegroundWindow());
+                await settings.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = fontBefore; AppearanceObject.DefaultFont = appearanceBefore;
+            if (string.IsNullOrEmpty(paletteBefore)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skinBefore);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skinBefore, paletteBefore);
+        }
+    });
+
+    [TestMethod]
     public void DisplayVersionUsesMajorMinorAndGitRevision()
     {
         Assert.AreEqual("2.3.789", ApplicationVersion.Format(new Version(2, 3, 0, 789)));
@@ -212,9 +323,9 @@ public sealed class AppShellTests
         var management = Field<PluginPage>(page, "pluginPage");
         Assert.AreEqual(2, ((Array)Field<GridControl>(management, "catalogGrid").DataSource).Length);
         Find<CheckEdit>(page, "notificationsEdit").Checked = false;
-        var catalog = Field<DevExpress.XtraGrid.Views.Grid.GridView>(management, "catalogView");
+        var catalog = Field<DevExpress.XtraGrid.Views.Items.ItemsView>(management, "catalogView");
         catalog.FocusedRowHandle = 1;
-        await InvokeActionAsync(management, "Activate_Click");
+        await management.HandleCardActionAsync("activate", 1);
         Assert.AreEqual("Plugin aktiviert und Auswahl gespeichert.", Field<LabelControl>(management, "statusLabel").Text);
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsNull(workspace.Companies.Current.Company);
@@ -224,7 +335,7 @@ public sealed class AppShellTests
         Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
         Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
         catalog.FocusedRowHandle = 0;
-        await InvokeActionAsync(management, "Activate_Click");
+        await management.HandleCardActionAsync("activate", 0);
         Assert.AreEqual("Test.Lexware", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
         Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
         await settings.StopAsync();

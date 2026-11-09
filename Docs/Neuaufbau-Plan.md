@@ -1095,6 +1095,22 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Plugin-Uebersicht nach freigegebenem Gestaltungsvorschlag als kompakte
+  HTML/CSS-Kartenliste mit DevExpress GridControl/ItemsView umgesetzt (dxdocs herangezogen).
+  SVG-Icons, Name/Version, Beschreibung, Aktiv-/Testbetrieb-Status sowie Aktivieren direkt
+  am inaktiven Plugin. Farben folgen dem Skin; der aktive Eintrag ist gruen hervorgehoben.
+  Details und Faehigkeiten haben eigene Bereiche mit Rueckweg zur Uebersicht; technische
+  Plugin-IDs erscheinen nicht als Titel. Dynamische HTML-Texte werden kodiert. Weiterhin
+  zentrale Verwaltung in FrmSettings und der vorhandene Wechselpfad mit einer aktiven Sitzung.
+  Je Edition drei gezielte Tests bestanden: echter UI-Wechselpfad mit erhaltenen Einstellungen,
+  Mehrfachklicks/Abbruch sowie leere/geladene Kataloge, helle/dunkle Skins, 10/16-Punkt-Schrift,
+  kleine Fenster und 150%-Simulation. Details und erreichbare Faehigkeiten-Aktion visuell
+  unsichtbar geprueft. App/Console in aktiver Debug-/Any-CPU-Konfiguration ueber Rider rekompiliert;
+  Ressourcen und Designer-Konventionen geprueft. Nachweise `.artifacts/plugin-cards` und
+  `.artifacts/lx-startup-log/plugin-cards-*`.
+  Referenz: [DevExpress ItemsView](https://docs.devexpress.com/WindowsForms/DevExpress.XtraGrid.Views.Items.ItemsView._members).
+
+
 - [x] ✅ Linke Navigation auf Benutzerwunsch ohne Icons: reine Textauswahl.
   Navigationstest und gezielte unsichtbare Renderpruefung sowie App-Rebuild
   in Debug/Any CPU bestanden (`.artifacts/lx-startup-log/navigation-text.log`).
