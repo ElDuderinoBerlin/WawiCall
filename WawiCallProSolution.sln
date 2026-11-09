@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 		Docs\Datenbank-Tabellen-und-Spalten.md = Docs\Datenbank-Tabellen-und-Spalten.md
 		Docs\Capability-Matrix.md = Docs\Capability-Matrix.md
 		Docs\Velopack-Build-Plan.md = Docs\Velopack-Build-Plan.md
+		Docs\CRA-Voranalyse.md = Docs\CRA-Voranalyse.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.App", "WawiCallPro.App\WawiCallPro.App.csproj", "{275DD5FC-D51E-42F4-A103-40AE2808462D}"
