@@ -14,19 +14,15 @@ public partial class StartPage : XtraUserControl
         statusLabel.Text = status;
         if (!showActions)
         {
-            layout.Controls.Remove(databaseButton);
             layout.Controls.Remove(settingsButton);
-            layout.Controls.Remove(pluginButton);
             layout.Controls.Remove(historyButton);
         }
     }
 
-    private void Database_Click(object? sender, EventArgs e) => Navigate?.Invoke("database");
     private void Settings_Click(object? sender, EventArgs e) => Navigate?.Invoke("settings");
-    private void Plugin_Click(object? sender, EventArgs e) => Navigate?.Invoke("plugin");
     private void History_Click(object? sender, EventArgs e) => Navigate?.Invoke("history");
     private void DisposePage()
     {
-        databaseButton.Dispose(); settingsButton.Dispose(); pluginButton.Dispose(); historyButton.Dispose();
+        settingsButton.Dispose(); historyButton.Dispose();
     }
 }

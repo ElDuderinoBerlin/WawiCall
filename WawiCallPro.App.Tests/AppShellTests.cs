@@ -277,7 +277,7 @@ public sealed class AppShellTests
                 Assert.AreEqual("Nicht konfiguriert", Field<LabelControl>(dashboard, "sipValue").Text);
                 Assert.IsTrue(Field<DevExpress.XtraBars.Docking.ControlContainer>(form, "outputContainer").Width > 500);
                 Assert.IsTrue(dashboard.Width > 500);
-                var buttons = new[] { "refreshButton", "databaseButton", "historyButton", "settingsButton" }
+                var buttons = new[] { "refreshButton", "historyButton", "settingsButton" }
                     .Select(name => Field<SimpleButton>(dashboard, name)).ToArray();
                 Assert.AreEqual(1, buttons.Select(button => button.Width).Distinct().Count());
                 Assert.IsTrue(buttons.All(button => button.Width >= button.GetPreferredSize(Size.Empty).Width));
@@ -303,6 +303,16 @@ public sealed class AppShellTests
                     empty.Save(Path.Combine(output, $"Main-{skin}-empty.png"), ImageFormat.Png);
                     dashboard.Bind(workspace, workspace.Configuration, workspace.Application);
                 }
+                var ribbon = Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon");
+                ribbon.SelectedPage = Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "databaseRibbon");
+                ribbon.Minimized = false;
+                form.PerformLayout(); Application.DoEvents();
+                using var databaseRibbon = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                databaseRibbon.Save(Path.Combine(output, $"DatabaseRibbon-{skin}-{size}-{small}.png"), ImageFormat.Png);
+                ribbon.SelectedPage = Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "settingsRibbon");
+                using var settingsRibbon = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                settingsRibbon.Save(Path.Combine(output, $"SettingsRibbon-{skin}-{size}-{small}.png"), ImageFormat.Png);
+                ribbon.SelectedPage = Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "databaseRibbon");
                 form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout();
                 CheckTableBounds(dashboard);
                 using var scaled = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
@@ -652,12 +662,19 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
-    public Task DatabaseAndHistoryPagesUseRealStorageWithoutCreatingOnReadAndSaveANote() => WithWorkspace(async (workspace, services, plugin) =>
+    public Task DatabaseRibbonAndHistoryUseRealStorageWithoutCreatingOnReadAndSaveANote() => WithWorkspace(async (workspace, services, plugin) =>
     {
-        using var database = new DatabasePage(); database.Bind(workspace);
-        await InvokeActionAsync(database, "Status_Click");
+        using var database = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        database.PrepareForBackgroundRun();
+        _ = database.Handle;
+        typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(database, [EventArgs.Empty]);
+        await ClickRibbonAsync(database, "databaseStatusItem");
         Assert.IsFalse(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
-        await InvokeActionAsync(database, "Create_Click");
+        await ClickRibbonAsync(database, "databaseCreateItem");
+        await ClickRibbonAsync(database, "databaseMigrateItem");
+        Assert.Contains("betriebsbereit", Field<LabelControl>(database, "connectionLabel").Text);
+        Assert.AreEqual(1, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(database, "tabbedView").Documents.Count);
+        Assert.IsTrue(Field<DevExpress.XtraBars.BarButtonItem>(database, "databaseBackupItem").Enabled);
         Assert.AreEqual(DatabaseSchemaState.Current, (await workspace.Database.GetStatusAsync()).State);
         var now = DateTimeOffset.UtcNow;
         var call = await services.GetRequiredService<ICallJournal>().BeginAsync(new CallSnapshot
@@ -688,14 +705,52 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task DatabaseRibbonBlocksConcurrentCommandsAndShutdownAwaitsCancellation() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun();
+        _ = form.Handle;
+        typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Func<CancellationToken, Task> pending = async token =>
+        {
+            using var registration = token.Register(() => cancelled.TrySetResult());
+            entered.SetResult();
+            await release.Task;
+            token.ThrowIfCancellationRequested();
+        };
+        var running = (Task)typeof(MainForm).GetMethod("RunDatabaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [pending])!;
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(new[] { "databaseStatusItem", "databaseCreateItem", "databaseMigrateItem", "databaseApproveItem", "databaseBackupItem", "databaseRestoreItem" }
+                .All(name => !Field<DevExpress.XtraBars.BarButtonItem>(form, name).Enabled));
+            Field<DevExpress.XtraBars.BarButtonItem>(form, "databaseCreateItem").PerformClick();
+            Assert.IsFalse(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
+            var closing = form.PrepareToCloseAsync();
+            await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.IsFalse(closing.IsCompleted, "Shutdown must await the database operation before disposing its controls.");
+            release.TrySetResult();
+            await closing;
+            await running;
+        }
+        finally { release.TrySetResult(); await running; }
+    });
+
+    [TestMethod]
     public Task NavigationReusesTabsAndCompanyBoundPluginViewsAreDisposedBeforeShutdown() => WithWorkspace(async (workspace, services, plugin) =>
     {
         using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
         _ = form.Handle;
         typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
         foreach (var name in new[] { "database", "history", "help", "about", "database" }) form.Navigate(name);
-        Assert.AreEqual(5, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
+        Assert.AreSame(Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "databaseRibbon"), Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon").SelectedPage);
+        Assert.AreEqual(4, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
         var navigation = Field<DevExpress.XtraBars.Navigation.AccordionControl>(form, "navigation");
+        CollectionAssert.AreEqual(new[] { "Startseite", "Gesprächshistorie", "Einstellungen" }, navigation.Elements.Select(element => element.Text).ToArray());
+        Assert.IsFalse(Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon").Items.OfType<DevExpress.XtraBars.BarButtonItem>().Any(item => item.Caption.Contains("Plugin", StringComparison.OrdinalIgnoreCase)));
         using var navigationImage = new Bitmap(navigation.Width, navigation.Height);
         navigation.DrawToBitmap(navigationImage, new Rectangle(Point.Empty, navigation.Size));
         var navigationOutput = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
@@ -705,11 +760,11 @@ public sealed class AppShellTests
         await workspace.Companies.SelectAsync(company);
         await form.OpenPartyAsync(new(company.Key, PartyKind.Customer, "1"));
         Assert.AreEqual(2, plugin.Created);
-        Assert.AreEqual(7, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
+        Assert.AreEqual(6, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
         await form.PrepareToCloseAsync();
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsFalse(form.Visible);
-        Assert.IsTrue(new[] { "homeItem", "pluginItem", "historyItem", "closeItem", "trayItem", "exitItem", "databaseItem", "settingsItem", "resetItem", "fontItem", "helpItem", "aboutItem" }
+        Assert.IsTrue(new[] { "homeItem", "historyItem", "closeItem", "trayItem", "exitItem", "databaseStatusItem", "databaseCreateItem", "databaseMigrateItem", "databaseApproveItem", "databaseBackupItem", "databaseRestoreItem", "settingsItem", "resetItem", "fontItem", "helpItem", "aboutItem" }
             .All(name => Field<DevExpress.XtraBars.BarButtonItem>(form, name).ImageOptions.SvgImage is not null));
     });
 
@@ -763,9 +818,19 @@ public sealed class AppShellTests
         }
     });
 
+    private static async Task ClickRibbonAsync(MainForm form, string item)
+    {
+        Field<DevExpress.XtraBars.BarButtonItem>(form, item).PerformClick();
+        await WaitForOperationAsync(form);
+    }
+
     private static async Task InvokeActionAsync(Control page, string handler)
     {
         page.GetType().GetMethod(handler, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [null, EventArgs.Empty]);
+        await WaitForOperationAsync(page);
+    }
+    private static async Task WaitForOperationAsync(Control page)
+    {
         var operation = Field<PageOperation>(page, "_operation");
         var timeout = DateTime.UtcNow.AddSeconds(15);
         while (operation.IsRunning && DateTime.UtcNow < timeout) await Task.Delay(10);

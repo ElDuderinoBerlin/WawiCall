@@ -39,7 +39,7 @@ public partial class HomeDashboard : XtraUserControl
         var options = _configuration?.Current.Options;
         version.Text = "WawiCallPro " + ApplicationVersion.Display;
         databaseValue.Text = options?.Database.Provider.ToString() ?? "Nicht konfiguriert";
-        databaseDetail.Text = "Verbindung und Schema unter Datenbank prüfen.";
+        databaseDetail.Text = "Verbindung und Schema im Ribbon-Tab Datenbank prüfen.";
         sipValue.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert" : "Nicht konfiguriert";
         sipDetail.Text = "Telefonie noch nicht verbunden.";
         pluginValue.Text = _workspace?.Plugins.IsLoaded == true ? "Plugin geladen" : "Kein Plugin geladen";
@@ -75,7 +75,7 @@ public partial class HomeDashboard : XtraUserControl
             for (var i = 0; i < cards.RowCount; i++) cards.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             for (var i = 0; i < cardControls.Length; i++) cards.SetCellPosition(cardControls[i], new(i % cardColumns, i / cardColumns));
             cards.ResumeLayout(true);
-            var buttons = new[] { refreshButton, databaseButton, historyButton, settingsButton };
+            var buttons = new[] { refreshButton, historyButton, settingsButton };
             var buttonWidth = buttons.Max(button => button.GetPreferredSize(Size.Empty).Width);
             var cellWidth = buttonWidth + buttons.Max(button => button.Margin.Horizontal);
             var columns = Math.Clamp((toolbar.ClientSize.Width - toolbar.Padding.Horizontal) / Math.Max(1, cellWidth), 1, buttons.Length);
@@ -92,7 +92,6 @@ public partial class HomeDashboard : XtraUserControl
     }
 
     private void Refresh_Click(object? sender, EventArgs e) => RefreshStatus();
-    private void Database_Click(object? sender, EventArgs e) => Navigate?.Invoke("database");
     private void History_Click(object? sender, EventArgs e) => Navigate?.Invoke("history");
     private void Settings_Click(object? sender, EventArgs e) => Navigate?.Invoke("settings");
 }

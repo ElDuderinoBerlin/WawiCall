@@ -15,7 +15,7 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("DatabasePage", "database"), ("HistoryPage", "history") }
+        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("HistoryPage", "history") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);

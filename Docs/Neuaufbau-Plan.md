@@ -1095,6 +1095,25 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Datenbankfunktionen nach dem LxTranslate-Ribbonmuster direkt im Tab
+  Datenbank gebündelt: Status prüfen, Anlegen, Schema aktualisieren, leere Datenbank
+  freigeben sowie SQLite-Sicherung und Wiederherstellung. Eigene SVGs und Tooltips,
+  getrennte Gruppen für Verbindung/Schema und Sicherung. DatabasePage einschließlich
+  Dokumentroute entfernt; die Navigation und Startseiten-Aktionen enthalten keinen
+  Datenbankeintrag mehr. Fortschritt und Ergebnis erscheinen im eingeblendeten
+  Ausgabebereich. Laufende Aktionen sperren weitere Datenbankbefehle und werden beim
+  Beenden abgebrochen und abgewartet. Bestätigung der Leerfreigabe und Schutz vor dem
+  Überschreiben eines Wiederherstellungsziels bleiben erhalten.
+  Pluginverwaltung ausschließlich im Einstellungen-Tab Plugins: zusätzliche Navigation,
+  Ribbonbutton und veraltete Startseiten-Shortcuts entfernt. Fachansichten bleiben im
+  Dokumentbereich. Je Edition fünf gezielte App-Prüfungen bestanden (echte isolierte
+  SQLite-Aktionen, Dokumentnavigation, Beenden, Pluginwechsel in Settings, Shell-Render).
+  Ribbon und Startseite bei 10/16-Punkt-Schrift, kleinen/großen Fenstern, hellem/dunklem
+  Skin und 150-Prozent-Skalierung unsichtbar gerendert und geprüft. Keine Änderung an
+  Migrationen oder SQL. App/Console in aktiver Debug-/Any-CPU-Konfiguration rekompiliert.
+  Nachweise: `.artifacts/lx-startup-log/database-ribbon-*.log` und
+  `.artifacts/layout-reference/DatabaseRibbon-*`, `SettingsRibbon-*`, `Main-*`.
+
 - [x] ✅ Sichtbarer Pluginwechsel: animiertes DevExpress-ProgressPanel und Status fuer
   Vorgang-/Ansichtsschluss, Entladen/Laden sowie Speichern der Auswahl. Aktionen bleiben
   waehrenddessen gesperrt, Abschluss/Abbruch entfernen die Anzeige. Kein App-Neustart im

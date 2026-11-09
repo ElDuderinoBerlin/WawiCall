@@ -74,6 +74,7 @@ public partial class MainForm : RibbonForm
         connectionLabel.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert. Telefonie noch nicht verbunden." : "Kein SIP-Konto konfiguriert.";
         statusItem.Caption = app.ProductLine + " · " + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
         _operation = new PageOperation(this, connectionLabel);
+        UpdateDatabaseActions();
         _state?.Restore(this);
         _state?.Restore(dockManager);
         Navigate("home");
@@ -84,6 +85,7 @@ public partial class MainForm : RibbonForm
     {
         if (_closing) return;
         if (id is "settings" or "plugin") { OpenSettings(id == "plugin"); return; }
+        if (id == "database") { ribbon.SelectedPage = databaseRibbon; return; }
         if (_documents.TryGetValue(id, out var existing)) { ActivateDocument(existing); return; }
         Control content;
         string caption;
@@ -94,16 +96,13 @@ public partial class MainForm : RibbonForm
                 dashboard.Bind(_workspace, _configuration, _application ?? ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly));
                 dashboard.Navigate += Navigate;
                 content = dashboard; caption = "Startseite"; break;
-            case "database":
-                var database = new DatabasePage(); if (_workspace is not null) database.Bind(_workspace);
-                content = database; caption = "Datenbank"; break;
             case "history":
                 var history = new HistoryPage(); if (_workspace is not null) history.Bind(_workspace, _state);
                 content = history; caption = "Gesprächshistorie"; break;
             default:
                 var start = new StartPage(); start.Navigate += Navigate;
                 if (id == "help") start.SetContent("WawiCallPro verwenden",
-                    "1. In den Einstellungen SIP-Konto und Kommunikationsdatenbank konfigurieren.\n2. Nach geänderten Verbindungseinstellungen die Anwendung neu starten.\n3. Unter Datenbank den Status prüfen und bei Bedarf das Schema anlegen oder aktualisieren.\n4. Die Mandanten für den Telefon-Cache unter Einstellungen auswählen.\n5. Gespeicherte Gespräche und Notizen finden Sie in der Gesprächshistorie.",
+                    "1. In den Einstellungen SIP-Konto und Kommunikationsdatenbank konfigurieren.\n2. Nach geänderten Verbindungseinstellungen die Anwendung neu starten.\n3. Im Ribbon-Tab Datenbank den Status prüfen und bei Bedarf das Schema anlegen oder aktualisieren.\n4. Die Mandanten für den Telefon-Cache unter Einstellungen auswählen.\n5. Gespeicherte Gespräche und Notizen finden Sie in der Gesprächshistorie.",
                     "Telefonie, Audioanbindung und zusätzliche Wawi-Fachtabs folgen in ihren Fachphasen.", false);
                 else if (id == "about") start.SetContent("Über WawiCallPro",
                     "WawiCallPro " + ApplicationVersion.Display + "\nProduktlinie: " + (_application?.ProductLine ?? "Designer") + "\nTelefonie: SIPSorcery\nKommunikationsdatenbank: SQLite, PostgreSQL, SQL Server oder MySQL/MariaDB.",
@@ -167,7 +166,7 @@ public partial class MainForm : RibbonForm
     }
     private static Task StopPageAsync(Control? control) => (control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : control) switch
     {
-        SettingsPage page => page.StopAsync(), DatabasePage page => page.StopAsync(), PluginPage page => page.StopAsync(), HistoryPage page => page.StopAsync(), _ => Task.CompletedTask
+        HistoryPage page => page.StopAsync(), _ => Task.CompletedTask
     };
     private async void ClosePage_Click(object sender, ItemClickEventArgs e)
     {
@@ -200,8 +199,6 @@ public partial class MainForm : RibbonForm
     }
     private void AppendOutput(string message) => logPanel.Append(message);
     private void Home_Click(object sender, ItemClickEventArgs e) => Navigate("home");
-    private void Database_Click(object sender, ItemClickEventArgs e) => Navigate("database");
-    private void Plugin_Click(object sender, ItemClickEventArgs e) => Navigate("plugin");
     private void History_Click(object sender, ItemClickEventArgs e) => Navigate("history");
     private void Settings_Click(object sender, ItemClickEventArgs e) => OpenSettings();
     private void Help_Click(object sender, ItemClickEventArgs e) => ToggleHelp();
@@ -221,8 +218,6 @@ public partial class MainForm : RibbonForm
         return true;
     }
     private void HomeNavigation_Click(object? sender, EventArgs e) => Navigate("home");
-    private void DatabaseNavigation_Click(object? sender, EventArgs e) => Navigate("database");
-    private void PluginNavigation_Click(object? sender, EventArgs e) => Navigate("plugin");
     private void HistoryNavigation_Click(object? sender, EventArgs e) => Navigate("history");
     private void SettingsNavigation_Click(object? sender, EventArgs e) => OpenSettings();
     private void HelpNavigation_Click(object? sender, EventArgs e) => helpDock.Show();
@@ -246,6 +241,7 @@ public partial class MainForm : RibbonForm
         foreach (var document in _documents.Values)
             if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
                 dashboard.RefreshStatus();
+        UpdateDatabaseActions();
         statusItem.Caption = (_application?.ProductLine ?? _workspace?.Application.ProductLine ?? "") + " · "
             + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
     }
@@ -274,7 +270,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (pluginItem,"Plugin"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseItem,"Database"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseCreateItem,"Database"), (databaseMigrateItem,"DatabaseRefresh"), (databaseApproveItem,"DatabaseCheck"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
