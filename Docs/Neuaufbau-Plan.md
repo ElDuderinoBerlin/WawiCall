@@ -1095,6 +1095,14 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Major/Minor/Revision wie LxTranslate: zentrale WawiVersionMajor/Minor-Werte
+  (zunaechst 0.1), Assembly-/Dateiversion Major.Minor.0.GitCommitanzahl; sichtbare Version
+  Major.Minor.GitCommitanzahl in Splash, Startseite und Ueber. Host-Metadaten und Standard-
+  Releaseversion stimmen ueberein; explizite Releaseversionen bleiben erhalten.
+  Je Edition fuenf gezielte App-Tests, vier Debug-/Any-CPU-Hostbuilds und 47 Release-
+  Skriptpruefungen bestanden. Renderings und Nachweise `.artifacts/lx-startup-log/version-*`.
+
+
 - [x] ✅ Hilfe/Über wie LxTranslate in der Ribbon-Gruppe Info unter Einstellungen:
   grosse SVG-Buttons, Informationssymbol fuer Ueber, Hilfe per F1 ein-/ausblendbar.
   Gezielter Ribbon-Test und unsichtbares Rendering sowie Rider-Rebuild App/Console

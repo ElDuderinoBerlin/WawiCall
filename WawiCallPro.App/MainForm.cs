@@ -106,7 +106,7 @@ public partial class MainForm : RibbonForm
                     "1. In den Einstellungen SIP-Konto und Kommunikationsdatenbank konfigurieren.\n2. Nach geänderten Verbindungseinstellungen die Anwendung neu starten.\n3. Unter Datenbank den Status prüfen und bei Bedarf das Schema anlegen oder aktualisieren.\n4. Die Mandanten für den Telefon-Cache unter Einstellungen auswählen.\n5. Gespeicherte Gespräche und Notizen finden Sie in der Gesprächshistorie.",
                     "Telefonie, Audioanbindung und zusätzliche Wawi-Fachtabs folgen in ihren Fachphasen.", false);
                 else if (id == "about") start.SetContent("Über WawiCallPro",
-                    "WawiCallPro " + typeof(MainForm).Assembly.GetName().Version + "\nProduktlinie: " + (_application?.ProductLine ?? "Designer") + "\nTelefonie: SIPSorcery\nKommunikationsdatenbank: SQLite, PostgreSQL, SQL Server oder MySQL/MariaDB.",
+                    "WawiCallPro " + ApplicationVersion.Display + "\nProduktlinie: " + (_application?.ProductLine ?? "Designer") + "\nTelefonie: SIPSorcery\nKommunikationsdatenbank: SQLite, PostgreSQL, SQL Server oder MySQL/MariaDB.",
                     "Kunden- und Lieferantenansichten stellt das jeweilige Warenwirtschaftsplugin bereit.", false);
                 else start.SetContent("Willkommen bei WawiCallPro",
                     "Öffnen Sie die Arbeitsbereiche über die Navigation. Die individuellen Fach-Tabs stellt das aktive Warenwirtschaftsplugin bereit.", connectionLabel.Text, false);
@@ -206,7 +206,7 @@ public partial class MainForm : RibbonForm
     private void Settings_Click(object sender, ItemClickEventArgs e) => OpenSettings();
     private void Help_Click(object sender, ItemClickEventArgs e) => ToggleHelp();
     private void About_Click(object sender, ItemClickEventArgs e) => XtraMessageBox.Show(this,
-        "WawiCallPro " + typeof(MainForm).Assembly.GetName().Version + "\nProduktlinie: "
+        "WawiCallPro " + ApplicationVersion.Display + "\nProduktlinie: "
         + (_application?.ProductLine ?? ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine),
         "Über WawiCallPro", MessageBoxButtons.OK, MessageBoxIcon.Information);
     private void ToggleHelp()

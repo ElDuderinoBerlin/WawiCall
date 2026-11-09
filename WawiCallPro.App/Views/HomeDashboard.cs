@@ -33,7 +33,7 @@ public partial class HomeDashboard : XtraUserControl
     internal void RefreshStatus()
     {
         var options = _configuration?.Current.Options;
-        version.Text = "WawiCallPro " + typeof(MainForm).Assembly.GetName().Version?.ToString(3);
+        version.Text = "WawiCallPro " + ApplicationVersion.Display;
         databaseValue.Text = options?.Database.Provider.ToString() ?? "Nicht konfiguriert";
         databaseDetail.Text = "Verbindung und Schema unter Datenbank prüfen.";
         sipValue.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert" : "Nicht konfiguriert";

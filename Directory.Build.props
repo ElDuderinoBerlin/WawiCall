@@ -1,4 +1,7 @@
 <Project>
+  <PropertyGroup>
+    <_WawiExplicitVersion Condition="'$(Version)' != ''">true</_WawiExplicitVersion>
+  </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)Solution.props" />
   <PropertyGroup>
     <WawiCallPluginKeyFile Condition="'$(WawiCallPluginKeyFile)' == ''">$(MSBuildThisFileDirectory)..\Quantarix.Plugin.System\PluginKey.snk</WawiCallPluginKeyFile>

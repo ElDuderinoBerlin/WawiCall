@@ -36,6 +36,19 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public void DisplayVersionUsesMajorMinorAndGitRevision()
+    {
+        Assert.AreEqual("2.3.789", ApplicationVersion.Format(new Version(2, 3, 0, 789)));
+        Assert.AreEqual("?", ApplicationVersion.Format(null));
+        var assembly = typeof(MainForm).Assembly;
+        var version = assembly.GetName().Version!;
+        Assert.AreEqual(0, version.Build);
+        Assert.IsTrue(version.Revision > 0);
+        Assert.AreEqual(version.ToString(), assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version);
+        Assert.AreEqual(ApplicationVersion.Display, assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion);
+    }
+
+    [TestMethod]
     public Task HelpAndAboutAreLargeSettingsRibbonActions() => RunStaAsync(() =>
     {
         using var form = new MainForm();

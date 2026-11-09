@@ -92,7 +92,9 @@
     </PropertyGroup>
     <!-- WawiCallPro host metadata and existing licensing integration. -->
     <PropertyGroup>
-        <Version>0.1.0</Version>
+        <WawiVersionMajor>0</WawiVersionMajor>
+    <WawiVersionMinor>1</WawiVersionMinor>
+    <Version>$(WawiVersionMajor).$(WawiVersionMinor).0</Version>
         <DevExpressVersion>26.1.6</DevExpressVersion>
         <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == '' and '$(Configuration)' == 'Debug'">false</WawiLicenseRequired>
         <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == ''">$(LicenseCheckEnabled)</WawiLicenseRequired>

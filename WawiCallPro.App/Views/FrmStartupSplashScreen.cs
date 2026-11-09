@@ -17,7 +17,7 @@ public sealed partial class FrmStartupSplashScreen : XtraForm
         AppIconHelper.Apply(this);
         svgLogo.SvgImage = AppIconHelper.ApplicationSvg;
         svgLogo.SvgImageColorizationMode = SvgImageColorizationMode.None;
-        lblVersion.Text = "v" + typeof(MainForm).Assembly.GetName().Version?.ToString(3);
+        lblVersion.Text = "v" + ApplicationVersion.Display;
         LookAndFeel.StyleChanged += LookAndFeel_StyleChanged;
         Disposed += (_, _) => LookAndFeel.StyleChanged -= LookAndFeel_StyleChanged;
         ApplySplashPalette();

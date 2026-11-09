@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 
 function Get-SolutionBuildDefaults {
     $root = Split-Path $PSScriptRoot -Parent
-    $value = & dotnet msbuild (Join-Path $root 'WawiCallPro.App/WawiCallPro.App.csproj') -nologo '-getProperty:LexwareProductLine,Version'
+    $value = & dotnet msbuild (Join-Path $root 'WawiCallPro.App/WawiCallPro.App.csproj') -nologo -verbosity:quiet -target:WawiComputeVersion '-getProperty:LexwareProductLine,Version'
     if ($LASTEXITCODE -ne 0) { throw 'Zentrale Buildvorgaben konnten nicht ausgewertet werden.' }
     $properties = (($value -join [Environment]::NewLine) | ConvertFrom-Json).Properties
     if ($properties.LexwareProductLine -notin @('Pro','FinOffice')) { throw 'Ungültige Produktlinie in Solution.props.' }

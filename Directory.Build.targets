@@ -1,4 +1,20 @@
 <Project>
+  <!-- Same revision scheme as LxTranslate: assembly Major.Minor.0.CommitCount, display Major.Minor.CommitCount. -->
+  <Target Name="WawiComputeVersion" BeforeTargets="GetAssemblyVersion"
+          Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console'">
+    <Exec Command="git rev-list --count HEAD" WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_WawiGitCount" />
+    </Exec>
+    <PropertyGroup>
+      <_WawiGitCount>$(_WawiGitCount.Trim())</_WawiGitCount>
+      <AssemblyVersion>$(WawiVersionMajor).$(WawiVersionMinor).0.$(_WawiGitCount)</AssemblyVersion>
+      <FileVersion>$(AssemblyVersion)</FileVersion>
+      <Version Condition="'$(_WawiExplicitVersion)' != 'true'">$(WawiVersionMajor).$(WawiVersionMinor).$(_WawiGitCount)</Version>
+      <InformationalVersion>$(Version)</InformationalVersion>
+      <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    </PropertyGroup>
+  </Target>
   <Import Project="$(MSBuildThisFileDirectory)..\Quantarix.Plugin.System\Directory.Build.targets" />
   <Target Name="GenerateWawiSharedPackageManifest" BeforeTargets="AssignTargetPaths" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Utilities'">
     <ItemGroup><SharedPackage Update="@(SharedPackage)" Condition="'%(SharedPackage.RuntimeAssemblyNames)' == ''"><RuntimeAssemblyNames>%(SharedPackage.Identity)</RuntimeAssemblyNames></SharedPackage></ItemGroup>
