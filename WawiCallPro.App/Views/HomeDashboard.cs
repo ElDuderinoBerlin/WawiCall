@@ -22,6 +22,10 @@ public partial class HomeDashboard : XtraUserControl
         SizeChanged += Dashboard_SizeChanged;
         FontChanged += Dashboard_SizeChanged;
         body.SizeChanged += Body_SizeChanged;
+        var appearance = LookAndFeel;
+        appearance.StyleChanged += Dashboard_SizeChanged;
+        Disposed += (_, _) => appearance.StyleChanged -= Dashboard_SizeChanged;
+        ArrangeDashboard();
     }
 
     internal void Bind(AppWorkspace? workspace, ApplicationConfigurationService? configuration, ApplicationDescriptor application)
@@ -72,10 +76,14 @@ public partial class HomeDashboard : XtraUserControl
             for (var i = 0; i < cardControls.Length; i++) cards.SetCellPosition(cardControls[i], new(i % cardColumns, i / cardColumns));
             cards.ResumeLayout(true);
             var buttons = new[] { refreshButton, databaseButton, historyButton, settingsButton };
-            var columns = narrow ? 2 : 4;
-            toolbar.ColumnCount = columns; toolbar.RowCount = narrow ? 2 : 1;
+            var buttonWidth = buttons.Max(button => button.GetPreferredSize(Size.Empty).Width);
+            var cellWidth = buttonWidth + buttons.Max(button => button.Margin.Horizontal);
+            var columns = Math.Clamp((toolbar.ClientSize.Width - toolbar.Padding.Horizontal) / Math.Max(1, cellWidth), 1, buttons.Length);
+            toolbar.ColumnCount = columns + 1;
+            toolbar.RowCount = (buttons.Length + columns - 1) / columns;
             toolbar.ColumnStyles.Clear(); toolbar.RowStyles.Clear();
-            for (var i = 0; i < columns; i++) toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F / columns));
+            for (var i = 0; i < columns; i++) toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cellWidth));
+            toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             for (var i = 0; i < toolbar.RowCount; i++) toolbar.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             for (var i = 0; i < buttons.Length; i++) toolbar.SetCellPosition(buttons[i], new(i % columns, i / columns));
             toolbar.ResumeLayout(true); body.ResumeLayout(true);

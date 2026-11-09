@@ -96,6 +96,11 @@ public sealed class AppShellTests
                 Assert.AreEqual("Nicht konfiguriert", Field<LabelControl>(dashboard, "sipValue").Text);
                 Assert.IsTrue(Field<DevExpress.XtraBars.Docking.ControlContainer>(form, "outputContainer").Width > 500);
                 Assert.IsTrue(dashboard.Width > 500);
+                var buttons = new[] { "refreshButton", "databaseButton", "historyButton", "settingsButton" }
+                    .Select(name => Field<SimpleButton>(dashboard, name)).ToArray();
+                Assert.AreEqual(1, buttons.Select(button => button.Width).Distinct().Count());
+                Assert.IsTrue(buttons.All(button => button.Width >= button.GetPreferredSize(Size.Empty).Width));
+                Assert.IsTrue(buttons[0].Width < dashboard.Width / 3, "Toolbar buttons must keep a compact width.");
                 CheckTableBounds(dashboard);
                 var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "layout-reference");
                 Directory.CreateDirectory(output);

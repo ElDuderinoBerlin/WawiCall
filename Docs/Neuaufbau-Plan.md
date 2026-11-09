@@ -1095,6 +1095,13 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Startseiten-Aktionen kompakt und gleich breit: gemeinsame bevorzugte
+  Textbreite statt Dehnung ueber die Fensterbreite, passende Umbrueche bei Platzmangel.
+  Breiten/Textplatz sowie helle/dunkle Skins, 10/16-Punkt-Schrift und 150%-Simulation
+  gezielt unsichtbar geprueft; App in Debug/Any CPU ueber Rider rekompiliert.
+  Nachweis `.artifacts/lx-startup-log/compact-buttons.log`.
+
+
 - [x] ✅ Log-Suchleiste wie LxTranslate unterhalb der Log-Liste angeordnet.
   Vorhandene Suche/Treffermarkierung und leere Liste gezielt getestet; helle/dunkle Skins,
   kleine Breite, 10/16-Punkt-Schrift und 150%-Simulation unsichtbar visuell geprueft.
