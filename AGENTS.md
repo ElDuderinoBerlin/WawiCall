@@ -114,6 +114,34 @@ Bei späteren Synchronisationen diese lokalen Ergänzungen und vorhandene Benutz
   Buildstand kontrollieren. Serilog-/Native-Fenstermessungen können den unangehaltenen Übergang belegen;
   Delegaten-/Reihenfolgetests allein bestätigen keine Windows-Fokusübergabe. Sichtbare Tests vorher absprechen.
 
+### Erneuter Explorer-Start und Aktivierung der laufenden App (Must-have)
+
+- Für alle interaktiven Desktop-Hauptanwendungen verbindlich: Startet der Benutzer die bereits laufende
+  App erneut aus Explorer oder einer Verknüpfung, die vorhandene Instanz sichtbar in den Vordergrund holen.
+  Ein minimiertes Fenster wiederherstellen, ein verborgenes Fenster anzeigen und ein Fenster im Hintergrund
+  aktivieren. Keine zweite Hauptinstanz als Ersatz starten. Reine CLI-, Worker- und Serveraufrufe ohne
+  interaktives Hauptfenster dürfen dadurch keinen Fokuswechsel auslösen.
+- Instanzbereich, Mutex-/IPC-Namen und Zielprozess müssen zusammenpassen. Produktlinien, Editionen,
+  Demo-/Standardausgaben sowie Benutzer-/Sitzungsgrenzen fachlich bewusst festlegen; abweichende EXE-Namen
+  dürfen die Benachrichtigung einer durch denselben Mutex erkannten Instanz nicht verhindern.
+- Die neu gestartete Instanz überträgt ihr verfügbares Vordergrundrecht gezielt mit
+  `AllowSetForegroundWindow` an den bestehenden Prozess und sendet einen Aktivierungsauftrag, etwa über
+  `RegisterWindowMessage` / `PostMessage`. Die laufende Instanz verarbeitet ihn auf ihrem UI-Thread.
+  In WinForms kann `WndProc` den Auftrag an einen benannten Aktivierungshandler weiterreichen.
+- Erst den Fensterzustand wiederherstellen beziehungsweise `Show()` ausführen, dann `Activate()` oder
+  eine geeignete native Aktivierung verwenden. Den vorherigen Normal-/Maximiertzustand möglichst erhalten;
+  bei modalem Dialog das zugehörige bedienbare Fenster berücksichtigen. Kein dauerhaftes `TopMost` und
+  keine bedingungslosen Aktivierungsschleifen einsetzen.
+- Ein Zweitstart während der Initialisierung darf nicht wegen eines noch fehlenden Hauptfensterhandles
+  verloren gehen: Auftrag bis zur UI-Bereitschaft vormerken oder eine begrenzte Zustellstrategie verwenden.
+  Zustell-/Aktivierungsfehler diagnostizierbar behandeln, ohne dadurch eine parallele Hauptinstanz zuzulassen.
+- Dieser ausdrückliche Benutzerauftrag ist von der Splash-Fokusübergabe beim Erststart getrennt zu behandeln.
+  Den bewussten Wechsel in ein anderes Programm während des Erststarts weiterhin respektieren.
+- Bei Implementierung oder Änderung die Fälle Hintergrund, minimiert, zuvor maximiert, gegebenenfalls
+  verborgen/modal und Zweitstart während des Starts gezielt nativ prüfen. Tatsächlichen EXE-Pfad und Build
+  festhalten; reine Aufrufreihenfolgetests belegen keine Windows-Vordergrundaktivierung. Sichtbare Prüfungen
+  vorher absprechen. Eine reine Dokumentation dieser Pflicht ist kein Funktionsnachweis aller Apps.
+
 ### Umfang von GUI-/UI-Prüfungen
 
 - Nutzt der Benutzer den Rechner parallel, sichtbare GUI-Bedienung und GUI-Tests nur nach ausdrücklicher Absprache
