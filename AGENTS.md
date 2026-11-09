@@ -56,6 +56,8 @@ Bei späteren Synchronisationen diese lokalen Ergänzungen und vorhandene Benutz
 - Für sichtbare Eingabefelder, Beschriftungen und Buttons vorhandene DevExpress-Steuerelemente und den aktiven
   Skin verwenden; keine unpassenden weißen Standard-WinForms-Eingabefelder. Buttons kompakt und bündig zu den
   zugehörigen Eingaben ausrichten; zusammengehörige Buttons erhalten einheitliche Größen und Abstände.
+- Textbuttons erhalten auch bei `AutoSize` sichtbare Innenabstände; für Dialogaktionen mindestens 12 logische
+  Pixel seitlich und 6 oben/unten. Größe anhand von Text, Skin und DPI berechnen. `Margin` ersetzt kein `Padding`.
 - Werte, die nur angezeigt und nicht bearbeitet werden können, möglichst als DevExpress-`LabelControl` ohne
   Eingaberahmen darstellen. Keine TextBox-/TextEdit-Felder oder ausgegrauten Auswahlfelder allein zur Anzeige
   verwenden, insbesondere bei schreibgeschützten Druckverfahren-, Drucker- und Ausgabeinformationen. Beschriftung
