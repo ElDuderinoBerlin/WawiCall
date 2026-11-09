@@ -1095,6 +1095,16 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Nutzerauftrag vom 09.11.2026: Logbereich entsprechend LxTranslate als DevExpress-Liste
+  mit Zeitstempeln, Warn-/Fehlerfarben, Strg+F-Suche, Treffermarkierung/-navigation,
+  Mehrfachauswahl, Kopieren/Löschen und vollständigem Tooltip übernommen. Designerfähiges
+  `LogPanel` ersetzt das reine Textfeld; begrenzte, threadsichere Queue übernimmt auch Startmeldungen.
+  Backendmeldungen bleiben auf feste Ereignistexte begrenzt; fremde Formatter und Ausnahmeinhalte
+  gelangen nicht in die Anzeige. Je Edition drei gezielte App- und 106 Utilities-Tests bestanden;
+  leere/gefüllte Liste, helle/dunkle Skins, 10/16-Punkt-Schrift, schmale Breite und 150%-Skalierung
+  fensterlos geprüft. App/Console in Debug/Any CPU je Edition und gezielter Rider-Rebuild erfolgreich.
+  Nachweise `.artifacts/lx-startup-log`.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: eigenes App-SVG (Telefon/Kommunikation) erstellt und in ein
   ICO mit 16/24/32/48/64/128/256 Pixeln konvertiert. Win32-EXE-Icon über ApplicationIcon gesetzt;
   MainForm erhält dasselbe SVG und das native ICO. Keine fremde LxTranslate-Marke übernommen.

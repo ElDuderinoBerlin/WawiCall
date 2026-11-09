@@ -42,7 +42,7 @@ partial class MainForm
     private DevExpress.XtraBars.Navigation.AccordionControlElement settingsNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement helpNav;
     private DevExpress.XtraEditors.LabelControl connectionLabel;
-    private DevExpress.XtraEditors.MemoEdit outputMemo;
+    private WawiCallPro.App.Views.LogPanel logPanel;
     private DevExpress.XtraBars.Docking.DockManager dockManager;
     private DevExpress.XtraBars.Docking.DockPanel navigationDock;
     private DevExpress.XtraBars.Docking.ControlContainer navigationContainer;
@@ -106,7 +106,7 @@ partial class MainForm
         settingsNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         helpNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         connectionLabel = new DevExpress.XtraEditors.LabelControl();
-        outputMemo = new DevExpress.XtraEditors.MemoEdit();
+        logPanel = new WawiCallPro.App.Views.LogPanel();
         dockManager = new DevExpress.XtraBars.Docking.DockManager(components);
         navigationDock = new DevExpress.XtraBars.Docking.DockPanel();
         navigationContainer = new DevExpress.XtraBars.Docking.ControlContainer();
@@ -304,9 +304,8 @@ partial class MainForm
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         contentLayout.Controls.Add(connectionLabel, 0, 0);
-        contentLayout.Controls.Add(outputMemo, 0, 1);
-        outputMemo.Dock = System.Windows.Forms.DockStyle.Fill;
-        outputMemo.Properties.ReadOnly = true;
+        contentLayout.Controls.Add(logPanel, 0, 1);
+        logPanel.Dock = System.Windows.Forms.DockStyle.Fill;
         documentManager.ContainerControl = this;
         documentManager.View = tabbedView;
         documentManager.ViewCollection.AddRange(new DevExpress.XtraBars.Docking2010.Views.BaseView[] { tabbedView });

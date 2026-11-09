@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Threading;
@@ -20,6 +21,9 @@ internal static class AppCompositionRoot
                 services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
                 services.AddSingleton<AppWorkspace>();
+                services.AddSingleton<LogWindowService>();
+                services.AddSingleton<ILogWindowService>(provider => provider.GetRequiredService<LogWindowService>());
+                services.AddSingleton<ILoggerProvider, UiLogProvider>();
                 services.AddSingleton<AppUiState>();
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();

@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Microsoft.Extensions.Logging;
+using WawiCallPro.Utilities.Operations;
 using System.Reflection;
 using System.Drawing.Imaging;
 using System.Runtime.CompilerServices;
@@ -159,6 +161,87 @@ public sealed class AppShellTests
         preview.Save(Path.Combine(destination, "Main-icon.png"), ImageFormat.Png);
         return Task.CompletedTask;
     });
+
+    [TestMethod]
+    public Task LogListMatchesLxFormattingSearchAndPlainTextWithoutVisibleWindows() => RunStaAsync(() =>
+    {
+        AppUiStartup.Apply();
+        var originalFont = WindowsFormsSettings.DefaultFont;
+        var originalAppearance = AppearanceObject.DefaultFont;
+        var originalSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var originalPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        try
+        {
+            foreach (var skin in new[] { originalSkin, "Office 2019 Black" }.Distinct())
+            foreach (var size in new[] { 10F, 16F })
+            foreach (var width in new[] { 600, 1000 })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", size);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var logs = new LogWindowService();
+                logs.LogNormal("Verbindung bereit"); logs.LogWarning("Verbindung prüfen"); logs.LogError("Fehler <tag> mit mehrzeiligem Inhalt\nWeitere Information");
+                using var panel = new LogPanel(); panel.Bind(logs);
+                var list = Field<ListBoxControl>(panel, "listLog");
+                Assert.AreEqual(3, list.ItemCount);
+                Assert.AreEqual(SelectionMode.MultiExtended, list.SelectionMode);
+                Assert.Contains("<color=Gold>", list.Items[1].ToString()!);
+                Assert.Contains("<color=Red>", list.Items[2].ToString()!);
+                Assert.DoesNotContain("<tag>", list.Items[2].ToString()!);
+                Assert.DoesNotContain("<color", LogListBoxText.ToPlainText(list.Items[2].ToString()!));
+                var search = Field<LogListBoxSearchController>(panel, "searchController");
+                Assert.IsTrue(search.HandleLogKeyDown(new KeyEventArgs(Keys.Control | Keys.F)));
+                Field<TextEdit>(search, "_txtSearch").Text = "Verbindung";
+                Assert.Contains("2 Treffer", Field<LabelControl>(search, "_lblResult").Text);
+                Assert.Contains("<backcolor=Yellow>", list.Items[0].ToString()!);
+                panel.Size = new Size(width, 260);
+                CreateHandles(panel); panel.PerformLayout(); CheckTableBounds(panel);
+                using var bitmap = new Bitmap(panel.Width, panel.Height);
+                panel.DrawToBitmap(bitmap, new Rectangle(Point.Empty,panel.Size));
+                var destination = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
+                Directory.CreateDirectory(destination);
+                bitmap.Save(Path.Combine(destination, $"Log-{skin}-{width}-{size:0}.png"), ImageFormat.Png);
+                if (width == 600 && size == 16F)
+                {
+                    panel.Scale(new SizeF(1.5F, 1.5F));
+                    panel.PerformLayout(); CheckTableBounds(panel);
+                    using var scaled = new Bitmap(panel.Width, panel.Height);
+                    panel.DrawToBitmap(scaled, new Rectangle(Point.Empty, panel.Size));
+                    scaled.Save(Path.Combine(destination, $"Log-{skin}-scale150.png"), ImageFormat.Png);
+                    list.Items.Clear();
+                    LogListBoxSearchController.ApplyCurrentSearch(list);
+                    Assert.Contains("0 Treffer", Field<LabelControl>(search, "_lblResult").Text);
+                    CheckTableBounds(panel);
+                }
+                Assert.IsFalse(panel.FindForm()?.Visible ?? false);
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance;
+            if (string.IsNullOrEmpty(originalPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
+        }
+        return Task.CompletedTask;
+    });
+
+    [TestMethod]
+    public async Task LogQueueIsBoundedAndBackendFormattersAndSecretsNeverReachDisplay()
+    {
+        var logs = new LogWindowService();
+        using var provider = new UiLogProvider(logs);
+        var logger = provider.CreateLogger("Foreign.Library");
+        logger.Log(LogLevel.Error, new EventId(7), "private-password-token", new IOException("private-exception"),
+            (_, _) => throw new AssertFailedException("The UI provider must not call foreign formatters."));
+        OperationEvents.Write(logger, OperationEvent.HostStarted);
+        var entries = logs.Drain();
+        Assert.AreEqual(2, entries.Count);
+        Assert.AreEqual("Anwendungsdienste sind bereit.", entries[1].Message);
+        Assert.IsTrue(entries.All(entry => !entry.Message.Contains("private", StringComparison.Ordinal)));
+        await Task.Run(() => { for (var i=0;i<2200;i++) logs.LogNormal("Testmeldung"); });
+        var count = 0; while ((entries = logs.Drain()).Count > 0) count += entries.Count;
+        Assert.AreEqual(2000, count);
+    }
 
     private static string RenderOutput([CallerFilePath] string source = "") => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source))!, ".artifacts", "app-shell", "settings-ui");
     private static void CreateHandles(Control control)

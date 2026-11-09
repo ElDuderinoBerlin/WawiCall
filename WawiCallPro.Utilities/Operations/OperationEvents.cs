@@ -27,5 +27,13 @@ public static class OperationEvents
         logger.Log(level, new EventId((int)operation), new SafeOperationRecord(operation), exception, static (record, _) => record.Event.ToString());
     }
 
+    /// <summary>Reads only the closed event vocabulary without formatting arbitrary logger state.</summary>
+    public static bool TryGetEvent(object? state, out OperationEvent operation)
+    {
+        if (state is SafeOperationRecord record && Enum.IsDefined(record.Event)) { operation = record.Event; return true; }
+        operation = OperationEvent.FrameworkMessage;
+        return false;
+    }
+
     internal sealed record SafeOperationRecord(OperationEvent Event);
 }

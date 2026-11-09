@@ -37,6 +37,9 @@ public partial class MainForm : RibbonForm
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state) : this(application, configuration)
     { _workspace = workspace; _state = state; }
 
+    public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state, ILogWindowService logs)
+        : this(application, configuration, workspace, state) => logPanel.Bind(logs);
+
     internal void PrepareForBackgroundRun()
     {
         _backgroundRun = true;
@@ -182,7 +185,7 @@ public partial class MainForm : RibbonForm
     {
         ribbon.Minimized = ClientSize.Height < 900 && Font.Size > 13;
     }
-    private void AppendOutput(string message) => outputMemo.Text = string.Join(Environment.NewLine, (outputMemo.Text + Environment.NewLine + DateTime.Now.ToString("HH:mm:ss") + " " + message).Split(Environment.NewLine).TakeLast(100));
+    private void AppendOutput(string message) => logPanel.Append(message);
     private void Home_Click(object sender, ItemClickEventArgs e) => Navigate("home");
     private void Database_Click(object sender, ItemClickEventArgs e) => Navigate("database");
     private void Plugin_Click(object sender, ItemClickEventArgs e) => Navigate("plugin");
