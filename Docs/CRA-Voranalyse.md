@@ -3,6 +3,9 @@
 Stand: 09.11.2026. Statische Bestandsaufnahme mit Schwerpunkt `Solution.props`;
 kein vollständiges Security-Audit und keine Produkt- oder Konformitätsfreigabe.
 
+Fortführung: Der [CRA-Phasenplan](CRA-Phasenplan.md) erfasst die gesamte Solution mit
+App und Console als Hauptanwendungen und konkretisiert die offenen Arbeiten.
+
 ## Lauf und Umfang
 
 - CRA-/Security-Lauf: 2026-11-09T03:08:36Z (Zeitmarke während der Analyse).
