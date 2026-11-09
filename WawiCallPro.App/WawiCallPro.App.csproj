@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>WinExe</OutputType>
+    <ApplicationIcon>AppIcon.ico</ApplicationIcon>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ForceDesignerDpiUnaware>false</ForceDesignerDpiUnaware>
@@ -25,6 +26,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Icons\*.svg" />
+    <EmbeddedResource Include="AppIcon.svg;AppIcon.ico" />
     <PackageReference Include="Velopack" Version="1.2.161" />
     <InternalsVisibleTo Include="WawiCallPro.App.Tests" />
     <PackageReference Include="DevExpress.Win.Design" Version="$(DevExpressVersion)" />

@@ -127,6 +127,39 @@ public sealed class AppShellTests
         await form.PrepareToCloseAsync();
     });
 
+    [TestMethod]
+    public Task ApplicationBrandHasSvgAndMultiResolutionExecutableIcon() => RunStaAsync(() =>
+    {
+        using var form = new MainForm();
+        Assert.IsNotNull(form.IconOptions.SvgImage);
+        Assert.IsNotNull(form.IconOptions.Icon);
+        using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.AppIcon.ico")!;
+        using var reader = new BinaryReader(stream);
+        Assert.AreEqual((ushort)0, reader.ReadUInt16());
+        Assert.AreEqual((ushort)1, reader.ReadUInt16());
+        Assert.AreEqual((ushort)7, reader.ReadUInt16());
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
+        Assert.IsNotNull(repository);
+        var config = typeof(MainForm).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var edition = ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine;
+        var executable = Path.Combine(repository.FullName, "WawiCallPro.App", "bin", config, "net10.0-windows", "WawiCallPro.App." + edition + ".exe");
+        Assert.IsTrue(File.Exists(executable));
+        using var extracted = Icon.ExtractAssociatedIcon(executable);
+        Assert.IsNotNull(extracted);
+        using var bitmap = extracted.ToBitmap();
+        var blue = bitmap.GetPixel(bitmap.Width / 2, bitmap.Height / 8);
+        Assert.IsTrue(Math.Abs(blue.R - 18) < 10 && Math.Abs(blue.G - 104) < 10 && Math.Abs(blue.B - 196) < 10, "Executable does not contain the application brand icon.");
+        form.ClientSize = new Size(1240, 780);
+        CreateHandles(form);
+        form.PerformLayout();
+        using var preview = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+        var destination = Path.Combine(repository.FullName, ".artifacts", "lx-startup-log");
+        Directory.CreateDirectory(destination);
+        preview.Save(Path.Combine(destination, "Main-icon.png"), ImageFormat.Png);
+        return Task.CompletedTask;
+    });
+
     private static string RenderOutput([CallerFilePath] string source = "") => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source))!, ".artifacts", "app-shell", "settings-ui");
     private static void CreateHandles(Control control)
     {

@@ -1095,6 +1095,14 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Nutzerauftrag vom 09.11.2026: eigenes App-SVG (Telefon/Kommunikation) erstellt und in ein
+  ICO mit 16/24/32/48/64/128/256 Pixeln konvertiert. Win32-EXE-Icon über ApplicationIcon gesetzt;
+  MainForm erhält dasselbe SVG und das native ICO. Keine fremde LxTranslate-Marke übernommen.
+  Originalvorlage und AppIconHelper gelesen; Wawi-SVG bleibt ausdrücklich als SVG am Hauptfenster.
+  Ressourcen-/ICO-Stufen- und tatsächliche EXE-Icon-Prüfung je Produktlinie bestanden, fensterloses
+  Hauptfenster-Rendering visuell geprüft. Vier Debug-/Any-CPU-Hostbuilds und gezielter Rider-Rebuild
+  erfolgreich. Nachweise `.artifacts/lx-startup-log` und `.artifacts/icon-builder`.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Pluginverwaltung nach `FrmSettings` verlegt, entsprechend
   dem zentralen Tabdialog aus LxTranslate.App. Allgemein, Plugins, SIP-Konto, Datenbank, Audio und
   Telefon-Cache liegen im selben Einstellungsdialog. Ribbon/Navigation öffnen ihn direkt;

@@ -31,7 +31,7 @@ public partial class MainForm : RibbonForm
     private bool _loaded;
     private bool _closing;
 
-    public MainForm() { InitializeComponent(); ConfigureIcons(); }
+    public MainForm() { InitializeComponent(); AppIconHelper.Apply(this); ConfigureIcons(); }
     public MainForm(ApplicationDescriptor application) : this() => _application = application ?? throw new ArgumentNullException(nameof(application));
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration) : this(application) => _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state) : this(application, configuration)
