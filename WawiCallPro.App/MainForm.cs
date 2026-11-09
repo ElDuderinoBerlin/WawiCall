@@ -274,17 +274,11 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        homeNav.ImageOptions.SvgImage = AppIconHelper.ApplicationSvg;
         foreach (var (item, file) in new[] { (homeItem,"Home"), (pluginItem,"Plugin"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseItem,"Database"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
         }
-        databaseNav.ImageOptions.SvgImage = databaseItem.ImageOptions.SvgImage;
-        historyNav.ImageOptions.SvgImage = historyItem.ImageOptions.SvgImage;
-        pluginNav.ImageOptions.SvgImage = pluginItem.ImageOptions.SvgImage;
-        settingsNav.ImageOptions.SvgImage = settingsItem.ImageOptions.SvgImage;
-        helpNav.ImageOptions.SvgImage = helpItem.ImageOptions.SvgImage;
     }
     private void DisposePage() { tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;

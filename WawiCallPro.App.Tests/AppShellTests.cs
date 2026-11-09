@@ -512,6 +512,11 @@ public sealed class AppShellTests
         typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
         foreach (var name in new[] { "database", "history", "help", "about", "database" }) form.Navigate(name);
         Assert.AreEqual(5, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
+        var navigation = Field<DevExpress.XtraBars.Navigation.AccordionControl>(form, "navigation");
+        using var navigationImage = new Bitmap(navigation.Width, navigation.Height);
+        navigation.DrawToBitmap(navigationImage, new Rectangle(Point.Empty, navigation.Size));
+        var navigationOutput = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
+        navigationImage.Save(Path.Combine(navigationOutput, "Navigation-text.png"), ImageFormat.Png);
         Assert.AreEqual(0, plugin.Created);
         var company = new Company(new(LexwareProductLine.Pro, "fixture", "1"), "Testmandant");
         await workspace.Companies.SelectAsync(company);

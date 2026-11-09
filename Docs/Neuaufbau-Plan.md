@@ -1095,6 +1095,11 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Linke Navigation auf Benutzerwunsch ohne Icons: reine Textauswahl.
+  Navigationstest und gezielte unsichtbare Renderpruefung sowie App-Rebuild
+  in Debug/Any CPU bestanden (`.artifacts/lx-startup-log/navigation-text.log`).
+
+
 - [x] ✅ Log-Suchpanel flacher: zusaetzliche aeussere Raender entfernt, vertikale
   Innenabstaende auf eine kompakte Editorzeile begrenzt. Suche bleibt unten; Escape gibt
   die Flaeche an die Liste zurueck. Gezielter Such-/Layouttest, helle/dunkle Skins,
