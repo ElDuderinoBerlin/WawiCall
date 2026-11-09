@@ -1,12 +1,19 @@
+param([ValidateSet('Pro','FinOffice')][string]$ProductLine)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
-foreach ($variant in @('Pro','FinOffice')) {
+if (!$ProductLine) {
+    $hostRoot = Join-Path $root 'WawiCallPro.Console/bin/Debug/net10.0-windows'
+    $editions = @('Pro','FinOffice' | Where-Object { Test-Path -LiteralPath (Join-Path $hostRoot "WawiCallPro.Console.$_.dll") })
+    if ($editions.Count -ne 1) { throw 'Zuerst genau eine Edition bauen oder -ProductLine angeben.' }
+    $ProductLine = $editions[0]
+}
+foreach ($variant in @($ProductLine)) {
     $productPlugin = if ($variant -eq 'Pro') { 'WawiCallPro.Plugins.Lexware.Pro' } else { 'WawiCallPro.Plugins.Lexware.FinOffice' }
     foreach ($plugin in @($productPlugin, 'WawiCallPro.Plugins.Dummy')) {
         $framework = if ($plugin -eq 'WawiCallPro.Plugins.Dummy') { 'net10.0' } else { 'net10.0-windows' }
-        $source = Join-Path $root "$plugin/bin/Debug/$variant/$framework"
+        $source = Join-Path $root "$plugin/bin/Debug/$framework"
         foreach ($hostName in @('App','Console')) {
-            $target = Join-Path $root "WawiCallPro.$hostName/bin/Debug/$variant/net10.0-windows/plugins/$plugin"
+            $target = Join-Path $root "WawiCallPro.$hostName/bin/Debug/net10.0-windows/plugins/$plugin"
             foreach ($file in @("$plugin.dll", "$plugin.deps.json")) { if (!(Test-Path -LiteralPath (Join-Path $target $file))) { throw 'Plugin or dependency manifest missing' } }
             [xml]$props = Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props') -Raw
             $shared = @($props.Project.ItemGroup.SharedProjectAssembly.Include; $props.Project.ItemGroup.SharedPackage.Include) -join ';'

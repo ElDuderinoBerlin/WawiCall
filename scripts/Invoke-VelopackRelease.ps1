@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine = @('Pro', 'FinOffice'),
+    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine,
     [string]$Version,
     [ValidateSet('Any CPU', 'x64')][string]$Platform = 'Any CPU',
     [switch]$PackOnly,
@@ -11,6 +11,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Release.Common.psm1') -Force
+if (!$ProductLine) { $ProductLine = @((Get-SolutionBuildDefaults).ProductLine) }
 if ($PublishDirectory -and (!$PackOnly -or $ProductLine.Count -ne 1)) { throw 'PublishDirectory benötigt PackOnly und genau eine Produktlinie.' }
 $root = Split-Path $PSScriptRoot -Parent
 foreach ($line in $ProductLine) {

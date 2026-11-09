@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <WawiLicensePublicKeysFile Condition="'$(WawiLicensePublicKeysFile)' == ''">$(MSBuildThisFileDirectory)Licensing\license-public-keys.json</WawiLicensePublicKeysFile>
   </PropertyGroup>
-  <ItemGroup Condition="'$(LexwareProductLine)' == 'Pro' and '$(WawiIncludeBuildLexwareClientKeyDefault)' == 'true' and '$(LexwareApiDefaultClientKey)' != ''">
+  <ItemGroup Condition="'$(LexwareProductLine)' == 'Pro' and '$(WawiIncludeBuildLexwareClientKeyDefault)' == 'true' and '$(WawiUseVelopackAppSettings)' != 'true' and '$(LexwareApiDefaultClientKey)' != ''">
     <AssemblyMetadata Include="WawiCallPro.LexwareApiClientKey" Value="$(LexwareApiDefaultClientKey)" />
   </ItemGroup>
   <ItemGroup>

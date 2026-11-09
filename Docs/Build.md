@@ -4,6 +4,40 @@ Die eigenen `WawiCallPro.*`-Projekte liegen direkt im Repository-Root. Die exter
 im logischen Solution-Ordner `src` und bleiben physisch als Schwester-Repositories erhalten.
 Die weiteren Solution-Ordner heißen wie bei LxTranslate `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
+## Zentrale Edition und gemeinsamer Ausgabeordner (09.11.2026)
+
+`Solution.props` folgt jetzt der Struktur der LxTranslate-Vorlage: Konfigurationsvorgabe,
+Produktlinienflags, Demo-/Lizenzschalter, Präprozessorkonstanten, Client-Key-Auswahl sowie
+Assembly-/Anzeigenamen stehen zentral dort. Anwendungsnamen sind auf WawiCallPro angepasst;
+Version, DevExpress und die vorhandene Wawi-Lizenzmetadatenanbindung bleiben lokale Ergänzungen.
+Persönliche Zugangsdaten werden nicht aus LxTranslate übernommen.
+
+`LexwareProductLine=Pro|FinOffice` wählt die Edition. Ohne Parameter verwenden IDE und Build-Skripte
+den zentralen Standard; ein explizites `-ProductLine` beziehungsweise `-p:LexwareProductLine` überschreibt ihn.
+Build-/Publish-Skripte bauen standardmäßig nur diese Edition; mehrere Editionen müssen ausdrücklich
+angegeben werden. Die Produktionsausgaben liegen je Projekt unter `bin/<Konfiguration>/<Framework>`,
+z. B. `WawiCallPro.App/bin/Debug/net10.0-windows`. Die Exe-/Assemblynamen behalten die Edition,
+z. B. `WawiCallPro.App.FinOffice.exe`. Es wird dort jeweils die gewählte Edition bereitgestellt;
+die vorherige Host- und Plugin-Ausgabe der anderen Edition wird beim Wechsel entfernt.
+
+Testausgaben und Pluginfixtures bleiben unter `bin/<Konfiguration>/<Edition>/<Framework>` getrennt;
+`obj/<Edition>` bleibt für Restore-/Zwischenstände erhalten. Die Skripte und konsumierenden Testpfade sind
+entsprechend angepasst. `test-plugin-deployment.ps1`, `test-plugin-native.ps1` und
+`test-database-console.ps1` prüfen die aktuell gebaute Edition oder eine explizit angegebene
+`-ProductLine`. Beide Editionen werden nacheinander gebaut und geprüft, nicht aus einem gemeinsamen
+Produktionsordner gleichzeitig gestartet.
+
+Normale lokale Builds verwenden die geprüfte Client-Key-Vorgabe wie LxTranslate, auch in Release.
+`WawiApplyBuildLexwareClientKeyDefault=false` schaltet sie ab; der bisherige Schalter
+`WawiIncludeBuildLexwareClientKeyDefault` bleibt als kompatibler Anschluss erhalten.
+Der Paket-Publish setzt `WawiUseVelopackAppSettings=true` und enthält daher keine eingebaute Vorgabe.
+Die Demo-/Lizenzschalter und die App-Namensgebung entsprechen der Vorlage; hieraus folgt keine neue
+Abnahme der noch offenen Demo-/Installationsfunktionen aus Phase 14.
+
+Wiederholbare Prüfung: `scripts/test-build-layout.ps1 -Configuration Debug -Platform AnyCPU`.
+Sie baut Pro → FinOffice → Pro → FinOffice in denselben Ordner, prüft fremde Restdateien,
+Pluginbundles und fensterlose Hostdiagnosen. Nachweise: `.artifacts/build-layout`.
+
 ## Verbindlicher Telefonie- und Audio-Stack
 
 Telefonie wird ausschließlich mit SIPSorcery umgesetzt. TAPI, CAPI und Dialogic sind nicht Bestandteil des Neuaufbaus.

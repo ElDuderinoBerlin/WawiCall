@@ -1,13 +1,14 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine = @('Pro', 'FinOffice'),
+    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine,
     [string]$Version,
     [ValidateSet('Any CPU', 'x64')][string]$Platform = 'Any CPU',
     [switch]$RequireCleanDependencies
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Release.Common.psm1') -Force
+if (!$ProductLine) { $ProductLine = @((Get-SolutionBuildDefaults).ProductLine) }
 $root = Split-Path $PSScriptRoot -Parent
 & (Join-Path $root 'bootstrap.ps1') -CheckOnly -RequireClean:$RequireCleanDependencies
 foreach ($line in $ProductLine) {

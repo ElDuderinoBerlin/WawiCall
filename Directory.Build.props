@@ -20,10 +20,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <BaseIntermediateOutputPath>obj\$(LexwareProductLine)\</BaseIntermediateOutputPath>
-    <OutputPath>bin\$(Configuration)\$(LexwareProductLine)\</OutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <!-- Test runtime graphs and fixtures remain isolated, as in LxTranslate. -->
+    <OutputPath Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Tests')) or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.TestWorker')) or $([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\Fixtures\'))">bin\$(Configuration)\$(LexwareProductLineShortName)\</OutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console'">
-    <AssemblyName>$(MSBuildProjectName).$(LexwareProductLine)</AssemblyName>
   </PropertyGroup>
 </Project>

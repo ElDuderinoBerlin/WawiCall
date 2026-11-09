@@ -20,6 +20,7 @@
     </ItemGroup>
   </Target>
   <Target Name="GetWawiPluginDeploymentFiles" Returns="@(_WawiDeploymentFiles)" Condition="'$(IsPluginProject)' == 'true'">
+    <Delete Files="@(SharedProjectAssembly->'$(TargetDir)%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)%(Identity).pdb');@(SharedPackage->'$(TargetDir)%(Identity).dll');@(SharedPackage->'$(TargetDir)%(Identity).pdb')" />
     <ItemGroup>
       <_WawiDeploymentFiles Include="$(TargetDir)**\*">
         <PluginName>$(AssemblyName)</PluginName>
@@ -34,6 +35,19 @@
       <_WawiDeploymentFiles Remove="@(SharedProjectAssembly->'$(TargetDir)%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)%(Identity).pdb')" />
       <_WawiDeploymentFiles Remove="@(SharedPackage->'$(TargetDir)%(Identity).dll');@(SharedPackage->'$(TargetDir)%(Identity).pdb')" />
     </ItemGroup>
+  </Target>
+  <!-- The selected edition replaces the previous edition in the normal host output. -->
+  <Target Name="WawiRemoveOtherEditionOutputs" BeforeTargets="PrepareForBuild"
+          Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <PropertyGroup>
+      <_WawiOtherEdition Condition="'$(LexwareProductLine)' == 'Pro'">FinOffice</_WawiOtherEdition>
+      <_WawiOtherEdition Condition="'$(LexwareProductLine)' == 'FinOffice'">Pro</_WawiOtherEdition>
+    </PropertyGroup>
+    <ItemGroup>
+      <_WawiStaleEditionOutput Include="$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(_WawiOtherEdition)\**\*" />
+      <_WawiStaleEditionOutput Include="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).dll;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).exe;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).pdb;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).deps.json;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).runtimeconfig.json" />
+    </ItemGroup>
+    <Delete Files="@(_WawiStaleEditionOutput)" />
   </Target>
   <Target Name="DeployWawiPlugins" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <ItemGroup>

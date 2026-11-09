@@ -50,7 +50,7 @@ public sealed class ErpSetupTests
             Assert.IsNotNull(repository);
             var descriptor = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(ConsoleCommand).Assembly);
             var configuration = typeof(ConsoleCommand).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-            var hostPath = Path.Combine(repository.FullName, "WawiCallPro.Console", "bin", configuration, descriptor.ProductLine,
+            var hostPath = Path.Combine(repository.FullName, "WawiCallPro.Console", "bin", configuration,
                 "net10.0-windows", "WawiCallPro.Console." + descriptor.ProductLine + ".dll");
             var start = new System.Diagnostics.ProcessStartInfo("dotnet")
             {

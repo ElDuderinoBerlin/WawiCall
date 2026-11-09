@@ -110,6 +110,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A5
 		scripts\build-debug.ps1 = scripts\build-debug.ps1
 		scripts\test-database-backup.ps1 = scripts\test-database-backup.ps1
 		scripts\test-database-console.ps1 = scripts\test-database-console.ps1
+		scripts\test-build-layout.ps1 = scripts\test-build-layout.ps1
 		scripts\test-plugin-deployment.ps1 = scripts\test-plugin-deployment.ps1
 		scripts\test-plugin-native.ps1 = scripts\test-plugin-native.ps1
 	EndProjectSection

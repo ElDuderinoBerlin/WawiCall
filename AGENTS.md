@@ -238,6 +238,10 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 ### Solution, Dokumentation und Konsole
 
 - Hauptsolution: `WawiCallProSolution.sln`; neue Projektdokumentation dort unter `Docs` referenzieren.
+- `Solution.props` folgt der LxTranslate-Struktur und hält die Editions-/Demo-/Lizenzschalter zentral.
+  Normale Produktionsausgaben unter `bin/<Konfiguration>/<Framework>` ohne Pro-/FinOffice-Unterordner
+  erstellen; dort steht jeweils die gewählte Edition. Test-/Fixtureausgaben und `obj` weiter je Edition
+  trennen. Ausgabewechsel, Skriptpfade und das Entfernen fremder Editionsreste mitprüfen.
 - Vorhandene Konsolenreferenz für N/P/G/Q-Navigation: `WawiCallPro.Console`.
 - Die vorhandene Renderprüfung über `LX_UI_AUDIT_SURFACES` auf betroffene Typnamen begrenzen
   (kommagetrennt, beispielsweise `FrmSettings`).

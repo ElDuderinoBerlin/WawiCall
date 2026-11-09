@@ -2,17 +2,26 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Get-SolutionBuildDefaults {
+    $root = Split-Path $PSScriptRoot -Parent
+    $value = & dotnet msbuild (Join-Path $root 'WawiCallPro.App/WawiCallPro.App.csproj') -nologo '-getProperty:LexwareProductLine,Version'
+    if ($LASTEXITCODE -ne 0) { throw 'Zentrale Buildvorgaben konnten nicht ausgewertet werden.' }
+    $properties = (($value -join [Environment]::NewLine) | ConvertFrom-Json).Properties
+    if ($properties.LexwareProductLine -notin @('Pro','FinOffice')) { throw 'Ungültige Produktlinie in Solution.props.' }
+    return [pscustomobject]@{ ProductLine = $properties.LexwareProductLine; Version = $properties.Version }
+}
+
 function Get-ReleaseContext {
     param(
-        [ValidateSet('Pro', 'FinOffice')][string]$ProductLine = 'Pro',
+        [ValidateSet('Pro', 'FinOffice')][string]$ProductLine,
         [string]$Version,
         [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release'
     )
     $root = Split-Path $PSScriptRoot -Parent
-    $ProductLine = if ($ProductLine -eq 'Pro') { 'Pro' } else { 'FinOffice' }
-    if (!$Version) {
-        [xml]$props = Get-Content -LiteralPath (Join-Path $root 'Solution.props') -Raw
-        $Version = [string]$props.Project.PropertyGroup[0].Version
+    if (!$ProductLine -or !$Version) {
+        $defaults = Get-SolutionBuildDefaults
+        if (!$ProductLine) { $ProductLine = $defaults.ProductLine }
+        if (!$Version) { $Version = $defaults.Version }
     }
     if ($Version -cnotmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$') {
         throw 'Version muss eine dreiteilige SemVer ohne Buildmetadaten sein.'
@@ -141,4 +150,4 @@ function Write-ReleaseManifest {
     } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $Path -Encoding utf8
 }
 
-Export-ModuleMember -Function Get-ReleaseContext, Invoke-ReleaseProcess, Get-ProductProjects, New-ReleaseStage, Merge-ReleaseFiles, Get-ReleasePublishDirectory, Write-ReleaseManifest
+Export-ModuleMember -Function Get-SolutionBuildDefaults, Get-ReleaseContext, Invoke-ReleaseProcess, Get-ProductProjects, New-ReleaseStage, Merge-ReleaseFiles, Get-ReleasePublishDirectory, Write-ReleaseManifest

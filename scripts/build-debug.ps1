@@ -1,13 +1,15 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Pro', 'FinOffice')]
-    [string[]]$ProductLine = @('Pro', 'FinOffice'),
+    [string[]]$ProductLine,
     [switch]$RequireCleanDependencies,
     [switch]$UiAudit
 )
 
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'Release.Common.psm1') -Force
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
+if (!$ProductLine) { $ProductLine = @((Get-SolutionBuildDefaults).ProductLine) }
 $solutionPath = Join-Path $repositoryRoot 'WawiCallProSolution.sln'
 $solutionText = Get-Content -LiteralPath $solutionPath -Raw
 foreach ($folderName in @('Docs', 'Scripts', 'Solution Files', 'src', 'Tools')) {
@@ -39,7 +41,7 @@ foreach ($selectedProductLine in $ProductLine) {
     if ($LASTEXITCODE -ne 0) { throw "Debug-Build fehlgeschlagen: $selectedProductLine" }
 
     foreach ($hostName in @('App', 'Console')) {
-        $hostDirectory = Join-Path $repositoryRoot "WawiCallPro.$hostName\bin\Debug\$selectedProductLine\net10.0-windows"
+        $hostDirectory = Join-Path $repositoryRoot "WawiCallPro.$hostName\bin\Debug\net10.0-windows"
         $diagnosticText = & dotnet (Join-Path $hostDirectory "WawiCallPro.$hostName.$selectedProductLine.dll") --diagnostics
         if ($LASTEXITCODE -ne 0) { throw "Hoststart fehlgeschlagen: $hostName/$selectedProductLine" }
         $diagnostic = $diagnosticText | ConvertFrom-Json
@@ -51,9 +53,9 @@ foreach ($selectedProductLine in $ProductLine) {
     }
 
     $outputDirectories = @(
-        "WawiCallPro.App\bin\Debug\$selectedProductLine\net10.0-windows",
-        "WawiCallPro.Console\bin\Debug\$selectedProductLine\net10.0-windows",
-        "WawiCallPro.Plugins.Lexware.$selectedProductLine\bin\Debug\$selectedProductLine\net10.0-windows"
+        "WawiCallPro.App\bin\Debug\net10.0-windows",
+        "WawiCallPro.Console\bin\Debug\net10.0-windows",
+        "WawiCallPro.Plugins.Lexware.$selectedProductLine\bin\Debug\net10.0-windows"
     )
     $forbiddenPrefix = if ($selectedProductLine -eq 'Pro') { 'Quantarix.Pcfk.' } else { 'Quantarix.Lexware.' }
     foreach ($relativeDirectory in $outputDirectories) {
@@ -72,7 +74,7 @@ foreach ($selectedProductLine in $ProductLine) {
 
     if ($UiAudit) {
         $auditDirectory = Join-Path $repositoryRoot ".artifacts\ui\$selectedProductLine"
-        $appDll = Join-Path $repositoryRoot "WawiCallPro.App\bin\Debug\$selectedProductLine\net10.0-windows\WawiCallPro.App.$selectedProductLine.dll"
+        $appDll = Join-Path $repositoryRoot "WawiCallPro.App\bin\Debug\net10.0-windows\WawiCallPro.App.$selectedProductLine.dll"
         $previousSurfaces = $env:LX_UI_AUDIT_SURFACES
         try {
             $env:LX_UI_AUDIT_SURFACES = 'MainForm'

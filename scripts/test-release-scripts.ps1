@@ -24,6 +24,10 @@ foreach ($file in @(Get-ChildItem -LiteralPath $PSScriptRoot -File | Where-Objec
     $null = [Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors)
     Assert-True ($parseErrors.Count -eq 0) "Syntax $($file.Name)"
 }
+$defaults = Get-SolutionBuildDefaults
+$defaultContext = Get-ReleaseContext
+Assert-True ($defaultContext.ProductLine -eq $defaults.ProductLine) 'Zentrale Standardedition'
+Assert-True ($defaultContext.Version -eq $defaults.Version) 'Zentrale Versionsvorgabe unabhängig von PropertyGroup-Position'
 foreach ($version in @('../outside', '1.0', '01.2.3', '1.2.3+metadata', '1.2.3-01', '1.2.3;exit')) {
     Assert-Fails { Get-ReleaseContext -Version $version } 'SemVer'
 }

@@ -1,7 +1,7 @@
 #requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine = @('Pro', 'FinOffice'),
+    [ValidateSet('Pro', 'FinOffice')][string[]]$ProductLine,
     [string]$Version,
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [ValidateSet('Any CPU', 'x64')][string]$Platform = 'Any CPU',
@@ -10,6 +10,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Release.Common.psm1') -Force
+if (!$ProductLine) { $ProductLine = @((Get-SolutionBuildDefaults).ProductLine) }
 $root = Split-Path $PSScriptRoot -Parent
 & (Join-Path $root 'bootstrap.ps1') -CheckOnly -RequireClean:$RequireCleanDependencies
 foreach ($line in $ProductLine) {
@@ -21,12 +22,12 @@ foreach ($line in $ProductLine) {
         $arguments = @('publish', (Join-Path $root "WawiCallPro.$hostName/WawiCallPro.$hostName.csproj"),
             '-c', $Configuration, "-p:Platform=$Platform", '-r', $context.Runtime, '--self-contained', 'true',
             "-p:LexwareProductLine=$line", "-p:Version=$($context.Version)", "-p:WawiCallPluginKeyFile=$PluginKeyFile",
-            '-p:PublishSingleFile=false', '-p:PublishTrimmed=false', '--nologo', '--verbosity', 'minimal', '-o', $hostOutput)
+            '-p:WawiUseVelopackAppSettings=true', '-p:PublishSingleFile=false', '-p:PublishTrimmed=false', '--nologo', '--verbosity', 'minimal', '-o', $hostOutput)
         Invoke-ReleaseProcess dotnet $arguments -LogPath (Join-Path $stage "publish-$hostName.log")
         Merge-ReleaseFiles $hostOutput $publish
     }
     if ($Configuration -eq 'Release') {
-        $tool = Join-Path $root "Tools/StripDxLicenseInformation/bin/Release/$line/net10.0/WawiCallPro.StripDxLicenseInformation.dll"
+        $tool = Join-Path $root "Tools/StripDxLicenseInformation/bin/Release/net10.0/WawiCallPro.StripDxLicenseInformation.dll"
         Invoke-ReleaseProcess dotnet @($tool, '--input', $publish, '--recursive', '--pattern', 'WawiCallPro*.dll', '--pattern', 'WawiCallPro*.exe', '--key-file', $PluginKeyFile) -LogPath (Join-Path $stage 'strip-final.log')
     }
     & (Join-Path $PSScriptRoot 'Assert-ReleasePackage.ps1') -Directory $publish -ProductLine $line -Version $context.Version

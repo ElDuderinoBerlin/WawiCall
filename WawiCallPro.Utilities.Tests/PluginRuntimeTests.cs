@@ -498,7 +498,7 @@ public sealed class PluginRuntimeTests
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
         Assert.IsNotNull(repository);
-        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, variant, "net10.0");
+        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, "net10.0");
         var target = Path.Combine(directory, "WawiCallPro.Plugins.Dummy");
         Directory.CreateDirectory(target);
         foreach (var file in System.IO.Directory.GetFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));

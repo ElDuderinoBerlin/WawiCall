@@ -977,8 +977,8 @@ Kommunikationsdatenbank und Firmenauswahl behalten ihre eigenen Einstellungen.
 Die produktlinienspezifische Konsole bietet `--erp-configure` zur lokalen Einrichtung an, beispielsweise:
 
 ```powershell
-.\WawiCallPro.Console\bin\Debug\Pro\net10.0-windows\WawiCallPro.Console.Pro.exe --erp-configure
-.\WawiCallPro.Console\bin\Debug\FinOffice\net10.0-windows\WawiCallPro.Console.FinOffice.exe --erp-configure
+.\WawiCallPro.Console\bin\Debug\net10.0-windows\WawiCallPro.Console.Pro.exe --erp-configure
+.\WawiCallPro.Console\bin\Debug\net10.0-windows\WawiCallPro.Console.FinOffice.exe --erp-configure
 ```
 
 Pro fragt API-Adresse (leer für Installationserkennung), optionale dauerhafte Installationskennung,
@@ -990,17 +990,18 @@ getrennt und speichern das Kennwort mit DPAPI. Eine zusätzliche WawiCallPro-Cli
 ist daraus nicht abzuleiten; die zuvor behauptete Freigabevoraussetzung entfällt.
 
 WawiCallPro übernimmt die geprüften produktlinienbezogenen Vorgaben in die eigene `Solution.props`,
-ohne LxTranslate zur Laufzeit zu benötigen. Lokale Pro-Debug-Builds geben die Vorgabe über
+ohne LxTranslate zur Laufzeit zu benötigen. Normale lokale Pro-Builds geben die Vorgabe über
 Assemblymetadaten an den Konfigurationsanschluss weiter. Bei der verdeckten Client-Key-Abfrage
 übernimmt Enter diese Vorgabe und speichert sie DPAPI-geschützt in den lokalen Benutzereinstellungen;
 damit bleibt die Einrichtung auch nach einem Wechsel auf ein Releasepaket nutzbar. Eine ausdrücklich
 eingegebene oder bereits gespeicherte Kennung hat Vorrang. Ein beschädigter geschützter Wert wird
 als Fehler behandelt und nicht durch die Vorgabe ersetzt.
 
-`WawiIncludeBuildLexwareClientKeyDefault` ist standardmäßig nur für Debug aktiv; mit `false`
-lässt sich die Übernahme abschalten. Normale Release-/Paketbuilds enthalten keine Vorgabe in der
-Assembly. Dort muss der gültige Key bereits lokal geschützt gespeichert oder bei der Einrichtung
-eingegeben werden. Diese Trennung entspricht dem neutralen Paketansatz der LxTranslate-Vorlage.
+Seit dem Abgleich der zentralen Build-Schalter am 09.11.2026 ist die Vorgabe wie in LxTranslate
+auch für normale lokale Release-Builds aktiv. `WawiApplyBuildLexwareClientKeyDefault=false` oder
+der kompatible Schalter `WawiIncludeBuildLexwareClientKeyDefault=false` schalten sie ab.
+Der Paket-Publish setzt `WawiUseVelopackAppSettings=true` und enthält keine Vorgabe in der Assembly.
+Dort muss der gültige Key bereits lokal geschützt gespeichert oder bei der Einrichtung eingegeben werden. Diese Trennung entspricht dem neutralen Paketansatz der LxTranslate-Vorlage.
 Der Key muss eine nichtleere GUID mit geschweiften Klammern sein. Die lokale Quelle wurde geprüft;
 eine echte Serveranmeldung wird damit nicht behauptet. Zugangsdaten nur lokal eingeben.
 

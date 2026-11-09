@@ -332,6 +332,23 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 
 ### Phase 1 – Solution, Abhängigkeiten und Builds ✅
 
+- [x] ✅ Nutzerpräzisierung vom 09.11.2026: Solution.props strukturell aus LxTranslate übernommen,
+  mit WawiCallPro-Namen und den notwendigen vorhandenen Projekt-/Lizenzanschlüssen. Zentrale
+  Produktlinien-, Demo-, Lizenz-, Metadaten- und Client-Key-Schalter abgeglichen; persönliche
+  Zugangsdaten nicht übernommen. Normale Buildausgaben unter bin/Konfiguration/Framework ohne
+  Pro-/FinOffice-Unterordner, jeweils für die ausgewählte Edition. Test-/Fixtureausgaben und
+  Zwischenstände bleiben getrennt. Beim Wechsel werden alte Host-/Plugin-Dateien der anderen
+  Edition aus dem gemeinsamen Produktionsordner entfernt. Skripte lesen Edition und Version
+  über MSBuild aus Solution.props; kein fest vorausgesetzter erster PropertyGroup-Block.
+  Produktionspfade der Build-/Publish-/Prüfskripte und Tests angepasst. Die Konsolenprüfung ermittelt die
+  tatsächliche Migrationsschrittzahl aus dem Fortschritt statt der veralteten festen Zahl 7.
+  Wiederholbarer Wechsel Pro → FinOffice → Pro → FinOffice mit beiden Hosts, normalen Diagnosen
+  und Plugin-/Hashprüfungen bestanden; acht Debug-/Release-/Demo-Schalterkombinationen und neutrale
+  Paket-Key-Metadaten geprüft. Je 106 Utilities-, 19 Console-, 89 Datenbank- und 15 Vertragstests,
+  47 Skriptprüfungen sowie nativer Loader und reale Datenbank-Konsolenprozesse erfolgreich.
+  Standard-Build ohne Editionsparameter und gezielter Rider-Rebuild in aktiver Konfiguration
+  bestanden. Keine UI-/SQL-Änderung oder sichtbaren Tests. `.artifacts/build-layout`.
+
 - [x] Projekte schrittweise in der Struktur aus Abschnitt 5 anlegen; App und Diagnosekonsole als Hosts vorsehen.
   Nachweis: 13 eigene Projekte angelegt; Solution-Debug-Build ohne Warnungen/Fehler, Console-Diagnose gestartet.
   App-Startansicht mit 440/720 Pixeln, 10/16-Punkt-UI-Schrift und zusätzlicher 150%-Layoutskalierung gerendert

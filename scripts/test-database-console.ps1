@@ -1,10 +1,11 @@
+param([ValidateSet('Pro','FinOffice')][string]$ProductLine)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path $PSScriptRoot
 $audit = Join-Path $repositoryRoot ('.artifacts/database-console-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $audit | Out-Null
 
 function RunCommand([string]$Variant, [string]$ConfigurationDirectory, [string[]]$Arguments, [int]$ExpectedExitCode = 0) {
-    $executable = Join-Path $repositoryRoot "WawiCallPro.Console/bin/Debug/$Variant/net10.0-windows/WawiCallPro.Console.$Variant.exe"
+    $executable = Join-Path $repositoryRoot "WawiCallPro.Console/bin/Debug/net10.0-windows/WawiCallPro.Console.$Variant.exe"
     $start = [Diagnostics.ProcessStartInfo]::new($executable)
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
@@ -23,14 +24,23 @@ function RunCommand([string]$Variant, [string]$ConfigurationDirectory, [string[]
     } finally { $process.Dispose() }
 }
 
-foreach ($variant in @('Pro','FinOffice')) {
+if (!$ProductLine) {
+    $hostRoot = Join-Path $repositoryRoot 'WawiCallPro.Console/bin/Debug/net10.0-windows'
+    $editions = @('Pro','FinOffice' | Where-Object { Test-Path -LiteralPath (Join-Path $hostRoot "WawiCallPro.Console.$_.dll") })
+    if ($editions.Count -ne 1) { throw 'Zuerst genau eine Edition bauen oder -ProductLine angeben.' }
+    $ProductLine = $editions[0]
+}
+foreach ($variant in @($ProductLine)) {
     $configuration = Join-Path $audit "$variant/source"
     $status = RunCommand $variant $configuration @('--db-status')
     if (!$status.Output.Contains('MissingDatabase')) { throw 'Missing database status was not reported' }
     if (Get-ChildItem -LiteralPath $configuration -File -Recurse | Where-Object { $_.Extension -ne '.jsonl' }) { throw 'Status created configuration/database/identity' }
     $null = RunCommand $variant $configuration @('--db-migrate') 1
     $setup = RunCommand $variant $configuration @('--db-init')
-    if (!$setup.Output.Contains('Current') -or [regex]::Matches($setup.Error, 'Datenbank: Applying;').Count -ne 7 -or !$setup.Error.Contains('Datenbank: Completed;')) { throw 'Setup status/progress missing' }
+    $completed = [regex]::Match($setup.Error, 'Datenbank: Completed; Version (\d+); Schritte (\d+)/(\d+)')
+    $applied = [regex]::Matches($setup.Error, 'Datenbank: Applying;').Count
+    if (!$setup.Output.Contains('Current') -or !$completed.Success -or $applied -lt 1 -or
+        $applied -ne [int]$completed.Groups[2].Value -or $completed.Groups[2].Value -ne $completed.Groups[3].Value) { throw 'Setup status/progress missing' }
     $database = Join-Path $configuration 'communications.db'
     $identityFile = Join-Path $configuration 'workstation.local.json'
     $identity = Get-Content -LiteralPath $identityFile -Raw | ConvertFrom-Json

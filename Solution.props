@@ -1,25 +1,105 @@
 <Project>
-  <PropertyGroup>
-    <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">FinOffice</LexwareProductLine>
-    <LexwareProductLinePro Condition="'$(LexwareProductLine)' == 'Pro'">true</LexwareProductLinePro>
-    <LexwareProductLineFinOffice Condition="'$(LexwareProductLine)' == 'FinOffice'">true</LexwareProductLineFinOffice>
-    <!-- Checked against the user-supplied LxTranslate product-line defaults; no personal credentials. -->
-    <LexwareApiClientKeyPro Condition="'$(LexwareApiClientKeyPro)' == ''">{C6778DBF-FE9A-476D-8B86-FBCDEED40793}</LexwareApiClientKeyPro>
-    <LexwareApiClientKeyFinOffice Condition="'$(LexwareApiClientKeyFinOffice)' == ''">{11111111-1111-1111-1111-111111111111}</LexwareApiClientKeyFinOffice>
-    <!-- Local Debug builds only. Release/published packages require an explicit local key. -->
-    <WawiIncludeBuildLexwareClientKeyDefault Condition="'$(WawiIncludeBuildLexwareClientKeyDefault)' == '' and '$(Configuration)' == 'Debug'">true</WawiIncludeBuildLexwareClientKeyDefault>
-    <LexwareApiDefaultClientKey Condition="'$(LexwareProductLine)' == 'Pro'">$(LexwareApiClientKeyPro)</LexwareApiDefaultClientKey>
-    <LexwareApiDefaultClientKey Condition="'$(LexwareProductLine)' == 'FinOffice'">$(LexwareApiClientKeyFinOffice)</LexwareApiDefaultClientKey>
-    <Version>0.1.0</Version>
-    <Product>WawiCallPro</Product>
-    <DevExpressVersion>26.1.6</DevExpressVersion>
-    <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == '' and '$(Configuration)' == 'Debug'">false</WawiLicenseRequired>
-    <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == ''">true</WawiLicenseRequired>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(LexwareProductLinePro)' == 'true'">
-    <DefineConstants>$(DefineConstants);LX_PRO</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
-    <DefineConstants>$(DefineConstants);LX_FINOFFICE</DefineConstants>
-  </PropertyGroup>
+    <!--
+      Zentrale Build-Schalter fuer die gesamte Solution.
+      LexwareProductLine wird von App, Console, Publish- und Velopack-Batches verwendet.
+      Erlaubte Werte sind aktuell: Pro, FinOffice.
+    -->
+    <PropertyGroup>
+        <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+
+        <!-- Standard ist FinOffice; Pro-Builds setzen LexwareProductLine explizit auf Pro. -->
+        <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">FinOffice</LexwareProductLine>
+
+        <!-- Abgeleitete Flags fuer MSBuild-Conditions in Projektdateien und Targets. -->
+        <LexwareProductLinePro Condition="'$(LexwareProductLine)' == 'Pro'">true</LexwareProductLinePro>
+        <LexwareProductLineFinOffice Condition="'$(LexwareProductLine)' == 'FinOffice'">true</LexwareProductLineFinOffice>
+
+        <!-- DemoBuild ist bewusst an Release gekoppelt; Debug bleibt fuer Entwicklung lizenz-/demo-neutral. -->
+        <Demo Condition="'$(Demo)' == ''">false</Demo>
+        <DemoBuild Condition="'$(DemoBuild)' == '' and '$(Demo)' == 'true' and '$(Configuration)' != 'Debug'">true</DemoBuild>
+        <DemoBuild Condition="'$(DemoBuild)' == ''">false</DemoBuild>
+
+        <!-- Normale Builds aktivieren Lizenzfunktionen; Demo-Builds laufen ohne Lizenzvergabe. -->
+        <LicenseFeaturesEnabled Condition="'$(LicenseFeaturesEnabled)' == '' and '$(DemoBuild)' != 'true'">true</LicenseFeaturesEnabled>
+        <LicenseFeaturesEnabled Condition="'$(LicenseFeaturesEnabled)' == ''">false</LicenseFeaturesEnabled>
+        <LicenseCheckEnabled Condition="'$(LicenseCheckEnabled)' == '' and '$(DemoBuild)' != 'true'">true</LicenseCheckEnabled>
+        <LicenseCheckEnabled Condition="'$(LicenseCheckEnabled)' == ''">false</LicenseCheckEnabled>
+
+        <!-- Aktueller Lizenzmodus fuer normale Builds. Wird unten in Praeprozessorkonstanten umgesetzt. -->
+        <LicenseActivationMode Condition="'$(LicenseActivationMode)' == ''">Online</LicenseActivationMode>
+
+        <!-- Produktlinien-Defaults fuer normale App-Build-Ausgaben. VeloPack-Publish bleibt davon unberuehrt. -->
+        <LexwareApiClientKeyFinOffice>{11111111-1111-1111-1111-111111111111}</LexwareApiClientKeyFinOffice>
+        <LexwareApiClientKeyPro>{C6778DBF-FE9A-476D-8B86-FBCDEED40793}</LexwareApiClientKeyPro>
+        <WawiApplyBuildLexwareClientKeyDefault Condition="'$(WawiApplyBuildLexwareClientKeyDefault)' == ''">true</WawiApplyBuildLexwareClientKeyDefault>
+
+        <!-- Velopack-Releasepakete duerfen keine LexwareApi-Defaults oder Client-Keys enthalten. -->
+        <WawiUseVelopackAppSettings Condition="'$(WawiUseVelopackAppSettings)' == ''">false</WawiUseVelopackAppSettings>
+    </PropertyGroup>
+
+    <!-- Compile-time Demo-Code: z.B. 30-Tage-Testmodus und reduzierte Lizenzpfade. -->
+    <PropertyGroup Condition="'$(DemoBuild)' == 'true'">
+        <DefineConstants>$(DefineConstants);DEMO</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Compile-time Produktlinie fuer produktabhaengige Referenzen, Registry, Reports und Formulare. -->
+    <PropertyGroup Condition="'$(LexwareProductLinePro)' == 'true'">
+        <DefineConstants>$(DefineConstants);LX_PRO</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
+        <DefineConstants>$(DefineConstants);LX_FINOFFICE</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Lizenz-Features werden ebenfalls per Praeprozessor getrennt, damit Demo-Builds keinen Lizenzcode brauchen. -->
+    <PropertyGroup Condition="'$(LicenseCheckEnabled)' == 'true'">
+        <DefineConstants>$(DefineConstants);LICENSE_CHECK</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(LicenseFeaturesEnabled)' == 'true'">
+        <DefineConstants>$(DefineConstants);LICENSE_FEATURES</DefineConstants>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(LicenseActivationMode)' == 'Online'">
+        <DefineConstants>$(DefineConstants);ONLINE_ACTIVATION_ENABLED</DefineConstants>
+    </PropertyGroup>
+
+    <!-- Produktlinien-Metadaten fuer Assembly-Namen, Anzeigenamen und Formular-Unterordner. -->
+    <PropertyGroup Condition="'$(LexwareProductLinePro)' == 'true'">
+        <LexwareProductLineShortName>Pro</LexwareProductLineShortName>
+        <LexwareProductLineDisplayName>Professional</LexwareProductLineDisplayName>
+        <LexwareFormulareProductSubDirectory>Pro</LexwareFormulareProductSubDirectory>
+        <LexwareApiDefaultClientKey>$(LexwareApiClientKeyPro)</LexwareApiDefaultClientKey>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
+        <LexwareProductLineShortName>FinOffice</LexwareProductLineShortName>
+        <LexwareProductLineDisplayName>Financial Office</LexwareProductLineDisplayName>
+        <LexwareFormulareProductSubDirectory>FinOffice</LexwareFormulareProductSubDirectory>
+        <LexwareApiDefaultClientKey>$(LexwareApiClientKeyFinOffice)</LexwareApiDefaultClientKey>
+    </PropertyGroup>
+
+    <!-- App-Ausgabe wird produktlinienabhaengig benannt, damit Pro und FinOffice parallel publiziert werden koennen. -->
+    <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(LexwareProductLineShortName)' != ''">
+        <AssemblyName>WawiCallPro.App.$(LexwareProductLineShortName)</AssemblyName>
+        <Product>WawiCallPro $(LexwareProductLineDisplayName)</Product>
+    </PropertyGroup>
+
+    <!-- Demo-Ausgabe bekommt einen eigenen Assembly-/Exe-Namen und damit eigene Velopack-IDs. -->
+    <PropertyGroup Condition="'$(DemoBuild)' == 'true' and '$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(LexwareProductLineShortName)' != ''">
+        <AssemblyName>WawiCallPro.App.$(LexwareProductLineShortName).Demo</AssemblyName>
+        <Product>WawiCallPro $(LexwareProductLineDisplayName) Demo</Product>
+    </PropertyGroup>
+    <!-- WawiCallPro host metadata and existing licensing integration. -->
+    <PropertyGroup>
+        <Version>0.1.0</Version>
+        <DevExpressVersion>26.1.6</DevExpressVersion>
+        <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == '' and '$(Configuration)' == 'Debug'">false</WawiLicenseRequired>
+        <WawiLicenseRequired Condition="'$(WawiLicenseRequired)' == ''">$(LicenseCheckEnabled)</WawiLicenseRequired>
+        <WawiIncludeBuildLexwareClientKeyDefault Condition="'$(WawiIncludeBuildLexwareClientKeyDefault)' == ''">$(WawiApplyBuildLexwareClientKeyDefault)</WawiIncludeBuildLexwareClientKeyDefault>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Console' and '$(LexwareProductLineShortName)' != ''">
+        <AssemblyName>WawiCallPro.Console.$(LexwareProductLineShortName)</AssemblyName>
+        <Product>WawiCallPro $(LexwareProductLineDisplayName)</Product>
+    </PropertyGroup>
 </Project>
