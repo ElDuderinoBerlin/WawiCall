@@ -200,6 +200,14 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### CRA und Sicherheit
+
+- Die [CRA- und Security-Arbeitsanweisung](../_Agents/CRA-Anleitung-fuer-AGENTS.md)
+  (`D:\Application-Development\_Agents\CRA-Anleitung-fuer-AGENTS.md`) ergänzend verbindlich beachten.
+  Vor CRA-/Security-Prüfungen und sicherheitsrelevanten Änderungen lesen; ihre Prioritätsregeln beachten.
+  Projektdokumentation entsprechend den lokalen Vorgaben unter `Docs` ablegen und in
+  `WawiCallProSolution.sln` aufnehmen.
+
 ### Zentraler Einstellungsdialog
 
 - Globale Einstellungen im zentralen `FrmSettings` mit Tabs nach
