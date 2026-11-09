@@ -36,7 +36,7 @@ partial class FrmStartupSplashScreen
         SuspendLayout();
         rootLayout.Name = "rootLayout";
         rootLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-        rootLayout.Padding = new System.Windows.Forms.Padding(24);
+        rootLayout.Padding = new System.Windows.Forms.Padding(16);
         rootLayout.ColumnCount = 2;
         rootLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 28F));
         rootLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 72F));
@@ -66,7 +66,7 @@ partial class FrmStartupSplashScreen
         contentLayout.Controls.Add(lblVersion, 0, 5);
         lblTitle.Name = "lblTitle";
         lblTitle.Text = "WawiCallPro";
-        lblTitle.Appearance.FontSizeDelta = 12;
+        lblTitle.Appearance.FontSizeDelta = 8;
         lblTitle.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         lblTitle.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         lblTitle.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
@@ -90,8 +90,8 @@ partial class FrmStartupSplashScreen
         progressBar.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         progressBar.AnimationDuration = 480;
         progressBar.Position = 0;
-        progressBar.Size = new System.Drawing.Size(440, 64);
-        progressBar.MinimumSize = new System.Drawing.Size(0, 64);
+        progressBar.Size = new System.Drawing.Size(300, 48);
+        progressBar.MinimumSize = new System.Drawing.Size(0, 48);
         progressBar.TrackThickness = 8;
         progressBar.TrackLeftInset = 0;
         progressBar.TrackRightInset = 0;
@@ -99,9 +99,9 @@ partial class FrmStartupSplashScreen
         progressBar.UseRoundedCorners = true;
         progressBar.UseSkinColors = false;
         progressBar.Margin = new System.Windows.Forms.Padding(0);
-        AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
-        AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        ClientSize = new System.Drawing.Size(720, 400);
+        AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+        AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+        ClientSize = new System.Drawing.Size(480, 297);
         Controls.Add(rootLayout);
         FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
         ControlBox = false;

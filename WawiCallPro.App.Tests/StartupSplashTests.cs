@@ -33,12 +33,14 @@ public sealed class StartupSplashTests
                 using var font = new Font("Segoe UI", size);
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var form = new FrmStartupSplashScreen();
+                Assert.AreEqual(AutoScaleMode.Dpi, form.AutoScaleMode);
+                Assert.IsTrue(form.Width <= 480 * form.DeviceDpi / 96 + 2);
                 Assert.IsNotNull(form.IconOptions.SvgImage);
                 Assert.IsNotNull(Field<SvgImageBox>(form, "svgLogo").SvgImage);
                 form.SetStatus(filled ? "Warenwirtschaftsplugin und Kommunikationsdienste werden vorbereitet. Bitte einen Moment warten …" : "", 2, 5);
                 Assert.AreEqual(40, Field<PulsingProgressBarControl>(form, "progressBar").Position);
                 CreateHandles(form);
-                form.ClientSize = small ? new Size(640, 400) : new Size(900, 500);
+                form.ClientSize = small ? new Size(480, 297) : new Size(720, 445);
                 form.PrepareForBackgroundRun();
                 form.Show();
                 Application.DoEvents();

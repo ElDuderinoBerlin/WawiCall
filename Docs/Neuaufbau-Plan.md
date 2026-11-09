@@ -1095,6 +1095,12 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Splash am 09.11.2026 auf die kompakte LxTranslate-DPI-Basis umgestellt:
+  480 x 297 bei 96 DPI statt vergroessernder Schrift-Skalierung. Drei gezielte Tests,
+  unsichtbare Renderpruefung und Rider-Rebuild App/Console (Debug/Any CPU) bestanden.
+  Nachweis `.artifacts/lx-startup-log/compact-splash.log`.
+
+
 - [x] ✅ Layoutauftrag vom 09.11.2026 nach Bildvorlage und LxTranslate-Hauptfenster umgesetzt:
   Office-2019-Ribbon, linke Navigation mit SVG-Icons, Dokumentbereich und untere angedockte Ausgabe.
   Neue designerfähige `HomeDashboard`-Startseite mit Aktionsleiste, Logo/Version, sechs Statuskarten
