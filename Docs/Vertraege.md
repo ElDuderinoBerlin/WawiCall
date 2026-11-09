@@ -1027,3 +1027,31 @@ und noch ungeprüften Quellzugriff getrennt. Diagnosen enthalten keine Verbindun
 
 Prüfnachweise: `.artifacts/phase5-credentials`. Isolierte DPAPI-/Datei-/Adaptertests ersetzen keine
 Anmeldung an einer tatsächlichen Lexware-Installation.
+
+## Pluginwahl in FrmSettings (09.11.2026)
+
+Die Pluginverwaltung liegt ausschließlich im zentralen Einstellungen-Tab „Plugins“ nach der
+LxTranslate-Vorlage. `IProductPluginSelection` liefert abgelöste Katalogeinträge und die aktive
+Kennung; das Lesen des Katalogs aktiviert keine Einträge. Die Quantarix-Laufzeit lädt über
+`LoadSelectedDirectory` genau den gewählten Ordner mit derselben Signatur-/Shared-Assembly-Prüfung.
+Quantarix.Plugin.System ist auf Commit `906292f` aktualisiert; bestehende fremde Änderungen bleiben erhalten.
+
+`ProductPluginRuntime.SwitchAsync` sperrt neue Aufrufe, verwirft alte Ergebnisse ab Beginn des
+Wechsels und wartet auch nicht abbrechbare Quellaufrufe vollständig ab. Registrierte Ansichts-
+und Laufzeitressourcen werden vor dem Plugincontainer und seinem Ladekontext freigegeben.
+Bei Freigabefehlern wird kein neues Plugin geladen. Stop/Shutdown erlauben keinen weiteren Start.
+Die UI schließt alte Plugin-Dokumente und verwirft den Firmenkontext. Nach erfolgreicher Aktivierung
+speichert sie die Kennung mit der vorhandenen Dateirevisionsprüfung; Änderungen anderer Prozesse
+werden nicht überschrieben. Ein Speicherkonflikt wird als Fehler gemeldet, die laufende Auswahl bleibt
+im Katalog erkennbar. Allgemeine, noch nicht gespeicherte Eingaben bleiben im Dialog erhalten.
+
+Das Einstellungsformat ist nun Version 4 mit optionalem `user.activePluginId`. Null übernimmt beim
+Erststart das mitgelieferte Lexware-Plugin; eine gespeicherte Kennung muss tatsächlich vorhanden sein.
+Fehlt das ausgewählte Plugin, wird der Start abgewiesen statt still auf eine andere Quelle zu wechseln.
+`WawiCallPro.Plugins.Dummy` wird für beide Produktlinien signiert mitgeliefert und klar als Testbetrieb
+angezeigt. Sein Testmandant und Beispielkunde verwenden eigene Dummy-Quellkennungen. Es greift
+weder auf ERP, Netzwerk noch Datenbanken zu. Fachansichten des aktiven Wawi-Plugins bleiben weiterhin
+Dokumente im Hauptfenster; nur ihre Verwaltung gehört in den Einstellungsdialog.
+
+Gezielte fensterlose Nachweise unter `.artifacts/plugin-settings`; Renderbilder des Dialogs unter
+`.artifacts/app-shell/settings-ui/Settings-Plugins-*`. Keine sichtbare Desktopbedienung.

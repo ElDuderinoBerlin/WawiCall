@@ -6,6 +6,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>Local user's preferences. PreferredCompany is a preference, not proof of a selectable/active company.</summary>
 public sealed record UserSettings
 {
+    public string? ActivePluginId { get; init; }
     public CompanyKey? PreferredCompany { get; init; }
     public bool ShowCallNotifications { get; init; } = true;
     public bool StartMinimized { get; init; }

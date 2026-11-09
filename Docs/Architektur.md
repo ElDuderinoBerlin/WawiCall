@@ -1,6 +1,6 @@
 # WawiCallPro: Architektur
 
-Stand: 05.11.2026. Verbindliches Zielbild nach den Nutzerfestlegungen zu Hauptprogramm,
+Stand: 09.11.2026. Verbindliches Zielbild nach den Nutzerfestlegungen zu Hauptprogramm,
 Warenwirtschaftsplugins, Dependency Injection und austauschbarer Telefonie.
 Der tatsächliche Umsetzungsstand steht am Dokumentende.
 
@@ -35,6 +35,19 @@ müssen laufende Aufrufe beendet und Views, Dienste sowie der bisherige Ladekont
 Erst danach darf das nächste Plugin geladen werden; bei fehlgeschlagener Freigabe bleibt der Wechsel
 gesperrt. Ein paralleles zweites Start-/Ladekommando darf keine weitere Pluginsitzung erzeugen.
 Getrennte Pro-/FinOffice-Anwendungsprozesse behalten ihre unabhängige Produktidentität.
+
+Nutzerpräzisierung vom 09.11.2026: Alle Einstellungen folgen dem zentralen `FrmSettings`-Dialog
+mit Tabs nach LxTranslate.App. Pluginliste, Aktivierung und Fähigkeitsprüfung liegen unter
+**Einstellungen → Plugins**. Hierfür wird kein Dokument im Hauptarbeitsbereich geöffnet;
+Ribbon und Navigation öffnen unmittelbar den passenden Einstellungen-Tab.
+Jeder Produktbuild enthält sein Lexware-Plugin und das klar als Testbetrieb bezeichnete
+`WawiCallPro.Plugins.Dummy`. Die Liste zeigt beide, während stets nur eine Pluginsitzung aktiv ist.
+Vor dem Wechsel werden laufende Abrufe abgebrochen/abgewartet und alte Fachansichten geschlossen.
+Eine fehlgeschlagene Freigabe sperrt das Nachladen. Firmen-/Cache-Ladezustände werden verworfen;
+noch nicht gespeicherte allgemeine Eingaben bleiben erhalten. Die aktive Kennung wird getrennt
+von der Mandantenauswahl als `user.activePluginId` im Einstellungsformat 4 gespeichert.
+Das Dummy-Plugin nutzt eigene Testidentitäten und ausschließlich explizite Testdaten, ohne ERP-,
+Netzwerk- oder Datenbankzugriffe. Nach Auswahl lädt der nächste Start genau dieses Plugin.
 
 Der Plugin-Manager verwendet die vorhandene Quantarix-Pluginlaufzeit. Seine Oberfläche verwaltet
 zulässige Plugins, Produktlinie, Version, Fähigkeiten, Ladezustand und Konfiguration. Ein jeweiliger

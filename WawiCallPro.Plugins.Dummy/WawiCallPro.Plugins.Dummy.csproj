@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPluginProject>true</IsPluginProject>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(WawiCallPluginKeyFile)</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" /></ItemGroup>
+</Project>

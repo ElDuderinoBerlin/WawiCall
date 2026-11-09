@@ -200,6 +200,15 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Zentraler Einstellungsdialog
+
+- Globale Einstellungen im zentralen `FrmSettings` mit Tabs nach
+  `D:\Application-Development\LxTranslate\LxTranslate.App\Views\FrmSettings` bündeln.
+  Pluginliste, Pluginwechsel, Pluginverwaltung und deren Konfiguration gehören in diesen Dialog;
+  dafür keine Dokument-Views im Hauptarbeitsbereich öffnen. Navigationsaktionen öffnen den passenden Tab.
+- Fachansichten des aktiven Warenwirtschaftsplugins bleiben im Hauptarbeitsbereich. Die Pluginverwaltung
+  verwendet weiterhin die gemeinsame Quantarix-Laufzeit und hält zu jeder Zeit höchstens eine Sitzung aktiv.
+
 ### Datenbank und Migrationen
 
 - Migrationen und produktiver SQL-Code müssen SQLite, PostgreSQL, SQL Server sowie MySQL und MariaDB

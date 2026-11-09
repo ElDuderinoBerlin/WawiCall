@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Reflection;
+using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Capabilities;
@@ -12,11 +14,81 @@ namespace WawiCallPro.Utilities.Plugins;
 public sealed record ProductPluginLocation(string Directory);
 
 /// <summary>Cancels/awaits callbacks before shutting down and releasing the owned plugin session.</summary>
-public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, ProductPluginLocation location) : IProductPluginRuntime, IHostedService, IAsyncDisposable
+public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, ProductPluginLocation location, ApplicationConfigurationService? configuration = null) : IProductPluginRuntime, IProductPluginSelection, IHostedService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1);
     private readonly CancellationTokenSource _stopping = new();
     private IPluginSession? _session;
+    private readonly SemaphoreSlim _switchGate = new(1);
+    private CancellationTokenSource _sessionStopping = new();
+    private bool _releaseFailed;
+    public string? ActivePluginId { get; private set; }
+
+    public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins()
+    {
+        if (!Directory.Exists(location.Directory)) return [];
+        return Directory.EnumerateDirectories(location.Directory).Select(directory =>
+        {
+            var id = Path.GetFileName(directory);
+            var file = Path.Combine(directory, id + ".dll");
+            if (!File.Exists(file)) return null;
+            var version = AssemblyName.GetAssemblyName(file).Version?.ToString() ?? "";
+            var name = id.EndsWith(".Dummy", StringComparison.Ordinal) ? "Dummy-Plugin (Testbetrieb)"
+                : id.EndsWith(".FinOffice", StringComparison.Ordinal) ? "Lexware Financial Office"
+                : id.EndsWith(".Pro", StringComparison.Ordinal) ? "Lexware Pro" : id;
+            return new ProductPluginChoice(id, name, version);
+        }).OfType<ProductPluginChoice>().OrderBy(choice => choice.Id, StringComparer.Ordinal).ToArray();
+    }
+
+    public async Task SwitchAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var choice = GetAvailablePlugins().SingleOrDefault(choice => choice.Id == id) ?? throw new PluginRuntimeException();
+        await _switchGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!_startCalled || _stopping.IsCancellationRequested || _releaseFailed) throw new PluginRuntimeException();
+            if (_loaded && ActivePluginId == choice.Id) return;
+            _loaded = false;
+            await _sessionStopping.CancelAsync().ConfigureAwait(false);
+            await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await ReleaseSessionAsync().ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                _stopping.Token.ThrowIfCancellationRequested();
+                _sessionStopping.Dispose(); _sessionStopping = new CancellationTokenSource();
+                _session = sessions.CreateTrusted();
+                try
+                {
+                    if (_session is not ISelectedPluginSession selected) throw new PluginRuntimeException();
+                    await selected.LoadSelectedAsync(Path.Combine(location.Directory, choice.Id)).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _stopping.Token.ThrowIfCancellationRequested();
+                    ActivePluginId = choice.Id; _loaded = true;
+                }
+                catch { await ReleaseSessionAsync().ConfigureAwait(false); throw; }
+            }
+            finally { _gate.Release(); }
+        }
+        finally { _switchGate.Release(); }
+    }
+
+    private async Task ReleaseSessionAsync()
+    {
+        ActivePluginId = null;
+        var failed = false;
+        foreach (var resource in _resources.AsEnumerable().Reverse())
+            try { await resource.DisposeAsync().ConfigureAwait(false); } catch { failed = true; }
+        if (failed) { _releaseFailed = true; throw new PluginRuntimeException(); }
+        _resources.Clear();
+        try
+        {
+            if (_session is not null) { await _session.DisposeAsync().ConfigureAwait(false); _session = null; }
+        }
+        catch { _releaseFailed = true; throw new PluginRuntimeException(); }
+    }
+
     private volatile bool _loaded;
     private bool _disposed;
     private bool _startCalled;
@@ -34,7 +106,21 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
             _session = sessions.CreateTrusted();
             try
             {
-                await _session.LoadAsync(location.Directory).ConfigureAwait(false);
+                var choices = GetAvailablePlugins();
+                var requested = configuration?.Current.Options.User.ActivePluginId;
+                if (_session is ISelectedPluginSession selected && (requested is not null || choices.Count > 1))
+                {
+                    var choice = requested is null ? choices.FirstOrDefault(choice => !choice.Id.EndsWith(".Dummy", StringComparison.Ordinal))
+                        : choices.SingleOrDefault(choice => choice.Id == requested);
+                    if (choice is null) throw new PluginRuntimeException();
+                    await selected.LoadSelectedAsync(Path.Combine(location.Directory, choice.Id)).ConfigureAwait(false);
+                    ActivePluginId = choice.Id;
+                }
+                else
+                {
+                    await _session.LoadAsync(location.Directory).ConfigureAwait(false);
+                    ActivePluginId = choices.SingleOrDefault()?.Id;
+                }
                 _stopping.Token.ThrowIfCancellationRequested();
                 _loaded = true;
             }
@@ -46,14 +132,18 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
     {
         ArgumentNullException.ThrowIfNull(operation);
         if (!_loaded) throw new PluginRuntimeException();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token);
+        var sessionLifetime = _sessionStopping;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token, sessionLifetime.Token);
         await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
         try
         {
-            if (!_loaded) throw new PluginRuntimeException();
+            if (!_loaded || !ReferenceEquals(sessionLifetime, _sessionStopping)) throw new PluginRuntimeException();
             linked.Token.ThrowIfCancellationRequested();
             var result = await operation(_session!.GetPlugins().Single(), linked.Token).ConfigureAwait(false);
             if (result is IPluginLifetimeResource resource) _resources.Add(resource);
+            // A switch invalidates results immediately, even before linked cancellation callbacks run.
+            if (!_loaded || !ReferenceEquals(sessionLifetime, _sessionStopping))
+                throw new OperationCanceledException(sessionLifetime.Token);
             // Track returned resources before rejecting cancelled results; StopAsync still owns their cleanup.
             linked.Token.ThrowIfCancellationRequested();
             return result;
@@ -69,16 +159,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
         try
         {
             _loaded = false;
-            var failures = new List<Exception>();
-            foreach (var resource in _resources.AsEnumerable().Reverse())
-                try { await resource.DisposeAsync().ConfigureAwait(false); } catch (Exception exception) { failures.Add(exception); }
-            if (failures.Count != 0) throw new PluginRuntimeException();
-            _resources.Clear();
-            if (_session is not null)
-            {
-                try { await _session.DisposeAsync().ConfigureAwait(false); _session = null; } catch (Exception exception) { failures.Add(exception); }
-            }
-            if (failures.Count != 0) throw new PluginRuntimeException();
+            await ReleaseSessionAsync().ConfigureAwait(false);
         }
         finally { _gate.Release(); }
     }
@@ -86,7 +167,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
     {
         if (_disposed) return;
         await StopAsync(CancellationToken.None).ConfigureAwait(false);
-        _disposed = true; _stopping.Dispose(); _gate.Dispose();
+        _disposed = true; _stopping.Dispose(); _sessionStopping.Dispose(); _gate.Dispose(); _switchGate.Dispose();
     }
 }
 public static class ProductPluginServices

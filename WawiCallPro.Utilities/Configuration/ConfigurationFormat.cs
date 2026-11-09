@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>The version belongs to settings JSON, independently of the DPAPI envelope version.</summary>
 public static class ConfigurationFormat
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -46,7 +46,7 @@ public static class ConfigurationFormat
                 };
             }
             if (!version.TryGetInt32(out var value) || value is < 1 or > CurrentVersion)
-                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1, 2 und 3.");
+                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1 bis 4.");
             var envelope = root.Deserialize<SettingsDocument>(JsonOptions)!;
             return new ConfigurationSnapshot(envelope.Settings, true) { FormatVersion = value, ContentHash = ComputeHash(bytes) };
         }

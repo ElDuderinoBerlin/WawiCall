@@ -16,6 +16,7 @@ public partial class SettingsPage : XtraUserControl
     private List<CacheCompanyRow> _cacheCompanies = [];
     private AppUiState? _state;
     private CancellationTokenSource? _cacheCancellation;
+    private Func<Task>? _beforePluginSwitch;
     public SettingsPage()
     {
         InitializeComponent();
@@ -29,8 +30,41 @@ public partial class SettingsPage : XtraUserControl
         _workspace = workspace;
         _operation = new PageOperation(this, statusLabel);
         Apply(workspace.Configuration.Current);
+        pluginPage.Bind(workspace, _state);
+        pluginPage.ConfigureSelection(ActivatePluginAsync);
+        pluginPage.RefreshCatalog();
     }
-    internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
+    internal async Task StopAsync()
+    {
+        if (_operation is not null) await _operation.StopAsync();
+        await pluginPage.StopAsync();
+    }
+    internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
+    internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
+    internal DevExpress.XtraTab.XtraTabControl SettingsTabs => tabs;
+    private async Task ActivatePluginAsync(string id, CancellationToken token)
+    {
+        if (_workspace?.Plugins is not WawiCallPro.Interfaces.Plugins.IProductPluginSelection selection) return;
+        saveButton.Enabled = reloadButton.Enabled = false;
+        foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
+        try
+        {
+            if (_operation is not null) await _operation.StopAsync();
+            if (_beforePluginSwitch is not null) await _beforePluginSwitch();
+            await _workspace.Companies.SelectAsync(null);
+            await selection.SwitchAsync(id, token);
+            var previous = _snapshot!;
+            await _workspace.Settings.SaveAsync(previous.Options with { User = previous.Options.User with { ActivePluginId = id } }, previous, token);
+            _snapshot = await _workspace.Settings.LoadAsync(token);
+        }
+        finally
+        {
+            _operation?.Dispose(); _operation = new PageOperation(this, statusLabel);
+            _cacheCompanies.Clear(); BindCompanyRows();
+            saveButton.Enabled = reloadButton.Enabled = true;
+            foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
+        }
+    }
     private void DisposePage()
     {
         _operation?.Dispose();
@@ -41,6 +75,7 @@ public partial class SettingsPage : XtraUserControl
     {
         _state = state;
         _state?.Restore(cacheView, "CacheSources");
+        pluginPage.ConfigureLayoutPersistence(state);
     }
 
     internal void Apply(ConfigurationSnapshot snapshot)

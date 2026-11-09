@@ -15,7 +15,7 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("SettingsPage", "settings"), ("DatabasePage", "database"), ("PluginPage", "plugin"), ("HistoryPage", "history") }
+        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("DatabasePage", "database"), ("HistoryPage", "history") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
@@ -35,6 +35,22 @@ internal static class UiAudit
                     form.ClientSize = size;
                     _ = form.Handle;
                     typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
+                    if (surface == "FrmSettings")
+                    {
+                        using var settings = form.CreateSettingsDialog();
+                        settings.Font = font;
+                        settings.MinimumSize = Size.Empty;
+                        settings.ClientSize = size;
+                        foreach (DevExpress.XtraTab.XtraTabPage tab in settings.SettingsTabs.TabPages)
+                        {
+                            settings.SettingsTabs.SelectedTabPage = tab;
+                            CreateHandles(settings);
+                            settings.PerformLayout();
+                            using var shot = Capture(settings);
+                            shot.Save(Path.Combine(outputDirectory, $"FrmSettings-{tab.Text}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
+                        }
+                        continue;
+                    }
                     form.Navigate(page);
                     form.MinimumSize = Size.Empty;
                     form.ClientSize = size;

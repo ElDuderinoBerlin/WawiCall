@@ -283,7 +283,7 @@ public sealed class ConfigurationTests
         Assert.IsTrue(snapshot.RequiresUpgrade);
         Assert.IsNull(snapshot.Options.Erp.Pro);
         await directory.Store.SaveAsync(snapshot.Options, snapshot);
-        Assert.AreEqual(3, (await directory.Store.LoadAsync()).FormatVersion);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, (await directory.Store.LoadAsync()).FormatVersion);
     }
 
     [TestMethod]

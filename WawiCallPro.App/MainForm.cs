@@ -72,21 +72,15 @@ public partial class MainForm : RibbonForm
     internal void Navigate(string id)
     {
         if (_closing) return;
+        if (id is "settings" or "plugin") { OpenSettings(id == "plugin"); return; }
         if (_documents.TryGetValue(id, out var existing)) { ActivateDocument(existing); return; }
         Control content;
         string caption;
         switch (id)
         {
-            case "settings":
-                var settings = new SettingsPage(); if (_workspace is not null) settings.Bind(_workspace);
-                settings.ConfigureLayoutPersistence(_state);
-                content = settings; caption = "Einstellungen"; break;
             case "database":
                 var database = new DatabasePage(); if (_workspace is not null) database.Bind(_workspace);
                 content = database; caption = "Datenbank"; break;
-            case "plugin":
-                var plugin = new PluginPage(); if (_workspace is not null) plugin.Bind(_workspace, _state);
-                content = plugin; caption = "Warenwirtschaft"; break;
             case "history":
                 var history = new HistoryPage(); if (_workspace is not null) history.Bind(_workspace, _state);
                 content = history; caption = "Gesprächshistorie"; break;
@@ -202,11 +196,25 @@ public partial class MainForm : RibbonForm
     private void HistoryNavigation_Click(object? sender, EventArgs e) => Navigate("history");
     private void SettingsNavigation_Click(object? sender, EventArgs e) => OpenSettings();
     private void HelpNavigation_Click(object? sender, EventArgs e) => helpDock.Show();
-    private void OpenSettings()
+    internal FrmSettings CreateSettingsDialog(bool plugins = false)
     {
-        using var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace);
+        var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync);
         settings.ConfigureLayoutPersistence(_state);
+        if (plugins) settings.SelectPluginsTab();
+        return settings;
+    }
+    private async Task PreparePluginSwitchAsync()
+    {
+        if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
+        await _selectionTask;
+        await ClosePluginPagesAsync();
+    }
+    private void OpenSettings(bool plugins = false)
+    {
+        using var settings = CreateSettingsDialog(plugins);
         settings.ShowDialog(this);
+        statusItem.Caption = (_application?.ProductLine ?? _workspace?.Application.ProductLine ?? "") + " · "
+            + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
     }
     private void ShowNavigation_Click(object sender, ItemClickEventArgs e) => navigationDock.Show();
     private void ShowOutput_Click(object sender, ItemClickEventArgs e) => outputDock.Show();

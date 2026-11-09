@@ -1078,6 +1078,28 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Nutzerauftrag vom 09.11.2026: Pluginverwaltung nach `FrmSettings` verlegt, entsprechend
+  dem zentralen Tabdialog aus LxTranslate.App. Allgemein, Plugins, SIP-Konto, Datenbank, Audio und
+  Telefon-Cache liegen im selben Einstellungsdialog. Ribbon/Navigation öffnen ihn direkt;
+  Pluginverwaltung und allgemeine Einstellungen erzeugen keine Dokument-Tabs mehr.
+  Signiertes `WawiCallPro.Plugins.Dummy` als zweiter echter Listeneintrag in beiden Produktbuilds
+  ergänzt. Eigene markierte Testdaten ohne Warenwirtschaftszugriff; Lexware- und Dummy-Plugin
+  sind wechselweise aktiv. Weiterhin genau eine geladene Sitzung: laufende Abrufe werden
+  abgebrochen/abgewartet, verspätete Rückgaben verworfen und Fachansichten/Ressourcen vor dem
+  Entladen freigegeben. Fehler beim Freigeben verhindern einen weiteren Wechsel.
+  Auswahl unter `user.activePluginId` in Format 4 gespeichert; bisherige Formate bleiben lesbar.
+  Allgemeine Eingaben bleiben beim Wechsel erhalten; Firmen-/Cache-Ladezustände werden getrennt
+  zurückgesetzt. Quantarix-Loader um gezielte Ordnerauswahl ergänzt (Commit `906292f`, deps.json
+  aktualisiert); keine zweite Plugin-Laufzeit und keine gleichzeitige Aktivierung beider Einträge.
+  Nachweise: je 106 Utilities-, 7 gezielte App-, 19 Console- und 15 Vertragstests bestanden;
+  reale signierte Loader-/Dummy-Wechsel mit wartenden Abrufen, Freigabefehlern und Neustartwahl
+  sowie die tatsächlichen Aktivierungsbuttons im Einstellungsdialog geprüft. Vier reguläre
+  Debug-/Any-CPU-Hostbuilds, vier fensterlose Hostdiagnosen, gezielter Rider-Rebuild und acht
+  Bundle-/Shared-/Hashprüfungen erfolgreich. Gezielte leere/gefüllte Dialogrenders mit kleinerem
+  Fenster, 10-/16-Punkt-Schrift, aktivem Skin und 150%-Layoutsimulation visuell geprüft;
+  kollabierte Liste vor Abschluss korrigiert. `.artifacts/plugin-settings` und
+  `.artifacts/app-shell/settings-ui/Settings-Plugins-*`. Keine sichtbaren Fenster oder SQL-Änderungen.
+
 - [x] ✅ Vorgezogener Nutzerauftrag vom 07.11.2026: Main-App-Basis nach der direkten Vorlage
   `LxTranslate.App` aufgebaut: Ribbon, persistierte DevExpress-Dockpanels für Navigation/Ausgabe/Hilfe,
   DocumentManager/TabbedView, wiederverwendbare Arbeits-Tabs, Einstellungsdialog und Skin-/Schriftauswahl.
@@ -1095,8 +1117,9 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Einbindung/Bounds im Rider-Debugger geprüft. Keine sichtbare Bedienung des Benutzerdesktops.
   Telefonregistrierung, Mediengeräte, gemeinsamer Rufnummernindex, Wawi-Zugangseinrichtung,
   konkrete Wawi-Fachtabs, globale Hotkeys und Autostart bleiben ihren Fachpunkten zugeordnet.
-- [ ] Allgemeine Einstellungen, Plugin-Manager-Oberfläche und SIPSorcery-Einstellungen im Hauptprogramm
-  erstellen und über DI mit den gemeinsamen Diensten verbinden; fachliche Wawi-Views bleiben im Plugin.
+- [ ] SIPSorcery-Einstellungen im zentralen `FrmSettings` fachlich vervollständigen und mit den
+  Telefoniediensten verbinden; allgemeine Einstellungen und Pluginverwaltung sind bereits eingebunden.
+  Fachliche Wawi-Views bleiben im Plugin.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

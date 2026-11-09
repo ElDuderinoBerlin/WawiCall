@@ -7,6 +7,7 @@
     <RootNamespace>WawiCallPro.ConsoleApp</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <!-- Both companions share the same desktop runtime files in a release bundle. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
     <ProjectReference Include="../WawiCallPro.Plugin.Windows/WawiCallPro.Plugin.Windows.csproj" />

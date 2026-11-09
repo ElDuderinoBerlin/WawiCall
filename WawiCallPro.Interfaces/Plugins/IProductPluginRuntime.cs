@@ -13,3 +13,14 @@ public interface IWawiCallPluginLifetime
 }
 /// <summary>Plugin-owned resources registered by a runtime callback; closed before plugin shutdown.</summary>
 public interface IPluginLifetimeResource : IAsyncDisposable { }
+
+/// <summary>Detached catalog entries; discovery never activates a plugin.</summary>
+public sealed record ProductPluginChoice(string Id, string DisplayName, string Version);
+
+/// <summary>Serializes source changes, awaiting callbacks and disposing views before loading a replacement.</summary>
+public interface IProductPluginSelection
+{
+    string? ActivePluginId { get; }
+    IReadOnlyList<ProductPluginChoice> GetAvailablePlugins();
+    Task SwitchAsync(string id, CancellationToken cancellationToken = default);
+}

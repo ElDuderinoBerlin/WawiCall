@@ -531,3 +531,14 @@ Ablauf, DPAPI-Schutz, Start-Snapshot und geprüfte Client-Key-Buildvorgaben steh
 [Vertraege.md – Warenwirtschaftszugang](Vertraege.md#warenwirtschaftszugang-und-lokale-einrichtung-08112026).
 Diese Einrichtung führt keine Anmeldung und keinen Fachabruf aus; ein erfolgreicher Build oder
 Hostdiagnosestart belegt keine Anmeldung am tatsächlichen Lexware-Server.
+
+## Pluginverwaltung und Testplugin (09.11.2026)
+
+Beide Hosts stellen neben dem passenden Lexware-Plugin das signierte `WawiCallPro.Plugins.Dummy`
+im eigenen Plugin-Unterordner bereit. Es ist kein zweites aktives Plugin: die Auswahl erfolgt unter
+Einstellungen → Plugins in `FrmSettings`, der Loader lädt genau einen Eintrag. Das Dummy liefert nur
+markierte Testdaten. `scripts/test-plugin-deployment.ps1` prüft beide Bundles für beide Hosts und Linien.
+Format 4 ergänzt `user.activePluginId`; alle bisherigen Einstellungsformate bleiben lesbar.
+Die gezielte Dialogrenderprüfung verwendet `LX_UI_AUDIT_SURFACES=FrmSettings`; alte Dokumentrouten
+für SettingsPage/PluginPage werden nicht mehr geöffnet. Details stehen in [Architektur.md](Architektur.md)
+und [Vertraege.md](Vertraege.md#pluginwahl-in-frmsettings-09112026).

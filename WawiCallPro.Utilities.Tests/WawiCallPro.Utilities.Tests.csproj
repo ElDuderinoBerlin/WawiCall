@@ -4,6 +4,7 @@
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <Compile Remove="Fixtures/**/*.cs" />
     <ProjectReference Include="Fixtures/RuntimePlugin/RuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="Fixtures/SignedRuntimePlugin/SignedRuntimePlugin.csproj" ReferenceOutputAssembly="false" />

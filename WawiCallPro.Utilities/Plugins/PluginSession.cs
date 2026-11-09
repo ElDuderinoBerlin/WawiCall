@@ -22,6 +22,11 @@ public interface IPluginSession : IDisposable, IAsyncDisposable
     Task LoadAsync(string absoluteDirectory);
     IReadOnlyList<IWawiCallPlugin> GetPlugins();
 }
+public interface ISelectedPluginSession
+{
+    Task LoadSelectedAsync(string directory);
+}
+
 public interface IPluginSessionFactory
 {
     IPluginSession Create(IReadOnlySet<string> tokens);
@@ -81,7 +86,7 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
         }
     }
 
-    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product, List<IPlugin> activated, List<PluginServiceScope> containers) : IPluginSession
+    private sealed class Session(IServiceScope scope, PluginManager manager, IWawiCallHostServices services, LexwareProductLine product, List<IPlugin> activated, List<PluginServiceScope> containers) : IPluginSession, ISelectedPluginSession
     {
         private bool _loaded;
         private bool _disposed;
@@ -95,14 +100,20 @@ public sealed class PluginSessionFactory(IServiceScopeFactory scopes, IPluginMan
             try { LoadCore(absoluteDirectory); }
             catch { await DisposeAsync().ConfigureAwait(false); throw new PluginRuntimeException(); }
         }
-        private void LoadCore(string absoluteDirectory)
+        public async Task LoadSelectedAsync(string directory)
+        {
+            try { LoadCore(directory, true); }
+            catch { await DisposeAsync().ConfigureAwait(false); throw new PluginRuntimeException(); }
+        }
+        private void LoadCore(string absoluteDirectory, bool selected = false)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_loaded) throw new InvalidOperationException("Plugin session is already loaded.");
             if (!Path.IsPathFullyQualified(absoluteDirectory) || !Directory.Exists(absoluteDirectory)) throw new PluginRuntimeException();
             try
             {
-                manager.LoadFromDirectory(absoluteDirectory);
+                if (selected) manager.LoadSelectedDirectory(absoluteDirectory);
+                else manager.LoadFromDirectory(absoluteDirectory);
                 if (manager.LoadFailureCount != 0 || manager.Plugins.Count != 1 || manager.Plugins[0] is not IWawiCallPlugin plugin || plugin.ProductLine != product) throw new PluginRuntimeException();
                 plugin.Configure(services);
                 _loaded = true;

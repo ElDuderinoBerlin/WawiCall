@@ -146,12 +146,12 @@ partial class MainForm
         homeItem.ItemClick += Home_Click;
         ribbon.Items.Add(homeItem);
         workspaceGroup.ItemLinks.Add(homeItem);
-        pluginItem.Caption = "Warenwirtschaft";
-        pluginItem.Hint = "Warenwirtschaft.";
+        pluginItem.Caption = "Plugins verwalten";
+        pluginItem.Hint = "Plugin in den Einstellungen auswählen oder wechseln.";
         pluginItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
         pluginItem.ItemClick += Plugin_Click;
         ribbon.Items.Add(pluginItem);
-        workspaceGroup.ItemLinks.Add(pluginItem);
+        settingsGroup.ItemLinks.Add(pluginItem);
         historyItem.Caption = "Gesprächshistorie";
         historyItem.Hint = "Gesprächshistorie.";
         historyItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -232,7 +232,7 @@ partial class MainForm
         databaseNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         databaseNav.Click += DatabaseNavigation_Click;
         navigation.Elements.Add(databaseNav);
-        pluginNav.Text = "Warenwirtschaft";
+        pluginNav.Text = "Plugins verwalten";
         pluginNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         pluginNav.Click += PluginNavigation_Click;
         navigation.Elements.Add(pluginNav);

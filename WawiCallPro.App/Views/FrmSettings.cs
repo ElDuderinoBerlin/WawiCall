@@ -8,7 +8,13 @@ public partial class FrmSettings : XtraForm
     private bool _canClose;
     private bool _closing;
     public FrmSettings() { InitializeComponent(); Load += Settings_Load; }
-    public FrmSettings(AppWorkspace workspace) : this() => settingsPage.Bind(workspace);
+    public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
+    {
+        settingsPage.Bind(workspace);
+        settingsPage.ConfigurePluginSwitch(beforePluginSwitch);
+    }
+    internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
+    internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
     internal Task StopAsync() => settingsPage.StopAsync();
     internal void ConfigureLayoutPersistence(AppUiState? state) => settingsPage.ConfigureLayoutPersistence(state);
     private void Close_Click(object? sender, EventArgs e) => Close();

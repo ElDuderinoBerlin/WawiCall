@@ -7,6 +7,8 @@ partial class SettingsPage
     private System.ComponentModel.IContainer components;
     private System.Windows.Forms.TableLayoutPanel layout;
     private DevExpress.XtraTab.XtraTabControl tabs;
+    private DevExpress.XtraTab.XtraTabPage pluginTab;
+    private WawiCallPro.App.Views.PluginPage pluginPage;
     private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.SimpleButton saveButton;
     private DevExpress.XtraEditors.SimpleButton reloadButton;
@@ -82,6 +84,8 @@ partial class SettingsPage
         cacheTextEdit = new DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit();
         layout = new System.Windows.Forms.TableLayoutPanel();
         tabs = new DevExpress.XtraTab.XtraTabControl();
+        pluginTab = new DevExpress.XtraTab.XtraTabPage();
+        pluginPage = new WawiCallPro.App.Views.PluginPage();
         statusLabel = new DevExpress.XtraEditors.LabelControl();
         saveButton = new DevExpress.XtraEditors.SimpleButton();
         reloadButton = new DevExpress.XtraEditors.SimpleButton();
@@ -154,8 +158,13 @@ partial class SettingsPage
         tabs.Dock = System.Windows.Forms.DockStyle.Fill;
         footer.AutoSize = true;
         footer.Dock = System.Windows.Forms.DockStyle.Top;
+        pluginTab.Text = "Plugins";
+        pluginTab.Name = "pluginTab";
+        pluginPage.Dock = System.Windows.Forms.DockStyle.Fill;
+        pluginTab.Controls.Add(pluginPage);
         generalTab.Text = "Allgemein";
         tabs.TabPages.Add(generalTab);
+        tabs.TabPages.Add(pluginTab);
         generalTab.Controls.Add(generalLayout);
         generalLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         generalLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;

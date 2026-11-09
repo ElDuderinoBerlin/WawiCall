@@ -49,6 +49,7 @@ public sealed class AppShellTests
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var form = new FrmSettings();
                 var page = Field<SettingsPage>(form, "settingsPage");
+                ((TestRuntime)workspace.Plugins).HasCatalog = populated;
                 page.Bind(workspace);
                 if (populated)
                     page.Apply(new ConfigurationSnapshot(new ApplicationOptions
@@ -67,6 +68,11 @@ public sealed class AppShellTests
                     CreateHandles(form);
                     form.PerformLayout();
                     CheckTableBounds(form);
+                    if (tab.Text == "Plugins")
+                    {
+                        var catalog = Field<GridControl>(Field<PluginPage>(page, "pluginPage"), "catalogGrid");
+                        Assert.IsTrue(catalog.Height >= 100, $"Plugin list collapsed: {catalog.Height}");
+                    }
                     using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
                     var output = RenderOutput();
                     Directory.CreateDirectory(output);
@@ -75,13 +81,50 @@ public sealed class AppShellTests
                 form.Scale(new SizeF(1.5F, 1.5F));
                 form.PerformLayout();
                 CheckTableBounds(form);
+                page.SelectPluginsTab();
+                form.PerformLayout();
                 using var scaled = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
-                scaled.Save(Path.Combine(RenderOutput(), $"Settings-Telefon-Cache-{populated}-{fontSize:0}-{small}-scale150.png"), ImageFormat.Png);
+                scaled.Save(Path.Combine(RenderOutput(), $"Settings-Plugins-{populated}-{fontSize:0}-{small}-scale150.png"), ImageFormat.Png);
                 Assert.IsFalse(form.Visible);
             }
         }
         finally { WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance; }
         await Task.CompletedTask;
+    });
+
+    [TestMethod]
+    public Task PluginManagementLivesInSettingsAndSwitchPersistsWithoutLosingEdits() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        var company = new Company(new(LexwareProductLine.Pro, "fixture", "1"), "Testmandant");
+        await workspace.Companies.SelectAsync(company);
+        await form.OpenPartyAsync(new(company.Key, PartyKind.Customer, "1"));
+        Assert.AreEqual(2, plugin.Created);
+        using var settings = form.CreateSettingsDialog(true);
+        var page = Field<SettingsPage>(settings, "settingsPage");
+        _ = settings.Handle;
+        CreateHandles(settings);
+        Assert.AreEqual("Plugins", settings.SettingsTabs.SelectedTabPage.Text);
+        var management = Field<PluginPage>(page, "pluginPage");
+        Assert.AreEqual(2, ((Array)Field<GridControl>(management, "catalogGrid").DataSource).Length);
+        Find<CheckEdit>(page, "notificationsEdit").Checked = false;
+        var catalog = Field<DevExpress.XtraGrid.Views.Grid.GridView>(management, "catalogView");
+        catalog.FocusedRowHandle = 1;
+        await InvokeActionAsync(management, "Activate_Click");
+        Assert.AreEqual("Plugin aktiviert und Auswahl gespeichert.", Field<LabelControl>(management, "statusLabel").Text);
+        Assert.AreEqual(2, plugin.Disposed);
+        Assert.IsNull(workspace.Companies.Current.Company);
+        Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
+        Assert.IsFalse(Find<CheckEdit>(page, "notificationsEdit").Checked);
+        await page.SaveAsync(default);
+        Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
+        Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
+        catalog.FocusedRowHandle = 0;
+        await InvokeActionAsync(management, "Activate_Click");
+        Assert.AreEqual("Test.Lexware", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
+        Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
+        await settings.StopAsync();
+        await form.PrepareToCloseAsync();
     });
 
     private static string RenderOutput([CallerFilePath] string source = "") => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source))!, ".artifacts", "app-shell", "settings-ui");
@@ -241,14 +284,14 @@ public sealed class AppShellTests
         using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
         _ = form.Handle;
         typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
-        foreach (var name in new[] { "settings", "database", "plugin", "history", "help", "about", "settings" }) form.Navigate(name);
-        Assert.AreEqual(7, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
+        foreach (var name in new[] { "database", "history", "help", "about", "database" }) form.Navigate(name);
+        Assert.AreEqual(5, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
         Assert.AreEqual(0, plugin.Created);
         var company = new Company(new(LexwareProductLine.Pro, "fixture", "1"), "Testmandant");
         await workspace.Companies.SelectAsync(company);
         await form.OpenPartyAsync(new(company.Key, PartyKind.Customer, "1"));
         Assert.AreEqual(2, plugin.Created);
-        Assert.AreEqual(9, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
+        Assert.AreEqual(7, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
         await form.PrepareToCloseAsync();
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsFalse(form.Visible);
@@ -353,9 +396,13 @@ public sealed class AppShellTests
         }], false)));
         public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
-    private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime
+    private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime, IProductPluginSelection
     {
+        internal bool HasCatalog = true;
         public bool IsLoaded => true;
+        public string? ActivePluginId { get; private set; } = "Test.Lexware";
+        public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins() => !HasCatalog ? [] : [new("Test.Lexware", "Lexware – Testadapter", "1.0"), new("Test.Dummy", "Dummy-Plugin (Testbetrieb)", "1.0")];
+        public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }
     private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews

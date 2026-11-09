@@ -88,6 +88,27 @@ public sealed class PluginRuntimeTests
     }
 
     [TestMethod]
+    public async Task SelectedFolderLoadsOnlyItsPluginAndKeepsSignatureChecks()
+    {
+        var plugins = DeployFixture();
+        Directory.CreateDirectory(Path.Combine(plugins, "BrokenSibling"));
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, _ =>
+        {
+            var factory = host.Services.GetRequiredService<IPluginManagerFactory>();
+            using var selected = factory.Create(new HashSet<string>());
+            selected.LoadSelectedDirectory(Path.Combine(plugins, "RuntimePlugin"));
+            Assert.AreEqual(1, selected.Plugins.Count);
+            Assert.AreEqual(0, selected.LoadFailureCount);
+            using var rejected = factory.Create(new HashSet<string> { "0000000000000000" });
+            rejected.LoadSelectedDirectory(Path.Combine(plugins, "RuntimePlugin"));
+            Assert.AreEqual(0, rejected.Plugins.Count);
+            Assert.AreEqual(1, rejected.LoadFailureCount);
+            return Task.CompletedTask;
+        });
+    }
+
+    [TestMethod]
     public async Task CallerCannotDisableManagerTokenCheckByMutatingItsOriginalSet()
     {
         var plugins = DeployFixture(); var host = CreateHost();
@@ -220,7 +241,8 @@ public sealed class PluginRuntimeTests
     private sealed class ProbeResource : IPluginLifetimeResource
     {
         public bool Disposed { get; private set; }
-        public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
+        public bool Fail { get; set; }
+        public ValueTask DisposeAsync() { if (Fail) throw new IOException("synthetic failure"); Disposed = true; return ValueTask.CompletedTask; }
     }
 
     [TestMethod]
@@ -464,6 +486,74 @@ public sealed class PluginRuntimeTests
         public int Created => _created;
         public IPluginSession Create(IReadOnlySet<string> tokens) { Interlocked.Increment(ref _created); return inner.Create(tokens); }
         public IPluginSession CreateTrusted() { Interlocked.Increment(ref _created); return inner.CreateTrusted(); }
+    }
+
+    [TestMethod]
+    public async Task RealDummySwitchWaitsForOldCallsDisposesResourcesAndCanSwitchBack()
+    {
+        var directory = DeploySignedFixture();
+        var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
+        var config = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        // The repository root is located without depending on the test runner's working directory.
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
+        Assert.IsNotNull(repository);
+        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, variant, "net10.0");
+        var target = Path.Combine(directory, "WawiCallPro.Plugins.Dummy");
+        Directory.CreateDirectory(target);
+        foreach (var file in System.IO.Directory.GetFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory));
+            await runtime.StartAsync(default);
+            var originalId = runtime.ActivePluginId;
+            Assert.AreEqual(2, runtime.GetAvailablePlugins().Count);
+            var resource = new SwitchResource();
+            await runtime.UseAsync((_, _) => Task.FromResult(resource));
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var oldCall = runtime.UseAsync(async (_, token) => { entered.SetResult(); await release.Task; return 42; });
+            await entered.Task;
+            var switching = runtime.SwitchAsync("WawiCallPro.Plugins.Dummy");
+            Assert.IsFalse(switching.IsCompleted);
+            release.SetResult();
+            await Assert.ThrowsAsync<OperationCanceledException>(() => oldCall);
+            await switching;
+            Assert.IsTrue(resource.Disposed);
+            Assert.AreEqual("WawiCallPro.Plugins.Dummy", runtime.ActivePluginId);
+            var companies = await runtime.UseAsync((plugin, token) => plugin.Directory.GetCompaniesAsync(token));
+            Assert.AreEqual("Dummy – Testmandant", companies.Single().DisplayName);
+            await runtime.SwitchAsync(originalId!);
+            Assert.AreEqual(originalId, runtime.ActivePluginId);
+            Assert.IsTrue(runtime.IsLoaded);
+            await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => runtime.SwitchAsync("../outside"));
+            Assert.IsTrue(runtime.IsLoaded);
+            await runtime.StopAsync(default);
+            var store = host.Services.GetRequiredService<ConfigurationStore>();
+            var snapshot = await store.LoadAsync();
+            await store.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ActivePluginId = "WawiCallPro.Plugins.Dummy" } }, snapshot);
+            var startup = host.Services.GetRequiredService<ApplicationConfigurationService>();
+            await startup.StartAsync(default);
+            await using var restarted = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), startup);
+            await restarted.StartAsync(default);
+            Assert.AreEqual("WawiCallPro.Plugins.Dummy", restarted.ActivePluginId);
+            var failingResource = new SwitchResource { Fail = true };
+            await restarted.UseAsync((_, _) => Task.FromResult(failingResource));
+            await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => restarted.SwitchAsync(originalId!));
+            Assert.IsFalse(restarted.IsLoaded);
+            Assert.IsNull(restarted.ActivePluginId);
+            failingResource.Fail = false;
+            await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => restarted.SwitchAsync(originalId!));
+            await restarted.StopAsync(default);
+        });
+    }
+
+    private sealed class SwitchResource : IPluginLifetimeResource
+    {
+        public bool Disposed { get; private set; }
+        public bool Fail { get; set; }
+        public ValueTask DisposeAsync() { if (Fail) throw new IOException("synthetic failure"); Disposed = true; return ValueTask.CompletedTask; }
     }
 
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
