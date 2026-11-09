@@ -458,13 +458,15 @@ partial class SettingsPage
         audioLayout.Controls.Add(audioHint, 0, 3);
         audioLayout.SetColumnSpan(audioHint, 2);
         saveButton.Name = "saveButton";
-        saveButton.Text = "Einstellungen speichern";
+        saveButton.Text = "Speichern";
+        saveButton.ToolTip = "Alle Einstellungen speichern.";
         saveButton.AutoSize = true;
         saveButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         saveButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         saveButton.Click += Save_Click;
         reloadButton.Name = "reloadButton";
-        reloadButton.Text = "Gespeicherten Stand laden";
+        reloadButton.Text = "Neu laden";
+        reloadButton.ToolTip = "Gespeicherte Einstellungen neu laden und ungespeicherte Eingaben ersetzen.";
         reloadButton.AutoSize = true;
         reloadButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         reloadButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);

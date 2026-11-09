@@ -277,6 +277,8 @@ public sealed class AppShellTests
                 form.MinimumSize = Size.Empty;
                 form.ClientSize = small ? new Size(720, 650) : new Size(980, 760);
                 var tabs = Field<XtraTabControl>(page, "tabs");
+                Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(page, "reloadButton").Size);
+                Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(form, "closeButton").Size);
                 foreach (XtraTabPage tab in tabs.TabPages)
                 {
                     tabs.SelectedTabPage = tab;

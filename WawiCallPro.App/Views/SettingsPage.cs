@@ -17,12 +17,54 @@ public partial class SettingsPage : XtraUserControl
     private AppUiState? _state;
     private CancellationTokenSource? _cacheCancellation;
     private Func<Task>? _beforePluginSwitch;
+    private SimpleButton? _dialogCloseButton;
+    private bool _arrangingButtons;
     public SettingsPage()
     {
         InitializeComponent();
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         providerEdit.Properties.Items.AddRange(new object[] { "SQLite", "SQL Server", "MySQL / MariaDB", "PostgreSQL" });
         providerEdit.SelectedIndexChanged += Provider_Changed;
+        FontChanged += ButtonLayout_Changed;
+        cacheLayout.SizeChanged += ButtonLayout_Changed;
+        var appearance = LookAndFeel;
+        appearance.StyleChanged += ButtonLayout_Changed;
+        Disposed += (_, _) => appearance.StyleChanged -= ButtonLayout_Changed;
+        ArrangeButtons();
+    }
+
+    internal void ConfigureCommandButtons(SimpleButton closeButton)
+    {
+        _dialogCloseButton = closeButton;
+        ArrangeButtons();
+    }
+    private void ButtonLayout_Changed(object? sender, EventArgs e) => ArrangeButtons();
+    private void ArrangeButtons()
+    {
+        if (_arrangingButtons || IsDisposed) return;
+        _arrangingButtons = true;
+        try
+        {
+            footer.SuspendLayout(); cacheActions.SuspendLayout();
+            var commands = _dialogCloseButton is null ? new[] { saveButton, reloadButton } : new[] { saveButton, reloadButton, _dialogCloseButton };
+            var commandSize = UiButtonSizing.Apply(commands);
+            for (var i = 1; i <= 2; i++)
+            {
+                footer.ColumnStyles[i].SizeType = SizeType.Absolute;
+                footer.ColumnStyles[i].Width = commandSize.Width + saveButton.Margin.Horizontal;
+            }
+            var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
+            var cacheSize = UiButtonSizing.Apply(cacheButtons);
+            var cellWidth = cacheSize.Width + loadCompaniesButton.Margin.Horizontal;
+            var columns = Math.Clamp((cacheLayout.ClientSize.Width - cacheLayout.Padding.Horizontal) / Math.Max(1, cellWidth), 1, 3);
+            cacheActions.ColumnCount = columns; cacheActions.RowCount = (3 + columns - 1) / columns;
+            cacheActions.ColumnStyles.Clear(); cacheActions.RowStyles.Clear();
+            for (var i = 0; i < columns; i++) cacheActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cellWidth));
+            for (var i = 0; i < cacheActions.RowCount; i++) cacheActions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            for (var i = 0; i < cacheButtons.Length; i++) cacheActions.SetCellPosition(cacheButtons[i], new(i % columns, i / columns));
+            footer.ResumeLayout(true); cacheActions.ResumeLayout(true);
+        }
+        finally { _arrangingButtons = false; }
     }
 
     internal void Bind(AppWorkspace workspace)

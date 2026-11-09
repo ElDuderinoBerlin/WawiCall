@@ -1095,6 +1095,13 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Settings-Buttons vereinheitlicht: Speichern, Neu laden und Schliessen
+  verwenden dieselbe bevorzugte Groesse; Cache-Aktionen sind gleich breit und brechen
+  passend zur Breite um. Keine festen Texthoehen. Gezielter Settings-Render-/Groessentest
+  mit grosser Schrift/150%-Simulation sowie Rider-App-Rebuild (Debug/Any CPU) bestanden.
+  Nachweis `.artifacts/lx-startup-log/settings-buttons.log`.
+
+
 - [x] ✅ Plugin-Uebersicht nach freigegebenem Gestaltungsvorschlag als kompakte
   HTML/CSS-Kartenliste mit DevExpress GridControl/ItemsView umgesetzt (dxdocs herangezogen).
   SVG-Icons, Name/Version, Beschreibung, Aktiv-/Testbetrieb-Status sowie Aktivieren direkt

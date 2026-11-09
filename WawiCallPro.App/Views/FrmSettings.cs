@@ -24,7 +24,7 @@ public partial class FrmSettings : XtraForm
             return parameters;
         }
     }
-    public FrmSettings() { InitializeComponent(); Load += Settings_Load; }
+    public FrmSettings() { InitializeComponent(); settingsPage.ConfigureCommandButtons(closeButton); Load += Settings_Load; }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
     {
         settingsPage.Bind(workspace);
