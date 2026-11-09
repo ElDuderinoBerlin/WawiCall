@@ -219,6 +219,7 @@ partial class MainForm
         ribbon.ShowApplicationButton = DevExpress.Utils.DefaultBoolean.False;
         ribbon.ToolbarLocation = DevExpress.XtraBars.Ribbon.RibbonQuickAccessToolbarLocation.Hidden;
         ribbon.Dock = System.Windows.Forms.DockStyle.Top;
+        ribbon.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonControlStyle.Office2019;
         ribbon.Items.Add(statusItem);
         statusBar.Ribbon = ribbon;
         statusBar.ItemLinks.Add(statusItem);
@@ -275,16 +276,22 @@ partial class MainForm
         navigationDock.Text = "Navigation";
         navigationDock.Dock = DevExpress.XtraBars.Docking.DockingStyle.Left;
         navigationDock.OriginalSize = new System.Drawing.Size(220, 160);
+        navigationDock.Size = new System.Drawing.Size(220, 500);
         navigationDock.Controls.Add(navigationContainer);
         navigationContainer.Controls.Add(navigation);
+        navigationContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+        navigation.AllowItemSelection = true;
+        navigation.SelectedElement = homeNav;
         navigation.Dock = System.Windows.Forms.DockStyle.Fill;
         outputDock.Name = "outputDock";
         outputDock.ID = new System.Guid("159a903e-a071-4837-94ef-2eb6b5160e45");
         outputDock.Text = "Ausgabe";
         outputDock.Dock = DevExpress.XtraBars.Docking.DockingStyle.Bottom;
         outputDock.OriginalSize = new System.Drawing.Size(220, 160);
+        outputDock.Size = new System.Drawing.Size(900, 200);
         outputDock.Controls.Add(outputContainer);
         outputContainer.Controls.Add(contentLayout);
+        outputContainer.Dock = System.Windows.Forms.DockStyle.Fill;
         contentLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         helpDock.Name = "helpDock";
         helpDock.ID = new System.Guid("1cc5b377-cbcc-4671-bedd-68f821ac7cfb");
@@ -293,6 +300,7 @@ partial class MainForm
         helpDock.OriginalSize = new System.Drawing.Size(220, 160);
         helpDock.Controls.Add(helpContainer);
         helpContainer.Controls.Add(helpMemo);
+        helpContainer.Dock = System.Windows.Forms.DockStyle.Fill;
         helpMemo.Dock = System.Windows.Forms.DockStyle.Fill;
         helpDock.Visibility = DevExpress.XtraBars.Docking.DockVisibility.Hidden;
         helpDock.OriginalSize = new System.Drawing.Size(380, 200);

@@ -1095,6 +1095,19 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Layoutauftrag vom 09.11.2026 nach Bildvorlage und LxTranslate-Hauptfenster umgesetzt:
+  Office-2019-Ribbon, linke Navigation mit SVG-Icons, Dokumentbereich und untere angedockte Ausgabe.
+  Neue designerfähige `HomeDashboard`-Startseite mit Aktionsleiste, Logo/Version, sechs Statuskarten
+  und nächsten Schritten. Konfigurationswerte und geladene Plugins werden ohne neue Verbindungsabrufe
+  angezeigt; eine konfigurierte Verbindung wird nicht als erfolgreich geprüft ausgegeben.
+  Einstellungen aktualisieren die Karten, vorhandene Navigation und Fachansichten bleiben nutzbar.
+  Karten und Aktionsleiste ordnen sich bei schmaler Breite/großer Schrift um; umfangreicher Inhalt
+  bleibt scrollbar. Dockcontainer nutzen die vollständige verfügbare Fläche.
+  Je Edition zwei gezielte App-Tests bestanden; leere und geladene Zustände, helle/dunkle Skins,
+  10/16-Punkt-Schrift, kleine Fenster und 150%-Simulation ohne sichtbare Fenster geprüft.
+  App/Console über Rider in der aktiven Debug-/Any-CPU-Konfiguration rekompiliert.
+  Render- und Testnachweise: `.artifacts/layout-reference`.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Splash entsprechend LxTranslate mit SVG-Logo,
   Anwendungstitel, Status, Version und animiertem Quantarix-Fortschrittsbalken ergänzt.
   Eigener STA-Thread hält die Animation während des Hoststarts am Leben. Gespeicherte Schrift,

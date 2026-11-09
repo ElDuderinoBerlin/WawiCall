@@ -36,6 +36,71 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task ReferenceDashboardAndDockLayoutRenderWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var originalFont = WindowsFormsSettings.DefaultFont;
+        var originalAppearance = AppearanceObject.DefaultFont;
+        var originalSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var originalPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        try
+        {
+            foreach (var skin in new[] { originalSkin, "Office 2019 Black" }.Distinct())
+            foreach (var size in new[] { 10F, 16F })
+            foreach (var small in new[] { false, true })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", size);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+                form.PrepareForBackgroundRun();
+                form.ClientSize = small ? new Size(1000, 800) : new Size(1500, 1000);
+                form.Show(); Application.DoEvents();
+                form.MinimumSize = Size.Empty;
+                form.ClientSize = small ? new Size(1000, 800) : new Size(1500, 1000);
+                CreateHandles(form); form.PerformLayout();
+                var dashboard = (HomeDashboard)form.GetActiveDocumentView()!;
+                Assert.AreEqual("Plugin geladen", Field<LabelControl>(dashboard, "pluginValue").Text);
+                Assert.AreEqual("Nicht konfiguriert", Field<LabelControl>(dashboard, "sipValue").Text);
+                Assert.IsTrue(Field<DevExpress.XtraBars.Docking.ControlContainer>(form, "outputContainer").Width > 500);
+                Assert.IsTrue(dashboard.Width > 500);
+                CheckTableBounds(dashboard);
+                var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "layout-reference");
+                Directory.CreateDirectory(output);
+                using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                bitmap.Save(Path.Combine(output, $"Main-{skin}-{size}-{small}.png"), ImageFormat.Png);
+                var scroll = Field<XtraScrollableControl>(dashboard, "scroll");
+                Assert.IsTrue(scroll.VerticalScroll.Visible || Field<TableLayoutPanel>(dashboard, "body").Height <= scroll.Height,
+                    $"Dashboard scroll missing: body={Field<TableLayoutPanel>(dashboard, "body").Height}, viewport={scroll.Height}");
+                scroll.ScrollControlIntoView(Field<LabelControl>(dashboard, "editionDetail"));
+                Application.DoEvents();
+                using var bottom = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                bottom.Save(Path.Combine(output, $"Main-{skin}-{size}-{small}-bottom.png"), ImageFormat.Png);
+                scroll.VerticalScroll.Value = 0;
+                if (size == 10F && !small)
+                {
+                    dashboard.Bind(null, null, workspace.Application);
+                    Assert.AreEqual("Kein Plugin geladen", Field<LabelControl>(dashboard, "pluginValue").Text);
+                    using var empty = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                    empty.Save(Path.Combine(output, $"Main-{skin}-empty.png"), ImageFormat.Png);
+                    dashboard.Bind(workspace, workspace.Configuration, workspace.Application);
+                }
+                form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout();
+                CheckTableBounds(dashboard);
+                using var scaled = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                scaled.Save(Path.Combine(output, $"Main-{skin}-{size}-{small}-scale150.png"), ImageFormat.Png);
+                await form.PrepareToCloseAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance;
+            if (string.IsNullOrEmpty(originalPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
+        }
+    });
+
+    [TestMethod]
     public Task SettingsDialogRendersEveryPageWithEmptyAndPopulatedDataWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
         AppUiStartup.Apply();
