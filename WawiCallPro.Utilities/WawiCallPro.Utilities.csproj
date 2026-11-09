@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <WawiLicensePublicKeysFile Condition="'$(WawiLicensePublicKeysFile)' == ''">$(MSBuildThisFileDirectory)Licensing\license-public-keys.json</WawiLicensePublicKeysFile>
   </PropertyGroup>
+  <ItemGroup Condition="'$(LexwareProductLine)' == 'Pro' and '$(WawiIncludeBuildLexwareClientKeyDefault)' == 'true' and '$(LexwareApiDefaultClientKey)' != ''">
+    <AssemblyMetadata Include="WawiCallPro.LexwareApiClientKey" Value="$(LexwareApiDefaultClientKey)" />
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(WawiLicensePublicKeysFile)" LogicalName="WawiCallPro.LicensePublicKeys" />
     <ProjectReference Include="..\..\Quantarix.License.System\Quantarix.License.Client\Quantarix.License.Client.csproj" />

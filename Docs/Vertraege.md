@@ -152,8 +152,9 @@ Opaque Tokens werden nicht als verifizierte JWTs interpretiert. GraphQL-Teildate
 HTTP-Fehler und Abbruch werden vor Rückgabe geprüft; `ProAdapterException` enthält nur einen festen Code.
 Die Clientfactory unterbindet die ungefilterten Rohdatenlogs der Quantarix-Bibliothek.
 
-Die produktiven `ProConnectionOptions` enthalten bislang keine Zugangsdaten oder Client-Identität;
-deren sichere Einrichtung/Persistenz folgt in Phase 5/Punkt 8. Die 33 Vertragstests injizieren ausschließlich
+Seit Phase 5/Punkt 8 erhalten die `ProConnectionOptions` ihre Zugangsdaten über den gemeinsamen
+Hostvertrag aus dem geschützten Start-Snapshot; die lokale Einrichtung und die geprüften
+Client-Key-Buildvorgaben sind im Abschnitt Warenwirtschaftszugang am Dokumentende beschrieben. Die 33 Vertragstests injizieren ausschließlich
 synthetische Werte und verwenden den echten Client mit isoliertem HTTP-Handler sowie echte PropertyStore-Dateien.
 Geschäftspartnerzugriffe und der Fähigkeitsbericht werfen bis zu ihren eigenen Punkten weiterhin
 `NotSupportedException`; sie liefern keine scheinbar erfolgreichen leeren Ergebnisse.
@@ -981,12 +982,27 @@ Die produktlinienspezifische Konsole bietet `--erp-configure` zur lokalen Einric
 ```
 
 Pro fragt API-Adresse (leer für Installationserkennung), optionale dauerhafte Installationskennung,
-API-Benutzer, Kennwort und einen ausdrücklich für WawiCallPro freigegebenen Client-Key ab.
-Der Client-Key muss eine nichtleere GUID mit geschweiften Klammern sein. Das Format belegt keine
-Freigabe durch Lexware; diese muss separat vorliegen. Es wird kein Schlüssel generiert, aus einer
-anderen Anwendung kopiert oder aus deren Lexware-Konfiguration geladen. Ohne solche Freigabe
-bleibt die produktive Pro-Einrichtung ausstehend. Kennwörter und Schlüssel lokal eingeben, nicht in
-Kommandozeilenargumenten, Chat oder Umleitungsdateien hinterlegen.
+API-Benutzer, Kennwort und Client-Key ab. Die vom Nutzer benannte LxTranslate-Referenz wurde am
+09.11.2026 geprüft: `Solution.props` definiert `LexwareApiClientKeyPro` und
+`LexwareApiClientKeyFinOffice`, wählt `LexwareApiDefaultClientKey` je Produktlinie und übernimmt die
+Vorgabe für lokale Builds. `FrmLexwareLogin` und `ConfigManager` halten persönliche Zugangsdaten
+getrennt und speichern das Kennwort mit DPAPI. Eine zusätzliche WawiCallPro-Client-Registrierung
+ist daraus nicht abzuleiten; die zuvor behauptete Freigabevoraussetzung entfällt.
+
+WawiCallPro übernimmt die geprüften produktlinienbezogenen Vorgaben in die eigene `Solution.props`,
+ohne LxTranslate zur Laufzeit zu benötigen. Lokale Pro-Debug-Builds geben die Vorgabe über
+Assemblymetadaten an den Konfigurationsanschluss weiter. Bei der verdeckten Client-Key-Abfrage
+übernimmt Enter diese Vorgabe und speichert sie DPAPI-geschützt in den lokalen Benutzereinstellungen;
+damit bleibt die Einrichtung auch nach einem Wechsel auf ein Releasepaket nutzbar. Eine ausdrücklich
+eingegebene oder bereits gespeicherte Kennung hat Vorrang. Ein beschädigter geschützter Wert wird
+als Fehler behandelt und nicht durch die Vorgabe ersetzt.
+
+`WawiIncludeBuildLexwareClientKeyDefault` ist standardmäßig nur für Debug aktiv; mit `false`
+lässt sich die Übernahme abschalten. Normale Release-/Paketbuilds enthalten keine Vorgabe in der
+Assembly. Dort muss der gültige Key bereits lokal geschützt gespeichert oder bei der Einrichtung
+eingegeben werden. Diese Trennung entspricht dem neutralen Paketansatz der LxTranslate-Vorlage.
+Der Key muss eine nichtleere GUID mit geschweiften Klammern sein. Die lokale Quelle wurde geprüft;
+eine echte Serveranmeldung wird damit nicht behauptet. Zugangsdaten nur lokal eingeben.
 
 Kennwort und Client-Key werden ohne Echo abgefragt und mit getrennten, an WawiCallPro gebundenen
 DPAPI-Zwecken für den aktuellen Windows-Benutzer verschlüsselt gespeichert. Die Einrichtung benötigt
@@ -1010,4 +1026,4 @@ Anmeldung werden beim ersten expliziten Fachabruf geprüft. Die Konsole meldet K
 und noch ungeprüften Quellzugriff getrennt. Diagnosen enthalten keine Verbindungseingaben.
 
 Prüfnachweise: `.artifacts/phase5-credentials`. Isolierte DPAPI-/Datei-/Adaptertests ersetzen keine
-produktive Freigabe oder Anmeldung mit einem tatsächlichen WawiCallPro-Client-Key.
+Anmeldung an einer tatsächlichen Lexware-Installation.

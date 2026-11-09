@@ -35,6 +35,15 @@ public sealed class ErpSetupTests
             var changed = await store.LoadAsync();
             Assert.AreEqual("test-user", changed.Options.Erp.Pro!.Username);
             Assert.AreEqual("new-fin-id", changed.Options.Erp.FinOfficeInstallationId);
+            if (LexwareClientDefaults.GetProClientKey() is not null)
+            {
+                // An empty key adopts the local build default into DPAPI settings, usable by a later Release build.
+                await ErpSetupCommands.ExecuteAsync("Pro", store, secrets,
+                    new Input(true, ["https://isolated.invalid", "persistent-pro-id", "test-user", password, ""]), default);
+                using var adopted = secrets.Unprotect((await store.LoadAsync()).Options.Erp.Pro!.ClientKey!, ProErpSettings.ClientKeyPurpose);
+                Assert.IsTrue(adopted.Reveal() == LexwareClientDefaults.GetProClientKey());
+                Assert.IsFalse((await File.ReadAllTextAsync(location.FilePath)).Contains(adopted.Reveal(), StringComparison.Ordinal));
+            }
             // Verify the real host/container/collectible-plugin boundary with only synthetic credentials.
             var repository = new DirectoryInfo(AppContext.BaseDirectory);
             while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;

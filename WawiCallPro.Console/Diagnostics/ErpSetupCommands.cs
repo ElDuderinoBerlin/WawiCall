@@ -55,15 +55,18 @@ internal static class ErpSetupCommands
             var installation = await input.ReadAsync("Optionale dauerhafte Installationskennung (leer = automatisch)", false, cancellationToken);
             var username = await input.ReadAsync("Lexware-API-Benutzer", false, cancellationToken);
             var password = await input.ReadAsync("Kennwort (verdeckt)", true, cancellationToken);
-            var clientKey = await input.ReadAsync("Für WawiCallPro freigegebener Client-Key (verdeckt, GUID mit Klammern)", true, cancellationToken);
-            if (password.Length == 0 || !Guid.TryParseExact(clientKey, "B", out var key) || key == Guid.Empty)
+            var hasDefault = LexwareClientDefaults.GetProClientKey() is not null;
+            var clientKey = await input.ReadAsync(hasDefault
+                ? "Client-Key (verdeckt; leer = geprüfte Buildvorgabe aus Solution.props)"
+                : "Client-Key (verdeckt, GUID mit Klammern)", true, cancellationToken);
+            if (password.Length == 0 || (clientKey.Length == 0 ? !hasDefault : !Guid.TryParseExact(clientKey, "B", out var key) || key == Guid.Empty))
                 throw new DiagnosticException("Kennwort oder Client-Key ungültig; nichts gespeichert.");
             erp = erp with { Pro = new ProErpSettings
             {
                 ApiUrl = endpoint.Length == 0 ? null : new Uri(endpoint),
                 InstallationId = installation.Length == 0 ? null : installation,
                 Username = username, Password = secrets.Protect(password, ProErpSettings.PasswordPurpose),
-                ClientKey = secrets.Protect(clientKey, ProErpSettings.ClientKeyPurpose),
+                ClientKey = secrets.Protect(clientKey.Length == 0 ? LexwareClientDefaults.GetProClientKey()! : clientKey, ProErpSettings.ClientKeyPurpose),
                 TimeoutSeconds = erp.Pro?.TimeoutSeconds ?? 30, TokenTimeoutSeconds = erp.Pro?.TokenTimeoutSeconds ?? 10
             } };
         }

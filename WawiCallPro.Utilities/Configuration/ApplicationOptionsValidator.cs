@@ -64,7 +64,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (pro.TimeoutSeconds is < 1 or > 300 || pro.TokenTimeoutSeconds is < 1 or > 300)
             issues.Add(new("erp.pro.timeout", "Zeitlimits müssen zwischen 1 und 300 Sekunden liegen."));
         ValidateErpSecret(pro.Password, ProErpSettings.PasswordPurpose, false, issues);
-        ValidateErpSecret(pro.ClientKey, ProErpSettings.ClientKeyPurpose, true, issues);
+        if (pro.ClientKey is not null || LexwareClientDefaults.GetProClientKey() is null)
+            ValidateErpSecret(pro.ClientKey, ProErpSettings.ClientKeyPurpose, true, issues);
     }
 
     private void ValidateErpSecret(ProtectedSecret? secret, string purpose, bool clientKey, ImmutableArray<ConfigurationIssue>.Builder issues)
@@ -75,7 +76,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         {
             using var value = secrets.Unprotect(secret, purpose);
             if (value.IsEmpty || (clientKey && (!Guid.TryParseExact(value.Reveal(), "B", out var id) || id == Guid.Empty)))
-                issues.Add(new(field, clientKey ? "Ein ausdrücklich freigegebener Client-Key im GUID-Format mit geschweiften Klammern ist erforderlich." : "Das Kennwort darf nicht leer sein."));
+                issues.Add(new(field, clientKey ? "Ein gültiger Client-Key im GUID-Format mit geschweiften Klammern ist erforderlich." : "Das Kennwort darf nicht leer sein."));
         }
         catch (SecretProtectionException) { issues.Add(new(field, "Der geschützte Wert ist für dieses Benutzerkonto nicht verfügbar oder beschädigt.")); }
     }

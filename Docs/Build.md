@@ -527,7 +527,7 @@ Schwester-Repositories. Velopack/DevExpress bleiben zentral gemeinsam zu aktuali
 
 Das aktuelle Einstellungsformat ist Version 3; unversionierte sowie Version-1/2-Dateien bleiben
 lesbar. Die lokale Einrichtung erfolgt über die passende Console-EXE mit `--erp-configure`.
-Ablauf, DPAPI-Schutz, Start-Snapshot und notwendige Pro-Client-Freigabe stehen in
+Ablauf, DPAPI-Schutz, Start-Snapshot und geprüfte Client-Key-Buildvorgaben stehen in
 [Vertraege.md – Warenwirtschaftszugang](Vertraege.md#warenwirtschaftszugang-und-lokale-einrichtung-08112026).
 Diese Einrichtung führt keine Anmeldung und keinen Fachabruf aus; ein erfolgreicher Build oder
-Hostdiagnosestart belegt keine produktive Freigabe der Client-Identität.
+Hostdiagnosestart belegt keine Anmeldung am tatsächlichen Lexware-Server.

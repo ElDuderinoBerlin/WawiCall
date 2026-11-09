@@ -3,6 +3,13 @@
     <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">FinOffice</LexwareProductLine>
     <LexwareProductLinePro Condition="'$(LexwareProductLine)' == 'Pro'">true</LexwareProductLinePro>
     <LexwareProductLineFinOffice Condition="'$(LexwareProductLine)' == 'FinOffice'">true</LexwareProductLineFinOffice>
+    <!-- Checked against the user-supplied LxTranslate product-line defaults; no personal credentials. -->
+    <LexwareApiClientKeyPro Condition="'$(LexwareApiClientKeyPro)' == ''">{C6778DBF-FE9A-476D-8B86-FBCDEED40793}</LexwareApiClientKeyPro>
+    <LexwareApiClientKeyFinOffice Condition="'$(LexwareApiClientKeyFinOffice)' == ''">{11111111-1111-1111-1111-111111111111}</LexwareApiClientKeyFinOffice>
+    <!-- Local Debug builds only. Release/published packages require an explicit local key. -->
+    <WawiIncludeBuildLexwareClientKeyDefault Condition="'$(WawiIncludeBuildLexwareClientKeyDefault)' == '' and '$(Configuration)' == 'Debug'">true</WawiIncludeBuildLexwareClientKeyDefault>
+    <LexwareApiDefaultClientKey Condition="'$(LexwareProductLine)' == 'Pro'">$(LexwareApiClientKeyPro)</LexwareApiDefaultClientKey>
+    <LexwareApiDefaultClientKey Condition="'$(LexwareProductLine)' == 'FinOffice'">$(LexwareApiClientKeyFinOffice)</LexwareApiDefaultClientKey>
     <Version>0.1.0</Version>
     <Product>WawiCallPro</Product>
     <DevExpressVersion>26.1.6</DevExpressVersion>

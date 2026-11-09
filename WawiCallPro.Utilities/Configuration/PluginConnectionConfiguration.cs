@@ -12,11 +12,11 @@ public sealed class PluginConnectionConfiguration(ApplicationConfigurationServic
         var settings = configuration.Current.Options.Erp.Pro;
         if (settings is null) return null;
         using var password = secrets.Unprotect(settings.Password!, ProErpSettings.PasswordPurpose);
-        using var key = secrets.Unprotect(settings.ClientKey!, ProErpSettings.ClientKeyPurpose);
+        using var key = settings.ClientKey is null ? null : secrets.Unprotect(settings.ClientKey, ProErpSettings.ClientKeyPurpose);
         return new ProConnectionConfiguration
         {
             ApiUrl = settings.ApiUrl, InstallationId = settings.InstallationId, Username = settings.Username,
-            Password = password.Reveal(), ClientKey = key.Reveal(),
+            Password = password.Reveal(), ClientKey = key?.Reveal() ?? LexwareClientDefaults.GetProClientKey(),
             TimeoutSeconds = settings.TimeoutSeconds, TokenTimeoutSeconds = settings.TokenTimeoutSeconds
         };
     }

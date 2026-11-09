@@ -262,7 +262,7 @@ public sealed class ConfigurationTests
         };
         var validator = new ApplicationOptionsValidator(directory.Protector);
         validator.Validate(new ApplicationOptions { Erp = new() { Pro = valid } });
-        foreach (var invalid in new[] { valid with { ClientKey = null }, valid with { Password = valid.ClientKey },
+        foreach (var invalid in new[] { valid with { Password = valid.ClientKey },
             valid with { ClientKey = directory.Protector.Protect(Sentinel, ProErpSettings.ClientKeyPurpose) },
             valid with { ApiUrl = new Uri("https://user:synthetic-password@isolated.invalid") },
             valid with { ApiUrl = new Uri("relative", UriKind.Relative) }, valid with { TimeoutSeconds = 0 } })
@@ -284,6 +284,44 @@ public sealed class ConfigurationTests
         Assert.IsNull(snapshot.Options.Erp.Pro);
         await directory.Store.SaveAsync(snapshot.Options, snapshot);
         Assert.AreEqual(3, (await directory.Store.LoadAsync()).FormatVersion);
+    }
+
+    [TestMethod]
+    public async Task LocalProBuildDefaultIsUsedOnlyWhenNoExplicitKeyWasSaved()
+    {
+        RequireWindows();
+        using var directory = new TestDirectory();
+        var pro = new ProErpSettings
+        {
+            Username = "synthetic-user", Password = directory.Protector.Protect(Sentinel, ProErpSettings.PasswordPurpose)
+        };
+        var options = new ApplicationOptions { Erp = new() { Pro = pro } };
+        var validator = new ApplicationOptionsValidator(directory.Protector);
+        var buildKey = LexwareClientDefaults.GetProClientKey();
+        if (buildKey is null)
+        {
+            Assert.ThrowsExactly<ConfigurationException>(() => validator.Validate(options));
+            return;
+        }
+        await directory.Store.SaveAsync(options);
+        var configuration = new ApplicationConfigurationService(directory.Store);
+        await configuration.StartAsync(default);
+        var bridge = new PluginConnectionConfiguration(configuration, directory.Protector);
+        Assert.IsTrue(buildKey == bridge.ReadPro()!.ClientKey);
+        Assert.IsNull((await directory.Store.LoadAsync()).Options.Erp.Pro!.ClientKey);
+        const string explicitKey = "{55555555-5555-5555-5555-555555555555}";
+        var snapshot = await directory.Store.LoadAsync();
+        await directory.Store.SaveAsync(options with { Erp = new() { Pro = pro with
+        {
+            ClientKey = directory.Protector.Protect(explicitKey, ProErpSettings.ClientKeyPurpose)
+        } } }, snapshot);
+        await configuration.StartAsync(default);
+        Assert.AreEqual(explicitKey, bridge.ReadPro()!.ClientKey);
+        // Invalid explicit ciphertext must fail rather than silently select the build default.
+        Assert.ThrowsExactly<ConfigurationException>(() => validator.Validate(options with { Erp = new() { Pro = pro with
+        {
+            ClientKey = pro.Password
+        } } }));
     }
 
     private static IHostBuilder CreateHost(ConfigurationLocation location) =>

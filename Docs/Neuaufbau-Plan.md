@@ -4,8 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 09.11.2026. Phasen 0–4 sowie die technischen Punkte von Phase 5 einschließlich Zugangskonfiguration
-abgeschlossen; produktive Pro-Client-Freigabe und weitere Produktphasen wie markiert offen.
+Stand: 09.11.2026. Phasen 0–5 abgeschlossen und geprüft; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -300,7 +299,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 2 | ✅ | Verträge, Konfiguration und Quantarix-Anbindung | 1 |
 | 3 | ✅ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
 | 4 | ✅ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
-| 5 | ⬜ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
+| 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ⬜ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | ⬜ | Vollständiger SIP-Gesprächsablauf | 2, 3 |
 | 8 | ⬜ | Bedienbare App und erstes vollständiges Kernprodukt | 4–7 |
@@ -793,7 +792,7 @@ Lizenzierung gehört zum entsprechenden eigenen Punkt in Phase 14; Velopack blei
   Keine Layoutänderung, keine sichtbaren GUI-Tests. Echter Monitor-DPI-Nachweis weiterhin offen;
   150%-Layoutsimulation ersetzt ihn nicht. Nachweise `.artifacts/agents-audit`.
 
-### Phase 5 – Lexware Pro und Financial Office anbinden ⬜
+### Phase 5 – Lexware Pro und Financial Office anbinden ✅
 
 Nutzerpräzisierung vom 06.11.2026: Oberfläche nach LxTranslate mit plugin-eigenen Kunden-/Lieferanten-Tabs
 (Stammdaten, Aufträge/Bestellungen, Projekte, Top-Artikel und weitere unterstützte Fachbereiche).
@@ -956,10 +955,22 @@ Beendigung der bisherigen Aufrufe und Freigabe der Views/Dienste/des Ladekontext
   Vier reguläre Debug-/Any-CPU-Hostbuilds ohne Warnungen/Fehler, vier fensterlose Diagnosen und
   gezielter Rider-Rebuild erfolgreich. Keine UI-/SQL-/Schemaänderungen oder produktive Wawi-Anmeldung.
   Nachweise `.artifacts/phase5-credentials`.
-- [ ] Produktive Pro-Client-Identität für WawiCallPro freigeben und lokal mit den tatsächlichen
-  Zugangsdaten einrichten. Noch kein freigegebener WawiCallPro-Client-Key belegt; keine LxTranslate-
-  Client-Keys kopiert und kein erfundener Schlüssel produktiv gespeichert. Technische Einrichtung
-  ist vorbereitet; Phase 5 bleibt bis zu dieser Voraussetzung und ihrer Abnahme offen.
+- [x] ✅ Nutzerhinweis vom 09.11.2026: LxTranslate.App und dessen Solution.props geprüft.
+  Die Vorlage enthält produktlinienbezogene Client-Key-Vorgaben; persönliche Anmeldedaten werden
+  separat lokal gespeichert. Die vorher angenommene zusätzliche WawiCallPro-Freigabe war unbelegt
+  und ist keine offene Voraussetzung dieser Entwicklungsphase. Geprüfte Vorgaben in die eigene
+  Solution.props übernommen; keine Laufzeitabhängigkeit oder Übernahme persönlicher Zugangsdaten.
+  Lokale Pro-Debug-Builds liefern die Vorgabe über Assemblymetadaten; Enter bei der lokalen
+  Einrichtung übernimmt sie DPAPI-geschützt. Explizite geschützte Keys haben Vorrang, beschädigte
+  Werte bleiben Fehler. Release-/Paketbuilds enthalten standardmäßig keine eingebettete Vorgabe;
+  die lokal geschützte Einrichtung bleibt beim Buildwechsel erhalten. Financial Office nutzt
+  weiterhin seine Read-only-Datenbankanbindung ohne Pro-Anmeldung.
+  Phasenabnahme anhand der bereits geprüften isolierten API-/SQLite-Testbestände; echte persönliche
+  Einrichtung und Serveranmeldung gehören zum Betrieb/Erststart in Phase 14 und sind hier nicht behauptet.
+  Nachweis: je 104 Utilities-/19 Console-Tests, 67 Pro-/44 FinOffice-Adaptertests bestanden;
+  vier reguläre Debug-/Any-CPU-Hostbuilds und Diagnosen, gezielter Rider-Rebuild sowie Plugin-
+  Bundle-/Shared-/Hashprüfung erfolgreich. Buildmetadaten für Pro/FinOffice in Debug und Release
+  ohne Ausgabe der Werte geprüft. Logs `.artifacts/phase5-client-defaults`; keine GUI-/SQL-Änderung.
 
 Abnahme: Beide Plugins lesen echte oder geeignete isolierte Lexware-Testbestände, einschließlich mehrerer
 Mandanten, leerer Daten und Verbindungsfehlern. API-Vertragstests plus Debug-Build beider Varianten bestehen.
