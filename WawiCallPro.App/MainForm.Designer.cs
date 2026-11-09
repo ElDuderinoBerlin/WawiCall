@@ -127,7 +127,6 @@ partial class MainForm
         settingsRibbon.Text = "Einstellungen";
         ribbon.Pages.Add(settingsRibbon);
         helpRibbon.Text = "Hilfe";
-        ribbon.Pages.Add(helpRibbon);
         workspaceGroup.Text = "Arbeitsbereiche";
         startRibbon.Groups.Add(workspaceGroup);
         windowGroup.Text = "Fenster";
@@ -138,8 +137,8 @@ partial class MainForm
         settingsRibbon.Groups.Add(settingsGroup);
         appearanceGroup.Text = "Darstellung";
         settingsRibbon.Groups.Add(appearanceGroup);
-        helpGroup.Text = "Information";
-        helpRibbon.Groups.Add(helpGroup);
+        helpGroup.Text = "Info";
+        settingsRibbon.Groups.Add(helpGroup);
         homeItem.Caption = "Startseite";
         homeItem.Hint = "Startseite.";
         homeItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -200,13 +199,13 @@ partial class MainForm
         fontItem.ItemClick += Font_Click;
         ribbon.Items.Add(fontItem);
         appearanceGroup.ItemLinks.Add(fontItem);
-        helpItem.Caption = "Hilfe öffnen";
-        helpItem.Hint = "Hilfe öffnen.";
+        helpItem.Caption = "Hilfe";
+        helpItem.Hint = "Hilfe ein-/ausblenden (F1).";
         helpItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
         helpItem.ItemClick += Help_Click;
         ribbon.Items.Add(helpItem);
         helpGroup.ItemLinks.Add(helpItem);
-        aboutItem.Caption = "Über WawiCallPro";
+        aboutItem.Caption = "Über";
         aboutItem.Hint = "Über WawiCallPro.";
         aboutItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
         aboutItem.ItemClick += About_Click;
@@ -248,7 +247,6 @@ partial class MainForm
         helpNav.Text = "Hilfe";
         helpNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         helpNav.Click += HelpNavigation_Click;
-        navigation.Elements.Add(helpNav);
         connectionLabel.Name = "connectionLabel";
         connectionLabel.Text = "Keine Verbindung konfiguriert.";
         connectionLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;

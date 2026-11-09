@@ -1095,6 +1095,12 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Hilfe/Über wie LxTranslate in der Ribbon-Gruppe Info unter Einstellungen:
+  grosse SVG-Buttons, Informationssymbol fuer Ueber, Hilfe per F1 ein-/ausblendbar.
+  Gezielter Ribbon-Test und unsichtbares Rendering sowie Rider-Rebuild App/Console
+  (Debug/Any CPU) bestanden. Nachweis `.artifacts/lx-startup-log/help-ribbon.log`.
+
+
 - [x] ✅ Splash am 09.11.2026 auf die kompakte LxTranslate-DPI-Basis umgestellt:
   480 x 297 bei 96 DPI statt vergroessernder Schrift-Skalierung. Drei gezielte Tests,
   unsichtbare Renderpruefung und Rider-Rebuild App/Console (Debug/Any CPU) bestanden.

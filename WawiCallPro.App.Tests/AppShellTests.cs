@@ -36,6 +36,25 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task HelpAndAboutAreLargeSettingsRibbonActions() => RunStaAsync(() =>
+    {
+        using var form = new MainForm();
+        form.PrepareForBackgroundRun();
+        form.Show();
+        var settings = Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "settingsRibbon");
+        Assert.IsTrue(settings.Groups.Contains(Field<DevExpress.XtraBars.Ribbon.RibbonPageGroup>(form, "helpGroup")));
+        Assert.AreEqual("Hilfe", Field<DevExpress.XtraBars.BarButtonItem>(form, "helpItem").Caption);
+        Assert.AreEqual("Über", Field<DevExpress.XtraBars.BarButtonItem>(form, "aboutItem").Caption);
+        Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon").SelectedPage = settings;
+        form.ClientSize = new Size(1100, 760);
+        CreateHandles(form); form.PerformLayout();
+        using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
+        bitmap.Save(Path.Combine(output, "Settings-ribbon.png"), ImageFormat.Png);
+        return Task.CompletedTask;
+    });
+
+    [TestMethod]
     public Task ReferenceDashboardAndDockLayoutRenderWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
         AppUiStartup.Apply();

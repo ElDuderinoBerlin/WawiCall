@@ -204,8 +204,22 @@ public partial class MainForm : RibbonForm
     private void Plugin_Click(object sender, ItemClickEventArgs e) => Navigate("plugin");
     private void History_Click(object sender, ItemClickEventArgs e) => Navigate("history");
     private void Settings_Click(object sender, ItemClickEventArgs e) => OpenSettings();
-    private void Help_Click(object sender, ItemClickEventArgs e) => helpDock.Show();
-    private void About_Click(object sender, ItemClickEventArgs e) => Navigate("about");
+    private void Help_Click(object sender, ItemClickEventArgs e) => ToggleHelp();
+    private void About_Click(object sender, ItemClickEventArgs e) => XtraMessageBox.Show(this,
+        "WawiCallPro " + typeof(MainForm).Assembly.GetName().Version + "\nProduktlinie: "
+        + (_application?.ProductLine ?? ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine),
+        "Über WawiCallPro", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    private void ToggleHelp()
+    {
+        if (helpDock.Visibility == DockVisibility.Visible) helpDock.Hide();
+        else helpDock.Show();
+    }
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (keyData != Keys.F1) return base.ProcessCmdKey(ref msg, keyData);
+        ToggleHelp();
+        return true;
+    }
     private void HomeNavigation_Click(object? sender, EventArgs e) => Navigate("home");
     private void DatabaseNavigation_Click(object? sender, EventArgs e) => Navigate("database");
     private void PluginNavigation_Click(object? sender, EventArgs e) => Navigate("plugin");
