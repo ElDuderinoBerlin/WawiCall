@@ -5,6 +5,7 @@ namespace WawiCallPro.App.Views;
 partial class PluginPage
 {
     private System.ComponentModel.IContainer components;
+    private DevExpress.XtraWaitForm.ProgressPanel switchProgress;
     private DevExpress.XtraTab.XtraTabPage detailsTab;
     private System.Windows.Forms.TableLayoutPanel detailsRoot;
     private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
@@ -39,6 +40,7 @@ partial class PluginPage
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        switchProgress = new DevExpress.XtraWaitForm.ProgressPanel();
         detailsTab = new DevExpress.XtraTab.XtraTabPage();
         detailsRoot = new System.Windows.Forms.TableLayoutPanel();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();
@@ -69,11 +71,12 @@ partial class PluginPage
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.ColumnCount = 1;
-        layout.RowCount = 3;
+        layout.RowCount = 4;
         layout.Padding = new System.Windows.Forms.Padding(8);
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         detailsLabel.Name = "detailsLabel";
         detailsLabel.Text = "Es ist immer nur ein Warenwirtschaftsplugin aktiv.";
@@ -189,7 +192,15 @@ partial class PluginPage
         layout.Controls.Add(headerLayout, 0, 0);
         layout.Controls.Add(pluginTabs, 0, 1);
 
-        layout.Controls.Add(statusLabel, 0, 2);
+        switchProgress.Name = "switchProgress";
+        switchProgress.AutoHeight = true;
+        switchProgress.Caption = "Plugin wird gewechselt";
+        switchProgress.ShowDescription = false;
+        switchProgress.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        switchProgress.Visible = false;
+        switchProgress.Margin = new System.Windows.Forms.Padding(6);
+        layout.Controls.Add(switchProgress, 0, 2);
+        layout.Controls.Add(statusLabel, 0, 3);
         Controls.Add(layout);
         Size = new System.Drawing.Size(860, 540);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);

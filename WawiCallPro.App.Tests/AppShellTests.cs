@@ -36,6 +36,74 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public void PluginContractsCarrySharedAssemblyAttributeAndStayInDefaultContext()
+    {
+        foreach (var assembly in new[] { typeof(Quantarix.Plugin.Abstractions.IPlugin).Assembly,
+            typeof(IWawiCallPlugin).Assembly, typeof(IWawiCallPluginViews).Assembly })
+        {
+            Assert.IsNotNull(assembly.GetCustomAttribute<Quantarix.Plugin.Abstractions.SharedAssemblyAttribute>());
+            Assert.AreSame(System.Runtime.Loader.AssemblyLoadContext.Default, System.Runtime.Loader.AssemblyLoadContext.GetLoadContext(assembly));
+        }
+    }
+
+    [TestMethod]
+    public Task PluginSwitchProgressRemainsVisibleAndSettingsAreLockedUntilCompletion() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var beforeFont = WindowsFormsSettings.DefaultFont;
+        var beforeAppearance = AppearanceObject.DefaultFont;
+        var beforeSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var beforePalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        try
+        {
+            foreach (var skin in new[] { beforeSkin, "Office 2019 Black" }.Distinct())
+            foreach (var fontSize in new[] { 10F, 16F })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var selection = (IProductPluginSelection)workspace.Plugins;
+                await selection.SwitchAsync("Test.Lexware");
+                using var settings = new FrmSettings(workspace);
+                settings.PrepareForBackgroundRun(); settings.Show();
+                var page = Field<SettingsPage>(settings, "settingsPage");
+                await page.ReloadAsync(); settings.SelectPluginsTab();
+                settings.MinimumSize = Size.Empty; settings.ClientSize = new Size(720, 650);
+                var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                page.ConfigurePluginSwitch(async () => { entered.TrySetResult(); await release.Task; });
+                var management = Field<PluginPage>(page, "pluginPage");
+                var switching = management.HandleCardActionAsync("activate", 1);
+                try
+                {
+                    await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    Assert.IsFalse(Field<SimpleButton>(page, "saveButton").Enabled);
+                    Assert.IsFalse(Field<SimpleButton>(page, "reloadButton").Enabled);
+                    Assert.IsFalse(Field<SimpleButton>(management, "refreshButton").Enabled);
+                    Assert.IsTrue(Field<DevExpress.XtraWaitForm.ProgressPanel>(management, "switchProgress").Visible);
+                    Assert.Contains("Vorgänge", Field<LabelControl>(management, "statusLabel").Text);
+                    settings.PerformLayout(); CheckTableBounds(settings);
+                    var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "plugin-cards");
+                    Directory.CreateDirectory(output);
+                    using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                    bitmap.Save(Path.Combine(output, $"Switch-{skin}-{fontSize}.png"), ImageFormat.Png);
+                }
+                finally { release.TrySetResult(); await switching; }
+                Assert.IsFalse(Field<DevExpress.XtraWaitForm.ProgressPanel>(management, "switchProgress").Visible);
+                Assert.IsTrue(Field<SimpleButton>(page, "saveButton").Enabled);
+                Assert.AreEqual("Test.Dummy", selection.ActivePluginId);
+                await settings.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = beforeFont; AppearanceObject.DefaultFont = beforeAppearance;
+            if (string.IsNullOrEmpty(beforePalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(beforeSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(beforeSkin, beforePalette);
+        }
+    });
+
+    [TestMethod]
     public Task PluginCardActivationIsSingleFlightAndClosingCancelsThePendingSwitch() => WithWorkspace(async (workspace, services, plugin) =>
     {
         using var page = new PluginPage();
@@ -58,10 +126,12 @@ public sealed class AppShellTests
         var pending = page.HandleCardActionAsync("activate", 1);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.IsFalse(Field<GridControl>(page, "catalogGrid").Enabled);
+        Assert.IsTrue(Field<DevExpress.XtraWaitForm.ProgressPanel>(page, "switchProgress").Visible);
         await page.HandleCardActionAsync("activate", 1);
         await page.HandleCardActionAsync("details", 0);
         Assert.AreEqual(1, calls);
         await page.StopAsync(); await pending;
+        Assert.IsFalse(Field<DevExpress.XtraWaitForm.ProgressPanel>(page, "switchProgress").Visible);
         Assert.IsTrue(cancelled);
         Assert.AreEqual("Test.Lexware", ((IProductPluginSelection)workspace.Plugins).ActivePluginId);
     });
@@ -328,7 +398,7 @@ public sealed class AppShellTests
         var catalog = Field<DevExpress.XtraGrid.Views.Items.ItemsView>(management, "catalogView");
         catalog.FocusedRowHandle = 1;
         await management.HandleCardActionAsync("activate", 1);
-        Assert.AreEqual("Plugin aktiviert und Auswahl gespeichert.", Field<LabelControl>(management, "statusLabel").Text);
+        Assert.AreEqual("Plugin gewechselt und Auswahl gespeichert.", Field<LabelControl>(management, "statusLabel").Text);
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsNull(workspace.Companies.Current.Company);
         Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);

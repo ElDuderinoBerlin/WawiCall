@@ -18,6 +18,14 @@ public partial class PluginPage : XtraUserControl
     private AppUiState? _state;
     private PageOperation? _operation;
     private Func<string, CancellationToken, Task>? _activate;
+    private bool _switching;
+    internal void ReportSwitchStatus(string text)
+    {
+        if (!_switching) return;
+        statusLabel.Text = text;
+        layout.PerformLayout();
+        statusLabel.Update();
+    }
     private readonly HtmlTemplate _activeCard = new();
     private static readonly Lazy<SvgImage> PluginIcon = new(() => LoadIcon("Plugin"));
     private static readonly Lazy<SvgImage> DummyIcon = new(() => LoadIcon("Settings"));
@@ -139,18 +147,28 @@ public partial class PluginPage : XtraUserControl
         if (_operation is null || _activate is null) return;
         await _operation.RunAsync(async token =>
         {
-            catalogGrid.Enabled = false; capabilitiesButton.Enabled = false;
+            _switching = true;
+            switchProgress.Visible = true;
+            catalogGrid.Enabled = false; capabilitiesButton.Enabled = false; refreshButton.Enabled = false;
+            ReportSwitchStatus("Wechsel zu " + row.Name + " wird vorbereitet …");
+            switchProgress.Update();
             try
             {
+                await Task.Yield();
                 await _activate(row.Id, token);
                 grid.DataSource = null;
                 capabilitiesTab.PageVisible = false;
                 detailsTab.PageVisible = false;
                 pluginTabs.SelectedTabPage = installedTab;
                 await UpdateStatusAsync(token);
-                statusLabel.Text = "Plugin aktiviert und Auswahl gespeichert.";
+                statusLabel.Text = "Plugin gewechselt und Auswahl gespeichert.";
             }
-            finally { RefreshCatalog(); catalogGrid.Enabled = true; UpdateActivation(); }
+            finally
+            {
+                _switching = false;
+                switchProgress.Visible = false;
+                RefreshCatalog(); catalogGrid.Enabled = true; refreshButton.Enabled = true; UpdateActivation();
+            }
         });
         if (!IsDisposed) UpdateActivation();
     }

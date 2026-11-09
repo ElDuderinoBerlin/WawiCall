@@ -91,10 +91,13 @@ public partial class SettingsPage : XtraUserControl
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
         try
         {
+            pluginPage.ReportSwitchStatus("Offene Ansichten und Vorgänge werden beendet …");
             if (_operation is not null) await _operation.StopAsync();
             if (_beforePluginSwitch is not null) await _beforePluginSwitch();
             await _workspace.Companies.SelectAsync(null);
+            pluginPage.ReportSwitchStatus("Bisheriges Plugin wird entladen, neues Plugin wird geladen …");
             await selection.SwitchAsync(id, token);
+            pluginPage.ReportSwitchStatus("Plugin ist bereit. Auswahl wird gespeichert …");
             var previous = _snapshot!;
             await _workspace.Settings.SaveAsync(previous.Options with { User = previous.Options.User with { ActivePluginId = id } }, previous, token);
             _snapshot = await _workspace.Settings.LoadAsync(token);

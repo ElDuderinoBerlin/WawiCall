@@ -1095,6 +1095,19 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Sichtbarer Pluginwechsel: animiertes DevExpress-ProgressPanel und Status fuer
+  Vorgang-/Ansichtsschluss, Entladen/Laden sowie Speichern der Auswahl. Aktionen bleiben
+  waehrenddessen gesperrt, Abschluss/Abbruch entfernen die Anzeige. Kein App-Neustart im
+  regulaeren Wechselpfad: ProductPluginRuntime -> PluginManager -> collectible PluginLoadContext.
+  SharedAssemblyAttribute explizit nachvollzogen: eigene markierte Vertraege bleiben im
+  Default-ALC; SharedPackage-Namen werden separat geladen und dem Manager uebergeben.
+  Bestehende Quantarix-Laufzeit unveraendert weiterverwendet. Je Edition vier App- und vier
+  gezielte echte Laufzeittests bestanden (Dummy-Wechsel/zurueck, Typidentitaet, Ressourcen-
+  und Kontextfreigabe). Fortschritt hell/dunkel und mit 10/16-Punkt-Schrift unsichtbar gerendert;
+  App/Console in aktiver Debug-/Any-CPU-Konfiguration rekompiliert. Nachweise unter
+  `.artifacts/lx-startup-log/switch-*`, `live-plugin-runtime*` und `.artifacts/plugin-cards/Switch-*`.
+
+
 - [x] ✅ Settings-Buttons vereinheitlicht: Speichern, Neu laden und Schliessen
   verwenden dieselbe bevorzugte Groesse; Cache-Aktionen sind gleich breit und brechen
   passend zur Breite um. Keine festen Texthoehen. Gezielter Settings-Render-/Groessentest
