@@ -244,6 +244,21 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Die Referenz ersetzt keine aktuellen Repository-Regeln. Insbesondere bei der Splash-Fokusübergabe
   die im gemeinsamen Block benannte korrigierte LxPrintStudio-Implementierung verwenden.
 
+### Dependency Injection
+
+- Neue und überarbeitete Funktionalität möglichst konsequent über Dependency Injection aufbauen.
+  Fach-, Infrastruktur-, Telefonie-, Audio-, Konfigurations- und Persistenzdienste über passende
+  Interfaces und Konstruktorinjektion bereitstellen; Registrierungen und Lebensdauern zentral in
+  den Composition Roots der Hosts bündeln.
+- Zustandsbehaftete Instanzen pro Gespräch, Sitzung oder Vorgang über typisierte, injizierte Factories
+  erzeugen. Besitz, Abbruch, Freigabe und Singleton-/Scoped-/Transient-Lebensdauern ausdrücklich festlegen.
+  Keine Service-Locator-Zugriffe oder selbst aufgebauten ServiceProvider in Fachlogik und Views.
+- Externe Technik hinter Adaptern kapseln; insbesondere SIPSorcery, CSCore, Datenbankzugriffe und
+  Betriebssystemdienste so anbinden, dass Abläufe mit isolierten Testimplementierungen prüfbar bleiben.
+- Parameterlose Designer-Konstruktoren von Forms und UserControls erhalten. Laufzeitdienste über
+  zusätzliche Konstruktoren oder gezielte Bindung zuführen; Designer-Code enthält keine DI-Auflösung.
+  Werteobjekte, DTOs und statischer Designer-Aufbau benötigen keine Containerregistrierung.
+
 ### CRA und Sicherheit
 
 - Die [CRA- und Security-Arbeitsanweisung](../_Agents/CRA-Anleitung-fuer-AGENTS.md)
