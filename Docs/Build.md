@@ -20,6 +20,13 @@ z. B. `WawiCallPro.App/bin/Debug/net10.0-windows10.0.19041.0`. Die Exe-/Assembly
 z. B. `WawiCallPro.App.FinOffice.exe`. Es wird dort jeweils die gewählte Edition bereitgestellt;
 die vorherige Host- und Plugin-Ausgabe der anderen Edition wird beim Wechsel entfernt.
 
+Seit der CSCore-Anbindung starten App und Console aus `net10.0-windows10.0.19041.0`.
+Der Build entfernt eigene EXE-, DLL-, PDB-, deps- und runtimeconfig-Dateien aus den alten
+Hostordnern `bin/<Konfiguration>/net10.0-windows` und beim Console-Host zusätzlich `net10.0`.
+So bleibt der alte Build ohne aktuelle Fehlerkorrekturen kein startbarer Einstiegspunkt.
+`test-build-layout.ps1` legt hierfür veraltete Testdateien an und prüft ihre Entfernung bei
+jedem Editionswechsel sowie Start und Beenden des tatsächlich gebauten Hosts.
+
 Testausgaben und Pluginfixtures bleiben unter `bin/<Konfiguration>/<Edition>/<Framework>` getrennt;
 `obj/<Edition>` bleibt für Restore-/Zwischenstände erhalten. Die Skripte und konsumierenden Testpfade sind
 entsprechend angepasst. `test-plugin-deployment.ps1`, `test-plugin-native.ps1` und

@@ -1136,6 +1136,16 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Gemeldeten ObjectDisposedException-Absturz anhand der beiden lokalen Crashberichte
+  eingegrenzt und mit isolierten, fensterlosen Hostläufen reproduziert: alter Build 0.1.100
+  unter net10.0-windows scheitert in MainForm.UnbindTelephony beim zweiten Freigeben;
+  der aktuelle Host unter net10.0-windows10.0.19041.0 beendet denselben Ablauf erfolgreich.
+  Die Schutzabfrage ist bereits im aktuellen Quellcode enthalten. Veraltete eigene
+  Host-Startdateien werden jetzt beim Build aus den früheren Frameworkordnern entfernt.
+  Pro/FinOffice zweimal im Wechsel mit App-/Console-Diagnose und Plugin-Ausgabeprüfung
+  bestanden; aktive Debug-/Any-CPU-Hostausgaben aktualisiert. Keine SIP-Zugangsdaten oder
+  Audiogeräte verwendet. Nachweise: `.artifacts/startup-dispose` und `.artifacts/build-layout`.
+
 - [x] ✅ Datenbank-Einrichtungsassistent nach der tatsächlichen LxTranslate-Implementierung
   übernommen: FrmDatabaseSetup mit drei Schritten sowie Provider-, Verbindungs- und
   Fortschritts-UserControls samt Designer-/Ressourcendateien. Einstieg im Ribbon unter

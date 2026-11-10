@@ -14,9 +14,25 @@ try {
         $other = if ($edition -eq 'Pro') { 'FinOffice' } else { 'Pro' }
         foreach ($hostName in @('App','Console')) {
             $project = Join-Path $root "WawiCallPro.$hostName/WawiCallPro.$hostName.csproj"
+            $legacyFrameworks = if ($hostName -eq 'Console') { @('net10.0-windows','net10.0') } else { @('net10.0-windows') }
+            foreach ($framework in $legacyFrameworks) {
+                $legacyOutput = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/$framework"
+                New-Item -ItemType Directory -Path $legacyOutput -Force | Out-Null
+                foreach ($extension in @('exe','dll','pdb','deps.json','runtimeconfig.json')) {
+                    Set-Content -LiteralPath (Join-Path $legacyOutput "WawiCallPro.$hostName.legacy-build-layout-fixture.$extension") -Value 'obsolete build output'
+                }
+            }
             & dotnet build $project -c $Configuration "-p:Platform=$Platform" "-p:LexwareProductLine=$edition" --nologo --verbosity minimal |
                 Set-Content -LiteralPath (Join-Path $artifacts "$hostName-$edition-build.log") -Encoding utf8
             if ($LASTEXITCODE -ne 0) { throw "Build failed: $hostName/$edition" }
+            foreach ($framework in $legacyFrameworks) {
+                $legacyOutput = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/$framework"
+                foreach ($extension in @('exe','dll','pdb','deps.json','runtimeconfig.json')) {
+                    if (Get-ChildItem -LiteralPath $legacyOutput -Filter "WawiCallPro.$hostName*.$extension") {
+                        throw "Legacy host entry point remains: $hostName/$framework"
+                    }
+                }
+            }
             $output = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net10.0-windows10.0.19041.0"
             if (!(Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$edition.dll"))) { throw 'Selected host missing.' }
             if (Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$other.dll")) { throw 'Stale other-edition host remains.' }
