@@ -1136,6 +1136,18 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Runden Splash-Blur wie in LxTranslate wiederhergestellt: im gleichen
+  PulsingProgressBarControl seitlich je 36 logische Pixel Abstand und 88 Pixel Zeichenhöhe
+  für den vollständig auslaufenden Lichtschein. Die vorherigen Nullabstände schnitten
+  den bereits rund gezeichneten Halo am Control-Rand rechteckig ab. Standardgröße des
+  Splashs bleibt bei normaler Schrift 480 × 297; große Schrift passt die erforderliche
+  Inhaltshöhe weiterhin an. Je Edition vier gezielte Splash-Prüfungen bestanden:
+  heller/dunkler Skin, kleine/große Fenster, 10/16-Punkt-Schrift und 150-Prozent-
+  Layoutskalierung; zusätzlicher Pixelnachweis für freien Rand bei 0/40/100 Prozent
+  Fortschritt. Bilder visuell geprüft, alle Fenster unsichtbar und ohne Aktivierung.
+  App/Console in aktiver Debug-/Any-CPU-Konfiguration rekompiliert. Nachweise:
+  `.artifacts/lx-startup-log/rounded-splash-glow*.log` und `SplashGlow*.png`.
+
 - [x] ✅ Gemeldeten ObjectDisposedException-Absturz anhand der beiden lokalen Crashberichte
   eingegrenzt und mit isolierten, fensterlosen Hostläufen reproduziert: alter Build 0.1.100
   unter net10.0-windows scheitert in MainForm.UnbindTelephony beim zweiten Freigeben;

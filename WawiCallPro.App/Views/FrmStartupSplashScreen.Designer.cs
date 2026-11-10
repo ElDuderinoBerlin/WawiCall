@@ -90,11 +90,11 @@ partial class FrmStartupSplashScreen
         progressBar.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         progressBar.AnimationDuration = 480;
         progressBar.Position = 0;
-        progressBar.Size = new System.Drawing.Size(300, 48);
-        progressBar.MinimumSize = new System.Drawing.Size(0, 48);
+        progressBar.Size = new System.Drawing.Size(300, 88);
+        progressBar.MinimumSize = new System.Drawing.Size(0, 88);
         progressBar.TrackThickness = 8;
-        progressBar.TrackLeftInset = 0;
-        progressBar.TrackRightInset = 0;
+        progressBar.TrackLeftInset = 36;
+        progressBar.TrackRightInset = 36;
         progressBar.UseParentBackground = true;
         progressBar.UseRoundedCorners = true;
         progressBar.UseSkinColors = false;

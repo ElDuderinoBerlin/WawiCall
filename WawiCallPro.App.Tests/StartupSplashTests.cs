@@ -15,6 +15,62 @@ namespace WawiCallPro.App.Tests;
 public sealed class StartupSplashTests
 {
     [TestMethod]
+    public Task SplashGlowFadesBeforeAllControlEdgesAtPartialAndFullProgress() => RunStaAsync(async () =>
+    {
+        AppUiStartup.Apply();
+        var originalSkin = UserLookAndFeel.Default.ActiveSkinName;
+        var originalPalette = UserLookAndFeel.Default.ActiveSvgPaletteName;
+        try
+        {
+            foreach (var skin in new[] { "Basic", "Office 2019 Black" })
+            {
+                UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var form = new FrmStartupSplashScreen();
+                form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+                var progress = Field<PulsingProgressBarControl>(form, "progressBar");
+                foreach (var position in new[] { 0, 40, 100 })
+                {
+                    form.SetStatus("Anwendungsdienste werden vorbereitet …", position, 100);
+                    var deadline = DateTime.UtcNow.AddSeconds(2);
+                    while (progress.DisplayedPosition != position && DateTime.UtcNow < deadline) await Task.Delay(30);
+                    Assert.AreEqual(position, progress.DisplayedPosition);
+                    using var bitmap = new Bitmap(progress.Width, progress.Height);
+                    progress.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                    var surface = bitmap.GetPixel(0, 0);
+                    void CheckEdge(int x, int y)
+                    {
+                        var pixel = bitmap.GetPixel(x, y);
+                        Assert.IsTrue(Math.Abs(pixel.R - surface.R) <= 4 && Math.Abs(pixel.G - surface.G) <= 4
+                            && Math.Abs(pixel.B - surface.B) <= 4,
+                            $"Clipped glow at ({x},{y}), progress {position}, skin {skin}.");
+                    }
+                    for (var y = 0; y < bitmap.Height; y++) { CheckEdge(0, y); CheckEdge(bitmap.Width - 1, y); }
+                    for (var x = 0; x < bitmap.Width; x++) { CheckEdge(x, 0); CheckEdge(x, bitmap.Height - 1); }
+                    if (position > 0)
+                    {
+                        var blue = 0;
+                        for (var x = 0; x < bitmap.Width; x++)
+                        {
+                            var pixel = bitmap.GetPixel(x, bitmap.Height / 2);
+                            if (pixel.B > pixel.R + 60) blue++;
+                        }
+                        Assert.IsTrue(blue > 20, "The progress must remain visible while its glow fades at the edges.");
+                    }
+                    Save(form, $"SplashGlow-{skin}-{position}");
+                    var output = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../.artifacts/lx-startup-log"));
+                    bitmap.Save(Path.Combine(output, $"SplashGlow-detail-{skin}-{position}.png"), ImageFormat.Png);
+                }
+                Assert.AreNotEqual(form.Handle, User32.GetForegroundWindow());
+            }
+        }
+        finally
+        {
+            if (string.IsNullOrWhiteSpace(originalPalette)) UserLookAndFeel.Default.SetSkinStyle(originalSkin);
+            else UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
+        }
+    });
+
+    [TestMethod]
     public Task SplashMatchesReferenceAtSmallBoundsLargeFontsAndBothSkinsWithoutVisibleWindows() => RunStaAsync(async () =>
     {
         AppUiStartup.Apply();
