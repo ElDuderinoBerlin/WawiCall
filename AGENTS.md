@@ -230,6 +230,20 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Implementierungsreferenz LxTranslate
+
+- Verbindliches Implementierungsbeispiel für den Aufbau der Desktop-App ist
+  `D:\Application-Development\LxTranslate\LxTranslate.App`.
+- Die zugehörige Referenzsolution liegt unter `D:\Application-Development\LxTranslate`;
+  Hauptsolution: `D:\Application-Development\LxTranslate\LxTranslateSolution.sln`.
+- Vor entsprechenden Änderungen die tatsächliche Implementierung dort vergleichen: Formulargestaltung
+  und abgerundete Ecken, Größen-/Positionsspeicherung, Ribbon und Navigation, zentraler Einstellungsdialog,
+  Datenbank-Einrichtungsassistent mit seinen UserControls sowie Splash und Log-Fenster.
+  Passende UserControls und Muster dürfen übernommen und an WawiCallPro angepasst werden;
+  projektspezifische Dienste, Sicherheitsregeln und bestehende Daten erhalten.
+- Die Referenz ersetzt keine aktuellen Repository-Regeln. Insbesondere bei der Splash-Fokusübergabe
+  die im gemeinsamen Block benannte korrigierte LxPrintStudio-Implementierung verwenden.
+
 ### CRA und Sicherheit
 
 - Die [CRA- und Security-Arbeitsanweisung](../_Agents/CRA-Anleitung-fuer-AGENTS.md)
