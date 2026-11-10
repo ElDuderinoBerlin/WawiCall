@@ -22,6 +22,9 @@ public partial class CallerLookupPage : XtraUserControl
     private bool _binding;
     private bool _explicitContext;
     private bool _arrangingButtons;
+    private Func<CallerMatchDecision, CancellationToken, Task>? _accept;
+    private bool _callEnded;
+    private PhoneLineContext? _boundLine;
     public CallerLookupPage()
     {
         InitializeComponent();
@@ -63,6 +66,16 @@ public partial class CallerLookupPage : XtraUserControl
         ShowLine();
     }
     internal CallerMatchDecision? Decision => _decision;
+    internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
+    {
+        _accept = accept;
+        _boundLine = (_workspace?.Telephony as ICallLineContextProvider)?.GetLineContext(call.Id);
+        numberEdit.Text = call.RemoteAddress.Presentation == NumberPresentation.Available ? call.RemoteAddress.OriginalValue ?? call.RemoteAddress.E164 ?? "" : "";
+        numberEdit.Properties.ReadOnly = true;
+        numberEdit.ToolTip = "Rufnummer dieses Anrufs. Unterdrückte oder unbekannte Nummern werden nicht ergänzt.";
+    }
+    internal async Task EndCallAsync()
+    { _callEnded = true; await StopAsync(); chooseButton.Enabled = searchButton.Enabled = cancelButton.Enabled = false; statusLabel.Text = "Gespräch beendet. Die bisherige Auswahl bleibt in der Historie erhalten."; }
     internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
     private void DisposePage()
     {
@@ -70,11 +83,12 @@ public partial class CallerLookupPage : XtraUserControl
         _operation?.Dispose();
         _state?.Save(view, "CallerLookup-v1");
     }
-    private async void Search_Click(object? sender, EventArgs e)
+    private async void Search_Click(object? sender, EventArgs e) => await SearchAsync();
+    internal async Task SearchAsync()
     {
-        if (_operation is null || _workspace is null || _operation.IsRunning) return;
+        if (_operation is null || _workspace is null || _operation.IsRunning || _callEnded) return;
         var number = numberEdit.Text.Trim();
-        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _context.LineAssignment?.Line);
+        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _accept is null ? _context.LineAssignment?.Line : _boundLine);
         if (incoming.Kind != PhoneNumberAddressKind.Public)
         {
             _decision = null; grid.DataSource = Array.Empty<CandidateRow>();
@@ -99,8 +113,12 @@ public partial class CallerLookupPage : XtraUserControl
                 _lastNumber = number;
                 if (!_explicitContext)
                     _context = _context with { LineAssignment = CallerLineConfiguration.Resolve((await _workspace.Settings.LoadAsync(request.Token)).Options) };
+                if (_accept is not null && _context.LineAssignment is { } mapping)
+                    _context = _context with { LineAssignment = mapping with { IsVerified = mapping.IsVerified && _boundLine is { } line
+                        && mapping.Line.TelephonySystemId == line.TelephonySystemId && mapping.Line.LineId == line.LineId } };
                 var context = _context with { ActiveCompany = _workspace.Companies.Current.Company?.Key };
                 Display(_workspace.CallerDecisions.Evaluate(result, context, previous));
+                if (_accept is not null) await _accept(_decision!, request.Token);
             }
             catch (OperationCanceledException) when (request.IsCancellationRequested)
             { statusLabel.Text = "Suche abgebrochen. Keine neue Zuordnung übernommen."; selectionLabel.Text = "Keine Zuordnung."; }
@@ -114,15 +132,21 @@ public partial class CallerLookupPage : XtraUserControl
         if (!IsDisposed && !Disposing) UpdateFocusedDetails();
     }
     private void Cancel_Click(object? sender, EventArgs e) => _request?.Cancel();
-    private void Choose_Click(object? sender, EventArgs e)
+    private async void Choose_Click(object? sender, EventArgs e)
     {
-        if (_workspace is null || _decision is null || view.GetFocusedRow() is not CandidateRow row) return;
+        if (_workspace is null || _decision is null || _callEnded || _operation?.IsRunning == true || view.GetFocusedRow() is not CandidateRow row) return;
         var current = _workspace.PhoneSearch.GetStatus();
         if (current.Generation != _decision.IndexGeneration || current.State is not (PhoneSearchScopeState.Ready or PhoneSearchScopeState.Partial))
         { statusLabel.Text = "Suchstand geändert oder abgelaufen. Bitte erneut suchen, bevor ein Datensatz übernommen wird."; chooseButton.Enabled = false; return; }
         _decision = _decision with { Lookup = _decision.Lookup with { IsComplete = current.IsComplete }, Groups = _decision.Groups.Select(group =>
             group with { Company = current.Companies.Single(company => company.Company == group.Company.Company) }).ToImmutableArray() };
         Display(_workspace.CallerDecisions.Choose(_decision, row.Candidate.Party));
+        if (_accept is not null && _operation is not null)
+        {
+            chooseButton.Enabled = false;
+            await _operation.RunAsync(async token => { await _accept(_decision!, token); if (!_callEnded) statusLabel.Text = "Zuordnung für diesen Anruf gespeichert."; });
+            if (!IsDisposed && !Disposing) UpdateFocusedDetails();
+        }
     }
     internal void Display(CallerMatchDecision decision)
     {
@@ -164,7 +188,7 @@ public partial class CallerLookupPage : XtraUserControl
     }
     private void UpdateFocusedDetails()
     {
-        chooseButton.Enabled = _decision is not null && _operation?.IsRunning != true && view.GetFocusedRow() is CandidateRow;
+        chooseButton.Enabled = !_callEnded && _decision is not null && _operation?.IsRunning != true && view.GetFocusedRow() is CandidateRow;
         if (view.GetFocusedRow() is not CandidateRow row) { detailsLabel.Text = "Treffer markieren, um Rufnummer, Durchwahl, Herkunft und Cachestand zu sehen."; return; }
         detailsLabel.Text = "Installation: " + row.Candidate.Party.Company.InstallationId + " · " + row.Rolle + " · " + row.Name
             + (row.Candidate.OwnerDisplayName is { } owner ? " · Kontakt gehört zu: " + owner + " (" + row.Candidate.OwnerNumber + ")" : "")

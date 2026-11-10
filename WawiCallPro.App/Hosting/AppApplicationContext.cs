@@ -141,7 +141,8 @@ internal sealed class AppApplicationContext : ApplicationContext
         {
             if (_form is not null) await _form.PrepareToCloseAsync();
         }
+        catch (WawiCallPro.Plugin.Windows.UnsavedPluginChangesException) { _form?.ReportUnsavedChanges(); return; }
         catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }
-        finally { _closeRequested.TrySetResult(); }
+        _closeRequested.TrySetResult();
     }
 }

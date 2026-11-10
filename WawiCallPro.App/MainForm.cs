@@ -158,19 +158,22 @@ public partial class MainForm : RibbonForm
     }
     internal async Task PrepareToCloseAsync()
     {
+        EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
         if (_operation is not null) await _operation.StopAsync();
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
         foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
+        foreach (var call in _callPages.Values) await call.Page.StopAsync();
+        await PendingCallUpdates;
         foreach (var setup in OwnedForms.OfType<FrmDatabaseSetup>()) await setup.StopAsync();
         await ClosePluginPagesAsync();
         if (!_backgroundRun) { _state?.Save(this); _state?.Save(dockManager); }
     }
     private static Task StopPageAsync(Control? control) => (control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : control) switch
     {
-        HistoryPage page => page.StopAsync(), _ => Task.CompletedTask
+        HistoryPage page => page.StopAsync(), CallDetailsPage page => page.StopAsync(), _ => Task.CompletedTask
     };
     private async void ClosePage_Click(object sender, ItemClickEventArgs e)
     {
@@ -180,6 +183,13 @@ public partial class MainForm : RibbonForm
     }
     private async Task CloseDocumentAsync(BaseDocument page)
     {
+        if (_pluginPages.TryGetValue(page, out var guarded) && guarded.HasUnsavedChanges) throw new UnsavedPluginChangesException();
+        foreach (var call in _callPages.Where(pair => ReferenceEquals(pair.Value.Document, page)).ToArray())
+        {
+            if (call.Value.Page.HasUnsavedChanges) throw new UnsavedPluginChangesException();
+            foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Key).ToArray()) { await lookup.StopAsync(); lookup.Close(); }
+            _callPages.Remove(call.Key);
+        }
         await StopPageAsync(page.Control);
         if (_pluginPages.Remove(page, out var handle)) await handle.DisposeAsync();
         foreach (var key in _documents.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray()) _documents.Remove(key);
@@ -208,7 +218,7 @@ public partial class MainForm : RibbonForm
     internal FrmCallerLookup CreateCallerDialog() => _workspace is null ? new FrmCallerLookup() : new FrmCallerLookup(_workspace, _state);
     private void OpenCallerLookup()
     {
-        if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => !form.IsDisposed) is { } existing)
+        if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId is null && !form.IsDisposed) is { } existing)
         {
             if (existing.WindowState == FormWindowState.Minimized) existing.WindowState = FormWindowState.Normal;
             existing.Show(); if (!_backgroundRun) existing.Activate(); return;
@@ -247,6 +257,8 @@ public partial class MainForm : RibbonForm
     }
     private async Task PreparePluginSwitchAsync()
     {
+        EnsureViewsCanClose();
+        foreach (var call in _callPages.Values.ToArray()) await CloseDocumentAsync(call.Document);
         if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
         await _selectionTask;
         await ClosePluginPagesAsync();

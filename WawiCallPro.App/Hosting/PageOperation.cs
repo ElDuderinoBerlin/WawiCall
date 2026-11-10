@@ -41,6 +41,7 @@ internal sealed class PageOperation(Control owner, LabelControl status) : IDispo
     internal static string Describe(Exception exception) => exception switch
     {
         WawiCallPro.Interfaces.Telephony.TelephonyException or ConfigurationException or DatabaseOperationException or RepositoryConflictException or SecretProtectionException or WawiCallPro.Interfaces.PhoneNumbers.PhoneCacheRefreshException => exception.Message,
+        WawiCallPro.Plugin.Windows.UnsavedPluginChangesException => exception.Message,
         NotSupportedException => "Diese Funktion ist im aktiven Plugin noch nicht verfügbar.",
         _ => "Die Aktion ist fehlgeschlagen. Bitte Einstellungen und Erreichbarkeit prüfen."
     };

@@ -13,6 +13,12 @@ public interface IDtmfReceiver
     event EventHandler<DtmfReceivedEventArgs>? DtmfReceived;
 }
 
+/// <summary>Immutable identity of the account actually used by this call, independent of later settings edits.</summary>
+public interface ICallLineContextProvider
+{
+    WawiCallPro.Interfaces.PhoneNumbers.PhoneLineContext? GetLineContext(Guid callId);
+}
+
 /// <summary>One completed RTP telephone event, scoped to its stable application call ID.</summary>
 public sealed class DtmfReceivedEventArgs(Guid callId, char digit, int duration) : EventArgs
 {

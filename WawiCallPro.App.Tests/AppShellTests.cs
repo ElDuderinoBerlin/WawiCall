@@ -40,6 +40,228 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task SupersededSearchResultCannotAssignACallOrStartDetailLoads() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var call = await CreateWorkspaceCallAsync(services);
+        using var page = new CallDetailsPage(); page.Bind(workspace, call);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        await workspace.PhoneSearch.RefreshAsync();
+        await page.AcceptAsync(workspace.CallerDecisions.Choose(decision, decision.Groups[0].Candidates.First().Party), CancellationToken.None);
+        Assert.IsNull(page.Context); Assert.AreEqual(0, plugin.Created);
+        Assert.IsNull((await workspace.History.GetCallAsync(call.Id))!.Lookup);
+        Assert.Contains("Suchstand geändert", Field<LabelControl>(page, "statusLabel").Text);
+        await page.StopAsync();
+    });
+    [TestMethod]
+    public Task SipStateWriteRetriesWhenManualAssociationWinsItsFirstPersistenceVersion() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var call = await CreateWorkspaceCallAsync(services);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var selected = workspace.CallerDecisions.Choose(decision, decision.Groups[1].Candidates.First().Party);
+        var racing = new AssociationDuringStateWrite(services.GetRequiredService<ICallRepository>(), workspace.CallAssociations, selected);
+        var sink = new SipCallPersistence(racing, services.GetRequiredService<ICallOriginProvider>(), TimeProvider.System);
+        var saved = await sink.SaveAsync(call with { Revision = 1, State = CallState.Ringing, StateChangedAtUtc = call.StateChangedAtUtc.AddSeconds(1) });
+        Assert.AreEqual(2, racing.Writes); Assert.AreEqual(selected.Selection!.Party.Company, saved.Company);
+        var history = (await workspace.History.GetCallAsync(call.Id))!;
+        Assert.AreEqual("manual", history.Lookup!.SelectionReason); Assert.AreEqual(1, history.Events.Length);
+    });
+
+    [TestMethod]
+    public Task WrongPartyDetailResponseIsRejectedWithoutOpeningPluginViews() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var page = new CallDetailsPage(); page.Bind(workspace, await CreateWorkspaceCallAsync(services));
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var wanted = decision.Groups[0].Candidates.First().Party;
+        ((TestDirectory)workspace.Directory).ReadParty = (party, token) => Task.FromResult<Party?>(new()
+        { Key = decision.Groups[1].Candidates.First().Party, DisplayName = "wrong-company-sentinel" });
+        await page.AcceptAsync(workspace.CallerDecisions.Choose(decision, wanted), CancellationToken.None); await page.PendingLoads;
+        Assert.DoesNotContain("wrong-company-sentinel", Field<LabelControl>(page, "detailsLabel").Text);
+        Assert.AreEqual(0, plugin.Created); await page.StopAsync();
+    });
+
+    private sealed class AssociationDuringStateWrite(ICallRepository inner, ICallAssociationService association, CallerMatchDecision decision) : ICallRepository
+    {
+        internal int Writes;
+        public Task<StoredCall?> GetAsync(Guid callId, CancellationToken cancellationToken = default) => inner.GetAsync(callId, cancellationToken);
+        public Task<Page<CallSnapshot>> GetPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) => inner.GetPageAsync(query, cancellationToken);
+        public async Task<StoredCall> WriteAsync(CallWrite write, CancellationToken cancellationToken = default)
+        {
+            if (++Writes == 1) await association.SaveAsync(write.Call.Id, decision, cancellationToken);
+            return await inner.WriteAsync(write, cancellationToken);
+        }
+    }
+    [TestMethod]
+    public Task CallEventRoutingKeepsNewerStatesAndDoesNotReplaceTheMainDocument() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var original = form.GetActiveDocumentView();
+        var call = await CreateWorkspaceCallAsync(services);
+        form.GetType().GetMethod("TelephonyCall_Changed", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [null, new CallChangedEventArgs(call)]);
+        await Task.Delay(30); await form.PendingCallUpdates;
+        Assert.AreSame(original, form.GetActiveDocumentView());
+        var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single(lookup => lookup.CallId == call.Id);
+        await form.ObserveCallAsync(call with { Revision = 2, State = CallState.Connected });
+        await form.ObserveCallAsync(call with { Revision = 1, State = CallState.Ended });
+        Assert.IsTrue(Field<SimpleButton>(lookup.Page, "searchButton").Enabled, "An old terminal event cannot stop the current call workspace.");
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallDetailsRenderEmptyLoadedAndPluginContextsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply(); await SeedCallerCachesAsync(workspace, services);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var output = Path.GetFullPath(".artifacts/phase6-call-context/render"); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var (width, height, fontSize, scale, skin) in new[] { (900, 650, 10F, 1F, oldSkin), (640, 480, 10F, 1F, oldSkin),
+                (900, 650, 16F, 1F, oldSkin), (900, 650, 10F, 1.5F, oldSkin), (900, 650, 16F, 1F, "Office 2019 Black") })
+            foreach (var loaded in new[] { false, true })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var host = new FrmCallerLookup(); host.PrepareForBackgroundRun();
+                foreach (Control child in host.Controls.Cast<Control>().ToArray()) child.Dispose();
+                host.Controls.Clear(); host.Font = font; host.ClientSize = new(width, height);
+                using var page = new CallDetailsPage { Dock = DockStyle.Fill };
+                page.Bind(workspace, await CreateWorkspaceCallAsync(services)); host.Controls.Add(page);
+                host.Show(); Application.DoEvents();
+                if (loaded) { await page.AcceptAsync(workspace.CallerDecisions.Choose(decision, decision.Groups[1].Candidates.First().Party), CancellationToken.None); await page.PendingLoads; }
+                if (scale != 1F) host.Scale(new SizeF(scale, scale));
+                host.PerformLayout(); Application.DoEvents();
+                Assert.IsTrue(Field<XtraTabControl>(page, "tabs").Height > 80);
+                Assert.IsTrue(Field<TableLayoutPanel>(page, "actions").Right <= page.Width);
+                using var shot = UiAudit.Capture(host); shot.Save(Path.Combine(output, $"call-{width}-{fontSize:0}-{scale:0.0}-{skin}-{loaded}.png"), ImageFormat.Png);
+                await page.StopAsync();
+            }
+        }
+        finally { DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; }
+    });
+    [TestMethod]
+    public Task CallWorkspacesKeepMainEditsAndHaveIndependentPartyContextsAndHistory() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        await workspace.Companies.SelectAsync(companies[0]);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        await form.OpenPartyAsync(new(companies[0].Key, PartyKind.Customer, "01"));
+        var original = plugin.CreatedControls.ToArray(); foreach (var control in original) control.Tag = true;
+        var call = await CreateWorkspaceCallAsync(services);
+        await form.ObserveCallAsync(call);
+        var page = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id].Page;
+        var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single(lookup => lookup.CallId == call.Id);
+        var decision = workspace.CallerDecisions.Choose(lookup.Page.Decision!, new(companies[1].Key, PartyKind.Customer, "01"));
+        await page.AcceptAsync(decision, CancellationToken.None); await page.PendingLoads;
+        Assert.AreEqual(call.Id, page.Context!.CallId); Assert.AreEqual(companies[1].Key, page.Context.Party.Company);
+        Assert.AreEqual(companies[0].Key, workspace.Companies.Current.Company!.Key);
+        Assert.IsTrue(original.All(control => !control.IsDisposed));
+        Assert.AreEqual(companies[1].Key, (await workspace.History.GetCallAsync(call.Id))!.Call.Company);
+        Assert.ThrowsExactly<UnsavedPluginChangesException>(form.EnsureViewsCanClose);
+        foreach (var control in original) control.Tag = false;
+        var second = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(second);
+        var other = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[second.Id].Page;
+        var otherDecision = form.OwnedForms.OfType<FrmCallerLookup>().Single(lookup => lookup.CallId == second.Id).Page.Decision!;
+        await other.AcceptAsync(workspace.CallerDecisions.Choose(otherDecision, new(companies[0].Key, PartyKind.Customer, "01")), CancellationToken.None);
+        await other.PendingLoads;
+        Assert.AreNotEqual(page.Context.CallId, other.Context!.CallId); Assert.AreNotEqual(page.Context.Party.Company, other.Context.Party.Company);
+        plugin.CreatedControls.Except(original).First(control => !control.IsDisposed).Tag = true;
+        Assert.ThrowsExactly<UnsavedPluginChangesException>(form.EnsureViewsCanClose);
+        foreach (var control in plugin.CreatedControls.Where(control => !control.IsDisposed)) control.Tag = false;
+        await form.PrepareToCloseAsync();
+        Assert.AreEqual(plugin.Created, plugin.Disposed);
+    });
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task LateCallDetailsCannotPublishAfterSelectionChangeOrCallEnd(bool endCall) => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var call = await CreateWorkspaceCallAsync(services);
+        using var page = new CallDetailsPage(); page.Bind(workspace, call);
+        using var shell = new Form { Opacity = 0, ShowInTaskbar = false };
+        shell.Controls.Add(page); page.Dock = DockStyle.Fill;
+        var result = await BuildWorkspaceDecisionAsync(workspace);
+        var first = result.Groups[0].Candidates.First().Party;
+        var second = result.Groups[1].Candidates.First().Party;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ((TestDirectory)workspace.Directory).ReadParty = async (party, token) =>
+        { if (party == first) { entered.TrySetResult(); await release.Task; } return new() { Key = party, DisplayName = party == first ? "Late A" : "Current B" }; };
+        await page.AcceptAsync(workspace.CallerDecisions.Choose(result, first), CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        if (endCall) await page.ObserveAsync(call with { Revision = 1, State = CallState.Ended });
+        else await page.AcceptAsync(workspace.CallerDecisions.Choose(result, second), CancellationToken.None);
+        release.SetResult(); await page.PendingLoads;
+        Assert.DoesNotContain("Late A", Field<LabelControl>(page, "detailsLabel").Text);
+        if (!endCall) { Assert.Contains("Current B", Field<LabelControl>(page, "detailsLabel").Text); Assert.AreEqual(second, page.Context!.Party); }
+        else Assert.AreEqual(0, plugin.Created);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task LateAsyncPluginViewIsDisposedAndDirtyCallTabsBlockClosing() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var call = await CreateWorkspaceCallAsync(services);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var first = decision.Groups[0].Candidates.First().Party;
+        var next = decision.Groups[1].Candidates.First().Party;
+        using var page = new CallDetailsPage(); page.Bind(workspace, call);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        plugin.CreateAsync = async (id, party, token) =>
+        { if (party == first) { entered.TrySetResult(); await release.Task; } return plugin.CreateView(id, party); };
+        await page.AcceptAsync(workspace.CallerDecisions.Choose(decision, first), CancellationToken.None);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await page.AcceptAsync(workspace.CallerDecisions.Choose(decision, next), CancellationToken.None);
+        release.SetResult(); await page.PendingLoads;
+        Assert.AreEqual(1, plugin.Disposed); Assert.AreEqual(3, plugin.Created);
+        var tabs = Field<XtraTabControl>(page, "tabs");
+        Assert.AreEqual(3, tabs.TabPages.Count);
+        foreach (XtraTabPage tab in tabs.TabPages) if (tab.Tag is CallViewContext context) Assert.AreEqual(next, context.Party);
+        plugin.CreatedControls.First(control => !control.IsDisposed).Tag = true;
+        Assert.IsTrue(page.HasUnsavedChanges);
+        foreach (var control in plugin.CreatedControls.Where(control => !control.IsDisposed)) control.Tag = false;
+        await page.StopAsync(); Assert.AreEqual(plugin.Created, plugin.Disposed);
+    });
+
+    [TestMethod]
+    public Task SipStatePersistenceKeepsAssignedCompanyAndManualEvidenceAfterFurtherTransitions() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var call = await CreateWorkspaceCallAsync(services);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var selected = workspace.CallerDecisions.Choose(decision, decision.Groups[1].Candidates.First().Party);
+        await workspace.CallAssociations.SaveAsync(call.Id, selected);
+        var saved = await services.GetRequiredService<ISipCallPersistence>().SaveAsync(call with { Revision = 1, State = CallState.Ringing, StateChangedAtUtc = call.StateChangedAtUtc.AddSeconds(1) });
+        Assert.AreEqual(selected.Selection!.Party.Company, saved.Company);
+        var history = (await workspace.History.GetCallAsync(call.Id))!;
+        Assert.AreEqual(selected.Selection.Party, history.Parties.Single(party => party.IsSelected).Party);
+        Assert.AreEqual("manual", history.Lookup!.SelectionReason);
+    });
+
+    private static async Task<CallerMatchDecision> BuildWorkspaceDecisionAsync(AppWorkspace workspace)
+    {
+        await workspace.PhoneSearch.RefreshAsync();
+        return workspace.CallerDecisions.Evaluate(workspace.PhoneSearch.Find(workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, "+49301234567"))), new());
+    }
+    private static Task<CallSnapshot> CreateWorkspaceCallAsync(IServiceProvider services)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return services.GetRequiredService<ICallJournal>().BeginAsync(new() { Id = Guid.NewGuid(), Revision = 0, State = CallState.Created,
+            Direction = CallDirection.Incoming, LocalAddress = new(NumberPresentation.Unknown), RemoteAddress = new(NumberPresentation.Available, "+49301234567"),
+            StartedAtUtc = now, StateChangedAtUtc = now });
+    }
+    [TestMethod]
     public Task ClosingCallerLookupWaitsForItsPendingSourceAndDiscardsLateResults() => WithWorkspace(async (workspace, services, plugin) =>
     {
         await SeedCallerCachesAsync(workspace, services);
@@ -1447,6 +1669,7 @@ public sealed class AppShellTests
     {
         internal Func<PartyQuery, Task<PartyPage>>? Read;
         internal Func<CancellationToken, Task<ImmutableArray<Company>>>? ReadCatalog;
+        internal Func<PartyKey, CancellationToken, Task<Party?>>? ReadParty;
         private LexwareProductLine ProductLine => Enum.Parse<LexwareProductLine>(application.ProductLine);
         public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default) => ReadCatalog?.Invoke(cancellationToken) ?? Task.FromResult(ImmutableArray.Create(
             new Company(new(ProductLine, "installation-A", "1"), "Firma A"),
@@ -1457,7 +1680,7 @@ public sealed class AppShellTests
             Key = new(query.Company, PartyKind.Customer, "01"), DisplayName = "Testkunde",
             Phones = [new("+49 30 1234567", PhoneKind.Telephone, new("fixture", "01", "telephone"))]
         }], false)));
-        public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default) => ReadParty?.Invoke(key, cancellationToken) ?? Task.FromResult<Party?>(new() { Key = key, DisplayName = "Aktuelle Stammdaten", Number = "100" });
     }
     private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime, IProductPluginSelection
     {
@@ -1468,10 +1691,13 @@ public sealed class AppShellTests
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }
-    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews
+    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews
     {
         internal int Created;
         internal int Disposed;
+        internal Func<string, PartyKey, CancellationToken, Task<IPluginViewLease>>? CreateAsync;
+        internal readonly List<Control> CreatedControls = [];
+        internal readonly List<PartyKey> CreatedParties = [];
         public string Name => "Isoliertes Ansichtsplugin";
         public Version Version { get; } = new(1, 0);
         public LexwareProductLine ProductLine => LexwareProductLine.Pro;
@@ -1481,10 +1707,14 @@ public sealed class AppShellTests
         public void Execute() => throw new NotSupportedException();
         public void Shutdown() { }
         public IReadOnlyList<PluginViewDescriptor> GetViews() => [new("master", "Stammdaten"), new("orders", "Aufträge")];
-        public IPluginViewLease CreateView(string id, PartyKey party) { Created++; return new Lease(new Panel(), () => Disposed++); }
-        private sealed class Lease(Control view, Action disposed) : IPluginViewLease
+        public IPluginViewLease CreateView(string id, PartyKey party)
+        { Created++; var panel = new Panel(); CreatedControls.Add(panel); CreatedParties.Add(party); return new Lease(panel, () => Disposed++); }
+        public Task<IPluginViewLease> CreateViewAsync(string id, PartyKey party, CancellationToken cancellationToken) =>
+            CreateAsync?.Invoke(id, party, cancellationToken) ?? Task.FromResult(CreateView(id, party));
+        private sealed class Lease(Control view, Action disposed) : IPluginViewLease, IPluginViewEditState
         {
             public Control View => view;
+            public bool HasUnsavedChanges => view.Tag is true;
             public void Dispose() { view.Dispose(); disposed(); }
         }
     }

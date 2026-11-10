@@ -57,6 +57,8 @@ public sealed class SipRuntimeTests
         await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
         var incoming = fixture.Runtime.GetCalls().Single();
         Assert.AreEqual(CallDirection.Incoming, incoming.Direction);
+        Assert.IsNotNull(fixture.Runtime.GetLineContext(incoming.Id));
+        Assert.AreEqual(incoming.LocalAddress.OriginalValue, fixture.Runtime.GetLineContext(incoming.Id)!.LineId);
         Assert.AreEqual(0, fixture.Media.Created);
         Assert.IsNull(incoming.AnsweredAtUtc);
         using var second = new SIPUserAgent();

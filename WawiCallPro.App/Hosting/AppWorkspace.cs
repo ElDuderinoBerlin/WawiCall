@@ -38,7 +38,9 @@ public sealed class AppWorkspace(
     ICompanyPhoneMatchingService phoneMatching,
     IPhoneSearchIndexService phoneSearch,
     ICallerMatchDecisionService callerDecisions,
-    IPhoneNumberInterpreter phoneInterpreter)
+    IPhoneNumberInterpreter phoneInterpreter,
+    ICallViewScopeFactory callScopes,
+    ICallAssociationService callAssociations)
 {
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
@@ -60,6 +62,8 @@ public sealed class AppWorkspace(
     public IPhoneSearchIndexService PhoneSearch { get; } = phoneSearch;
     public ICallerMatchDecisionService CallerDecisions { get; } = callerDecisions;
     public IPhoneNumberInterpreter PhoneInterpreter { get; } = phoneInterpreter;
+    public ICallViewScopeFactory CallScopes { get; } = callScopes;
+    public ICallAssociationService CallAssociations { get; } = callAssociations;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

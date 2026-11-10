@@ -1121,8 +1121,38 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   Keine SQL-/Migrationsänderungen, keine Live-Wawi-/SIP-Prüfung. Die Auswahl gilt zunächst für die
   ausdrückliche Rufnummernsuche. Anruf-ID, Historienübernahme und kontextgebundene Plugin-Views folgen
   im nächsten Punkt; Phase 6 bleibt offen.
-- [ ] Eigenen Firmen-/Viewkontext je Anruf und asynchrones Nachladen der gewählten Plugin-Details umsetzen.
+- [x] ✅ Eigenen Firmen-/Viewkontext je Anruf und asynchrones Nachladen der gewählten Plugin-Details umsetzen.
   Hauptansichten mit offenen Änderungen erhalten; späte Antworten gegen Anruf/CompanyKey/PartyKey/Revision prüfen.
+  Nachweis: ICallViewScopeFactory erzeugt getrennte Kontexte je Anruf-ID mit vollständigem PartyKey
+  einschließlich Firmen-/Kontaktbesitzeridentität und eigener Auswahlrevision. Auswahlwechsel,
+  Anrufende und Freigabe invalidieren ausstehende Antworten; die Prüfung erfolgt im UI-Callback.
+  Ältere SIP-Beobachtungen sowie überholte Suchstände ändern weder Auswahl noch Detailansicht.
+  Anrufereignisse öffnen zusätzliche CallDetailsPage-Dokumente und eine anrufgebundene Trefferauswahl;
+  die bisher aktive Hauptansicht und globale Firma bleiben erhalten. Das tatsächlich benutzte SIP-Konto
+  wird pro Anruf erfasst und gegen eine Leitungsfirmenzuordnung geprüft; spätere Kontoeinstellungen
+  werden älteren Anrufen nicht untergelegt. Unbekannte Leitung bedeutet keine automatische Leitungsbevorzugung.
+  Aktuelle Stammdaten laden über den Plugin-Datenadapter mit vollständigem Schlüssel asynchron nach;
+  falsche Antwortschlüssel werden verworfen. Optionale Windows-Fachansichten unterstützen asynchrone
+  Erstellung und UI-gebundene Lease-Freigabe. Die SharedAssembly-Verträge bleiben gemeinsam geladen.
+  Bestehende Fach-Tabs behalten ihre Firma/Partei und Eingaben. Ein optionaler Plugin-Änderungsschutz
+  blockiert Schließen, Pluginwechsel und reguläres Beenden bei ungespeicherten Änderungen.
+  ICallAssociationService persistiert Suchstand, Kandidaten und Auswahl über vorhandene Repositories;
+  ursprüngliche Matchnachweise und manuelle Entscheidungen bleiben erhalten. Versionskonflikte mit
+  parallelen SIP-Zustandsänderungen werden erneut gelesen und zusammengeführt, ohne SIP-Revisionen
+  zu erfinden. Schließen/Shutdown warten auf alle laufenden Abrufe und die Lease-Freigabe.
+  Je Edition 136 Core-, 133 Utilities-, 16 Telefonie-, 25 Console-, 15 Interface- und 13 gezielte
+  App-Prüfungen bestanden; darunter acht neue Scope- und zehn neue Bedienungs-/Nebenläufigkeits-/
+  Renderprüfungen sowie ein providerübergreifender Persistenzfall. Zusätzlich 89 Datenbanktests und
+  echte isolierte SQL-Server-/PostgreSQL-/MySQL-/MariaDB-Abnahmen mit konkurrierender Zustandsänderung,
+  Firmen-/Datensatzwechsel und unveränderten historischen Nachweisen bestanden.
+  Zehn gezielte Hintergrundbilder je Edition: leer/geladen, kleines Fenster, 10/16 pt,
+  150%-Layoutsimulation und Basic/dunkler Skin. Keine Produktiv-Wawi- oder FRITZ!Box-Abnahme.
+  Abschließender IDE-Rebuild von App und Console in Debug/Any CPU (FinOffice) sowie beide
+  isolierten Diagnosehoststarts bestanden; 13 bekannte Nullable-Warnungen ausschließlich aus
+  der externen CSCore-Bibliothek. Nach der letzten Anpassung am Warten auf laufende Aufgaben fünf gezielte
+  Nebenläufigkeits-/Freigabeprüfungen erneut erfolgreich.
+  Nachweise: `.artifacts/phase6-call-context`. Das SQL-Schema bleibt unverändert;
+  automatische Neuindizierung und Fehlerdiagnose bleiben die folgenden Punkte. Phase 6 bleibt offen.
 - [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
 - [ ] Suchfirmen-/Stammdatenänderungen und Neuindizierung bei Regel-/Metadatenwechsel behandeln;
   Gesprächshistorie und frühere Auswahl bleiben als Momentaufnahme erhalten.

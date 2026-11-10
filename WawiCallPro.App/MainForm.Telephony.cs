@@ -12,6 +12,7 @@ public partial class MainForm
         _workspace.Telephony.RegistrationChanged += TelephonyRegistration_Changed;
         _workspace.Telephony.CallChanged += TelephonyCall_Changed;
         UpdateTelephonyStatus();
+        foreach (var call in _workspace.Telephony.GetCalls()) QueueCall(call);
     }
     private void UnbindTelephony()
     {
@@ -35,12 +36,12 @@ public partial class MainForm
         if (!IsHandleCreated || IsDisposed) return;
         try
         {
-            await InvokeAsync(() => AppendOutput("Gesprächsstatus: " + (e.Call.State switch
+            await InvokeAsync(() => { AppendOutput("Gesprächsstatus: " + (e.Call.State switch
             {
                 CallState.Created => "Neues Gespräch", CallState.Dialing => "Rufaufbau", CallState.Ringing => "Klingelt",
                 CallState.Connected => "Verbunden", CallState.Held => "Wird gehalten", CallState.Ended => "Beendet",
                 _ => "Fehlgeschlagen"
-            })), _telephonyUiLifetime.Token);
+            })); QueueCall(e.Call); }, _telephonyUiLifetime.Token);
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }

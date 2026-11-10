@@ -4,7 +4,8 @@ Stand: 10.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmen
 Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
 Aktualisierung, der firmenbezogene StartWidth-Matcher und der gemeinsame Mehrfirmenindex sind
 implementiert. Gruppierte Trefferauswahl und explizite Leitungsfirmenzuordnung stehen im Produkt bereit.
-Automatische Aktualisierungsauslöser und Anruf-/Viewanbindung bleiben noch umzusetzen.
+Anrufgebundene Auswahl, Historienübernahme und verzögertes Laden von Detailansichten sind ebenfalls
+angebunden. Automatische Aktualisierungsauslöser bei Cache-/Stammdatenänderungen bleiben offen.
 
 ## Grundentscheidung
 
@@ -381,9 +382,53 @@ auch einen vom zukünftigen Telefonieadapter explizit gelieferten Leitungskontex
 unbestätigten Vorschlägen ist erkennbar. Bei erneuter Suche derselben Nummer bleibt eine verfügbare
 manuelle Wahl erhalten; fällt sie weg, wird kein Ersatz automatisch gewählt. Die Entscheidung enthält
 den Suchstand und einen festen Auswahlgrund (`unique`, `configured-line`, `manual`). Sie ist eine
-abgelöste Auswahl für diesen Suchvorgang. Die Übertragung auf eine Anruf-ID, Speicherung in der
-Gesprächshistorie und das Öffnen kontextgebundener Plugin-Views folgen im nächsten Planpunkt.
-Dieser Stand startet keine automatische SIP-Anruferkennung.
+abgelöste Auswahl für diesen Suchvorgang. Die freie Rufnummernsuche bleibt unabhängig von Gesprächen;
+der folgende Anrufbereich bindet dieselbe Auswahl an eine konkrete Anruf-ID.
+
+## Anrufkontext und verzögerte Detailantworten
+
+Jeder vom Telefoniedienst beobachtete aktive Anruf erhält eine eigene `CallDetailsPage` als zusätzliches
+Dokument im Hauptarbeitsbereich. Die bisher aktive Hauptansicht wird dabei erhalten. Die anrufgebundene
+Trefferauswahl öffnet ohne angeforderte Vordergrundaktivierung ein eigenes Fenster mit schreibgeschützter
+Anrufnummer. Auswertbare öffentliche Rufnummern starten die Suche im Hintergrund; unbekannte,
+unterdrückte und nicht auflösbare Nummern erhalten keine erfundene öffentliche Zuordnung.
+
+`ICallViewScopeFactory` erzeugt je Anruf einen eigenen Kontext. Seine Auswahlrevision ist unabhängig
+von der SIP-Zustandsrevision. Der vollständige PartyKey enthält auch CompanyKey und Kontaktbesitzer;
+eine Veröffentlichung prüft Anruf-ID, Datensatz, Firma, Auswahlrevision, Abbruch und Lebensdauer erst
+innerhalb des UI-Aufrufs. Ein Wechsel verwirft alte Ergebnisse, auch wenn die Quelle ihren Abbruch
+ignoriert. Ältere Gesprächsereignisse werden verworfen; ein beendeter Kontext wird nicht wieder geöffnet.
+Die globale Ansichtsfirma wird durch die Anrufauswahl nicht verändert.
+
+Die aktuellen Stammdaten lädt der aktive Plugin-Datenadapter über `GetPartyAsync` mit dem vollständigen
+PartyKey asynchron nach. Ein abweichender Antwortschlüssel wird abgelehnt. Dieser allgemeine, nur lesbare
+Stammdaten-Tab funktioniert auch mit Plugins ohne eigene Windows-Views. Optionale Fachansichten werden
+über die geteilte Windows-Vertragsassembly erzeugt. `IAsyncWawiCallPluginViews` ermöglicht zusätzlich
+asynchrones Laden mit UI-gebundener Erstellung und Freigabe der Lease. Späte oder abgebrochene Leases
+werden freigegeben, ohne in eine andere Anrufauswahl eingebunden zu werden.
+
+Bereits geöffnete Fach-Tabs behalten ihre ursprüngliche Firma und Partei. Eine neue Auswahl ergänzt
+eigene kontextgebundene Tabs; alte Editoren werden nicht automatisch ersetzt. Plugins können über
+`IPluginViewEditState` ungespeicherte Änderungen melden. Solche Ansichten blockieren das ausdrückliche
+Schließen sowie Pluginwechsel und reguläres Beenden, bis der Benutzer im Plugin speichert oder verwirft.
+Ein beendeter Anruf stoppt weitere Ladevorgänge; bereits geladene Ansichten und Eingaben bleiben erhalten.
+Schließen und Host-Shutdown brechen laufende Abrufe ab und warten vor der Freigabe auf deren Ende.
+
+`ICallAssociationService` übernimmt Suchstand, Kandidaten und Auswahl in die vorhandene Historie.
+Der erste Suchstand und frühere Herkunftsnachweise bleiben unverändert; spätere Entscheidungen ändern
+die ausgewählte Partei und den festen Auswahlgrund. Ein automatisches Ergebnis ersetzt keine bereits
+gespeicherte manuelle Wahl. Optimistische Schreibversionen koordinieren Zuordnung und SIP-Zustands-
+persistenz; die SIP-Persistenz übernimmt eine bereits gewählte Firma, ohne Kandidaten zu verlieren oder
+zusätzliche Gesprächsrevisionen zu erfinden. Notizen und Aufnahmen bleiben unabhängig.
+
+Die tatsächlich benutzte SIP-Kontoidentität wird beim Anrufbeginn separat und ohne Kennwort erfasst.
+Eine Leitungsfirmenzuordnung gilt für diesen Anruf nur dann als verifiziert, wenn diese Identität zur
+gespeicherten Zuordnung passt. Ein später bearbeitetes Konto wird dadurch keinem älteren Anruf unterlegt.
+Ohne nachgewiesenen Leitungskontext gibt es keine automatische Bevorzugung durch die Leitungsfirma.
+
+Nachweise werden mit synthetischen Anrufen, isolierten Repositories und Plugins erbracht. Das ersetzt
+keine Abnahme an der echten FRITZ!Box oder produktiven Warenwirtschaft. Automatische Neuindizierung
+und Diagnose fehlerhafter Quellnummern bleiben eigene offene Planpunkte.
 
 ## Implementierter gemeinsamer Suchindex
 
@@ -418,7 +463,7 @@ solcher Teilstände bleiben sichtbar, ihre Gesamtsuche ist ausdrücklich unvolls
 Bei abgelaufener oder zukünftig datierter Berechtigungsprüfung liefert der Dienst `ScopeExpired`
 ohne Kandidaten, bis ausdrücklich erneut aktualisiert wird. Dies ist eine zeitlich begrenzte
 Berechtigungsbeobachtung: Änderungen zwischen zwei Prüfungen werden nicht sofort erkannt.
-Automatische Auslöser bei Einstellungs-/Plugin-/Cacheänderungen und die SIP-Anbindung folgen separat.
+Automatische Auslöser bei Einstellungs-/Plugin-/Cacheänderungen und die vollständige Live-Abnahme folgen separat.
 
 Cachewriter und gemeinsamer Suchindex verwenden über `IPhoneCacheMetadata` denselben SHA256-Fingerprint
 aus Protokoll-/Interpreterversion, CompanyKey und Land-/Ortskontext. Sein bisheriges Speicherformat bleibt
@@ -489,7 +534,7 @@ registriert und wird in der App über die Einstellungen aufgerufen. `IPhoneSearc
 koordiniert die ausgewählten berechtigten Firmen und ihre unveränderlichen Speicherindizes.
 Das bestehende `IPartyCacheRepository.FindByE164Async` bleibt firmengebunden; der gemeinsame Index
 benötigt keine neuen SQL-Abfragen oder Migrationen. `ICallerMatchDecisionService` gruppiert und bewertet
-seine Ergebnisse für die grafische Auswahl; der Gesprächs-/Pluginkontext bleibt der nächste Umsetzungsschritt.
+seine Ergebnisse für die grafische und die anrufgebundene Auswahl.
 
 Die Persistenzgrundlage ist seit Phase 3/Punkt 6 implementiert: Migration 6 ergänzt die unabhängige
 Firmenidentität historischer Kandidaten, Suchstände und versionierte Firmenregeln. Migrationen 1–5
@@ -508,7 +553,7 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignisanbindung, automatische Aktualisierungsauslöser und anrufgebundene Plugin-Kontexte.
+automatische Aktualisierungsauslöser und die vollständige Live-Abnahme der Anruferkennung.
 Die vollständige Anrufabnahme muss internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

@@ -16,13 +16,21 @@ public sealed class SipCallPersistence(ICallRepository calls, ICallOriginProvide
 {
     public async Task<CallSnapshot> SaveAsync(CallSnapshot snapshot, CancellationToken cancellationToken = default)
     {
-        var existing = await calls.GetAsync(snapshot.Id, cancellationToken).ConfigureAwait(false);
-        var captured = existing?.History.Call.Origin ?? snapshot.Origin ?? await origin.CaptureAsync(cancellationToken).ConfigureAwait(false);
-        var observed = snapshot with { Origin = captured };
         var events = snapshot.Revision == 0 ? System.Collections.Immutable.ImmutableArray<CallEvent>.Empty
             : [new CallEvent(Guid.NewGuid(), snapshot.Id, snapshot.Revision, snapshot.StateChangedAtUtc, "Sip." + snapshot.State, snapshot.State)];
-        return (await calls.WriteAsync(new(observed, existing?.Version, existing?.History.Parties ?? [], events, captured,
-            existing?.History.Lookup), cancellationToken).ConfigureAwait(false)).History.Call;
+        for (var attempt = 0; ; attempt++)
+        {
+            var existing = await calls.GetAsync(snapshot.Id, cancellationToken).ConfigureAwait(false);
+            var captured = existing?.History.Call.Origin ?? snapshot.Origin ?? await origin.CaptureAsync(cancellationToken).ConfigureAwait(false);
+            var observed = snapshot with { Origin = captured,
+                Company = existing?.History.Parties.Any(party => party.IsSelected) == true ? existing.History.Call.Company : snapshot.Company };
+            try
+            {
+                return (await calls.WriteAsync(new(observed, existing?.Version, existing?.History.Parties ?? [], events, captured,
+                    existing?.History.Lookup), cancellationToken).ConfigureAwait(false)).History.Call;
+            }
+            catch (RepositoryConflictException exception) when (exception.Kind == RepositoryConflictKind.VersionMismatch && attempt < 7) { }
+        }
     }
 
     public async Task RecoverAsync(CancellationToken cancellationToken = default)

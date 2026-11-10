@@ -55,6 +55,7 @@ public static class NativeHostAcceptance
             Assert.AreEqual(1, (await history.GetCallsAsync(new(new(0, 10)) { WorkstationId = workstation }, token)).Items.Length);
             await PhoneMatchingAcceptance.RunAsync(host.Services, token);
             await PhoneSearchIndexTests.RunAcceptanceAsync(host.Services);
+            await CallAssociationAcceptance.RunAsync(host.Services, token);
         });
         Console.WriteLine(type + ": real DI host with DPAPI settings, schema status/progress, workstation, history, StartWidth and cross-company phone index passed.");
     }

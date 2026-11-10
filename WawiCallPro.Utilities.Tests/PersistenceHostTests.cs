@@ -24,6 +24,16 @@ namespace WawiCallPro.Utilities.Tests;
 [TestClass]
 public sealed class PersistenceHostTests
 {
+    [TestMethod]
+    public async Task CallAssociationUsesRealStoragePreservesEvidenceAndRetriesConcurrentStateWrites()
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async token =>
+        {
+            await host.Services.GetRequiredService<ICommunicationDatabase>().CreateAndMigrateAsync(cancellationToken: token);
+            await CallAssociationAcceptance.RunAsync(host.Services, token);
+        });
+    }
     private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-persistence-host-" + Guid.NewGuid().ToString("N"));
     private ApplicationPaths Paths => new(new ConfigurationLocation(_root));
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>

@@ -7,7 +7,8 @@ namespace WawiCallPro.Utilities.Configuration;
 public static class CallerLineConfiguration
 {
     public static CallerLineAssignment Create(SipAccountOptions account, CompanyKey company) =>
-        new(new(Identity(account), account.Username!), company, "SIP-Konto", true);
+        new(ContextFor(account), company, "SIP-Konto", true);
+    public static PhoneLineContext ContextFor(SipAccountOptions account) => new(Identity(account), account.Username!);
 
     public static CallerLineAssignment? Resolve(ApplicationOptions options)
     {

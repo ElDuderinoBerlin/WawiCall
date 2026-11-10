@@ -59,6 +59,7 @@ public static class WawiCallHost
                 services.AddSingleton<IPhoneCacheMetadata, PhoneCacheMetadata>();
                 services.AddSingleton<ICompanyPhoneMatchIndexFactory, CompanyPhoneMatchIndexFactory>();
                 services.AddSingleton<ICallerMatchDecisionService, CallerMatchDecisionService>();
+                services.AddSingleton<ICallViewScopeFactory, CallViewScopeFactory>();
                 services.AddSingleton<ICompanyPhoneMatchingService, CompanyPhoneMatchingService>();
                 services.AddSingleton<ICompanyPhoneNumberContextProvider, CompanyPhoneNumberContextProvider>();
                 services.AddSingleton<ConfigurationStore>();
@@ -86,6 +87,7 @@ public static class WawiCallHost
                 services.AddSingleton<ICallOriginProvider, WindowsCallOriginProvider>();
                 services.AddSingleton<ICallJournal, DatabaseCallJournal>();
                 services.AddSingleton<ICallHistoryService, DatabaseCallHistory>();
+                services.AddSingleton<ICallAssociationService, DatabaseCallAssociation>();
                 services.AddSingleton<ICommunicationDatabase, CommunicationDatabase>();
                 services.AddSingleton<CompanyContext>();
                 services.AddSingleton<ICompanyContext>(provider => provider.GetRequiredService<CompanyContext>());

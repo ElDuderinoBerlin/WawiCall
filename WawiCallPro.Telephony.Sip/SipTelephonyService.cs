@@ -12,7 +12,7 @@ using WawiCallPro.Utilities.Security;
 namespace WawiCallPro.Telephony.Sip;
 
 /// <summary>One account and one live call per workstation. Observations are persisted and published in queue order.</summary>
-public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnection, IDtmfReceiver, IAsyncDisposable
+public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnection, IDtmfReceiver, ICallLineContextProvider, IAsyncDisposable
 {
     private readonly ConfigurationStore _settings;
     private readonly ISecretProtector _secrets;
@@ -28,6 +28,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
     private readonly Channel<Func<Task>> _events = Channel.CreateUnbounded<Func<Task>>(new() { SingleReader = true });
     private readonly Task _eventLoop;
     private readonly ConcurrentDictionary<Guid, CallSnapshot> _calls = new();
+    private readonly ConcurrentDictionary<Guid, WawiCallPro.Interfaces.PhoneNumbers.PhoneLineContext> _callLines = new();
     private readonly ConcurrentDictionary<long, Task> _jobs = new();
     private long _jobId;
     private RegistrationSnapshot _registration = new(RegistrationState.Stopped, DateTimeOffset.UtcNow);
@@ -53,6 +54,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
     public RegistrationSnapshot Registration { get { lock (_gate) return _registration; } }
     public string? LastFailureCode => Volatile.Read(ref _failure);
     public ImmutableArray<CallSnapshot> GetCalls() => _calls.Values.OrderByDescending(call => call.StartedAtUtc).ToImmutableArray();
+    public WawiCallPro.Interfaces.PhoneNumbers.PhoneLineContext? GetLineContext(Guid callId) => _callLines.GetValueOrDefault(callId);
     public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged;
     public event EventHandler<CallChangedEventArgs>? CallChanged;
     public event EventHandler<DtmfReceivedEventArgs>? DtmfReceived;
@@ -389,6 +391,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
     private void Begin(Agent agent, CallDirection direction, string? number, CompanyKey? company)
     {
         agent.Id = Guid.NewGuid();
+        _callLines[agent.Id] = CallerLineConfiguration.ContextFor(_account!);
         var now = _clock.GetUtcNow();
         agent.State = _states.Create(new() { Id = agent.Id, Revision = 0, Company = company, Direction = direction, State = CallState.Created,
             LocalAddress = new(NumberPresentation.Available, _account!.Username),
@@ -436,7 +439,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
         _calls[snapshot.Id] = snapshot;
         if (_calls.Count > 128)
             foreach (var old in _calls.Values.Where(call => call.State is CallState.Ended or CallState.Failed).OrderBy(call => call.StartedAtUtc).Take(_calls.Count - 128))
-                _calls.TryRemove(old.Id, out _);
+            { _calls.TryRemove(old.Id, out _); _callLines.TryRemove(old.Id, out _); }
         Publish(CallChanged, new(snapshot));
     }
 
