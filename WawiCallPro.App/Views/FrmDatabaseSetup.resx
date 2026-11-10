@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+      <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=10.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      </value>
+  </resheader>
+  <resheader name="writer">
+      <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=10.0.0.0, Culture=neutral,
+          PublicKeyToken=b77a5c561934e089
+      </value>
+  </resheader>
+    <assembly alias="DevExpress.Data.v25.2"
+              name="DevExpress.Data.v25.2, Version=25.2.7.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a"/>
+    <data name="FrmDatabaseSetup.IconOptions.SvgImage" type="DevExpress.Utils.Svg.SvgImage, DevExpress.Data.v25.2"
+          mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>
+            AAEAAAD/////AQAAAAAAAAAMAgAAAFlEZXZFeHByZXNzLkRhdGEudjI1LjIsIFZlcnNpb249MjUuMi43
+            LjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49Yjg4ZDE3NTRkNzAwZTQ5YQUBAAAAHURl
+            dkV4cHJlc3MuVXRpbHMuU3ZnLlN2Z0ltYWdlAQAAAAREYXRhBwICAAAACQMAAAAPAwAAAKQDAAAC77u/
+            PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnPz4NCjxzdmcgdmlld0JveD0iMCAwIDI1
+            NiAyNTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+DQogIDxkZWZzPg0KICAgIDxs
+            aW5lYXJHcmFkaWVudCB4MT0iMzJweCIgeTE9IjI4cHgiIHgyPSIyMjRweCIgeTI9IjIyOHB4IiBncmFk
+            aWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgc3ByZWFkTWV0aG9kPSJwYWQiIGlkPSJiZyI+DQogICAg
+            ICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMTE3N0Q3IiAvPg0KICAgICAgPHN0b3Agb2Zm
+            c2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMDM5QzIzIiAvPg0KICAgIDwvbGluZWFyR3JhZGllbnQ+DQog
+            IDwvZGVmcz4NCiAgPHJlY3QgeD0iMTgiIHk9IjE4IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyMCIgcng9
+            IjQ4IiBmaWxsPSJ1cmwoI2JnKSIgLz4NCiAgPGc+DQogICAgPHBhdGggZD0iTTY0IDcwaDkyYzI0IDAg
+            NDMgMTcgNDMgMzlzLTE5IDM5LTQzIDM5aC0yMmwtMzQgMzF2LTMxSDY0Yy0yNCAwLTQzLTE3LTQzLTM5
+            czE5LTM5IDQzLTM5eiIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC45NiIgLz4NCiAgPC9nPg0KICA8
+            cGF0aCBkPSJNNzcgMTA1aDQ1djE2SDc3di0xNnptMC0yOGg3NHYxNkg3N1Y3N3ptMCA1NmgzNHYxNkg3
+            N3YtMTZ6IiBmaWxsPSIjMTE3N0Q3IiAvPg0KICA8cGF0aCBkPSJNMTQwIDk1aDIwbDUgMTQgNS0xNGgy
+            MGwtMTUgMzEgMTcgMzVoLTIxbC02LTE2LTcgMTZoLTIwbDE3LTM1LTE1LTMxeiIgZmlsbD0iIzAzOUMy
+            MyIgLz4NCiAgPHBhdGggZD0iTTU2IDE4MmgxNDR2MThINTZ2LTE4eiIgZmlsbD0iI2ZmZmZmZiIgb3Bh
+            Y2l0eT0iMC44OCIgLz4NCiAgPHBhdGggZD0iTTU2IDIwN2g4OHYxNEg1NnYtMTR6IiBmaWxsPSIjZmZm
+            ZmZmIiBvcGFjaXR5PSIwLjciIC8+DQo8L3N2Zz4L
+        </value>
+    </data>
+    <data name="btnCancel.Text" xml:space="preserve"><value>Abbrechen</value></data>
+    <data name="btnFinish.Text" xml:space="preserve"><value>Fertig stellen</value></data>
+    <data name="btnNext.Text" xml:space="preserve"><value>Weiter &gt;</value></data>
+    <data name="btnTestConnection.Text" xml:space="preserve"><value>Testen</value></data>
+    <data name="btnBack.Text" xml:space="preserve"><value>&lt; Zurück</value></data>
+    <data name="$this.Text" xml:space="preserve"><value>Datenbank einrichten</value></data>
+</root>

@@ -163,6 +163,90 @@ public sealed class PersistenceHostTests
         Assert.IsFalse(Directory.Exists(_root));
     }
 
+    [TestMethod]
+    public async Task SetupWizardProbesWithoutCreatingThenInitializesAndSavesOnlyItsDatabaseScope()
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async token =>
+        {
+            var setup = host.Services.GetRequiredService<IDatabaseSetupService>();
+            var active = host.Services.GetRequiredService<ICommunicationDatabase>();
+            var original = await setup.LoadAsync(token);
+            var secrets = host.Services.GetRequiredService<ISecretProtector>();
+            var options = original.Options with
+            {
+                User = original.Options.User with { ShowCallNotifications = false },
+                SipAccount = new() { Server = "fixture.invalid", Username = "fixture",
+                    Password = secrets.Protect("synthetic-setup-password", SipAccountOptions.PasswordPurpose) }
+            };
+            await host.Services.GetRequiredService<ConfigurationStore>().SaveAsync(options, original, token);
+            var snapshot = await setup.LoadAsync(token);
+            var draft = new DatabaseSetupDraft { Type = DatabaseType.Sqlite, SqlitePath = Path.Combine(_root, "selected", "communications.db") };
+            Assert.IsTrue((await setup.TestAsync(draft, token)).Success);
+            Assert.AreEqual(DatabaseSchemaState.MissingDatabase, (await setup.InspectAsync(draft, token)).State);
+            Assert.IsFalse(Directory.Exists(Path.GetDirectoryName(draft.SqlitePath)));
+            Assert.AreEqual(DatabaseSchemaState.MissingDatabase, (await active.GetStatusAsync(token)).State);
+            Assert.AreEqual(DatabaseSchemaState.Current, (await setup.InitializeAsync(draft, false, cancellationToken: token)).State);
+            Assert.IsTrue(File.Exists(draft.SqlitePath));
+            Assert.IsTrue((await setup.TestAsync(draft, token)).Success);
+            await setup.SaveAsync(draft, snapshot, token);
+            var saved = await setup.LoadAsync(token);
+            Assert.AreEqual(draft.SqlitePath, saved.Options.Database.SqliteFileName);
+            Assert.AreEqual(options.User, saved.Options.User);
+            Assert.AreEqual(options.SipAccount.Server, saved.Options.SipAccount!.Server);
+            Assert.AreEqual(options.SipAccount.Connection, saved.Options.SipAccount.Connection);
+            using var password = secrets.Unprotect(saved.Options.SipAccount.Password!, SipAccountOptions.PasswordPurpose);
+            Assert.AreEqual("synthetic-setup-password", password.Reveal());
+            Assert.AreEqual(DatabaseSchemaState.MissingDatabase, (await active.GetStatusAsync(token)).State, "Live repositories keep the startup target until restart.");
+            await Assert.ThrowsExactlyAsync<ConfigurationException>(() => setup.SaveAsync(draft, snapshot, token));
+            Assert.DoesNotContain("synthetic-setup-password", await File.ReadAllTextAsync(Path.Combine(_root, "connection.local.json"), token));
+        });
+    }
+
+    [TestMethod]
+    public async Task SetupWizardRequiresEmptyDatabaseApprovalAndRejectsForeignTables()
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async token =>
+        {
+            var setup = host.Services.GetRequiredService<IDatabaseSetupService>();
+            Directory.CreateDirectory(_root);
+            var draft = new DatabaseSetupDraft { Type = DatabaseType.Sqlite, SqlitePath = Path.Combine(_root, "empty.db") };
+            var builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = draft.SqlitePath, Pooling = false };
+            await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ConnectionString)) { await connection.OpenAsync(token); }
+            Assert.AreEqual(DatabaseSchemaState.EmptyDatabase, (await setup.InspectAsync(draft, token)).State);
+            await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => setup.InitializeAsync(draft, false, cancellationToken: token));
+            Assert.AreEqual(DatabaseSchemaState.Current, (await setup.InitializeAsync(draft, true, cancellationToken: token)).State);
+            var foreign = new DatabaseSetupDraft { Type = DatabaseType.Sqlite, SqlitePath = Path.Combine(_root, "foreign.db") };
+            builder.DataSource = foreign.SqlitePath;
+            await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(builder.ConnectionString))
+            {
+                await connection.OpenAsync(token);
+                await using var command = connection.CreateCommand(); command.CommandText = "CREATE TABLE foreign_data (id INTEGER);";
+                await command.ExecuteNonQueryAsync(token);
+            }
+            Assert.AreEqual(DatabaseSchemaState.ForeignDatabase, (await setup.InspectAsync(foreign, token)).State);
+            await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => setup.InitializeAsync(foreign, true, cancellationToken: token));
+        });
+    }
+
+    [TestMethod]
+    public void SetupPathsRemainExplicitAndProbeConnectionsAreClosedForAllProviders()
+    {
+        var validator = new ApplicationOptionsValidator(new WindowsUserSecretProtector());
+        validator.Validate(new() { Database = new() { SqliteFileName = Path.Combine(_root, "selected.db") } });
+        foreach (var path in new[] { "../outside.db", "folder/database.db", Path.Combine(_root, "CON.db") })
+            Assert.ThrowsExactly<ConfigurationException>(() => validator.Validate(new() { Database = new() { SqliteFileName = path } }));
+        foreach (var type in new[] { DatabaseType.SqlServer, DatabaseType.MySql, DatabaseType.PostgreSql })
+        {
+            var connectionString = type == DatabaseType.PostgreSql ? "Host=synthetic.invalid;Database=communications;Username=fixture;Password=sentinel" : "Server=synthetic.invalid;Database=communications;User ID=fixture;Password=sentinel";
+            using var probe = new DatabaseFactory().CreateProbeConnection(DatabaseTarget.Server(type, connectionString));
+            Assert.AreEqual(ConnectionState.Closed, probe.State);
+            Assert.AreEqual(type == DatabaseType.SqlServer ? "master" : type == DatabaseType.PostgreSql ? "postgres" : "", probe.Database);
+        }
+        Assert.IsFalse(Directory.Exists(_root));
+    }
+
     private sealed class ProgressCapture : IProgress<DatabaseMigrationProgress>
     {
         internal List<DatabaseMigrationProgress> Values { get; } = [];

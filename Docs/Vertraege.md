@@ -745,14 +745,43 @@ Geräteverfügbarkeit und die Anwendung der Benutzer-/Audiopräferenzen folgen m
 in Phase 8/9. In diesem Block werden weder Controls umgebaut noch Audiogeräte geöffnet.
 
 `CommunicationDatabaseSettings` enthält zunächst die Konfigurationstokens Sqlite, SqlServer, MySql und
-PostgreSql. SQLite nutzt einen lokalen Dateinamen ohne Verzeichnispfad; `null` steht für `communications.db`
-unter dem Konfigurationsverzeichnis. Server-Provider verlangen eine DPAPI-geschützte Verbindungszeichenfolge
+PostgreSql. SQLite nutzt einen lokalen Dateinamen unter dem Konfigurationsverzeichnis oder einen
+ausdrücklich ausgewählten absoluten Dateipfad; relative Verzeichnispfade bleiben unzulässig.
+`null` steht für `communications.db` unter dem Konfigurationsverzeichnis.
+Server-Provider verlangen eine DPAPI-geschützte Verbindungszeichenfolge
 mit dem eigenen Zweck `communications-database-connection-string`; SIP-Kennworthüllen sind dafür ungültig.
 Dateiname und Server-Zeichenfolge schließen sich aus. Die Einstellungsprüfung nutzt seit Phase 3/Punkt 9
 die echten Providerbuilder ohne Verbindungsöffnung. Unzulässige Systemziele werden abgewiesen;
 Fremdbestände sperrt die gesonderte Eigentumsprüfung vor Migration/Repositoryzugriff.
 Migrationen und tatsächliche Hostzugriffe sind implementiert und separat abgenommen. Ein gespeicherter
 Provider allein ist weiterhin kein Nachweis eines erreichbaren Datenbankservers.
+
+`FrmDatabaseSetup` übernimmt den dreistufigen Aufbau und die UserControls `UcDbStep1DbType`,
+`UcDbStep2Connection`, `UcDbStep3Migration` sowie `UcConSqlite`, `UcConSqlServer` und `UcConMyPg`
+aus LxTranslate. Der Einstieg liegt im Ribbon unter **Datenbank → Datenbank einrichten**;
+Statusprüfung und SQLite-Sicherung/Wiederherstellung bleiben eigene Ribbonaktionen.
+Der Einstellungsdialog zeigt den gespeicherten Datenbankstand als Labels.
+Die Anbindung erfolgt über `IDatabaseSetupService` und `ICommunicationDatabaseFactory` im gemeinsamen
+DI-Host. Der Assistent erhält einen getrennten Entwurf und öffnet beim Laden oder Providerwechsel
+keine Verbindung. Getrennte Editorinstanzen bewahren auch unvollständige MySQL-/PostgreSQL-Eingaben
+beim Wechsel. Die Form speichert Größe und Position über `AppUiState`.
+
+**Testen** öffnet vorhandene SQLite-Dateien schreibgeschützt, bei Servern die bereits vorhandene
+Wartungsdatenbank. Eine fehlende SQLite-Datei wird dabei nicht angelegt; die Meldung bestätigt nur
+den gültigen Zielpfad. **Einrichten** prüft Eigentum und Schemastand und verwendet die vorhandene
+Provisionierung/Migration. Eine vorhandene leere Datenbank muss ausdrücklich bestätigt werden;
+fremde oder neuere Schemata werden nicht übernommen. Es gibt keine neue Schemafassung und keinen
+SQL-Code im Assistenten. Während eines Vorgangs sind weitere Aktionen gesperrt; Schließen bricht
+ab und wartet die Arbeit ab. Bereits abgeschlossene Schemaänderungen werden dabei nicht gelöscht.
+
+Erst **Übernehmen** speichert den Datenbankbereich mit dem geladenen Konfigurationsstand als
+Konkurrenzschutz. Andere Einstellungsbereiche und geschützte SIP-Kennwörter bleiben erhalten.
+Providerbuilder behandeln auch Kennwörter mit Semikolon oder Anführungszeichen; die kopierbare
+Vorschau entfernt Kennwortfelder. Neue SQL-Server-Verbindungen prüfen standardmäßig das
+Serverzertifikat. Fehlerausgaben enthalten keine Providerexceptions oder Verbindungszeichenfolgen.
+Die aktiven Repository-Singletons behalten ihr Startziel; die neue Verbindung gilt nach Neustart.
+Ein Wechsel zurück erfolgt über den Assistenten auf das bisherige Ziel und einen erneuten Neustart;
+die zuvor eingerichtete Datenbank wird dabei nicht entfernt.
 
 `ConfigurationStore` liest `connection.local.json` standardmäßig unter
 `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>`. App und Console derselben Variante verwenden denselben Pfad.

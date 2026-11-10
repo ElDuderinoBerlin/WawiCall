@@ -12,7 +12,7 @@ public partial class MainForm
     private void UpdateDatabaseActions()
     {
         var enabled = _workspace is not null && !_closing && !_databaseBusy;
-        databaseStatusItem.Enabled = databaseCreateItem.Enabled = databaseMigrateItem.Enabled = databaseApproveItem.Enabled = enabled;
+        databaseStatusItem.Enabled = databaseSetupItem.Enabled = enabled;
         var sqlite = _workspace?.Configuration.Current.Options.Database.Provider == CommunicationDatabaseProvider.Sqlite;
         databaseBackupItem.Enabled = databaseRestoreItem.Enabled = enabled && sqlite;
     }
@@ -52,39 +52,22 @@ public partial class MainForm
             + $"Angewendet: {string.Join(", ", status.AppliedVersions)}. Ausstehend: {string.Join(", ", status.PendingVersions)}.";
     }
 
-    private IProgress<DatabaseMigrationProgress> DatabaseProgress() => new Progress<DatabaseMigrationProgress>(progress =>
-    {
-        // Queued progress must not overwrite a completed operation or disposed controls.
-        if (IsDisposed || !_databaseBusy) return;
-        connectionLabel.Text = progress.Phase switch
-        {
-            DatabaseMigrationPhase.WaitingForLock => "Warte auf die Freigabe der Datenbank …",
-            DatabaseMigrationPhase.CheckingPermissions => "Zugriffsrechte werden geprüft …",
-            DatabaseMigrationPhase.Applying => $"Schemaänderung {progress.Version} wird angewendet ({progress.CompletedSteps}/{progress.TotalSteps}) …",
-            DatabaseMigrationPhase.Verifying => "Schema wird überprüft …",
-            DatabaseMigrationPhase.Completed => "Schemaaktualisierung abgeschlossen.",
-            DatabaseMigrationPhase.Cancelled => "Vorgang abgebrochen.",
-            DatabaseMigrationPhase.Failed => "Die Schemaaktualisierung ist fehlgeschlagen.",
-            _ => "Datenbank wird geprüft …"
-        };
-    });
-
     private async void DatabaseStatus_Click(object sender, ItemClickEventArgs e) =>
         await RunDatabaseAsync(async token => ShowDatabaseStatus(await _workspace!.Database.GetStatusAsync(token)));
 
-    private async void DatabaseCreate_Click(object sender, ItemClickEventArgs e) =>
-        await RunDatabaseAsync(async token => ShowDatabaseStatus(await _workspace!.Database.CreateAndMigrateAsync(DatabaseProgress(), token)));
+    internal Views.FrmDatabaseSetup CreateDatabaseSetupDialog() => _workspace is null
+        ? new Views.FrmDatabaseSetup() : new Views.FrmDatabaseSetup(_workspace.DatabaseSetup, _state);
 
-    private async void DatabaseMigrate_Click(object sender, ItemClickEventArgs e) =>
-        await RunDatabaseAsync(async token => ShowDatabaseStatus(await _workspace!.Database.MigrateAsync(progress: DatabaseProgress(), cancellationToken: token)));
-
-    private async void DatabaseApprove_Click(object sender, ItemClickEventArgs e)
+    private void DatabaseSetup_Click(object sender, ItemClickEventArgs e)
     {
-        if (_closing || _databaseBusy || _workspace is null || _operation?.IsRunning == true) return;
-        if (XtraMessageBox.Show(this,
-                "Die konfigurierte, bereits vorhandene Datenbank als leeres WawiCallPro-Ziel übernehmen und das Schema anlegen?",
-                "Leere Datenbank freigeben", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-        await RunDatabaseAsync(async token => ShowDatabaseStatus(await _workspace.Database.MigrateAsync(true, DatabaseProgress(), token)));
+        if (_workspace is null || _closing || _databaseBusy || _operation?.IsRunning == true) return;
+        using var dialog = CreateDatabaseSetupDialog();
+        if (_backgroundRun) dialog.PrepareForBackgroundRun();
+        if (dialog.ShowDialog(this) == DialogResult.OK)
+        {
+            connectionLabel.Text = "Datenbankverbindung gespeichert. Bitte WawiCallPro neu starten, um sie in allen Arbeitsbereichen zu verwenden.";
+            AppendOutput(connectionLabel.Text);
+        }
     }
 
     private async void DatabaseBackup_Click(object sender, ItemClickEventArgs e)

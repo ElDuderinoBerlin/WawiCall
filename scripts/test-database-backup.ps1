@@ -35,6 +35,8 @@ foreach(var item in configurations)
     var full = args[4] is "full" or "providers";
     if(args[4] == "providers")
     {
+        await DatabaseSetupAcceptance.RunAsync(target.Type, item.ConnectionString, args[1]);
+        Console.WriteLine(item.Engine + ": setup wizard service probe, create, migrate, protected save and reload passed.");
         await using(var connection = factory.CreateConnection(target))
         {
             await connection.OpenAsync();

@@ -50,7 +50,7 @@ public sealed record CommunicationDatabaseSettings
 {
     public const string ConnectionStringPurpose = "communications-database-connection-string";
     public CommunicationDatabaseProvider Provider { get; init; } = CommunicationDatabaseProvider.Sqlite;
-    // Null uses communications.db under the shared App/Console configuration directory.
+    // Null uses communications.db under the shared App/Console directory; a file name or an explicit absolute path is accepted.
     public string? SqliteFileName { get; init; }
     public ProtectedSecret? ConnectionString { get; init; }
     public override string ToString() => nameof(CommunicationDatabaseSettings);

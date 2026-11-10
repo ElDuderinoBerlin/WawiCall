@@ -119,7 +119,19 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (database.Provider == CommunicationDatabaseProvider.Sqlite)
         {
             var fileName = database.SqliteFileName;
-            if (fileName is not null && (string.IsNullOrWhiteSpace(fileName) || fileName.Length > 240 ||
+            var absolute = fileName is not null && Path.IsPathFullyQualified(fileName);
+            if (absolute)
+            {
+                try
+                {
+                    _ = DatabaseTarget.Sqlite(fileName!);
+                    var name = Path.GetFileName(fileName!);
+                    if (string.IsNullOrWhiteSpace(name) || name.Length > 240 || name.EndsWith('.') || name.EndsWith(' ') || IsReservedDeviceName(name))
+                        issues.Add(new("database.sqliteFileName", "Ein gültiger absoluter SQLite-Dateipfad ist erforderlich."));
+                }
+                catch (DatabaseOperationException) { issues.Add(new("database.sqliteFileName", "Ein gültiger absoluter SQLite-Dateipfad ist erforderlich.")); }
+            }
+            if (!absolute && fileName is not null && (string.IsNullOrWhiteSpace(fileName) || fileName.Length > 240 ||
                 fileName is "." or ".." || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
                 fileName.Contains('/') || fileName.Contains('\\') || fileName.Contains(':') || fileName.EndsWith('.') || fileName.EndsWith(' ') ||
                 IsReservedDeviceName(fileName)))

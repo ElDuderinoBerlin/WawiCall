@@ -63,6 +63,8 @@ public static class WawiCallHost
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton<DatabaseFactory>();
+                services.AddSingleton<ICommunicationDatabaseFactory, CommunicationDatabaseFactory>();
+                services.AddSingleton<IDatabaseSetupService, DatabaseSetupService>();
                 services.AddSingleton<IDatabaseTargetSource, ConfiguredDatabaseTarget>();
                 services.AddSingleton<IDatabaseMigrationEngineFactory, DatabaseMigrationEngineFactory>();
                 services.AddSingleton<IDatabaseMigrationLock, DatabaseMigrationLock>();

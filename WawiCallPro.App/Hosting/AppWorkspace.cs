@@ -33,7 +33,8 @@ public sealed class AppWorkspace(
     IUiDispatcher dispatcher,
     IPhoneCacheService phoneCache,
     ITelephonyService? telephony,
-    ITelephonyConnection? telephonyConnection)
+    ITelephonyConnection? telephonyConnection,
+    IDatabaseSetupService databaseSetup)
 {
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
@@ -42,6 +43,7 @@ public sealed class AppWorkspace(
     public ConfigurationStore Settings { get; } = settings;
     public ISecretProtector Secrets { get; } = secrets;
     public ICommunicationDatabase Database { get; } = database;
+    public IDatabaseSetupService DatabaseSetup { get; } = databaseSetup;
     public IBusinessDirectory Directory { get; } = directory;
     public IProductPluginRuntime Plugins { get; } = plugins;
     public CompanyContext Companies { get; } = companies;

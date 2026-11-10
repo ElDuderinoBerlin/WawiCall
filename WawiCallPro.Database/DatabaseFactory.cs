@@ -9,6 +9,10 @@ namespace WawiCallPro.Database;
 /// <summary>Creates closed connections. Ordinary SQLite opens never create a database file.</summary>
 public sealed class DatabaseFactory
 {
+    /// <summary>Creates a closed probe connection without creating the selected database.</summary>
+    public DbConnection CreateProbeConnection(DatabaseTarget target) => target.Type == DatabaseType.Sqlite
+        ? CreateConnection(target, readOnly: true) : CreateMaintenanceConnection(target);
+
     /// <summary>ReadOnly enforces SQLite file mode; server status services use only metadata SELECT statements.</summary>
     public DbConnection CreateConnection(DatabaseTarget target, bool readOnly = false)
     {

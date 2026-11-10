@@ -37,6 +37,122 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task DatabaseSetupWizardCreatesOnlyOnExplicitSetupAndSavesOnFinish() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new FrmDatabaseSetup(workspace.DatabaseSetup, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        await form.CurrentOperation;
+        Field<SimpleButton>(form, "btnNext").PerformClick();
+        Field<SimpleButton>(form, "btnTestConnection").PerformClick(); await form.CurrentOperation;
+        Assert.IsFalse(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
+        Assert.IsFalse((await workspace.Settings.LoadAsync()).FileFound);
+        Field<SimpleButton>(form, "btnNext").PerformClick(); await form.CurrentOperation;
+        Assert.IsTrue(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
+        Assert.IsFalse((await workspace.Settings.LoadAsync()).FileFound, "Setting up a schema does not yet save settings.");
+        Assert.IsTrue(Field<SimpleButton>(form, "btnFinish").Enabled);
+        Field<SimpleButton>(form, "btnFinish").PerformClick(); await form.CurrentOperation;
+        Assert.AreEqual(DialogResult.OK, form.DialogResult);
+        Assert.AreEqual(Path.Combine(workspace.Paths.RootDirectory, "communications.db"), (await workspace.Settings.LoadAsync()).Options.Database.SqliteFileName);
+    });
+
+    [TestMethod]
+    public Task ClosingDatabaseSetupCancelsAndAwaitsItsConnectionTest() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var blocker = new PendingDatabaseSetup(workspace.DatabaseSetup);
+        using var form = new FrmDatabaseSetup(blocker, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents(); await form.CurrentOperation;
+        Field<SimpleButton>(form, "btnNext").PerformClick();
+        Field<SimpleButton>(form, "btnTestConnection").PerformClick();
+        await blocker.Entered.Task;
+        Assert.IsFalse(Field<SimpleButton>(form, "btnNext").Enabled);
+        form.Close();
+        await blocker.Cancelled.Task;
+        Assert.IsFalse(form.IsDisposed, "The dialog must await the test before disposing its controls.");
+        blocker.Release.TrySetResult();
+        await form.CurrentOperation;
+        await form.StopAsync();
+        Application.DoEvents();
+        Assert.IsTrue(form.IsDisposed);
+    });
+
+    [TestMethod]
+    public Task DatabaseSetupControlsRenderAllProvidersAndKeepQuotedPasswordsOutOfPreviews() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var oldFont = WindowsFormsSettings.DefaultFont;
+        var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        const string secret = "synthetic;quoted=\"password\"";
+        try
+        {
+            foreach (var skin in new[] { "Basic", "Office 2019 Black" })
+            foreach (var fontSize in new[] { 10F, 16F })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var form = new FrmDatabaseSetup(workspace.DatabaseSetup, services.GetRequiredService<AppUiState>());
+                form.PrepareForBackgroundRun(); form.MinimumSize = Size.Empty; form.ClientSize = new Size(960, 740);
+                form.Show(); Application.DoEvents(); await form.CurrentOperation;
+                void Capture(string name)
+                {
+                    form.PerformLayout(); Application.DoEvents(); CheckTableBounds(form);
+                    var output = Path.Combine(RenderOutput(), "database-setup"); Directory.CreateDirectory(output);
+                    using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                    bitmap.Save(Path.Combine(output, $"{skin}-{fontSize}-{name}.png"), ImageFormat.Png);
+                }
+                Capture("provider");
+                var first = Field<UcDbStep1DbType>(form, "_ucStep1");
+                var second = Field<UcDbStep2Connection>(form, "_ucStep2");
+                foreach (var type in new[] { DatabaseType.Sqlite, DatabaseType.SqlServer, DatabaseType.MySql, DatabaseType.PostgreSql })
+                {
+                    first.SelectedDbType = type;
+                    Field<SimpleButton>(form, "btnNext").PerformClick();
+                    var connection = type switch
+                    {
+                        DatabaseType.SqlServer => new Microsoft.Data.SqlClient.SqlConnectionStringBuilder { DataSource = "fixture.invalid,1433", InitialCatalog = "WawiCallPro", UserID = "fixture", Password = secret }.ConnectionString,
+                        DatabaseType.MySql => new MySqlConnector.MySqlConnectionStringBuilder { Server = "fixture.invalid", Database = "WawiCallPro", UserID = "fixture", Password = secret }.ConnectionString,
+                        DatabaseType.PostgreSql => new Npgsql.NpgsqlConnectionStringBuilder { Host = "fixture.invalid", Database = "WawiCallPro", Username = "fixture", Password = secret }.ConnectionString,
+                        _ => null
+                    };
+                    second.LoadDraft(new() { Type = type, SqlitePath = Path.Combine(workspace.Paths.RootDirectory, "communications.db"), ConnectionString = connection });
+                    Assert.IsTrue(second.ValidateInputs());
+                    if (connection is not null)
+                    {
+                        var rebuilt = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = second.ReadDraft().ConnectionString! };
+                        Assert.AreEqual(secret, rebuilt["Password"]);
+                    }
+                    Assert.DoesNotContain("synthetic", Field<TextEdit>(second, "txtCsPreview").Text);
+                    Capture(type + "-filled");
+                    form.ClientSize = new Size(760, 560); Capture(type + "-small");
+                    form.Scale(new SizeF(1.5F, 1.5F)); Capture(type + "-scale150");
+                    form.Scale(new SizeF(2F / 3F, 2F / 3F)); form.ClientSize = new Size(960, 740);
+                    var content = type switch { DatabaseType.Sqlite => (Control)Field<WawiCallPro.App.Views.DbConnection.UcConSqlite>(second, "ucSqlite"), DatabaseType.SqlServer => Field<WawiCallPro.App.Views.DbConnection.UcConSqlServer>(second, "ucSqlServer"), _ => Field<WawiCallPro.App.Views.DbConnection.UcConMyPg>(second, type == DatabaseType.PostgreSql ? "ucPostgres" : "ucMyPg") };
+                    foreach (var edit in content.Controls.Find(type == DatabaseType.Sqlite ? "txtSqliteFile" : type == DatabaseType.SqlServer ? "txtSqlServer" : "txtHost", true).OfType<TextEdit>()) edit.Text = "";
+                    Assert.IsFalse(second.ValidateInputs()); Capture(type + "-empty");
+                    Field<SimpleButton>(form, "btnBack").PerformClick();
+                }
+                typeof(FrmDatabaseSetup).GetMethod("SelectStep", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [2]);
+                var result = Field<UcDbStep3Migration>(form, "_ucStep3");
+                result.ShowProgress(); Capture("progress");
+                result.ShowResult(true, "Schema aktuell. Nach dem Übernehmen die Anwendung neu starten."); Capture("result");
+                form.Scale(new SizeF(1.5F, 1.5F)); Capture("result-scale150");
+                await form.StopAsync();
+                using var settings = new FrmSettings(workspace);
+                settings.PrepareForBackgroundRun(); settings.MinimumSize = Size.Empty; settings.ClientSize = new Size(760, 700);
+                settings.Show(); Application.DoEvents();
+                var page = Field<SettingsPage>(settings, "settingsPage"); await page.ReloadAsync();
+                settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "databaseTab");
+                settings.PerformLayout(); Application.DoEvents(); CheckTableBounds(settings);
+                using var summaryImage = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
+                summaryImage.Save(Path.Combine(RenderOutput(), "database-setup", $"{skin}-{fontSize}-settings-summary.png"), ImageFormat.Png);
+                await settings.StopAsync();
+            }
+        }
+        finally { WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); }
+    });
+
+    [TestMethod]
     public Task SipStandardAndExpertSettingsRenderWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
         AppUiStartup.Apply();
@@ -656,6 +772,7 @@ public sealed class AppShellTests
         foreach (Control control in parent.Controls)
         {
             if (parent is XtraTabControl tabs && control is XtraTabPage tab && tabs.SelectedTabPage != tab) continue;
+            if (parent is DevExpress.XtraBars.Navigation.NavigationFrame frame && control is DevExpress.XtraBars.Navigation.NavigationPage page && frame.SelectedPage != page) continue;
             if (parent is TableLayoutPanel { AutoScroll: false } && control is LabelControl or SimpleButton or TextEdit)
                 Assert.IsTrue(control.Left >= 0 && control.Top >= 0 && control.Right <= parent.ClientSize.Width + 1 && control.Bottom <= parent.ClientSize.Height + 1,
                     $"Clipped {control.Name}: {control.Bounds} in {parent.ClientSize}");
@@ -762,8 +879,7 @@ public sealed class AppShellTests
         Assert.AreEqual("test-secret-sentinel", password.Reveal());
         Assert.DoesNotContain("test-secret-sentinel", await File.ReadAllTextAsync(services.GetRequiredService<ConfigurationLocation>().FilePath));
         await Assert.ThrowsAsync<ConfigurationException>(() => second.SaveAsync(CancellationToken.None));
-        Find<ComboBoxEdit>(first, "providerEdit").SelectedIndex = 1;
-        await Assert.ThrowsAsync<ConfigurationException>(() => first.SaveAsync(CancellationToken.None));
+        Assert.AreEqual("Sqlite", Field<LabelControl>(first, "providerValue").Text);
         Assert.AreEqual(CommunicationDatabaseProvider.Sqlite, (await workspace.Settings.LoadAsync()).Options.Database.Provider);
     });
 
@@ -776,8 +892,8 @@ public sealed class AppShellTests
         typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(database, [EventArgs.Empty]);
         await ClickRibbonAsync(database, "databaseStatusItem");
         Assert.IsFalse(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
-        await ClickRibbonAsync(database, "databaseCreateItem");
-        await ClickRibbonAsync(database, "databaseMigrateItem");
+        await workspace.Database.CreateAndMigrateAsync();
+        await ClickRibbonAsync(database, "databaseStatusItem");
         Assert.Contains("betriebsbereit", Field<LabelControl>(database, "connectionLabel").Text);
         Assert.AreEqual(1, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(database, "tabbedView").Documents.Count);
         Assert.IsTrue(Field<DevExpress.XtraBars.BarButtonItem>(database, "databaseBackupItem").Enabled);
@@ -855,9 +971,9 @@ public sealed class AppShellTests
         try
         {
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
-            Assert.IsTrue(new[] { "databaseStatusItem", "databaseCreateItem", "databaseMigrateItem", "databaseApproveItem", "databaseBackupItem", "databaseRestoreItem" }
+            Assert.IsTrue(new[] { "databaseStatusItem", "databaseSetupItem", "databaseBackupItem", "databaseRestoreItem" }
                 .All(name => !Field<DevExpress.XtraBars.BarButtonItem>(form, name).Enabled));
-            Field<DevExpress.XtraBars.BarButtonItem>(form, "databaseCreateItem").PerformClick();
+            Field<DevExpress.XtraBars.BarButtonItem>(form, "databaseSetupItem").PerformClick();
             Assert.IsFalse(File.Exists(Path.Combine(workspace.Paths.RootDirectory, "communications.db")));
             var closing = form.PrepareToCloseAsync();
             await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -894,7 +1010,7 @@ public sealed class AppShellTests
         await form.PrepareToCloseAsync();
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsFalse(form.Visible);
-        Assert.IsTrue(new[] { "homeItem", "historyItem", "closeItem", "trayItem", "exitItem", "databaseStatusItem", "databaseCreateItem", "databaseMigrateItem", "databaseApproveItem", "databaseBackupItem", "databaseRestoreItem", "settingsItem", "resetItem", "fontItem", "helpItem", "aboutItem" }
+        Assert.IsTrue(new[] { "homeItem", "historyItem", "closeItem", "trayItem", "exitItem", "databaseStatusItem", "databaseSetupItem", "databaseBackupItem", "databaseRestoreItem", "settingsItem", "resetItem", "fontItem", "helpItem", "aboutItem" }
             .All(name => Field<DevExpress.XtraBars.BarButtonItem>(form, name).ImageOptions.SvgImage is not null));
     });
 
@@ -917,6 +1033,26 @@ public sealed class AppShellTests
         await stop; await work;
         Assert.IsFalse(operation.IsRunning);
     });
+
+    private sealed class PendingDatabaseSetup(WawiCallPro.Utilities.Persistence.IDatabaseSetupService inner) : WawiCallPro.Utilities.Persistence.IDatabaseSetupService
+    {
+        internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource Cancelled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<ConfigurationSnapshot> LoadAsync(CancellationToken cancellationToken = default) => inner.LoadAsync(cancellationToken);
+        public WawiCallPro.Utilities.Persistence.DatabaseSetupDraft ReadDraft(ConfigurationSnapshot snapshot) => inner.ReadDraft(snapshot);
+        public async Task<WawiCallPro.Utilities.Persistence.DatabaseConnectionTestResult> TestAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, CancellationToken cancellationToken = default)
+        {
+            using var registration = cancellationToken.Register(() => Cancelled.TrySetResult());
+            Entered.TrySetResult();
+            await Release.Task;
+            cancellationToken.ThrowIfCancellationRequested();
+            return new(true, "Completed");
+        }
+        public Task<DatabaseMigrationStatus> InspectAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, CancellationToken cancellationToken = default) => inner.InspectAsync(draft, cancellationToken);
+        public Task<DatabaseMigrationStatus> InitializeAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, bool approveEmpty, IProgress<DatabaseMigrationProgress>? progress = null, CancellationToken cancellationToken = default) => inner.InitializeAsync(draft, approveEmpty, progress, cancellationToken);
+        public Task SaveAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default) => inner.SaveAsync(draft, expected, cancellationToken);
+    }
 
     private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action) => RunStaAsync(async () =>
     {

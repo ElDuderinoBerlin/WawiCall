@@ -24,8 +24,6 @@ public partial class SettingsPage : XtraUserControl
     {
         InitializeComponent();
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
-        providerEdit.Properties.Items.AddRange(new object[] { "SQLite", "SQL Server", "MySQL / MariaDB", "PostgreSQL" });
-        providerEdit.SelectedIndexChanged += Provider_Changed;
         FontChanged += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
         var appearance = LookAndFeel;
@@ -143,9 +141,9 @@ public partial class SettingsPage : XtraUserControl
         usernameEdit.Text = options.SipAccount?.Username ?? "";
         authUserEdit.Text = options.SipAccount?.AuthenticationUsername ?? "";
         passwordEdit.Text = "";
-        providerEdit.SelectedIndex = (int)options.Database.Provider - 1;
-        sqliteFileEdit.Text = options.Database.SqliteFileName ?? "communications.db";
-        connectionEdit.Text = "";
+        providerValue.Text = options.Database.Provider.ToString();
+        sqlitePathValue.Text = options.Database.Provider == CommunicationDatabaseProvider.Sqlite ? options.Database.SqliteFileName ?? "communications.db" : "–";
+        databaseConnectionValue.Text = options.Database.ConnectionString is null ? "–" : "Geschützt gespeichert";
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
@@ -157,18 +155,10 @@ public partial class SettingsPage : XtraUserControl
         statusLabel.Text = snapshot.FileFound ? "Gespeicherte Einstellungen geladen." : "Vorgaben geladen. Es wurden noch keine Einstellungen gespeichert.";
     }
 
-    private void Provider_Changed(object? sender, EventArgs e)
-    {
-        sqliteFileEdit.Enabled = providerEdit.SelectedIndex == 0;
-        connectionEdit.Enabled = providerEdit.SelectedIndex != 0;
-        connectionEdit.Text = "";
-    }
-
     internal ApplicationOptions ReadOptions()
     {
         sipProperties.CloseEditor();
         var old = _snapshot!.Options;
-        var provider = (CommunicationDatabaseProvider)(providerEdit.SelectedIndex + 1);
         return old with
         {
             User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked },
@@ -181,14 +171,7 @@ public partial class SettingsPage : XtraUserControl
                 Username = usernameEdit.Text.Trim(), AuthenticationUsername = string.IsNullOrWhiteSpace(authUserEdit.Text) ? null : authUserEdit.Text.Trim(),
                 Password = passwordEdit.Text.Length == 0 ? old.SipAccount?.Password : _workspace!.Secrets.Protect(passwordEdit.Text, SipAccountOptions.PasswordPurpose)
             },
-            Database = new CommunicationDatabaseSettings
-            {
-                Provider = provider,
-                SqliteFileName = provider == CommunicationDatabaseProvider.Sqlite ? sqliteFileEdit.Text.Trim() : null,
-                ConnectionString = provider == CommunicationDatabaseProvider.Sqlite ? null : connectionEdit.Text.Length != 0
-                    ? _workspace!.Secrets.Protect(connectionEdit.Text, CommunicationDatabaseSettings.ConnectionStringPurpose)
-                    : provider == old.Database.Provider ? old.Database.ConnectionString : null
-            },
+
             Companies = ReadCompanySettings(old)
         };
     }

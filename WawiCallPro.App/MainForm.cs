@@ -103,8 +103,8 @@ public partial class MainForm : RibbonForm
             default:
                 var start = new StartPage(); start.Navigate += Navigate;
                 if (id == "help") start.SetContent("WawiCallPro verwenden",
-                    "1. In den Einstellungen SIP-Konto und Kommunikationsdatenbank konfigurieren.\n2. Nach geänderten Verbindungseinstellungen die Anwendung neu starten.\n3. Im Ribbon-Tab Datenbank den Status prüfen und bei Bedarf das Schema anlegen oder aktualisieren.\n4. Die Mandanten für den Telefon-Cache unter Einstellungen auswählen.\n5. Gespeicherte Gespräche und Notizen finden Sie in der Gesprächshistorie.",
-                    "Telefonie, Audioanbindung und zusätzliche Wawi-Fachtabs folgen in ihren Fachphasen.", false);
+                    "1. Im Ribbon-Tab Datenbank den Einrichtungsassistenten öffnen.\n2. Datenbankverbindung testen, einrichten und übernehmen; danach die Anwendung neu starten.\n3. SIP-Konto in den Einstellungen konfigurieren und anmelden.\n4. Die Mandanten für den Telefon-Cache unter Einstellungen auswählen.\n5. Gespeicherte Gespräche und Notizen finden Sie in der Gesprächshistorie.",
+                    "Die Telefonie verwendet SIPSorcery und CSCore. Kunden- und Lieferantenansichten stellt das aktive Warenwirtschaftsplugin bereit.", false);
                 else if (id == "about") start.SetContent("Über WawiCallPro",
                     "WawiCallPro " + ApplicationVersion.Display + "\nProduktlinie: " + (_application?.ProductLine ?? "Designer") + "\nTelefonie: SIPSorcery\nKommunikationsdatenbank: SQLite, PostgreSQL, SQL Server oder MySQL/MariaDB.",
                     "Kunden- und Lieferantenansichten stellt das jeweilige Warenwirtschaftsplugin bereit.", false);
@@ -162,6 +162,7 @@ public partial class MainForm : RibbonForm
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
+        foreach (var setup in OwnedForms.OfType<FrmDatabaseSetup>()) await setup.StopAsync();
         await ClosePluginPagesAsync();
         if (!_backgroundRun) { _state?.Save(this); _state?.Save(dockManager); }
     }
@@ -271,7 +272,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseCreateItem,"Database"), (databaseMigrateItem,"DatabaseRefresh"), (databaseApproveItem,"DatabaseCheck"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);

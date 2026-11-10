@@ -1136,6 +1136,31 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Datenbank-Einrichtungsassistent nach der tatsächlichen LxTranslate-Implementierung
+  übernommen: FrmDatabaseSetup mit drei Schritten sowie Provider-, Verbindungs- und
+  Fortschritts-UserControls samt Designer-/Ressourcendateien. Einstieg im Ribbon unter
+  Datenbank einrichten; die bisherigen separaten Befehle Anlegen/Aktualisieren/Leerfreigabe
+  sind im Assistenten gebündelt. Status sowie SQLite-Sicherung und Wiederherstellung
+  bleiben Ribbonaktionen. Der Einstellungsdialog zeigt den gespeicherten Stand als Labels.
+  Tabellenlayout, gleich große Dialogbuttons mit Innenabständen und Fensterzustandsspeicherung
+  sind angebunden. Auch unvollständige Provider-Eingaben bleiben beim Wechsel erhalten.
+  IDatabaseSetupService und typisierte Datenbankfactory sind im gemeinsamen DI-Host registriert.
+  Verbindungstest ohne Anlage, ausdrückliche Leerfreigabe, Eigentums-/Versionsprüfung,
+  Fortschritt, Abbruch mit abgewartetem Abschluss und geschütztes Speichern mit
+  Konkurrenzschutz geprüft. Kennwortfelder fehlen in der kopierbaren Vorschau;
+  Sonderzeichen werden über echte Providerbuilder erhalten. Ein gespeicherter Wechsel
+  der Kommunikationsdatenbank gilt erst nach Neustart; laufende Repositories behalten ihr Startziel.
+  Je Edition acht gezielte App- und 25 Konfigurations-/Persistenzprüfungen bestanden.
+  Zusätzlich 89 Datenbanktests und echte isolierte SQL-Server-, PostgreSQL-, MySQL- und
+  MariaDB-Läufe inklusive Assistentendienst, Migrationen und Repositories bestanden.
+  Kleine/große Fenster, leere/gefüllte Eingaben, 10/16-Punkt-Schrift, heller/dunkler Skin
+  und 150-Prozent-Layoutskalierung unsichtbar gerendert und visuell geprüft.
+  App/Console mit Rider in aktiver Debug-/Any-CPU-Konfiguration rekompiliert;
+  13 vorhandene Nullable-Warnungen in der externen CSCore-Bibliothek, keine Buildfehler.
+  Keine neue Migration, kein produktiver SQL-Code verändert. Nachweise:
+  `.artifacts/lx-startup-log/database-setup-*` und
+  `.artifacts/app-shell/settings-ui/database-setup`.
+
 - [x] ✅ Gemeinsame Fensterzustandsspeicherung nach dem LxTranslate-Muster über
   AppUiState: Hauptfenster, Einstellungen und Lizenzdialog speichern Größe und Position
   je Formular unter editionsgetrenntem HKCU-Pfad. Maximierung und normale RestoreBounds
