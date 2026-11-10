@@ -40,4 +40,19 @@ public sealed class SipAccountOptions
     public string? Username { get; init; }
     public string? AuthenticationUsername { get; init; }
     public ProtectedSecret? Password { get; init; }
+    public bool RegisterOnStartup { get; init; }
+    public SipConnectionOptions Connection { get; init; } = new();
+}
+
+/// <summary>Explicit network and media settings; defaults match the supplied FRITZ!Box examples.</summary>
+public sealed record SipConnectionOptions
+{
+    public string BindAddress { get; init; } = "0.0.0.0";
+    public int LocalPort { get; init; } = 5060;
+    public int RegistrationExpirySeconds { get; init; } = 120;
+    public int RegistrationTimeoutSeconds { get; init; } = 10;
+    public int RetryIntervalSeconds { get; init; } = 30;
+    public int RingTimeoutSeconds { get; init; } = 60;
+    public bool AcceptRtpFromAny { get; init; }
+    public bool EnableG722 { get; init; } = true;
 }

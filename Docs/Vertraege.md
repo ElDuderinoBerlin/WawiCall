@@ -1046,7 +1046,7 @@ speichert sie die Kennung mit der vorhandenen Dateirevisionsprüfung; Änderunge
 werden nicht überschrieben. Ein Speicherkonflikt wird als Fehler gemeldet, die laufende Auswahl bleibt
 im Katalog erkennbar. Allgemeine, noch nicht gespeicherte Eingaben bleiben im Dialog erhalten.
 
-Das Einstellungsformat ist nun Version 4 mit optionalem `user.activePluginId`. Null übernimmt beim
+Seit Formatversion 4 gibt es das optionale Feld `user.activePluginId`. Null übernimmt beim
 Erststart das mitgelieferte Lexware-Plugin; eine gespeicherte Kennung muss tatsächlich vorhanden sein.
 Fehlt das ausgewählte Plugin, wird der Start abgewiesen statt still auf eine andere Quelle zu wechseln.
 `WawiCallPro.Plugins.Dummy` wird für beide Produktlinien signiert mitgeliefert und klar als Testbetrieb
@@ -1056,3 +1056,14 @@ Dokumente im Hauptfenster; nur ihre Verwaltung gehört in den Einstellungsdialog
 
 Gezielte fensterlose Nachweise unter `.artifacts/plugin-settings`; Renderbilder des Dialogs unter
 `.artifacts/app-shell/settings-ui/Settings-Plugins-*`. Keine sichtbare Desktopbedienung.
+
+### SIP-Einstellungen ab Formatversion 5
+
+Das optionale Arbeitsplatzkonto erhält `registerOnStartup` (Vorgabe `false`) und den
+Abschnitt `connection`: IPv4-Bind-Adresse, lokaler Port, Registrierungsdauer,
+Anmelde-Timeout, Wiederholintervall, Klingelzeit sowie G.722- und RTP-Adressoptionen.
+Serverport und lokaler Port sind getrennt. Vorhandene Konten aus Version 1–4 erhalten
+beim Lesen die sicheren Vorgaben; allein das Aktualisieren aktiviert keine Anmeldung.
+Kennwörter bleiben zweckgebunden geschützt, die neue Formatversion verändert sie nicht.
+Die Standardansicht enthält Server, Konto, Transport und automatische Anmeldung;
+weitere Werte stehen im DevExpress PropertyGrid unter Erweitert, ohne Zugangsdaten.

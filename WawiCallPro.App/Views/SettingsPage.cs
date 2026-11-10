@@ -10,6 +10,7 @@ namespace WawiCallPro.App.Views;
 
 public partial class SettingsPage : XtraUserControl
 {
+    private SipAdvancedSettings _sipAdvanced = new();
     private AppWorkspace? _workspace;
     private ConfigurationSnapshot? _snapshot;
     private PageOperation? _operation;
@@ -129,7 +130,9 @@ public partial class SettingsPage : XtraUserControl
         var options = snapshot.Options;
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
-        sipEnabledEdit.Checked = options.SipAccount is not null;
+        sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
+        _sipAdvanced = SipAdvancedSettings.From(options.SipAccount?.Connection ?? new());
+        sipProperties.SelectedObject = _sipAdvanced;
         serverEdit.Text = options.SipAccount?.Server ?? "";
         portEdit.Value = options.SipAccount?.Port ?? 5060;
         transportEdit.SelectedIndex = (int)(options.SipAccount?.Transport ?? SipTransport.Udp) - 1;
@@ -159,14 +162,17 @@ public partial class SettingsPage : XtraUserControl
 
     internal ApplicationOptions ReadOptions()
     {
+        sipProperties.CloseEditor();
         var old = _snapshot!.Options;
         var provider = (CommunicationDatabaseProvider)(providerEdit.SelectedIndex + 1);
         return old with
         {
             User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked },
-            SipAccount = !sipEnabledEdit.Checked ? null : new SipAccountOptions
+            SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)
+                && string.IsNullOrWhiteSpace(authUserEdit.Text) && passwordEdit.Text.Length == 0 ? null : new SipAccountOptions
             {
+                RegisterOnStartup = sipEnabledEdit.Checked, Connection = _sipAdvanced.Read(),
                 Server = serverEdit.Text.Trim(), Port = (int)portEdit.Value, Transport = (SipTransport)(transportEdit.SelectedIndex + 1),
                 Username = usernameEdit.Text.Trim(), AuthenticationUsername = string.IsNullOrWhiteSpace(authUserEdit.Text) ? null : authUserEdit.Text.Trim(),
                 Password = passwordEdit.Text.Length == 0 ? old.SipAccount?.Password : _workspace!.Secrets.Protect(passwordEdit.Text, SipAccountOptions.PasswordPurpose)

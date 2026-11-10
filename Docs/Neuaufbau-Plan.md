@@ -1066,6 +1066,18 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜
 
+- [x] ✅ SIP-Einstellungsmodell und Oberfläche vorbereitet: Standardfelder bleiben
+  kompakt; zusätzliche Netzwerk-, Registrierungs-, Klingelzeit- und Medienparameter stehen
+  in einem DevExpress PropertyGridControl unter Erweitert. Die bisher missverständliche
+  Konfigurieren-Checkbox bezeichnet jetzt ausdrücklich die Anmeldung beim Programmstart;
+  Abwählen löscht kein bereits ausgefülltes Konto. Neue Formatversion 5 liest Version 1–4
+  mit Vorgaben und aktiviert bestehende Konten nicht automatisch. Kennwörter bleiben
+  geschützt. 27 Konfigurations-/Versionstests und zwei gezielte Einstellungs-/Renderprüfungen
+  bestanden; App/Console in aktiver Debug-/Any-CPU-Konfiguration gebaut. Nachweise unter
+  `.artifacts/lx-startup-log/sip-config.log`, `sip-settings.log` und
+  `.artifacts/app-shell/settings-ui/sip-settings`. Anbindung an die echte SIP-Laufzeit
+  und Endpunktprüfung bleiben eigene folgende Arbeitsschritte.
+
 - [ ] Eigene Telefonie-Dienstklassen einschließlich Zustandssteuerung, Sitzungen und Medien über Interfaces
   und typisierte Factories in DI bereitstellen. Vorhandenen konkreten Zustandsautomaten entsprechend anbinden.
   Technikunabhängige Verträge erhalten; spätere Telefonietechnologien können dieselben Verträge implementieren.

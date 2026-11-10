@@ -19,6 +19,10 @@ partial class SettingsPage
     private DevExpress.XtraEditors.CheckEdit notificationsEdit;
     private DevExpress.XtraEditors.CheckEdit minimizedEdit;
     private DevExpress.XtraTab.XtraTabPage sipTab;
+    private DevExpress.XtraTab.XtraTabControl sipPages;
+    private DevExpress.XtraTab.XtraTabPage sipStandard;
+    private DevExpress.XtraTab.XtraTabPage sipAdvanced;
+    private DevExpress.XtraVerticalGrid.PropertyGridControl sipProperties;
     private System.Windows.Forms.TableLayoutPanel sipLayout;
     private DevExpress.XtraEditors.LabelControl sipHint;
     private DevExpress.XtraEditors.CheckEdit sipEnabledEdit;
@@ -96,6 +100,10 @@ partial class SettingsPage
         notificationsEdit = new DevExpress.XtraEditors.CheckEdit();
         minimizedEdit = new DevExpress.XtraEditors.CheckEdit();
         sipTab = new DevExpress.XtraTab.XtraTabPage();
+        sipPages = new DevExpress.XtraTab.XtraTabControl();
+        sipStandard = new DevExpress.XtraTab.XtraTabPage();
+        sipAdvanced = new DevExpress.XtraTab.XtraTabPage();
+        sipProperties = new DevExpress.XtraVerticalGrid.PropertyGridControl();
         sipLayout = new System.Windows.Forms.TableLayoutPanel();
         sipHint = new DevExpress.XtraEditors.LabelControl();
         sipEnabledEdit = new DevExpress.XtraEditors.CheckEdit();
@@ -201,7 +209,16 @@ partial class SettingsPage
         generalLayout.SetColumnSpan(generalHint, 2);
         sipTab.Text = "SIP-Konto";
         tabs.TabPages.Add(sipTab);
-        sipTab.Controls.Add(sipLayout);
+        sipTab.Controls.Add(sipPages);
+        sipPages.Dock = System.Windows.Forms.DockStyle.Fill;
+        sipPages.TabPages.Add(sipStandard);
+        sipPages.TabPages.Add(sipAdvanced);
+        sipStandard.Text = "Standard";
+        sipStandard.Controls.Add(sipLayout);
+        sipAdvanced.Text = "Erweitert";
+        sipAdvanced.Controls.Add(sipProperties);
+        sipProperties.Dock = System.Windows.Forms.DockStyle.Fill;
+        sipProperties.Name = "sipProperties";
         sipLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         sipLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         sipLayout.ColumnCount = 2;
@@ -224,7 +241,7 @@ partial class SettingsPage
         sipEnabledEdit.Name = "sipEnabledEdit";
         sipEnabledEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         sipEnabledEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-        sipEnabledEdit.Text = "SIP-Konto konfigurieren";
+        sipEnabledEdit.Text = "Beim Programmstart automatisch anmelden";
         sipLayout.Controls.Add(sipEnabledEdit, 0, 0);
         sipLayout.SetColumnSpan(sipEnabledEdit, 2);
         serverEdit.Name = "serverEdit";
@@ -317,7 +334,7 @@ partial class SettingsPage
         sipLayout.Controls.Add(passwordEdit, 1, 6);
         passwordEdit.Properties.UseSystemPasswordChar = true;
         sipHint.Name = "sipHint";
-        sipHint.Text = "SIPSorcery ist die Telefonieanbindung. Das Speichern registriert das Konto noch nicht. Ein leeres Kennwortfeld behält das vorhandene Kennwort.";
+        sipHint.Text = "Die automatische Anmeldung gilt beim nächsten Programmstart. Speichern allein stellt keine Verbindung her. Ein leeres Kennwortfeld behält das gespeicherte Kennwort. Netzwerk- und Medienoptionen finden Sie unter Erweitert.";
         sipHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         sipHint.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         sipHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);

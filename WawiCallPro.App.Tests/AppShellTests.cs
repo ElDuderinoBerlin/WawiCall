@@ -36,6 +36,51 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task SipStandardAndExpertSettingsRenderWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var oldFont = WindowsFormsSettings.DefaultFont;
+        var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        try
+        {
+            foreach (var skin in new[] { "Basic", "Office 2019 Black" })
+            foreach (var fontSize in new[] { 10F, 16F })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var form = new FrmSettings(workspace);
+                form.PrepareForBackgroundRun();
+                form.MinimumSize = Size.Empty;
+                form.ClientSize = new Size(760, 700);
+                form.Show(); Application.DoEvents();
+                var page = Field<SettingsPage>(form, "settingsPage");
+                await page.ReloadAsync();
+                form.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "sipTab");
+                var sipPages = Field<XtraTabControl>(page, "sipPages");
+                for (var index = 0; index < 2; index++)
+                {
+                    sipPages.SelectedTabPageIndex = index;
+                    form.PerformLayout(); Application.DoEvents(); CheckTableBounds(form);
+                    var destination = Path.Combine(RenderOutput(), "sip-settings");
+                    Directory.CreateDirectory(destination);
+                    using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                    bitmap.Save(Path.Combine(destination, $"Sip-{skin}-{fontSize}-{index}.png"), ImageFormat.Png);
+                }
+                Assert.IsInstanceOfType<SipAdvancedSettings>(Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject);
+                form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout(); CheckTableBounds(form);
+                await form.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+        }
+    });
+
+    [TestMethod]
     public Task WindowStateRestoresPositionSizeMaximizationAndClampsMissingMonitorWithoutTouchingAuditState() => RunStaAsync(() =>
     {
         var product = "WindowStateTests-" + Guid.NewGuid().ToString("N");
@@ -685,9 +730,16 @@ public sealed class AppShellTests
         using var first = new SettingsPage(); first.Bind(workspace); first.Apply(snapshot);
         using var second = new SettingsPage(); second.Bind(workspace); second.Apply(snapshot);
         Find<CheckEdit>(first, "notificationsEdit").Checked = false;
+        Find<CheckEdit>(first, "sipEnabledEdit").Checked = true;
+        var expert = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(first, "sipProperties").SelectedObject;
+        expert.LocalPort = 5072;
+        expert.RegistrationExpirySeconds = 300;
         await first.SaveAsync(CancellationToken.None);
         var saved = await workspace.Settings.LoadAsync();
         Assert.IsFalse(saved.Options.User.ShowCallNotifications);
+        Assert.IsTrue(saved.Options.SipAccount!.RegisterOnStartup);
+        Assert.AreEqual(5072, saved.Options.SipAccount.Connection.LocalPort);
+        Assert.AreEqual(300, saved.Options.SipAccount.Connection.RegistrationExpirySeconds);
         Assert.AreEqual("capture-fixture", saved.Options.Devices.CaptureDeviceId);
         Assert.AreEqual("playback-fixture", saved.Options.Devices.PlaybackDeviceId);
         Assert.AreEqual(snapshot.Options.Companies[0], saved.Options.Companies[0]);

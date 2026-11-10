@@ -34,6 +34,15 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("sipAccount.port", "Der Port muss zwischen 1 und 65535 liegen."));
         if (!Enum.IsDefined(account.Transport))
             issues.Add(new("sipAccount.transport", "Erlaubt sind Udp, Tcp und Tls."));
+        var connection = account.Connection;
+        if (connection is null || !System.Net.IPAddress.TryParse(connection.BindAddress, out var bind)
+            || bind.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork
+            || connection.LocalPort is < 1 or > 65535
+            || connection.RegistrationExpirySeconds is < 60 or > 86400
+            || connection.RegistrationTimeoutSeconds is < 1 or > 120
+            || connection.RetryIntervalSeconds is < 1 or > 3600
+            || connection.RingTimeoutSeconds is < 5 or > 600)
+            issues.Add(new("sipAccount.connection", "Erweiterte SIP-Einstellungen prüfen: IPv4-Bind-Adresse, lokaler Port 1–65535, Registrierung 60–86400 s, Timeout 1–120 s, Wiederholung 1–3600 s und Klingelzeit 5–600 s."));
         if (!IsValidUsername(account.Username))
             issues.Add(new("sipAccount.username", "Ein Benutzername ohne Leerraum und Steuerzeichen ist erforderlich."));
         if (account.AuthenticationUsername is not null && !IsValidUsername(account.AuthenticationUsername))
