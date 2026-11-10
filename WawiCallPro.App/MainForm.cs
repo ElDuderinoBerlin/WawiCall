@@ -85,6 +85,7 @@ public partial class MainForm : RibbonForm
     internal void Navigate(string id)
     {
         if (_closing) return;
+        if (id == "caller") { OpenCallerLookup(); return; }
         if (id is "settings" or "plugin") { OpenSettings(id == "plugin"); return; }
         if (id == "database") { ribbon.SelectedPage = databaseRibbon; return; }
         if (_documents.TryGetValue(id, out var existing)) { ActivateDocument(existing); return; }
@@ -162,6 +163,7 @@ public partial class MainForm : RibbonForm
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
+        foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
         foreach (var setup in OwnedForms.OfType<FrmDatabaseSetup>()) await setup.StopAsync();
         await ClosePluginPagesAsync();
         if (!_backgroundRun) { _state?.Save(this); _state?.Save(dockManager); }
@@ -202,6 +204,19 @@ public partial class MainForm : RibbonForm
     private void AppendOutput(string message) => logPanel.Append(message);
     private void Home_Click(object sender, ItemClickEventArgs e) => Navigate("home");
     private void History_Click(object sender, ItemClickEventArgs e) => Navigate("history");
+    private void Caller_Click(object sender, ItemClickEventArgs e) => Navigate("caller");
+    internal FrmCallerLookup CreateCallerDialog() => _workspace is null ? new FrmCallerLookup() : new FrmCallerLookup(_workspace, _state);
+    private void OpenCallerLookup()
+    {
+        if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => !form.IsDisposed) is { } existing)
+        {
+            if (existing.WindowState == FormWindowState.Minimized) existing.WindowState = FormWindowState.Normal;
+            existing.Show(); if (!_backgroundRun) existing.Activate(); return;
+        }
+        var form = CreateCallerDialog();
+        if (_backgroundRun) form.PrepareForBackgroundRun();
+        form.Show(this);
+    }
     private void Settings_Click(object sender, ItemClickEventArgs e) => OpenSettings();
     private void Help_Click(object sender, ItemClickEventArgs e) => ToggleHelp();
     private void About_Click(object sender, ItemClickEventArgs e) => XtraMessageBox.Show(this,
@@ -272,7 +287,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);

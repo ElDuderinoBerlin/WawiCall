@@ -1,6 +1,7 @@
 using WawiCallPro.Utilities.Security;
 using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.Utilities.Configuration;
 
@@ -20,6 +21,7 @@ public sealed record ApplicationOptions
     public AudioDeviceSettings Devices { get; init; } = new();
     public CommunicationDatabaseSettings Database { get; init; } = new();
     public ImmutableArray<CompanySettings> Companies { get; init; } = [];
+    public CallerLineAssignment? CallerLineAssignment { get; init; }
 
     public CompanySettings? FindCompanySettings(CompanyKey company)
     {

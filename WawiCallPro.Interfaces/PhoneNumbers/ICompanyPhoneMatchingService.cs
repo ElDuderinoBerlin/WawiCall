@@ -16,6 +16,9 @@ public sealed record PhoneMatchObservation(PartyKey SourceParty, string? Registe
 
 public sealed record PhoneMatchCandidate(PartyKey Party, string DisplayName, ImmutableArray<PhoneMatchObservation> Evidence)
 {
+    public string? Number { get; init; }
+    public string? OwnerDisplayName { get; init; }
+    public string? OwnerNumber { get; init; }
     public bool IsPositive => Evidence.Any(item => item.Match.Kind != PhoneNumberMatchKind.InferredBlock);
     public override string ToString() => nameof(PhoneMatchCandidate);
 }

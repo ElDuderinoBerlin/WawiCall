@@ -22,8 +22,15 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         ValidateDevices(options.Devices, issues);
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
+        if (options.CallerLineAssignment is { } mapping && (mapping.Company is null || mapping.Line is null
+            || !SafeLineText(mapping.DisplayName) || !SafeLineText(mapping.Line.TelephonySystemId) || !SafeLineText(mapping.Line.LineId)
+            || mapping.Line.DefaultRegion is not null && !IsValidRegion(mapping.Line.DefaultRegion)
+            || mapping.Line.LocalAreaCode is { } area && (area.Length is < 1 or > 16 || !area.All(char.IsAsciiDigit))))
+            issues.Add(new("callerLineAssignment", "Die Leitungszuordnung muss eine Firma und einen vollständigen, gültigen Leitungskontext enthalten."));
         if (issues.Count != 0) throw new ConfigurationException(issues.ToImmutable());
     }
+
+    private static bool SafeLineText(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512 && !value.Any(char.IsControl);
 
     private void ValidateSip(SipAccountOptions account, ImmutableArray<ConfigurationIssue>.Builder issues)
     {

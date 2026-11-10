@@ -3,8 +3,8 @@
 Stand: 10.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
 Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
 Aktualisierung, der firmenbezogene StartWidth-Matcher und der gemeinsame Mehrfirmenindex sind
-implementiert. Grafische Trefferauswahl, automatische Aktualisierungsauslöser und Anruf-/Viewanbindung
-bleiben noch umzusetzen.
+implementiert. Gruppierte Trefferauswahl und explizite Leitungsfirmenzuordnung stehen im Produkt bereit.
+Automatische Aktualisierungsauslöser und Anruf-/Viewanbindung bleiben noch umzusetzen.
 
 ## Grundentscheidung
 
@@ -120,7 +120,8 @@ Nummerntyp und Originalnummer bleiben erhalten; ein bereits gespeichertes E.164 
 `InterpretIncoming` erhält eine `CallAddress` und optional einen ausdrücklichen `PhoneLineContext`
 mit Anlagen-ID, Leitungs-ID, Region und Ortsvorwahl. Er übernimmt keine Firmenvorgaben aus Suchtreffern.
 Die Schnittstellen und Implementierungen sind in beiden Hosts per DI registriert. Die tatsächliche
-SIP-Ereignisanbindung und eine Einstellungsoberfläche für Leitungsvorgaben folgen weiterhin in Phase 7/8.
+SIP-Ereignisanbindung und eine Einstellungsoberfläche für Regions-/Ortsvorwahlvorgaben je Leitung folgen
+weiterhin in Phase 7/8. Die davon getrennte Firmenzuordnung des SIP-Kontos ist inzwischen implementiert.
 
 Für mehrdeutige Eingaben gibt es `Automatic`, `National`, `LocalSubscriber` und `Internal`:
 
@@ -198,8 +199,8 @@ erhalten. Eine explizite Kontakt-Extension wird nur bei Übereinstimmung als Kon
 bei unbekannter/abweichender Extension führt die gemeinsame Basisnummer zur Organisation.
 Der Dienst trifft keine automatische Datensatzauswahl und greift weder auf die aktive Firma noch auf
 Wawi oder SIP zu. Ein einzelner lokaler Firmenbestand bestätigt keine aktuelle ERP-Berechtigung.
-Die Zusammenführung übernimmt der unten beschriebene Mehrfirmenindex; die grafische Auswahl folgt
-im nächsten Planpunkt. Quellnummern und vorhandene Gesprächshistorie werden nicht umgeschrieben.
+Die Zusammenführung übernimmt der unten beschriebene Mehrfirmenindex; die grafische Auswahl verwendet
+die gemeinsame Entscheidungslogik. Quellnummern und vorhandene Gesprächshistorie werden nicht umgeschrieben.
 
 Die Console bietet eine ausdrückliche Konfiguration und einen lokalen Firmenabgleich an:
 
@@ -339,6 +340,51 @@ Ein Anruferbereich erhält seinen eigenen View-/Firmenkontext. Ein Anruf aus Fir
 unbemerkt eine gerade bearbeitete Hauptansicht aus Firma A. Ein ausdrückliches Öffnen/Wechseln beachtet
 offene Änderungen; mehrere Gesprächsbereiche erhalten getrennte Kontexte.
 
+## Implementierte Trefferauswahl und Leitungsfirma
+
+**Start → Anrufzuordnung** öffnet ein eigenes, nicht modales Fenster (`FrmCallerLookup`) mit
+designerfähigem `CallerLookupPage`, TableLayoutPanel und DevExpress GridView. Größe und Position
+werden unabhängig vom Hauptfenster gespeichert. Erneutes Öffnen verwendet das bestehende Fenster.
+Die ausdrückliche Suche prüft den gemeinsamen Index im Hintergrund; Abbrechen und Schließen warten
+auf laufende Arbeit und übernehmen keine verspäteten Ergebnisse. Bestehende Fachansichten und die
+aktive Firma bleiben erhalten.
+
+Die Treffer sind nach vollständigen CompanyKeys gruppiert. Gleiche Namen oder Datensatznummern
+vereinigen keine Firmen, Rollen oder Kontakte. Gruppenüberschrift und Herkunftsangaben unterscheiden
+auch gleichnamige Firmen verschiedener Installationen. Rolle, Name, Kunden-/Lieferantennummer und
+Trefferart stehen direkt in der Liste; Kontaktbesitzer, registrierte Extension, Apparat, Quellfeld,
+Installation und Cache-/Regelrevisionen unter **Trefferdetails**. **Suchfirmen und Cachestand** zeigt
+auch nicht verfügbare oder leere Suchfirmen. Eingebaute Grid-Suche und gespeichertes Spaltenlayout
+verwenden den eigenen HKCU-Namen `CallerLookup-v1`; Suchtext, Daten und Auswahl werden nicht persistiert.
+
+`ICallerMatchDecisionService` ist in App und Console als Singleton registriert und arbeitet ohne I/O.
+Ein einzelner positiver Vollnummern-, bestätigter Block- oder Stammnummerntreffer darf nur bei einem
+vollständigen, aktuellen und widerspruchsfreien Suchstand automatisch gewählt werden. Kandidaten mit
+veralteten oder widersprüchlichen Versionsnachweisen verhindern diese Behauptung. Andere positive
+Parteien bleiben mehrdeutig, auch bei unterschiedlich starkem Match. Unbestätigte Blockvorschläge allein
+ergeben keine automatische Wahl. Die aktive Firma verändert nur die Gruppenreihenfolge.
+
+Unter **Einstellungen → SIP-Konto → Leitungsfirma** Firmen laden, eine Firma im durchsuchbaren Lookup
+auswählen und ausdrücklich **Bestätigen**. **Speichern** übernimmt die Zuordnung; **Entfernen** bereitet
+ihre Aufhebung vor. Die Zuordnung verändert keine Cachequellen und ersetzt keine Berechtigungsprüfung.
+Sie bindet sich an Server, Port, Transport und SIP-Benutzer, ohne das Kennwort zu übernehmen. Ändert sich
+dieses Konto, gilt die bisherige Zuordnung als unbestätigt und muss erneut bestätigt werden.
+
+Eine verifizierte Leitungsfirma wird sichtbar bevorzugt. Bei genau einem positiven Datensatz in dieser
+Firma und vollständiger Gesamtsuche darf er automatisch gewählt werden; Treffer anderer Firmen bleiben
+als Alternativen erhalten. Mehrere Parteien innerhalb der Leitungsfirma benötigen eine ausdrückliche
+Wahl. Zeigen positive Treffer ausschließlich auf andere Firmen, erscheint ein Leitungskonflikt.
+Ein unbestätigter Leitungskontext löst keine Mehrdeutigkeit auf. Die generischen Verträge unterstützen
+auch einen vom zukünftigen Telefonieadapter explizit gelieferten Leitungskontext.
+
+**Übernehmen** bestätigt den markierten Datensatz manuell. Vorläufige Auswahl aus Teilständen oder
+unbestätigten Vorschlägen ist erkennbar. Bei erneuter Suche derselben Nummer bleibt eine verfügbare
+manuelle Wahl erhalten; fällt sie weg, wird kein Ersatz automatisch gewählt. Die Entscheidung enthält
+den Suchstand und einen festen Auswahlgrund (`unique`, `configured-line`, `manual`). Sie ist eine
+abgelöste Auswahl für diesen Suchvorgang. Die Übertragung auf eine Anruf-ID, Speicherung in der
+Gesprächshistorie und das Öffnen kontextgebundener Plugin-Views folgen im nächsten Planpunkt.
+Dieser Stand startet keine automatische SIP-Anruferkennung.
+
 ## Implementierter gemeinsamer Suchindex
 
 `IPhoneSearchIndexService` wird in App und Console mit der Pluginlaufzeit als Singleton registriert.
@@ -442,7 +488,8 @@ App/Console angebunden. `IPhoneCacheService` ist mit der Pluginlaufzeit in beide
 registriert und wird in der App über die Einstellungen aufgerufen. `IPhoneSearchIndexService`
 koordiniert die ausgewählten berechtigten Firmen und ihre unveränderlichen Speicherindizes.
 Das bestehende `IPartyCacheRepository.FindByE164Async` bleibt firmengebunden; der gemeinsame Index
-benötigt keine neuen SQL-Abfragen oder Migrationen. Die grafische Trefferauswahl bleibt offen.
+benötigt keine neuen SQL-Abfragen oder Migrationen. `ICallerMatchDecisionService` gruppiert und bewertet
+seine Ergebnisse für die grafische Auswahl; der Gesprächs-/Pluginkontext bleibt der nächste Umsetzungsschritt.
 
 Die Persistenzgrundlage ist seit Phase 3/Punkt 6 implementiert: Migration 6 ergänzt die unabhängige
 Firmenidentität historischer Kandidaten, Suchstände und versionierte Firmenregeln. Migrationen 1–5
@@ -461,7 +508,7 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignisanbindung, automatische Aktualisierungsauslöser, Auswahloberfläche und Plugin-Kontexte.
+SIP-Ereignisanbindung, automatische Aktualisierungsauslöser und anrufgebundene Plugin-Kontexte.
 Die vollständige Anrufabnahme muss internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

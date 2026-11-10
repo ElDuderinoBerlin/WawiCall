@@ -1092,9 +1092,35 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   ausschließlich in der externen CSCore-Bibliothek. Zwei isolierte FinOffice-Console-Hoststarts erfolgreich.
   Nachweise: `.artifacts/phase6-common-index`. Keine SQL-/Migrations- oder UI-Änderungen;
   grafische Trefferauswahl, automatische Aktualisierungsauslöser und SIP-/Viewanbindung bleiben offen.
-- [ ] Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
+- [x] ✅ Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
   Nur bei belastbarer Eindeutigkeit automatisch wählen; aktive Firma beeinflusst lediglich die Reihenfolge.
   Konfigurierte Leitungszuordnung sichtbar berücksichtigen, Alternativen erhalten und widersprüchliche Treffer klären lassen.
+  Nachweis: ICallerMatchDecisionService als UI-/I/O-freier Singleton mit vollständigen Company-/PartyKeys,
+  konservativer Eindeutigkeitsprüfung und festen Auswahlgründen. Vollnummern-, bestätigte Block- und
+  positive Stammnummerntreffer bleiben von unbestätigten Vorschlägen getrennt. Kunden, Lieferanten und
+  Kontakte gleicher Namen/Nummern bleiben getrennte Kandidaten; Kontaktbesitzer/-nummern sind enthalten.
+  Aktive Firma ändert nur die Reihenfolge. Verifizierte Leitungsfirma darf bei vollständiger Gesamtsuche
+  genau ihren eindeutigen positiven Datensatz bevorzugen, ohne andere Firmen zu entfernen.
+  Leitungswidersprüche, mehrere Parteien und Teilstände benötigen eine ausdrückliche Entscheidung.
+  Manuelle Auswahl bleibt bei erneuter Suche derselben Nummer erhalten; fällt der Kandidat weg,
+  gibt es keinen automatischen Ersatz. Ersetzte/abgelaufene Speicherstände verhindern eine späte Übernahme.
+  Start → Anrufzuordnung öffnet FrmCallerLookup mit eigenem Größen-/Positionszustand und designerfähigem
+  CallerLookupPage: gruppierter GridView, eingebaute Suche, versioniertes Spaltenlayout, Suchfirmen-/Cache-
+  und Herkunftsdetails. Suche, Abbruch und Schließen sind abwartbar; Hauptansichten bleiben erhalten.
+  Explizite Firmenzuordnung unter Einstellungen → SIP-Konto → Leitungsfirma mit durchsuchbarem Lookup,
+  Bestätigung und regulärem Speichern; an Server/Port/Transport/Benutzer gebunden und nach Kontoänderung
+  nicht mehr verlässlich. Persönliche Cacheauswahl/Berechtigungen werden dadurch nicht ersetzt.
+  Je Edition 128 Core-, 132 Utilities-, 25 Console-, 15 Interface- und sechs gezielte App-Prüfungen bestanden.
+  Davon 26 neue Entscheidungs-, zwei Konfigurations- und fünf Bedienungs-/Abbruch-/Renderprüfungen;
+  abschließend je 42 gezielte Core-Prüfungen sowie die sechs App-Prüfungen erneut erfolgreich.
+  Je 17 gezielte Hintergrundbilder: leer/gefüllt, kleine Fenster, 10/16 pt, 150%-Layoutsimulation,
+  Basic/dunkler Skin sowie Suchfirmen-/Trefferdetails und Leitungsfirma. Bilder selbst visuell geprüft.
+  Rider-Rebuild App/Console in aktiver Konfiguration Debug / Any CPU erfolgreich; 13 bestehende Nullable-
+  Warnungen ausschließlich in der externen CSCore-Bibliothek. Zwei isolierte FinOffice-Diagnosehoststarts
+  inklusive Shutdown erfolgreich. Nachweise: `.artifacts/phase6-caller-choice`.
+  Keine SQL-/Migrationsänderungen, keine Live-Wawi-/SIP-Prüfung. Die Auswahl gilt zunächst für die
+  ausdrückliche Rufnummernsuche. Anruf-ID, Historienübernahme und kontextgebundene Plugin-Views folgen
+  im nächsten Punkt; Phase 6 bleibt offen.
 - [ ] Eigenen Firmen-/Viewkontext je Anruf und asynchrones Nachladen der gewählten Plugin-Details umsetzen.
   Hauptansichten mit offenen Änderungen erhalten; späte Antworten gegen Anruf/CompanyKey/PartyKey/Revision prüfen.
 - [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.

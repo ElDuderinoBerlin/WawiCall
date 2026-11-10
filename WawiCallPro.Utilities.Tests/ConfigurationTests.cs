@@ -15,6 +15,38 @@ namespace WawiCallPro.Utilities.Tests;
 [TestClass]
 public sealed class ConfigurationTests
 {
+    [TestMethod]
+    public async Task ExplicitLineMappingRoundTripsAndAccountChangesInvalidateItsAuthority()
+    {
+        using var directory = new TestDirectory();
+        var options = ValidOptions(directory.Protector);
+        var key = new WawiCallPro.Interfaces.Companies.CompanyKey(WawiCallPro.Interfaces.Companies.LexwareProductLine.Pro, "fixture", "01");
+        options = options with { CallerLineAssignment = CallerLineConfiguration.Create(options.SipAccount!, key) };
+        await directory.Store.SaveAsync(options);
+        var reloaded = (await directory.Store.LoadAsync()).Options;
+        Assert.AreEqual(key, CallerLineConfiguration.Resolve(reloaded)!.Company);
+        Assert.IsTrue(CallerLineConfiguration.Resolve(reloaded)!.IsVerified);
+        foreach (var changed in new[] {
+            new SipAccountOptions { Server = "other.invalid", Username = "synthetic-user" },
+            new SipAccountOptions { Server = "test.invalid", Username = "other-user" },
+            new SipAccountOptions { Server = "test.invalid", Username = "synthetic-user", Port = 5061 },
+            new SipAccountOptions { Server = "test.invalid", Username = "synthetic-user", Transport = SipTransport.Tls } })
+            Assert.IsFalse(CallerLineConfiguration.Resolve(reloaded with { SipAccount = changed })!.IsVerified);
+        Assert.IsFalse(CallerLineConfiguration.Resolve(reloaded with { SipAccount = null })!.IsVerified);
+    }
+
+    [TestMethod]
+    public async Task MalformedLineMappingIsRejectedWithoutReplacingSavedSettings()
+    {
+        using var directory = new TestDirectory();
+        var options = ValidOptions(directory.Protector);
+        await directory.Store.SaveAsync(options);
+        var before = await directory.Store.LoadAsync();
+        var key = new WawiCallPro.Interfaces.Companies.CompanyKey(WawiCallPro.Interfaces.Companies.LexwareProductLine.Pro, "fixture", "01");
+        await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(options with
+        { CallerLineAssignment = new(null!, key, "line", true) }, before));
+        Assert.IsNull((await directory.Store.LoadAsync()).Options.CallerLineAssignment);
+    }
     private const string Sentinel = "synthetic-password-Ä-🔐";
 
     private static ApplicationOptions ValidOptions(ISecretProtector protector) => new()

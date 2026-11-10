@@ -27,6 +27,7 @@ public partial class SettingsPage : XtraUserControl
         FontChanged += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
         matchingLayout.SizeChanged += ButtonLayout_Changed;
+        lineLayout.SizeChanged += ButtonLayout_Changed;
         var appearance = LookAndFeel;
         appearance.StyleChanged += ButtonLayout_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= ButtonLayout_Changed;
@@ -62,6 +63,12 @@ public partial class SettingsPage : XtraUserControl
                 button.Margin = new Padding(button.LogicalToDeviceUnits(4));
             }
             UiButtonSizing.Apply(loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton);
+            foreach (var button in new[] { loadLineButton, confirmLineButton, clearLineButton })
+            {
+                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6), button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
+                button.Margin = new Padding(button.LogicalToDeviceUnits(4));
+            }
+            UiButtonSizing.Apply(loadLineButton, confirmLineButton, clearLineButton);
             var cacheSize = UiButtonSizing.Apply(cacheButtons);
             var cellWidth = cacheSize.Width + loadCompaniesButton.Margin.Horizontal;
             var columns = Math.Clamp((cacheLayout.ClientSize.Width - cacheLayout.Padding.Horizontal) / Math.Max(1, cellWidth), 1, 3);
@@ -139,6 +146,7 @@ public partial class SettingsPage : XtraUserControl
     {
         _snapshot = snapshot;
         var options = snapshot.Options;
+        ApplyCallerLine(options);
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
         sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
@@ -181,7 +189,8 @@ public partial class SettingsPage : XtraUserControl
                 Password = passwordEdit.Text.Length == 0 ? old.SipAccount?.Password : _workspace!.Secrets.Protect(passwordEdit.Text, SipAccountOptions.PasswordPurpose)
             },
 
-            Companies = ReadCompanySettings(old)
+            Companies = ReadCompanySettings(old),
+            CallerLineAssignment = _lineDraft
         };
     }
 

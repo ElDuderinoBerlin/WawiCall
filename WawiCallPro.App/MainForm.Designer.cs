@@ -26,6 +26,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup helpGroup;
     private DevExpress.XtraBars.BarButtonItem homeItem;
     private DevExpress.XtraBars.BarButtonItem historyItem;
+    private DevExpress.XtraBars.BarButtonItem callerItem;
     private DevExpress.XtraBars.BarButtonItem closeItem;
     private DevExpress.XtraBars.BarButtonItem trayItem;
     private DevExpress.XtraBars.BarButtonItem exitItem;
@@ -91,6 +92,7 @@ partial class MainForm
         helpGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         homeItem = new DevExpress.XtraBars.BarButtonItem();
         historyItem = new DevExpress.XtraBars.BarButtonItem();
+        callerItem = new DevExpress.XtraBars.BarButtonItem();
         closeItem = new DevExpress.XtraBars.BarButtonItem();
         trayItem = new DevExpress.XtraBars.BarButtonItem();
         exitItem = new DevExpress.XtraBars.BarButtonItem();
@@ -157,6 +159,12 @@ partial class MainForm
         historyItem.ItemClick += History_Click;
         ribbon.Items.Add(historyItem);
         workspaceGroup.ItemLinks.Add(historyItem);
+        callerItem.Caption = "Anrufzuordnung";
+        callerItem.Hint = "Rufnummer in allen ausgewählten berechtigten Firmen suchen und den passenden Datensatz übernehmen.";
+        callerItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        callerItem.ItemClick += Caller_Click;
+        ribbon.Items.Add(callerItem);
+        workspaceGroup.ItemLinks.Add(callerItem);
         closeItem.Caption = "Ansicht schließen";
         closeItem.Hint = "Ansicht schließen.";
         closeItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;

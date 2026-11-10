@@ -148,7 +148,12 @@ public sealed class CompanyPhoneMatchIndexFactory(IPhoneNumberParser parser) : I
                         }
             }
             return matches.Select(pair => new PhoneMatchCandidate(pair.Key, _parties[pair.Key].DisplayName,
-                    pair.Value.Distinct().OrderBy(item => Rank(item.Match.Kind)).ThenByDescending(item => item.Match.Stem?.Length ?? 0).ToImmutableArray()))
+                    pair.Value.Distinct().OrderBy(item => Rank(item.Match.Kind)).ThenByDescending(item => item.Match.Stem?.Length ?? 0).ToImmutableArray())
+                {
+                    Number = _parties[pair.Key].Number,
+                    OwnerDisplayName = pair.Key.OwnerExternalId is not null ? _parties.GetValueOrDefault(Organisation(pair.Key))?.DisplayName : null,
+                    OwnerNumber = pair.Key.OwnerExternalId is not null ? _parties.GetValueOrDefault(Organisation(pair.Key))?.Number : null
+                })
                 .OrderBy(candidate => Rank(candidate.Evidence[0].Match.Kind)).ThenByDescending(candidate => candidate.Evidence[0].Match.Stem?.Length ?? 0)
                 .ThenBy(candidate => candidate.Party.Kind).ThenBy(candidate => candidate.Party.ExternalId, StringComparer.Ordinal)
                 .ThenBy(candidate => candidate.Party.OwnerExternalId, StringComparer.Ordinal).ToImmutableArray();

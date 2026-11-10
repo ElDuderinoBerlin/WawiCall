@@ -12,6 +12,7 @@ using DevExpress.XtraTab;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Views;
 using WawiCallPro.Core.Threading;
 using WawiCallPro.Database;
@@ -23,6 +24,8 @@ using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Interfaces.PhoneNumbers;
+using WawiCallPro.Utilities.Persistence;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Plugin.Windows;
@@ -36,6 +39,232 @@ namespace WawiCallPro.App.Tests;
 [TestClass, DoNotParallelize]
 public sealed class AppShellTests
 {
+    [TestMethod]
+    public Task ClosingCallerLookupWaitsForItsPendingSourceAndDiscardsLateResults() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var form = new FrmCallerLookup(workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ((TestDirectory)workspace.Directory).ReadCatalog = async token => { entered.TrySetResult(); await release.Task; return []; };
+        Field<TextEdit>(form.Page, "numberEdit").Text = "+49301234567";
+        form.Page.GetType().GetMethod("Search_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form.Page, [null, EventArgs.Empty]);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        form.Close();
+        Assert.IsFalse(form.IsDisposed, "Closing must await a source that has not returned yet.");
+        release.SetResult();
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!form.IsDisposed && DateTime.UtcNow < deadline) await Task.Delay(10);
+        Assert.IsTrue(form.IsDisposed);
+        Assert.IsNull(form.Page.Decision);
+    });
+    [TestMethod]
+    public Task CallerLineMappingIsConfiguredOnlyInSettingsAndUsedByActualLookup() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        using (var settings = new FrmSettings(workspace))
+        {
+            settings.PrepareForBackgroundRun(); settings.Show(); Application.DoEvents();
+            var page = Field<SettingsPage>(settings, "settingsPage");
+            await page.ReloadAsync();
+            Field<TextEdit>(page, "serverEdit").Text = "fixture.invalid";
+            Field<TextEdit>(page, "usernameEdit").Text = "test-account";
+            Field<TextEdit>(page, "passwordEdit").Text = "synthetic-password";
+            await InvokeActionAsync(page, "LoadLineCompanies_Click");
+            Field<LookUpEdit>(page, "lineCompanyEdit").EditValue = companies[1].Key;
+            await InvokeActionAsync(page, "ConfirmLine_Click");
+            await InvokeActionAsync(page, "Save_Click");
+            var saved = (await workspace.Settings.LoadAsync()).Options;
+            Assert.IsTrue(CallerLineConfiguration.Resolve(saved)!.IsVerified);
+            Assert.AreEqual(companies[1].Key, saved.CallerLineAssignment!.Company);
+            Assert.IsTrue(saved.Companies.All(company => company.IncludeInPhoneCache));
+            await settings.StopAsync();
+        }
+        var cache = services.GetRequiredService<IPartyCacheRepository>();
+        var customer = await cache.GetAsync(new(companies[1].Key, PartyKind.Customer, "01"));
+        var state = await cache.GetStateAsync(companies[1].Key);
+        await cache.ReplaceAsync(new(companies[1].Key, state.Revision, [customer!], DateTimeOffset.UtcNow, state.ParserVersion, state.ContextVersion));
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents(); form.Navigate("caller");
+        var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single().Page;
+        Field<TextEdit>(lookup, "numberEdit").Text = "+49301234567";
+        await InvokeActionAsync(lookup, "Search_Click");
+        Assert.AreEqual(CallerMatchDecisionKind.LineUnique, lookup.Decision!.Kind);
+        Assert.AreEqual(companies[1].Key, lookup.Decision.Selection!.Party.Company);
+        Assert.HasCount(4, lookup.Decision.Groups.SelectMany(group => group.Candidates));
+        Assert.Contains("Leitung", Field<LabelControl>(lookup, "statusLabel").Text);
+        Assert.AreEqual(0, plugin.Created);
+        await form.PrepareToCloseAsync();
+    });
+    [TestMethod]
+    public Task CallerLookupGroupsRealCachesAndPreservesManualChoiceWithoutSwitchingViews() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        await workspace.Companies.SelectAsync(companies[0]);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        form.Navigate("caller");
+        var page = form.OwnedForms.OfType<FrmCallerLookup>().Single().Page;
+        Field<TextEdit>(page, "numberEdit").Text = "+49301234567";
+        await InvokeActionAsync(page, "Search_Click");
+        Assert.AreEqual(CallerMatchDecisionKind.Ambiguous, page.Decision!.Kind);
+        Assert.HasCount(2, page.Decision.Groups);
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+        Assert.AreEqual(6, view.DataRowCount); Assert.AreEqual(1, view.GroupCount);
+        var row = view.LocateByValue("Name", "Firma B Kontakt");
+        Assert.IsTrue(row >= 0); view.FocusedRowHandle = row;
+        Assert.IsTrue(Field<SimpleButton>(page, "chooseButton").Enabled);
+        Assert.AreEqual("Firma B Lieferant (200)", view.GetRowCellValue(row, "Organisation"));
+        Field<SimpleButton>(page, "chooseButton").PerformClick();
+        Assert.AreEqual(PartyKind.SupplierContact, page.Decision.Selection!.Party.Kind);
+        Assert.AreEqual(companies[1].Key, page.Decision.Selection.Party.Company);
+        Assert.AreEqual(CallerMatchSelectionKind.Manual, page.Decision.Selection.Kind);
+        Assert.AreEqual(companies[0].Key, workspace.Companies.Current.Company!.Key);
+        Assert.AreEqual(0, plugin.Created, "A detached choice does not replace open plugin views.");
+        await InvokeActionAsync(page, "Search_Click");
+        Assert.AreEqual(CallerMatchSelectionKind.Manual, page.Decision!.Selection!.Kind);
+        Assert.AreEqual(companies[1].Key, page.Decision.Selection.Party.Company);
+        await workspace.PhoneSearch.RefreshAsync();
+        view.FocusedRowHandle = view.LocateByValue("Name", "Firma B Kontakt");
+        Field<SimpleButton>(page, "chooseButton").PerformClick();
+        Assert.Contains("Suchstand geändert", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.IsFalse(Field<SimpleButton>(page, "chooseButton").Enabled);
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallerLookupRejectsInvalidInputAndCancelsItsActualPendingIndexRefresh() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents(); form.Navigate("caller");
+        var page = form.OwnedForms.OfType<FrmCallerLookup>().Single().Page;
+        var source = (TestDirectory)workspace.Directory;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        source.ReadCatalog = async token => { entered.TrySetResult(); await Task.Delay(Timeout.Infinite, token); return []; };
+        Field<TextEdit>(page, "numberEdit").Text = "0301234567";
+        await InvokeActionAsync(page, "Search_Click");
+        Assert.IsFalse(entered.Task.IsCompleted); Assert.IsNull(page.Decision);
+        Field<TextEdit>(page, "numberEdit").Text = "+49301234567";
+        page.GetType().GetMethod("Search_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(page, [null, EventArgs.Empty]);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.IsFalse(Field<SimpleButton>(page, "searchButton").Enabled);
+        Assert.IsTrue(Field<SimpleButton>(page, "cancelButton").Enabled);
+        Field<SimpleButton>(page, "cancelButton").PerformClick();
+        await WaitForOperationAsync(page);
+        Assert.IsTrue(Field<SimpleButton>(page, "searchButton").Enabled);
+        Assert.IsFalse(Field<SimpleButton>(page, "chooseButton").Enabled);
+        Assert.IsNull(page.Decision);
+        Assert.Contains("abgebrochen", Field<LabelControl>(page, "statusLabel").Text);
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallerLookupRendersOnlyItsChangedSurfaceWithEmptyFilledAndLineConflictStates() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        await SeedCallerCachesAsync(workspace, services);
+        await workspace.PhoneSearch.RefreshAsync();
+        var incoming = workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, "+49301234567"));
+        var result = workspace.PhoneSearch.Find(incoming);
+        var originalFont = WindowsFormsSettings.DefaultFont;
+        var originalAppearance = AppearanceObject.DefaultFont;
+        var originalSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var output = Path.GetFullPath(".artifacts/phase6-caller-choice/render");
+        Directory.CreateDirectory(output);
+        try
+        {
+            var variants = new[] { (900, 700, 10F, 1F, originalSkin), (720, 640, 10F, 1F, originalSkin),
+                (900, 700, 16F, 1F, originalSkin), (900, 700, 10F, 1.5F, originalSkin), (900, 700, 16F, 1F, "Office 2019 Black") };
+            foreach (var (width, height, fontSize, scale, skin) in variants)
+            foreach (var filled in new[] { false, true })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var form = new FrmCallerLookup(workspace, services.GetRequiredService<AppUiState>());
+                form.PrepareForBackgroundRun(); form.Font = font; form.ClientSize = new(width, height);
+                form.Show(); Application.DoEvents();
+                var page = form.Page;
+                Field<TextEdit>(page, "numberEdit").Text = "+49 30 1234567";
+                var context = new CallerMatchContext(null, new(new("fixture", "line", "DE"), new(result.Index.Companies[0].Company.ProductLine, "unavailable", "1"), "Zentrale", true));
+                page.Display(workspace.CallerDecisions.Evaluate(filled ? result : result with { Candidates = [] }, context));
+                if (scale != 1F) form.Scale(new SizeF(scale, scale));
+                form.PerformLayout(); Application.DoEvents();
+                using var image = UiAudit.Capture(form);
+                image.Save(Path.Combine(output, $"caller-{width}-{fontSize:0}-{scale:0.0}-{skin}-{filled}.png"), ImageFormat.Png);
+                if (filled && width == 720)
+                {
+                    foreach (var tabName in new[] { "scopeTab", "detailsTab" })
+                    {
+                        Field<XtraTabControl>(page, "tabs").SelectedTabPage = Field<XtraTabPage>(page, tabName);
+                        form.PerformLayout(); Application.DoEvents();
+                        using var detailImage = UiAudit.Capture(form);
+                        detailImage.Save(Path.Combine(output, "caller-" + tabName + ".png"), ImageFormat.Png);
+                    }
+                    Field<XtraTabControl>(page, "tabs").SelectedTabPage = Field<XtraTabPage>(page, "resultsTab");
+                }
+                var actions = Field<TableLayoutPanel>(page, "actions");
+                Assert.IsTrue(actions.Right <= page.ClientSize.Width, "Footer buttons exceed the available width.");
+                Assert.IsTrue(Field<DevExpress.XtraTab.XtraTabControl>(page, "tabs").Height > 80, $"Results need usable remaining height: {width}x{height}, font {fontSize}, scale {scale}, page {page.Size}, tabs {Field<DevExpress.XtraTab.XtraTabControl>(page, "tabs").Size}.");
+                var buttons = new[] { "searchButton", "cancelButton", "chooseButton" }.Select(name => Field<SimpleButton>(page, name)).ToArray();
+                Assert.AreEqual(1, buttons.Select(button => button.Size).Distinct().Count(), "Related actions need equal preferred sizes.");
+                foreach (var button in buttons) Assert.IsTrue(button.Width >= button.GetPreferredSize(Size.Empty).Width);
+                await form.StopAsync();
+                if (!filled)
+                {
+                    using var settings = new FrmSettings(workspace);
+                    settings.PrepareForBackgroundRun(); settings.Font = font; settings.MinimumSize = Size.Empty;
+                    settings.ClientSize = new(width, height); settings.Show(); Application.DoEvents();
+                    var settingsPage = Field<SettingsPage>(settings, "settingsPage");
+                    settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(settingsPage, "sipTab");
+                    Field<XtraTabControl>(settingsPage, "sipPages").SelectedTabPage = Field<XtraTabPage>(settingsPage, "lineTab");
+                    if (fontSize > 10F)
+                    {
+                        Field<TextEdit>(settingsPage, "serverEdit").Text = "fixture.invalid";
+                        Field<TextEdit>(settingsPage, "usernameEdit").Text = "fixture-account";
+                        await InvokeActionAsync(settingsPage, "LoadLineCompanies_Click");
+                        Field<LookUpEdit>(settingsPage, "lineCompanyEdit").EditValue = result.Index.Companies[0].Company;
+                        await InvokeActionAsync(settingsPage, "ConfirmLine_Click");
+                    }
+                    if (scale != 1F) settings.Scale(new SizeF(scale, scale));
+                    settings.PerformLayout(); Application.DoEvents();
+                    Assert.IsTrue(Field<TableLayoutPanel>(settingsPage, "lineButtons").Right <= Field<TableLayoutPanel>(settingsPage, "lineLayout").Width);
+                    using var settingsImage = UiAudit.Capture(settings);
+                    settingsImage.Save(Path.Combine(output, $"line-settings-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                    await settings.StopAsync();
+                }
+            }
+        }
+        finally
+        {
+            DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin);
+            WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance;
+        }
+    });
+
+    private static async Task SeedCallerCachesAsync(AppWorkspace workspace, IServiceProvider services)
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        var settings = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(settings.Options with { Companies = companies.Select(company => new CompanySettings
+        { Company = company.Key, DisplayName = company.DisplayName, IncludeInPhoneCache = true }).ToImmutableArray() }, settings);
+        foreach (var company in companies)
+        {
+            await services.GetRequiredService<ICompanyRepository>().WriteAsync(new(company, null, DateTimeOffset.UtcNow));
+            var customer = new Party { Key = new(company.Key, PartyKind.Customer, "01"), DisplayName = company.DisplayName + " Kunde", Number = "100",
+                Phones = [new("+49301234567", PhoneKind.Telephone, new("fixture", "01", "phone"), "+49301234567")] };
+            var supplier = customer with { Key = new(company.Key, PartyKind.Supplier, "02"), DisplayName = company.DisplayName + " Lieferant", Number = "200" };
+            var contact = customer with { Key = new(company.Key, PartyKind.SupplierContact, "03", "02"), DisplayName = company.DisplayName + " Kontakt", Number = null };
+            await services.GetRequiredService<IPartyCacheRepository>().ReplaceAsync(new(company.Key, 0, [customer, supplier, contact], DateTimeOffset.UtcNow,
+                services.GetRequiredService<IPhoneCacheMetadata>().ParserVersion,
+                services.GetRequiredService<IPhoneCacheMetadata>().GetContextVersion(new() { Company = company.Key })));
+        }
+    }
     [TestMethod]
     public Task MatchingRulesAreCompanyBoundVersionedAndRenderInSettingsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
@@ -1151,6 +1380,7 @@ public sealed class AppShellTests
             services.AddSingleton<IHostLifetime, AppHostLifetime>();
             services.AddSingleton<IUiDispatcher>(new SynchronizationContextUiDispatcher(context));
             services.AddSingleton<IBusinessDirectory, TestDirectory>();
+            WawiCallPro.Utilities.Persistence.PhoneSearchIndexRegistration.AddPhoneSearchIndex(services);
             services.AddSingleton<IProductPluginRuntime>(new TestRuntime(plugin));
             services.AddSingleton<WawiCallPro.Interfaces.PhoneNumbers.IPhoneCacheService, WawiCallPro.Utilities.Persistence.PhoneCacheService>();
             services.AddSingleton<IPluginViewAccess, PluginViewAccess>();
@@ -1216,8 +1446,9 @@ public sealed class AppShellTests
     private sealed class TestDirectory(ApplicationDescriptor application) : IBusinessDirectory
     {
         internal Func<PartyQuery, Task<PartyPage>>? Read;
+        internal Func<CancellationToken, Task<ImmutableArray<Company>>>? ReadCatalog;
         private LexwareProductLine ProductLine => Enum.Parse<LexwareProductLine>(application.ProductLine);
-        public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default) => Task.FromResult(ImmutableArray.Create(
+        public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default) => ReadCatalog?.Invoke(cancellationToken) ?? Task.FromResult(ImmutableArray.Create(
             new Company(new(ProductLine, "installation-A", "1"), "Firma A"),
             new Company(new(ProductLine, "installation-B", "1"), "Firma B")));
         public Task<CapabilitySet> GetCapabilitiesAsync(CompanyKey company, CancellationToken cancellationToken = default) => throw new NotSupportedException();
