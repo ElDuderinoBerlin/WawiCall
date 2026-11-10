@@ -56,6 +56,9 @@ internal static class DiagnosticTables
         new("--db-backup <absoluter Pfad>", "SQLite-Sicherung in eine neue Datei; WAL wird konsistent berücksichtigt"),
         new("--db-restore <absoluter Pfad>", "SQLite-Sicherung in das konfigurierte, noch nicht existierende Ziel wiederherstellen"),
         new("--erp-configure", "Warenwirtschaft lokal einrichten; verdeckte Kennwort-/Client-Key-Eingabe, keine Umleitung; Neustart erforderlich"),
+        new("--phone-rule <Installation> <Firma>", "Gespeicherte Stammnummernregel und Schreibversion einer bereits registrierten Cachefirma lesen"),
+        new("--phone-rule <Installation> <Firma> <on|off> <N> <Version|new>", "Stammnummernabgleich mit 1–15 Anschlussziffern ausdrücklich ändern; Version schützt vor konkurrierenden Änderungen"),
+        new("--phone-match <Installation> <Firma> <+Rufnummer>", "Lokalen Firmenindex aufbauen und alle Voll-/Stamm-/Blocktreffer anzeigen; keine automatische Auswahl"),
         new("--workstation-init", "Lokale Arbeitsplatz-GUID einmal anlegen; bestehende Kennung erhalten"),
         new("N/P/G/Q + Enter", "Nächste/vorige Seite, Seitenzahl eingeben, Ausgabe beenden. ? = ungültige Eingabe."),
         new("Umleitung", "Bei umgeleiteter Ein- oder Ausgabe alle Zeilen ohne Tastaturabfrage; Ctrl+C bricht interaktiv ab.")

@@ -1026,11 +1026,35 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   vier isolierte Hoststarts und Runtime-/Produktlinien-/MMS-/Solution-/Paketprüfungen erfolgreich.
   Logs: `.artifacts/phase6-item2`. Keine UI-/SIP-/Wawi-/DB-Anbindung und keine neue Renderprüfung.
   Rufnummernblöcke werden hier nicht aus Ziffern vermutet; deren Bewertung bleibt Aufgabe des folgenden Matchers.
-- [ ] Aktivierbaren Stammnummernabgleich mit `StartWidth` je Firma konfigurieren und per DI anbinden.
+- [x] ✅ Aktivierbaren Stammnummernabgleich mit `StartWidth` je Firma konfigurieren und per DI anbinden.
   Gleicher Ländercode, gleiche Orts-/Netzvorwahl und gleiche erste N Anschlussziffern ergeben einen
   positiven Geschäftspartnertreffer; N zählt nach der Vorwahl. Den Rest als Apparatenummer getrennt
   von Extension führen. Passenden Präfixindex und Regelversionen vorsehen; bei Mehrfachtreffern auswählen lassen.
   Konfigurierte/ausdrücklich bestätigte Rufnummernblöcke und unbestätigte Vermutungen getrennt ausweisen.
+  Nachweis: ICompanyPhoneMatchingService mit vorhandener Datenbankpersistenz, optimistischen
+  Schreibversionen und separater Regelrevision; ICompanyPhoneMatchIndexFactory erstellt
+  unveränderliche Vollnummern-/Präfix-Maps je Firma. Regelwechsel erzeugen neue Suchstände;
+  bereits erzeugte Indexinstanzen und Quellnummern bleiben erhalten. Gleichzeitige Cache-/
+  Regeländerungen während des seitenweisen Aufbaus verhindern die Veröffentlichung.
+  Volltreffer stehen vor Stammnummerntreffern, Alternativen und Quellkontakte bleiben erhalten.
+  Stamm-/Blocktreffer führen nur zur Organisation; bestätigte Blöcke bleiben von vermuteten
+  Vorschlägen getrennt. Länder-/Vorwahlgrenzen, signifikante Null, N=4/N=5, zu kurze Nummern,
+  Zentralnummer ohne Rest, getrennte Extension, deaktivierte Regel und Regelwechsel geprüft.
+  Bedienung in Einstellungen → Telefon-Cache → Stammnummernabgleich: durchsuchbarer Lookup
+  nur mit Firmennamen, ausdrückliches Laden/Speichern und Konflikthinweis. Cachequellen bleiben
+  ein eigener Untertab; deren persönliche Auswahl wird nicht durch Regeländerungen verändert.
+  Zusätzlich Console-Befehle --phone-rule und --phone-match für einzelne registrierte Firmen.
+  Keine automatische Auswahl eines Kandidaten; Mehrfirmenindex, grafische Trefferauswahl und
+  SIP-/Viewanbindung bleiben die folgenden eigenen Punkte. Je Edition 102 Core-, 15 Interface-,
+  13 gezielte Utilities-, 23 Console- und vier gezielte App-Prüfungen bestanden. Zusätzlich
+  89 Datenbanktests und echte isolierte SQL-Server-/PostgreSQL-/MySQL-/MariaDB-Läufe einschließlich
+  Regeländerung, Prefixabgleich, Blockarten und Erhalt alter Indexinstanzen bestanden.
+  Gezielte unsichtbare Settings-Renderprüfung mit leerem/gefülltem Inhalt, langem Firmennamen,
+  10/16-Punkt-Schrift, hellem/dunklem Skin und 150-Prozent-Layoutskalierung visuell geprüft.
+  App/Console in aktiver Debug-/Any-CPU-Konfiguration rekompiliert. Keine Migration oder
+  produktiver SQL-Code geändert. Nachweise: `.artifacts/lx-startup-log/startwidth-*` und
+  `.artifacts/app-shell/settings-ui/matching-rules`.
+
 - [x] ✅ Suchfirmenauswahl mit vollständigen CompanyKeys ausschließlich in den Einstellungen persistieren;
   eingebaute DevExpress-Grid-Checkboxauswahl verwenden, aktive Hauptansicht davon unabhängig halten.
   Nutzerentscheidung vom 07.11.2026 ersetzt die ursprünglich geplante CheckedListBox im Hauptfenster.

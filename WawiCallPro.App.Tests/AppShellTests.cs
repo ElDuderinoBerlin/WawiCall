@@ -37,6 +37,92 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task MatchingRulesAreCompanyBoundVersionedAndRenderInSettingsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        await workspace.Database.CreateAndMigrateAsync();
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        foreach (var company in companies)
+            await services.GetRequiredService<ICompanyRepository>().WriteAsync(new(company, null, DateTimeOffset.UtcNow.AddMinutes(-1)));
+        using (var form = new FrmSettings(workspace))
+        {
+            form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+            var page = Field<SettingsPage>(form, "settingsPage"); await page.ReloadAsync();
+            await InvokeActionAsync(page, "LoadCompanies_Click");
+            form.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "cacheTab");
+            Field<XtraTabControl>(page, "cachePages").SelectedTabPage = Field<XtraTabPage>(page, "matchingTab");
+            var companyEdit = Field<LookUpEdit>(page, "matchingCompaniesEdit");
+            var enabled = Field<CheckEdit>(page, "matchingEnabledEdit");
+            var width = Field<SpinEdit>(page, "matchingWidthEdit");
+            for (var i = 0; i < 2; i++)
+            {
+                companyEdit.EditValue = companies[i].Key;
+                Assert.IsFalse(Field<SimpleButton>(page, "saveMatchingRuleButton").Enabled);
+                await InvokeActionAsync(page, "LoadMatchingRule_Click");
+                Assert.IsFalse(enabled.Checked); Assert.AreEqual(5m, width.Value);
+                enabled.Checked = true; width.Value = 4 + i;
+                await InvokeActionAsync(page, "SaveMatchingRule_Click");
+                var saved = await workspace.PhoneMatching.GetProfileAsync(companies[i].Key);
+                Assert.IsTrue(saved.Settings.StemMatchingEnabled); Assert.AreEqual(4 + i, saved.Settings.StartWidth);
+            }
+            Assert.AreEqual(4, (await workspace.PhoneMatching.GetProfileAsync(companies[0].Key)).Settings.StartWidth);
+            var current = await workspace.PhoneMatching.GetProfileAsync(companies[1].Key);
+            await workspace.PhoneMatching.SaveProfileAsync(current.Settings with { StartWidth = 6 }, current.Version);
+            width.Value = 7;
+            await InvokeActionAsync(page, "SaveMatchingRule_Click");
+            Assert.AreEqual(6, (await workspace.PhoneMatching.GetProfileAsync(companies[1].Key)).Settings.StartWidth);
+            Assert.Contains("Regel laden", Field<LabelControl>(page, "statusLabel").Text);
+            await InvokeActionAsync(page, "LoadMatchingRule_Click"); Assert.AreEqual(6m, width.Value);
+            Assert.IsEmpty((await workspace.Settings.LoadAsync()).Options.Companies, "Saving a shared rule never changes the user's cache selection.");
+            companyEdit.Properties.DataSource = new[] { new { Key = new CompanyKey(companies[0].Key.ProductLine, "not-cached", "01"), Mandant = "Noch nicht im Cache" } };
+            companyEdit.EditValue = new CompanyKey(companies[0].Key.ProductLine, "not-cached", "01");
+            await InvokeActionAsync(page, "LoadMatchingRule_Click");
+            Assert.Contains("Cachequellen", Field<LabelControl>(page, "statusLabel").Text);
+            Assert.IsFalse(Field<SimpleButton>(page, "saveMatchingRuleButton").Enabled);
+            await form.StopAsync();
+        }
+        var oldFont = WindowsFormsSettings.DefaultFont;
+        var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        try
+        {
+            foreach (var skin in new[] { "Basic", "Office 2019 Black" })
+            foreach (var size in new[] { 10F, 16F })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", size);
+                WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var form = new FrmSettings(workspace);
+                form.PrepareForBackgroundRun(); form.MinimumSize = Size.Empty; form.ClientSize = new Size(760, 700);
+                form.Show(); Application.DoEvents();
+                var page = Field<SettingsPage>(form, "settingsPage"); await page.ReloadAsync();
+                form.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "cacheTab");
+                Field<XtraTabControl>(page, "cachePages").SelectedTabPage = Field<XtraTabPage>(page, "matchingTab");
+                void Capture(string state)
+                {
+                    form.PerformLayout(); Application.DoEvents(); CheckTableBounds(form);
+                    var matchingLayout = Field<TableLayoutPanel>(page, "matchingLayout");
+                    var actions = Field<TableLayoutPanel>(page, "matchingButtons");
+                    Assert.IsTrue(matchingLayout.ClientRectangle.Contains(actions.Bounds), "All rule actions must remain visible.");
+                    var output = Path.Combine(RenderOutput(), "matching-rules"); Directory.CreateDirectory(output);
+                    using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                    bitmap.Save(Path.Combine(output, $"Matching-{skin}-{size}-{state}.png"), ImageFormat.Png);
+                }
+                Capture("empty");
+                await InvokeActionAsync(page, "LoadCompanies_Click");
+                var lookup = Field<LookUpEdit>(page, "matchingCompaniesEdit");
+                lookup.Properties.DataSource = new[] { new { Key = companies[1].Key, Mandant = "Musterunternehmen mit längerem Mandantennamen und zusätzlicher Installationsbezeichnung" } };
+                lookup.EditValue = companies[1].Key;
+                await InvokeActionAsync(page, "LoadMatchingRule_Click");
+                Capture("populated");
+                form.Scale(new SizeF(1.5F, 1.5F)); Capture("scale150");
+                await form.StopAsync();
+            }
+        }
+        finally { WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); }
+    });
+
+    [TestMethod]
     public Task DatabaseSetupWizardCreatesOnlyOnExplicitSetupAndSavesOnFinish() => WithWorkspace(async (workspace, services, plugin) =>
     {
         using var form = new FrmDatabaseSetup(workspace.DatabaseSetup, services.GetRequiredService<AppUiState>());

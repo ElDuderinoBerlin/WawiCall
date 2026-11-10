@@ -34,7 +34,8 @@ public sealed class AppWorkspace(
     IPhoneCacheService phoneCache,
     ITelephonyService? telephony,
     ITelephonyConnection? telephonyConnection,
-    IDatabaseSetupService databaseSetup)
+    IDatabaseSetupService databaseSetup,
+    ICompanyPhoneMatchingService phoneMatching)
 {
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
@@ -52,6 +53,7 @@ public sealed class AppWorkspace(
     public IPluginViewAccess Views { get; } = views;
     public IUiDispatcher Dispatcher { get; } = dispatcher;
     public IPhoneCacheService PhoneCache { get; } = phoneCache;
+    public ICompanyPhoneMatchingService PhoneMatching { get; } = phoneMatching;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

@@ -7,6 +7,25 @@ namespace WawiCallPro.Console.Tests;
 public sealed class DatabaseCommandTests
 {
     [TestMethod]
+    public void PhoneRuleCommandsRequireExplicitWidthAndOptimisticWriteVersion()
+    {
+        var read = ConsoleCommand.Parse(["--phone-rule", "fixture", "0001"]);
+        Assert.IsTrue(read.UsesDatabase); Assert.IsTrue(read.UsesPhoneMatching);
+        Assert.IsNull(read.PhoneRule!.Enabled); Assert.AreEqual("0001", read.PhoneRule.CompanyId);
+        var create = ConsoleCommand.Parse(["--phone-rule", "fixture", "0001", "on", "4", "new"]);
+        Assert.AreEqual(true, create.PhoneRule!.Enabled); Assert.AreEqual(4, create.PhoneRule.StartWidth); Assert.IsNull(create.PhoneRule.ExpectedVersion);
+        var update = ConsoleCommand.Parse(["--phone-rule", "fixture", "0001", "off", "5", "3"]);
+        Assert.AreEqual(false, update.PhoneRule!.Enabled); Assert.AreEqual(3L, update.PhoneRule.ExpectedVersion);
+        Assert.IsTrue(ConsoleCommand.Parse(["--phone-match", "fixture", "0001", "+4930123456789"]).UsesPhoneMatching);
+        foreach (var args in new[]
+        {
+            new[] { "--phone-rule", "fixture", "0001", "on", "4" },
+            ["--phone-rule", "fixture", "0001", "on", "0", "new"], ["--phone-rule", "fixture", "0001", "on", "16", "new"],
+            ["--phone-rule", "fixture", "0001", "on", "4", "0"], ["--phone-rule", "fixture", "0001", "on", "4", "invalid"]
+        }) Assert.ThrowsExactly<DiagnosticException>(() => ConsoleCommand.Parse(args));
+    }
+
+    [TestMethod]
     public void CommandsRequireExplicitActionsAndAbsoluteBackupPaths()
     {
         Assert.AreEqual("--status", ConsoleCommand.Parse([]).Name);

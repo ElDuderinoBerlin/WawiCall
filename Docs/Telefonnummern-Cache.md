@@ -1,9 +1,9 @@
 # Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
 
-Stand: 07.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
+Stand: 10.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
 Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
-Aktualisierung sind implementiert. Gemeinsamer Suchindex, StartWidth-Abgleich, Trefferauswahl
-und Anruf-/Viewanbindung bleiben noch umzusetzen.
+Aktualisierung sowie der firmenbezogene StartWidth-Matcher sind implementiert. Gemeinsamer
+Mehrfirmenindex, grafische Trefferauswahl und Anruf-/Viewanbindung bleiben noch umzusetzen.
 
 ## Grundentscheidung
 
@@ -143,7 +143,7 @@ Die Interpretation liefert eine bereinigte `CallAddress`, Parsernachweis, Kontex
 Ortsvorwahl. Der öffentliche Anschlussnummernteil enthält weiterhin die vollständige Direktdurchwahl.
 Ein nationaler Zielpräfix ist nur bei verfügbarer Metadatenzerlegung vorhanden; global nichtgeografische
 Nummern (`001`) erhalten keine erfundene Ortsvorwahl. Es wird weiterhin keine Stamm-/Apparatenummer
-abgeschnitten und kein Rufnummernblock bestätigt. Dies übernimmt erst der gesonderte StartWidth-/Matcher-Schritt.
+abgeschnitten und kein Rufnummernblock bestätigt. Der gesonderte StartWidth-/Matcher-Schritt bewertet diese Daten.
 Nachweise: `.artifacts/phase6-item2`.
 
 ## Stammnummer, öffentliche Durchwahl und Extension
@@ -162,6 +162,61 @@ Ein Bindestrich allein beweist keine Nebenstelle; es werden keine beliebigen let
 Landes-/Ortsvorwahl ist ebenfalls kein ausreichender Firmenstamm.
 
 ### Einstellung StartWidth und positiver Stammnummern-Match
+
+Unter **Einstellungen → Telefon-Cache → Stammnummernabgleich** werden die Firmenregeln
+über einen durchsuchbaren Mandanten-Lookup mit ausschließlich sichtbarem Firmennamen geladen.
+„Mandanten laden“ liest den Berechtigungskatalog; noch nicht im Cache registrierte Firmen
+erhalten beim Laden einen konkreten Hinweis auf die Cacheaktualisierung. „Regel laden“ übernimmt
+Aktivierung und StartWidth; „Regel speichern“ schreibt nur die Regel der ausgewählten Firma.
+Die persönlichen Cachequellen werden dabei nicht geändert. Bei einem Firmenwechsel ist vor einer
+Änderung die passende Regel erneut zu laden. Veraltete Schreibstände erfordern ein ausdrückliches
+Neuladen; eigene Eingaben überschreiben zwischenzeitliche Änderungen nicht. Die bisherigen
+Cacheaktionen und die Checkbox-Firmenauswahl liegen im Untertab **Cachequellen**.
+
+**Implementierter Dienststand:** `ICompanyPhoneMatchingService` ist zusammen mit
+`ICompanyPhoneMatchIndexFactory` im gemeinsamen DI-Host registriert. Die vorhandenen
+Kommunikationsdatenbank-Repositories speichern die Firmenregel mit Schreibversion und separater
+Regelrevision. Neue Firmen sind standardmäßig deaktiviert, mit StartWidth 5. Eine Änderung verlangt
+die zuletzt gelesene Schreibversion; `new` bedeutet ausschließlich Neuanlage.
+
+`BuildIndexAsync` liest den registrierten Firmenbestand und die Blockregeln in Seiten von 500 Einträgen.
+Cache- und Regelstand werden davor/danach verglichen. Ein konkurrierender Wechsel verhindert die
+Veröffentlichung eines gemischten Suchstands. Der Aufbau läuft im Hintergrund. Der unveränderliche
+Index hält Vollnummern und Tupel aus Ländercode, Vorwahl und Anschlusspräfix in eigenen Frozen-Dictionaries.
+Eine Anfrage liest ausschließlich diese Maps; Blockregeln benötigen höchstens 15 Präfixproben.
+Jeder Neuaufbau berücksichtigt den aktuellen StartWidth und die aktuelle Regelrevision; vorhandene
+Indexinstanzen behalten ihren bisherigen Stand. Veraltete Parser-/Kontextmetadaten und fehlende
+Organisationsbesitzer bleiben als unvollständiger Suchstand erkennbar. Algorithmusversion: `matching/1`.
+
+`Find` liefert sämtliche Kandidaten mit Quellgeschäftspartner/-kontakt, Quellfeld, registrierter
+Extension, vollständiger E.164 und Matchnachweisen. Volltreffer werden zuerst ausgegeben. Generische
+Stammnummerntreffer werden auf den Kunden-/Lieferantenbesitzer verdichtet; mehrere Quellkontakte
+bleiben separate Herkunftsnachweise. Bestätigte Blockregeln sind positive Treffer, vermutete Blöcke
+allein bleiben Vorschläge. Längere passende Blockpräfixe stehen vor kürzeren; Alternativen bleiben
+erhalten. Eine explizite Kontakt-Extension wird nur bei Übereinstimmung als Kontakt verwendet;
+bei unbekannter/abweichender Extension führt die gemeinsame Basisnummer zur Organisation.
+Der Dienst trifft keine automatische Datensatzauswahl und greift weder auf die aktive Firma noch auf
+Wawi oder SIP zu. Ein einzelner lokaler Firmenbestand bestätigt keine aktuelle ERP-Berechtigung.
+Die Zusammenführung aller ausgewählten berechtigten Firmen und die grafische Auswahl folgen in den
+eigenen nächsten Planpunkten. Quellnummern und vorhandene Gesprächshistorie werden nicht umgeschrieben.
+
+Die Console bietet eine ausdrückliche Konfiguration und einen lokalen Firmenabgleich an:
+
+```powershell
+# Installation und Firma sind unveränderte Quell-IDs einer bereits durch den Cache registrierten Firma.
+WawiCallPro.Console.FinOffice.exe --phone-rule <Installation> <Firma>
+WawiCallPro.Console.FinOffice.exe --phone-rule <Installation> <Firma> on 4 new
+WawiCallPro.Console.FinOffice.exe --phone-rule <Installation> <Firma> on 5 1
+WawiCallPro.Console.FinOffice.exe --phone-rule <Installation> <Firma> off 5 2
+WawiCallPro.Console.FinOffice.exe --phone-match <Installation> <Firma> +4930123456789
+```
+
+Die Schreibversionen im Beispiel sind jeweils durch den tatsächlich gelesenen Wert zu ersetzen.
+Die Edition kommt aus dem Host, nicht aus einem frei gewählten Firmenargument. Diese Befehle laden
+kein Warenwirtschaftsplugin; die vorhandene Kommunikationsdatenbank muss eingerichtet sein.
+Der Abgleich ohne Anlagenkontext verlangt eine internationale Rufnummer. Ausgaben nutzen weiterhin
+die N/P/G/Q-Seitennavigation beziehungsweise vollständige Ausgabe bei Umleitung.
+Die laufende SIP-Anruferkennung wird durch diese Console-Befehle noch nicht angebunden.
 
 Gemäß Nutzerfestlegung erhält der Telefonnummernbereich eine aktivierbare Einstellung
 „Stammnummernabgleich“ mit `StartWidth`. N ist die Anzahl der ersten Ziffern der **Anschlussnummer nach

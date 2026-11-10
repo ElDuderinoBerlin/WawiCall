@@ -28,7 +28,12 @@ try
                 "--help" => DiagnosticTables.Help(),
                 _ => DiagnosticTables.Status(diagnostic)
             };
-            if (command.UsesDatabase)
+            if (command.UsesPhoneMatching)
+                table = await PhoneMatchingCommands.ExecuteAsync(command,
+                    Enum.Parse<WawiCallPro.Interfaces.Companies.LexwareProductLine>(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine),
+                    host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.ICompanyPhoneMatchingService>(),
+                    host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.IPhoneNumberInterpreter>(), stoppingToken);
+            else if (command.UsesDatabase)
                 table = await DatabaseCommands.ExecuteAsync(command, host.Services.GetRequiredService<ICommunicationDatabase>(), stoppingToken);
             else if (command.Name == "--erp-configure")
                 table = await ErpSetupCommands.ExecuteAsync(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine,

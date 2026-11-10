@@ -26,6 +26,7 @@ public partial class SettingsPage : XtraUserControl
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
+        matchingLayout.SizeChanged += ButtonLayout_Changed;
         var appearance = LookAndFeel;
         appearance.StyleChanged += ButtonLayout_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= ButtonLayout_Changed;
@@ -44,7 +45,7 @@ public partial class SettingsPage : XtraUserControl
         _arrangingButtons = true;
         try
         {
-            footer.SuspendLayout(); cacheActions.SuspendLayout();
+            footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
             var commands = _dialogCloseButton is null ? new[] { saveButton, reloadButton } : new[] { saveButton, reloadButton, _dialogCloseButton };
             var commandSize = UiButtonSizing.Apply(commands);
             for (var i = 1; i <= 2; i++)
@@ -53,6 +54,14 @@ public partial class SettingsPage : XtraUserControl
                 footer.ColumnStyles[i].Width = commandSize.Width + saveButton.Margin.Horizontal;
             }
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
+            foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
+            {
+                // Font autoscaling must not compound the logical button insets across nested tab pages.
+                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6),
+                    button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
+                button.Margin = new Padding(button.LogicalToDeviceUnits(4));
+            }
+            UiButtonSizing.Apply(loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton);
             var cacheSize = UiButtonSizing.Apply(cacheButtons);
             var cellWidth = cacheSize.Width + loadCompaniesButton.Margin.Horizontal;
             var columns = Math.Clamp((cacheLayout.ClientSize.Width - cacheLayout.Padding.Horizontal) / Math.Max(1, cellWidth), 1, 3);
@@ -61,7 +70,7 @@ public partial class SettingsPage : XtraUserControl
             for (var i = 0; i < columns; i++) cacheActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cellWidth));
             for (var i = 0; i < cacheActions.RowCount; i++) cacheActions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             for (var i = 0; i < cacheButtons.Length; i++) cacheActions.SetCellPosition(cacheButtons[i], new(i % columns, i / columns));
-            footer.ResumeLayout(true); cacheActions.ResumeLayout(true);
+            footer.ResumeLayout(true); cacheActions.ResumeLayout(true); matchingButtons.ResumeLayout(true);
         }
         finally { _arrangingButtons = false; }
     }
@@ -106,7 +115,7 @@ public partial class SettingsPage : XtraUserControl
         finally
         {
             _operation?.Dispose(); _operation = new PageOperation(this, statusLabel);
-            _cacheCompanies.Clear(); BindCompanyRows();
+            _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
             saveButton.Enabled = reloadButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
         }
@@ -196,7 +205,8 @@ public partial class SettingsPage : XtraUserControl
         {
             var companies = await _workspace!.Directory.GetCompaniesAsync(token);
             var selection = _cacheCompanies.ToDictionary(row => row.Key, row => row.Selected);
-            var missing = _cacheCompanies.Where(row => !companies.Any(company => company.Key == row.Key)).ToArray();
+            var missing = _cacheCompanies.Where(row => !companies.Any(company => company.Key == row.Key))
+                .Select(row => new CacheCompanyRow(row.Key, row.Mandant, row.Selected, false) { CacheStatus = row.CacheStatus }).ToArray();
             _cacheCompanies = companies.Select(company => new CacheCompanyRow(company.Key, company.DisplayName,
                 selection.TryGetValue(company.Key, out var selected) ? selected : _snapshot!.Options.FindCompanySettings(company.Key)?.IncludeInPhoneCache == true)).Concat(missing).ToList();
             BindCompanyRows();
@@ -208,6 +218,7 @@ public partial class SettingsPage : XtraUserControl
     {
         cacheGrid.DataSource = _cacheCompanies;
         cacheGrid.RefreshDataSource();
+        BindMatchingCompanies();
     }
 
     internal Task ReloadAsync() => _operation?.RunAsync(async token => Apply(await _workspace!.Settings.LoadAsync(token))) ?? Task.CompletedTask;
@@ -281,6 +292,7 @@ public partial class SettingsPage : XtraUserControl
     {
         refreshCacheButton.Enabled = loadCompaniesButton.Enabled = saveButton.Enabled = reloadButton.Enabled = cacheGrid.Enabled = !busy;
         cancelCacheButton.Enabled = busy;
+        matchingLayout.Enabled = !busy;
     }
 
     private static string DescribeCacheResult(PhoneCacheCompanyResult company) => company.State switch

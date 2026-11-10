@@ -9,6 +9,10 @@ using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.Directory;
+using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Operations;
@@ -245,6 +249,61 @@ public sealed class PersistenceHostTests
             Assert.AreEqual(type == DatabaseType.SqlServer ? "master" : type == DatabaseType.PostgreSql ? "postgres" : "", probe.Database);
         }
         Assert.IsFalse(Directory.Exists(_root));
+    }
+
+    [TestMethod]
+    public async Task PhoneMatchingUsesRealRepositoriesAndVersionedRulesWithoutChangingSourcePhones()
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async token =>
+        {
+            await host.Services.GetRequiredService<ICommunicationDatabase>().CreateAndMigrateAsync(cancellationToken: token);
+            await PhoneMatchingAcceptance.RunAsync(host.Services, token);
+        });
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task PhoneIndexRejectsConcurrentCacheOrRuleChangesDuringPaging(bool changeRules)
+    {
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async token =>
+        {
+            var services = host.Services;
+            await services.GetRequiredService<ICommunicationDatabase>().CreateAndMigrateAsync(cancellationToken: token);
+            var descriptor = services.GetRequiredService<ApplicationDescriptor>();
+            var company = new Company(new(Enum.Parse<LexwareProductLine>(descriptor.ProductLine), "race", "01"), "Synthetic race company");
+            var companies = services.GetRequiredService<ICompanyRepository>();
+            await companies.WriteAsync(new(company, null, DateTimeOffset.UtcNow.AddMinutes(-1)), token);
+            var cache = services.GetRequiredService<IPartyCacheRepository>();
+            await cache.ReplaceAsync(new(company.Key, 0, [], DateTimeOffset.UtcNow.AddMinutes(-1)), token);
+            var rules = services.GetRequiredService<IPhoneMatchingRepository>();
+            var wrapped = new InterleavingCache(cache, async () =>
+            {
+                if (changeRules) await rules.WriteSettingsAsync(new(new(company.Key, true, 4), null, DateTimeOffset.UtcNow), token);
+                else await cache.ReplaceAsync(new(company.Key, 1, [], DateTimeOffset.UtcNow), token);
+            });
+            var matching = new CompanyPhoneMatchingService(companies, wrapped, rules,
+                services.GetRequiredService<ICompanyPhoneMatchIndexFactory>(), descriptor, TimeProvider.System);
+            var error = await Assert.ThrowsExactlyAsync<RepositoryConflictException>(() => matching.BuildIndexAsync(company.Key, token));
+            Assert.AreEqual(RepositoryConflictKind.SnapshotMismatch, error.Kind);
+        });
+    }
+
+    private sealed class InterleavingCache(IPartyCacheRepository inner, Func<Task> change) : IPartyCacheRepository
+    {
+        private int _changed;
+        public Task<PartyCacheState> GetStateAsync(CompanyKey company, CancellationToken cancellationToken = default) => inner.GetStateAsync(company, cancellationToken);
+        public Task<Party?> GetAsync(PartyKey key, CancellationToken cancellationToken = default) => inner.GetAsync(key, cancellationToken);
+        public async Task<PartyPage> GetPageAsync(PartyQuery query, CancellationToken cancellationToken = default)
+        {
+            var page = await inner.GetPageAsync(query, cancellationToken);
+            if (Interlocked.Exchange(ref _changed, 1) == 0) await change();
+            return page;
+        }
+        public Task<PartyPage> FindByE164Async(CompanyKey company, string e164, WawiCallPro.Interfaces.Common.PageRequest page, CancellationToken cancellationToken = default) => inner.FindByE164Async(company, e164, page, cancellationToken);
+        public Task<PartyCacheState> ReplaceAsync(PartyCacheReplacement replacement, CancellationToken cancellationToken = default) => inner.ReplaceAsync(replacement, cancellationToken);
     }
 
     private sealed class ProgressCapture : IProgress<DatabaseMigrationProgress>
