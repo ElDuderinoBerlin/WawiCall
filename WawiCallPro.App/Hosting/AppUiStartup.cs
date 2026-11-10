@@ -3,7 +3,6 @@ using DevExpress.UserSkins;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.Hosting;
-using Quantarix.Windows.Win32;
 using WawiCallPro.Interfaces.Hosting;
 
 namespace WawiCallPro.App.Hosting;
@@ -17,7 +16,9 @@ internal sealed class AppUiStartup(IUiDispatcher dispatcher) : IHostedService
         BonusSkins.Register();
         SkinManager.EnableFormSkins();
         WindowsFormsSettings.UseDXDialogs = DefaultBoolean.True;
-        if (OSVersion.IsWindows11OrGreater) WindowsFormsSettings.AllowRoundedWindowCorners = DefaultBoolean.True;
+        // Unlike VerifyVersionInfo, the .NET check does not depend on an EXE compatibility manifest.
+        if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000))
+            WindowsFormsSettings.AllowRoundedWindowCorners = DefaultBoolean.True;
     }
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

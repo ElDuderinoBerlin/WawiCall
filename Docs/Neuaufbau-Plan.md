@@ -1095,6 +1095,15 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Formularrundung wie in LxTranslate über die globale DevExpress-Option
+  AllowRoundedWindowCorners aktiviert. Die bisherige manifestabhängige VerifyVersionInfo-
+  Abfrage durch die manifestunabhängige .NET-Erkennung für Windows 11 ersetzt; dadurch
+  hängt die Rundung nicht mehr vom fehlenden Kompatibilitätsmanifest des Hosts ab.
+  App/Console in aktiver Debug-/Any-CPU-Konfiguration rekompiliert; gezielte unsichtbare
+  Startfenster-Renderprüfung bestanden (kleine/große Fenster, 10/16 Punkt, 150-Prozent-
+  Layoutskalierung). DWM-Compositorrundung ist durch DrawToBitmap nicht visuell nachgewiesen.
+  Log: `.artifacts/lx-startup-log/rounded-forms.log`.
+
 - [x] ✅ Datenbankfunktionen nach dem LxTranslate-Ribbonmuster direkt im Tab
   Datenbank gebündelt: Status prüfen, Anlegen, Schema aktualisieren, leere Datenbank
   freigeben sowie SQLite-Sicherung und Wiederherstellung. Eigene SVGs und Tooltips,
