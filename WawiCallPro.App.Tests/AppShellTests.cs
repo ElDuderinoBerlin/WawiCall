@@ -36,6 +36,45 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task WindowStateRestoresPositionSizeMaximizationAndClampsMissingMonitorWithoutTouchingAuditState() => RunStaAsync(() =>
+    {
+        var product = "WindowStateTests-" + Guid.NewGuid().ToString("N");
+        var root = @"Software\WawiCallPro\" + product;
+        var descriptor = new ApplicationDescriptor("Isolated window state test", product);
+        var state = new AppUiState(descriptor, new(false));
+        try
+        {
+            using var form = new DevExpress.XtraEditors.XtraForm { MinimumSize = new Size(500, 350) };
+            _ = form.Handle;
+            var area = Screen.PrimaryScreen!.WorkingArea;
+            var bounds = new Rectangle(area.Left + 20, area.Top + 20, 720, 520);
+            form.Bounds = bounds;
+            state.SaveWindow(form, "Settings");
+            form.Bounds = new Rectangle(0, 0, 500, 350);
+            state.RestoreWindow(form, "Settings");
+            Assert.AreEqual(bounds, form.Bounds);
+            form.WindowState = FormWindowState.Maximized;
+            state.SaveWindow(form, "Settings");
+            form.WindowState = FormWindowState.Normal;
+            state.RestoreWindow(form, "Settings");
+            Assert.AreEqual(FormWindowState.Maximized, form.WindowState);
+            using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\Settings", true)!)
+            {
+                key.SetValue("Maximized", 0); key.SetValue("Left", 50000); key.SetValue("Top", 50000);
+                key.SetValue("Width", 50000); key.SetValue("Height", 50000);
+            }
+            state.RestoreWindow(form, "Settings");
+            Assert.IsTrue(Screen.FromRectangle(form.Bounds).WorkingArea.Contains(form.Bounds));
+            var audit = new AppUiState(descriptor, new(true));
+            audit.SaveWindow(form, "Audit");
+            using var auditKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\Audit");
+            Assert.IsNull(auditKey);
+        }
+        finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(root, false); }
+        return Task.CompletedTask;
+    });
+
+    [TestMethod]
     public void PluginContractsCarrySharedAssemblyAttributeAndStayInDefaultContext()
     {
         foreach (var assembly in new[] { typeof(Quantarix.Plugin.Abstractions.IPlugin).Assembly,

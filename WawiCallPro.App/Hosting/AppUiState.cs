@@ -26,6 +26,7 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
             if (key?.GetValue("Width") is int width && key.GetValue("Height") is int height)
                 form.Size = new Size(Math.Clamp(width, 760, 2400), Math.Clamp(height, 520, 1600));
             if (key?.GetValue("Maximized") is int maximized && maximized == 1) form.WindowState = FormWindowState.Maximized;
+            RestoreWindow(form, "MainForm");
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
     }
@@ -68,6 +69,51 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
             key.SetValue("Skin", UserLookAndFeel.Default.SkinName);
             key.SetValue("Palette", UserLookAndFeel.Default.ActiveSvgPaletteName ?? "");
             key.SetValue("Font", new FontConverter().ConvertToInvariantString(WindowsFormsSettings.DefaultFont) ?? "");
+            SaveWindow(form, "MainForm");
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException) { }
+    }
+
+    /// <summary>Stores each user-facing dialog independently; audits and diagnostics leave HKCU unchanged.</summary>
+    internal void AttachWindow(Form form, string name)
+    {
+        if (!Enabled) return;
+        form.Load += (_, _) => RestoreWindow(form, name);
+        form.FormClosed += (_, _) => SaveWindow(form, name);
+    }
+
+    internal void RestoreWindow(Form form, string name)
+    {
+        if (!Enabled) return;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath + @"\Windows\" + name);
+            if (key?.GetValue("Left") is not int left || key.GetValue("Top") is not int top
+                || key.GetValue("Width") is not int width || key.GetValue("Height") is not int height) return;
+            var area = Screen.FromRectangle(new Rectangle(left, top, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
+            var sizable = form.FormBorderStyle is FormBorderStyle.Sizable or FormBorderStyle.SizableToolWindow;
+            var restoredWidth = sizable ? Math.Clamp(width, Math.Max(1, form.MinimumSize.Width), Math.Max(form.MinimumSize.Width, area.Width)) : form.Width;
+            var restoredHeight = sizable ? Math.Clamp(height, Math.Max(1, form.MinimumSize.Height), Math.Max(form.MinimumSize.Height, area.Height)) : form.Height;
+            form.StartPosition = FormStartPosition.Manual;
+            form.WindowState = FormWindowState.Normal;
+            form.Bounds = new Rectangle(Math.Clamp(left, area.Left, Math.Max(area.Left, area.Right - restoredWidth)),
+                Math.Clamp(top, area.Top, Math.Max(area.Top, area.Bottom - restoredHeight)), restoredWidth, restoredHeight);
+            if (sizable && key.GetValue("Maximized") is int maximized && maximized == 1)
+                form.WindowState = FormWindowState.Maximized;
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
+    }
+
+    internal void SaveWindow(Form form, string name)
+    {
+        if (!Enabled) return;
+        try
+        {
+            var bounds = form.WindowState == FormWindowState.Normal ? form.Bounds : form.RestoreBounds;
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath + @"\Windows\" + name);
+            key.SetValue("Left", bounds.Left); key.SetValue("Top", bounds.Top);
+            key.SetValue("Width", bounds.Width); key.SetValue("Height", bounds.Height);
+            key.SetValue("Maximized", form.WindowState == FormWindowState.Maximized ? 1 : 0);
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException) { }
     }

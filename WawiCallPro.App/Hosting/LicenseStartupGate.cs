@@ -11,7 +11,7 @@ internal interface IAppLicensePrompt
     Task<string?> RequestKeyAsync(string machineId, CancellationToken cancellationToken);
 }
 
-internal sealed class AppLicensePrompt(IUiDispatcher dispatcher, StartupSplash splash) : IAppLicensePrompt
+internal sealed class AppLicensePrompt(IUiDispatcher dispatcher, StartupSplash splash, AppUiState state) : IAppLicensePrompt
 {
     public async Task<string?> RequestKeyAsync(string machineId, CancellationToken cancellationToken)
     {
@@ -21,6 +21,7 @@ internal sealed class AppLicensePrompt(IUiDispatcher dispatcher, StartupSplash s
         {
             using var dialog = new FrmLicenseKeyInput { MachineKey = machineId };
             dialog.Text = "WawiCallPro – Lizenzaktivierung";
+            state.AttachWindow(dialog, "FrmLicenseKeyInput");
             key = dialog.ShowDialog() == DialogResult.OK ? dialog.LicenseKey : null;
         }, cancellationToken);
         return key;

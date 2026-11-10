@@ -1,3 +1,4 @@
+using WawiCallPro.Utilities.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.App.Hosting;
@@ -51,7 +52,7 @@ public sealed class LicenseStartupGateTests
     {
         var dispatcher = new QueuedDispatcher();
         await using var splash = new StartupSplash();
-        var prompt = new AppLicensePrompt(dispatcher, splash);
+        var prompt = new AppLicensePrompt(dispatcher, splash, new AppUiState(ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly), new StartupExecutionMode(true)));
         using var cancellation = new CancellationTokenSource();
         var request = Task.Run(() => prompt.RequestKeyAsync("synthetic-machine", cancellation.Token));
         await dispatcher.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));

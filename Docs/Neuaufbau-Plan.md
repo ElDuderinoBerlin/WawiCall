@@ -1095,6 +1095,17 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Gemeinsame Fensterzustandsspeicherung nach dem LxTranslate-Muster über
+  AppUiState: Hauptfenster, Einstellungen und Lizenzdialog speichern Größe und Position
+  je Formular unter editionsgetrenntem HKCU-Pfad. Maximierung und normale RestoreBounds
+  bleiben erhalten; nicht mehr vorhandene Monitorpositionen werden in den Arbeitsbereich
+  zurückgeholt. Feste Dialoge behalten ihre Größe. Neue Laufzeitdialoge über AttachWindow
+  anbinden. Splash bleibt ein vorübergehendes Startfenster. Audit-/Diagnoseläufe schreiben
+  keine Fensterzustände. Zwei gezielte Prüfungen mit isoliertem Registry-Pfad bestanden,
+  einschließlich Maximierung, Monitorwechsel und abbrechbarer Lizenzdialog-Anforderung.
+  App/Console in aktiver Debug-/Any-CPU-Konfiguration gebaut. Nachweis:
+  `.artifacts/lx-startup-log/window-state.log`.
+
 - [x] ✅ Formularrundung wie in LxTranslate über die globale DevExpress-Option
   AllowRoundedWindowCorners aktiviert. Die bisherige manifestabhängige VerifyVersionInfo-
   Abfrage durch die manifestunabhängige .NET-Erkennung für Windows 11 ersetzt; dadurch

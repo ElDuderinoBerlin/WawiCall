@@ -33,7 +33,11 @@ public partial class FrmSettings : XtraForm
     internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
     internal Task StopAsync() => settingsPage.StopAsync();
-    internal void ConfigureLayoutPersistence(AppUiState? state) => settingsPage.ConfigureLayoutPersistence(state);
+    internal void ConfigureLayoutPersistence(AppUiState? state)
+    {
+        settingsPage.ConfigureLayoutPersistence(state);
+        state?.AttachWindow(this, "FrmSettings");
+    }
     private void Close_Click(object? sender, EventArgs e) => Close();
     private async void Settings_Load(object? sender, EventArgs e) => await settingsPage.ReloadAsync();
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
