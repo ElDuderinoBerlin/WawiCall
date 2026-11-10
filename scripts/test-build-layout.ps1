@@ -17,7 +17,7 @@ try {
             & dotnet build $project -c $Configuration "-p:Platform=$Platform" "-p:LexwareProductLine=$edition" --nologo --verbosity minimal |
                 Set-Content -LiteralPath (Join-Path $artifacts "$hostName-$edition-build.log") -Encoding utf8
             if ($LASTEXITCODE -ne 0) { throw "Build failed: $hostName/$edition" }
-            $output = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net10.0-windows"
+            $output = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net10.0-windows10.0.19041.0"
             if (!(Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$edition.dll"))) { throw 'Selected host missing.' }
             if (Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$other.dll")) { throw 'Stale other-edition host remains.' }
             $plugins = @(Get-ChildItem -LiteralPath (Join-Path $output 'plugins') -Directory |

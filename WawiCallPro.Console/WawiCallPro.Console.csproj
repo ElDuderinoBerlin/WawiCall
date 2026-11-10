@@ -1,12 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <OutputType>Exe</OutputType>
+    <ApplicationManifest>..\Application.manifest</ApplicationManifest>
     <RootNamespace>WawiCallPro.ConsoleApp</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Telephony.Sip\WawiCallPro.Telephony.Sip.csproj" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <!-- Both companions share the same desktop runtime files in a release bundle. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App" />

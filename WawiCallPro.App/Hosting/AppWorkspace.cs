@@ -7,6 +7,7 @@ using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.PhoneNumbers;
+using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Plugin.Windows;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
@@ -17,11 +18,25 @@ using WawiCallPro.Utilities.Security;
 namespace WawiCallPro.App.Hosting;
 
 /// <summary>Common application services; ERP models and source access stay inside the active plugin.</summary>
-public sealed class AppWorkspace(ApplicationDescriptor application, ApplicationConfigurationService configuration,
-    ConfigurationStore settings, ISecretProtector secrets, ICommunicationDatabase database,
-    IBusinessDirectory directory, IProductPluginRuntime plugins, CompanyContext companies,
-    ICallHistoryService history, ApplicationPaths paths, IPluginViewAccess views, IUiDispatcher dispatcher, IPhoneCacheService phoneCache)
+public sealed class AppWorkspace(
+    ApplicationDescriptor application,
+    ApplicationConfigurationService configuration,
+    ConfigurationStore settings,
+    ISecretProtector secrets,
+    ICommunicationDatabase database,
+    IBusinessDirectory directory,
+    IProductPluginRuntime plugins,
+    CompanyContext companies,
+    ICallHistoryService history,
+    ApplicationPaths paths,
+    IPluginViewAccess views,
+    IUiDispatcher dispatcher,
+    IPhoneCacheService phoneCache,
+    ITelephonyService? telephony,
+    ITelephonyConnection? telephonyConnection)
 {
+    public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
+    public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;
     public ApplicationConfigurationService Configuration { get; } = configuration;
     public ConfigurationStore Settings { get; } = settings;

@@ -1066,6 +1066,35 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
 
 ### Phase 7 – SIP und Gesprächsablauf ⬜
 
+- [x] ✅ DI-basierte SIP-Laufzeit mit SIPSorcery 10.0.17 und vorhandener CallStateMachine
+  angebunden: eigene Interfaces/Factories für Transport, Konto-Lease, Zustand, Persistenz
+  und Medien. Registrierung, Wiederanmeldung, explizites Abmelden, eingehende/ausgehende
+  Gespräche, Annehmen/Ablehnen, Auflegen, bestätigtes Halten/Fortsetzen, Weiterleitung und
+  bidirektionale RTP-DTMF-Ereignisse implementiert. Ein aktiver Anruf; weitere Anrufe erhalten
+  Besetzt. Konto-/Portbesitz zwischen Hosts getrennt vom Pluginbesitz; Aufräumen beendet
+  nicht den gemeinsamen Transport vor dem nächsten Gespräch. UTC-Snapshots mit tatsächlicher
+  Arbeitsplatzherkunft werden über vorhandene Repositories geschrieben; Wiederanlauf schließt
+  eigene unvollständige Gespräche als Interrupted. Keine Migration und kein SQL verändert.
+  Settings bieten echte Anmelden-/Abmelden-Aktionen und Live-Status; Speichern allein verbindet
+  nicht. App und Console haben denselben injizierten CSCore-Medienadapter, Console startet
+  das Konto nicht bei normalen Diagnose-/Verwaltungsbefehlen.
+- [x] ✅ Eigene CSCore-Lib als vorhandenes Projekt unter dem Solutionordner src aufgenommen
+  (Stand e6b2bee), WindowsAudioEndPoint pro Gespräch als Audioquelle/-senke, Geräte-IDs,
+  Lautstärke/Stummschaltung, Codecprofil und Bind-Adresse angebunden. Hosts, Audio und Hosttests
+  verwenden net10.0-windows10.0.19041.0; Windows-Kompatibilitätsmanifest bleibt asInvoker.
+  Skript-/Testpfade angepasst. Vier Editionswechsel mit App-/Console-Diagnose und Plugin-
+  Ausgabeprüfung bestanden. Fremde Änderungen an CallStateMachine.cs bleiben außerhalb dieses
+  Arbeitsschritts. Kein Fremdprojekt verändert, keine NAudio-Abhängigkeit eingeführt.
+- [x] ✅ Isolierte SIP-Nachweise: je Edition 16 Telefonieprüfungen einschließlich echter
+  UDP-/TCP-Registrierung, Abmelden, Portfreigabe, Folgeanruf, Besetzt, CANCEL, Ablehnen,
+  Halten/Fortsetzen, DTMF und Drei-Endpunkt-Weiterleitung. Je fünf gezielte App-Prüfungen
+  inklusive echter SQLite-Statuspersistenz/Recovery sowie SIP-UI-Render und Settings-/Plugin-
+  Lebensdauer bestanden; 19 Console-Prüfungen ebenfalls bestanden. Hintergrund-Render mit
+  hellem/dunklem Skin und großer Schrift; keine Audiogeräte geöffnet und keine Demo-Zugänge
+  übernommen. Nachweise: `.artifacts/lx-startup-log/sip-*`, `cscore-build-layout.log` und
+  `.artifacts/app-shell/settings-ui/sip-settings`. Echte FRITZ!Box-/Geräteabnahme bleibt offen;
+  die gesamte Phase 7 ist damit ausdrücklich noch nicht abgeschlossen.
+
 - [x] ✅ SIP-Einstellungsmodell und Oberfläche vorbereitet: Standardfelder bleiben
   kompakt; zusätzliche Netzwerk-, Registrierungs-, Klingelzeit- und Medienparameter stehen
   in einem DevExpress PropertyGridControl unter Erweitert. Die bisher missverständliche
@@ -1078,28 +1107,28 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   `.artifacts/app-shell/settings-ui/sip-settings`. Anbindung an die echte SIP-Laufzeit
   und Endpunktprüfung bleiben eigene folgende Arbeitsschritte.
 
-- [ ] Eigene Telefonie-Dienstklassen einschließlich Zustandssteuerung, Sitzungen und Medien über Interfaces
+- [x] ✅ Eigene Telefonie-Dienstklassen einschließlich Zustandssteuerung, Sitzungen und Medien über Interfaces
   und typisierte Factories in DI bereitstellen. Vorhandenen konkreten Zustandsautomaten entsprechend anbinden.
   Technikunabhängige Verträge erhalten; spätere Telefonietechnologien können dieselben Verträge implementieren.
   SIPSorcery bleibt der aktuelle Adapter; andere Backends werden damit noch nicht implementiert.
-- [ ] Ausschließlich SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen;
+- [x] ✅ Ausschließlich SIPSorcery verwenden und die vorhandene unvollständige Implementierung fachlich neu aufbauen;
   die FRITZ!Box-Beispiele `PlaySounds` und `RecordIncomingCall` als konkrete Referenz verwenden.
-- [ ] Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
+- [x] ✅ Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
   ergänzen und `WindowsAudioEndPoint` als gemeinsamen Audio-Endpunkt nutzen; keine NAudio-Anbindung.
 - [ ] Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
   Die [SIP-/Audioanalyse](SIP-Einstellungen.md) als Feld-/Testgrundlage verwenden: getrennte Server-/lokale
   Ports, Transportkonsistenz, Bindung, Registrierungsdauer, Audio-/Codecprofil und klare Zustandsanzeige.
   App/Console koordinieren den Konto-/Portbesitz. Keine Demo-Autoannahme/-Aufnahme oder Zugangsdaten übernehmen.
-- [ ] Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
+- [x] ✅ Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
   DTMF zunächst über ausgehandelte RTP-Telefonieereignisse und SIPSorcery SendDtmf/OnDtmfTone anbinden;
   keine zusätzliche Audio-Erkennungsbibliothek aus WawiCallPro.old.sln für diesen Pfad übernehmen.
   Gemeinsamen Empfangsvertrag für Telefonmenüs ergänzen und Gesprächszuordnung/Mehrfachmeldungen prüfen.
-- [ ] Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
-- [ ] Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
+- [x] ✅ Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
+- [x] ✅ Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
   Eingehende/ausgehende Richtung, Beginn/Annahme/Ende in UTC, Endgrund, Nummern und Zuordnung sowie
   PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.
-- [ ] Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
+- [x] ✅ Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
 
 Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten über die FRITZ!Box bestehen.
 Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzwerk fällt aus sind geprüft.
@@ -1314,7 +1343,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Einbindung/Bounds im Rider-Debugger geprüft. Keine sichtbare Bedienung des Benutzerdesktops.
   Telefonregistrierung, Mediengeräte, gemeinsamer Rufnummernindex, Wawi-Zugangseinrichtung,
   konkrete Wawi-Fachtabs, globale Hotkeys und Autostart bleiben ihren Fachpunkten zugeordnet.
-- [ ] SIPSorcery-Einstellungen im zentralen `FrmSettings` fachlich vervollständigen und mit den
+- [x] ✅ SIPSorcery-Einstellungen im zentralen `FrmSettings` fachlich vervollständigen und mit den
   Telefoniediensten verbinden; allgemeine Einstellungen und Pluginverwaltung sind bereits eingebunden.
   Fachliche Wawi-Views bleiben im Plugin.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.

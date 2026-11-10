@@ -1,4 +1,6 @@
 using System.Reflection;
+using WawiCallPro.Audio;
+using WawiCallPro.Telephony.Sip;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Threading;
@@ -15,6 +17,8 @@ internal static class ConsoleCompositionRoot
         {
             if (loadPlugins) services.AddProductPluginRuntime();
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
+            services.AddSingleton<ISipMediaSessionFactory, WindowsSipMediaSessionFactory>();
+            services.AddSipTelephony(false);
             services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
         })
         .Build();

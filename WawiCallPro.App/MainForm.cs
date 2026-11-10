@@ -74,6 +74,7 @@ public partial class MainForm : RibbonForm
         connectionLabel.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert. Telefonie noch nicht verbunden." : "Kein SIP-Konto konfiguriert.";
         statusItem.Caption = app.ProductLine + " · " + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
         _operation = new PageOperation(this, connectionLabel);
+        BindTelephony();
         UpdateDatabaseActions();
         _state?.Restore(this);
         _state?.Restore(dockManager);
@@ -276,7 +277,7 @@ public partial class MainForm : RibbonForm
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
         }
     }
-    private void DisposePage() { tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
+    private void DisposePage() { UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {

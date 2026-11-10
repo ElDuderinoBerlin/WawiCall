@@ -41,7 +41,15 @@ public partial class HomeDashboard : XtraUserControl
         databaseValue.Text = options?.Database.Provider.ToString() ?? "Nicht konfiguriert";
         databaseDetail.Text = "Verbindung und Schema im Ribbon-Tab Datenbank prüfen.";
         sipValue.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert" : "Nicht konfiguriert";
-        sipDetail.Text = "Telefonie noch nicht verbunden.";
+        var registration = _workspace?.Telephony?.Registration.State ?? WawiCallPro.Interfaces.Telephony.RegistrationState.Stopped;
+        sipDetail.Text = registration switch
+        {
+            WawiCallPro.Interfaces.Telephony.RegistrationState.Registered => "An der Telefonanlage angemeldet.",
+            WawiCallPro.Interfaces.Telephony.RegistrationState.Registering => "Anmeldung läuft …",
+            WawiCallPro.Interfaces.Telephony.RegistrationState.Reconnecting => "Verbindung unterbrochen; erneute Anmeldung …",
+            WawiCallPro.Interfaces.Telephony.RegistrationState.Failed => "Anmeldung fehlgeschlagen.",
+            _ => "Nicht an der Telefonanlage angemeldet."
+        };
         pluginValue.Text = _workspace?.Plugins.IsLoaded == true ? "Plugin geladen" : "Kein Plugin geladen";
         var selection = _workspace?.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection;
         pluginDetail.Text = selection?.GetAvailablePlugins().FirstOrDefault(plugin => plugin.Id == selection.ActivePluginId)?.DisplayName

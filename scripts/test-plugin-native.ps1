@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 $audit = Join-Path $root ('.artifacts/plugin-native-' + [guid]::NewGuid().ToString('N'))
 if (!$ProductLine) {
-    $hostRoot = Join-Path $root 'WawiCallPro.Console/bin/Debug/net10.0-windows'
+    $hostRoot = Join-Path $root 'WawiCallPro.Console/bin/Debug/net10.0-windows10.0.19041.0'
     $editions = @('Pro','FinOffice' | Where-Object { Test-Path -LiteralPath (Join-Path $hostRoot "WawiCallPro.Console.$_.dll") })
     if ($editions.Count -ne 1) { throw 'Zuerst genau eine Edition bauen oder -ProductLine angeben.' }
     $ProductLine = $editions[0]
@@ -12,7 +12,7 @@ foreach ($variant in @($ProductLine)) {
     foreach ($missing in @($false,$true)) {
         $case = Join-Path $audit "$variant-$missing"
         New-Item -ItemType Directory -Path $case -Force | Out-Null
-        $hostRoot = Join-Path $root "WawiCallPro.Console/bin/Debug/net10.0-windows"
+        $hostRoot = Join-Path $root "WawiCallPro.Console/bin/Debug/net10.0-windows10.0.19041.0"
         Get-ChildItem -LiteralPath $hostRoot | Where-Object { $_.Name -ne 'plugins' } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $case -Recurse }
         $bundle = Join-Path $case 'plugins/SignedRuntimePlugin'
         New-Item -ItemType Directory -Path $bundle -Force | Out-Null

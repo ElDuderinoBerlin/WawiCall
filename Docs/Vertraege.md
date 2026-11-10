@@ -1067,3 +1067,32 @@ beim Lesen die sicheren Vorgaben; allein das Aktualisieren aktiviert keine Anmel
 Kennwörter bleiben zweckgebunden geschützt, die neue Formatversion verändert sie nicht.
 Die Standardansicht enthält Server, Konto, Transport und automatische Anmeldung;
 weitere Werte stehen im DevExpress PropertyGrid unter Erweitert, ohne Zugangsdaten.
+
+### SIP-Laufzeit und Medien
+
+`ITelephonyService` stellt die Anrufaktionen bereit; `ITelephonyConnection` trennt
+Anmelden/Abmelden vom Speichern der Konfiguration. `IDtmfReceiver` meldet abgeschlossene
+RTP-Telefonieereignisse mit der stabilen Gesprächs-ID. Ereignisse können auf Hintergrundthreads
+ankommen. Die App marshalt sie auf ihren UI-Thread und meldet echte Registrierungszustände.
+
+`SipTelephonyService` wird einmal pro Host registriert. Transport-, Konto-Lease-, Medien-,
+Persistenz- und Zustands-Factories werden injiziert. Pro Konto ist ein Arbeitsplatzgespräch
+aktiv; zusätzliche eingehende Anrufe erhalten Besetzt. Die bestehende `CallStateMachine`
+entscheidet weiterhin alle Übergänge. Die Ereigniswarteschlange speichert akzeptierte
+Snapshots über die vorhandenen versionierten Repositories, bevor sie veröffentlicht werden.
+Fehler beim Speichern bleiben über einen sicheren Fehlercode erkennbar; sie werden nicht als
+gespeicherte Historie ausgegeben. Beim Anmelden werden eigene unvollständige Gespräche des
+Arbeitsplatzes als unterbrochen abgeschlossen, erst nachdem der Kontobesitz erworben wurde.
+
+Ein pro Benutzer/Konto gehaltener Dateihandle koordiniert App und Console. Reine CLI-Aufrufe,
+Diagnosen und Renderläufe registrieren kein Konto automatisch. Die App berücksichtigt
+`registerOnStartup`; eine explizite Anmeldung liest die zuletzt gespeicherten Werte.
+Halten/Fortsetzen wechseln erst nach erfolgreicher re-INVITE-Antwort den Zustand. Ein REFER
+202 bestätigt nur die Annahme des Weiterleitungsauftrags; erst BYE oder erfolgreicher NOTIFY
+beendet das ursprüngliche Gespräch als weitergeleitet.
+
+App und Console injizieren `WindowsSipMediaSessionFactory`, die direkt den eigenen
+`SIPSorceryMedia.Windows.CSCore.WindowsAudioEndPoint` als Quelle und Senke verwendet.
+Erst Wählen oder ausdrücklich Annehmen erzeugt Medien. Es gibt keine Demo-Autoannahme,
+Testansage oder automatische Aufnahme. Die lokalen Tests verwenden einen ausdrücklich
+injizierten gerätelosen RTP-Endpunkt; der Produktpfad verwendet CSCore und keine NAudio-Lib.

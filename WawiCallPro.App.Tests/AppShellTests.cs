@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using WawiCallPro.Utilities.Operations;
 using System.Reflection;
 using System.Drawing.Imaging;
+using WawiCallPro.Telephony.Sip;
 using System.Runtime.CompilerServices;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
@@ -67,6 +68,17 @@ public sealed class AppShellTests
                     Directory.CreateDirectory(destination);
                     using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
                     bitmap.Save(Path.Combine(destination, $"Sip-{skin}-{fontSize}-{index}.png"), ImageFormat.Png);
+                    if (index == 0)
+                    {
+                        var sipScroll = Field<XtraScrollableControl>(page, "sipScroll");
+                        var actions = Field<TableLayoutPanel>(page, "sipActions");
+                        sipScroll.ScrollControlIntoView(actions);
+                        form.PerformLayout(); Application.DoEvents();
+                        var button = Field<SimpleButton>(page, "sipConnectButton");
+                        Assert.IsTrue(sipScroll.RectangleToScreen(sipScroll.ClientRectangle).Contains(button.RectangleToScreen(button.ClientRectangle)), "The connection buttons must be fully reachable after scrolling.");
+                        using var actionsImage = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                        actionsImage.Save(Path.Combine(destination, $"Sip-{skin}-{fontSize}-actions.png"), ImageFormat.Png);
+                    }
                 }
                 Assert.IsInstanceOfType<SipAdvancedSettings>(Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject);
                 form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout(); CheckTableBounds(form);
@@ -504,6 +516,9 @@ public sealed class AppShellTests
         await management.HandleCardActionAsync("activate", 0);
         Assert.AreEqual("Test.Lexware", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
         Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
+        await Assert.ThrowsAsync<TelephonyException>(() => workspace.TelephonyConnection!.ConnectAsync());
+        await Task.Delay(10);
+        Assert.Contains("fehlgeschlagen", Field<LabelControl>(page, "sipStatus").Text);
         await settings.StopAsync();
         await form.PrepareToCloseAsync();
     });
@@ -524,7 +539,7 @@ public sealed class AppShellTests
         Assert.IsNotNull(repository);
         var config = typeof(MainForm).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
         var edition = ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine;
-        var executable = Path.Combine(repository.FullName, "WawiCallPro.App", "bin", config, "net10.0-windows", "WawiCallPro.App." + edition + ".exe");
+        var executable = Path.Combine(repository.FullName, "WawiCallPro.App", "bin", config, "net10.0-windows10.0.19041.0", "WawiCallPro.App." + edition + ".exe");
         Assert.IsTrue(File.Exists(executable));
         using var extracted = Icon.ExtractAssociatedIcon(executable);
         Assert.IsNotNull(extracted);
@@ -796,6 +811,30 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task SipStatePersistenceRetainsOriginAndRecoversOnlyUnfinishedWorkstationCalls() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        var persistence = services.GetRequiredService<ISipCallPersistence>();
+        var now = DateTimeOffset.UtcNow;
+        var initial = new CallSnapshot { Id = Guid.NewGuid(), Revision = 0, Direction = CallDirection.Incoming, State = CallState.Created,
+            LocalAddress = new(NumberPresentation.Available, "workstation"), RemoteAddress = new(NumberPresentation.Withheld),
+            StartedAtUtc = now, StateChangedAtUtc = now };
+        var saved = await persistence.SaveAsync(initial);
+        Assert.IsNotNull(saved.Origin);
+        await persistence.SaveAsync(saved with { Revision = 1, State = CallState.Ringing, StateChangedAtUtc = now.AddSeconds(1) });
+        await persistence.RecoverAsync();
+        var history = await workspace.History.GetCallAsync(initial.Id);
+        Assert.IsNotNull(history);
+        Assert.AreEqual(CallState.Failed, history.Call.State);
+        Assert.AreEqual(CallEndReason.Interrupted, history.Call.EndReason);
+        Assert.AreEqual(saved.Origin, history.Call.Origin);
+        Assert.AreEqual(2L, history.Call.Revision);
+        Assert.HasCount(2, history.Events);
+        await persistence.RecoverAsync();
+        Assert.AreEqual(2L, (await workspace.History.GetCallAsync(initial.Id))!.Call.Revision);
+    });
+
+    [TestMethod]
     public Task DatabaseRibbonBlocksConcurrentCommandsAndShutdownAwaitsCancellation() => WithWorkspace(async (workspace, services, plugin) =>
     {
         using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
@@ -895,6 +934,7 @@ public sealed class AppShellTests
             services.AddSingleton<IPluginViewAccess, PluginViewAccess>();
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
+                services.AddSipTelephony(false);
         }).Build();
         try
         {

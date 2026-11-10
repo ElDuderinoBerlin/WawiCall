@@ -16,7 +16,7 @@ Persönliche Zugangsdaten werden nicht aus LxTranslate übernommen.
 den zentralen Standard; ein explizites `-ProductLine` beziehungsweise `-p:LexwareProductLine` überschreibt ihn.
 Build-/Publish-Skripte bauen standardmäßig nur diese Edition; mehrere Editionen müssen ausdrücklich
 angegeben werden. Die Produktionsausgaben liegen je Projekt unter `bin/<Konfiguration>/<Framework>`,
-z. B. `WawiCallPro.App/bin/Debug/net10.0-windows`. Die Exe-/Assemblynamen behalten die Edition,
+z. B. `WawiCallPro.App/bin/Debug/net10.0-windows10.0.19041.0`. Die Exe-/Assemblynamen behalten die Edition,
 z. B. `WawiCallPro.App.FinOffice.exe`. Es wird dort jeweils die gewählte Edition bereitgestellt;
 die vorherige Host- und Plugin-Ausgabe der anderen Edition wird beim Wechsel entfernt.
 
@@ -222,7 +222,7 @@ zweckgebunden DPAPI-geschützt; Providerbuilder validieren sie vor dem Start ohn
 Die Console bietet folgende ausdrückliche Aktionen (Beispiel Pro):
 
 ```powershell
-$console = '.\WawiCallPro.Console\bin\Debug\Pro\net10.0-windows\WawiCallPro.Console.Pro.exe'
+$console = '.\WawiCallPro.Console\bin\Debug\net10.0-windows10.0.19041.0\WawiCallPro.Console.Pro.exe'
 & $console --db-status
 & $console --db-init
 & $console --db-migrate
@@ -576,3 +576,15 @@ Format 4 ergänzt `user.activePluginId`; alle bisherigen Einstellungsformate ble
 Die gezielte Dialogrenderprüfung verwendet `LX_UI_AUDIT_SURFACES=FrmSettings`; alte Dokumentrouten
 für SettingsPage/PluginPage werden nicht mehr geöffnet. Details stehen in [Architektur.md](Architektur.md)
 und [Vertraege.md](Vertraege.md#pluginwahl-in-frmsettings-09112026).
+
+### Eigener CSCore-Audioendpunkt
+
+Die Hauptsolution referenziert unter `src` direkt
+`../SIPSorceryMedia.Windows.CSCore/src/SIPSorceryMedia.Windows.CSCore.csproj`.
+`WawiCallPro.Audio` verwendet dessen `WindowsAudioEndPoint` über eine typisierte
+`ISipMediaSessionFactory`; es wird kein NAudio-Endpunkt eingebunden. Die Bibliothek
+bleibt an ihrem vorhandenen Ort und wird nicht in das WawiCallPro-Repository kopiert.
+Die konsumierenden Windows-Hosts und ihre Tests verwenden dafür
+`net10.0-windows10.0.19041.0` (Windows 10 ab Build 19041). Plugins und plattformneutrale
+Projekte behalten ihre bisherigen Frameworks. Build- und Prüfscripte verwenden den
+entsprechend angepassten Host-Ausgabeordner.

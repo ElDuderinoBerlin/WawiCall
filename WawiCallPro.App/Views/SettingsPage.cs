@@ -71,6 +71,8 @@ public partial class SettingsPage : XtraUserControl
     internal void Bind(AppWorkspace workspace)
     {
         _workspace = workspace;
+        if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
+        UpdateSipStatus();
         _operation = new PageOperation(this, statusLabel);
         Apply(workspace.Configuration.Current);
         pluginPage.Bind(workspace, _state);
@@ -114,6 +116,8 @@ public partial class SettingsPage : XtraUserControl
     private void DisposePage()
     {
         _operation?.Dispose();
+        if (_workspace?.Telephony is not null) _workspace.Telephony.RegistrationChanged -= SipRegistration_Changed;
+        if (!_sipUiLifetime.IsCancellationRequested) { _sipUiLifetime.Cancel(); _sipUiLifetime.Dispose(); }
         _state?.Save(cacheView, "CacheSources");
     }
 

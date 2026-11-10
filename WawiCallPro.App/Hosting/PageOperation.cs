@@ -34,13 +34,13 @@ internal sealed class PageOperation(Control owner, LabelControl status) : IDispo
 
     internal async Task StopAsync()
     {
-        await _stopping.CancelAsync();
+        if (!_disposed) await _stopping.CancelAsync();
         await _running;
     }
 
     internal static string Describe(Exception exception) => exception switch
     {
-        ConfigurationException or DatabaseOperationException or RepositoryConflictException or SecretProtectionException or WawiCallPro.Interfaces.PhoneNumbers.PhoneCacheRefreshException => exception.Message,
+        WawiCallPro.Interfaces.Telephony.TelephonyException or ConfigurationException or DatabaseOperationException or RepositoryConflictException or SecretProtectionException or WawiCallPro.Interfaces.PhoneNumbers.PhoneCacheRefreshException => exception.Message,
         NotSupportedException => "Diese Funktion ist im aktiven Plugin noch nicht verfügbar.",
         _ => "Die Aktion ist fehlgeschlagen. Bitte Einstellungen und Erreichbarkeit prüfen."
     };
