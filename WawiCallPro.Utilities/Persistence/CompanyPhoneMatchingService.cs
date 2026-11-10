@@ -58,7 +58,7 @@ public sealed class CompanyPhoneMatchingService(ICompanyRepository companies, IP
             throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);
         return indexes.Create(new(profile, before.Revision, before.ParserVersion,
             before.Revision > 0 && before.RefreshedAtUtc is not null
-                && before.ContextVersion == before.ParserVersion + ";interpretation/1",
+                && PhoneCacheMetadata.IsContextFingerprint(before.ContextVersion),
             parties.ToImmutable(), blocks.ToImmutable()), token);
     }
 

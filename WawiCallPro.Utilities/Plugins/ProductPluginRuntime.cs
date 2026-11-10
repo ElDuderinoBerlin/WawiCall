@@ -180,6 +180,7 @@ public static class ProductPluginServices
         services.AddHostedService(provider => provider.GetRequiredService<ProductPluginRuntime>());
         services.AddSingleton<IBusinessDirectory, PluginBusinessDirectory>();
         services.AddSingleton<WawiCallPro.Interfaces.PhoneNumbers.IPhoneCacheService, WawiCallPro.Utilities.Persistence.PhoneCacheService>();
+        WawiCallPro.Utilities.Persistence.PhoneSearchIndexRegistration.AddPhoneSearchIndex(services);
     }
 }
 /// <summary>Source access remains plugin-owned and is protected by the runtime's lifetime gate.</summary>

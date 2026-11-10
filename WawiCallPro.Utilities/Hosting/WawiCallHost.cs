@@ -56,6 +56,7 @@ public static class WawiCallHost
                 services.AddSingleton<ApplicationOptionsValidator>();
                 services.AddSingleton<IPhoneNumberParser, LibPhoneNumberParser>();
                 services.AddSingleton<IPhoneNumberInterpreter, PhoneNumberInterpreter>();
+                services.AddSingleton<IPhoneCacheMetadata, PhoneCacheMetadata>();
                 services.AddSingleton<ICompanyPhoneMatchIndexFactory, CompanyPhoneMatchIndexFactory>();
                 services.AddSingleton<ICompanyPhoneMatchingService, CompanyPhoneMatchingService>();
                 services.AddSingleton<ICompanyPhoneNumberContextProvider, CompanyPhoneNumberContextProvider>();

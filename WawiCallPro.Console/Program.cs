@@ -28,7 +28,11 @@ try
                 "--help" => DiagnosticTables.Help(),
                 _ => DiagnosticTables.Status(diagnostic)
             };
-            if (command.UsesPhoneMatching)
+            if (command.PhoneSearchNumber is { } searchNumber)
+                table = await PhoneMatchingCommands.SearchAsync(searchNumber,
+                    host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.IPhoneSearchIndexService>(),
+                    host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.IPhoneNumberInterpreter>(), stoppingToken);
+            else if (command.UsesPhoneMatching)
                 table = await PhoneMatchingCommands.ExecuteAsync(command,
                     Enum.Parse<WawiCallPro.Interfaces.Companies.LexwareProductLine>(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine),
                     host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.ICompanyPhoneMatchingService>(),

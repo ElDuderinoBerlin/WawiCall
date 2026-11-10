@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using WawiCallPro.ConsoleApp.Diagnostics;
 using WawiCallPro.Core.PhoneNumbers;
 using WawiCallPro.Interfaces.Companies;
@@ -46,6 +47,50 @@ public sealed class PhoneMatchingCommandTests
             ConsoleCommand.Parse(["--phone-match", "fixture", "0001", "030123456789"]),
             LexwareProductLine.Pro, service, Interpreter, CancellationToken.None));
         Assert.AreEqual(0, service.Builds);
+    }
+
+    [TestMethod]
+    public async Task MultiCompanyCommandLoadsPluginChecksScopeAndShowsCompanyForEveryAlternative()
+    {
+        var command = ConsoleCommand.Parse(["--phone-search", "+4930123456789"]);
+        Assert.IsFalse(command.UsesDatabase, "The multi-company command needs the plugin's current company catalogue.");
+        Assert.AreEqual("+4930123456789", command.PhoneSearchNumber);
+        Assert.IsNotNull(command.PhoneSearchNumber);
+        var search = new Search();
+        var table = await PhoneMatchingCommands.SearchAsync(command.PhoneSearchNumber, search, Interpreter, CancellationToken.None);
+        Assert.AreEqual(1, search.Refreshes);
+        Assert.AreEqual(1, search.Finds);
+        Assert.IsTrue(table.Rows.Any(row => row.Name == "Firma A / Same party"));
+        Assert.IsTrue(table.Rows.Any(row => row.Name == "Firma B / Same party"));
+        Assert.IsTrue(table.Rows.Any(row => row.Name == "Firma B" && row.Value == "CacheStale"));
+        Assert.IsTrue(table.Rows.Any(row => row.Name == "Vollständig" && row.Value == "Nein"));
+    }
+
+    [TestMethod]
+    public async Task MultiCompanyCommandRejectsAmbiguousNumbersBeforeAnyIo()
+    {
+        var search = new Search();
+        await Assert.ThrowsExactlyAsync<DiagnosticException>(() => PhoneMatchingCommands.SearchAsync("030123456789", search, Interpreter, CancellationToken.None));
+        Assert.AreEqual(0, search.Refreshes); Assert.AreEqual(0, search.Finds);
+    }
+
+    private sealed class Search : IPhoneSearchIndexService
+    {
+        internal int Refreshes;
+        internal int Finds;
+        private static readonly CompanyKey Other = new(LexwareProductLine.Pro, "other", Company.ExternalId);
+        public PhoneSearchIndexStatus GetStatus() => new(1, PhoneSearchScopeState.Partial, DateTimeOffset.UtcNow,
+            [new(Company, "Firma A", PhoneSearchCompanyState.Ready), new(Other, "Firma B", PhoneSearchCompanyState.CacheStale)], false);
+        public Task<PhoneSearchIndexStatus> RefreshAsync(CancellationToken cancellationToken = default)
+        { Refreshes++; return Task.FromResult(GetStatus()); }
+        public PhoneSearchResult Find(PhoneNumberInterpretation incoming, CancellationToken cancellationToken = default)
+        {
+            Finds++;
+            var evidence = ImmutableArray.Create(new PhoneMatchObservation(new(Company, PartyKind.Customer, "01"), null,
+                new() { Kind = PhoneNumberMatchKind.Exact, ParserVersion = Parser.Version }));
+            return new(GetStatus(), new() { SearchCompanies = [], ParserVersion = Parser.Version, SearchedAtUtc = DateTimeOffset.UtcNow },
+                [new(new(Company, PartyKind.Customer, "01"), "Same party", evidence), new(new(Other, PartyKind.Customer, "01"), "Same party", evidence)]);
+        }
     }
 
     private sealed class Matching : ICompanyPhoneMatchingService

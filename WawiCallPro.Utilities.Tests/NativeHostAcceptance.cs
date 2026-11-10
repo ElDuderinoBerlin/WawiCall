@@ -54,8 +54,9 @@ public static class NativeHostAcceptance
             Assert.AreEqual("Host note Ä 电话", (await history.GetCallAsync(call.Id, token))!.Notes.Single().Text);
             Assert.AreEqual(1, (await history.GetCallsAsync(new(new(0, 10)) { WorkstationId = workstation }, token)).Items.Length);
             await PhoneMatchingAcceptance.RunAsync(host.Services, token);
+            await PhoneSearchIndexTests.RunAcceptanceAsync(host.Services);
         });
-        Console.WriteLine(type + ": real DI host with DPAPI settings, schema status/progress, workstation, history and versioned StartWidth matching passed.");
+        Console.WriteLine(type + ": real DI host with DPAPI settings, schema status/progress, workstation, history, StartWidth and cross-company phone index passed.");
     }
 
     private sealed class CaptureProgress : IProgress<DatabaseMigrationProgress>

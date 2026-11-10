@@ -175,6 +175,9 @@ public sealed class PhoneCacheServiceTests
         await test.SaveSelectionAsync(test.A);
         await test.Cache.RefreshAsync();
         var first = await test.Parties.GetStateAsync(test.A.Key);
+        Assert.IsTrue((await test.Services.GetRequiredService<ICompanyPhoneMatchingService>().BuildIndexAsync(test.A.Key)).IsComplete);
+        Assert.IsTrue((await test.Services.GetRequiredService<IPhoneSearchIndexService>().RefreshAsync()).IsComplete,
+            "The writer's actual SHA256 context fingerprint must be accepted by both index layers.");
         await test.Cache.RefreshAsync();
         Assert.AreEqual(first.ContextVersion, (await test.Parties.GetStateAsync(test.A.Key)).ContextVersion);
         var saved = await test.Settings.LoadAsync();
@@ -222,6 +225,7 @@ public sealed class PhoneCacheServiceTests
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
             services.AddSingleton<IBusinessDirectory>(source);
             services.AddSingleton<IPhoneCacheService, PhoneCacheService>();
+            services.AddPhoneSearchIndex();
         }).Build();
         try
         {

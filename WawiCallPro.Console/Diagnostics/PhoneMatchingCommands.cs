@@ -6,9 +6,27 @@ using WawiCallPro.Interfaces.Telephony;
 
 namespace WawiCallPro.ConsoleApp.Diagnostics;
 
-/// <summary>Explicit local-cache administration and offline lookup; no ERP login or implicit company selection.</summary>
+/// <summary>Local-cache administration and multi-company lookup with an explicit permission refresh.</summary>
 internal static class PhoneMatchingCommands
 {
+    internal static async Task<ConsoleTable> SearchAsync(string number, IPhoneSearchIndexService search,
+        IPhoneNumberInterpreter interpreter, CancellationToken token)
+    {
+        var incoming = interpreter.InterpretIncoming(new(NumberPresentation.Available, number));
+        if (incoming.Kind != PhoneNumberAddressKind.Public)
+            throw new DiagnosticException("Bitte eine gültige internationale Rufnummer einschließlich Ländervorwahl angeben.");
+        await search.RefreshAsync(token);
+        var result = search.Find(incoming, token);
+        var rows = new List<ConsoleRow> { new("Suchstand", result.Index.State.ToString()), new("Vollständig", result.Index.IsComplete ? "Ja" : "Nein") };
+        rows.AddRange(result.Index.Companies.Select(company => new ConsoleRow(company.DisplayName, company.State.ToString())));
+        var names = result.Index.Companies.ToDictionary(company => company.Company, company => company.DisplayName);
+        rows.AddRange(result.Candidates.Select(candidate => new ConsoleRow(names[candidate.Party.Company] + " / " + candidate.DisplayName,
+            $"{candidate.Party.Kind}; {candidate.Evidence[0].Match.Kind}; "
+            + (candidate.IsPositive ? "positiver Treffer" : "unbestätigter Vorschlag"))));
+        if (result.Candidates.IsEmpty) rows.Add(new("Ergebnis", "Kein Treffer im verfügbaren Suchstand"));
+        return new("Rufnummernsuche – ausgewählte berechtigte Firmen", "Mandant / Geschäftspartner", "Ergebnis", rows);
+    }
+
     internal static async Task<ConsoleTable> ExecuteAsync(ConsoleCommand command, LexwareProductLine productLine,
         ICompanyPhoneMatchingService matching, IPhoneNumberInterpreter interpreter, CancellationToken token)
     {

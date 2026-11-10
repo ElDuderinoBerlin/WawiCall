@@ -1,7 +1,4 @@
 using System.Collections.Immutable;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using WawiCallPro.Database;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Common;
@@ -16,10 +13,19 @@ using WawiCallPro.Utilities.Hosting;
 namespace WawiCallPro.Utilities.Persistence;
 
 /// <summary>Stages complete source pages before publishing a version-checked company snapshot.</summary>
-public sealed class PhoneCacheService(ConfigurationStore settings, ApplicationConfigurationService activeSettings,
-    ApplicationDescriptor application, ICommunicationDatabase database, IBusinessDirectory directory,
-    ICompanyRepository companies, IPartyCacheRepository cache, INumberParseLogRepository errors,
-    IPhoneNumberParser parser, IPhoneNumberInterpreter interpreter, TimeProvider clock) : IPhoneCacheService
+public sealed class PhoneCacheService(
+    ConfigurationStore settings,
+    ApplicationConfigurationService activeSettings,
+    ApplicationDescriptor application,
+    ICommunicationDatabase database,
+    IBusinessDirectory directory,
+    ICompanyRepository companies,
+    IPartyCacheRepository cache,
+    INumberParseLogRepository errors,
+    IPhoneNumberParser parser,
+    IPhoneNumberInterpreter interpreter,
+    TimeProvider clock,
+    IPhoneCacheMetadata metadata) : IPhoneCacheService
 {
     private readonly SemaphoreSlim _gate = new(1);
 
@@ -154,15 +160,8 @@ public sealed class PhoneCacheService(ConfigurationStore settings, ApplicationCo
             SameDatabase(latest.Options.Database, activeSettings.Current.Options.Database);
     }
 
-    private string ContextVersion(CompanySettings company)
-    {
-        var interpretation = interpreter.InterpretIncoming(new(NumberPresentation.Unknown)).Version;
-        var content = JsonSerializer.Serialize(new { Protocol = "phone-cache/1", Interpretation = interpretation, company.Company, company.DefaultPhoneRegion, company.LocalAreaCode });
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
-    }
+    private string ContextVersion(CompanySettings company) => metadata.GetContextVersion(company);
 
-    private static bool SameDatabase(CommunicationDatabaseSettings first, CommunicationDatabaseSettings second) => first.Provider == second.Provider &&
-        (first.Provider == CommunicationDatabaseProvider.Sqlite
-            ? string.Equals(first.SqliteFileName ?? "communications.db", second.SqliteFileName ?? "communications.db", StringComparison.Ordinal)
-            : JsonSerializer.Serialize(first.ConnectionString) == JsonSerializer.Serialize(second.ConnectionString));
+    private static bool SameDatabase(CommunicationDatabaseSettings first, CommunicationDatabaseSettings second) =>
+        PhoneCacheMetadata.SameDatabase(first, second);
 }

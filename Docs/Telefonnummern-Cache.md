@@ -2,8 +2,9 @@
 
 Stand: 10.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
 Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
-Aktualisierung sowie der firmenbezogene StartWidth-Matcher sind implementiert. Gemeinsamer
-Mehrfirmenindex, grafische Trefferauswahl und Anruf-/Viewanbindung bleiben noch umzusetzen.
+Aktualisierung, der firmenbezogene StartWidth-Matcher und der gemeinsame Mehrfirmenindex sind
+implementiert. Grafische Trefferauswahl, automatische Aktualisierungsauslöser und Anruf-/Viewanbindung
+bleiben noch umzusetzen.
 
 ## Grundentscheidung
 
@@ -197,8 +198,8 @@ erhalten. Eine explizite Kontakt-Extension wird nur bei Übereinstimmung als Kon
 bei unbekannter/abweichender Extension führt die gemeinsame Basisnummer zur Organisation.
 Der Dienst trifft keine automatische Datensatzauswahl und greift weder auf die aktive Firma noch auf
 Wawi oder SIP zu. Ein einzelner lokaler Firmenbestand bestätigt keine aktuelle ERP-Berechtigung.
-Die Zusammenführung aller ausgewählten berechtigten Firmen und die grafische Auswahl folgen in den
-eigenen nächsten Planpunkten. Quellnummern und vorhandene Gesprächshistorie werden nicht umgeschrieben.
+Die Zusammenführung übernimmt der unten beschriebene Mehrfirmenindex; die grafische Auswahl folgt
+im nächsten Planpunkt. Quellnummern und vorhandene Gesprächshistorie werden nicht umgeschrieben.
 
 Die Console bietet eine ausdrückliche Konfiguration und einen lokalen Firmenabgleich an:
 
@@ -338,6 +339,58 @@ Ein Anruferbereich erhält seinen eigenen View-/Firmenkontext. Ein Anruf aus Fir
 unbemerkt eine gerade bearbeitete Hauptansicht aus Firma A. Ein ausdrückliches Öffnen/Wechseln beachtet
 offene Änderungen; mehrere Gesprächsbereiche erhalten getrennte Kontexte.
 
+## Implementierter gemeinsamer Suchindex
+
+`IPhoneSearchIndexService` wird in App und Console mit der Pluginlaufzeit als Singleton registriert.
+Sein Konstruktor führt keine Abfragen aus. `RefreshAsync` prüft die gespeicherte Checkbox-Auswahl
+gegen den aktuellen Firmenkatalog des Plugins und baut den gemeinsamen Stand im Hintergrund auf.
+Es zählen vollständige CompanyKeys einschließlich Edition und Installation. Nicht berechtigte oder
+nicht verfügbare Firmen bleiben als Status enthalten; ihre lokalen Daten werden nicht für Treffer gelesen.
+Eine leere Auswahl öffnet weder Warenwirtschaft noch Datenbank. Ein geändertes Datenbankziel erfordert
+einen Neustart. Aktive und bevorzugte Firma schränken die Suchmenge nicht ein.
+
+Der Dienst veröffentlicht einen unveränderlichen Stand atomar. Während der Prüfung liefert `Find`
+sofort `Refreshing` und keine Kandidaten. Nach Veröffentlichung lesen `Find` und `GetStatus` nur
+Speicher und Uhrzeit; sie warten auf keine Datenbank-, Plugin- oder Neuaufbauoperation. Gleiche Nummern
+verschiedener Firmen bleiben getrennte Kandidaten. Exakte Treffer stehen vor bestätigten Blöcken,
+Stammnummerntreffern und unbestätigten Vorschlägen; alle Alternativen behalten ihre Matchnachweise.
+`CallerLookupSnapshot` erfasst Suchfirmen, Cache-/Regelrevisionen, Alter und Vollständigkeit. Eine
+Datensatzauswahl wird hier noch nicht getroffen.
+
+Unveränderte Firmenindizes werden anhand vollständiger Cachemetadaten und Firmenregel wiederverwendet.
+Vor der Veröffentlichung prüft der Dienst auch zuvor bearbeitete Firmen erneut auf Cache-/Regeländerungen,
+liest Firmenkatalog und gespeicherte Auswahl nochmals und vergleicht Pluginwahl, Datenbankziel und
+Normalisierungskontext. Ein Wechsel verwirft den gesamten Aufbau (`ScopeChanged`). Katalogfehler,
+Abbruch und Beenden liefern keine alten Treffer als Ersatz. Beim Freigeben werden laufende und wartende
+Aufbauten abgebrochen und abgewartet. Frühere zurückgegebene Suchergebnisse bleiben unverändert.
+
+`PhoneSearchIndexOptions` begrenzt standardmäßig das Cachealter auf 24 Stunden und das Alter der
+Auswahl-/Berechtigungsprüfung auf fünf Minuten; beide positiven Grenzen sind per DI ersetzbar.
+Fehlender Cache, alte Parsermetadaten, abweichender Kontext-Fingerprint, veraltete oder zukünftige
+Cachezeitstempel und unvollständige Firmenindizes erhalten eigene Firmenzustände. Verfügbare Treffer
+solcher Teilstände bleiben sichtbar, ihre Gesamtsuche ist ausdrücklich unvollständig (`Partial`).
+Bei abgelaufener oder zukünftig datierter Berechtigungsprüfung liefert der Dienst `ScopeExpired`
+ohne Kandidaten, bis ausdrücklich erneut aktualisiert wird. Dies ist eine zeitlich begrenzte
+Berechtigungsbeobachtung: Änderungen zwischen zwei Prüfungen werden nicht sofort erkannt.
+Automatische Auslöser bei Einstellungs-/Plugin-/Cacheänderungen und die SIP-Anbindung folgen separat.
+
+Cachewriter und gemeinsamer Suchindex verwenden über `IPhoneCacheMetadata` denselben SHA256-Fingerprint
+aus Protokoll-/Interpreterversion, CompanyKey und Land-/Ortskontext. Sein bisheriges Speicherformat bleibt
+unverändert. Der lokale Firmenmatcher prüft das Vorhandensein eines solchen Fingerprints; erst die
+übergeordnete Suche vergleicht ihn mit den aktuellen Firmenvorgaben. Damit wird der frühere falsche
+Vergleich des gespeicherten Hashes mit einer einfachen Versionszeichenfolge korrigiert.
+
+```powershell
+WawiCallPro.Console.FinOffice.exe --phone-search +4930123456789
+```
+
+Dieser Befehl lädt das gewählte Plugin, aktualisiert die Berechtigungsbeobachtung und zeigt den Suchstatus,
+alle ausgewählten Firmen mit Cachestatus sowie alle Kandidaten mit Firmennamen. Er fragt keine aktuellen
+Geschäftspartnerdaten aus der Wawi ab. Die Kommunikationsdatenbank und ausgewählten Cachequellen müssen
+vorher eingerichtet sein. Für Pro gilt der entsprechende EXE-Name; ohne Anlagenkontext ist eine explizite
+internationale Rufnummer erforderlich. Die grafische Trefferauswahl und die Anrufannahme werden durch
+diesen Diagnosebefehl noch nicht angebunden.
+
 ## Cache und Datenzugriff
 
 Die eigene Kommunikationsdatenbank hält dauerhafte Firmen-/Geschäftspartner-/Adress-/Nummernsnapshots.
@@ -375,7 +428,7 @@ Ein Abbruch wartet auf den Quellaufruf: Bereits abgeschlossene Firmen bleiben ge
 die laufende Firma behält ihren bisherigen Cache. Ein Fehler einer Firma hält andere ausgewählte
 Firmen nicht auf. Unauflösbare Nummern werden mit festen Fehlercodes und Quellbezug unabhängig
 protokolliert; diese Beobachtungen können auch bei einem späteren Abbruch oder Revisionskonflikt bleiben.
-Eine Diagnoseoberfläche dafür sowie die firmenübergreifende Suche stehen noch aus.
+Eine Diagnoseoberfläche für die protokollierten Quellnummernfehler steht noch aus.
 
 Ein firmengebundener Wawi-Client darf nicht parallel durch ungeschützte UseCompany-Wechsel umgeschaltet
 werden. Es werden nachweislich isolierte Firmenclients verwendet oder Firmenwechsel plus Abfrage über
@@ -386,10 +439,10 @@ denselben Client vollständig serialisiert. Kontextprüfung gilt auch nach der R
 Parsing/Regionsauflösung, Kontextwahl und Interpretation sind über `IPhoneNumberParser`,
 `IPhoneNumberInterpreter` und `ICompanyPhoneNumberContextProvider` implementiert und per DI an
 App/Console angebunden. `IPhoneCacheService` ist mit der Pluginlaufzeit in beiden Hosts per DI
-registriert und wird in der App über die Einstellungen aufgerufen. Mehrfirmensuche und Trefferauswahl
-benötigen weiterhin eigene Interfaces und Implementierungen. Das bestehende
-`IPartyCacheRepository.FindByE164Async` ist firmengebunden; die Suche benötigt eine übergreifende
-Koordination beziehungsweise geeignete neue Mehrfirmenabfragen.
+registriert und wird in der App über die Einstellungen aufgerufen. `IPhoneSearchIndexService`
+koordiniert die ausgewählten berechtigten Firmen und ihre unveränderlichen Speicherindizes.
+Das bestehende `IPartyCacheRepository.FindByE164Async` bleibt firmengebunden; der gemeinsame Index
+benötigt keine neuen SQL-Abfragen oder Migrationen. Die grafische Trefferauswahl bleibt offen.
 
 Die Persistenzgrundlage ist seit Phase 3/Punkt 6 implementiert: Migration 6 ergänzt die unabhängige
 Firmenidentität historischer Kandidaten, Suchstände und versionierte Firmenregeln. Migrationen 1–5
@@ -408,8 +461,8 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
 Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-SIP-Ereignis-/StartWidth-Anbindung, fachliche Nutzung der registrierten Regel-Repositories,
-Index, Auswahloberfläche und Plugin-Kontexte. Tests müssen internationale/nationale Schreibweisen,
+SIP-Ereignisanbindung, automatische Aktualisierungsauslöser, Auswahloberfläche und Plugin-Kontexte.
+Die vollständige Anrufabnahme muss internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,
 unterschiedliche Länder-/Ortsvorwahlen, zu kurze Nummern, Zentralnummer ohne Rest, deaktivierte Regel,

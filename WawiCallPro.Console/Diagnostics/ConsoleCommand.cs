@@ -7,6 +7,7 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
 {
     internal PhoneRuleRequest? PhoneRule { get; init; }
     internal PhoneLookupRequest? PhoneLookup { get; init; }
+    internal string? PhoneSearchNumber { get; init; }
     internal bool UsesPhoneMatching => Name is "--phone-rule" or "--phone-match";
     internal bool UsesDatabase => Name.StartsWith("--db-", StringComparison.Ordinal) || UsesPhoneMatching;
     internal static ConsoleCommand Parse(string[] arguments) => arguments switch
@@ -20,6 +21,7 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
                 && (version == "new" || long.TryParse(version, out var number) && number > 0) => new(arguments[0])
             { PhoneRule = new(installation, company, arguments[3] == "on", digits, version == "new" ? null : long.Parse(version, System.Globalization.CultureInfo.InvariantCulture)) },
         ["--phone-match", var installation, var company, var number] => new(arguments[0]) { PhoneLookup = new(installation, company, number) },
+        ["--phone-search", var number] => new(arguments[0]) { PhoneSearchNumber = number },
         _ => throw new DiagnosticException("Unbekannter oder unvollständiger Aufruf. --help zeigt die verfügbaren Befehle; Sicherung/Wiederherstellung benötigen einen absoluten Dateipfad.")
     };
 }

@@ -1070,8 +1070,28 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   wartendem Abbruch und wiederhergestellten Buttons; gezielte Renderprüfung der Einstellungsseite.
   Je 100 Utilities- und 20 App-Tests für Pro/FinOffice bestanden; vier Hostbuilds in Debug / Any CPU
   und abschließender Rider-Build ohne Warnungen/Fehler. Keine SQL-/Migrationsänderungen oder Live-Wawi-Prüfung.
-- [ ] Gemeinsamen Index für alle angehakten berechtigten Firmen führen.
+- [x] ✅ Gemeinsamen Index für alle angehakten berechtigten Firmen führen.
   Cachealter, Vollständigkeit und Normalisierungsversionen berücksichtigen; UI und Gesprächsannahme nicht blockieren.
+  Nachweis: IPhoneSearchIndexService als Singleton in den Pluginhosts; ausdrücklicher Hintergrundaufbau
+  mit abschließender Auswahl-/Berechtigungs-/Cache-/Regelprüfung und atomarer Veröffentlichung.
+  Find/GetStatus arbeiten ausschließlich im Speicher und warten nicht auf laufende Aktualisierungen.
+  Gleiche Rufnummern in verschiedenen Installationen/Firmen bleiben getrennte Kandidaten;
+  aktive/bevorzugte Firma verengt die Suchmenge nicht. Unveränderte Firmenindizes werden wiederverwendet.
+  Fehlender, veralteter oder unvollständiger Cache sowie Parser-/Kontextabweichungen bleiben erkennbar.
+  Standardgrenzen: Cachealter 24 Stunden, Berechtigungsbeobachtung fünf Minuten; per DI ersetzbar.
+  Nach Ablauf der Berechtigungsbeobachtung keine Kandidaten bis zur erneuten ausdrücklichen Prüfung.
+  Abbruch/Freigabe warten auf Hintergrundarbeit, ohne späte Ergebnisse zu veröffentlichen.
+  Gemeinsamer SHA256-Kontext-Fingerprint mit dem Cachewriter; dessen bisheriges Speicherformat erhalten
+  und den falschen Vollständigkeitsvergleich des lokalen Matchers mit einer Versionszeichenfolge korrigiert.
+  Console --phone-search prüft die gespeicherten Suchfirmen mit dem Plugin und zeigt Firmenstatus/Alternativen.
+  Je Edition 130 Utilities-, 25 Console- und 15 Interface-Prüfungen bestanden, darunter 18 neue
+  Mehrfirmen-/Alterungs-/Berechtigungs-/Nebenläufigkeitsprüfungen. Zusätzlich 89 Datenbanktests und
+  reale isolierte SQL-Server-/PostgreSQL-/MySQL-/MariaDB-Abnahmen einschließlich Mehrfirmenindex,
+  Wiederverwendung, Regel-/Cachewechsel und Berechtigungsverlust bestanden. Rider-Rebuild von App
+  und Console in aktiver Konfiguration Debug / Any CPU erfolgreich; 13 bestehende Nullable-Warnungen
+  ausschließlich in der externen CSCore-Bibliothek. Zwei isolierte FinOffice-Console-Hoststarts erfolgreich.
+  Nachweise: `.artifacts/phase6-common-index`. Keine SQL-/Migrations- oder UI-Änderungen;
+  grafische Trefferauswahl, automatische Aktualisierungsauslöser und SIP-/Viewanbindung bleiben offen.
 - [ ] Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
   Nur bei belastbarer Eindeutigkeit automatisch wählen; aktive Firma beeinflusst lediglich die Reihenfolge.
   Konfigurierte Leitungszuordnung sichtbar berücksichtigen, Alternativen erhalten und widersprüchliche Treffer klären lassen.

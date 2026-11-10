@@ -24,7 +24,7 @@ public static class PhoneMatchingAcceptance
         await companies.WriteAsync(new(company, null, now), token);
         var party = new Party { Key = new(company.Key, PartyKind.Customer, "0001"), DisplayName = "Synthetic organisation",
             Phones = [new("030 1234-000", PhoneKind.Telephone, new("fixture", "0001", "phone"), "+49301234000")] };
-        await cache.ReplaceAsync(new(company.Key, 0, [party], now, parser.Version, parser.Version + ";interpretation/1"), token);
+        await cache.ReplaceAsync(new(company.Key, 0, [party], now, parser.Version, services.GetRequiredService<WawiCallPro.Utilities.Persistence.IPhoneCacheMetadata>().GetContextVersion(new() { Company = company.Key })), token);
         var before = await matching.GetProfileAsync(company.Key, token);
         Assert.IsFalse(before.Settings.StemMatchingEnabled); Assert.IsNull(before.Version);
         var enabled = await matching.SaveProfileAsync(new(company.Key, true, 4), null, token);
