@@ -63,6 +63,9 @@ public sealed class AppShellTests
     [TestMethod]
     public Task DirectXRestartCanBeDeclinedAndUnchangedOrFailedSavesDoNotAsk() => WithWorkspace(async (workspace, services, plugin) =>
     {
+        var baseline = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(baseline.Options with { User = baseline.Options.User with { UseDirectXRendering = false } }, baseline);
+        await workspace.Configuration.StartAsync(CancellationToken.None);
         using var page = new SettingsPage(); page.Bind(workspace); var prompts = 0; var restarts = 0;
         page.RestartRequested += (_, _) => restarts++;
         var editor = Field<CheckEdit>(page, "directXEdit");
@@ -98,6 +101,7 @@ public sealed class AppShellTests
     [TestMethod]
     public Task DirectXCheckboxRendersInGeneralSettingsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
     {
+        Assert.IsTrue(workspace.Configuration.Current.Options.User.UseDirectXRendering);
         AppUiStartup.Apply();
         var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "directx-settings", workspace.Application.ProductLine); Directory.CreateDirectory(output);
         var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;

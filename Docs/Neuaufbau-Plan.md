@@ -1494,7 +1494,10 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 - [x] ✅ Nutzerauftrag vom 11.11.2026: DirectX-Schalter unter Einstellungen → Allgemein ergänzt.
   `user.useDirectXRendering` wird in Einstellungsformat 6 gespeichert; Altformate bleiben lesbar,
-  Lesen aktiviert DirectX nicht und schreibt keine Datei um. Default bleibt ausgeschaltet.
+  Lesen schreibt keine Datei um. Nach Nutzerkorrektur vom 11.11.2026 ist DirectX standardmäßig an,
+  auch bei fehlender Option in Altformaten. Eine ausdrücklich gespeicherte Deaktivierung bleibt erhalten.
+  Die Defaultänderung wurde je Edition mit 30 Konfigurations- und fünf gezielten App-Prüfungen
+  sowie isolierten Starts ohne Datei, mit Altformat ohne Option und mit ausdrücklichem Aus geprüft.
   Die injizierte Startkonfiguration aktiviert `WindowsFormsSettings.ForceDirectXPaint()` auf dem
   UI-Thread vor Splash, Lizenzdialogen und Hauptfenster. Keine Umschaltung laufender Controls.
   Nach erfolgreichem Speichern einer geänderten Renderingvorgabe fragt die App nach einem Neustart.

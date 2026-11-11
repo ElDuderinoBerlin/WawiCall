@@ -17,19 +17,20 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class SettingsVersionTests
 {
     [TestMethod]
-    public async Task VersionFiveDefaultsToGdiAndDirectXPreferenceRoundTripsOnlyAfterExplicitSave()
+    public async Task VersionFiveDefaultsToDirectXAndExplicitRenderingPreferenceRoundTrips()
     {
         using var directory = new SettingsDirectory();
         const string json = "{\"formatVersion\":5,\"settings\":{\"user\":{\"startMinimized\":true}}}";
         await File.WriteAllTextAsync(directory.Location.FilePath, json);
         var old = await directory.Store.LoadAsync();
-        Assert.IsFalse(old.Options.User.UseDirectXRendering); Assert.IsTrue(old.Options.User.StartMinimized);
+        Assert.IsTrue(old.Options.User.UseDirectXRendering); Assert.IsTrue(old.Options.User.StartMinimized);
         Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
         await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { UseDirectXRendering = true } }, old);
         var enabled = await directory.Store.LoadAsync();
         Assert.AreEqual(6, enabled.FormatVersion); Assert.IsTrue(enabled.Options.User.UseDirectXRendering); Assert.IsTrue(enabled.Options.User.StartMinimized);
         await directory.Store.SaveAsync(enabled.Options with { User = enabled.Options.User with { UseDirectXRendering = false } }, enabled);
         Assert.IsFalse((await directory.Store.LoadAsync()).Options.User.UseDirectXRendering);
+        Assert.IsTrue(new ApplicationOptions().User.UseDirectXRendering);
     }
     [TestMethod]
     public async Task VersionOneNumberContextsDoNotAutomaticallyEnablePhoneCacheSources()

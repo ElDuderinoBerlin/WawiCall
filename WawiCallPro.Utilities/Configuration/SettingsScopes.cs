@@ -10,7 +10,7 @@ public sealed record UserSettings
     public CompanyKey? PreferredCompany { get; init; }
     public bool ShowCallNotifications { get; init; } = true;
     public bool StartMinimized { get; init; }
-    public bool UseDirectXRendering { get; init; }
+    public bool UseDirectXRendering { get; init; } = true;
     public override string ToString() => nameof(UserSettings);
 }
 
