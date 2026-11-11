@@ -278,6 +278,10 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ### Datenbank und Migrationen
 
+- Datenbankabfragen und Datenänderungen immer über Dapper ausführen, einschließlich Infrastruktur-
+  und Metadatenabfragen. SQL parametrisieren und die vorhandenen Repository-/Verbindungsadapter nutzen.
+  Keine alternativen ORMs und keine direkte ADO.NET-Command-Ausführung für diese Zugriffe einführen.
+  Schemaänderungen und deren Versionsverwaltung weiterhin mit der regulären FluentMigrator-API umsetzen.
 - Migrationen und produktiver SQL-Code müssen SQLite, PostgreSQL, SQL Server sowie MySQL und MariaDB
   unterstützen. Betroffene Migrationen und SQL-Zugriffe auf den tatsächlichen Engines prüfen; generierter
   SQL-Text oder SQLite-Tests allein ersetzen die Serverprüfung nicht. MySQL und MariaDB getrennt nachweisen.
