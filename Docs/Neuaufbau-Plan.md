@@ -1253,10 +1253,22 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   die FRITZ!Box-Beispiele `PlaySounds` und `RecordIncomingCall` als konkrete Referenz verwenden.
 - [x] ✅ Eigene `SIPSorceryMedia.Windows.CSCore` einbinden, Windows-Plattformbasis/Buildpfade und Manifest passend
   ergänzen und `WindowsAudioEndPoint` als gemeinsamen Audio-Endpunkt nutzen; keine NAudio-Anbindung.
-- [ ] Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
+- [x] ✅ Konto-/Transportkonfiguration, Registrierung, Wiederanmeldung, Netzwerkunterbrechung und geordnetes Shutdown umsetzen.
   Die [SIP-/Audioanalyse](SIP-Einstellungen.md) als Feld-/Testgrundlage verwenden: getrennte Server-/lokale
   Ports, Transportkonsistenz, Bindung, Registrierungsdauer, Audio-/Codecprofil und klare Zustandsanzeige.
   App/Console koordinieren den Konto-/Portbesitz. Keine Demo-Autoannahme/-Aufnahme oder Zugangsdaten übernehmen.
+  Nachtrag 11.11.2026: Ausfall und Rückkehr des lokalen Registrars einschließlich einer verlorenen
+  Registrierungsverlängerung für UDP und TCP isoliert nachgewiesen. Vorübergehende Fehler führen
+  zu Reconnecting und Wiederholung; eindeutige Kontoablehnungen stoppen die automatische Schleife
+  bis zum ausdrücklichen erneuten Anmelden. Abmelden während des Ausfalls gibt Konto/Port frei;
+  verspätete Antworten aktivieren die alte Sitzung nicht wieder. Beim Shutdown verbundene oder
+  klingelnde Gespräche werden als Interrupted abgeschlossen und Medien freigegeben; das eigene
+  Hangup-Ereignis darf diesen Endgrund nicht als RemoteHangup überschreiben. Zwei unabhängige
+  echte Konto-Lease-Instanzen können dasselbe Konto auch bei unterschiedlichem Transport nicht
+  gleichzeitig besitzen. Je Edition 24 Telefonietests; IDE-Rebuild von App/Console in der aktiven
+  Konfiguration. Nachweise: `.artifacts/phase7-registration`. Kein Produktionskonto, keine
+  Audiogeräte und keine sichtbare GUI verwendet. Echte FRITZ!Box-/Geräteabnahme sowie TLS-/NAT-/
+  IPv6-Profile bleiben offen; Phase 7 bleibt bis zur vollständigen Abnahme unvollständig.
 - [x] ✅ Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
   DTMF zunächst über ausgehandelte RTP-Telefonieereignisse und SIPSorcery SendDtmf/OnDtmfTone anbinden;
   keine zusätzliche Audio-Erkennungsbibliothek aus WawiCallPro.old.sln für diesen Pfad übernehmen.

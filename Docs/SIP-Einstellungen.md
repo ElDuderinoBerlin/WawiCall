@@ -1,10 +1,12 @@
 # Erforderliche SIP- und Audioeinstellungen
 
-Stand: 04.11.2026. Analyse der lokalen, vom Nutzer als funktionierend angegebenen Demos
+Stand: 11.11.2026. Analyse der lokalen, vom Nutzer als funktionierend angegebenen Demos
 [PlaySounds](../../sipsorcery-examples/PlaySounds/Program.cs) und
 [RecordIncomingCall](../../sipsorcery-examples/RecordIncomingCall/Program.cs), ihrer Projektdateien,
 der eigenen CSCore-Medienbibliothek und des vorhandenen WawiCallPro-Konfigurationsmodells.
-Es wurden keine Registrierungen, Testanrufe oder Geräteöffnungen ausgeführt und keine Demozugangsdaten übernommen.
+Für die ursprüngliche Analyse wurden keine Verbindungen geöffnet. Die Implementierung ist inzwischen
+mit isolierten lokalen SIP-Endpunkten geprüft; Produktionsregistrierungen, Anrufe über die Telefonanlage und
+Geräteöffnungen wurden dabei nicht ausgeführt und keine Demozugangsdaten übernommen.
 
 ## Was die Demos tatsächlich einstellen
 
@@ -90,8 +92,8 @@ Vorhören, Gerätewechsel und Freigabe erfolgen über die zuständigen Dienste.
 
 - Abweichende SIP-Domäne/Konto-URI, falls Kontodomäne und Registrarhost nicht identisch sind.
 - Outbound-Proxy, wenn Anforderungen ausdrücklich über einen anderen SIP-Proxy geroutet werden.
-- TLS mit passendem Serverport, Hostnamen und Zertifikatsprüfung. Das vorhandene Transport-Enum
-  enthält TLS; tatsächlicher Betrieb ist noch nicht implementiert oder geprüft. Es gibt keinen pauschalen
+- TLS mit passendem Serverport, Hostnamen und Zertifikatsprüfung. Der Transportadapter
+  erzeugt dafür einen SIPTLSChannel; das konkrete TLS-Anlagenprofil ist noch nicht geprüft. Es gibt keinen pauschalen
   Schalter zum Abschalten der Zertifikatsprüfung.
 - RTP-Bind-Adresse und Portbereich bei vorgegebenen Firewall-/Netzanforderungen; zunächst SDK-Portwahl.
 - NAT-/RTP-Abweichungen nur mit konkreter Netzwerkdiagnose. Beide Demos setzen `AcceptRtpFromAny=true`;
@@ -106,7 +108,8 @@ gehören zur allgemeinen Rufnummernverarbeitung. Aufnahmepfad, Aufnahmefreigabe 
 
 DTMF bleibt für Sprachmenüs und ähnliche Gegenstellen notwendig. SIPSorcery bietet Senden und
 RTP-Empfang bereits an; die alten Audio-Erkennungsprojekte aus WawiCallPro.old.sln werden deshalb
-zunächst nicht benötigt. Für eigene Telefonmenüs fehlt noch ein neutraler Empfangsvertrag.
+zunächst nicht benötigt. Der neutrale Empfangsvertrag `IDtmfReceiver` liefert Gesprächs-ID, Zeichen
+und Dauer für die späteren Telefonmenüs.
 Ein Audio-Detektor wäre eine gesonderte Option für In-band-DTMF, keine Voraussetzung des normalen
 SIP-Kontoprofils. Verfahren und Anlagenkompatibilität werden geprüft; siehe
 [DTMF-Entscheidung](Architektur.md#dtmf-als-telefoniefunktion).
@@ -125,13 +128,37 @@ Vor Abnahme: UDP/TCP-Profil mit passendem Registrartransport, belegter lokaler P
 Netzwechsel/Wiederanmeldung, fehlendes Audiogerät, ein-/ausgehender Anruf mit Ton in beide Richtungen,
 DTMF, Auflegen sowie geordnete Abmeldung/Freigabe. TLS/NAT/IPv6 erst mit ihrer jeweiligen Konfiguration prüfen.
 
-## Was bereits vorhanden ist und was fehlt
+## Implementierung und verbleibende Abnahme
 
-`SipAccountOptions` enthält bereits Server, entfernten Port, Transport, Benutzername,
-Authentifizierungsname und zweckgebunden geschütztes Kennwort. `AudioDeviceSettings` enthält
-CaptureDeviceId, PlaybackDeviceId, RingDeviceId sowie Gesprächs-/Klingellautstärke.
+`SipAccountOptions` enthält Server, entfernten Port, Transport, Benutzername,
+Authentifizierungsname und zweckgebunden geschütztes Kennwort. `SipConnectionOptions` ergänzt
+lokale Bindung/Port, Registrierungsdauer, Timeout, Wiederholungsabstand, Klingelzeit und Medienprofil.
+Standardfelder und erweiterte Eigenschaften stehen im zentralen Einstellungsdialog bereit.
+`AudioDeviceSettings` enthält CaptureDeviceId, PlaybackDeviceId, RingDeviceId sowie
+Gesprächs-/Klingellautstärke; separate Klingeltonwiedergabe gehört weiterhin zu Phase 9.
 
-Noch zu ergänzen sind insbesondere lokale Bindung/Port, Registrierungsdauer und Startverhalten,
-Codecprofil sowie die bei Bedarf nötigen Domain-/Proxy-/RTP-Optionen. Die Erweiterung benötigt
-typisierte Felder, Validierung, Versions-/Upgradebehandlung und Tests. SIP-UI, DI-Adapter und tatsächliche
-SIPSorcery-/CSCore-Anbindung sind noch offen. Diese Analyse implementiert keine neue Kontofunktion.
+Die DI-Laufzeit verwendet den tatsächlichen gewählten Kanal und Registrartransport. Sie öffnet
+beim Anmelden kein Audiogerät. Vorübergehende Registrierungsfehler wechseln zu `Reconnecting`;
+SIPSorcery wiederholt nach dem gespeicherten Abstand. Eine eindeutige Kontoablehnung stoppt
+die automatische Wiederholung. Nach Korrektur der gespeicherten Einstellungen erneut „Anmelden“
+anklicken. „Abmelden“ beendet Wiederholungen und gibt Transport/Port und lokale Konto-Lease frei;
+Antworten alter Registrare dürfen eine gestoppte oder neue Sitzung nicht verändern.
+
+Beim Abmelden aktive Gespräche enden als `Failed` mit Endgrund `Interrupted`, behalten die
+gegebenenfalls vorhandene Annahmezeit und erhalten eine Endzeit. Auch das durch eigenes Auflegen
+ausgelöste SDK-Ereignis erhält diesen Endgrund. Medien und Hintergrundaufgaben werden vor Abschluss
+freigegeben. Statuspersistenz, Dauer und Wiederanlauf bleiben zusätzlich Gegenstand des eigenen
+Planpunkts in Phase 7.
+
+Isolierte Nachweise vom 11.11.2026: je Edition 24 Telefonietests. Zusätzliche Fälle prüfen echte
+UDP-/TCP-Registrierung mit verlorenen Antworten, automatische Wiederanmeldung ohne erneute
+Kontoübernahme, verlorene Verlängerungen bei verkürzter Servergültigkeit, dauerhafte Ablehnung,
+Abmelden während des Ausfalls, verspätete Antworten, Portfreigabe und Shutdown bei klingelndem
+oder verbundenem Gespräch. Zwei unabhängige OS-Datei-Leases schließen dieselbe Kontonutzung aus;
+dieser Test läuft innerhalb eines Prozesses und ist kein Nachweis eines App-/Console-Prozesswechsels.
+Protokolle: `.artifacts/phase7-registration`. Keine SQL- oder Schemaänderung.
+
+Die tatsächliche FRITZ!Box, Ton in beide Richtungen, Geräteverlust und konkrete TLS-/NAT-/IPv6-
+Profile sind noch nicht abgenommen. Gesonderte Domain-/Proxy-/RTP-Optionen bleiben vom konkreten
+Anlagenbedarf abhängig. Ein lokaler Registrar-Ausfalltest belegt keine Windows-Netzadapterumschaltung
+und keine Ende-zu-Ende-Audioqualität.

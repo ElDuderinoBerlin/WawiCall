@@ -100,10 +100,11 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
                 User = account.Username,
                 Protocol = Enum.Parse<SIPProtocolsEnum>(account.Transport.ToString(), true)
             };
+            // Transient failures retry; a rejected account needs an explicit new login after correction.
             var registrar = new SIPRegistrationUserAgent(_transport, null, Address(account.Username!),
                 account.AuthenticationUsername ?? account.Username, password.Reveal(), null, Address(null).ToString(), contact,
                 account.Connection.RegistrationExpirySeconds, null, account.Connection.RegistrationTimeoutSeconds,
-                account.Connection.RetryIntervalSeconds, 3, false);
+                account.Connection.RetryIntervalSeconds, 3, true);
             _registrar = registrar;
             registrar.RegistrationSuccessful += (_, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Registered); };
             registrar.RegistrationTemporaryFailure += (_, _, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Reconnecting, "RegistrationRetry"); };
@@ -133,6 +134,8 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
             lock (_gate) agent = _agent;
             if (agent?.State is not null)
             {
+                // SIPUserAgent raises OnCallHungup synchronously for our own Hangup, too.
+                agent.ShutdownRequested = true;
                 if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
                 else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
                 else agent.UserAgent.Cancel();
@@ -291,8 +294,9 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
             if ((int)response.Status is >= 200 and < 300) Queue(() => ChangeAsync(agent, CallState.Connected));
         };
         agent.UserAgent.ClientCallFailed += (_, _, response) => agent.FailureStatus = response?.Status;
-        agent.UserAgent.OnCallHungup += _ => Queue(() => ChangeAsync(agent, CallState.Ended,
-            agent.TransferAccepted ? CallEndReason.Transferred : CallEndReason.RemoteHangup));
+        agent.UserAgent.OnCallHungup += _ => Queue(() => ChangeAsync(agent,
+            agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
+            agent.ShutdownRequested ? CallEndReason.Interrupted : agent.TransferAccepted ? CallEndReason.Transferred : CallEndReason.RemoteHangup));
         agent.UserAgent.OnTransferNotify += body =>
         {
             if (!agent.TransferAccepted) return;
@@ -305,7 +309,9 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
                 && int.TryParse(body.AsSpan(8, 3), out var status) && status >= 300)
             { agent.TransferAccepted = false; Failure("TransferFailed"); }
         };
-        agent.UserAgent.ServerCallCancelled += (_, _) => Queue(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Missed));
+        agent.UserAgent.ServerCallCancelled += (_, _) => Queue(() => ChangeAsync(agent,
+            agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
+            agent.ShutdownRequested ? CallEndReason.Interrupted : CallEndReason.Missed));
         agent.UserAgent.ServerCallRingTimeout += _ => Queue(() => ChangeAsync(agent, CallState.Failed, CallEndReason.NetworkFailure));
         agent.UserAgent.RemotePutOnHold += () => Queue(() => ChangeAsync(agent, CallState.Held));
         agent.UserAgent.RemoteTookOffHold += () => Queue(() => ChangeAsync(agent, CallState.Connected));
@@ -540,6 +546,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
         internal ISipMediaSession? Media;
         internal SIPResponseStatusCodesEnum? FailureStatus;
         internal volatile bool TransferAccepted;
+        internal volatile bool ShutdownRequested;
         internal CancellationTokenSource Stopping { get; } = new();
     }
 

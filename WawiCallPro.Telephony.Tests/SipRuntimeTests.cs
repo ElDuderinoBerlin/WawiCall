@@ -46,6 +46,143 @@ public sealed class SipRuntimeTests
     }
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task LostRegistrarRecoversAutomaticallyWithoutReacquiringAccountOrOpeningAudio(bool tcp)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        if (tcp) await fixture.UseTcpAsync();
+        fixture.DropRegistrations = true;
+        var states = new ConcurrentQueue<RegistrationSnapshot>();
+        fixture.Runtime.RegistrationChanged += (_, change) => states.Enqueue(change.Registration);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Reconnecting);
+        Assert.AreEqual("RegistrationRetry", fixture.Runtime.Registration.ErrorCode);
+        Assert.IsTrue(fixture.Leases.Active);
+        var attempts = Volatile.Read(ref fixture.Registers);
+        await UntilAsync(() => Volatile.Read(ref fixture.Registers) > attempts);
+        fixture.DropRegistrations = false;
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        Assert.IsNull(fixture.Runtime.LastFailureCode);
+        Assert.AreEqual(1, fixture.Persistence.Recoveries);
+
+        // The registrar grants a shorter lifetime than requested. A later refresh loses its response.
+        fixture.DropRegistrations = true;
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Reconnecting);
+        var notReady = await Assert.ThrowsAsync<TelephonyException>(() => fixture.Runtime.DialAsync(
+            new(LexwareProductLine.Pro, "isolated-sip", "1"), "123"));
+        Assert.AreEqual("NotRegistered", notReady.Code);
+        fixture.DropRegistrations = false;
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        Assert.IsGreaterThanOrEqualTo(2, states.Count(state => state.State == RegistrationState.Reconnecting));
+        Assert.AreEqual(1, fixture.Persistence.Recoveries);
+        Assert.AreEqual(0, fixture.Media.Created);
+
+        await fixture.Runtime.DisconnectAsync();
+        Assert.AreEqual(RegistrationState.Stopped, fixture.Runtime.Registration.State);
+        Assert.IsFalse(fixture.Leases.Active);
+        var stoppedAttempts = Volatile.Read(ref fixture.Registers);
+        await Task.Delay(2200);
+        Assert.AreEqual(stoppedAttempts, Volatile.Read(ref fixture.Registers), "Shutdown must stop registration retries.");
+    }
+
+    [TestMethod]
+    public async Task PermanentRegistrationFailureRequiresExplicitRetry()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.RejectRegistration = true;
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Failed);
+        var rejectedAttempts = Volatile.Read(ref fixture.Registers);
+        fixture.RejectRegistration = false;
+        await Task.Delay(2200);
+        Assert.AreEqual(rejectedAttempts, Volatile.Read(ref fixture.Registers), "A permanent account error must not create a login retry loop.");
+        Assert.AreEqual(RegistrationState.Failed, fixture.Runtime.Registration.State);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task ShutdownDuringRegistrarOutageReleasesPortAndIgnoresLateResponses(bool tcp)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        if (tcp) await fixture.UseTcpAsync();
+        fixture.DropRegistrations = true;
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Reconnecting);
+        await fixture.Runtime.DisconnectAsync().WaitAsync(TimeSpan.FromSeconds(4));
+        Assert.IsFalse(fixture.Leases.Active);
+        Assert.AreEqual(RegistrationState.Stopped, fixture.Runtime.Registration.State);
+        await fixture.ReplyToLastRegistrationAsync();
+        await Task.Delay(1200);
+        Assert.AreEqual(RegistrationState.Stopped, fixture.Runtime.Registration.State);
+        fixture.DropRegistrations = false;
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        await fixture.Runtime.DisconnectAsync();
+        Assert.AreEqual(0, fixture.Media.Created);
+        if (tcp)
+        {
+            var probe = new TcpListener(IPAddress.Loopback, fixture.LocalPort);
+            try { probe.Start(); }
+            finally { probe.Stop(); }
+        }
+        else
+        {
+            using var probe = new UdpClient(new IPEndPoint(IPAddress.Loopback, fixture.LocalPort));
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task ShutdownClosesRingingOrConnectedCallBeforeReleasingAccount(bool answer)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        using var peer = new SIPUserAgent();
+        using var media = new TestMedia();
+        var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        if (answer)
+        {
+            await fixture.Runtime.AnswerAsync(fixture.Runtime.GetCalls().Single().Id);
+            Assert.IsTrue(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+        await fixture.Runtime.DisconnectAsync().WaitAsync(TimeSpan.FromSeconds(4));
+        if (!answer) Assert.IsFalse(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        var call = fixture.Runtime.GetCalls().Single();
+        Assert.AreEqual(CallState.Failed, call.State);
+        Assert.AreEqual(CallEndReason.Interrupted, call.EndReason);
+        Assert.AreEqual(answer, call.AnsweredAtUtc.HasValue);
+        Assert.IsNotNull(call.EndedAtUtc);
+        Assert.AreEqual(call, fixture.Persistence.Snapshots.Last());
+        Assert.AreEqual(fixture.Media.Created, fixture.Media.Closed);
+        Assert.IsFalse(fixture.Leases.Active);
+        Assert.AreEqual(RegistrationState.Stopped, fixture.Runtime.Registration.State);
+    }
+
+    [TestMethod]
+    public void IndependentHostsCannotLeaseTheSameAccountUntilItsOwnerReleasesIt()
+    {
+        var first = new SipAccountLeaseFactory();
+        var second = new SipAccountLeaseFactory();
+        var account = new SipAccountOptions { Server = "isolated.invalid", Port = 5060, Username = "test-" + Guid.NewGuid().ToString("N") };
+        using (first.Acquire(account))
+        {
+            var conflict = Assert.Throws<TelephonyException>(() => second.Acquire(new()
+            {
+                Server = "ISOLATED.INVALID", Port = account.Port, Username = account.Username, Transport = SipTransport.Tcp
+            }));
+            Assert.AreEqual("AccountInUse", conflict.Code);
+        }
+        using var nextOwner = second.Acquire(account);
+    }
+
+    [TestMethod]
     public async Task RealIncomingCallRequiresAnswerRejectsSecondCallAndClosesMediaAfterRemoteBye()
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -196,7 +333,9 @@ public sealed class SipRuntimeTests
         internal int Registers;
         internal int Unregisters;
         internal int LastRegistrationPort;
-        internal bool RejectRegistration;
+        internal volatile bool RejectRegistration;
+        internal volatile bool DropRegistrations;
+        private SIPRequest? _lastRegistration;
         internal SIPProtocolsEnum LastContactProtocol;
         private ConfigurationStore _settings = null!;
         internal string Destination => "sip:workstation@127.0.0.1:" + LocalPort;
@@ -209,13 +348,11 @@ public sealed class SipRuntimeTests
             fixture._registrar.SIPTransportRequestReceived += async (_, remote, request) =>
             {
                 if (request.Method != SIPMethodsEnum.REGISTER) return;
+                Volatile.Write(ref fixture._lastRegistration, request);
                 fixture.LastRegistrationPort = remote.Port;
                 fixture.LastContactProtocol = request.Header.Contact[0].ContactURI.Protocol;
                 if (request.Header.Expires == 0) Interlocked.Increment(ref fixture.Unregisters); else Interlocked.Increment(ref fixture.Registers);
-                var response = SIPResponse.GetResponse(request, fixture.RejectRegistration ? SIPResponseStatusCodesEnum.Forbidden : SIPResponseStatusCodesEnum.Ok, null);
-                response.Header.Contact = request.Header.Contact;
-                response.Header.Expires = request.Header.Expires;
-                await fixture._registrar.SendResponseAsync(response);
+                if (!fixture.DropRegistrations) await fixture.ReplyAsync(request);
             };
             using (var socket = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0))) fixture.LocalPort = ((IPEndPoint)socket.Client.LocalEndPoint!).Port;
             var protector = new WindowsUserSecretProtector();
@@ -234,6 +371,16 @@ public sealed class SipRuntimeTests
                 unavailableAudio ? new UnavailableSipMediaSessionFactory() : fixture.Media, fixture.Persistence,
                 new CallStateSessionFactory(), TimeProvider.System, NullLogger<SipTelephonyService>.Instance);
             return fixture;
+        }
+        internal Task ReplyToLastRegistrationAsync() => ReplyAsync(Volatile.Read(ref _lastRegistration)!);
+
+        private async Task ReplyAsync(SIPRequest request)
+        {
+            var response = SIPResponse.GetResponse(request, RejectRegistration ? SIPResponseStatusCodesEnum.Forbidden : SIPResponseStatusCodesEnum.Ok, null);
+            response.Header.Contact = request.Header.Contact;
+            response.Header.Expires = request.Header.Expires == 0 ? 0 : 10;
+            response.Header.Contact[0].Expires = response.Header.Expires;
+            await _registrar.SendResponseAsync(response);
         }
         internal async Task UseTcpAsync()
         {
