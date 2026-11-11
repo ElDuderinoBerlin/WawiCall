@@ -431,12 +431,87 @@ public sealed class SipRuntimeTests
         target.Hangup();
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task DatabaseRecoveryDeliversEveryRevisionAfterCallEndedWithoutAnotherSipEvent(bool failFromStart)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Persistence.CapturedOrigin = new(Guid.NewGuid(), "isolated-machine", "isolated-user");
+        var changes = new ConcurrentQueue<CallSnapshot>();
+        fixture.Runtime.CallChanged += (_, change) => changes.Enqueue(change.Call);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        fixture.Persistence.Unavailable = failFromStart;
+        using var peer = new SIPUserAgent();
+        using var media = new TestMedia();
+        var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        var call = fixture.Runtime.GetCalls().Single();
+        fixture.Persistence.Unavailable = true;
+        await fixture.Runtime.AnswerAsync(call.Id);
+        Assert.IsTrue(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        peer.Hangup();
+        await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Ended);
+        await UntilAsync(() => fixture.Media.Closed == fixture.Media.Created);
+        Assert.AreEqual("CallStorageUnavailable", fixture.Runtime.LastFailureCode);
+        var ended = fixture.Runtime.GetCalls().Single();
+        Assert.IsNotNull(ended.AnsweredAtUtc);
+        Assert.IsNotNull(ended.EndedAtUtc);
+        Assert.IsTrue(ended.EndedAtUtc >= ended.AnsweredAtUtc);
+
+        fixture.Persistence.Unavailable = false;
+        await UntilAsync(() => fixture.Persistence.Snapshots.Count == 4 && fixture.Runtime.LastFailureCode is null);
+
+        var saved = fixture.Persistence.Snapshots.ToArray();
+        CollectionAssert.AreEqual(new long[] { 0, 1, 2, 3 }, saved.Select(snapshot => snapshot.Revision).ToArray());
+        Assert.IsTrue(saved.All(snapshot => snapshot.Id == call.Id));
+        Assert.AreEqual(ended with { Origin = fixture.Persistence.CapturedOrigin }, saved[^1]);
+        Assert.AreEqual(saved[^1], fixture.Runtime.GetCalls().Single());
+        Assert.AreEqual(saved[^1], changes.Last());
+        Assert.AreEqual(CallEndReason.RemoteHangup, saved[^1].EndReason);
+        Assert.AreEqual(RegistrationState.Registered, fixture.Runtime.Registration.State);
+    }
+
+    [TestMethod]
+    public async Task DisconnectRetainsFailedWritesAndRetriesWhileUnregisteredButDisposalStopsRetrying()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        fixture.Persistence.Unavailable = true;
+        using var peer = new SIPUserAgent();
+        using var media = new TestMedia();
+        var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        await fixture.Runtime.DisconnectAsync();
+        Assert.IsFalse(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(RegistrationState.Stopped, fixture.Runtime.Registration.State);
+        Assert.AreEqual("CallStorageUnavailable", fixture.Runtime.LastFailureCode);
+        fixture.Persistence.Unavailable = false;
+        await UntilAsync(() => fixture.Persistence.Snapshots.Count == 3 && fixture.Runtime.LastFailureCode is null);
+        Assert.AreEqual(CallEndReason.Interrupted, fixture.Persistence.Snapshots.Last().EndReason);
+        CollectionAssert.AreEqual(new long[] { 0, 1, 2 }, fixture.Persistence.Snapshots.Select(snapshot => snapshot.Revision).ToArray());
+        await fixture.Runtime.DisposeAsync();
+        var attempts = Volatile.Read(ref fixture.Persistence.Attempts);
+        await Task.Delay(1200);
+        Assert.AreEqual(attempts, Volatile.Read(ref fixture.Persistence.Attempts));
+    }
+
     private sealed class MemoryPersistence : ISipCallPersistence
     {
         internal readonly ConcurrentQueue<CallSnapshot> Snapshots = new();
         internal int Recoveries;
+        internal volatile bool Unavailable;
+        internal int Attempts;
+        internal WawiCallPro.Interfaces.History.CallOrigin? CapturedOrigin;
         public Task<CallSnapshot> SaveAsync(CallSnapshot snapshot, CancellationToken cancellationToken = default)
-        { Snapshots.Enqueue(snapshot); return Task.FromResult(snapshot); }
+        {
+            Interlocked.Increment(ref Attempts);
+            if (Unavailable) throw new IOException("Isolated database outage.");
+            var saved = snapshot with { Origin = CapturedOrigin ?? snapshot.Origin };
+            Snapshots.Enqueue(saved); return Task.FromResult(saved);
+        }
         public Task RecoverAsync(CancellationToken cancellationToken = default) { Recoveries++; return Task.CompletedTask; }
     }
     private sealed class LeaseFactory : ISipAccountLeaseFactory

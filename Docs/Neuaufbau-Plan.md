@@ -1302,7 +1302,23 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   Nachweise: Solution-Builds einschließlich App/Console in Debug/Any CPU für FinOffice und Pro;
   29 Telefonietests für FinOffice, fünf gezielte Persistenztests für Pro und je drei SQLite-Persistenz-/
   Zuordnungstests bestanden. Logs: `.phase7-persistence-*.log`. Keine sichtbare GUI und keine Audiogeräte verwendet.
-  Dies bestätigt wiederholbare Schreibaufrufe, noch keine automatische Nachlieferung nach Datenbankausfall.
+  Dieser erste Teilnachweis bestätigt wiederholbare Schreibaufrufe; die automatische Nachlieferung folgt unten.
+- [x] ✅ Automatische Nachlieferung innerhalb der laufenden Sitzung (11.11.2026): Fehlgeschlagene
+  Statusschreibvorgänge bleiben in einer geordneten Warteschlange und werden im Sekundenabstand erneut
+  versucht. Spätere Revisionen überholen keine früheren; ein einzelner Schreibversuch erhält einen
+  Fünf-Sekunden-Abbruchtoken. Gesprächsende und Abmelden verwerfen keine vorgemerkten Zustände.
+  Nach erfolgreicher Speicherung werden nachgelieferte Herkunft/Zuordnung im aktuellen Snapshot
+  veröffentlicht und der Speicherfehler zurückgenommen. Vor Recovery beim erneuten Anmelden wird
+  zuerst die Warteschlange zugestellt; bei ausstehender Zustellung bleibt die Anmeldung gesperrt.
+  Dispose beendet und erwartet die Wiederholungsschleife. Ein dauerhaft fehlerhafter Eintrag wird nicht übersprungen.
+  Nachweise: Beide Solution-Editionen mit App/Console in Debug/Any CPU gebaut, 32 isolierte Telefonietests
+  für FinOffice, acht gezielte Persistenz-/Ausfalltests für Pro und je drei echte SQLite-Persistenztests bestanden.
+  Ausfall ab Beginn beziehungsweise Annahme, Nachlieferung aller Revisionen nach Gesprächsende, Freigabe
+  der Medien, Weiterlieferung nach Abmelden und Ende der Wiederholungen nach Dispose geprüft.
+  Logs: `.phase7-delivery-*.log`. Keine sichtbare GUI, Produktionskonten oder Audiogeräte verwendet;
+  keine Migration und kein SQL geändert. Die Warteschlange ist bislang prozesslokal: Bei Prozessabbruch
+  oder Beenden während fortdauernden Datenbankausfalls können ausstehende Zustände verloren gehen.
+  Dauerhafte geschützte Ablage und Wiederaufnahme nach Neustart bleiben für den folgenden Gesamtpunkt offen.
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
   Eingehende/ausgehende Richtung, Beginn/Annahme/Ende in UTC, Endgrund, Nummern und Zuordnung sowie
   PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.
