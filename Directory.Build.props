@@ -20,6 +20,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <Features>$(Features);runtime-async=on</Features>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <BaseIntermediateOutputPath>obj\$(LexwareProductLine)\</BaseIntermediateOutputPath>
