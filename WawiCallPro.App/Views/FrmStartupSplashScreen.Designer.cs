@@ -4,14 +4,6 @@ namespace WawiCallPro.App.Views;
 partial class FrmStartupSplashScreen
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel rootLayout;
-    private System.Windows.Forms.TableLayoutPanel contentLayout;
-    private DevExpress.XtraEditors.SvgImageBox svgLogo;
-    private DevExpress.XtraEditors.LabelControl lblTitle;
-    private DevExpress.XtraEditors.LabelControl lblSubtitle;
-    private DevExpress.XtraEditors.LabelControl lblStatus;
-    private DevExpress.XtraEditors.LabelControl lblVersion;
-    private Quantarix.DevExpressExtensions.Controls.PulsingProgressBarControl progressBar;
 
     protected override void Dispose(bool disposing)
     {
@@ -115,4 +107,12 @@ partial class FrmStartupSplashScreen
         rootLayout.ResumeLayout(false);
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel rootLayout;
+    private System.Windows.Forms.TableLayoutPanel contentLayout;
+    private DevExpress.XtraEditors.SvgImageBox svgLogo;
+    private DevExpress.XtraEditors.LabelControl lblTitle;
+    private DevExpress.XtraEditors.LabelControl lblSubtitle;
+    private DevExpress.XtraEditors.LabelControl lblStatus;
+    private DevExpress.XtraEditors.LabelControl lblVersion;
+    private Quantarix.DevExpressExtensions.Controls.PulsingProgressBarControl progressBar;
 }

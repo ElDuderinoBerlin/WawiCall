@@ -14,7 +14,8 @@ try {
         $other = if ($edition -eq 'Pro') { 'FinOffice' } else { 'Pro' }
         foreach ($hostName in @('App','Console')) {
             $project = Join-Path $root "WawiCallPro.$hostName/WawiCallPro.$hostName.csproj"
-            $legacyFrameworks = if ($hostName -eq 'Console') { @('net10.0-windows','net10.0') } else { @('net10.0-windows') }
+            $legacyFrameworks = @('net10.0-windows10.0.19041.0', 'net10.0-windows', 'net11.0-windows')
+            if ($hostName -eq 'Console') { $legacyFrameworks += 'net10.0' }
             foreach ($framework in $legacyFrameworks) {
                 $legacyOutput = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/$framework"
                 New-Item -ItemType Directory -Path $legacyOutput -Force | Out-Null
@@ -33,7 +34,7 @@ try {
                     }
                 }
             }
-            $output = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net10.0-windows10.0.19041.0"
+            $output = Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net11.0-windows10.0.19041.0"
             if (!(Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$edition.dll"))) { throw 'Selected host missing.' }
             if (Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$other.dll")) { throw 'Stale other-edition host remains.' }
             $plugins = @(Get-ChildItem -LiteralPath (Join-Path $output 'plugins') -Directory |

@@ -1403,7 +1403,7 @@ public sealed class AppShellTests
         Assert.IsNotNull(repository);
         var config = typeof(MainForm).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
         var edition = ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine;
-        var executable = Path.Combine(repository.FullName, "WawiCallPro.App", "bin", config, "net10.0-windows10.0.19041.0", "WawiCallPro.App." + edition + ".exe");
+        var executable = Path.Combine(repository.FullName, "WawiCallPro.App", "bin", config, "net11.0-windows10.0.19041.0", "WawiCallPro.App." + edition + ".exe");
         Assert.IsTrue(File.Exists(executable));
         using var extracted = Icon.ExtractAssociatedIcon(executable);
         Assert.IsNotNull(extracted);

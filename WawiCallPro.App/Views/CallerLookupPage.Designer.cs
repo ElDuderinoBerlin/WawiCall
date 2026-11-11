@@ -5,36 +5,6 @@ namespace WawiCallPro.App.Views;
 partial class CallerLookupPage
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private System.Windows.Forms.TableLayoutPanel filters;
-    private System.Windows.Forms.TableLayoutPanel detailsLayout;
-    private System.Windows.Forms.TableLayoutPanel actions;
-    private DevExpress.XtraEditors.LabelControl numberLabel;
-    private DevExpress.XtraEditors.TextEdit numberEdit;
-    private DevExpress.XtraEditors.SimpleButton searchButton;
-    private DevExpress.XtraEditors.SimpleButton cancelButton;
-    private DevExpress.XtraEditors.SimpleButton chooseButton;
-    private DevExpress.XtraEditors.LabelControl lineLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.LabelControl selectionLabel;
-    private DevExpress.XtraEditors.LabelControl scopeLabel;
-    private DevExpress.XtraEditors.LabelControl detailsLabel;
-    private DevExpress.XtraTab.XtraTabControl tabs;
-    private DevExpress.XtraTab.XtraTabPage resultsTab;
-    private DevExpress.XtraTab.XtraTabPage scopeTab;
-    private DevExpress.XtraTab.XtraTabPage detailsTab;
-    private DevExpress.XtraEditors.XtraScrollableControl scopeScroll;
-    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
-    private DevExpress.XtraGrid.GridControl grid;
-    private DevExpress.XtraGrid.Views.Grid.GridView view;
-    private DevExpress.XtraGrid.Columns.GridColumn groupColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn roleColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn nameColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn numberColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn ownerColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn matchColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn cacheColumn;
-    private DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit wrappedCells;
 
     protected override void Dispose(bool disposing)
     {
@@ -265,4 +235,34 @@ partial class CallerLookupPage
         Size = new System.Drawing.Size(900, 650);
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel filters;
+    private System.Windows.Forms.TableLayoutPanel detailsLayout;
+    private System.Windows.Forms.TableLayoutPanel actions;
+    private DevExpress.XtraEditors.LabelControl numberLabel;
+    private DevExpress.XtraEditors.TextEdit numberEdit;
+    private DevExpress.XtraEditors.SimpleButton searchButton;
+    private DevExpress.XtraEditors.SimpleButton cancelButton;
+    private DevExpress.XtraEditors.SimpleButton chooseButton;
+    private DevExpress.XtraEditors.LabelControl lineLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.LabelControl selectionLabel;
+    private DevExpress.XtraEditors.LabelControl scopeLabel;
+    private DevExpress.XtraEditors.LabelControl detailsLabel;
+    private DevExpress.XtraTab.XtraTabControl tabs;
+    private DevExpress.XtraTab.XtraTabPage resultsTab;
+    private DevExpress.XtraTab.XtraTabPage scopeTab;
+    private DevExpress.XtraTab.XtraTabPage detailsTab;
+    private DevExpress.XtraEditors.XtraScrollableControl scopeScroll;
+    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
+    private DevExpress.XtraGrid.GridControl grid;
+    private DevExpress.XtraGrid.Views.Grid.GridView view;
+    private DevExpress.XtraGrid.Columns.GridColumn groupColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn roleColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn nameColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn numberColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn ownerColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn matchColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn cacheColumn;
+    private DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit wrappedCells;
 }

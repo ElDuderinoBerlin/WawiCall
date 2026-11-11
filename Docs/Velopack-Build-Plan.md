@@ -45,7 +45,7 @@ Funktionen werden als WawiCallPro-Vorgaben übernommen. Die Skripte wurden geles
 | Pro | WawiCallPro.Pro | WawiCallPro.App.Pro.exe | WawiCallPro.Console.Pro.exe | pro/win-x64/ |
 | FinOffice | WawiCallPro.FinOffice | WawiCallPro.App.FinOffice.exe | WawiCallPro.Console.FinOffice.exe | finoffice/win-x64/ |
 
-Erstes Ziel: per Benutzer installiertes Windows-x64-Paket, self-contained .NET 10, modulare Dateien,
+Erstes Ziel: per Benutzer installiertes Windows-x64-Paket, self-contained .NET 11, modulare Dateien,
 kein Portable-Paket. Pro und FinOffice können parallel installiert werden; Identität, Verknüpfungen,
 Mutex/IPC und Feed bleiben getrennt. Der Velopack-Kanal heißt zunächst ausdrücklich `win`; die Feeddatei
 ist releases.win.json. Eine spätere weitere Architektur bekommt einen eigenen Kanal und Feedbereich.

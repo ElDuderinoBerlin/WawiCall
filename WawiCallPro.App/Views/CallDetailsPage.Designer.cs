@@ -3,17 +3,6 @@ namespace WawiCallPro.App.Views;
 partial class CallDetailsPage
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private System.Windows.Forms.TableLayoutPanel actions;
-    private DevExpress.XtraEditors.LabelControl callLabel;
-    private DevExpress.XtraEditors.LabelControl selectionLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.LabelControl detailsLabel;
-    private DevExpress.XtraEditors.SimpleButton chooseButton;
-    private DevExpress.XtraEditors.SimpleButton reloadButton;
-    private DevExpress.XtraTab.XtraTabControl tabs;
-    private DevExpress.XtraTab.XtraTabPage masterTab;
-    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
     protected override void Dispose(bool disposing)
     {
         if (disposing) { DisposePage(); if (components != null) components.Dispose(); }
@@ -92,4 +81,15 @@ partial class CallDetailsPage
         Size = new System.Drawing.Size(900, 650);
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel actions;
+    private DevExpress.XtraEditors.LabelControl callLabel;
+    private DevExpress.XtraEditors.LabelControl selectionLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.LabelControl detailsLabel;
+    private DevExpress.XtraEditors.SimpleButton chooseButton;
+    private DevExpress.XtraEditors.SimpleButton reloadButton;
+    private DevExpress.XtraTab.XtraTabControl tabs;
+    private DevExpress.XtraTab.XtraTabPage masterTab;
+    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
 }

@@ -4,12 +4,6 @@ namespace WawiCallPro.App.Views
     partial class FrmDatabaseSetup
     {
         private System.ComponentModel.IContainer components = null;
-        private WawiCallPro.App.Views.UcDbStep1DbType _ucStep1;
-        private WawiCallPro.App.Views.UcDbStep2Connection _ucStep2;
-        private WawiCallPro.App.Views.UcDbStep3Migration _ucStep3;
-        private DevExpress.XtraBars.Navigation.NavigationPage pgDbType;
-        private DevExpress.XtraBars.Navigation.NavigationPage pgConnection;
-        private DevExpress.XtraBars.Navigation.NavigationPage pgMigration;
 
 
         protected override void Dispose(bool disposing)
@@ -203,5 +197,11 @@ namespace WawiCallPro.App.Views
         private DevExpress.XtraEditors.SimpleButton btnTestConnection;
         private DevExpress.XtraEditors.SimpleButton btnFinish;
         private DevExpress.XtraEditors.SimpleButton btnCancel;
+        private WawiCallPro.App.Views.UcDbStep1DbType _ucStep1;
+        private WawiCallPro.App.Views.UcDbStep2Connection _ucStep2;
+        private WawiCallPro.App.Views.UcDbStep3Migration _ucStep3;
+        private DevExpress.XtraBars.Navigation.NavigationPage pgDbType;
+        private DevExpress.XtraBars.Navigation.NavigationPage pgConnection;
+        private DevExpress.XtraBars.Navigation.NavigationPage pgMigration;
     }
 }

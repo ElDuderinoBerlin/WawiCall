@@ -5,28 +5,6 @@ namespace WawiCallPro.App.Views;
 partial class HistoryPage
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private System.Windows.Forms.TableLayoutPanel filters;
-    private System.Windows.Forms.TableLayoutPanel paging;
-    private DevExpress.XtraEditors.LabelControl titleLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.LabelControl fromLabel;
-    private DevExpress.XtraEditors.LabelControl toLabel;
-    private DevExpress.XtraEditors.DateEdit fromEdit;
-    private DevExpress.XtraEditors.DateEdit toEdit;
-    private DevExpress.XtraEditors.SimpleButton refreshButton;
-    private DevExpress.XtraEditors.SimpleButton previousButton;
-    private DevExpress.XtraEditors.SimpleButton nextButton;
-    private DevExpress.XtraGrid.GridControl grid;
-    private DevExpress.XtraGrid.Views.Grid.GridView view;
-    private DevExpress.XtraEditors.MemoEdit detailsEdit;
-    private DevExpress.XtraEditors.MemoEdit noteEdit;
-    private DevExpress.XtraEditors.SimpleButton saveNoteButton;
-    private DevExpress.XtraTab.XtraTabControl historyTabs;
-    private DevExpress.XtraTab.XtraTabPage callsTab;
-    private DevExpress.XtraTab.XtraTabPage notesTab;
-    private System.Windows.Forms.TableLayoutPanel callsLayout;
-    private System.Windows.Forms.TableLayoutPanel notesLayout;
 
     protected override void Dispose(bool disposing)
     {
@@ -223,4 +201,26 @@ partial class HistoryPage
         Name = "HistoryPage";
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel filters;
+    private System.Windows.Forms.TableLayoutPanel paging;
+    private DevExpress.XtraEditors.LabelControl titleLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.LabelControl fromLabel;
+    private DevExpress.XtraEditors.LabelControl toLabel;
+    private DevExpress.XtraEditors.DateEdit fromEdit;
+    private DevExpress.XtraEditors.DateEdit toEdit;
+    private DevExpress.XtraEditors.SimpleButton refreshButton;
+    private DevExpress.XtraEditors.SimpleButton previousButton;
+    private DevExpress.XtraEditors.SimpleButton nextButton;
+    private DevExpress.XtraGrid.GridControl grid;
+    private DevExpress.XtraGrid.Views.Grid.GridView view;
+    private DevExpress.XtraEditors.MemoEdit detailsEdit;
+    private DevExpress.XtraEditors.MemoEdit noteEdit;
+    private DevExpress.XtraEditors.SimpleButton saveNoteButton;
+    private DevExpress.XtraTab.XtraTabControl historyTabs;
+    private DevExpress.XtraTab.XtraTabPage callsTab;
+    private DevExpress.XtraTab.XtraTabPage notesTab;
+    private System.Windows.Forms.TableLayoutPanel callsLayout;
+    private System.Windows.Forms.TableLayoutPanel notesLayout;
 }

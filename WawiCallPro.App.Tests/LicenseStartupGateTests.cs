@@ -46,7 +46,7 @@ public sealed class LicenseStartupGateTests
         Assert.AreEqual(LicenseStatus.Revoked, denied.Status);
     }
 
-    private static LicenseProductIdentity Product => new("WAWICALLPRO_PRO", new Guid(LicenseProductIdentity.ProApplicationId), "test", true);
+    private static LicenseProductIdentity Product { get; } = new("WAWICALLPRO_PRO", new Guid(LicenseProductIdentity.ProApplicationId), "test", true);
     [TestMethod]
     public async Task ActivationPromptAwaitsUiDispatcherAndObservesCancellationBeforeShowingAnything()
     {

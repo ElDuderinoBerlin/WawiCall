@@ -5,12 +5,6 @@ namespace WawiCallPro.App.Views;
 partial class StartPage
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private DevExpress.XtraEditors.LabelControl titleLabel;
-    private DevExpress.XtraEditors.LabelControl bodyLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.SimpleButton settingsButton;
-    private DevExpress.XtraEditors.SimpleButton historyButton;
 
     protected override void Dispose(bool disposing)
     {
@@ -93,4 +87,10 @@ partial class StartPage
         Name = "StartPage";
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private DevExpress.XtraEditors.LabelControl titleLabel;
+    private DevExpress.XtraEditors.LabelControl bodyLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.SimpleButton settingsButton;
+    private DevExpress.XtraEditors.SimpleButton historyButton;
 }

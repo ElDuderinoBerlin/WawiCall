@@ -5,8 +5,6 @@ namespace WawiCallPro.App.Views;
 partial class FrmCallerLookup
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private WawiCallPro.App.Views.CallerLookupPage callerPage;
     protected override void Dispose(bool disposing)
     {
         if (disposing && components != null) components.Dispose();
@@ -36,4 +34,6 @@ partial class FrmCallerLookup
         Name = "FrmCallerLookup";
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private WawiCallPro.App.Views.CallerLookupPage callerPage;
 }

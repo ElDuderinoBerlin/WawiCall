@@ -4,7 +4,6 @@ namespace WawiCallPro.App.Views
     partial class UcDbStep2Connection
     {
         private System.ComponentModel.IContainer components = null;
-        private DevExpress.XtraEditors.DXErrorProvider.DXErrorProvider _errorProvider;
 
         protected override void Dispose(bool disposing)
         {
@@ -186,5 +185,6 @@ namespace WawiCallPro.App.Views
         private WawiCallPro.App.Views.DbConnection.UcConMyPg ucMyPg;
         private DevExpress.XtraEditors.LabelControl lblPreview;
         private DevExpress.XtraEditors.TextEdit txtCsPreview;
+        private DevExpress.XtraEditors.DXErrorProvider.DXErrorProvider _errorProvider;
     }
 }

@@ -5,9 +5,6 @@ namespace WawiCallPro.App.Views;
 partial class FrmSettings
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private WawiCallPro.App.Views.SettingsPage settingsPage;
-    private DevExpress.XtraEditors.SimpleButton closeButton;
 
     protected override void Dispose(bool disposing)
     {
@@ -58,4 +55,7 @@ partial class FrmSettings
         Name = "FrmSettings";
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private WawiCallPro.App.Views.SettingsPage settingsPage;
+    private DevExpress.XtraEditors.SimpleButton closeButton;
 }

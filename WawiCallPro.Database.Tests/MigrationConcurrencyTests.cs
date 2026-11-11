@@ -157,7 +157,7 @@ public sealed class MigrationConcurrencyTests
         var variant = output.Parent!.Name;
         var root = Path.GetFullPath(Path.Combine(output.FullName, "../../../../.."));
         var configuration = typeof(MigrationConcurrencyTests).Assembly.GetCustomAttribute<System.Reflection.AssemblyConfigurationAttribute>()!.Configuration;
-        var worker = Path.Combine(root, "WawiCallPro.Database.TestWorker", "bin", configuration, variant, "net10.0", "WawiCallPro.Database.TestWorker.dll");
+        var worker = Path.Combine(root, "WawiCallPro.Database.TestWorker", "bin", configuration, variant, "net11.0", "WawiCallPro.Database.TestWorker.dll");
         Assert.IsTrue(File.Exists(worker), "Worker must be built in the same regular output configuration as the tests.");
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         start.ArgumentList.Add(worker);

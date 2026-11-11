@@ -14,7 +14,7 @@ $runner = Join-Path $audit 'Runner'
 New-Item -ItemType Directory -Path $runner | Out-Null
 @'
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../WawiCallPro.Database.Tests/WawiCallPro.Database.Tests.csproj" />
     <ProjectReference Include="../../../WawiCallPro.Utilities.Tests/WawiCallPro.Utilities.Tests.csproj" />

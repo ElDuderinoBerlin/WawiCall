@@ -5,31 +5,7 @@ namespace WawiCallPro.App.Views;
 partial class PluginPage
 {
     private System.ComponentModel.IContainer components;
-    private DevExpress.XtraWaitForm.ProgressPanel switchProgress;
-    private DevExpress.XtraTab.XtraTabPage detailsTab;
-    private System.Windows.Forms.TableLayoutPanel detailsRoot;
-    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
-    private DevExpress.XtraEditors.SimpleButton backButton;
-    private System.Windows.Forms.TableLayoutPanel capabilitiesLayout;
-    private DevExpress.XtraEditors.SimpleButton capabilitiesBackButton;
-    private System.Windows.Forms.TableLayoutPanel installedLayout;
-    private System.Windows.Forms.TableLayoutPanel headerLayout;
-    private System.Windows.Forms.TableLayoutPanel detailLayout;
-    private DevExpress.XtraEditors.GroupControl detailsGroup;
-    private DevExpress.XtraEditors.LabelControl pluginDetailLabel;
 
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private DevExpress.XtraEditors.LabelControl detailsLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.SimpleButton refreshButton;
-    private DevExpress.XtraEditors.SimpleButton capabilitiesButton;
-    private DevExpress.XtraTab.XtraTabControl pluginTabs;
-    private DevExpress.XtraTab.XtraTabPage installedTab;
-    private DevExpress.XtraTab.XtraTabPage capabilitiesTab;
-    private DevExpress.XtraGrid.GridControl catalogGrid;
-    private DevExpress.XtraGrid.Views.Items.ItemsView catalogView;
-    private DevExpress.XtraGrid.GridControl grid;
-    private DevExpress.XtraGrid.Views.Grid.GridView view;
 
     protected override void Dispose(bool disposing)
     {
@@ -208,4 +184,28 @@ partial class PluginPage
         Name = "PluginPage";
         ResumeLayout(false);
     }
+    private DevExpress.XtraWaitForm.ProgressPanel switchProgress;
+    private DevExpress.XtraTab.XtraTabPage detailsTab;
+    private System.Windows.Forms.TableLayoutPanel detailsRoot;
+    private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
+    private DevExpress.XtraEditors.SimpleButton backButton;
+    private System.Windows.Forms.TableLayoutPanel capabilitiesLayout;
+    private DevExpress.XtraEditors.SimpleButton capabilitiesBackButton;
+    private System.Windows.Forms.TableLayoutPanel installedLayout;
+    private System.Windows.Forms.TableLayoutPanel headerLayout;
+    private System.Windows.Forms.TableLayoutPanel detailLayout;
+    private DevExpress.XtraEditors.GroupControl detailsGroup;
+    private DevExpress.XtraEditors.LabelControl pluginDetailLabel;
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private DevExpress.XtraEditors.LabelControl detailsLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.SimpleButton refreshButton;
+    private DevExpress.XtraEditors.SimpleButton capabilitiesButton;
+    private DevExpress.XtraTab.XtraTabControl pluginTabs;
+    private DevExpress.XtraTab.XtraTabPage installedTab;
+    private DevExpress.XtraTab.XtraTabPage capabilitiesTab;
+    private DevExpress.XtraGrid.GridControl catalogGrid;
+    private DevExpress.XtraGrid.Views.Items.ItemsView catalogView;
+    private DevExpress.XtraGrid.GridControl grid;
+    private DevExpress.XtraGrid.Views.Grid.GridView view;
 }

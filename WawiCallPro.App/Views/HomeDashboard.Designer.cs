@@ -3,44 +3,6 @@ namespace WawiCallPro.App.Views;
 partial class HomeDashboard
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private System.Windows.Forms.TableLayoutPanel toolbar;
-    private System.Windows.Forms.TableLayoutPanel header;
-    private System.Windows.Forms.TableLayoutPanel body;
-    private System.Windows.Forms.TableLayoutPanel cards;
-    private DevExpress.XtraEditors.XtraScrollableControl scroll;
-    private DevExpress.XtraEditors.SvgImageBox logo;
-    private DevExpress.XtraEditors.LabelControl title;
-    private DevExpress.XtraEditors.LabelControl subtitle;
-    private DevExpress.XtraEditors.LabelControl version;
-    private DevExpress.XtraEditors.LabelControl steps;
-    private DevExpress.XtraEditors.GroupControl databaseCard;
-    private System.Windows.Forms.TableLayoutPanel databaseLayout;
-    private DevExpress.XtraEditors.LabelControl databaseValue;
-    private DevExpress.XtraEditors.LabelControl databaseDetail;
-    private DevExpress.XtraEditors.GroupControl sipCard;
-    private System.Windows.Forms.TableLayoutPanel sipLayout;
-    private DevExpress.XtraEditors.LabelControl sipValue;
-    private DevExpress.XtraEditors.LabelControl sipDetail;
-    private DevExpress.XtraEditors.GroupControl pluginCard;
-    private System.Windows.Forms.TableLayoutPanel pluginLayout;
-    private DevExpress.XtraEditors.LabelControl pluginValue;
-    private DevExpress.XtraEditors.LabelControl pluginDetail;
-    private DevExpress.XtraEditors.GroupControl journalCard;
-    private System.Windows.Forms.TableLayoutPanel journalLayout;
-    private DevExpress.XtraEditors.LabelControl journalValue;
-    private DevExpress.XtraEditors.LabelControl journalDetail;
-    private DevExpress.XtraEditors.GroupControl cacheCard;
-    private System.Windows.Forms.TableLayoutPanel cacheLayout;
-    private DevExpress.XtraEditors.LabelControl cacheValue;
-    private DevExpress.XtraEditors.LabelControl cacheDetail;
-    private DevExpress.XtraEditors.GroupControl editionCard;
-    private System.Windows.Forms.TableLayoutPanel editionLayout;
-    private DevExpress.XtraEditors.LabelControl editionValue;
-    private DevExpress.XtraEditors.LabelControl editionDetail;
-    private DevExpress.XtraEditors.SimpleButton refreshButton;
-    private DevExpress.XtraEditors.SimpleButton historyButton;
-    private DevExpress.XtraEditors.SimpleButton settingsButton;
     protected override void Dispose(bool disposing) { if (disposing && components != null) components.Dispose(); base.Dispose(disposing); }
     private void InitializeComponent()
     {
@@ -378,4 +340,42 @@ partial class HomeDashboard
         Size = new System.Drawing.Size(1000, 700);
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel toolbar;
+    private System.Windows.Forms.TableLayoutPanel header;
+    private System.Windows.Forms.TableLayoutPanel body;
+    private System.Windows.Forms.TableLayoutPanel cards;
+    private DevExpress.XtraEditors.XtraScrollableControl scroll;
+    private DevExpress.XtraEditors.SvgImageBox logo;
+    private DevExpress.XtraEditors.LabelControl title;
+    private DevExpress.XtraEditors.LabelControl subtitle;
+    private DevExpress.XtraEditors.LabelControl version;
+    private DevExpress.XtraEditors.LabelControl steps;
+    private DevExpress.XtraEditors.GroupControl databaseCard;
+    private System.Windows.Forms.TableLayoutPanel databaseLayout;
+    private DevExpress.XtraEditors.LabelControl databaseValue;
+    private DevExpress.XtraEditors.LabelControl databaseDetail;
+    private DevExpress.XtraEditors.GroupControl sipCard;
+    private System.Windows.Forms.TableLayoutPanel sipLayout;
+    private DevExpress.XtraEditors.LabelControl sipValue;
+    private DevExpress.XtraEditors.LabelControl sipDetail;
+    private DevExpress.XtraEditors.GroupControl pluginCard;
+    private System.Windows.Forms.TableLayoutPanel pluginLayout;
+    private DevExpress.XtraEditors.LabelControl pluginValue;
+    private DevExpress.XtraEditors.LabelControl pluginDetail;
+    private DevExpress.XtraEditors.GroupControl journalCard;
+    private System.Windows.Forms.TableLayoutPanel journalLayout;
+    private DevExpress.XtraEditors.LabelControl journalValue;
+    private DevExpress.XtraEditors.LabelControl journalDetail;
+    private DevExpress.XtraEditors.GroupControl cacheCard;
+    private System.Windows.Forms.TableLayoutPanel cacheLayout;
+    private DevExpress.XtraEditors.LabelControl cacheValue;
+    private DevExpress.XtraEditors.LabelControl cacheDetail;
+    private DevExpress.XtraEditors.GroupControl editionCard;
+    private System.Windows.Forms.TableLayoutPanel editionLayout;
+    private DevExpress.XtraEditors.LabelControl editionValue;
+    private DevExpress.XtraEditors.LabelControl editionDetail;
+    private DevExpress.XtraEditors.SimpleButton refreshButton;
+    private DevExpress.XtraEditors.SimpleButton historyButton;
+    private DevExpress.XtraEditors.SimpleButton settingsButton;
 }

@@ -319,7 +319,7 @@ public sealed class PluginRuntimeTests
     {
         var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
         var configuration = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "SignedRuntimePlugin", "bin", configuration, variant, "net10.0");
+        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "SignedRuntimePlugin", "bin", configuration, variant, "net11.0");
         var plugins = Path.Combine(_root, "plugins"); var target = Path.Combine(plugins, "SignedRuntimePlugin");
         Directory.CreateDirectory(target);
         foreach (var file in Directory.GetFiles(output)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
@@ -498,7 +498,7 @@ public sealed class PluginRuntimeTests
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
         Assert.IsNotNull(repository);
-        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, "net10.0");
+        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, "net11.0");
         var target = Path.Combine(directory, "WawiCallPro.Plugins.Dummy");
         Directory.CreateDirectory(target);
         foreach (var file in System.IO.Directory.GetFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
@@ -569,11 +569,13 @@ public sealed class PluginRuntimeTests
     {
         var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
         var configuration = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "RuntimePlugin", "bin", configuration, variant, "net10.0");
+        var output = Path.Combine(Path.GetDirectoryName(source)!, "Fixtures", "RuntimePlugin", "bin", configuration, variant, "net11.0");
         var plugins = Path.Combine(_root, "plugins"); var destination = Path.Combine(plugins, "RuntimePlugin");
         Directory.CreateDirectory(destination);
-        // Only the fixture and its dependency manifest; abstractions must resolve to the host's loaded contract.
-        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll", "Dapper.dll", "Microsoft.Extensions.DependencyInjection.Abstractions.dll", "PrivateDependency.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
+        // Include duplicate contracts deliberately: the loader must still use the host's loaded contracts.
+        foreach (var name in new[] { "RuntimePlugin.dll", "RuntimePlugin.deps.json", "WawiCallPro.Interfaces.dll", "Quantarix.Plugin.Abstractions.dll", "Dapper.dll", "PrivateDependency.dll" }) File.Copy(Path.Combine(output, name), Path.Combine(destination, name));
+        // .NET 11 supplies DI abstractions from the shared framework instead of the fixture output.
+        File.Copy(typeof(IServiceCollection).Assembly.Location, Path.Combine(destination, "Microsoft.Extensions.DependencyInjection.Abstractions.dll"));
         return plugins;
     }
     private static void AddNativeProbe(string target)

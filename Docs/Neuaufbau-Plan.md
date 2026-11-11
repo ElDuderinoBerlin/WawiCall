@@ -160,7 +160,7 @@ Die Beispiele koppeln ihn über `ToMediaEndPoints()` an `VoIPMediaSession` und `
 Das ist eine Vorlage für den Empfangspfad; die Aufzeichnung beider Gesprächsseiten ist gesondert umzusetzen.
 
 Vor der konkreten Integration in Phase 7/9 Bibliothek und Abhängigkeitsmanifest ergänzen sowie die kompatible
-Windows-Plattformbasis in Audio-, SIP- und Hostprojekten festlegen. Die .NET-10-Projekte dürfen nicht bei einer
+Windows-Plattformbasis in Audio-, SIP- und Hostprojekten festlegen. Die .NET-11-Projekte dürfen nicht bei einer
 niedrigeren Windows-Plattformbasis bleiben als ihre referenzierte Medienbibliothek. Keine NAudio-Abhängigkeit
 oder parallele NAudio-Gerätepipeline einführen. Die Quellen wurden geprüft; während der Plananpassung wurden
 keine SIP-Registrierung und keine Anrufe an der FRITZ!Box ausgeführt. Zugangsdaten werden nicht aus Beispielen kopiert.
@@ -230,9 +230,11 @@ Lexware-internen Datentypen. Datenbank und Telefonie besitzen getrennte Verantwo
 Lexware-Plugins referenzieren produktspezifische Quantarix-APIs. Der Host lädt keine zweite Kopie gemeinsamer
 Vertrags-Assemblies und benötigt keine normale Compile-Referenz auf konkrete Plugins.
 
-Neue Projekte zielen auf .NET 10; Windows-spezifische Projekte auf `net10.0-windows` mit passender Plattformbasis.
-Keine beiläufige Umstellung auf .NET 11. SDK-/Paketversionen anhand der lokalen Referenz und tatsächlicher
-Kompatibilität festlegen. LxTranslate verwendet ein SDK-Pinning mit Roll-forward; lokal sind .NET-10-SDKs vorhanden.
+Auf ausdrücklichen Nutzerauftrag vom 11.11.2026 zielen die eigenen Projekte einschließlich Tests,
+Fixtures und Buildwerkzeug auf .NET 11. Windows-spezifische Projekte verwenden `net11.0-windows`;
+Audio und Hosts behalten die Plattformbasis `net11.0-windows10.0.19041.0`.
+`global.json` pinnt SDK `11.0.100` mit `rollForward=latestFeature`. Bestehende kompatible
+Paketversionen und die Zielframeworks externer Schwesterprojekte bleiben erhalten.
 
 ## 6. Neues Datenmodell und Migrationskonzept
 
@@ -331,6 +333,23 @@ nachvollziehbar, Dokumente sind in Rider geöffnet und nur die zugehörigen Date
 Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es gibt noch keine neuen Codeprojekte.
 
 ### Phase 1 – Solution, Abhängigkeiten und Builds ✅
+
+- [x] ✅ Nutzerauftrag vom 11.11.2026: alle 30 eigenen Projekte auf .NET 11 angehoben,
+  einschließlich Tests, Pluginfixtures und StripDx-Werkzeug; SDK `11.0.100` mit bestehendem Roll-forward.
+  Windows-Suffixe und Plattformbasis 19041 erhalten. Build-/Publish-/Diagnose-/Testpfade angepasst;
+  alte .NET-10-Hostdateien werden beim Build entfernt. Vier automatisch verfügbare Paketverweise entfernt,
+  neue WinForms-Analyzer ursächlich berücksichtigt: Controlfelder in 16 Designer-Dateien hinter die
+  Methoden verschoben, Testidentität stabil gehalten. Felder und Initialisierung nachweislich identisch;
+  Pluginfixture kopiert die jetzt aus der gemeinsamen Laufzeit kommende DI-Assembly weiterhin für den
+  Test gemeinsamer Vertragsidentitäten. Externe Schwesterprojekte nicht verändert.
+  Nachweis: Rider-Rebuild in aktiver Konfiguration `Debug | Any CPU`, beide Editionsbuilds und
+  1.005 Tests bestanden (je 15 Verträge, 136 Core, 24 Telefonie, 147 Utilities, sechs fensterlose
+  App-Tests, 25 Console, fünf Tooltests, 89 Datenbanktests; 67 Pro-/44 FinOffice-Adaptertests).
+  Editionswechsel Pro → FinOffice → Pro → FinOffice mit beiden Hostdiagnosen, Pluginprüfung und
+  Entfernung alter Einstiegspunkte bestanden; native Pluginabhängigkeiten vorhanden/fehlend je Edition
+  sowie 47 Skriptprüfungen erfolgreich. Keine sichtbaren GUI-Tests, echten SIP-/ERP-Verbindungen oder
+  Installerabnahme. Warnungen in externen Schwesterprojekten bleiben bestehen.
+  Protokolle: `.artifacts/net11-*.log`, `.artifacts/build-layout`; aktueller Standardausgabestand FinOffice.
 
 - [x] ✅ Nutzerpräzisierung vom 09.11.2026: Solution.props strukturell aus LxTranslate übernommen,
   mit WawiCallPro-Namen und den notwendigen vorhandenen Projekt-/Lizenzanschlüssen. Zentrale

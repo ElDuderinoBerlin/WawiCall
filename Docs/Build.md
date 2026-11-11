@@ -4,6 +4,21 @@ Die eigenen `WawiCallPro.*`-Projekte liegen direkt im Repository-Root. Die exter
 im logischen Solution-Ordner `src` und bleiben physisch als Schwester-Repositories erhalten.
 Die weiteren Solution-Ordner heißen wie bei LxTranslate `Docs`, `Scripts`, `Solution Files` und `Tools`.
 
+## .NET 11 (11.11.2026)
+
+Alle 30 eigenen Projekte einschließlich Tests, Pluginfixtures und Buildwerkzeug zielen auf .NET 11.
+`global.json` verwendet SDK `11.0.100` mit `rollForward=latestFeature`. Die Windows-Suffixe
+und die Mindestplattform der Audio-/Hostprojekte bleiben erhalten. Frameworkabhängige Starts
+benötigen die .NET-11-Laufzeit, die Hosts zusätzlich die .NET-11-Desktoplaufzeit.
+Externe Schwesterprojekte werden mit ihren vorhandenen Frameworks eingebunden.
+Kompatible Paketversionen bleiben erhalten; vier unter .NET 11 automatisch verfügbare
+DI-/Logging-Paketverweise entfallen. Die neuen WinForms-Analyzer bleiben aktiv:
+Designerfelder stehen nach den Methoden, eine Testidentität hat eine stabile Instanz.
+Initialisierung, Layout und Geschäftscode werden dabei nicht verändert.
+
+Vorgehen gemäß [Microsofts Upgradehinweisen](https://devblogs.microsoft.com/dotnet/announcing-dotnet-11/).
+Ältere datierte Nachweise in diesem Dokument und im Neuaufbau-Plan beschreiben ihren damaligen Buildstand.
+
 ## Zentrale Edition und gemeinsamer Ausgabeordner (09.11.2026)
 
 `Solution.props` folgt jetzt der Struktur der LxTranslate-Vorlage: Konfigurationsvorgabe,
@@ -16,13 +31,14 @@ Persönliche Zugangsdaten werden nicht aus LxTranslate übernommen.
 den zentralen Standard; ein explizites `-ProductLine` beziehungsweise `-p:LexwareProductLine` überschreibt ihn.
 Build-/Publish-Skripte bauen standardmäßig nur diese Edition; mehrere Editionen müssen ausdrücklich
 angegeben werden. Die Produktionsausgaben liegen je Projekt unter `bin/<Konfiguration>/<Framework>`,
-z. B. `WawiCallPro.App/bin/Debug/net10.0-windows10.0.19041.0`. Die Exe-/Assemblynamen behalten die Edition,
+z. B. `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0`. Die Exe-/Assemblynamen behalten die Edition,
 z. B. `WawiCallPro.App.FinOffice.exe`. Es wird dort jeweils die gewählte Edition bereitgestellt;
 die vorherige Host- und Plugin-Ausgabe der anderen Edition wird beim Wechsel entfernt.
 
-Seit der CSCore-Anbindung starten App und Console aus `net10.0-windows10.0.19041.0`.
+Seit dem .NET-11-Upgrade vom 11.11.2026 starten App und Console aus `net11.0-windows10.0.19041.0`.
 Der Build entfernt eigene EXE-, DLL-, PDB-, deps- und runtimeconfig-Dateien aus den alten
-Hostordnern `bin/<Konfiguration>/net10.0-windows` und beim Console-Host zusätzlich `net10.0`.
+Hostordnern `bin/<Konfiguration>/net10.0-windows10.0.19041.0`, `net10.0-windows` und
+`net11.0-windows` und beim Console-Host zusätzlich `net10.0`.
 So bleibt der alte Build ohne aktuelle Fehlerkorrekturen kein startbarer Einstiegspunkt.
 `test-build-layout.ps1` legt hierfür veraltete Testdateien an und prüft ihre Entfernung bei
 jedem Editionswechsel sowie Start und Beenden des tatsächlich gebauten Hosts.
@@ -57,7 +73,7 @@ Die vom Nutzer als funktionierend benannten FRITZ!Box-Beispiele liegen unter
 Beide referenzieren bereits diese lokale Medienbibliothek und SIPSorcery 10.0.17.
 Die Bibliothek selbst zielt derzeit auf `net9.0-windows10.0.19041.0` und verwendet CSCore 1.2.1.5 sowie
 SIPSorceryMedia.Abstractions 10.0.17. Bei der Integration in Phase 7/9 sind Projektgraph, Manifest,
-Build-Ausgabepfade und die Windows-Plattformbasis der referenzierenden .NET-10-Projekte entsprechend anzupassen.
+Build-Ausgabepfade und die Windows-Plattformbasis der referenzierenden .NET-11-Projekte entsprechend anzupassen.
 Die Bibliothek muss dafür nicht ungefragt auf ein anderes Framework umgestellt werden.
 
 In dieser Dokumentationsanpassung wurden Beispiele und Referenzen gelesen; es erfolgten keine Anrufe
@@ -65,7 +81,7 @@ oder Registrierungen an der FRITZ!Box und noch keine konkrete Medienintegration 
 
 ## Lokaler Debug-Build
 
-Voraussetzungen: Windows, PowerShell 7 (`pwsh`), Git, .NET-10-SDK entsprechend `global.json`,
+Voraussetzungen: Windows, PowerShell 7 (`pwsh`), Git, .NET-11-SDK entsprechend `global.json`,
 die in `deps.json` aufgeführten Schwester-Repositories und ein eingerichteter Zugriff auf die benötigten
 DevExpress-Pakete beziehungsweise ein vorhandener Paketcache. Keine Zugangsdaten ins Repository schreiben.
 
@@ -123,7 +139,7 @@ Die Mindestgröße wird hierfür nur im Audit auf die Designerbasis zurückgeset
 `Tools/StripDxLicenseInformation` übernimmt die lokal geprüfte LxTranslate-Vorlage mit Mono.Cecil 0.11.6.
 Tool und `StripDxLicenseInformation.Tests` stehen im Solution-Ordner `Tools`. Die Ausgabe heißt
 `WawiCallPro.StripDxLicenseInformation.dll`; sie liegt wie andere eigene Projekte unter
-`bin/<Debug|Release>/<Pro|FinOffice>/net10.0` im Toolverzeichnis.
+`bin/<Debug|Release>/net11.0` im Toolverzeichnis; seine Tests behalten den Editionsunterordner.
 
 `Directory.Build.targets` bindet das Tool als reine Buildabhängigkeit der Release-Hosts ein und führt es
 nach `Build` sowie nach `Publish` auf eigene `WawiCallPro*.dll` und `WawiCallPro*.exe` im jeweiligen
@@ -142,7 +158,7 @@ geprüft. Einzeldatei-/AOT-Pakete und die endgültige Signierreihenfolge gehöre
 ```powershell
 dotnet build .\Tools\StripDxLicenseInformation\StripDxLicenseInformation.csproj -c Debug -p:LexwareProductLine=Pro
 dotnet test --project .\Tools\StripDxLicenseInformation.Tests\StripDxLicenseInformation.Tests.csproj -c Debug -p:LexwareProductLine=Pro
-dotnet .\Tools\StripDxLicenseInformation\bin\Debug\Pro\net10.0\WawiCallPro.StripDxLicenseInformation.dll --input <assembly-oder-verzeichnis> --dry-run
+dotnet .\Tools\StripDxLicenseInformation\bin\Debug\net11.0\WawiCallPro.StripDxLicenseInformation.dll --input <assembly-oder-verzeichnis> --dry-run
 ```
 
 Prüfung des Nachtrags: je 93 Tests für beide Produktlinien, Debug-/Release-Builds beider Hosts sowie deren
@@ -229,7 +245,7 @@ zweckgebunden DPAPI-geschützt; Providerbuilder validieren sie vor dem Start ohn
 Die Console bietet folgende ausdrückliche Aktionen (Beispiel Pro):
 
 ```powershell
-$console = '.\WawiCallPro.Console\bin\Debug\net10.0-windows10.0.19041.0\WawiCallPro.Console.Pro.exe'
+$console = '.\WawiCallPro.Console\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.Console.Pro.exe'
 & $console --db-status
 & $console --db-init
 & $console --db-migrate
@@ -592,6 +608,6 @@ Die Hauptsolution referenziert unter `src` direkt
 `ISipMediaSessionFactory`; es wird kein NAudio-Endpunkt eingebunden. Die Bibliothek
 bleibt an ihrem vorhandenen Ort und wird nicht in das WawiCallPro-Repository kopiert.
 Die konsumierenden Windows-Hosts und ihre Tests verwenden dafür
-`net10.0-windows10.0.19041.0` (Windows 10 ab Build 19041). Plugins und plattformneutrale
-Projekte behalten ihre bisherigen Frameworks. Build- und Prüfscripte verwenden den
+`net11.0-windows10.0.19041.0` (Windows 10 ab Build 19041). Eigene Plugins und plattformneutrale
+Projekte verwenden `net11.0-windows` beziehungsweise `net11.0`. Build- und Prüfscripte verwenden den
 entsprechend angepassten Host-Ausgabeordner.

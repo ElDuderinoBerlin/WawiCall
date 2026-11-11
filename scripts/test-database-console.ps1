@@ -5,7 +5,7 @@ $audit = Join-Path $repositoryRoot ('.artifacts/database-console-' + [guid]::New
 New-Item -ItemType Directory -Path $audit | Out-Null
 
 function RunCommand([string]$Variant, [string]$ConfigurationDirectory, [string[]]$Arguments, [int]$ExpectedExitCode = 0) {
-    $executable = Join-Path $repositoryRoot "WawiCallPro.Console/bin/Debug/net10.0-windows10.0.19041.0/WawiCallPro.Console.$Variant.exe"
+    $executable = Join-Path $repositoryRoot "WawiCallPro.Console/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.Console.$Variant.exe"
     $start = [Diagnostics.ProcessStartInfo]::new($executable)
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
@@ -25,7 +25,7 @@ function RunCommand([string]$Variant, [string]$ConfigurationDirectory, [string[]
 }
 
 if (!$ProductLine) {
-    $hostRoot = Join-Path $repositoryRoot 'WawiCallPro.Console/bin/Debug/net10.0-windows10.0.19041.0'
+    $hostRoot = Join-Path $repositoryRoot 'WawiCallPro.Console/bin/Debug/net11.0-windows10.0.19041.0'
     $editions = @('Pro','FinOffice' | Where-Object { Test-Path -LiteralPath (Join-Path $hostRoot "WawiCallPro.Console.$_.dll") })
     if ($editions.Count -ne 1) { throw 'Zuerst genau eine Edition bauen oder -ProductLine angeben.' }
     $ProductLine = $editions[0]

@@ -3,10 +3,6 @@ namespace WawiCallPro.App.Views;
 partial class LogPanel
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private WawiCallPro.App.Hosting.LogListBoxSearchController searchController;
-    private DevExpress.XtraEditors.ListBoxControl listLog;
-    private System.Windows.Forms.Timer refreshTimer;
     protected override void Dispose(bool disposing) { if (disposing && components != null) components.Dispose(); base.Dispose(disposing); }
     private void InitializeComponent()
     {
@@ -39,4 +35,8 @@ partial class LogPanel
         Name = "LogPanel";
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private WawiCallPro.App.Hosting.LogListBoxSearchController searchController;
+    private DevExpress.XtraEditors.ListBoxControl listLog;
+    private System.Windows.Forms.Timer refreshTimer;
 }

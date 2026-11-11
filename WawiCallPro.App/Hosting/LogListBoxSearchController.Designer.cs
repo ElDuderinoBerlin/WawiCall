@@ -3,11 +3,6 @@ namespace WawiCallPro.App.Hosting;
 partial class LogListBoxSearchController
 {
     private System.ComponentModel.IContainer components = null;
-    private System.Windows.Forms.TableLayoutPanel searchLayout;
-    private DevExpress.XtraEditors.LabelControl searchLabel;
-    private DevExpress.XtraEditors.TextEdit _txtSearch;
-    private DevExpress.XtraEditors.LabelControl _lblResult;
-    private DevExpress.XtraEditors.SimpleButton closeButton;
 
     protected override void Dispose(bool disposing)
     {
@@ -74,4 +69,9 @@ partial class LogListBoxSearchController
         ResumeLayout(false);
         PerformLayout();
     }
+    private System.Windows.Forms.TableLayoutPanel searchLayout;
+    private DevExpress.XtraEditors.LabelControl searchLabel;
+    private DevExpress.XtraEditors.TextEdit _txtSearch;
+    private DevExpress.XtraEditors.LabelControl _lblResult;
+    private DevExpress.XtraEditors.SimpleButton closeButton;
 }

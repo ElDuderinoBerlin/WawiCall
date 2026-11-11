@@ -135,7 +135,7 @@ public static class PhaseThreeAcceptance
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "WawiCallProSolution.sln"))) root = root.Parent;
         Assert.IsNotNull(root, "Run the acceptance from the repository's Debug outputs.");
         var variant = typeof(DatabaseFactory).Assembly.GetCustomAttributes<System.Reflection.AssemblyMetadataAttribute>().First(attribute => attribute.Key == "LexwareProductLine").Value!;
-        var worker = Path.Combine(root.FullName, "WawiCallPro.Database.TestWorker", "bin", "Debug", variant, "net10.0", "WawiCallPro.Database.TestWorker.dll");
+        var worker = Path.Combine(root.FullName, "WawiCallPro.Database.TestWorker", "bin", "Debug", variant, "net11.0", "WawiCallPro.Database.TestWorker.dll");
         var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         start.ArgumentList.Add(worker); foreach (var argument in arguments) start.ArgumentList.Add(argument);
         return Process.Start(start)!;

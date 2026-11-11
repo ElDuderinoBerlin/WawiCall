@@ -52,15 +52,19 @@
       <_WawiDeploymentFiles Remove="@(SharedPackage->'$(TargetDir)%(Identity).dll');@(SharedPackage->'$(TargetDir)%(Identity).pdb')" />
     </ItemGroup>
   </Target>
-  <!-- The Windows media endpoint changed the hosts' TFM. Do not leave an older executable as an alternative entry point. -->
+  <!-- Framework upgrades must not leave an older executable as an alternative entry point. -->
   <Target Name="WawiRemoveLegacyHostFrameworkOutputs" BeforeTargets="PrepareForBuild"
-          Condition="'$(DesignTimeBuild)' != 'true' and '$(TargetFramework)' == 'net10.0-windows10.0.19041.0'
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(TargetFramework)' == 'net11.0-windows10.0.19041.0'
             and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <PropertyGroup>
       <_WawiLegacyWindowsOutput>$(MSBuildProjectDirectory)\bin\$(Configuration)\net10.0-windows\</_WawiLegacyWindowsOutput>
       <_WawiLegacyPortableOutput>$(MSBuildProjectDirectory)\bin\$(Configuration)\net10.0\</_WawiLegacyPortableOutput>
+      <_WawiLegacyPlatformOutput>$(MSBuildProjectDirectory)\bin\$(Configuration)\net10.0-windows10.0.19041.0\</_WawiLegacyPlatformOutput>
+      <_WawiLegacyNewWindowsOutput>$(MSBuildProjectDirectory)\bin\$(Configuration)\net11.0-windows\</_WawiLegacyNewWindowsOutput>
     </PropertyGroup>
     <ItemGroup>
+      <_WawiLegacyHostOutput Include="$(_WawiLegacyPlatformOutput)$(MSBuildProjectName)*.exe;$(_WawiLegacyPlatformOutput)$(MSBuildProjectName)*.dll;$(_WawiLegacyPlatformOutput)$(MSBuildProjectName)*.pdb;$(_WawiLegacyPlatformOutput)$(MSBuildProjectName)*.deps.json;$(_WawiLegacyPlatformOutput)$(MSBuildProjectName)*.runtimeconfig.json" />
+      <_WawiLegacyHostOutput Include="$(_WawiLegacyNewWindowsOutput)$(MSBuildProjectName)*.exe;$(_WawiLegacyNewWindowsOutput)$(MSBuildProjectName)*.dll;$(_WawiLegacyNewWindowsOutput)$(MSBuildProjectName)*.pdb;$(_WawiLegacyNewWindowsOutput)$(MSBuildProjectName)*.deps.json;$(_WawiLegacyNewWindowsOutput)$(MSBuildProjectName)*.runtimeconfig.json" />
       <_WawiLegacyHostOutput Include="$(_WawiLegacyWindowsOutput)$(MSBuildProjectName)*.exe;$(_WawiLegacyWindowsOutput)$(MSBuildProjectName)*.dll;$(_WawiLegacyWindowsOutput)$(MSBuildProjectName)*.pdb;$(_WawiLegacyWindowsOutput)$(MSBuildProjectName)*.deps.json;$(_WawiLegacyWindowsOutput)$(MSBuildProjectName)*.runtimeconfig.json" />
       <_WawiLegacyHostOutput Include="$(_WawiLegacyPortableOutput)$(MSBuildProjectName)*.exe;$(_WawiLegacyPortableOutput)$(MSBuildProjectName)*.dll;$(_WawiLegacyPortableOutput)$(MSBuildProjectName)*.pdb;$(_WawiLegacyPortableOutput)$(MSBuildProjectName)*.deps.json;$(_WawiLegacyPortableOutput)$(MSBuildProjectName)*.runtimeconfig.json" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Console'" />
     </ItemGroup>

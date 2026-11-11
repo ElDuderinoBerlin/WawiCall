@@ -4,26 +4,6 @@ namespace WawiCallPro.App.Views;
 partial class PhoneNumberDiagnosticsPage
 {
     private System.ComponentModel.IContainer components;
-    private System.Windows.Forms.TableLayoutPanel layout;
-    private System.Windows.Forms.TableLayoutPanel filters;
-    private System.Windows.Forms.TableLayoutPanel actions;
-    private DevExpress.XtraEditors.LabelControl hintLabel;
-    private DevExpress.XtraEditors.LabelControl companyLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
-    private DevExpress.XtraEditors.LookUpEdit companyEdit;
-    private DevExpress.XtraEditors.SimpleButton loadButton;
-    private DevExpress.XtraEditors.SimpleButton refreshButton;
-    private DevExpress.XtraEditors.SimpleButton previousButton;
-    private DevExpress.XtraEditors.SimpleButton nextButton;
-    private DevExpress.XtraEditors.MemoEdit detailsEdit;
-    private DevExpress.XtraGrid.GridControl grid;
-    private DevExpress.XtraGrid.Views.Grid.GridView view;
-    private DevExpress.XtraGrid.Columns.GridColumn timeColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn valueColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn sourceColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn reasonColumn;
-    private DevExpress.XtraGrid.Columns.GridColumn codeColumn;
-    private DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit cellText;
 
     protected override void Dispose(bool disposing)
     {
@@ -183,4 +163,24 @@ partial class PhoneNumberDiagnosticsPage
         Size = new System.Drawing.Size(900, 650);
         ResumeLayout(false);
     }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel filters;
+    private System.Windows.Forms.TableLayoutPanel actions;
+    private DevExpress.XtraEditors.LabelControl hintLabel;
+    private DevExpress.XtraEditors.LabelControl companyLabel;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.LookUpEdit companyEdit;
+    private DevExpress.XtraEditors.SimpleButton loadButton;
+    private DevExpress.XtraEditors.SimpleButton refreshButton;
+    private DevExpress.XtraEditors.SimpleButton previousButton;
+    private DevExpress.XtraEditors.SimpleButton nextButton;
+    private DevExpress.XtraEditors.MemoEdit detailsEdit;
+    private DevExpress.XtraGrid.GridControl grid;
+    private DevExpress.XtraGrid.Views.Grid.GridView view;
+    private DevExpress.XtraGrid.Columns.GridColumn timeColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn valueColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn sourceColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn reasonColumn;
+    private DevExpress.XtraGrid.Columns.GridColumn codeColumn;
+    private DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit cellText;
 }

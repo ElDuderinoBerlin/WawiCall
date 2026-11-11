@@ -27,7 +27,7 @@ foreach ($line in $ProductLine) {
         Merge-ReleaseFiles $hostOutput $publish
     }
     if ($Configuration -eq 'Release') {
-        $tool = Join-Path $root "Tools/StripDxLicenseInformation/bin/Release/net10.0/WawiCallPro.StripDxLicenseInformation.dll"
+        $tool = Join-Path $root "Tools/StripDxLicenseInformation/bin/Release/net11.0/WawiCallPro.StripDxLicenseInformation.dll"
         Invoke-ReleaseProcess dotnet @($tool, '--input', $publish, '--recursive', '--pattern', 'WawiCallPro*.dll', '--pattern', 'WawiCallPro*.exe', '--key-file', $PluginKeyFile) -LogPath (Join-Path $stage 'strip-final.log')
     }
     & (Join-Path $PSScriptRoot 'Assert-ReleasePackage.ps1') -Directory $publish -ProductLine $line -Version $context.Version
