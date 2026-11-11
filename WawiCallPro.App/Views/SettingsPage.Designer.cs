@@ -86,6 +86,8 @@ partial class SettingsPage
     private DevExpress.XtraTab.XtraTabControl cachePages;
     private DevExpress.XtraTab.XtraTabPage cacheSourcesTab;
     private DevExpress.XtraTab.XtraTabPage matchingTab;
+    private DevExpress.XtraTab.XtraTabPage diagnosticsTab;
+    private WawiCallPro.App.Views.PhoneNumberDiagnosticsPage numberDiagnosticsPage;
     private System.Windows.Forms.TableLayoutPanel matchingLayout;
     private System.Windows.Forms.TableLayoutPanel matchingButtons;
     private DevExpress.XtraEditors.LabelControl matchingCompanyLabel;
@@ -113,6 +115,8 @@ partial class SettingsPage
         cachePages = new DevExpress.XtraTab.XtraTabControl();
         cacheSourcesTab = new DevExpress.XtraTab.XtraTabPage();
         matchingTab = new DevExpress.XtraTab.XtraTabPage();
+        diagnosticsTab = new DevExpress.XtraTab.XtraTabPage();
+        numberDiagnosticsPage = new WawiCallPro.App.Views.PhoneNumberDiagnosticsPage();
         matchingLayout = new System.Windows.Forms.TableLayoutPanel();
         matchingButtons = new System.Windows.Forms.TableLayoutPanel();
         matchingCompanyLabel = new DevExpress.XtraEditors.LabelControl();
@@ -686,6 +690,11 @@ partial class SettingsPage
         cachePages.Name = "cachePages";
         cachePages.TabPages.Add(cacheSourcesTab);
         cachePages.TabPages.Add(matchingTab);
+        cachePages.TabPages.Add(diagnosticsTab);
+        diagnosticsTab.Text = "Nummern-Diagnose";
+        diagnosticsTab.Name = "diagnosticsTab";
+        diagnosticsTab.Controls.Add(numberDiagnosticsPage);
+        numberDiagnosticsPage.Dock = System.Windows.Forms.DockStyle.Fill;
         cacheSourcesTab.Text = "Cachequellen";
         cacheSourcesTab.Name = "cacheSourcesTab";
         cacheSourcesTab.Controls.Add(cacheLayout);

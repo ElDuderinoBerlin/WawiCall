@@ -1,6 +1,14 @@
 # Datenbank: Tabellen und Spalten
 
-Stand: 07.11.2026, vollständiges Produktschema nach Migration 8.
+Stand: 11.11.2026, vollständiges Produktschema nach Migration 9.
+
+Migration 9 korrigiert ausschließlich den SQL-Server-Constraint `ck_numberparselogs_code_ascii`:
+Fehlercodes mit Bindestrich wie `number.not-a-number` sind zulässig. Zeichen außerhalb von
+ASCII-Buchstaben, Ziffern, Punkt, Unterstrich und Bindestrich bleiben ausgeschlossen.
+Tabellen, Spalten, vorhandene Beobachtungen und Migrationen 1–8 bleiben erhalten. Auf SQLite,
+PostgreSQL, MySQL und MariaDB wird nur die erfolgreiche Migrationsversion vermerkt.
+Eine Rückkehr zum vorherigen Schemastand erfolgt über eine vorher erstellte Datenbanksicherung;
+die ausgelieferten Migrationen bleiben vorwärtsgerichtet.
 Dieses Nachschlagewerk erklärt jede Tabelle und jede Spalte auf Deutsch. Die englischen technischen
 Namen entsprechen dem Code und bleiben zum Nachschlagen unverändert. SQL-Dialekte, Constraints,
 Indexdefinitionen und Migrationstests beschreibt ergänzend [Datenbankschema.md](Datenbankschema.md).

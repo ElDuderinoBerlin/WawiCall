@@ -92,11 +92,13 @@ public partial class SettingsPage : XtraUserControl
         pluginPage.Bind(workspace, _state);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
         pluginPage.RefreshCatalog();
+        numberDiagnosticsPage.Bind(workspace.NumberDiagnostics, _state);
     }
     internal async Task StopAsync()
     {
         if (_operation is not null) await _operation.StopAsync();
         await pluginPage.StopAsync();
+        await numberDiagnosticsPage.StopAsync();
     }
     internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
@@ -140,6 +142,7 @@ public partial class SettingsPage : XtraUserControl
         _state = state;
         _state?.Restore(cacheView, "CacheSources");
         pluginPage.ConfigureLayoutPersistence(state);
+        numberDiagnosticsPage.ConfigureLayoutPersistence(state);
     }
 
     internal void Apply(ConfigurationSnapshot snapshot)

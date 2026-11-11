@@ -43,7 +43,7 @@ foreach(var item in configurations)
             Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
         }
         await ProviderCompatibilityAcceptance.RunAsync(target);
-        Console.WriteLine(item.Engine + ": migrations 1-8, populated 7-to-8 upgrade, source metadata, Unicode, field limits, queries and repeated migration passed.");
+        Console.WriteLine(item.Engine + ": migrations 1-9, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
     }
     if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else

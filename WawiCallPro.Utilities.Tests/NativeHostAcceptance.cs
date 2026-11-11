@@ -56,8 +56,9 @@ public static class NativeHostAcceptance
             await PhoneMatchingAcceptance.RunAsync(host.Services, token);
             await PhoneSearchIndexTests.RunAcceptanceAsync(host.Services);
             await CallAssociationAcceptance.RunAsync(host.Services, token);
+            await PhoneNumberDiagnosticsAcceptance.RunAsync(host.Services, token);
         });
-        Console.WriteLine(type + ": real DI host with DPAPI settings, schema status/progress, workstation, history, StartWidth and cross-company phone index passed.");
+        Console.WriteLine(type + ": real DI host with DPAPI settings, schema status/progress, workstation, history, StartWidth, cross-company phone index and source-number diagnostics passed.");
     }
 
     private sealed class CaptureProgress : IProgress<DatabaseMigrationProgress>

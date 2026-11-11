@@ -15,7 +15,7 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("HistoryPage", "history"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details") }
+        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("HistoryPage", "history"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
@@ -35,6 +35,15 @@ internal static class UiAudit
                     form.ClientSize = size;
                     _ = form.Handle;
                     typeof(Form).GetMethod("OnLoad", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [EventArgs.Empty]);
+                    if (surface == "PhoneNumberDiagnosticsPage")
+                    {
+                        using var content = new WawiCallPro.App.Views.PhoneNumberDiagnosticsPage { Dock = DockStyle.Fill };
+                        form.Controls.Add(content); content.BringToFront(); CreateHandles(content); form.PerformLayout();
+                        using var shot = new Bitmap(content.Width, content.Height);
+                        content.DrawToBitmap(shot, new Rectangle(Point.Empty, content.Size));
+                        shot.Save(Path.Combine(outputDirectory, $"PhoneNumberDiagnosticsPage-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
+                        continue;
+                    }
                     if (surface == "CallDetailsPage")
                     {
                         using var content = new WawiCallPro.App.Views.CallDetailsPage { Dock = DockStyle.Fill };

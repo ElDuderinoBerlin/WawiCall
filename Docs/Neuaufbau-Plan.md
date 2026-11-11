@@ -1153,7 +1153,26 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   Nebenläufigkeits-/Freigabeprüfungen erneut erfolgreich.
   Nachweise: `.artifacts/phase6-call-context`. Das SQL-Schema bleibt unverändert;
   automatische Neuindizierung und Fehlerdiagnose bleiben die folgenden Punkte. Phase 6 bleibt offen.
-- [ ] Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
+- [x] ✅ Fehlerhafte Quellnummern protokollieren und im Diagnosebereich mit Quelle und Grund anzeigen.
+  Vorhandene unabhängige NumberParseFailure-Beobachtungen über einen lesenden DI-Dienst angebunden.
+  Einstellungen → Telefon-Cache → Nummern-Diagnose bietet Mandantenauswahl, Originalwert, Quelle,
+  verständlichen Grund und Fehlercode sowie den vollständigen Firmen-/Kontaktbesitzer-/Quellbezug
+  zum Kopieren. Historische Beobachtungen bleiben nach Cacheersatz erhalten. Keine ERP-Aufrufe,
+  kein Wechsel der globalen Firma, keine Originalnummern in Betriebslogs. Die eingebaute Grid-Suche
+  liest auch noch nicht angezeigte Repositoryseiten; Ausgabe mit jeweils 100 Treffern, feste Codes
+  und allgemeiner Grund für unbekannte Codes. Abbruch, späte Antworten und Schließen sind abgesichert.
+  Designerfähiges eigenes UserControl mit TableLayoutPanel, DevExpress-Eingaben und versioniertem
+  Spaltenlayout; gezielte Hintergrundrender leer/gefüllt, 640/900 Pixel, 10/16 pt, 150%-Layoutsimulation
+  und Basic/dunkler Skin. Die Serverabnahme zeigte, dass der SQL-Server-Constraint gültige Codes
+  mit Bindestrich ablehnte. Migration 9 korrigiert nur diesen Constraint, ohne Migrationen 1–8,
+  Spalten oder vorhandene Daten zu ändern. Gültige Bindestrichcodes und das weitere Ablehnen von
+  Leerzeichen, Unicode, Slash, Doppelpunkt und Klammern werden auf allen Engines geprüft.
+  Je Edition 137 Utilities- und fünf gezielte App-Prüfungen bestanden; zusätzlich 89 Datenbanktests
+  und isolierte SQL-Server-/PostgreSQL-/MySQL-/MariaDB-Abnahmen einschließlich befülltem Upgrade,
+  Code-Constraints und unveränderten Altbeobachtungen. Elf gezielte Hintergrundbilder visuell geprüft.
+  App/Console in der aktiven IDE-Konfiguration Debug/Any CPU rekompiliert; 13 bekannte Nullable-
+  Warnungen ausschließlich in der externen CSCore-Bibliothek. Isolierte Diagnosehoststarts geprüft.
+  Prüfnachweise unter `.artifacts/phase6-number-diagnostics`.
 - [ ] Suchfirmen-/Stammdatenänderungen und Neuindizierung bei Regel-/Metadatenwechsel behandeln;
   Gesprächshistorie und frühere Auswahl bleiben als Momentaufnahme erhalten.
 

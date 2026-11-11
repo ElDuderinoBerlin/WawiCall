@@ -33,7 +33,7 @@ public sealed class ProductSchemaTests
         var migrator = new DatabaseMigrator(new(), engine);
         var status = await migrator.MigrateAsync(target);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8 }, status.AppliedVersions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, status.AppliedVersions.ToArray());
         using (var db = Open(target))
         {
             Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordings,versioninfo,wawicallpro_metadata",
@@ -57,8 +57,8 @@ public sealed class ProductSchemaTests
         var target = Target();
         await new DatabaseProvisioner(new()).CreateAsync(target);
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
-        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15, 15];
-        for (var version = 1; version <= 8; version++)
+        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15, 15, 15];
+        for (var version = 1; version <= 9; version++)
         {
             engine.MigrateUp(target, version);
             using var db = Open(target);

@@ -40,6 +40,105 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task NumberDiagnosticsSearchesUnloadedRowsAndKeepsSourcesCompanyBound() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var source = new DiagnosticSource();
+        using var page = new PhoneNumberDiagnosticsPage(); page.Bind(source, services.GetRequiredService<AppUiState>());
+        CreateHandles(page);
+        await DiagnosticActionAsync(page, "LoadCompanies_Click");
+        var lookup = Field<LookUpEdit>(page, "companyEdit"); lookup.EditValue = source.A.Key; await page.PendingRequests;
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+        Assert.AreEqual(100, view.DataRowCount);
+        await DiagnosticActionAsync(page, "Next_Click"); Assert.AreEqual(21, view.DataRowCount);
+        view.ApplyFindFilter("owner-needle"); await page.PendingRequests;
+        Assert.AreEqual("owner-needle", source.LastSearch); Assert.AreEqual(1, view.DataRowCount);
+        Assert.Contains("owner-needle", Field<MemoEdit>(page, "detailsEdit").Text);
+        Assert.Contains("SourceRecord", Field<MemoEdit>(page, "detailsEdit").Text);
+        Assert.IsNull(workspace.Companies.Current.Company);
+        lookup.EditValue = source.B.Key; await page.PendingRequests;
+        Assert.AreEqual(0, view.DataRowCount); Assert.DoesNotContain("SourceRecord", Field<MemoEdit>(page, "detailsEdit").Text);
+        await page.StopAsync();
+    });
+    [TestMethod]
+    public Task NumberDiagnosticsRejectLateCompanyResponsesAndShutdownWaitsForIgnoringSources() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var source = new DiagnosticSource(); using var page = new PhoneNumberDiagnosticsPage(); page.Bind(source, null);
+        CreateHandles(page); await DiagnosticActionAsync(page, "LoadCompanies_Click");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        source.BeforeRead = async company => { if (company == source.A.Key) { entered.TrySetResult(); await release.Task; } };
+        var lookup = Field<LookUpEdit>(page, "companyEdit"); lookup.EditValue = source.A.Key; await entered.Task;
+        lookup.EditValue = source.B.Key;
+        await Task.Delay(20); release.SetResult(); await page.PendingRequests;
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view"); Assert.AreEqual(0, view.DataRowCount);
+        entered = new(TaskCreationOptions.RunContinuationsAsynchronously); release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        lookup.EditValue = source.A.Key; await entered.Task;
+        var stop = page.StopAsync(); Assert.IsFalse(stop.IsCompleted);
+        release.SetResult(); await stop; Assert.AreEqual(0, view.DataRowCount);
+    });
+    [TestMethod]
+    public Task NumberDiagnosticsRendersInSettingsWithSourcesEmptyRowsSmallWindowsAndBothSkins() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "phase6-number-diagnostics", "render"); Directory.CreateDirectory(output);
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        try
+        {
+            foreach (var (width, height, fontSize, scale, skin) in new[] { (900, 650, 10F, 1F, "Basic"), (640, 480, 10F, 1F, "Basic"),
+                (900, 650, 16F, 1F, "Basic"), (900, 650, 10F, 1.5F, "Basic"), (900, 650, 16F, 1F, "Office 2019 Black") })
+            foreach (var loaded in new[] { false, true })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var host = new FrmCallerLookup(); host.PrepareForBackgroundRun();
+                foreach (Control child in host.Controls.Cast<Control>().ToArray()) child.Dispose(); host.Controls.Clear();
+                host.Font = font; host.ClientSize = new(width, height);
+                var source = new DiagnosticSource(); using var page = new PhoneNumberDiagnosticsPage { Dock = DockStyle.Fill }; page.Bind(source, null);
+                host.Controls.Add(page); host.Show(); Application.DoEvents();
+                await DiagnosticActionAsync(page, "LoadCompanies_Click");
+                Field<LookUpEdit>(page, "companyEdit").EditValue = loaded ? source.A.Key : source.B.Key; await page.PendingRequests;
+                if (scale != 1F) host.Scale(new SizeF(scale, scale)); host.PerformLayout(); Application.DoEvents(); CheckTableBounds(host);
+                Assert.IsTrue(Field<GridControl>(page, "grid").Height > 60); Assert.IsTrue(Field<MemoEdit>(page, "detailsEdit").Height > 40);
+                using var shot = UiAudit.Capture(host); shot.Save(Path.Combine(output, $"diagnostics-{width}-{fontSize:0}-{scale:0.0}-{skin}-{loaded}.png"), ImageFormat.Png);
+                await page.StopAsync();
+            }
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = oldFont;
+            var settingsPage = Field<SettingsPage>(settings, "settingsPage");
+            settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(settingsPage, "cacheTab");
+            Field<XtraTabControl>(settingsPage, "cachePages").SelectedTabPage = Field<XtraTabPage>(settingsPage, "diagnosticsTab");
+            settings.Show(); settings.PerformLayout(); Application.DoEvents(); CheckTableBounds(settings);
+            using var parentShot = UiAudit.Capture(settings); parentShot.Save(Path.Combine(output, "settings-diagnostics.png"), ImageFormat.Png);
+            await settings.StopAsync();
+        }
+        finally { DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; }
+    });
+    private static async Task DiagnosticActionAsync(PhoneNumberDiagnosticsPage page, string method)
+    {
+        page.GetType().GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(page, [null, EventArgs.Empty]);
+        await page.PendingRequests;
+    }
+    private sealed class DiagnosticSource : IPhoneNumberDiagnostics
+    {
+        internal Company A { get; } = new(new(LexwareProductLine.Pro, "installation-A", "01"), "Diagnosefirma A mit längerem Namen Ä");
+        internal Company B { get; } = new(new(LexwareProductLine.Pro, "installation-B", "01"), "Diagnosefirma B");
+        internal string? LastSearch;
+        internal Func<CompanyKey, Task>? BeforeRead;
+        public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default) => Task.FromResult<ImmutableArray<Company>>([A, B]);
+        public async Task<Page<PhoneNumberDiagnostic>> GetPageAsync(CompanyKey company, PageRequest page, string? search = null, CancellationToken cancellationToken = default)
+        {
+            LastSearch = search; if (BeforeRead is not null) await BeforeRead(company);
+            var matches = company == B.Key ? [] : Enumerable.Range(0, 121).Select(index => new PhoneNumberDiagnostic(Guid.NewGuid(),
+                new(A.Key, PartyKind.SupplierContact, "contact-" + index, index == 120 ? "owner-needle" : "owner-01"),
+                new("SourceRecord", "AddressRecord-" + index, "Telephone"), PhoneKind.Telephone, "Nicht auswertbarer Quellwert Ä · " + index,
+                "number.not-a-number", "Der Quellwert enthält keine auswertbare Rufnummer.", DateTimeOffset.UtcNow.AddSeconds(-index)))
+                .Where(item => string.IsNullOrEmpty(search) || item.Party.OwnerExternalId!.Contains(search, StringComparison.OrdinalIgnoreCase)).ToArray();
+            return new(matches.Skip(page.Offset).Take(page.Limit).ToImmutableArray(), matches.Length > page.Offset + page.Limit);
+        }
+    }
+
+    [TestMethod]
     public Task SupersededSearchResultCannotAssignACallOrStartDetailLoads() => WithWorkspace(async (workspace, services, plugin) =>
     {
         await SeedCallerCachesAsync(workspace, services);

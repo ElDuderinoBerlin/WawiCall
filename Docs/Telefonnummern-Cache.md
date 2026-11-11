@@ -428,7 +428,8 @@ Ohne nachgewiesenen Leitungskontext gibt es keine automatische Bevorzugung durch
 
 Nachweise werden mit synthetischen Anrufen, isolierten Repositories und Plugins erbracht. Das ersetzt
 keine Abnahme an der echten FRITZ!Box oder produktiven Warenwirtschaft. Automatische Neuindizierung
-und Diagnose fehlerhafter Quellnummern bleiben eigene offene Planpunkte.
+bleibt ein eigener offener Planpunkt. Gespeicherte Quellnummernbeobachtungen sind im folgenden
+Diagnosebereich lesbar; die echte FRITZ!Box-/Wawi-Abnahme bleibt offen.
 
 ## Implementierter gemeinsamer Suchindex
 
@@ -519,7 +520,32 @@ Ein Abbruch wartet auf den Quellaufruf: Bereits abgeschlossene Firmen bleiben ge
 die laufende Firma behält ihren bisherigen Cache. Ein Fehler einer Firma hält andere ausgewählte
 Firmen nicht auf. Unauflösbare Nummern werden mit festen Fehlercodes und Quellbezug unabhängig
 protokolliert; diese Beobachtungen können auch bei einem späteren Abbruch oder Revisionskonflikt bleiben.
-Eine Diagnoseoberfläche für die protokollierten Quellnummernfehler steht noch aus.
+Unter **Einstellungen → Telefon-Cache → Nummern-Diagnose** zeigt die App diese Beobachtungen mit
+Originalwert, Quelltyp/-feld, Zeitpunkt, festem Fehlercode und verständlichem Grund. Ein lesender
+`IPhoneNumberDiagnostics`-Dienst liefert dafür die lokal registrierten Mandanten der eigenen Edition;
+auch inzwischen abgewählte Cachequellen bleiben verfügbar. Die Auswahl verändert weder die globale
+Ansichtsfirma noch die Suchfirmen und ruft keine Warenwirtschaft auf. Gleiche Firmennamen werden
+intern weiterhin durch vollständige CompanyKeys getrennt.
+
+Das eingebaute Grid-Find-Panel sucht als wörtlicher Teiltext ohne Beachtung der Großschreibung über
+alle gespeicherten Seiten: Originalwert, Quelle, Datensatz-/Besitzeridentität, Code und Grund.
+Die Ausgabe umfasst jeweils 100 Treffer. Der Dienst liest bei einer Suche bestehende Repositoryseiten
+zu höchstens 500 Beobachtungen auf einem Hintergrundthread, statt nur die bereits sichtbare Seite zu
+filtern. Sehr große Fehlerbestände können dadurch länger dauern; ein Abbruch wird zwischen den
+Seiten und Zeilen geprüft. Ohne Suchtext bleibt der reguläre paginierte Repositoryabruf erhalten.
+Der lesende Dienst benötigt keine neuen SQL-Abfragen. Migration 9 korrigiert den bestehenden
+SQL-Server-ASCII-Constraint, der gültige Codes mit Bindestrichen wie `number.not-a-number` ablehnte.
+Andere Engines benötigen keine Constraintänderung; alte Beobachtungen und Migrationen bleiben erhalten.
+
+Die untere, kopierbare Detailansicht enthält den vollständigen CompanyKey, PartyKey einschließlich
+Kontaktbesitzer und das Quellfeld samt Datensatz-ID. Originalwerte sind ausschließlich Fachdaten in
+der Kommunikationsdatenbank und dieser ausdrücklichen Diagnose, keine Betriebslogmeldungen.
+Unbekannte Fehlercodes behalten ihren Code und erhalten einen allgemeinen Grund. Einträge bleiben
+historische Beobachtungen; Cacheersatz oder eine spätere Quellkorrektur löschen sie nicht.
+Mandanten-/Suchwechsel löschen die alte Anzeige und invalidieren ausstehende Antworten;
+Schließen bricht laufende Abrufe ab und wartet auch auf eine Quelle, die den Abbruch ignoriert.
+Benutzeränderungen am Spaltenlayout werden getrennt unter `PhoneNumberDiagnostics-v1` gespeichert;
+Diagnose-/Renderläufe verändern das Benutzerlayout nicht.
 
 Ein firmengebundener Wawi-Client darf nicht parallel durch ungeschützte UseCompany-Wechsel umgeschaltet
 werden. Es werden nachweislich isolierte Firmenclients verwendet oder Firmenwechsel plus Abfrage über

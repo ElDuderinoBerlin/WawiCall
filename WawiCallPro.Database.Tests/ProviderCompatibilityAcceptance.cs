@@ -68,6 +68,14 @@ public static class ProviderCompatibilityAcceptance
                     ["kind"] = 1, ["externalid"] = key.ExternalId, ["displayname"] = "Legacy Ä 电话", ["isinactive"] = 0,
                     ["refreshedatutc"] = RepositoryAcceptance.Time.Ticks, ["searchname"] = "LEGACY Ä 电话"
                 });
+                await InsertAsync(db, target.Type, "numberparselogs", new()
+                {
+                    ["id"] = DatabaseId.Encode(Guid.NewGuid()), ["companyid"] = companyId,
+                    ["partykeyhash"] = SourceIdentityHash.Party(key), ["kind"] = 1, ["externalid"] = key.ExternalId,
+                    ["phonekind"] = 1, ["sourcerecordtype"] = "fixture", ["sourcerecordid"] = "legacy",
+                    ["sourcefieldname"] = "phone", ["originalvalue"] = "legacy error Ä",
+                    ["code"] = "number.invalid", ["occurredatutc"] = RepositoryAcceptance.Time.Ticks
+                });
                 await InsertAsync(db, target.Type, "partyaddresses", new()
                 {
                     ["id"] = addressId, ["partyid"] = partyId, ["sourcehash"] = SourceIdentityHash.Address(key, AddressKind.Billing, "0001"),
@@ -102,6 +110,20 @@ public static class ProviderCompatibilityAcceptance
                 Assert.AreEqual(addressId, await ScalarAsync(db, "SELECT id FROM " + DatabaseSql.Table(target.Type, "partyaddresses")));
             }
             else await new DapperCompanyRepository(context).WriteAsync(new(new(company, "Fresh Ä 电话"), null, RepositoryAcceptance.Time));
+
+            var logs = new DapperNumberParseLogRepository(context);
+            if (upgrade) Assert.AreEqual("legacy error Ä", (await logs.GetPageAsync(new(company, new()))).Items.Single().OriginalValue);
+            var diagnosticId = Guid.NewGuid();
+            foreach (var code in new[] { "number.not-a-number", "number.too-short", "number.e164-length", "future.CODE_01-2" })
+                await logs.AppendAsync(new(code == "future.CODE_01-2" ? diagnosticId : Guid.NewGuid(), key,
+                    new("fixture", "diagnostic", "phone"), PhoneKind.Telephone, "source error", code, RepositoryAcceptance.Time));
+            await using (var db = factory.CreateConnection(target))
+            {
+                await db.OpenAsync();
+                foreach (var invalid in new[] { "space in code", "number.ä", "number/a", "number:invalid", "number[invalid]" })
+                    await Assert.ThrowsAsync<DbException>(() => ExecuteAsync(db,
+                        $"UPDATE {DatabaseSql.Table(target.Type, "numberparselogs")} SET {Quote(target.Type, "code")}=@value WHERE id='{DatabaseId.Encode(diagnosticId)}'", invalid));
+            }
 
             var phone = new PartyPhone("030 / 123456", PhoneKind.Telephone, new("fk_kunde", "0001", "Telephone"), "+4930123456");
             var address = new PartyAddress
