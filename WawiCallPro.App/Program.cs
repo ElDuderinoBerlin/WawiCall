@@ -26,7 +26,15 @@ internal static class Program
             return 1;
         }
 
-        return RunApplication(args);
+        var result = RunApplication(args);
+        if (result != AppRestartLauncher.RestartRequestedExitCode) return result;
+        try { AppRestartLauncher.Start(); return 0; }
+        catch (Exception)
+        {
+            XtraMessageBox.Show("Die Einstellungen sind gespeichert. Der automatische Neustart ist fehlgeschlagen. Bitte WawiCallPro erneut öffnen.",
+                "Neustart", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return 1;
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -58,7 +66,7 @@ internal static class Program
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();
             if (exceptions.Failure is not null) ExceptionDispatchInfo.Capture(exceptions.Failure).Throw();
-            return 0;
+            return application.RestartRequested ? AppRestartLauncher.RestartRequestedExitCode : 0;
         }
         catch (Exception exception)
         {

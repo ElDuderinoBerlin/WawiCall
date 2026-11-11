@@ -43,6 +43,7 @@ internal sealed class AppApplicationContext : ApplicationContext
     }
 
     internal Exception? Failure { get; private set; }
+    internal bool RestartRequested { get; private set; }
 
     private async void StartOnIdle(object? sender, EventArgs e)
     {
@@ -86,6 +87,7 @@ internal sealed class AppApplicationContext : ApplicationContext
             });
             // Emit success only after StopAsync and asynchronous container disposal have succeeded.
             if (_diagnostics) Console.WriteLine(JsonSerializer.Serialize(diagnostic));
+            RestartRequested = !_diagnostics && _auditDirectory is null && _form?.RestartRequested == true;
         }
         catch (Exception exception)
         {
@@ -141,7 +143,8 @@ internal sealed class AppApplicationContext : ApplicationContext
         {
             if (_form is not null) await _form.PrepareToCloseAsync();
         }
-        catch (WawiCallPro.Plugin.Windows.UnsavedPluginChangesException) { _form?.ReportUnsavedChanges(); return; }
+        catch (WawiCallPro.Plugin.Windows.UnsavedPluginChangesException)
+        { if (_form is not null) { _form.RestartRequested = false; _form.ReportUnsavedChanges(); } return; }
         catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }
         _closeRequested.TrySetResult();
     }

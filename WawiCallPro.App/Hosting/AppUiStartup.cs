@@ -4,13 +4,22 @@ using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Interfaces.Hosting;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Hosting;
 
 /// <summary>Initializes available DevExpress skins and dialogs on the UI thread, before licensing or application forms.</summary>
-internal sealed class AppUiStartup(IUiDispatcher dispatcher) : IHostedService
+internal sealed class AppUiStartup(IUiDispatcher dispatcher, ApplicationConfigurationService configuration) : IHostedService
 {
-    public Task StartAsync(CancellationToken cancellationToken) => dispatcher.InvokeAsync(Apply, cancellationToken).AsTask();
+    public Task StartAsync(CancellationToken cancellationToken) => dispatcher.InvokeAsync(() =>
+    {
+        ApplyRenderingPreference(configuration.Current.Options.User.UseDirectXRendering, WindowsFormsSettings.ForceDirectXPaint);
+        Apply();
+    }, cancellationToken).AsTask();
+    internal static void ApplyRenderingPreference(bool directX, Action enableDirectX)
+    {
+        if (directX) enableDirectX();
+    }
     internal static void Apply()
     {
         BonusSkins.Register();

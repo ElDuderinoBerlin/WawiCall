@@ -1492,6 +1492,27 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   kollabierte Liste vor Abschluss korrigiert. `.artifacts/plugin-settings` und
   `.artifacts/app-shell/settings-ui/Settings-Plugins-*`. Keine sichtbaren Fenster oder SQL-Änderungen.
 
+- [x] ✅ Nutzerauftrag vom 11.11.2026: DirectX-Schalter unter Einstellungen → Allgemein ergänzt.
+  `user.useDirectXRendering` wird in Einstellungsformat 6 gespeichert; Altformate bleiben lesbar,
+  Lesen aktiviert DirectX nicht und schreibt keine Datei um. Default bleibt ausgeschaltet.
+  Die injizierte Startkonfiguration aktiviert `WindowsFormsSettings.ForceDirectXPaint()` auf dem
+  UI-Thread vor Splash, Lizenzdialogen und Hauptfenster. Keine Umschaltung laufender Controls.
+  Nach erfolgreichem Speichern einer geänderten Renderingvorgabe fragt die App nach einem Neustart.
+  Nein, unveränderte Vorgaben und fehlgeschlagenes Speichern starten keinen Prozess. Bei Ja schließen
+  Settings und Hauptfenster über den bestehenden asynchronen Ablauf; ungespeicherte Fachansichten
+  blockieren weiter und verwerfen den Neustartwunsch. Die gleiche EXE startet erst nach Host-Shutdown,
+  Formularfreigabe und Freigabe der Instanzsperre neu, ohne Diagnose-/Auditargumente zu übernehmen.
+  DevExpress-Referenz: [DirectX Hardware Acceleration](https://docs.devexpress.com/WindowsForms/119441).
+  Je Edition 138 Utilities-, 25 Console- und sieben gezielte App-Prüfungen bestanden; die finale
+  Layoutprüfung zusätzlich je Edition wiederholt. Vier gezielte Hintergrundbilder je Edition mit
+  680/980 Pixeln, 10/16 pt, 150%-Layoutsimulation und Basic/dunklem Skin visuell geprüft; kein Scrollen
+  für die Standardfelder erforderlich. IDE-Rebuild App/Console in Debug/Any CPU erfolgreich,
+  13 bekannte Nullable-Warnungen ausschließlich in der externen CSCore-Bibliothek.
+  Isolierte App-Diagnosestarts mit DirectX aus/ein und Console-Diagnosestart mit Format 6 bestanden.
+  Neustartentscheidung und Startargumente automatisiert geprüft; kein sichtbarer Neustart oder
+  Hardware-/Leistungsvergleich ausgeführt.
+  Nachweise und gezielte Allgemein-Tab-Render unter `.artifacts/directx-settings`.
+
 - [x] ✅ Vorgezogener Nutzerauftrag vom 07.11.2026: Main-App-Basis nach der direkten Vorlage
   `LxTranslate.App` aufgebaut: Ribbon, persistierte DevExpress-Dockpanels für Navigation/Ausgabe/Hilfe,
   DocumentManager/TabbedView, wiederverwendbare Arbeits-Tabs, Einstellungsdialog und Skin-/Schriftauswahl.

@@ -31,6 +31,9 @@ public partial class MainForm : RibbonForm
     private bool _removingDocument;
     private bool _loaded;
     private bool _closing;
+    [System.ComponentModel.Browsable(false)]
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    internal bool RestartRequested { get; set; }
 
     public MainForm() { InitializeComponent(); AppIconHelper.Apply(this); ConfigureIcons(); }
     public MainForm(ApplicationDescriptor application) : this() => _application = application ?? throw new ArgumentNullException(nameof(application));
@@ -267,6 +270,7 @@ public partial class MainForm : RibbonForm
     {
         using var settings = CreateSettingsDialog(plugins);
         settings.ShowDialog(this);
+        if (settings.RestartRequested) { RestartRequested = true; Close(); return; }
         foreach (var document in _documents.Values)
             if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
                 dashboard.RefreshStatus();

@@ -40,6 +40,91 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    public Task DirectXChangeAsksOnlyAfterSuccessfulSaveAndCanRestartInEitherDirection(bool initial, bool changed) => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { UseDirectXRendering = initial } }, snapshot);
+        await workspace.Configuration.StartAsync(CancellationToken.None);
+        using var dialog = new FrmSettings(workspace);
+        var page = Field<SettingsPage>(dialog, "settingsPage");
+        var editor = Field<CheckEdit>(page, "directXEdit"); Assert.AreEqual(initial, editor.Checked);
+        editor.Checked = changed; var prompts = 0;
+        await Field<PageOperation>(page, "_operation").RunAsync(token => page.SaveAndOfferRestartAsync(() =>
+        {
+            prompts++; Assert.AreEqual(changed, workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.UseDirectXRendering);
+            return true;
+        }, token));
+        Assert.AreEqual(1, prompts); Assert.IsTrue(dialog.RestartRequested);
+        Assert.AreEqual(initial, workspace.Configuration.Current.Options.User.UseDirectXRendering, "Running renderer preference must remain the startup snapshot.");
+        await dialog.StopAsync();
+    });
+    [TestMethod]
+    public Task DirectXRestartCanBeDeclinedAndUnchangedOrFailedSavesDoNotAsk() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var page = new SettingsPage(); page.Bind(workspace); var prompts = 0; var restarts = 0;
+        page.RestartRequested += (_, _) => restarts++;
+        var editor = Field<CheckEdit>(page, "directXEdit");
+        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
+        Assert.AreEqual(0, prompts);
+        editor.Checked = true;
+        await page.SaveAndOfferRestartAsync(() => { prompts++; return false; }, CancellationToken.None);
+        Assert.AreEqual(1, prompts); Assert.AreEqual(0, restarts); Assert.IsTrue((await workspace.Settings.LoadAsync()).Options.User.UseDirectXRendering);
+        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
+        Assert.AreEqual(1, prompts, "Repeated save of an unchanged preference must not ask again.");
+        editor.Checked = false;
+        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
+        Assert.AreEqual(1, prompts, "Returning to the active renderer does not need a restart.");
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { StartMinimized = !snapshot.Options.User.StartMinimized } }, snapshot);
+        editor.Checked = true;
+        await Assert.ThrowsExactlyAsync<ConfigurationException>(() => page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None));
+        Assert.AreEqual(1, prompts); Assert.AreEqual(0, restarts);
+        await page.StopAsync();
+    });
+    [TestMethod]
+    public void DirectXStartupAndRestartArgumentsUseOnlyTheSavedPreferenceAndSameApplication()
+    {
+        var calls = 0;
+        AppUiStartup.ApplyRenderingPreference(false, () => calls++); Assert.AreEqual(0, calls);
+        AppUiStartup.ApplyRenderingPreference(true, () => calls++); Assert.AreEqual(1, calls);
+        var app = AppRestartLauncher.CreateStartInfo(@"D:\Program Files\WawiCallPro\WawiCallPro.App.FinOffice.exe", @"D:\Program Files\WawiCallPro\WawiCallPro.App.FinOffice.dll");
+        Assert.AreEqual(@"D:\Program Files\WawiCallPro\WawiCallPro.App.FinOffice.exe", app.FileName);
+        Assert.AreEqual(0, app.ArgumentList.Count); Assert.IsFalse(app.UseShellExecute);
+        var dotnet = AppRestartLauncher.CreateStartInfo(@"C:\Program Files\dotnet\dotnet.exe", @"D:\App\WawiCallPro.App.Pro.dll");
+        Assert.AreEqual(@"D:\App\WawiCallPro.App.Pro.dll", dotnet.ArgumentList.Single());
+    }
+    [TestMethod]
+    public Task DirectXCheckboxRendersInGeneralSettingsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "directx-settings", workspace.Application.ProductLine); Directory.CreateDirectory(output);
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        try
+        {
+            foreach (var (width, height, fontSize, scale, skin) in new[] { (980, 760, 10F, 1F, "Basic"), (680, 580, 16F, 1F, "Basic"),
+                (980, 760, 10F, 1.5F, "Basic"), (680, 580, 16F, 1F, "Office 2019 Black") })
+            {
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = font; settings.ClientSize = new(width, height);
+                settings.Show(); Application.DoEvents();
+                settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
+                var page = Field<SettingsPage>(settings, "settingsPage"); Field<CheckEdit>(page, "directXEdit").Checked = true;
+                if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents(); CheckTableBounds(settings);
+                Assert.IsTrue(Field<CheckEdit>(page, "directXEdit").Visible);
+                Assert.IsTrue(Field<LabelControl>(page, "generalHint").Bottom <= Field<TableLayoutPanel>(page, "generalLayout").ClientSize.Height,
+                    "The general settings hint must fit without a scrollbar.");
+                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                await settings.StopAsync();
+            }
+        }
+        finally { DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; }
+    });
+
+    [TestMethod]
     public Task NumberDiagnosticsSearchesUnloadedRowsAndKeepsSourcesCompanyBound() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var source = new DiagnosticSource();

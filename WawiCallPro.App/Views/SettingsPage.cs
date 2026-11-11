@@ -20,6 +20,7 @@ public partial class SettingsPage : XtraUserControl
     private Func<Task>? _beforePluginSwitch;
     private SimpleButton? _dialogCloseButton;
     private bool _arrangingButtons;
+    internal event EventHandler? RestartRequested;
     public SettingsPage()
     {
         InitializeComponent();
@@ -152,6 +153,7 @@ public partial class SettingsPage : XtraUserControl
         ApplyCallerLine(options);
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
+        directXEdit.Checked = options.User.UseDirectXRendering;
         sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
         _sipAdvanced = SipAdvancedSettings.From(options.SipAccount?.Connection ?? new());
         sipProperties.SelectedObject = _sipAdvanced;
@@ -181,7 +183,7 @@ public partial class SettingsPage : XtraUserControl
         var old = _snapshot!.Options;
         return old with
         {
-            User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked },
+            User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked },
             SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)
                 && string.IsNullOrWhiteSpace(authUserEdit.Text) && passwordEdit.Text.Length == 0 ? null : new SipAccountOptions
@@ -253,7 +255,19 @@ public partial class SettingsPage : XtraUserControl
     }
     private async void Save_Click(object? sender, EventArgs e)
     {
-        if (_operation is not null) await _operation.RunAsync(SaveAsync);
+        if (_operation is not null) await _operation.RunAsync(token => SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
+            "Die geänderte DirectX-Einstellung wurde gespeichert und wird nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token));
+    }
+    internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
+    {
+        var previous = _snapshot!.Options.User.UseDirectXRendering;
+        await SaveAsync(token);
+        var saved = _snapshot.Options.User.UseDirectXRendering;
+        if (saved != _workspace!.Configuration.Current.Options.User.UseDirectXRendering)
+            statusLabel.Text = "Einstellungen gespeichert. Die geänderte DirectX-Einstellung wird nach einem Neustart wirksam.";
+        if (saved != previous && saved != _workspace.Configuration.Current.Options.User.UseDirectXRendering && confirm())
+            RestartRequested?.Invoke(this, EventArgs.Empty);
     }
     private async void Reload_Click(object? sender, EventArgs e)
     {

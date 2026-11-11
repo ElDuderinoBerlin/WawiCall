@@ -17,6 +17,21 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class SettingsVersionTests
 {
     [TestMethod]
+    public async Task VersionFiveDefaultsToGdiAndDirectXPreferenceRoundTripsOnlyAfterExplicitSave()
+    {
+        using var directory = new SettingsDirectory();
+        const string json = "{\"formatVersion\":5,\"settings\":{\"user\":{\"startMinimized\":true}}}";
+        await File.WriteAllTextAsync(directory.Location.FilePath, json);
+        var old = await directory.Store.LoadAsync();
+        Assert.IsFalse(old.Options.User.UseDirectXRendering); Assert.IsTrue(old.Options.User.StartMinimized);
+        Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
+        await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { UseDirectXRendering = true } }, old);
+        var enabled = await directory.Store.LoadAsync();
+        Assert.AreEqual(6, enabled.FormatVersion); Assert.IsTrue(enabled.Options.User.UseDirectXRendering); Assert.IsTrue(enabled.Options.User.StartMinimized);
+        await directory.Store.SaveAsync(enabled.Options with { User = enabled.Options.User with { UseDirectXRendering = false } }, enabled);
+        Assert.IsFalse((await directory.Store.LoadAsync()).Options.User.UseDirectXRendering);
+    }
+    [TestMethod]
     public async Task VersionOneNumberContextsDoNotAutomaticallyEnablePhoneCacheSources()
     {
         RequireWindows();
@@ -60,7 +75,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(ConfigurationFormat.CurrentVersion, current.FormatVersion);
         Assert.IsFalse(current.RequiresUpgrade);
         var savedJson = await File.ReadAllTextAsync(directory.Location.FilePath);
-        Assert.Contains("\"formatVersion\": 5", savedJson);
+        Assert.Contains("\"formatVersion\": 6", savedJson);
         Assert.DoesNotContain("synthetic-migration-password", savedJson);
         Assert.AreEqual(JsonSerializer.Serialize(password), JsonSerializer.Serialize(current.Options.SipAccount!.Password));
     }
@@ -109,7 +124,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         string[] invalid =
         [
-            "{\"formatVersion\":6,\"settings\":{}}",
+            "{\"formatVersion\":7,\"settings\":{}}",
             "{\"formatVersion\":0,\"settings\":{}}",
             "{\"formatVersion\":-1,\"settings\":{}}",
             "{\"formatVersion\":\"synthetic-value\",\"settings\":{}}",
