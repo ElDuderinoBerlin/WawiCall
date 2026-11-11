@@ -1294,6 +1294,15 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   Gemeinsamen Empfangsvertrag für Telefonmenüs ergänzen und Gesprächszuordnung/Mehrfachmeldungen prüfen.
 - [x] ✅ Zustandsautomat für Rufaufbau, Klingeln, Verbindung, Fehler und Ende definieren; Ereignisse mehrfach/verspätet vertragen.
 - [x] ✅ Klare Strategie für mehrere gleichzeitige Anrufe und besetzten Arbeitsplatz umsetzen.
+- [x] ✅ Teilnachweis zur Statuspersistenz (11.11.2026): Wiederholung nach verlorenem Commit-Acknowledgement
+  idempotent behandeln; dieselbe Revision erzeugt weder einen weiteren Schreibvorgang noch ein zweites Ereignis.
+  Verspätete ältere Snapshots liefern den neueren gespeicherten Stand zurück. Abweichender Zustand bei gleicher
+  Revision sowie geänderte Gesprächsherkunft bleiben Konflikte. Bestehende Zuordnungen werden erhalten.
+  Fünf neue isolierte Persistenztests und erweiterter echter SQLite-Recoverytest; keine Migration und kein SQL geändert.
+  Nachweise: Solution-Builds einschließlich App/Console in Debug/Any CPU für FinOffice und Pro;
+  29 Telefonietests für FinOffice, fünf gezielte Persistenztests für Pro und je drei SQLite-Persistenz-/
+  Zuordnungstests bestanden. Logs: `.phase7-persistence-*.log`. Keine sichtbare GUI und keine Audiogeräte verwendet.
+  Dies bestätigt wiederholbare Schreibaufrufe, noch keine automatische Nachlieferung nach Datenbankausfall.
 - [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
   Eingehende/ausgehende Richtung, Beginn/Annahme/Ende in UTC, Endgrund, Nummern und Zuordnung sowie
   PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.

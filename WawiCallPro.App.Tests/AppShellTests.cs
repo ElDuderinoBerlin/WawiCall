@@ -1685,7 +1685,12 @@ public sealed class AppShellTests
             StartedAtUtc = now, StateChangedAtUtc = now };
         var saved = await persistence.SaveAsync(initial);
         Assert.IsNotNull(saved.Origin);
-        await persistence.SaveAsync(saved with { Revision = 1, State = CallState.Ringing, StateChangedAtUtc = now.AddSeconds(1) });
+        var ringing = saved with { Revision = 1, State = CallState.Ringing, StateChangedAtUtc = now.AddSeconds(1) };
+        await persistence.SaveAsync(ringing);
+        var repository = services.GetRequiredService<ICallRepository>();
+        var beforeRetry = (await repository.GetAsync(initial.Id))!;
+        Assert.AreEqual(ringing, await persistence.SaveAsync(ringing));
+        Assert.AreEqual(beforeRetry.Version, (await repository.GetAsync(initial.Id))!.Version);
         await persistence.RecoverAsync();
         var history = await workspace.History.GetCallAsync(initial.Id);
         Assert.IsNotNull(history);
@@ -1694,6 +1699,8 @@ public sealed class AppShellTests
         Assert.AreEqual(saved.Origin, history.Call.Origin);
         Assert.AreEqual(2L, history.Call.Revision);
         Assert.HasCount(2, history.Events);
+        Assert.AreEqual(history.Call, await persistence.SaveAsync(ringing));
+        Assert.HasCount(2, (await workspace.History.GetCallAsync(initial.Id))!.Events);
         await persistence.RecoverAsync();
         Assert.AreEqual(2L, (await workspace.History.GetCallAsync(initial.Id))!.Call.Revision);
     });

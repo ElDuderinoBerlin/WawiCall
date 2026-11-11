@@ -24,6 +24,21 @@ public sealed class SipCallPersistence(ICallRepository calls, ICallOriginProvide
             var captured = existing?.History.Call.Origin ?? snapshot.Origin ?? await origin.CaptureAsync(cancellationToken).ConfigureAwait(false);
             var observed = snapshot with { Origin = captured,
                 Company = existing?.History.Parties.Any(party => party.IsSelected) == true ? existing.History.Call.Company : snapshot.Company };
+            if (existing is not null)
+            {
+                var stored = existing.History.Call;
+                if (stored.Direction != observed.Direction || stored.StartedAtUtc != observed.StartedAtUtc ||
+                    (snapshot.Origin is not null && snapshot.Origin != stored.Origin))
+                    throw new RepositoryConflictException(RepositoryConflictKind.OwnershipMismatch);
+                // A lost commit acknowledgement must not append the same sequence with a new event ID.
+                if (stored.Revision > observed.Revision) return stored;
+                if (stored.Revision == observed.Revision)
+                {
+                    if (stored with { Company = observed.Company } != observed)
+                        throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);
+                    return stored;
+                }
+            }
             try
             {
                 return (await calls.WriteAsync(new(observed, existing?.Version, existing?.History.Parties ?? [], events, captured,
