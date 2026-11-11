@@ -91,7 +91,7 @@ public sealed class StartupAppearanceTests
             return new FrmLicenseKeyInput { Text = "WawiCallPro – Lizenzaktivierung", MachineKey = populated ? new string('A', 64) : null,
                 LicenseKey = populated ? "ABCDE-FGHIJ-KLMNO-PQRST" : "" };
         var protector = new WindowsUserSecretProtector();
-        var store = new ConfigurationStore(new ConfigurationLocation(root), new ApplicationOptionsValidator(protector));
+        var store = new ConfigurationStore(new ConfigurationLocation(root), new ApplicationOptionsValidator(protector), null);
         if (populated)
             store.SaveAsync(new ApplicationOptions
             {

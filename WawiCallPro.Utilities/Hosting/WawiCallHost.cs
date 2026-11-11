@@ -63,6 +63,8 @@ public static class WawiCallHost
                 services.AddSingleton<ICompanyPhoneMatchingService, CompanyPhoneMatchingService>();
                 services.AddSingleton<ICompanyPhoneNumberContextProvider, CompanyPhoneNumberContextProvider>();
                 services.AddSingleton<ConfigurationStore>();
+                services.AddSingleton<PhoneSearchChanges>();
+                services.AddSingleton<PhoneCacheReindexer>();
                 services.AddSingleton<ApplicationConfigurationService>();
                 services.AddSingleton<IPluginConnectionConfiguration, PluginConnectionConfiguration>();
                 services.AddHostedService(provider => provider.GetRequiredService<ApplicationConfigurationService>());
@@ -76,13 +78,15 @@ public static class WawiCallHost
                 services.AddSingleton<IDatabaseMigrationPermissions, DatabaseMigrationPermissions>();
                 services.AddSingleton<DatabaseRepositoryContext>();
                 services.AddSingleton<ICompanyRepository, DapperCompanyRepository>();
-                services.AddSingleton<IPartyCacheRepository, DapperPartyCacheRepository>();
+                services.AddSingleton<DapperPartyCacheRepository>();
+                services.AddSingleton<IPartyCacheRepository, PhoneIndexCacheRepository>();
                 services.AddSingleton<ICallRepository, DapperCallRepository>();
                 services.AddSingleton<ICallNoteRepository, DapperCallNoteRepository>();
                 services.AddSingleton<IRecordingRepository, DapperRecordingRepository>();
                 services.AddSingleton<INumberParseLogRepository, DapperNumberParseLogRepository>();
                 services.AddSingleton<IPhoneNumberDiagnostics, PhoneNumberDiagnostics>();
-                services.AddSingleton<IPhoneMatchingRepository, DapperPhoneMatchingRepository>();
+                services.AddSingleton<DapperPhoneMatchingRepository>();
+                services.AddSingleton<IPhoneMatchingRepository, PhoneIndexRuleRepository>();
                 services.AddSingleton<ISqliteDatabaseBackup, SqliteDatabaseBackup>();
                 services.AddSingleton<IWorkstationIdentity, WorkstationIdentity>();
                 services.AddSingleton<ICallOriginProvider, WindowsCallOriginProvider>();

@@ -137,18 +137,9 @@ public sealed class PhoneCacheService(
 
         ImmutableArray<PartyPhone> Normalize(PartyKey party, ImmutableArray<PartyPhone> phones)
         {
-            if (phones.IsDefault || phones.Any(phone => phone is null)) throw new PhoneCacheRefreshException(PhoneCacheRefreshFailure.InvalidSource);
-            var values = ImmutableArray.CreateBuilder<PartyPhone>(phones.Length);
-            foreach (var phone in phones)
-            {
-                token.ThrowIfCancellationRequested();
-                phoneCount++;
-                var result = interpreter.InterpretCompanyPhone(phone, context);
-                if (result.Kind != PhoneNumberAddressKind.Public)
-                    failures.Add(new(Guid.NewGuid(), party, phone.Source, phone.Kind, phone.OriginalValue, result.Code ?? "number.unresolved", observedAt));
-                values.Add(phone with { E164 = result.Kind == PhoneNumberAddressKind.Public ? result.Address.E164 : null, Extension = result.Address.Extension ?? phone.Extension });
-            }
-            return values.MoveToImmutable();
+            var values = PhoneCacheNormalization.Normalize(party, phones, context, interpreter, observedAt, failures, token);
+            phoneCount += values.Length;
+            return values;
         }
     }
 

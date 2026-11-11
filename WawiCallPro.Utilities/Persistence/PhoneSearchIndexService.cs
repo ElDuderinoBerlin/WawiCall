@@ -26,7 +26,8 @@ public static class PhoneSearchIndexRegistration
     public static IServiceCollection AddPhoneSearchIndex(this IServiceCollection services)
     {
         services.TryAddSingleton<PhoneSearchIndexOptions>();
-        services.TryAddSingleton<IPhoneSearchIndexService, PhoneSearchIndexService>();
+        services.TryAddSingleton<PhoneSearchIndexService>();
+        services.TryAddSingleton<IPhoneSearchIndexService>(provider => provider.GetRequiredService<PhoneSearchIndexService>());
         return services;
     }
 }
@@ -43,6 +44,12 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
     private readonly IPhoneCacheMetadata _metadata;
     private readonly TimeProvider _clock;
     private readonly PhoneSearchIndexOptions _options;
+    private readonly PhoneSearchChanges? _changes;
+    private readonly PhoneCacheReindexer? _reindexer;
+    private long _validatedChange;
+    private long _pluginEpoch;
+    private long _builtPluginEpoch = -1;
+    private string? _configurationFingerprint;
     private readonly SemaphoreSlim _refreshGate = new(1);
     private readonly CancellationTokenSource _stopping = new();
     private readonly object _lifetimeGate = new();
@@ -56,12 +63,14 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
 
     public PhoneSearchIndexService(ConfigurationStore settings, ApplicationConfigurationService activeSettings,
         ApplicationDescriptor application, IBusinessDirectory directory, IPartyCacheRepository cache,
-        ICompanyPhoneMatchingService matching, IPhoneCacheMetadata metadata, TimeProvider clock, PhoneSearchIndexOptions options)
+        ICompanyPhoneMatchingService matching, IPhoneCacheMetadata metadata, TimeProvider clock,
+        PhoneSearchIndexOptions options, PhoneSearchChanges? changes = null, PhoneCacheReindexer? reindexer = null)
     {
         if (options.MaximumCacheAge <= TimeSpan.Zero || options.MaximumScopeAge <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(options));
         _settings = settings; _activeSettings = activeSettings; _application = application; _directory = directory;
         _cache = cache; _matching = matching; _metadata = metadata; _clock = clock; _options = options;
+        _changes = changes; _reindexer = reindexer;
     }
 
     public Task<PhoneSearchIndexStatus> RefreshAsync(CancellationToken cancellationToken = default)
@@ -96,6 +105,10 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
             catch (OperationCanceledException) { throw; }
             catch { return Fail(PhoneSearchScopeState.ConfigurationUnavailable, selected); }
             selected = configuration.Options.Companies.Where(company => company.IncludeInPhoneCache).ToImmutableArray();
+            _changes?.ObserveConfiguration(configuration.Options);
+            _configurationFingerprint = Fingerprint(configuration.Options);
+            _pluginEpoch = _changes?.PluginEpoch ?? 0;
+            if (_builtPluginEpoch != _pluginEpoch) { _reusable.Clear(); _builtPluginEpoch = _pluginEpoch; }
             if (selected.IsEmpty) { _reusable.Clear(); return Describe(Publish(PhoneSearchScopeState.NoSelection, null, []), _clock.GetUtcNow()); }
             if (!PhoneCacheMetadata.SameDatabase(configuration.Options.Database, _activeSettings.Current.Options.Database))
                 return Fail(PhoneSearchScopeState.RestartRequired, selected);
@@ -118,6 +131,8 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
                 }
                 entries.Add(await BuildCompanyAsync(company, names[company.Company], token).ConfigureAwait(false));
             }
+            // Own normalization writes are now complete. Any later durable write invalidates this publication.
+            _validatedChange = _changes?.Revision ?? 0;
             // Check earlier companies again: a later, slower build must not hide a concurrent cache/rule update.
             foreach (var entry in entries.Where(entry => entry.Index is not null))
                 if (await _cache.GetStateAsync(entry.Selection.Company, token).ConfigureAwait(false) != entry.Cache
@@ -128,6 +143,7 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
             catch { return Fail(PhoneSearchScopeState.CatalogUnavailable, selected); }
             var checkedAt = _clock.GetUtcNow();
             if (!allowed.SetEquals(Allowed(selected, catalog))
+                || (_changes?.PluginEpoch ?? 0) != _pluginEpoch
                 || fingerprint != Fingerprint((await _settings.LoadAsync(token).ConfigureAwait(false)).Options))
                 return Fail(PhoneSearchScopeState.ScopeChanged, selected);
             token.ThrowIfCancellationRequested();
@@ -147,6 +163,8 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
             state = await _cache.GetStateAsync(selection.Company, token).ConfigureAwait(false);
             if (state.Revision == 0 || state.RefreshedAtUtc is null)
                 return new(selection, name, state, null, null, PhoneSearchCompanyState.CacheMissing);
+            if (_reindexer is not null && (state.ParserVersion != _metadata.ParserVersion || state.ContextVersion != _metadata.GetContextVersion(selection)))
+                state = await _reindexer.ReindexAsync(selection, token).ConfigureAwait(false);
             profile = await _matching.GetProfileAsync(selection.Company, token).ConfigureAwait(false);
             ICompanyPhoneMatchIndex index;
             if (_reusable.TryGetValue(selection.Company, out var previous) && previous.Cache == state && previous.Profile == profile
@@ -192,6 +210,23 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
     }
 
     public PhoneSearchIndexStatus GetStatus() => Describe(Volatile.Read(ref _published), _clock.GetUtcNow());
+    /// <summary>Background probe for cross-process writes and runtime metadata. Never used by Find/GetStatus.</summary>
+    public async Task<bool> NeedsRefreshAsync(CancellationToken token)
+    {
+        var published = Volatile.Read(ref _published);
+        var status = Describe(published, _clock.GetUtcNow());
+        if (status.State == PhoneSearchScopeState.Stopped) return false;
+        if (status.State is not (PhoneSearchScopeState.Ready or PhoneSearchScopeState.Partial or PhoneSearchScopeState.NoSelection)) return true;
+        var configuration = await _settings.LoadAsync(token).ConfigureAwait(false);
+        if (Fingerprint(configuration.Options) != published.ConfigurationFingerprint) return true;
+        foreach (var entry in published.Entries.Where(entry => entry.Index is not null))
+        {
+            if (await _cache.GetStateAsync(entry.Selection.Company, token).ConfigureAwait(false) != entry.Cache
+                || await _matching.GetProfileAsync(entry.Selection.Company, token).ConfigureAwait(false) != entry.Profile) return true;
+        }
+        return status.State != PhoneSearchScopeState.NoSelection && (published.CheckedAt is not { } checkedAt
+            || _clock.GetUtcNow() - checkedAt >= _options.MaximumScopeAge);
+    }
     public PhoneSearchResult Find(PhoneNumberInterpretation incoming, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(incoming);
@@ -228,6 +263,8 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
     {
         var state = published.State;
         if (_disposed) state = PhoneSearchScopeState.Stopped;
+        else if (state != PhoneSearchScopeState.Refreshing && (_changes?.Revision ?? 0) != published.ChangeRevision)
+            state = PhoneSearchScopeState.ScopeChanged;
         if (state == PhoneSearchScopeState.Ready && (published.CheckedAt is not { } checkedAt
             || checkedAt > now || now - checkedAt > _options.MaximumScopeAge)) state = PhoneSearchScopeState.ScopeExpired;
         var companies = published.Entries.Select(entry => new PhoneSearchCompanyStatus(entry.Selection.Company, entry.Name,
@@ -248,7 +285,11 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
     }
     private Published Publish(PhoneSearchScopeState state, DateTimeOffset? checkedAt, ImmutableArray<Entry> entries)
     {
-        var published = new Published(Interlocked.Increment(ref _generation), state, checkedAt, entries);
+        var published = new Published(Interlocked.Increment(ref _generation), state, checkedAt, entries)
+        {
+            ChangeRevision = state == PhoneSearchScopeState.Ready ? _validatedChange : _changes?.Revision ?? 0,
+            ConfigurationFingerprint = _configurationFingerprint
+        };
         Volatile.Write(ref _published, published);
         return published;
     }
@@ -280,5 +321,9 @@ public sealed class PhoneSearchIndexService : IPhoneSearchIndexService, IAsyncDi
     private sealed record ReusableIndex(PartyCacheState Cache, PhoneMatchingProfile Profile, ICompanyPhoneMatchIndex Index);
     private sealed record Entry(CompanySettings Selection, string Name, PartyCacheState? Cache, PhoneMatchingProfile? Profile,
         ICompanyPhoneMatchIndex? Index, PhoneSearchCompanyState? Forced);
-    private sealed record Published(long Generation, PhoneSearchScopeState State, DateTimeOffset? CheckedAt, ImmutableArray<Entry> Entries);
+    private sealed record Published(long Generation, PhoneSearchScopeState State, DateTimeOffset? CheckedAt, ImmutableArray<Entry> Entries)
+    {
+        public long ChangeRevision { get; init; }
+        public string? ConfigurationFingerprint { get; init; }
+    }
 }

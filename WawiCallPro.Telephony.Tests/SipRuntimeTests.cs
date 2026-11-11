@@ -219,7 +219,7 @@ public sealed class SipRuntimeTests
             };
             using (var socket = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0))) fixture.LocalPort = ((IPEndPoint)socket.Client.LocalEndPoint!).Port;
             var protector = new WindowsUserSecretProtector();
-            var settings = new ConfigurationStore(new ConfigurationLocation(fixture._root), new ApplicationOptionsValidator(protector));
+            var settings = new ConfigurationStore(new ConfigurationLocation(fixture._root), new ApplicationOptionsValidator(protector), null);
             fixture._settings = settings;
             await settings.SaveAsync(new()
             {

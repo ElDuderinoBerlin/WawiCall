@@ -14,7 +14,7 @@ public sealed class ErpSetupTests
         var root = Path.Combine(Path.GetTempPath(), "WawiCallPro-erp-setup-" + Guid.NewGuid().ToString("N"));
         var location = new ConfigurationLocation(root);
         var secrets = new WindowsUserSecretProtector();
-        var store = new ConfigurationStore(location, new ApplicationOptionsValidator(secrets));
+        var store = new ConfigurationStore(location, new ApplicationOptionsValidator(secrets), null);
         const string password = "synthetic-erp-password";
         const string key = "{33333333-3333-3333-3333-333333333333}";
         try
@@ -79,7 +79,7 @@ public sealed class ErpSetupTests
     {
         var root = Path.Combine(Path.GetTempPath(), "WawiCallPro-erp-setup-" + Guid.NewGuid().ToString("N"));
         var secrets = new WindowsUserSecretProtector();
-        var store = new ConfigurationStore(new ConfigurationLocation(root), new ApplicationOptionsValidator(secrets));
+        var store = new ConfigurationStore(new ConfigurationLocation(root), new ApplicationOptionsValidator(secrets), null);
         await Assert.ThrowsExactlyAsync<DiagnosticException>(() => ErpSetupCommands.ExecuteAsync("Pro", store, secrets, new Input(false, []), default));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         await Assert.ThrowsAsync<OperationCanceledException>(() => ErpSetupCommands.ExecuteAsync("Pro", store, secrets, new Input(true, []), cancellation.Token));

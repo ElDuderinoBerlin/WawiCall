@@ -1,11 +1,12 @@
 # Telefonnummern: Parsing, Mehrfirmen-Cache und Zuordnung
 
-Stand: 10.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
+Stand: 11.11.2026. Verbindliches Zielbild für die vom Nutzer gewünschte firmenübergreifende
 Anruferkennung. Offline-Parser, Nummernkontext, gespeicherte Cachequellen und deren manuelle
 Aktualisierung, der firmenbezogene StartWidth-Matcher und der gemeinsame Mehrfirmenindex sind
 implementiert. Gruppierte Trefferauswahl und explizite Leitungsfirmenzuordnung stehen im Produkt bereit.
 Anrufgebundene Auswahl, Historienübernahme und verzögertes Laden von Detailansichten sind ebenfalls
-angebunden. Automatische Aktualisierungsauslöser bei Cache-/Stammdatenänderungen bleiben offen.
+angebunden. Lokale Änderungen invalidieren den Suchstand; der interaktive Host prüft und aktualisiert
+ausgewählte Quellen im Hintergrund. Die vollständige Live-Abnahme gehört weiterhin zum späteren Betrieb.
 
 ## Grundentscheidung
 
@@ -427,8 +428,7 @@ gespeicherten Zuordnung passt. Ein später bearbeitetes Konto wird dadurch keine
 Ohne nachgewiesenen Leitungskontext gibt es keine automatische Bevorzugung durch die Leitungsfirma.
 
 Nachweise werden mit synthetischen Anrufen, isolierten Repositories und Plugins erbracht. Das ersetzt
-keine Abnahme an der echten FRITZ!Box oder produktiven Warenwirtschaft. Automatische Neuindizierung
-bleibt ein eigener offener Planpunkt. Gespeicherte Quellnummernbeobachtungen sind im folgenden
+keine Abnahme an der echten FRITZ!Box oder produktiven Warenwirtschaft. Gespeicherte Quellnummernbeobachtungen sind im folgenden
 Diagnosebereich lesbar; die echte FRITZ!Box-/Wawi-Abnahme bleibt offen.
 
 ## Implementierter gemeinsamer Suchindex
@@ -462,9 +462,48 @@ Fehlender Cache, alte Parsermetadaten, abweichender Kontext-Fingerprint, veralte
 Cachezeitstempel und unvollständige Firmenindizes erhalten eigene Firmenzustände. Verfügbare Treffer
 solcher Teilstände bleiben sichtbar, ihre Gesamtsuche ist ausdrücklich unvollständig (`Partial`).
 Bei abgelaufener oder zukünftig datierter Berechtigungsprüfung liefert der Dienst `ScopeExpired`
-ohne Kandidaten, bis ausdrücklich erneut aktualisiert wird. Dies ist eine zeitlich begrenzte
+ohne Kandidaten, bis erneut aktualisiert wird. Dies ist eine zeitlich begrenzte
 Berechtigungsbeobachtung: Änderungen zwischen zwei Prüfungen werden nicht sofort erkannt.
-Automatische Auslöser bei Einstellungs-/Plugin-/Cacheänderungen und die vollständige Live-Abnahme folgen separat.
+Im interaktiven Host veranlasst die folgende Wartung diese Aktualisierung automatisch. Console und
+Diagnose-/Renderstarts behalten den ausdrücklichen Aufruf bei; die vollständige Live-Abnahme bleibt offen.
+
+## Automatische Aktualisierung und Neuindizierung
+
+`PhoneSearchChanges` invalidiert einen veröffentlichten Suchstand nach erfolgreich gespeicherten
+Änderungen an Suchfirmen, Nummernkontext, Datenbankziel und Pluginwahl. Unabhängige UI-Vorgaben wie
+DirectX lösen keinen Indexwechsel aus. Die Dapper-Repositories für Cache und Firmenregeln melden
+erst nach dem Commit; fehlgeschlagene Schreibversuche und Gesprächs-/Notizänderungen erzeugen kein
+Signal. Pluginwechsel invalidieren bereits vor dem Warten auf die alte Sitzung und erhalten eine
+eigene Sitzungsgeneration. Noch nicht verwendbare Stände liefern `ScopeChanged` und keine neuen Treffer.
+Bereits ausgegebene Entscheidungen, Historien und Anruf-/Plugin-Ansichten werden dadurch nicht umgebunden.
+
+`PhoneSearchMaintenance` läuft ausschließlich beim normalen interaktiven App-Start nach Lizenzprüfung
+und Plugininitialisierung. Diagnose-/Renderstarts und Console registrieren den periodischen Dienst nicht.
+Eine leere Auswahl führt zu keinem Datenbank- oder Wawi-Abruf. Lokale Signale werden zusammengefasst;
+zusätzlich prüft der Dienst standardmäßig alle 30 Sekunden gespeicherte Auswahl, Metadaten sowie
+Cache-/Regelrevisionen, um Änderungen aus anderen Prozessen zu erkennen. Die Berechtigungsbeobachtung
+wird spätestens nach ihrer bisherigen Fünf-Minuten-Grenze erneuert. Änderungen außerhalb dieses Prozesses
+werden innerhalb dieser Beobachtungsgrenzen erkannt; es gibt keine behauptete Echtzeit-Änderungsquelle im ERP.
+
+Ausgewählte, aktuell verfügbare Firmenquellen werden beim ersten Zyklus und anschließend alle
+15 Minuten über den vorhandenen paginierten Cache-Dienst nachgeladen. Ein neuer Suchfirmenumfang
+oder eine neue Pluginsitzung macht den Quellabruf sofort erneut fällig. Änderungen an Stammdaten
+werden so in einem neuen atomaren Snapshot sichtbar. Fehler erhalten den bisherigen Snapshot und
+führen nicht zu einer Endlosschleife. Intervalle sind über `PhoneSearchMaintenanceOptions` per DI anpassbar.
+Die Wartung legt weder eine Datenbank an noch übergeht sie einen erforderlichen Datenbank-Neustart.
+
+Bei abweichenden Parser-/Interpretermetadaten oder geändertem Land-/Ortskontext normalisiert
+`PhoneCacheReindexer` zunächst den vorhandenen lokalen Bestand aus Originalwerten neu. Direkte und
+Anschriftennummern nutzen dieselbe Normalisierung wie ein Wawi-Abruf. Originalwert, Quelle,
+Kontaktbesitzer und explizite Durchwahl bleiben erhalten. Eine neue Cacheversion erhält die neuen
+Metadaten, aber ausdrücklich den bisherigen Quellabrufzeitpunkt: Neuinterpretieren macht alte Stammdaten
+nicht frisch. Versionskonflikte verwerfen den Ersatz; Suchumfang, Regeln und Pluginsitzung werden vor
+Veröffentlichung nochmals geprüft. Dapper-Zugriffe und SQL-Schema bleiben unverändert.
+
+Shutdown meldet den Dienst ab, bricht wartende und laufende Aufgaben ab und wartet auf deren Ende,
+auch wenn eine Quelle ihren Abbruch zunächst ignoriert. Erst danach darf die Pluginlaufzeit entladen.
+Die Prüfungen verwenden synthetische Quellen, isolierte Datenbanken und denselben Ablauf auf allen
+unterstützten Engines. Es werden keine produktiven Wawi-Bestände abgefragt.
 
 Cachewriter und gemeinsamer Suchindex verwenden über `IPhoneCacheMetadata` denselben SHA256-Fingerprint
 aus Protokoll-/Interpreterversion, CompanyKey und Land-/Ortskontext. Sein bisheriges Speicherformat bleibt
@@ -578,8 +617,8 @@ bleiben unverändert. Die Speicherverträge erlauben firmenübergreifende Kandid
   Organisationsblöcke. IPhoneMatchingRepository ist mit Dapper implementiert und gemeinsam mit
   dem Cache-Repository in beiden Hosts per DI registriert. Migration 7 speichert zusätzlich Parser-/Kontextstand.
 
-Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen sind
-automatische Aktualisierungsauslöser und die vollständige Live-Abnahme der Anruferkennung.
+Die bereits implementierten Migrationen 1–5 werden dafür nicht rückwirkend verändert. Noch offen ist
+die vollständige Live-Abnahme der Anruferkennung.
 Die vollständige Anrufabnahme muss internationale/nationale Schreibweisen,
 explizite versus vermutete Durchwahlen, gleiche Nummern in zwei Firmen, mehrere Kontakte, fehlenden
 Cachestand, Firmenwechsel und veraltete Antworten abdecken. Für `StartWidth` zusätzlich N=4/N=5,

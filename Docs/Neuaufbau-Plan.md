@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 09.11.2026. Phasen 0–5 abgeschlossen und geprüft; weitere Produktphasen wie markiert offen.
+Stand: 11.11.2026. Phasen 0–6 abgeschlossen und geprüft; weitere Produktphasen wie markiert offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -300,7 +300,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 3 | ✅ | Neues Schema und vollständige FluentMigrator-Implementierung | 2 |
 | 4 | ✅ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
-| 6 | ⬜ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
+| 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | ⬜ | Vollständiger SIP-Gesprächsablauf | 2, 3 |
 | 8 | ⬜ | Bedienbare App und erstes vollständiges Kernprodukt | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
@@ -993,7 +993,7 @@ Abnahme: Beide Plugins lesen echte oder geeignete isolierte Lexware-Testbeständ
 Mandanten, leerer Daten und Verbindungsfehlern. API-Vertragstests plus Debug-Build beider Varianten bestehen.
 Produktlinienspezifische DLLs sind nur im passenden Pluginpaket vorhanden.
 
-### Phase 6 – Rufnummernindex und Zuordnung ⬜
+### Phase 6 – Rufnummernindex und Zuordnung ✅
 
 Verbindliches Zielbild: [Telefonnummern-Cache.md](Telefonnummern-Cache.md). Die folgenden Punkte
 implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 sind im Produkt eingebunden.
@@ -1173,8 +1173,27 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   App/Console in der aktiven IDE-Konfiguration Debug/Any CPU rekompiliert; 13 bekannte Nullable-
   Warnungen ausschließlich in der externen CSCore-Bibliothek. Isolierte Diagnosehoststarts geprüft.
   Prüfnachweise unter `.artifacts/phase6-number-diagnostics`.
-- [ ] Suchfirmen-/Stammdatenänderungen und Neuindizierung bei Regel-/Metadatenwechsel behandeln;
+- [x] ✅ Suchfirmen-/Stammdatenänderungen und Neuindizierung bei Regel-/Metadatenwechsel behandeln;
   Gesprächshistorie und frühere Auswahl bleiben als Momentaufnahme erhalten.
+  PhoneSearchChanges invalidiert nach relevanten Konfigurations- und Dapper-Cache-/Regelcommits;
+  Gesprächsänderungen und unabhängige UI-Einstellungen invalidieren nicht. Neue Pluginsitzungen
+  invalidieren vor dem alten Sitzungsabbau und verwerfen wiederverwendete Speicherindizes.
+  PhoneCacheReindexer normalisiert gespeicherte Originalwerte einschließlich Anschriften neu,
+  erhält Quelle/Extension und den tatsächlichen Quellabrufzeitpunkt. CAS-Konflikte überschreiben
+  keine neueren Stammdaten. PhoneSearchMaintenance fasst Signale zusammen, prüft alle 30 Sekunden
+  Fremdprozessänderungen und lädt ausgewählte Quellen beim Start und alle 15 Minuten paginiert nach;
+  Firmen-/Pluginsitzungswechsel machen den Quellabruf erneut fällig. Lizenzprüfung und Pluginstart
+  gehen vor. Diagnose/Render/Console starten keine periodischen ERP-Aufgaben. Stop wartet auf
+  alle laufenden Abrufe vor dem Entladen. Historie, frühere Auswahl und offene Fachansichten bleiben
+  nachweislich erhalten. Keine Schema-/SQL-Änderung; vorhandene Dapper-Repositories werden genutzt.
+  Neun neue Wartungs-/Nebenläufigkeitsprüfungen plus erweiterter realer Pluginwechsel: je Edition
+  147 Utilities-, 136 Core-, 16 Telefonie-, 25 Console- und zehn gezielte App-Prüfungen bestanden.
+  Zusätzlich 89 Datenbanktests und reale isolierte SQL-Server-/PostgreSQL-/MySQL-/MariaDB-Abnahmen
+  mit Metadaten-Neuindizierung, Regel-/Cache-/Firmenwechsel und unveränderter Gesprächshistorie.
+  Rebuild beider Hosts in der aktiven IDE-Konfiguration Debug/Any CPU und isolierte Diagnosehoststarts
+  bestanden; 13 bestehende Nullable-Warnungen ausschließlich in der externen CSCore-Bibliothek.
+  Keine Layoutänderung und kein erneuter breiter GUI-Lauf; Anrufansichten/Abbruch gezielt geprüft.
+  Nachweise: `.artifacts/phase6-maintenance`. Echte FRITZ!Box-/Produktiv-Wawi-Abnahme bleibt Phase 14.
 
 Abnahme: Nationale/internationale Formate, explizite versus vermutete Durchwahlen, gleiche Nummern in
 zwei Firmen, mehrere Kontakte, fehlender/veralteter Cache, Kontextwechsel und verspätete Antworten sind

@@ -271,7 +271,7 @@ public sealed class PluginRuntimeTests
             var product = Enum.Parse<LexwareProductLine>(ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly()));
             await context.SelectAsync(new Company(new CompanyKey(product, "isolated", "1"), "First"));
             using var operation = borrowed.Companies.BeginOperation();
-            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory));
+            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), null);
             await runtime.StartAsync(CancellationToken.None);
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource<ProbeResource>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -417,7 +417,7 @@ public sealed class PluginRuntimeTests
         await HostExecution.RunAsync(host, async _ =>
         {
             var sessions = new CountingSessions(host.Services.GetRequiredService<IPluginSessionFactory>());
-            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(directory));
+            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(directory), null);
             var starts = await Task.WhenAll(Enumerable.Range(0, 2).Select(async _ =>
             {
                 try { await runtime.StartAsync(CancellationToken.None); return true; }
@@ -443,7 +443,7 @@ public sealed class PluginRuntimeTests
         await HostExecution.RunAsync(host, async _ =>
         {
             var sessions = new CountingSessions(host.Services.GetRequiredService<IPluginSessionFactory>());
-            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root));
+            await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root), null);
             await runtime.StopAsync(CancellationToken.None);
             await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => runtime.StartAsync(CancellationToken.None));
             Assert.AreEqual(0, sessions.Created);
@@ -454,7 +454,7 @@ public sealed class PluginRuntimeTests
     public async Task StopDuringLoadingAwaitsAndReleasesTheOnlySession()
     {
         var sessions = new LoadingSession();
-        await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root));
+        await using var runtime = new ProductPluginRuntime(sessions, new ProductPluginLocation(_root), null);
         var start = runtime.StartAsync(CancellationToken.None);
         await sessions.Entered.Task;
         var stop = runtime.StopAsync(CancellationToken.None);
@@ -505,8 +505,10 @@ public sealed class PluginRuntimeTests
         var host = CreateHost();
         await HostExecution.RunAsync(host, async _ =>
         {
-            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory));
+            var changes = host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.PhoneSearchChanges>();
+            await using var runtime = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), null, changes);
             await runtime.StartAsync(default);
+            var epoch = changes.PluginEpoch;
             var originalId = runtime.ActivePluginId;
             Assert.AreEqual(2, runtime.GetAvailablePlugins().Count);
             var resource = new SwitchResource();
@@ -516,6 +518,7 @@ public sealed class PluginRuntimeTests
             var oldCall = runtime.UseAsync(async (_, token) => { entered.SetResult(); await release.Task; return 42; });
             await entered.Task;
             var switching = runtime.SwitchAsync("WawiCallPro.Plugins.Dummy");
+            Assert.IsTrue(changes.PluginEpoch > epoch, "Old phone indexes must be invalidated before the previous callback drains.");
             Assert.IsFalse(switching.IsCompleted);
             release.SetResult();
             await Assert.ThrowsAsync<OperationCanceledException>(() => oldCall);
@@ -535,7 +538,7 @@ public sealed class PluginRuntimeTests
             await store.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ActivePluginId = "WawiCallPro.Plugins.Dummy" } }, snapshot);
             var startup = host.Services.GetRequiredService<ApplicationConfigurationService>();
             await startup.StartAsync(default);
-            await using var restarted = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), startup);
+            await using var restarted = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), startup, null);
             await restarted.StartAsync(default);
             Assert.AreEqual("WawiCallPro.Plugins.Dummy", restarted.ActivePluginId);
             var failingResource = new SwitchResource { Fail = true };

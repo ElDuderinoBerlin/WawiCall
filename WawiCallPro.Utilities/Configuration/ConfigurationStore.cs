@@ -1,3 +1,5 @@
+using WawiCallPro.Utilities.Persistence;
+
 namespace WawiCallPro.Utilities.Configuration;
 
 /// <summary>A validated, detached startup snapshot. Configured means declaratively complete, not connected.</summary>
@@ -11,7 +13,10 @@ public sealed record ConfigurationSnapshot(ApplicationOptions Options, bool File
 }
 
 /// <summary>Strict typed JSON persistence. Invalid input is never repaired or replaced with defaults silently.</summary>
-public sealed class ConfigurationStore(ConfigurationLocation location, ApplicationOptionsValidator validator)
+public sealed class ConfigurationStore(
+    ConfigurationLocation location,
+    ApplicationOptionsValidator validator,
+    PhoneSearchChanges? phoneSearchChanges = null)
 {
     private const int MaximumFileSize = 131072;
 
@@ -68,6 +73,7 @@ public sealed class ConfigurationStore(ConfigurationLocation location, Applicati
             await File.WriteAllBytesAsync(temporaryFile, bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryFile, location.FilePath, true);
+            phoneSearchChanges?.ConfigurationSaved(options);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

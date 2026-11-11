@@ -385,7 +385,7 @@ public sealed class ConfigurationTests
         internal TestDirectory()
         {
             Location = new ConfigurationLocation(Path);
-            Store = new ConfigurationStore(Location, new ApplicationOptionsValidator(Protector));
+            Store = new ConfigurationStore(Location, new ApplicationOptionsValidator(Protector), null);
         }
 
         public void Dispose()

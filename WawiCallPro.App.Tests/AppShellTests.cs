@@ -40,6 +40,29 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task PhoneMaintenanceIsRegisteredOnlyForInteractiveApplicationStarts() => RunStaAsync(async () =>
+    {
+        using var context = new WindowsFormsSynchronizationContext();
+        using var exceptions = new AppExceptionBoundary(new MaintenanceCrashReporter());
+        foreach (var suppress in new[] { false, true })
+        {
+            var host = AppCompositionRoot.Build(context, exceptions, new StartupExecutionMode(suppress), new MaintenanceInstanceGuard());
+            try { Assert.AreEqual(!suppress, host.Services.GetService<PhoneSearchMaintenance>() is not null); }
+            finally { await ((IAsyncDisposable)host).DisposeAsync(); }
+        }
+    });
+    private sealed class MaintenanceCrashReporter : ICrashReporter
+    { public CrashReceipt Capture(Exception exception, CrashOrigin origin) => throw new AssertFailedException("Composition must not run background work."); }
+    private sealed class MaintenanceInstanceGuard : IAppInstanceGuard
+    {
+        public bool TryAcquire() => true;
+        public void RequestExistingInstanceActivation() { }
+        public bool TryConsumeActivation() => false;
+        public event EventHandler? ActivationRequested { add { } remove { } }
+        public void Dispose() { }
+    }
+
+    [TestMethod]
     [DataRow(false, true)]
     [DataRow(true, false)]
     public Task DirectXChangeAsksOnlyAfterSuccessfulSaveAndCanRestartInEitherDirection(bool initial, bool changed) => WithWorkspace(async (workspace, services, plugin) =>

@@ -307,7 +307,7 @@ public sealed class PhoneSearchIndexTests
             Matching = new(services.GetRequiredService<ICompanyPhoneMatchingService>());
             Search = new(services.GetRequiredService<ConfigurationStore>(), services.GetRequiredService<ApplicationConfigurationService>(),
                 services.GetRequiredService<ApplicationDescriptor>(), Source, services.GetRequiredService<IPartyCacheRepository>(),
-                Matching, services.GetRequiredService<IPhoneCacheMetadata>(), Clock, new());
+                Matching, services.GetRequiredService<IPhoneCacheMetadata>(), Clock, new(), null, null);
         }
         internal async Task SelectAsync(params Company[] selected)
         {

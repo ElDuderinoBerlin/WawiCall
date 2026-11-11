@@ -82,7 +82,7 @@ public partial class MainForm : RibbonForm
         _state?.Restore(this);
         _state?.Restore(dockManager);
         Navigate("home");
-        AppendOutput("Anwendung gestartet. Verbindungen werden ausschließlich auf Anforderung geprüft.");
+        AppendOutput("Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert.");
     }
 
     internal void Navigate(string id)

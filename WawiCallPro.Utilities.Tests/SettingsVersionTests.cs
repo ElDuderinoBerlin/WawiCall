@@ -258,7 +258,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         await directory.Store.SaveAsync(new ApplicationOptions());
         var snapshot = await directory.Store.LoadAsync();
-        var secondStore = new ConfigurationStore(directory.Location, directory.Validator);
+        var secondStore = new ConfigurationStore(directory.Location, directory.Validator, null);
         async Task<bool> Save(ConfigurationStore store, ApplicationOptions options)
         {
             try { await store.SaveAsync(options, snapshot); return true; }
@@ -328,7 +328,7 @@ public sealed class SettingsVersionTests
         {
             Location = new ConfigurationLocation(Path);
             Validator = new ApplicationOptionsValidator(Protector);
-            Store = new ConfigurationStore(Location, Validator);
+            Store = new ConfigurationStore(Location, Validator, null);
             Directory.CreateDirectory(Path);
         }
 

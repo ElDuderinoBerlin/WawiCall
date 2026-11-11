@@ -8,13 +8,18 @@ using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Parties;
 using System.Collections.Immutable;
+using WawiCallPro.Utilities.Persistence;
 
 namespace WawiCallPro.Utilities.Plugins;
 
 public sealed record ProductPluginLocation(string Directory);
 
 /// <summary>Cancels/awaits callbacks before shutting down and releasing the owned plugin session.</summary>
-public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, ProductPluginLocation location, ApplicationConfigurationService? configuration = null) : IProductPluginRuntime, IProductPluginSelection, IHostedService, IAsyncDisposable
+public sealed class ProductPluginRuntime(
+    IPluginSessionFactory sessions,
+    ProductPluginLocation location,
+    ApplicationConfigurationService? configuration = null,
+    PhoneSearchChanges? phoneSearchChanges = null) : IProductPluginRuntime, IProductPluginSelection, IHostedService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1);
     private readonly CancellationTokenSource _stopping = new();
@@ -50,6 +55,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
             if (!_startCalled || _stopping.IsCancellationRequested || _releaseFailed) throw new PluginRuntimeException();
             if (_loaded && ActivePluginId == choice.Id) return;
             _loaded = false;
+            phoneSearchChanges?.PluginChanged();
             await _sessionStopping.CancelAsync().ConfigureAwait(false);
             await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
             try
@@ -66,6 +72,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
                     cancellationToken.ThrowIfCancellationRequested();
                     _stopping.Token.ThrowIfCancellationRequested();
                     ActivePluginId = choice.Id; _loaded = true;
+                    phoneSearchChanges?.PluginChanged();
                 }
                 catch { await ReleaseSessionAsync().ConfigureAwait(false); throw; }
             }
@@ -123,6 +130,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
                 }
                 _stopping.Token.ThrowIfCancellationRequested();
                 _loaded = true;
+                phoneSearchChanges?.PluginChanged();
             }
             catch { await _session.DisposeAsync().ConfigureAwait(false); _session = null; throw; }
         }
@@ -153,6 +161,7 @@ public sealed class ProductPluginRuntime(IPluginSessionFactory sessions, Product
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _loaded = false;
+        phoneSearchChanges?.PluginChanged();
         await _stopping.CancelAsync().ConfigureAwait(false);
         // Unload must await callbacks even when the host's shutdown deadline expires.
         await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
