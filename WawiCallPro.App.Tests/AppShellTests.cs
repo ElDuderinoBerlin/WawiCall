@@ -1700,10 +1700,12 @@ public sealed class AppShellTests
                             StartedAtUtc = now, StateChangedAtUtc = now
                         });
                 }
-                foreach (var (width, fontSize, scale, skin) in new[] { (1400, 10F, 1F, "Basic"), (640, 16F, 1F, "Office 2019 Black"), (720, 10F, 1.5F, "Basic") })
+                foreach (var (width, family, fontSize, scale, skin, palette) in new[] {
+                    (1400, "Segoe UI", 10F, 1F, "Basic", ""), (900, "Tahoma", 8F, 1.25F, "Basic", "Blue Dark"),
+                    (640, "Segoe UI", 16F, 1F, "Office 2019 Black", ""), (720, "Segoe UI", 10F, 1.5F, "Basic", "") })
                 {
-                    DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
-                    using var font = new Font("Segoe UI", fontSize);
+                    DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                    using var font = new Font(family, fontSize);
                     WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                     using var page = new HistoryPage();
                     page.Font = font; page.Size = new(width, 560); page.Bind(workspace, null);
@@ -1725,13 +1727,21 @@ public sealed class AppShellTests
                         await WaitForOperationAsync(page);
                     }
                     var button = Field<SimpleButton>(page, "refreshButton");
-                    Assert.AreEqual(Field<DateEdit>(page, "fromEdit").Width, Field<DateEdit>(page, "toEdit").Width);
+                    var from = Field<DateEdit>(page, "fromEdit");
+                    var to = Field<DateEdit>(page, "toEdit");
+                    Assert.AreEqual(from.Width, to.Width);
+                    Assert.IsTrue(button.Height <= from.Height + page.LogicalToDeviceUnits(6), "The toolbar action must remain close to the editors' height.");
+                    var fromLabel = Field<LabelControl>(page, "fromLabel");
+                    Assert.IsTrue(Math.Abs(fromLabel.PointToScreen(new Point(0, fromLabel.Height / 2)).Y - from.PointToScreen(new Point(0, from.Height / 2)).Y) <= page.LogicalToDeviceUnits(2));
+                    var filters = Field<TableLayoutPanel>(page, "filters");
+                    if (filters.GetRow(button) == filters.GetRow(Field<TableLayoutPanel>(page, "fromGroup")))
+                        Assert.IsTrue(Math.Abs(button.PointToScreen(new Point(0, button.Height / 2)).Y - from.PointToScreen(new Point(0, from.Height / 2)).Y) <= page.LogicalToDeviceUnits(2));
                     Assert.IsTrue(button.Width < page.ClientSize.Width / 2);
                     Assert.IsTrue(button.Padding.Horizontal >= page.LogicalToDeviceUnits(24));
                     CheckTableBounds(page);
                     using var shot = new Bitmap(page.Width, page.Height);
                     page.DrawToBitmap(shot, new Rectangle(Point.Empty, page.Size));
-                    shot.Save(Path.Combine(output, $"history-{populated}-{width}-{fontSize}-{scale}-{skin}.png"), ImageFormat.Png);
+                    shot.Save(Path.Combine(output, $"history-{populated}-{width}-{fontSize}-{scale}-{skin}-{palette}.png"), ImageFormat.Png);
                     await page.StopAsync();
                 }
             }

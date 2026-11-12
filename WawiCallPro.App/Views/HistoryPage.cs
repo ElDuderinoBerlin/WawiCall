@@ -37,15 +37,20 @@ public partial class HistoryPage : XtraUserControl
         try
         {
             var editorWidth = TextRenderer.MeasureText("00.00.0000", Font).Width + LogicalToDeviceUnits(40);
-            editorWidth = Math.Max(editorWidth, Math.Max(fromLabel.GetPreferredSize(Size.Empty).Width, toLabel.GetPreferredSize(Size.Empty).Width));
             fromEdit.MinimumSize = toEdit.MinimumSize = new Size(editorWidth, 0);
-            foreach (var button in new[] { refreshButton, saveNoteButton })
-                button.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(6), LogicalToDeviceUnits(12), LogicalToDeviceUnits(6));
-            UiButtonSizing.Apply(refreshButton, saveNoteButton);
-            var required = fromGroup.GetPreferredSize(Size.Empty).Width + fromGroup.Margin.Horizontal
-                + toGroup.GetPreferredSize(Size.Empty).Width + toGroup.Margin.Horizontal
-                + refreshButton.GetPreferredSize(Size.Empty).Width + refreshButton.Margin.Horizontal;
-            var columns = filters.ClientSize.Width >= required ? 3 : filters.ClientSize.Width >= editorWidth * 2 + LogicalToDeviceUnits(24) ? 2 : 1;
+            refreshButton.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(2), LogicalToDeviceUnits(12), LogicalToDeviceUnits(2));
+            saveNoteButton.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(6), LogicalToDeviceUnits(12), LogicalToDeviceUnits(6));
+            UiButtonSizing.Apply(refreshButton);
+            UiButtonSizing.Apply(saveNoteButton);
+            var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal + editorWidth + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;
+            var toWidth = toLabel.GetPreferredSize(Size.Empty).Width + toLabel.Margin.Horizontal + editorWidth + toEdit.Margin.Horizontal + toGroup.Margin.Horizontal;
+            var required = fromWidth + toWidth + refreshButton.GetPreferredSize(Size.Empty).Width + LogicalToDeviceUnits(8);
+            var columns = filters.ClientSize.Width >= required ? 3 : filters.ClientSize.Width >= fromWidth + toWidth ? 2 : 1;
+            fromGroup.ColumnStyles[0].SizeType = toGroup.ColumnStyles[0].SizeType = columns == 1 ? SizeType.Absolute : SizeType.AutoSize;
+            if (columns == 1)
+                fromGroup.ColumnStyles[0].Width = toGroup.ColumnStyles[0].Width = Math.Max(fromLabel.GetPreferredSize(Size.Empty).Width, toLabel.GetPreferredSize(Size.Empty).Width) + fromLabel.Margin.Horizontal;
+            refreshButton.Margin = new Padding(columns == 1 ? (int)fromGroup.ColumnStyles[0].Width + fromEdit.Margin.Left : LogicalToDeviceUnits(4),
+                LogicalToDeviceUnits(6), LogicalToDeviceUnits(4), LogicalToDeviceUnits(6));
             filters.ColumnCount = columns + 1;
             filters.RowCount = (3 + columns - 1) / columns;
             filters.ColumnStyles.Clear();
