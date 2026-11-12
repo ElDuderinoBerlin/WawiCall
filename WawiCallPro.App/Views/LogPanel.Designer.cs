@@ -19,6 +19,7 @@ partial class LogPanel
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         searchController.Dock = System.Windows.Forms.DockStyle.Fill;
+        searchController.Margin = new System.Windows.Forms.Padding(0);
         listLog.Name = "listLog";
         listLog.Dock = System.Windows.Forms.DockStyle.Fill;
         listLog.AllowHtmlDraw = DevExpress.Utils.DefaultBoolean.True;

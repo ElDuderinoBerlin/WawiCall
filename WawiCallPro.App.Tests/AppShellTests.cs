@@ -1430,10 +1430,14 @@ public sealed class AppShellTests
         panel.Append("Isolated search message");
         var list = Field<ListBoxControl>(panel, "listLog");
         var search = Field<LogListBoxSearchController>(panel, "searchController");
-        var editor = Field<TextEdit>(search, "_txtSearch");
-        var button = Field<SimpleButton>(search, "closeButton");
+        var editor = Field<ButtonEdit>(search, "_txtSearch");
+        var button = Field<DevExpress.XtraEditors.Controls.EditorButton>(search, "closeButton");
+        Assert.AreEqual(1, editor.Properties.Buttons.Count);
+        Assert.AreSame(button, editor.Properties.Buttons[0]);
+        Assert.AreEqual(DevExpress.XtraEditors.Controls.ButtonPredefines.Clear, button.Kind);
+        Assert.AreEqual("Suchtext", editor.Properties.NullValuePrompt);
         Assert.IsFalse(search.Visible);
-        foreach (var focus in new Control[] { editor, button })
+        foreach (var useClearButton in new[] { false, true })
         {
             list.Focus();
             var key = new KeyEventArgs(Keys.Control | Keys.F);
@@ -1441,13 +1445,20 @@ public sealed class AppShellTests
             Assert.IsTrue(key.Handled && key.SuppressKeyPress);
             Assert.IsTrue(search.Visible);
             Assert.IsTrue(editor.ContainsFocus);
+            Assert.IsFalse(Field<LabelControl>(search, "_lblResult").Visible);
+            editor.Text = "s";
+            Assert.IsFalse(Field<LabelControl>(search, "_lblResult").Visible);
             editor.Text = "search";
+            Assert.IsTrue(Field<LabelControl>(search, "_lblResult").Visible);
             Assert.Contains("<backcolor=Yellow>", list.Items[0].ToString()!);
-            focus.Focus();
-            var message = Message.Create(focus.Handle, 0x0100, (IntPtr)Keys.F, IntPtr.Zero);
-            var handled = (bool)typeof(Control).GetMethod("ProcessCmdKey", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .Invoke(focus, [message, Keys.Control | Keys.F])!;
-            Assert.IsTrue(handled);
+            if (useClearButton) editor.PerformClick(button);
+            else
+            {
+                var message = Message.Create(editor.Handle, 0x0100, (IntPtr)Keys.F, IntPtr.Zero);
+                var handled = (bool)typeof(Control).GetMethod("ProcessCmdKey", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(editor, [message, Keys.Control | Keys.F])!;
+                Assert.IsTrue(handled);
+            }
             Assert.IsFalse(search.Visible);
             Assert.AreEqual("", editor.Text);
             Assert.DoesNotContain("<backcolor=Yellow>", list.Items[0].ToString()!);
@@ -1469,16 +1480,18 @@ public sealed class AppShellTests
         var originalPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
         try
         {
-            foreach (var skin in new[] { originalSkin, "Office 2019 Black" }.Distinct())
-            foreach (var size in new[] { 10F, 16F })
-            foreach (var width in new[] { 600, 1000 })
+            foreach (var (skin, palette, family, size, width) in new[] {
+                ("Basic", "Blue Dark", "Tahoma", 8F, 600), ("Basic", "", "Segoe UI", 10F, 1000),
+                ("Office 2019 Black", "", "Segoe UI", 16F, 600) })
             {
-                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
-                using var font = new Font("Segoe UI", size);
+                DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                using var font = new Font(family, size);
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 var logs = new LogWindowService();
                 logs.LogNormal("Verbindung bereit"); logs.LogWarning("Verbindung prüfen"); logs.LogError("Fehler <tag> mit mehrzeiligem Inhalt\nWeitere Information");
                 using var panel = new LogPanel(); panel.Bind(logs);
+                using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Font = font;
+                host.Controls.Add(panel); panel.BringToFront(); host.Show();
                 var list = Field<ListBoxControl>(panel, "listLog");
                 Assert.AreEqual(3, list.ItemCount);
                 Assert.AreEqual(SelectionMode.MultiExtended, list.SelectionMode);
@@ -1488,11 +1501,22 @@ public sealed class AppShellTests
                 Assert.DoesNotContain("<color", LogListBoxText.ToPlainText(list.Items[2].ToString()!));
                 var search = Field<LogListBoxSearchController>(panel, "searchController");
                 Assert.IsTrue(search.HandleLogKeyDown(new KeyEventArgs(Keys.Control | Keys.F)));
+                panel.Size = new Size(width, 260);
+                CreateHandles(panel); panel.PerformLayout();
+                Assert.IsFalse(Field<LabelControl>(search, "_lblResult").Visible);
+                var emptyDestination = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
+                Directory.CreateDirectory(emptyDestination);
+                using (var emptySearch = new Bitmap(panel.Width, panel.Height))
+                {
+                    panel.DrawToBitmap(emptySearch, new Rectangle(Point.Empty, panel.Size));
+                    emptySearch.Save(Path.Combine(emptyDestination, $"Log-empty-search-{skin}-{width}-{size:0}.png"), ImageFormat.Png);
+                }
                 Field<TextEdit>(search, "_txtSearch").Text = "Verbindung";
                 Assert.Contains("2 Treffer", Field<LabelControl>(search, "_lblResult").Text);
                 Assert.Contains("<backcolor=Yellow>", list.Items[0].ToString()!);
                 panel.Size = new Size(width, 260);
-                CreateHandles(panel); panel.PerformLayout(); CheckTableBounds(panel);
+                CreateHandles(panel); panel.PerformLayout();
+                CheckTableBounds(panel);
                 Assert.IsTrue(list.Bottom <= search.Top, "The search bar belongs below the log list, as in LxTranslate.");
                 Assert.IsTrue(search.Height <= Math.Ceiling(search.Font.GetHeight() * 2),
                     $"Search bar is too tall for a single input row: {search.Height}");
@@ -1512,13 +1536,17 @@ public sealed class AppShellTests
                     LogListBoxSearchController.ApplyCurrentSearch(list);
                     Assert.Contains("0 Treffer", Field<LabelControl>(search, "_lblResult").Text);
                     CheckTableBounds(panel);
+                    using var emptyLog = new Bitmap(panel.Width, panel.Height);
+                    panel.DrawToBitmap(emptyLog, new Rectangle(Point.Empty, panel.Size));
+                    emptyLog.Save(Path.Combine(destination, $"Log-{skin}-empty-scale150.png"), ImageFormat.Png);
                 }
                 var listHeightWithSearch = list.Height;
                 typeof(LogListBoxSearchController).GetMethod("SearchKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!
                     .Invoke(search, [null, new KeyEventArgs(Keys.Escape)]);
                 panel.PerformLayout();
                 Assert.IsTrue(list.Height > listHeightWithSearch, "Closing search must return its space to the log list.");
-                Assert.IsFalse(panel.FindForm()?.Visible ?? false);
+                Assert.AreEqual(0.0, host.Opacity);
+                Assert.IsFalse(host.ShowInTaskbar);
             }
         }
         finally

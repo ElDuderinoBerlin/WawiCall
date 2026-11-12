@@ -17,6 +17,18 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
     {
         _listLog = null!;
         InitializeComponent();
+        _txtSearch.Anchor |= AnchorStyles.Top;
+        _txtSearch.SizeChanged += SearchEditor_SizeChanged;
+        searchLayout.Layout += SearchEditor_SizeChanged;
+        SearchEditor_SizeChanged(this, EventArgs.Empty);
+    }
+
+    private void SearchEditor_SizeChanged(object? sender, EventArgs e)
+    {
+        // The TableLayoutPanel host must include the editor's actual skin-dependent height.
+        var height = Math.Max(_txtSearch.Height, Math.Max(searchLabel.Height, _lblResult.Visible ? _lblResult.Height : 0));
+        searchLayout.MinimumSize = new Size(0, height);
+        MinimumSize = new Size(0, height + Padding.Vertical);
     }
 
     internal void Bind(ListBoxControl listLog)
@@ -124,6 +136,7 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
         }
 
         _lblResult.Text = matchCount == 1 ? "1 Treffer" : $"{matchCount} Treffer";
+        _lblResult.Visible = true;
 
         if (!selectFirstMatch || firstMatchIndex < 0)
             return;
@@ -168,6 +181,7 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
         }
 
         _lblResult.Text = string.Empty;
+        _lblResult.Visible = false;
     }
 
     private LogListBoxItem GetItem(int index)
