@@ -87,7 +87,7 @@ partial class PhoneNumberDiagnosticsPage
         view.OptionsCustomization.AllowFilter = false;
         view.OptionsCustomization.AllowSort = false;
         view.OptionsCustomization.AllowGroup = false;
-        view.OptionsFind.AlwaysVisible = true;
+        view.OptionsFind.AlwaysVisible = false;
         view.OptionsFind.FindMode = DevExpress.XtraEditors.FindMode.Always;
         view.OptionsFind.FindDelay = 400;
         view.OptionsFind.ShowCloseButton = false;

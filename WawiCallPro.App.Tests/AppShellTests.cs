@@ -1786,6 +1786,14 @@ public sealed class AppShellTests
                     await InvokeActionAsync(page, "Refresh_Click");
                     Assert.AreEqual(populated ? 501 : 0, ((Array)Field<GridControl>(page, "grid").DataSource).Length);
                     var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+                    Assert.AreEqual("Bis", Field<LabelControl>(page, "toLabel").Text);
+                    Assert.IsFalse(view.OptionsFind.AlwaysVisible);
+                    Assert.IsFalse(view.IsFindPanelVisible);
+                    var historyGrid = Field<GridControl>(page, "grid");
+                    historyGrid.Focus();
+                    typeof(Control).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!
+                        .Invoke(historyGrid, [new KeyEventArgs(Keys.Control | Keys.F)]);
+                    Assert.IsTrue(view.IsFindPanelVisible, "Ctrl+F must open the built-in GridView find panel.");
                     if (populated)
                     {
                         view.ApplyFindFilter("caller-500");
@@ -1794,6 +1802,8 @@ public sealed class AppShellTests
                         await WaitForOperationAsync(page);
                     }
                     var button = Field<SimpleButton>(page, "refreshButton");
+                    view.HideFindPanel();
+                    Assert.IsFalse(view.IsFindPanelVisible);
                     var from = Field<DateEdit>(page, "fromEdit");
                     var to = Field<DateEdit>(page, "toEdit");
                     Assert.AreEqual(from.Width, to.Width);

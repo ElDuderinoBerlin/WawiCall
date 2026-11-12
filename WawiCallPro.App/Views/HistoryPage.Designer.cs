@@ -108,7 +108,7 @@ partial class HistoryPage
         fromLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         fromLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         toLabel.Name = "toLabel";
-        toLabel.Text = "Bis einschließlich";
+        toLabel.Text = "Bis";
         toLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         toLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         toLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
@@ -178,7 +178,7 @@ partial class HistoryPage
         view.GridControl = grid;
         view.OptionsBehavior.Editable = false;
         view.OptionsView.ShowGroupPanel = false;
-        view.OptionsFind.AlwaysVisible = true;
+        view.OptionsFind.AlwaysVisible = false;
         view.FocusedRowChanged += View_FocusedRowChanged;
         detailsEdit.Dock = System.Windows.Forms.DockStyle.Fill;
         detailsEdit.Properties.ReadOnly = true;

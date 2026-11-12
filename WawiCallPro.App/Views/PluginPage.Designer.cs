@@ -138,7 +138,7 @@ partial class PluginPage
         view.GridControl = grid;
         view.OptionsBehavior.Editable = false;
         view.OptionsView.ShowGroupPanel = false;
-        view.OptionsFind.AlwaysVisible = true;
+        view.OptionsFind.AlwaysVisible = false;
         refreshButton.Name = "refreshButton";
         refreshButton.Text = "Liste aktualisieren";
         refreshButton.AutoSize = true;

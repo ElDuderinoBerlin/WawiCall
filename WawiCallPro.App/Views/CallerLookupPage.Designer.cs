@@ -138,7 +138,7 @@ partial class CallerLookupPage
         view.OptionsView.ShowIndicator = false;
         view.OptionsView.RowAutoHeight = true;
         view.OptionsView.ColumnHeaderAutoHeight = DevExpress.Utils.DefaultBoolean.True;
-        view.OptionsFind.AlwaysVisible = true;
+        view.OptionsFind.AlwaysVisible = false;
         view.OptionsSelection.MultiSelect = false;
         view.OptionsCustomization.AllowGroup = false;
         view.OptionsCustomization.AllowSort = false;

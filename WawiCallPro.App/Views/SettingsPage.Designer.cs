@@ -659,7 +659,7 @@ partial class SettingsPage
         cacheView.OptionsBehavior.Editable = false;
         cacheView.OptionsView.ShowGroupPanel = false;
         cacheView.OptionsView.RowAutoHeight = true;
-        cacheView.OptionsFind.AlwaysVisible = true;
+        cacheView.OptionsFind.AlwaysVisible = false;
         cacheView.OptionsSelection.MultiSelect = true;
         cacheView.OptionsSelection.MultiSelectMode = DevExpress.XtraGrid.Views.Grid.GridMultiSelectMode.CheckBoxRowSelect;
         cacheView.OptionsSelection.CheckBoxSelectorField = "Selected";
