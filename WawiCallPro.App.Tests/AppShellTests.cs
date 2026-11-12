@@ -1421,6 +1421,45 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task LogSearchCtrlFTogglesFromTheLogEditorAndCloseButton() => RunStaAsync(() =>
+    {
+        using var host = new MainForm();
+        host.PrepareForBackgroundRun();
+        using var panel = new LogPanel();
+        host.Controls.Add(panel); panel.BringToFront(); host.Show();
+        panel.Append("Isolated search message");
+        var list = Field<ListBoxControl>(panel, "listLog");
+        var search = Field<LogListBoxSearchController>(panel, "searchController");
+        var editor = Field<TextEdit>(search, "_txtSearch");
+        var button = Field<SimpleButton>(search, "closeButton");
+        Assert.IsFalse(search.Visible);
+        foreach (var focus in new Control[] { editor, button })
+        {
+            list.Focus();
+            var key = new KeyEventArgs(Keys.Control | Keys.F);
+            Assert.IsTrue(search.HandleLogKeyDown(key));
+            Assert.IsTrue(key.Handled && key.SuppressKeyPress);
+            Assert.IsTrue(search.Visible);
+            Assert.IsTrue(editor.ContainsFocus);
+            editor.Text = "search";
+            Assert.Contains("<backcolor=Yellow>", list.Items[0].ToString()!);
+            focus.Focus();
+            var message = Message.Create(focus.Handle, 0x0100, (IntPtr)Keys.F, IntPtr.Zero);
+            var handled = (bool)typeof(Control).GetMethod("ProcessCmdKey", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(focus, [message, Keys.Control | Keys.F])!;
+            Assert.IsTrue(handled);
+            Assert.IsFalse(search.Visible);
+            Assert.AreEqual("", editor.Text);
+            Assert.DoesNotContain("<backcolor=Yellow>", list.Items[0].ToString()!);
+            Assert.IsTrue(list.ContainsFocus);
+        }
+        Assert.IsFalse(search.HandleLogKeyDown(new KeyEventArgs(Keys.Control | Keys.Shift | Keys.F)));
+        Assert.IsFalse(search.HandleLogKeyDown(new KeyEventArgs(Keys.Control | Keys.Alt | Keys.F)));
+        Assert.IsFalse(search.Visible);
+        return Task.CompletedTask;
+    });
+
+    [TestMethod]
     public Task LogListMatchesLxFormattingSearchAndPlainTextWithoutVisibleWindows() => RunStaAsync(() =>
     {
         AppUiStartup.Apply();

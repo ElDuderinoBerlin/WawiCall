@@ -35,13 +35,20 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
 
     public bool HandleLogKeyDown(KeyEventArgs e)
     {
-        if (!e.Control || e.KeyCode != Keys.F)
+        if (e.KeyData != (Keys.Control | Keys.F))
             return false;
 
-        ShowSearch();
+        if (Visible) HideSearch();
+        else ShowSearch();
         e.SuppressKeyPress = true;
         e.Handled = true;
         return true;
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        if (HandleLogKeyDown(new KeyEventArgs(keyData))) return true;
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
     public static void ApplyCurrentSearch(ListBoxControl listLog)
