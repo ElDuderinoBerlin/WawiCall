@@ -28,6 +28,7 @@ public partial class PhoneNumberDiagnosticsPage : XtraUserControl
     public PhoneNumberDiagnosticsPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         FontChanged += Layout_Changed; SizeChanged += Layout_Changed; DpiChangedAfterParent += Layout_Changed;
         var appearance = LookAndFeel; appearance.StyleChanged += Layout_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= Layout_Changed;
@@ -49,8 +50,6 @@ public partial class PhoneNumberDiagnosticsPage : XtraUserControl
         _arranging = true;
         try
         {
-            foreach (var button in new[] { loadButton, refreshButton, previousButton, nextButton })
-                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6), button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
             UiButtonSizing.Apply(refreshButton, previousButton, nextButton);
         }
         finally { _arranging = false; }

@@ -1,10 +1,11 @@
 using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 
 namespace WawiCallPro.App.Views;
 
 public partial class StartPage : XtraUserControl
 {
-    public StartPage() { InitializeComponent(); }
+    public StartPage() { InitializeComponent(); UiButtonSizing.Attach(this); }
     internal event Action<string>? Navigate;
 
     internal void SetContent(string title, string body, string status, bool showActions = true)

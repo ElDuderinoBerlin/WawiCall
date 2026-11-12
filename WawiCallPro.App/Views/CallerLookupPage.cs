@@ -28,6 +28,7 @@ public partial class CallerLookupPage : XtraUserControl
     public CallerLookupPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         FontChanged += Layout_Changed;
         SizeChanged += Layout_Changed;
         actions.SizeChanged += Layout_Changed;
@@ -45,8 +46,6 @@ public partial class CallerLookupPage : XtraUserControl
         try
         {
             var buttons = new[] { searchButton, cancelButton, chooseButton };
-            foreach (var button in buttons)
-                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6), button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
             var size = UiButtonSizing.Apply(buttons);
             foreach (ColumnStyle column in actions.ColumnStyles) { column.SizeType = SizeType.Absolute; column.Width = size.Width + searchButton.Margin.Horizontal; }
         }

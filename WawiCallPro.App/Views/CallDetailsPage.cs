@@ -27,6 +27,7 @@ public partial class CallDetailsPage : XtraUserControl
     public CallDetailsPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         FontChanged += Layout_Changed; SizeChanged += Layout_Changed;
         var appearance = LookAndFeel; appearance.StyleChanged += Layout_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= Layout_Changed;
@@ -38,8 +39,6 @@ public partial class CallDetailsPage : XtraUserControl
         _arranging = true;
         try
         {
-            foreach (var button in new[] { chooseButton, reloadButton })
-                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6), button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
             UiButtonSizing.Apply(chooseButton, reloadButton);
         }
         finally { _arranging = false; }

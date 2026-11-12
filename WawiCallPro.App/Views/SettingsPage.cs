@@ -24,6 +24,7 @@ public partial class SettingsPage : XtraUserControl
     public SettingsPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
@@ -58,15 +59,11 @@ public partial class SettingsPage : XtraUserControl
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
             foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
             {
-                // Font autoscaling must not compound the logical button insets across nested tab pages.
-                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6),
-                    button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
                 button.Margin = new Padding(button.LogicalToDeviceUnits(4));
             }
             UiButtonSizing.Apply(loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton);
             foreach (var button in new[] { loadLineButton, confirmLineButton, clearLineButton })
             {
-                button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6), button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
                 button.Margin = new Padding(button.LogicalToDeviceUnits(4));
             }
             UiButtonSizing.Apply(loadLineButton, confirmLineButton, clearLineButton);

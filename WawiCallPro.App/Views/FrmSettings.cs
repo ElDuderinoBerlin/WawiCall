@@ -24,7 +24,7 @@ public partial class FrmSettings : XtraForm
             return parameters;
         }
     }
-    public FrmSettings() { InitializeComponent(); settingsPage.ConfigureCommandButtons(closeButton); settingsPage.RestartRequested += Settings_RestartRequested; Load += Settings_Load; }
+    public FrmSettings() { InitializeComponent(); UiButtonSizing.Attach(this); settingsPage.ConfigureCommandButtons(closeButton); settingsPage.RestartRequested += Settings_RestartRequested; Load += Settings_Load; }
     internal bool RestartRequested { get; private set; }
     private void Settings_RestartRequested(object? sender, EventArgs e) { RestartRequested = true; Close(); }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()

@@ -9,7 +9,7 @@ public partial class FrmCallerLookup : XtraForm
     private bool _closing;
     private bool _canClose;
     private bool _passive;
-    public FrmCallerLookup() { InitializeComponent(); AppIconHelper.Apply(this); }
+    public FrmCallerLookup() { InitializeComponent(); UiButtonSizing.Attach(this); AppIconHelper.Apply(this); }
     public FrmCallerLookup(AppWorkspace workspace, AppUiState? state) : this()
     { callerPage.Bind(workspace, state); state?.AttachWindow(this, "FrmCallerLookup"); }
     internal CallerLookupPage Page => callerPage;

@@ -17,6 +17,7 @@ public partial class HistoryPage : XtraUserControl
     public HistoryPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         fromEdit.DateTime = DateTime.Today.AddDays(-30);
         toEdit.DateTime = DateTime.Today;
         saveNoteButton.Enabled = false;
@@ -38,8 +39,6 @@ public partial class HistoryPage : XtraUserControl
         {
             var editorWidth = TextRenderer.MeasureText("00.00.0000", Font).Width + LogicalToDeviceUnits(40);
             fromEdit.MinimumSize = toEdit.MinimumSize = new Size(editorWidth, 0);
-            refreshButton.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(2), LogicalToDeviceUnits(12), LogicalToDeviceUnits(2));
-            saveNoteButton.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(6), LogicalToDeviceUnits(12), LogicalToDeviceUnits(6));
             UiButtonSizing.Apply(refreshButton);
             UiButtonSizing.Apply(saveNoteButton);
             var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal + editorWidth + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;

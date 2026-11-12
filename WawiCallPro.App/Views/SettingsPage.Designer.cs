@@ -150,7 +150,7 @@ partial class SettingsPage
         generalLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         generalLayout.ColumnCount = 2;
         generalLayout.RowCount = 4;
-        generalLayout.Padding = new System.Windows.Forms.Padding(8);
+        generalLayout.Padding = new System.Windows.Forms.Padding(6);
         generalLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50.0F));
         generalLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50.0F));
         generalLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -182,10 +182,10 @@ partial class SettingsPage
         generalLayout.SetColumnSpan(directXEdit, 2);
         generalLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         generalHint.Name = "generalHint";
-        generalHint.Text = "Änderungen am DirectX-Rendering werden nach einem Neustart wirksam.";
+        generalHint.Text = "DirectX-Änderungen erfordern einen Neustart.";
         generalHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         generalHint.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        generalHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        generalHint.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
         generalLayout.Controls.Add(generalHint, 0, 3);
         generalLayout.SetColumnSpan(generalHint, 2);
         sipTab.Text = "SIP-Konto";

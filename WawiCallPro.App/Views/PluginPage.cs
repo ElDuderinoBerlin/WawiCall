@@ -32,6 +32,7 @@ public partial class PluginPage : XtraUserControl
     public PluginPage()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         _activeCard.Template = CardResource("PluginCard.ActiveTemplate");
         ApplyCardStyle();
         var appearance = LookAndFeel;

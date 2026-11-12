@@ -25,6 +25,7 @@ public partial class FrmDatabaseSetup : XtraForm
     public FrmDatabaseSetup()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         AppIconHelper.Apply(this);
         Load += Setup_Load;
         FormClosing += Setup_FormClosing;

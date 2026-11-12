@@ -17,6 +17,7 @@ public partial class HomeDashboard : XtraUserControl
     public HomeDashboard()
     {
         InitializeComponent();
+        UiButtonSizing.Attach(this);
         logo.SvgImage = AppIconHelper.ApplicationSvg;
         logo.SvgImageColorizationMode = DevExpress.Utils.SvgImageColorizationMode.None;
         SizeChanged += Dashboard_SizeChanged;

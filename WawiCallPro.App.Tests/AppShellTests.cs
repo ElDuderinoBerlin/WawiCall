@@ -140,11 +140,12 @@ public sealed class AppShellTests
                 settings.Show(); Application.DoEvents();
                 settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
                 var page = Field<SettingsPage>(settings, "settingsPage"); Field<CheckEdit>(page, "directXEdit").Checked = true;
-                if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents(); CheckTableBounds(settings);
+                if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
+                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                CheckTableBounds(settings);
                 Assert.IsTrue(Field<CheckEdit>(page, "directXEdit").Visible);
                 Assert.IsTrue(Field<LabelControl>(page, "generalHint").Bottom <= Field<TableLayoutPanel>(page, "generalLayout").ClientSize.Height,
                     "The general settings hint must fit without a scrollbar.");
-                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
                 await settings.StopAsync();
             }
         }
@@ -1421,6 +1422,39 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task ToolbarButtonGroupsReactToTextFontDpiAndDynamicControls() => RunStaAsync(() =>
+    {
+        using var table = new TableLayoutPanel { AutoSize = true, ColumnCount = 3 };
+        using var first = new SimpleButton { Text = "Laden" };
+        using var second = new SimpleButton { Text = "Speichern" };
+        table.Controls.Add(first, 0, 0); table.Controls.Add(second, 1, 0);
+        UiButtonSizing.Attach(table);
+        Assert.AreEqual(first.Size, second.Size);
+        var original = first.Size;
+        first.Text = "Gesamten Gesprächsverlauf aktualisieren";
+        Assert.IsTrue(first.Width > original.Width);
+        Assert.AreEqual(first.Size, second.Size);
+        using var font = new Font(first.Font.FontFamily, first.Font.Size + 8);
+        second.Font = font;
+        Assert.IsTrue(first.Height > original.Height, $"Original: {original}; resized: {first.Size}; fonts: {first.Font} / {second.Font}");
+        Assert.AreEqual(first.Size, second.Size);
+        first.Size = new(first.Width + 30, first.Height + 10);
+        typeof(Control).GetMethod("OnDpiChangedAfterParent", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(first, [EventArgs.Empty]);
+        Assert.AreEqual(first.Size, second.Size);
+        using var added = new SimpleButton { Text = "Abbrechen" };
+        table.Controls.Add(added, 2, 0);
+        Assert.AreEqual(first.Size, added.Size);
+        Assert.IsFalse(added.AutoSize);
+        Assert.IsTrue(added.Width - TextRenderer.MeasureText(added.Text, added.Font).Width >= added.LogicalToDeviceUnits(24));
+        UiButtonSizing.Attach(table);
+        second.Text = "OK";
+        Assert.AreEqual(first.Size, second.Size);
+        Assert.AreEqual(first.Size, added.Size);
+        return Task.CompletedTask;
+    });
+
+    [TestMethod]
     public Task LogSearchCtrlFTogglesFromTheLogEditorAndCloseButton() => RunStaAsync(() =>
     {
         using var host = new MainForm();
@@ -1807,14 +1841,14 @@ public sealed class AppShellTests
                     var from = Field<DateEdit>(page, "fromEdit");
                     var to = Field<DateEdit>(page, "toEdit");
                     Assert.AreEqual(from.Width, to.Width);
-                    Assert.IsTrue(button.Height <= from.Height + page.LogicalToDeviceUnits(6), "The toolbar action must remain close to the editors' height.");
+                    Assert.IsTrue(button.Height <= Math.Ceiling(button.Font.GetHeight() * 2.5) + page.LogicalToDeviceUnits(2), "The common toolbar metrics must not produce an oversized action.");
                     var fromLabel = Field<LabelControl>(page, "fromLabel");
                     Assert.IsTrue(Math.Abs(fromLabel.PointToScreen(new Point(0, fromLabel.Height / 2)).Y - from.PointToScreen(new Point(0, from.Height / 2)).Y) <= page.LogicalToDeviceUnits(2));
                     var filters = Field<TableLayoutPanel>(page, "filters");
                     if (filters.GetRow(button) == filters.GetRow(Field<TableLayoutPanel>(page, "fromGroup")))
                         Assert.IsTrue(Math.Abs(button.PointToScreen(new Point(0, button.Height / 2)).Y - from.PointToScreen(new Point(0, from.Height / 2)).Y) <= page.LogicalToDeviceUnits(2));
                     Assert.IsTrue(button.Width < page.ClientSize.Width / 2);
-                    Assert.IsTrue(button.Padding.Horizontal >= page.LogicalToDeviceUnits(24));
+                    Assert.IsTrue(button.Width - TextRenderer.MeasureText(button.Text, button.Font).Width >= page.LogicalToDeviceUnits(24));
                     CheckTableBounds(page);
                     using var shot = new Bitmap(page.Width, page.Height);
                     page.DrawToBitmap(shot, new Rectangle(Point.Empty, page.Size));
