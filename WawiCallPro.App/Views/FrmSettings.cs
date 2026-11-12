@@ -48,7 +48,13 @@ public partial class FrmSettings : XtraForm
         e.Cancel = true;
         if (_closing) return;
         _closing = true;
-        try { await StopAsync(); _canClose = true; Close(); }
+        try
+        {
+            await StopAsync();
+            _canClose = true;
+            // A modal dialog ignores a nested Close while the original FormClosing is still running.
+            if (!IsDisposed && IsHandleCreated) BeginInvoke(new Action(Close));
+        }
         finally { _closing = false; }
     }
     private void DisposePage() { }

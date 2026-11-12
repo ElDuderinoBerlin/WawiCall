@@ -1789,6 +1789,51 @@ public sealed class AppShellTests
         Assert.IsFalse(operation.IsRunning);
     });
 
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(true, false)]
+    [DataRow(false, true)]
+    [DataRow(true, true)]
+    public Task SettingsClosesAfterOneRequestAndAwaitsPendingWork(bool useButton, bool pendingWork) => RunStaAsync(async () =>
+    {
+        using var dialog = new FrmSettings();
+        dialog.PrepareForBackgroundRun();
+        _ = dialog.Handle;
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        async Task CheckCloseAsync()
+        {
+            try
+            {
+                var page = Field<SettingsPage>(dialog, "settingsPage");
+                using var operation = new PageOperation(page, Field<LabelControl>(page, "statusLabel"));
+                typeof(SettingsPage).GetField("_operation", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, operation);
+                var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var work = pendingWork ? operation.RunAsync(async token =>
+                {
+                    try { await Task.Delay(Timeout.Infinite, token); }
+                    finally { await release.Task; }
+                }) : Task.CompletedTask;
+                if (useButton) Field<SimpleButton>(dialog, "closeButton").PerformClick();
+                else dialog.Close();
+                if (pendingWork)
+                {
+                    Assert.IsTrue(dialog.Visible);
+                    release.SetResult();
+                }
+                var deadline = DateTime.UtcNow.AddSeconds(2);
+                while (dialog.Visible && DateTime.UtcNow < deadline) await Task.Delay(10);
+                Assert.IsFalse(dialog.Visible, "A single close request must close the modal dialog after its work stops.");
+                await work;
+                completed.TrySetResult();
+            }
+            catch (Exception exception) { completed.TrySetException(exception); }
+            finally { if (dialog.Visible) dialog.Dispose(); }
+        }
+        dialog.BeginInvoke(new Action(() => _ = CheckCloseAsync()));
+        dialog.ShowDialog();
+        await completed.Task;
+    });
+
     private sealed class PendingDatabaseSetup(WawiCallPro.Utilities.Persistence.IDatabaseSetupService inner) : WawiCallPro.Utilities.Persistence.IDatabaseSetupService
     {
         internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
