@@ -175,14 +175,14 @@ partial class SettingsPage
         directXEdit.Name = "directXEdit";
         directXEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         directXEdit.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-        directXEdit.Text = "DirectX-Rendering verwenden (Neustart erforderlich)";
+        directXEdit.Text = "DirectX-Rendering für Controls";
         directXEdit.Properties.AutoHeight = true;
         directXEdit.Properties.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
         generalLayout.Controls.Add(directXEdit, 0, 2);
         generalLayout.SetColumnSpan(directXEdit, 2);
         generalLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         generalHint.Name = "generalHint";
-        generalHint.Text = "Einige Einstellungen werden erst beim nächsten Programmstart wirksam.";
+        generalHint.Text = "Änderungen am DirectX-Rendering werden nach einem Neustart wirksam.";
         generalHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         generalHint.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         generalHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);

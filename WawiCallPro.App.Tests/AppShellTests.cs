@@ -1675,6 +1675,75 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task HistoryLoadsEntireDateRangeAndKeepsActionsCompact() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        var oldFont = WindowsFormsSettings.DefaultFont;
+        var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var output = Path.Combine(RenderOutput(), "history-layout");
+        Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var populated in new[] { false, true })
+            {
+                if (populated)
+                {
+                    var journal = services.GetRequiredService<ICallJournal>();
+                    var now = DateTimeOffset.UtcNow;
+                    for (var index = 0; index < 501; index++)
+                        await journal.BeginAsync(new()
+                        {
+                            Id = Guid.NewGuid(), Revision = 0, Direction = CallDirection.Incoming, State = CallState.Ringing,
+                            LocalAddress = new(NumberPresentation.Available, "100"),
+                            RemoteAddress = new(NumberPresentation.Available, "caller-" + index),
+                            StartedAtUtc = now, StateChangedAtUtc = now
+                        });
+                }
+                foreach (var (width, fontSize, scale, skin) in new[] { (1400, 10F, 1F, "Basic"), (640, 16F, 1F, "Office 2019 Black"), (720, 10F, 1.5F, "Basic") })
+                {
+                    DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                    using var font = new Font("Segoe UI", fontSize);
+                    WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                    using var page = new HistoryPage();
+                    page.Font = font; page.Size = new(width, 560); page.Bind(workspace, null);
+                    using var host = new MainForm();
+                    host.PrepareForBackgroundRun(); host.MinimumSize = Size.Empty; host.Font = font;
+                    host.Controls.Add(page); page.BringToFront(); host.ClientSize = page.Size;
+                    host.Show();
+                    CreateHandles(page);
+                    if (scale != 1F) page.Scale(new SizeF(scale, scale));
+                    page.PerformLayout();
+                    await InvokeActionAsync(page, "Refresh_Click");
+                    Assert.AreEqual(populated ? 501 : 0, ((Array)Field<GridControl>(page, "grid").DataSource).Length);
+                    var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+                    if (populated)
+                    {
+                        view.ApplyFindFilter("caller-500");
+                        Assert.AreEqual(1, view.DataRowCount, "The built-in search must include records beyond the old first page.");
+                        view.ApplyFindFilter("");
+                        await WaitForOperationAsync(page);
+                    }
+                    var button = Field<SimpleButton>(page, "refreshButton");
+                    Assert.AreEqual(Field<DateEdit>(page, "fromEdit").Width, Field<DateEdit>(page, "toEdit").Width);
+                    Assert.IsTrue(button.Width < page.ClientSize.Width / 2);
+                    Assert.IsTrue(button.Padding.Horizontal >= page.LogicalToDeviceUnits(24));
+                    CheckTableBounds(page);
+                    using var shot = new Bitmap(page.Width, page.Height);
+                    page.DrawToBitmap(shot, new Rectangle(Point.Empty, page.Size));
+                    shot.Save(Path.Combine(output, $"history-{populated}-{width}-{fontSize}-{scale}-{skin}.png"), ImageFormat.Png);
+                    await page.StopAsync();
+                }
+            }
+        }
+        finally
+        {
+            DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+        }
+    });
+
+    [TestMethod]
     public Task SipStatePersistenceRetainsOriginAndRecoversOnlyUnfinishedWorkstationCalls() => WithWorkspace(async (workspace, services, plugin) =>
     {
         await workspace.Database.CreateAndMigrateAsync();

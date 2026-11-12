@@ -11,7 +11,7 @@ public partial class HistoryPage : XtraUserControl
     private AppWorkspace? _workspace;
     private AppUiState? _state;
     private PageOperation? _operation;
-    private int _offset;
+    private bool _arranging;
     private Guid? _selected;
     private bool _binding;
     public HistoryPage()
@@ -19,7 +19,45 @@ public partial class HistoryPage : XtraUserControl
         InitializeComponent();
         fromEdit.DateTime = DateTime.Today.AddDays(-30);
         toEdit.DateTime = DateTime.Today;
-        previousButton.Enabled = nextButton.Enabled = saveNoteButton.Enabled = false;
+        saveNoteButton.Enabled = false;
+        FontChanged += Layout_Changed;
+        SizeChanged += Layout_Changed;
+        filters.SizeChanged += Layout_Changed;
+        DpiChangedAfterParent += Layout_Changed;
+        var appearance = LookAndFeel;
+        appearance.StyleChanged += Layout_Changed;
+        Disposed += (_, _) => appearance.StyleChanged -= Layout_Changed;
+        Layout_Changed(this, EventArgs.Empty);
+    }
+    private void Layout_Changed(object? sender, EventArgs e)
+    {
+        if (_arranging || IsDisposed) return;
+        _arranging = true;
+        filters.SuspendLayout();
+        try
+        {
+            var editorWidth = TextRenderer.MeasureText("00.00.0000", Font).Width + LogicalToDeviceUnits(40);
+            editorWidth = Math.Max(editorWidth, Math.Max(fromLabel.GetPreferredSize(Size.Empty).Width, toLabel.GetPreferredSize(Size.Empty).Width));
+            fromEdit.MinimumSize = toEdit.MinimumSize = new Size(editorWidth, 0);
+            foreach (var button in new[] { refreshButton, saveNoteButton })
+                button.Padding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(6), LogicalToDeviceUnits(12), LogicalToDeviceUnits(6));
+            UiButtonSizing.Apply(refreshButton, saveNoteButton);
+            var required = fromGroup.GetPreferredSize(Size.Empty).Width + fromGroup.Margin.Horizontal
+                + toGroup.GetPreferredSize(Size.Empty).Width + toGroup.Margin.Horizontal
+                + refreshButton.GetPreferredSize(Size.Empty).Width + refreshButton.Margin.Horizontal;
+            var columns = filters.ClientSize.Width >= required ? 3 : filters.ClientSize.Width >= editorWidth * 2 + LogicalToDeviceUnits(24) ? 2 : 1;
+            filters.ColumnCount = columns + 1;
+            filters.RowCount = (3 + columns - 1) / columns;
+            filters.ColumnStyles.Clear();
+            filters.RowStyles.Clear();
+            for (var column = 0; column < columns; column++) filters.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            for (var row = 0; row < filters.RowCount; row++) filters.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            filters.SetCellPosition(fromGroup, new(0, 0));
+            filters.SetCellPosition(toGroup, new(1 % columns, 1 / columns));
+            filters.SetCellPosition(refreshButton, new(2 % columns, 2 / columns));
+        }
+        finally { filters.ResumeLayout(true); _arranging = false; }
     }
     internal void Bind(AppWorkspace workspace, AppUiState? state)
     {
@@ -42,7 +80,16 @@ public partial class HistoryPage : XtraUserControl
         }
         var start = new DateTimeOffset(DateTime.SpecifyKind(fromEdit.DateTime.Date, DateTimeKind.Local)).ToUniversalTime();
         var end = new DateTimeOffset(DateTime.SpecifyKind(toEdit.DateTime.Date.AddDays(1), DateTimeKind.Local)).ToUniversalTime();
-        var result = await _workspace!.History.GetCallsAsync(new CallHistoryQuery(new PageRequest(_offset), StartedFromUtc: start, StartedToUtc: end), token);
+        var calls = new List<CallSnapshot>();
+        while (true)
+        {
+            token.ThrowIfCancellationRequested();
+            var batch = await _workspace!.History.GetCallsAsync(new CallHistoryQuery(new PageRequest(calls.Count, 500), StartedFromUtc: start, StartedToUtc: end), token);
+            calls.AddRange(batch.Items);
+            if (!batch.HasMore) break;
+            if (batch.Items.IsEmpty) throw new InvalidOperationException("Call history did not advance.");
+        }
+        token.ThrowIfCancellationRequested();
         _binding = true;
         try
         {
@@ -50,14 +97,12 @@ public partial class HistoryPage : XtraUserControl
             detailsEdit.Text = "";
             noteEdit.Text = "";
             saveNoteButton.Enabled = false;
-            grid.DataSource = result.Items.Select(call => new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
+            grid.DataSource = calls.Select(call => new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
                 call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), StateName(call.State),
                 call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "")).ToArray();
             view.Columns[nameof(HistoryRow.Id)].Visible = false;
             _state?.Restore(view, "CallHistory");
-            previousButton.Enabled = _offset > 0;
-            nextButton.Enabled = result.HasMore;
-            statusLabel.Text = result.Items.IsEmpty ? "Keine Gespräche im gewählten Zeitraum." : $"{_offset + 1}–{_offset + result.Items.Length} · Alle Mandanten. Zeiten werden lokal angezeigt.";
+            statusLabel.Text = calls.Count == 0 ? "Keine Gespräche im gewählten Zeitraum." : $"{calls.Count} Gespräche · Alle Mandanten. Zeiten werden lokal angezeigt.";
         }
         finally { _binding = false; }
         await LoadFocusedDetailsAsync(token);
@@ -66,19 +111,6 @@ public partial class HistoryPage : XtraUserControl
     private async void Refresh_Click(object? sender, EventArgs e)
     {
         if (_operation is null || _operation.IsRunning) return;
-        _offset = 0;
-        await _operation.RunAsync(LoadCallsAsync);
-    }
-    private async void Previous_Click(object? sender, EventArgs e)
-    {
-        if (_operation is null || _operation.IsRunning) return;
-        _offset = Math.Max(0, _offset - 100);
-        await _operation.RunAsync(LoadCallsAsync);
-    }
-    private async void Next_Click(object? sender, EventArgs e)
-    {
-        if (_operation is null || _operation.IsRunning) return;
-        _offset += 100;
         await _operation.RunAsync(LoadCallsAsync);
     }
     private async void View_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
