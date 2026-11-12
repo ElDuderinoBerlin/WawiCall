@@ -71,10 +71,18 @@ Sie verwendet CSCore. Eine NAudio-basierte SIPSorcery-Medienanbindung wird nicht
 Die vom Nutzer als funktionierend benannten FRITZ!Box-Beispiele liegen unter
 `D:\Application-Development\sipsorcery-examples\PlaySounds` und `RecordIncomingCall`.
 Beide referenzieren bereits diese lokale Medienbibliothek und SIPSorcery 10.0.17.
-Die Bibliothek selbst zielt derzeit auf `net9.0-windows10.0.19041.0` und verwendet CSCore 1.2.1.5 sowie
-SIPSorceryMedia.Abstractions 10.0.17. Bei der Integration in Phase 7/9 sind Projektgraph, Manifest,
-Build-Ausgabepfade und die Windows-Plattformbasis der referenzierenden .NET-11-Projekte entsprechend anzupassen.
-Die Bibliothek muss dafür nicht ungefragt auf ein anderes Framework umgestellt werden.
+Die Bibliothek bietet seit dem 12.11.2026 die Ziele `net9.0-windows10.0.19041.0` und
+`net11.0-windows10.0.19041.0`; WawiCallPro referenziert die .NET-11-Ausgabe. Das .NET-9-Ziel bleibt
+für bestehende Beispiele erhalten und verwendet Logging.Abstractions 10.0.14, während die aktuelle
+.NET-11-Arbeitskopie Logging.Abstractions 11.0.0 verwendet. CSCore 1.2.1.5 und
+SIPSorceryMedia.Abstractions 10.0.17 bleiben erhalten. Damit entfallen die Frameworkwarnungen der
+11er-Pakete unter .NET 9. Nachweis: Solution-Rebuild in Debug/Any CPU und geprüfter Restore-Graph,
+`.cscore-net11-build.log`; Commit der Frameworkanpassung im Audiorepository: `118ae74`.
+
+Der Ausgabeordner `net11.0-windows10.0.19041.0` entspricht dem Target Framework: .NET 11 mit dem
+Windows-API-Stand 10.0.19041.0 (Windows 10, Version 2004). Die Windows-API-Version ist keine zweite
+.NET-Version und keine Beschränkung auf Windows 10. Der ausführliche Frameworkname im Ausgabeordner
+entsteht regulär durch das SDK; die Build-Reihenfolge wird dadurch nicht festgelegt.
 
 In dieser Dokumentationsanpassung wurden Beispiele und Referenzen gelesen; es erfolgten keine Anrufe
 oder Registrierungen an der FRITZ!Box und noch keine konkrete Medienintegration in die Projektgerüste.
