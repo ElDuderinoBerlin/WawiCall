@@ -56,6 +56,18 @@ Bei späteren Synchronisationen diese lokalen Ergänzungen und vorhandene Benutz
 - Für sichtbare Eingabefelder, Beschriftungen und Buttons vorhandene DevExpress-Steuerelemente und den aktiven
   Skin verwenden; keine unpassenden weißen Standard-WinForms-Eingabefelder. Buttons kompakt und bündig zu den
   zugehörigen Eingaben ausrichten; zusammengehörige Buttons erhalten einheitliche Größen und Abstände.
+- Für jede interaktive Datei- und Ordnerauswahl immer DevExpress-Browse-Dialoge (`XtraOpenFileDialog`,
+  `XtraSaveFileDialog`, `XtraFolderBrowserDialog`) oder darauf aufbauende Projekt-Wrapper verwenden.
+  Keine Standard-WinForms-Browse-Dialoge verwenden. Browse-Aufrufe einschließlich Vorbereitung und Laden
+  mit einem WaitHour-/Wartecursor auf dem aufrufenden Control beziehungsweise Formular begleiten und
+  den Dialog mit Owner öffnen. Den vorherigen Cursorzustand bei Bestätigung, Abbruch und Fehlern über
+  vorhandene Cursor-Scopes beziehungsweise `finally` zuverlässig wiederherstellen.
+- Dialoge immer größenveränderbar (resizable) aufbauen. Größe und Position unter einem eigenen,
+  versionierten HKCU-Registry-Pfad speichern und beim erneuten Öffnen wiederherstellen; vorhandene
+  zentrale Fensterzustandshilfen verwenden. Bei maximierten Fenstern die normalen `RestoreBounds`
+  erhalten und gespeicherte Positionen nach Monitorwechsel in den sichtbaren Arbeitsbereich begrenzen.
+  Inhaltsabhängige Mindestgrößen sowie DPI-, Schrift- und Skinwechsel berücksichtigen. Prüfungen
+  verwenden isolierte Registry-Pfade oder unterdrücken die Persistierung.
 - Textbuttons erhalten auch bei `AutoSize` sichtbare Innenabstände; für Dialogaktionen mindestens 12 logische
   Pixel seitlich und 6 oben/unten. Größe anhand von Text, Skin und DPI berechnen. `Margin` ersetzt kein `Padding`.
 - Werte, die nur angezeigt und nicht bearbeitet werden können, möglichst als DevExpress-`LabelControl` ohne
