@@ -19,6 +19,7 @@ internal sealed class AppApplicationContext : ApplicationContext
     private readonly string? _auditDirectory;
     private readonly TaskCompletionSource _closeRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private MainForm? _form;
+    private bool _windowReady;
     private readonly AppExceptionBoundary _exceptions;
     private readonly IAppInstanceGuard _instance;
     private readonly IUiDispatcher _dispatcher;
@@ -55,6 +56,18 @@ internal sealed class AppApplicationContext : ApplicationContext
             {
                 if (_auditDirectory is not null)
                 {
+                    if (NativeTrayAudit.IsRequested)
+                    {
+                        if (!_instance.TryAcquire()) throw new InvalidOperationException("Native audit requires an isolated instance profile.");
+                        _form = CreateMainForm();
+                        _form.FormClosing += MainFormClosing;
+                        await new NativeTrayAudit(_auditDirectory).RunAsync(_form, () =>
+                        {
+                            _windowReady = true;
+                            OnActivationRequested(this, EventArgs.Empty);
+                        }, stoppingToken);
+                        return;
+                    }
                     UiAudit.Render(_auditDirectory, CreateMainForm);
                     return;
                 }
@@ -76,6 +89,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                     await _splash.UpdateAsync("WawiCallPro ist bereit.", 5, stoppingToken);
                     await _splash.CompleteAsync(_form);
                 }
+                _windowReady = true;
                 OnActivationRequested(this, EventArgs.Empty);
                 if (_diagnostics)
                 {
@@ -127,9 +141,8 @@ internal sealed class AppApplicationContext : ApplicationContext
         {
             await _dispatcher.InvokeAsync(() =>
             {
-                if (_form is not { IsDisposed: false, Visible: true } || !_instance.TryConsumeActivation()) return;
-                if (_form.WindowState == FormWindowState.Minimized) _form.WindowState = FormWindowState.Normal;
-                _form.Activate();
+                if (!_windowReady || _form is not { IsDisposed: false } || !_instance.TryConsumeActivation()) return;
+                _form.RestoreFromTray();
             }, _activationToken);
         }
         catch (OperationCanceledException) when (_activationToken.IsCancellationRequested) { }

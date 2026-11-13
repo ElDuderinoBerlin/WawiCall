@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
@@ -22,6 +22,7 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
 {
     private Mutex? _mutex;
     private EventWaitHandle? _signal;
+    private MemoryMappedFile? _owner;
     private RegisteredWaitHandle? _listener;
     private bool _owned;
     private volatile bool _disposed;
@@ -40,8 +41,14 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
         try { _owned = _mutex.WaitOne(0); }
         catch (AbandonedMutexException) { _owned = true; }
         _signal = new EventWaitHandle(false, EventResetMode.AutoReset, name + ".Activate");
+        _owner = MemoryMappedFile.CreateOrOpen(name + ".Owner", sizeof(int));
         if (_owned)
+        {
+            using var owner = _owner.CreateViewAccessor();
+            owner.Write(0, Environment.ProcessId);
+            owner.Flush();
             _listener = ThreadPool.RegisterWaitForSingleObject(_signal, OnSignal, null, Timeout.Infinite, false);
+        }
         return _owned;
     }
 
@@ -58,20 +65,11 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_owned || _signal is null) return;
-        // An explicit second launch may hand foreground permission to the existing process.
-        using var current = Process.GetCurrentProcess();
-        foreach (var process in Process.GetProcessesByName(current.ProcessName))
-        {
-            using (process)
-            {
-                try
-                {
-                    if (process.Id != current.Id && process.SessionId == current.SessionId)
-                        User32.AllowSetForegroundWindow((uint)process.Id);
-                }
-                catch (InvalidOperationException) { }
-            }
-        }
+        // The owner belongs to this exact mutex/profile, independent of apphost, dotnet or edition EXE names.
+        using var owner = _owner!.CreateViewAccessor(0, sizeof(int), MemoryMappedFileAccess.Read);
+        var processId = 0;
+        SpinWait.SpinUntil(() => (processId = owner.ReadInt32(0)) > 0, TimeSpan.FromMilliseconds(250));
+        if (processId > 0 && processId != Environment.ProcessId) User32.AllowSetForegroundWindow((uint)processId);
         _signal.Set();
     }
 
@@ -81,6 +79,7 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
         _disposed = true;
         _listener?.Unregister(null);
         _signal?.Dispose();
+        _owner?.Dispose();
         if (_owned) _mutex!.ReleaseMutex();
         _mutex?.Dispose();
     }

@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 13.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8 und 14 sind teilweise umgesetzt und geprüft.
 
 ## 1. Auftrag und Arbeitsstand
@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen und Autostartoption; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen, Autostartoption und Tray mit Zweitstart-Aktivierung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1796,6 +1796,39 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Rollback: Vor einer Rückkehr zu einer älteren Ausgabe die Option abschalten beziehungsweise nur deren
   eigenen Run-Wert entfernen. Windows-Richtlinien/Task-Manager können den Anmeldestart zusätzlich sperren;
   eine echte Windows-Anmeldung und Installations-/Update-/Deinstallationsabnahme bleiben in Phase 14 offen.
+- [x] ✅ Teilpunkt Tray-Bedienung und Wiederherstellung beim Zweitstart (14.11.2026):
+  Implementiert sind ein DevExpress-Tray-Menü mit Anzeigen, Historie, Einstellungen und Beenden sowie
+  ein gemeinsamer Wiederherstellungspfad für Tray und expliziten Zweitstart. Normal-/Maximiertzustand
+  bleiben erhalten; ein modaler Dialog wird als bedienbares Ziel berücksichtigt und widersprechende
+  Menüaktionen bleiben gesperrt. Hintergrundprüfungen erzeugen kein tatsächliches Tray-Symbol.
+  Der Anwendungs-Context verbraucht frühe Aktivierungsaufträge erst nach UI-Bereitschaft und berücksichtigt
+  nun auch ein verborgenes Hauptfenster. Das verfügbare Vordergrundrecht wird an die über den gemeinsamen
+  Instanzbereich ermittelte Besitzer-PID übergeben, unabhängig von apphost-/dotnet-/EXE-Namen.
+  Nachweise: Je Edition 14 gezielte Hintergrundprüfungen für verborgen, minimiert,
+  zuvor maximiert, modal, frühen Auftrag, Windows-Mutex-/Profiltrennung, Anwendungs-Shutdown und aktive
+  Gespräche sowie Aktivierung ohne vorhandenen Besitzer und Velopack-Frühstart bestanden. Beide
+  Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert: null Fehler, jeweils 26 bestehende
+  Warnungen im externen CSCore-Projekt. FinOffice als reguläre Startausgabe wiederhergestellt.
+  Native Abnahme nach Freigabe: tatsächliche App-EXEs unter `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0`,
+  Build `0.1.139`; `GetForegroundWindow` bestätigt frühen dotnet-Zweitstart, Explorer-Aktivierung aus
+  minimiertem/zuvor maximiertem und verborgenem Zustand, Hintergrundaktivierung, Tray-Anzeigebefehl und
+  den geöffneten modalen Einstellungsdialog. Das echte Tray-Menü bei verborgenem Hauptfenster mit
+  sichtbarem Tray-Symbol bei 144 DPI (150 %), 10/16 pt sowie Basic/Blue Dark und Office 2019 Black
+  aufgenommen und visuell geprüft: vollständige Texte, Icons und mitwachsendes Menü.
+  Einstieg: `scripts/test-native-tray.ps1 -ProductLine Pro|FinOffice -AllowVisibleWindows`.
+  Der Schalter setzt voraus, dass sichtbare Tests abgesprochen sind. Der Auditmodus unterdrückt
+  Netzwerk und UI-Persistierung; das Skript verwendet ausschließlich ein neues Dummy-Profil.
+  Explorer übernimmt dessen Umgebung nicht: `--activate-existing <absoluter Profilordner>` überträgt
+  deshalb nur den gezielten Aktivierungsauftrag und startet bei fehlendem Besitzer keinen Host
+  (Exit 2). Der Velopack-Einstieg bleibt vor allen UI-Aufrufen und ohne UI-Abhängigkeiten prüfbar.
+  Lokale Nachweise: `.phase8-tray-{build,tests,native}-{pro,fin}.log` sowie JSON/Bilder unter
+  `.artifacts/tray-native/Pro/20261114-004519-3c5f7fc9cc074b289a3cb39082e24ad8` und
+  `.artifacts/tray-native/FinOffice/20261114-004631-9a0d8c5588fc401db0c146af98bc7b2f`;
+  JSON enthält EXE-Pfad, PID, Build, Assembly-SHA256 und native Fensterwerte. Fehlgeschlagene
+  Vorbereitungsläufe werden nicht als bestanden gewertet; alle eigenen Prüfprozesse sind beendet.
+  Sicherheitsumfang: lokale, benutzer-/produkt-/profilbezogene Instanzsignale; keine Änderungen an
+  produktiven Daten, Konfiguration, Lizenzierung oder SIP-Konten. Rollback: diesen Teilpunkt-Commit
+  zurücknehmen; es gibt weder Schemaänderungen noch zusätzliche persistente Benutzereinstellungen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

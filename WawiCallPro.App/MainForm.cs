@@ -220,6 +220,7 @@ public partial class MainForm : RibbonForm
     }
     private void MainForm_SizeChanged(object? sender, EventArgs e)
     {
+        if (!_inTray && WindowState != FormWindowState.Minimized) _lastWindowState = WindowState;
         ribbon.Minimized = ClientSize.Height < 900 && Font.Size > 13;
     }
     private void AppendOutput(string message) => logPanel.Append(message);
@@ -298,10 +299,9 @@ public partial class MainForm : RibbonForm
     private void Exit_Click(object sender, ItemClickEventArgs e) => Close();
     private void Tray_Click(object sender, ItemClickEventArgs e)
     {
-        if (_backgroundRun) return;
-        tray.Icon = Icon ?? SystemIcons.Application; tray.Visible = true; Hide();
+        MoveToTray();
     }
-    private void Tray_DoubleClick(object? sender, EventArgs e) { Show(); WindowState = FormWindowState.Normal; Activate(); tray.Visible = false; }
+    private void Tray_DoubleClick(object? sender, EventArgs e) => RestoreFromTray();
     private void Font_Click(object sender, ItemClickEventArgs e)
     {
         using var dialog = new FontDialog { Font = WindowsFormsSettings.DefaultFont, MinSize = 8, MaxSize = 24 };
@@ -318,7 +318,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);

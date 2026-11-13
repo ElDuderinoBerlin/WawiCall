@@ -41,6 +41,56 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task TrayRestorePreservesWindowStateAndDocumentsWithoutDisplayingATrayIcon(bool maximized) => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents(); form.Navigate("history");
+        var original = form.GetActiveDocumentView();
+        form.WindowState = maximized ? FormWindowState.Maximized : FormWindowState.Normal; Application.DoEvents();
+        Assert.IsTrue(form.MoveToTray()); Assert.IsFalse(form.Visible);
+        Assert.IsFalse(Field<NotifyIcon>(form, "tray").Visible, "Background tests must not change the actual notification area.");
+        Assert.AreSame(form, form.RestoreFromTray()); Assert.IsTrue(form.Visible);
+        Assert.AreEqual(maximized ? FormWindowState.Maximized : FormWindowState.Normal, form.WindowState);
+        form.WindowState = FormWindowState.Minimized; form.RestoreFromTray();
+        Assert.AreEqual(maximized ? FormWindowState.Maximized : FormWindowState.Normal, form.WindowState);
+        Assert.AreSame(original, form.GetActiveDocumentView());
+        var menu = Field<DevExpress.XtraBars.PopupMenu>(form, "trayMenu"); Assert.AreEqual(4, menu.ItemLinks.Count);
+        foreach (var name in new[] { "trayShowItem", "trayHistoryItem", "traySettingsItem", "trayExitItem" })
+        { var item = Field<DevExpress.XtraBars.BarButtonItem>(form, name); Assert.IsNotNull(item.ImageOptions.SvgImage); Assert.IsFalse(string.IsNullOrEmpty(item.Hint)); }
+        form.MoveToTray(); Field<DevExpress.XtraBars.BarButtonItem>(form, "trayHistoryItem").PerformClick();
+        Assert.IsTrue(form.Visible); Assert.AreSame(original, form.GetActiveDocumentView());
+        await form.PrepareToCloseAsync(); Assert.IsNull(form.RestoreFromTray()); Assert.IsFalse(form.MoveToTray());
+    });
+
+    [TestMethod]
+    public Task TrayRestoreKeepsAModalDialogUsableAndDisablesConflictingMenuActions() => RunStaAsync(async () =>
+    {
+        using var form = new MainForm(); form.PrepareForBackgroundRun(); form.Show();
+        using var modal = new FrmCallerLookup(); modal.PrepareForBackgroundRun();
+        using var timer = new System.Windows.Forms.Timer { Interval = 30 };
+        Exception? failure = null;
+        timer.Tick += (_, _) =>
+        {
+            if (!modal.Modal) return; timer.Stop();
+            try
+            {
+                Assert.IsFalse(form.MoveToTray()); Assert.IsTrue(form.Visible);
+                Assert.AreSame(modal, form.RestoreFromTray());
+                typeof(MainForm).GetMethod("Tray_BeforePopup", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [null, new System.ComponentModel.CancelEventArgs()]);
+                Assert.IsFalse(Field<DevExpress.XtraBars.BarButtonItem>(form, "traySettingsItem").Enabled);
+                Assert.IsFalse(Field<DevExpress.XtraBars.BarButtonItem>(form, "trayExitItem").Enabled);
+            }
+            catch (Exception exception) { failure = exception; }
+            finally { modal.Close(); }
+        };
+        timer.Start(); modal.ShowDialog(form);
+        if (failure is not null) throw failure;
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
     public Task AutoStartOnlyChangesAfterExplicitSavedChoiceAndCanBeDisabledAgain() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var registry = (StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>();

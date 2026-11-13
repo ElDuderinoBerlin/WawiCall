@@ -9,6 +9,20 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppInstanceTests
 {
     [TestMethod]
+    public void ActivationOnlyRequiresAnExistingOwnerAndNeverCreatesAProfile()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-activation-only-" + Guid.NewGuid().ToString("N"));
+        Assert.AreEqual(2, Program.ActivateExisting(["--activate-existing", "relative-profile"]));
+        Assert.AreEqual(2, Program.ActivateExisting(["--activate-existing", directory]));
+        var descriptor = ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
+        using var owner = Create(directory, descriptor.ProductLine);
+        Assert.IsTrue(owner.TryAcquire());
+        RunOnOtherThread(() => Assert.AreEqual(0, Program.ActivateExisting(["--activate-existing", directory])));
+        Assert.IsTrue(SpinWait.SpinUntil(owner.TryConsumeActivation, TimeSpan.FromSeconds(5)));
+        Assert.IsFalse(Directory.Exists(directory));
+    }
+
+    [TestMethod]
     public void WindowsMutexExcludesSecondOwnerAndActivationSurvivesBeforeSubscription()
     {
         var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-instance-" + Guid.NewGuid().ToString("N"));
