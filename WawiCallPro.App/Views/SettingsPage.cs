@@ -20,10 +20,14 @@ public partial class SettingsPage : XtraUserControl
     private Func<Task>? _beforePluginSwitch;
     private SimpleButton? _dialogCloseButton;
     private bool _arrangingButtons;
+    private AutoStartState? _autoStartState;
     internal event EventHandler? RestartRequested;
+    internal event EventHandler? ContentSizeChanged;
+    internal int GetRequiredGeneralHeight() => generalLayout.GetPreferredSize(new(generalLayout.ClientSize.Width, 0)).Height + Height - generalLayout.Height;
     public SettingsPage()
     {
         InitializeComponent();
+        generalLayout.Layout += General_Layout;
         UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
@@ -35,6 +39,7 @@ public partial class SettingsPage : XtraUserControl
         Disposed += (_, _) => appearance.StyleChanged -= ButtonLayout_Changed;
         ArrangeButtons();
     }
+    private void General_Layout(object? sender, LayoutEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
 
     internal void ConfigureCommandButtons(SimpleButton closeButton)
     {
@@ -87,6 +92,7 @@ public partial class SettingsPage : XtraUserControl
         UpdateSipStatus();
         _operation = new PageOperation(this, statusLabel);
         Apply(workspace.Configuration.Current);
+        LoadAutoStart();
         pluginPage.Bind(workspace, _state);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
         pluginPage.RefreshCatalog();
@@ -234,7 +240,15 @@ public partial class SettingsPage : XtraUserControl
         BindMatchingCompanies();
     }
 
-    internal Task ReloadAsync() => _operation?.RunAsync(async token => Apply(await _workspace!.Settings.LoadAsync(token))) ?? Task.CompletedTask;
+    internal Task ReloadAsync() => _operation?.RunAsync(async token => { Apply(await _workspace!.Settings.LoadAsync(token)); LoadAutoStart(); }) ?? Task.CompletedTask;
+    private void LoadAutoStart()
+    {
+        if (_workspace is null) return;
+        _autoStartState = _workspace.AutoStart.Read();
+        autoStartEdit.Checked = _autoStartState.Enabled;
+        autoStartEdit.Enabled = _autoStartState.CanChange;
+        autoStartStatus.Text = _autoStartState.Status;
+    }
 
     private sealed class CacheCompanyRow(CompanyKey key, string mandant, bool selected, bool fromSource = true)
     {
@@ -247,9 +261,21 @@ public partial class SettingsPage : XtraUserControl
 
     internal async Task SaveAsync(CancellationToken token)
     {
+        var startWithWindows = autoStartEdit.Checked;
         var options = ReadOptions();
         await _workspace!.Settings.SaveAsync(options, _snapshot!, token);
         Apply(await _workspace.Settings.LoadAsync(token));
+        if (_autoStartState is { CanChange: true } && startWithWindows != _autoStartState.Enabled)
+        {
+            token.ThrowIfCancellationRequested();
+            try { _autoStartState = _workspace.AutoStart.Set(startWithWindows, _autoStartState); }
+            catch (AutoStartException exception)
+            {
+                autoStartStatus.Text = exception.Message;
+                throw new AutoStartException("Allgemeine Einstellungen gespeichert. " + exception.Message);
+            }
+            LoadAutoStart();
+        }
         statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank und Geräte werden beim nächsten Programmstart übernommen.";
     }
     private async void Save_Click(object? sender, EventArgs e)

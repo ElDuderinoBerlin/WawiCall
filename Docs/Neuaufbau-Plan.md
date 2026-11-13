@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz und Benachrichtigungen; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen und Autostartoption; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1768,6 +1768,34 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert, FinOffice als Startausgabe
   wiederhergestellt. Logs `.phase8-notifications-*.log`. Keine Layoutänderung oder sichtbare Desktopbedienung.
   Native Vordergrund-/Trayprüfung, globale Hotkeys, Autostart und echte Kernproduktabnahme bleiben offen.
+- [x] ✅ Teilpunkt Autostartoption in den allgemeinen Einstellungen (13.11.2026):
+  „Mit Windows starten“ liest den tatsächlichen editionsbezogenen HKCU-Run-Eintrag über einen injizierten
+  Windows-Adapter. Keine zweite Autostartwahrheit in JSON und keine automatische Aktivierung beim Start.
+  Erst eine ausdrücklich geänderte und gespeicherte Auswahl setzt beziehungsweise entfernt den eigenen
+  Wert; unveränderte allgemeine Einstellungen lassen ihn unangetastet. Pro, FinOffice und Demo-Ausgaben
+  verwenden getrennte Wertnamen. Fremde Startbefehle, unpassende Registry-Typen und Änderungen seit dem
+  Laden sperren ein Überschreiben; Statusmeldungen enthalten keine fremden Befehle oder Pfade.
+  Native EXE- und dotnet-Starts werden vollständig quotiert, Prozessargumente nicht übernommen. Installierte
+  Velopack-Ausgaben verwenden den beständigen Updater mit `start <EXE>` statt eines versionsgebundenen Pfads.
+  Ungültige/zu lange Startpfade deaktivieren nur die optionale Funktion; Diagnosen und Audits greifen weder
+  lesend noch schreibend auf den echten Autostartbereich zu. Lese-/Schreibfehler werden verständlich angezeigt.
+  Scheitert die Registry-Änderung nach dem JSON-Speichern, bleibt die gewünschte Auswahl für einen erneuten
+  Versuch erhalten; die Meldung unterscheidet gespeicherte allgemeine Einstellungen vom Autostartfehler.
+  Der Einstellungsdialog berechnet seine Mindesthöhe aus Inhalt, Schrift und Rahmen; keine Scrollbar für
+  abgeschnittene Standardfelder. TableLayoutPanel, Designer-Aufteilung und vorhandene Fensterpersistierung erhalten.
+  Nachweise: Je Edition 17 gezielte App-Prüfungen für Befehlsquotierung/-länge, Varianten, isolierten echten
+  HKCU-Roundtrip, Fremdeinträge, Rechtefehler, Wiederholung, unveränderte Speicherung sowie Diagnose-Sperre.
+  Ein/aus/Fremdeintrag in Allgemein bei 680/980 Breite, 10/16 pt, 150%-Layoutsimulation, Basic und Office 2019
+  Black unsichtbar gerendert und visuell geprüft; wegen der gemeinsamen Mindesthöhe auch die bestehenden
+  Einstellungsseiten und Schließabläufe geprüft. Beide Hosts/Solution für Pro und FinOffice in Debug/Any CPU
+  rekompiliert; FinOffice als Startausgabe hergestellt. Logs `.phase8-autostart-*.log`, Bilder unter
+  `.artifacts/autostart-settings/{Pro,FinOffice}`. Der wirkliche HKCU-Run-Bereich wurde in den Tests nicht verändert.
+  Quellprüfung: `Quantarix.Windows/IO/AutoStart.cs` vergleicht den gespeicherten quotierten Wert unquotiert;
+  deshalb eigener Adapter mit geprüfter Befehlsbildung. Grundlagen: [Microsoft Run/RunOnce](https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys)
+  und [Velopack 1.2.161 Updater](https://docs.velopack.io/reference/cli/content/update-windows).
+  Rollback: Vor einer Rückkehr zu einer älteren Ausgabe die Option abschalten beziehungsweise nur deren
+  eigenen Run-Wert entfernen. Windows-Richtlinien/Task-Manager können den Anmeldestart zusätzlich sperren;
+  eine echte Windows-Anmeldung und Installations-/Update-/Deinstallationsabnahme bleiben in Phase 14 offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
@@ -1927,6 +1955,9 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.
+  Autostart bei echter Windows-Anmeldung je Ausgabe prüfen; beim Update den stabilen Startpfad erhalten
+  und bei Deinstallation ausschließlich den eigenen HKCU-Run-Wert entfernen. Die isolierte Registry-Prüfung
+  aus Phase 8 ersetzt diese Installations-/Update-/Deinstallationsabnahme nicht.
 
 Abnahme: Pro- und FinOffice-Pakete auf einer sauberen Testumgebung installieren, starten, aktualisieren und
 deinstallieren. Keine MMS-DLLs, falschen Produktlinienbibliotheken oder Entwicklungszugangsdaten im Paket.

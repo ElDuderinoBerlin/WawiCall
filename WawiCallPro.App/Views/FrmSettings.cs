@@ -8,6 +8,7 @@ public partial class FrmSettings : XtraForm
     private bool _canClose;
     private bool _closing;
     private bool _backgroundRun;
+    private bool _sizingMinimum;
     internal void PrepareForBackgroundRun()
     {
         _backgroundRun = true;
@@ -24,7 +25,23 @@ public partial class FrmSettings : XtraForm
             return parameters;
         }
     }
-    public FrmSettings() { InitializeComponent(); UiButtonSizing.Attach(this); settingsPage.ConfigureCommandButtons(closeButton); settingsPage.RestartRequested += Settings_RestartRequested; Load += Settings_Load; }
+    public FrmSettings()
+    {
+        InitializeComponent(); UiButtonSizing.Attach(this); settingsPage.ConfigureCommandButtons(closeButton);
+        settingsPage.RestartRequested += Settings_RestartRequested; settingsPage.ContentSizeChanged += ContentSize_Changed;
+        SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; Load += Settings_Load;
+    }
+    private void ContentSize_Changed(object? sender, EventArgs e)
+    {
+        if (_sizingMinimum || !IsHandleCreated || IsDisposed || settingsPage.Width < LogicalToDeviceUnits(300)) return;
+        _sizingMinimum = true;
+        try
+        {
+            var height = settingsPage.GetRequiredGeneralHeight() + Height - settingsPage.Height;
+            MinimumSize = new(MinimumSize.Width, height);
+        }
+        finally { _sizingMinimum = false; }
+    }
     internal bool RestartRequested { get; private set; }
     private void Settings_RestartRequested(object? sender, EventArgs e) { RestartRequested = true; Close(); }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
@@ -41,7 +58,7 @@ public partial class FrmSettings : XtraForm
         state?.AttachWindow(this, "FrmSettings");
     }
     private void Close_Click(object? sender, EventArgs e) => Close();
-    private async void Settings_Load(object? sender, EventArgs e) => await settingsPage.ReloadAsync();
+    private async void Settings_Load(object? sender, EventArgs e) { await settingsPage.ReloadAsync(); ContentSize_Changed(this, EventArgs.Empty); }
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (_canClose) return;

@@ -44,6 +44,7 @@ internal sealed class PageOperation(Control owner, LabelControl status) : IDispo
         WawiCallPro.Plugin.Windows.UnsavedPluginChangesException => exception.Message,
         UnsavedCallNotesException => exception.Message,
         ActiveCallCloseException => exception.Message,
+        AutoStartException => exception.Message,
         WawiCallPro.Utilities.Plugins.LexwareUnavailableException => exception.Message,
         NotSupportedException => "Diese Funktion ist im aktiven Plugin noch nicht verfügbar.",
         _ => "Die Aktion ist fehlgeschlagen. Bitte Einstellungen und Erreichbarkeit prüfen."

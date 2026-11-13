@@ -42,7 +42,8 @@ public sealed class AppWorkspace(
     ICallViewScopeFactory callScopes,
     ICallAssociationService callAssociations,
     IPhoneNumberDiagnostics numberDiagnostics,
-    CallNotesSessionFactory callNotes)
+    CallNotesSessionFactory callNotes,
+    IAppAutoStart autoStart)
 {
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
@@ -69,6 +70,7 @@ public sealed class AppWorkspace(
     public ICallAssociationService CallAssociations { get; } = callAssociations;
     public IPhoneNumberDiagnostics NumberDiagnostics { get; } = numberDiagnostics;
     public CallNotesSessionFactory CallNotes { get; } = callNotes;
+    public IAppAutoStart AutoStart { get; } = autoStart;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

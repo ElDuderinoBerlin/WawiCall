@@ -41,6 +41,56 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task AutoStartOnlyChangesAfterExplicitSavedChoiceAndCanBeDisabledAgain() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var registry = (StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>();
+        using var settings = new FrmSettings(workspace); var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync(); var editor = Field<CheckEdit>(page, "autoStartEdit");
+        Assert.IsTrue(editor.Enabled); Assert.IsFalse(editor.Checked); Assert.AreEqual(0, registry.Writes);
+        editor.Checked = true; Assert.AreEqual(0, registry.Writes);
+        await page.ReloadAsync(); Assert.IsFalse(editor.Checked);
+        await page.SaveAsync(CancellationToken.None); Assert.AreEqual(0, registry.Writes);
+        editor.Checked = true; await page.SaveAsync(CancellationToken.None);
+        Assert.AreEqual(1, registry.Writes); Assert.IsTrue(editor.Checked); Assert.IsTrue(workspace.AutoStart.Read().Enabled);
+        await page.SaveAsync(CancellationToken.None); Assert.AreEqual(1, registry.Writes);
+        editor.Checked = false; await page.SaveAsync(CancellationToken.None);
+        Assert.AreEqual(1, registry.Deletes); Assert.IsFalse(workspace.AutoStart.Read().Enabled);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task AutoStartSaveFailureRetainsChoiceAndAllowsRetryWithoutAStaleConfiguration() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var registry = (StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>();
+        using var settings = new FrmSettings(workspace); var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync(); Field<CheckEdit>(page, "autoStartEdit").Checked = true;
+        Field<CheckEdit>(page, "notificationsEdit").Checked = false;
+        registry.FailWrite = true;
+        await Assert.ThrowsAsync<AutoStartException>(() => page.SaveAsync(CancellationToken.None));
+        Assert.IsTrue(Field<CheckEdit>(page, "autoStartEdit").Checked); Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
+        StringAssert.Contains(Field<LabelControl>(page, "autoStartStatus").Text, "nicht geändert");
+        registry.FailWrite = false; await page.SaveAsync(CancellationToken.None);
+        Assert.IsTrue(workspace.AutoStart.Read().Enabled);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task AutoStartReadFailureAndForeignCommandsDoNotPreventSavingUnrelatedSettings() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var registry = (StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>();
+        registry.FailRead = true;
+        using var settings = new FrmSettings(workspace); var page = Field<SettingsPage>(settings, "settingsPage"); await page.ReloadAsync();
+        Assert.IsFalse(Field<CheckEdit>(page, "autoStartEdit").Enabled);
+        Field<CheckEdit>(page, "notificationsEdit").Checked = false; await page.SaveAsync(CancellationToken.None);
+        Assert.AreEqual(0, registry.Writes); Assert.AreEqual(0, registry.Deletes);
+        registry.FailRead = false; registry.Command = "foreign-command-sentinel"; await page.ReloadAsync();
+        Assert.IsFalse(Field<CheckEdit>(page, "autoStartEdit").Enabled);
+        Assert.DoesNotContain("sentinel", Field<LabelControl>(page, "autoStartStatus").Text);
+        await page.SaveAsync(CancellationToken.None); Assert.AreEqual("foreign-command-sentinel", registry.Command);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public Task CallNotificationsRespectSavedPreferenceOncePerIncomingCallWithoutSuppressingMatching(bool enabled) => WithWorkspace(async (workspace, services, plugin) =>
@@ -971,14 +1021,17 @@ public sealed class AppShellTests
     {
         Assert.IsTrue(workspace.Configuration.Current.Options.User.UseDirectXRendering);
         AppUiStartup.Apply();
-        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "directx-settings", workspace.Application.ProductLine); Directory.CreateDirectory(output);
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "autostart-settings", workspace.Application.ProductLine); Directory.CreateDirectory(output);
         var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
         var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
         try
         {
+            foreach (var autoStartState in new[] { "disabled", "enabled", "foreign" })
             foreach (var (width, height, fontSize, scale, skin) in new[] { (980, 760, 10F, 1F, "Basic"), (680, 580, 16F, 1F, "Basic"),
                 (980, 760, 10F, 1.5F, "Basic"), (680, 580, 16F, 1F, "Office 2019 Black") })
             {
+                ((StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>()).Command = autoStartState switch
+                { "enabled" => "\"C:\\Fixture App\\WawiCallPro.App.Test.exe\"", "foreign" => "foreign-command-sentinel", _ => null };
                 DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
                 using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = font; settings.ClientSize = new(width, height);
@@ -986,9 +1039,12 @@ public sealed class AppShellTests
                 settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
                 var page = Field<SettingsPage>(settings, "settingsPage"); Field<CheckEdit>(page, "directXEdit").Checked = true;
                 if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
-                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{autoStartState}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
                 CheckTableBounds(settings);
                 Assert.IsTrue(Field<CheckEdit>(page, "directXEdit").Visible);
+                Assert.IsTrue(Field<CheckEdit>(page, "autoStartEdit").Visible);
+                Assert.IsTrue(Field<LabelControl>(page, "autoStartStatus").Bottom <= Field<TableLayoutPanel>(page, "generalLayout").ClientSize.Height,
+                    "The autostart status must fit without a scrollbar.");
                 Assert.IsTrue(Field<LabelControl>(page, "generalHint").Bottom <= Field<TableLayoutPanel>(page, "generalLayout").ClientSize.Height,
                     "The general settings hint must fit without a scrollbar.");
                 await settings.StopAsync();
@@ -2947,6 +3003,9 @@ public sealed class AppShellTests
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
             services.AddSingleton<CallNotesSessionFactory>();
+            services.AddSingleton<IAutoStartRegistry, StartupRegistryDouble>();
+            services.AddSingleton<IAppAutoStart>(provider => new WindowsAppAutoStart(provider.GetRequiredService<IAutoStartRegistry>(),
+                new("WawiCallPro.App.Test", "\"C:\\Fixture App\\WawiCallPro.App.Test.exe\""), new StartupExecutionMode(false)));
                 services.AddSipTelephony(false);
             if (telephony is not null) services.AddSingleton(telephony);
         }).Build();
@@ -3004,6 +3063,17 @@ public sealed class AppShellTests
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
         await done.Task.WaitAsync(TimeSpan.FromSeconds(40));
         Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2)));
+    }
+    private sealed class StartupRegistryDouble : IAutoStartRegistry
+    {
+        internal string? Command;
+        internal bool FailRead;
+        internal bool FailWrite;
+        internal int Writes;
+        internal int Deletes;
+        public string? Read(string name) => FailRead ? throw new UnauthorizedAccessException("registry-read-sentinel") : Command;
+        public void Write(string name, string command) { if (FailWrite) throw new UnauthorizedAccessException("registry-write-sentinel"); Command = command; Writes++; }
+        public void Delete(string name) { Command = null; Deletes++; }
     }
     private sealed class TestDirectory(ApplicationDescriptor application) : IBusinessDirectory
     {
