@@ -1682,6 +1682,23 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Beide Solution-Editionen mit App/Console in Debug/Any CPU gebaut, FinOffice als Startausgabe hergestellt.
   Logs `.phase8-dial-*.log`, Bilder unter `.artifacts/phase8-dial` und `.artifacts/layout-reference`.
   Keine Produktionsanrufe, Audiogeräte oder sichtbare Desktopbedienung; echte FRITZ!Box-Abnahme bleibt offen.
+- [x] ✅ Teilpunkt Gesprächsbedienung im Anruferfenster und in der Gesprächsdetailansicht (13.11.2026):
+  Gemeinsames designerfähiges `CallControlPanel` mit Annehmen, Ablehnen/Auflegen und Halten/Fortsetzen.
+  Befehle laufen über den injizierten vorhandenen Telefoniedienst und die feste Gesprächs-ID. Nur beobachtete
+  Dienstzustände ändern die verfügbaren Aktionen; veraltete/fremde Ereignisse und ein Wiederbeleben beendeter
+  Gespräche bleiben wirkungslos. Laufende Aktionen sperren Doppelaufrufe. Beim Schließen werden Befehle
+  abgebrochen und abgewartet sowie Ereignisbindungen entfernt; Fehler erlauben einen erneuten Versuch.
+  Eine gesperrte Warenwirtschaft verhindert weder das eingehende Anruferfenster noch die Telefonbedienung;
+  Rufnummernsuche und Zuordnung bleiben gesperrt und verweisen auf das Log-Fenster.
+  TableLayoutPanel und gemeinsame Button-/DPI-Hilfe; vorhandene Fensterzustandsspeicherung erhalten.
+  Nachweise: Je Edition zehn gezielte App-Prüfungen einschließlich bestehender Anrufkontexte/Schließabläufe
+  und Lexware-Sperren. Fünf vorhandene SIP-Loopback-Prüfungen für Annahme, Ablehnung, Auflegen, Halten,
+  Fortsetzen und Shutdown bestanden. Leere/gefüllte Detailansichten und klingelnde/gehaltene/beendete
+  Gespräche bei kleinen Fenstern, 8/10/16 pt, 125/150%-Layoutsimulation, Basic/Blue Dark und Office 2019 Black
+  unsichtbar gerendert und visuell geprüft. Solution mit beiden Hosts für Pro/FinOffice in Debug/Any CPU
+  rekompiliert; FinOffice als Startausgabe wiederhergestellt. Logs `.phase8-call-controls-*.log`, Bilder unter
+  `.artifacts/phase8-call-controls` und `.artifacts/phase6-call-context` in den jeweiligen App-Testausgaben.
+  Keine echten Anrufe oder Audiogeräte; Notizen im Anruferfenster und die FRITZ!Box-Abnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

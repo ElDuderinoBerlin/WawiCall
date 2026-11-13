@@ -46,18 +46,19 @@ public partial class CallDetailsPage : XtraUserControl
     internal void Bind(AppWorkspace workspace, CallSnapshot call)
     {
         _workspace = workspace; _scope = workspace.CallScopes.Create(call);
+        callControls.Bind(workspace.Telephony, call);
         ShowCall();
     }
     internal async Task ObserveAsync(CallSnapshot call)
-    { if (_scope is not null && _stopTask is null) { await _scope.ObserveAsync(call); ShowCall(); } }
+    { if (_scope is not null && _stopTask is null) { await _scope.ObserveAsync(call); callControls.Observe(Call); ShowCall(); } }
     private void ShowCall()
     {
         if (_scope is null) return;
         callLabel.Text = "Anruf " + Call.StartedAtUtc.LocalDateTime.ToString("T") + " · "
             + (Call.RemoteAddress.Presentation == NumberPresentation.Withheld ? "Unterdrückte Nummer" : Call.RemoteAddress.OriginalValue ?? "Unbekannte Nummer")
             + " · " + (Call.State switch { CallState.Created => "Neu", CallState.Dialing => "Rufaufbau", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" });
-        chooseButton.Enabled = !_scope.IsEnded;
-        reloadButton.Enabled = !_scope.IsEnded && Context is not null;
+        chooseButton.Enabled = !_scope.IsEnded && _workspace?.CanUseBusinessDirectory == true;
+        reloadButton.Enabled = chooseButton.Enabled && Context is not null;
         if (_scope.IsEnded) statusLabel.Text = "Gespräch beendet. Bereits geöffnete Fachansichten bleiben erhalten.";
     }
     internal async Task AcceptAsync(CallerMatchDecision decision, CancellationToken token)
@@ -137,6 +138,7 @@ public partial class CallDetailsPage : XtraUserControl
     private async Task StopCoreAsync()
     {
         await _stopping.CancelAsync();
+        await callControls.StopAsync();
         if (_scope is not null) await _scope.DisposeAsync();
         await Task.WhenAll(_loads.ToArray());
         foreach (var handle in _views.Values) await handle.DisposeAsync();

@@ -31,8 +31,11 @@ public partial class MainForm
         if (_callPages.TryGetValue(call.Id, out var existing))
         {
             await existing.Page.ObserveAsync(call);
-            if (existing.Page.Call.State is CallState.Ended or CallState.Failed)
-                foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Id)) await lookup.Page.EndCallAsync();
+            foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Id))
+            {
+                lookup.ObserveCall(existing.Page.Call);
+                if (existing.Page.Call.State is CallState.Ended or CallState.Failed) await lookup.Page.EndCallAsync();
+            }
             return;
         }
         if (call.State is CallState.Ended or CallState.Failed) return;
@@ -54,7 +57,6 @@ public partial class MainForm
     private async Task OpenCallLookupAsync(CallDetailsPage page, bool incoming)
     {
         if (page.IsDisposed || _closing) return;
-        if (_workspace?.CanUseBusinessDirectory != true) return;
         if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { } existing)
         { if (!incoming) { existing.Show(); if (!_backgroundRun) existing.Activate(); } return; }
         var lookup = CreateCallerDialog();

@@ -41,6 +41,152 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task CallCommandsFollowObservedStateAndKeepTheCallIdentity() => RunStaAsync(async () =>
+    {
+        using var panel = new CallControlPanel(); panel.CreateControl();
+        var service = new CommandTelephony(); var call = CommandCall(); service.Current = call;
+        panel.Bind(service, call);
+        Assert.IsTrue(Field<SimpleButton>(panel, "answerButton").Enabled);
+        Assert.AreEqual("Ablehnen", Field<SimpleButton>(panel, "endButton").Text);
+        Assert.IsFalse(Field<SimpleButton>(panel, "holdButton").Enabled);
+        await InvokeActionAsync(panel, "Answer_Click");
+        Assert.AreEqual("Klingelt", Field<LabelControl>(panel, "statusLabel").Text, "Command completion alone is not an observed connection.");
+        await InvokeActionAsync(panel, "End_Click");
+        await Task.Run(() => service.Publish(call with { Revision = 2, State = CallState.Connected }));
+        await WaitForDialStateAsync(() => Field<SimpleButton>(panel, "holdButton").Enabled);
+        await InvokeActionAsync(panel, "Hold_Click");
+        service.Publish(call with { Revision = 3, State = CallState.Held });
+        await WaitForDialStateAsync(() => Field<SimpleButton>(panel, "holdButton").Text == "Fortsetzen");
+        await InvokeActionAsync(panel, "Hold_Click");
+        await InvokeActionAsync(panel, "End_Click");
+        CollectionAssert.AreEqual(new[] { "Answer", "Reject", "Hold", "Resume", "HangUp" }, service.Commands.Select(item => item.Command).ToArray());
+        Assert.IsTrue(service.Commands.All(item => item.Id == call.Id));
+        panel.Observe(call with { Revision = 2, State = CallState.Ended });
+        panel.Observe(call with { Id = Guid.NewGuid(), Revision = 100, State = CallState.Ended });
+        Assert.IsTrue(Field<SimpleButton>(panel, "holdButton").Enabled);
+        panel.Observe(call with { Revision = 4, State = CallState.Ended });
+        panel.Observe(call with { Revision = 5, State = CallState.Connected });
+        Assert.IsFalse(Field<SimpleButton>(panel, "endButton").Enabled);
+        await InvokeActionAsync(panel, "End_Click"); Assert.HasCount(5, service.Commands);
+        await panel.StopAsync(); Assert.AreEqual(0, service.Subscribers);
+        Assert.ThrowsExactly<InvalidOperationException>(() => panel.Bind(null, call));
+    });
+
+    [TestMethod]
+    public Task CallCommandsRejectDuplicatesReportFailuresAndAwaitCancellationOnClose() => RunStaAsync(async () =>
+    {
+        var service = new CommandTelephony(); var call = CommandCall() with { Direction = CallDirection.Outgoing };
+        using var dialog = new FrmCallerLookup(); dialog.PrepareForBackgroundRun();
+        dialog.BindCall(call, (_, _) => Task.CompletedTask);
+        var panel = Field<CallControlPanel>(dialog, "callControls"); panel.Bind(service, call); service.Current = call;
+        dialog.Show();
+        service.Execute = (_, _) => throw new TelephonyException("busy");
+        await InvokeActionAsync(panel, "End_Click");
+        Assert.AreEqual(new TelephonyException("busy").Message, Field<LabelControl>(panel, "statusLabel").Text);
+        Assert.IsTrue(Field<SimpleButton>(panel, "endButton").Enabled);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken captured = default;
+        service.Execute = (_, token) => { captured = token; return release.Task; };
+        panel.GetType().GetMethod("End_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(panel, [null, EventArgs.Empty]);
+        Assert.IsFalse(Field<SimpleButton>(panel, "endButton").Enabled);
+        panel.GetType().GetMethod("End_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(panel, [null, EventArgs.Empty]);
+        Assert.HasCount(2, service.Commands);
+        dialog.Close(); await Task.Delay(30);
+        Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(dialog.IsDisposed);
+        Assert.AreEqual(0, service.Subscribers);
+        service.Publish(call with { Revision = 2, State = CallState.Connected });
+        release.SetResult(); await WaitForDialStateAsync(() => dialog.IsDisposed);
+    });
+
+    [TestMethod]
+    public Task IncomingCallControlsRemainAvailableWhenTheBusinessSourceIsBlocked() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        ((TestRuntime)services.GetRequiredService<IProductPluginRuntime>()).BusinessAvailable = false;
+        var reads = 0; ((TestDirectory)workspace.Directory).ReadCatalog = _ => { reads++; throw new InvalidOperationException("Source must not be read."); };
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var call = CommandCall();
+        await form.ObserveCallAsync(call);
+        var popup = form.OwnedForms.OfType<FrmCallerLookup>().Single();
+        var controls = Field<CallControlPanel>(popup, "callControls");
+        Assert.IsTrue(controls.Visible); Assert.IsTrue(Field<SimpleButton>(controls, "answerButton").Enabled);
+        Assert.IsFalse(Field<SimpleButton>(popup.Page, "searchButton").Enabled);
+        StringAssert.Contains(Field<LabelControl>(popup.Page, "statusLabel").Text, "Log-Fenster");
+        Assert.AreEqual(0, reads);
+        await form.ObserveCallAsync(call with { Revision = 2, State = CallState.Ended });
+        Assert.IsFalse(Field<SimpleButton>(controls, "answerButton").Enabled);
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallControlsRenderRingingHeldAndEndedWithSmallWindowsFontsDpiAndSkins() => RunStaAsync(async () =>
+    {
+        AppUiStartup.Apply();
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var oldPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var output = Path.GetFullPath(".artifacts/phase8-call-controls/render"); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var (width, size, scale, skin, palette) in new[] { (600, 8F, 1F, oldSkin, oldPalette), (640, 16F, 1F, "Office 2019 Black", ""),
+                (600, 10F, 1.5F, oldSkin, oldPalette), (900, 10F, 1.25F, "Basic", "Blue Dark") })
+            foreach (var state in new[] { CallState.Ringing, CallState.Held, CallState.Ended })
+            {
+                if (string.IsNullOrEmpty(palette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                using var font = new Font("Tahoma", size); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var dialog = new FrmCallerLookup(); dialog.PrepareForBackgroundRun(); dialog.Font = font; dialog.ClientSize = new(width, 500);
+                var call = CommandCall() with { State = state };
+                dialog.BindCall(call, (_, _) => Task.CompletedTask);
+                var panel = Field<CallControlPanel>(dialog, "callControls"); panel.Bind(new CommandTelephony { Current = call }, call);
+                dialog.Show(); if (scale != 1F) dialog.Scale(new SizeF(scale, scale));
+                dialog.PerformLayout(); Application.DoEvents(); CheckTableBounds(dialog);
+                var answer = Field<SimpleButton>(panel, "answerButton");
+                Assert.AreEqual(answer.Size, Field<SimpleButton>(panel, "endButton").Size);
+                Assert.AreEqual(answer.Size, Field<SimpleButton>(panel, "holdButton").Size);
+                Assert.IsTrue(panel.Bottom <= dialog.ClientSize.Height);
+                using var shot = UiAudit.Capture(dialog); shot.Save(Path.Combine(output, $"controls-{width}-{size:0}-{scale:0.0}-{skin}-{state}.png"), ImageFormat.Png);
+                await dialog.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            if (string.IsNullOrEmpty(oldPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin, oldPalette);
+        }
+    });
+
+    private static CallSnapshot CommandCall()
+    {
+        var now = DateTimeOffset.UtcNow;
+        return new() { Id = Guid.NewGuid(), Revision = 1, Direction = CallDirection.Incoming, State = CallState.Ringing,
+            LocalAddress = new(NumberPresentation.Unknown), RemoteAddress = new(NumberPresentation.Available, "+49301234567"), StartedAtUtc = now, StateChangedAtUtc = now };
+    }
+    private sealed class CommandTelephony : ITelephonyService
+    {
+        internal CallSnapshot? Current;
+        internal readonly List<(string Command, Guid Id)> Commands = [];
+        internal Func<string, CancellationToken, Task>? Execute;
+        private EventHandler<CallChangedEventArgs>? _calls;
+        internal int Subscribers => _calls?.GetInvocationList().Length ?? 0;
+        public RegistrationSnapshot Registration { get; } = new(RegistrationState.Registered, DateTimeOffset.UtcNow);
+        public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged { add { } remove { } }
+        public event EventHandler<CallChangedEventArgs>? CallChanged { add => _calls += value; remove => _calls -= value; }
+        public ImmutableArray<CallSnapshot> GetCalls() => Current is null ? [] : [Current];
+        internal void Publish(CallSnapshot call) { Current = call; _calls?.Invoke(this, new(call)); }
+        private Task Run(string command, Guid id, CancellationToken token) { Commands.Add((command, id)); return Execute?.Invoke(command, token) ?? Task.CompletedTask; }
+        public Task AnswerAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Answer", callId, cancellationToken);
+        public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Reject", callId, cancellationToken);
+        public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default) => Run("HangUp", callId, cancellationToken);
+        public Task HoldAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Hold", callId, cancellationToken);
+        public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Resume", callId, cancellationToken);
+        public Task<Guid> DialAsync(CompanyKey company, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task TransferAsync(Guid callId, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public Task MissingLexwareWarnsInLogAndDisablesSourceActionsWhileDummyAndLocalToolsRemainAvailable(bool checkFails) => WithWorkspace(async (workspace, services, plugin) =>

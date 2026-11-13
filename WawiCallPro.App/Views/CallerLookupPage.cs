@@ -62,6 +62,7 @@ public partial class CallerLookupPage : XtraUserControl
         view.ClearGrouping();
         groupColumn.GroupIndex = 0;
         groupColumn.Visible = false;
+        searchButton.Enabled = workspace.CanUseBusinessDirectory;
         ShowLine();
     }
     internal CallerMatchDecision? Decision => _decision;
@@ -86,6 +87,12 @@ public partial class CallerLookupPage : XtraUserControl
     internal async Task SearchAsync()
     {
         if (_operation is null || _workspace is null || _operation.IsRunning || _callEnded) return;
+        if (!_workspace.CanUseBusinessDirectory)
+        {
+            searchButton.Enabled = chooseButton.Enabled = cancelButton.Enabled = false;
+            statusLabel.Text = "Rufnummernsuche ist gesperrt. Telefonie bleibt verfügbar; Details stehen im Log-Fenster.";
+            return;
+        }
         var number = numberEdit.Text.Trim();
         var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _accept is null ? _context.LineAssignment?.Line : _boundLine);
         if (incoming.Kind != PhoneNumberAddressKind.Public)
@@ -133,7 +140,7 @@ public partial class CallerLookupPage : XtraUserControl
     private void Cancel_Click(object? sender, EventArgs e) => _request?.Cancel();
     private async void Choose_Click(object? sender, EventArgs e)
     {
-        if (_workspace is null || _decision is null || _callEnded || _operation?.IsRunning == true || view.GetFocusedRow() is not CandidateRow row) return;
+        if (_workspace is null || !_workspace.CanUseBusinessDirectory || _decision is null || _callEnded || _operation?.IsRunning == true || view.GetFocusedRow() is not CandidateRow row) return;
         var current = _workspace.PhoneSearch.GetStatus();
         if (current.Generation != _decision.IndexGeneration || current.State is not (PhoneSearchScopeState.Ready or PhoneSearchScopeState.Partial))
         { statusLabel.Text = "Suchstand geändert oder abgelaufen. Bitte erneut suchen, bevor ein Datensatz übernommen wird."; chooseButton.Enabled = false; return; }
@@ -187,7 +194,7 @@ public partial class CallerLookupPage : XtraUserControl
     }
     private void UpdateFocusedDetails()
     {
-        chooseButton.Enabled = !_callEnded && _decision is not null && _operation?.IsRunning != true && view.GetFocusedRow() is CandidateRow;
+        chooseButton.Enabled = _workspace?.CanUseBusinessDirectory == true && !_callEnded && _decision is not null && _operation?.IsRunning != true && view.GetFocusedRow() is CandidateRow;
         if (view.GetFocusedRow() is not CandidateRow row) { detailsLabel.Text = "Treffer markieren, um Rufnummer, Durchwahl, Herkunft und Cachestand zu sehen."; return; }
         detailsLabel.Text = "Installation: " + row.Candidate.Party.Company.InstallationId + " · " + row.Rolle + " · " + row.Name
             + (row.Candidate.OwnerDisplayName is { } owner ? " · Kontakt gehört zu: " + owner + " (" + row.Candidate.OwnerNumber + ")" : "")

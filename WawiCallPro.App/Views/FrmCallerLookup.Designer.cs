@@ -14,15 +14,20 @@ partial class FrmCallerLookup
     {
         components = new System.ComponentModel.Container();
         layout = new System.Windows.Forms.TableLayoutPanel();
+        callControls = new WawiCallPro.App.Views.CallControlPanel();
         callerPage = new WawiCallPro.App.Views.CallerLookupPage();
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.ColumnCount = 1;
-        layout.RowCount = 1;
+        layout.RowCount = 2;
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        callControls.Dock = System.Windows.Forms.DockStyle.Fill;
+        callControls.Visible = false;
         callerPage.Dock = System.Windows.Forms.DockStyle.Fill;
-        layout.Controls.Add(callerPage, 0, 0);
+        layout.Controls.Add(callControls, 0, 0);
+        layout.Controls.Add(callerPage, 0, 1);
         Controls.Add(layout);
         ClientSize = new System.Drawing.Size(960, 640);
         MinimumSize = new System.Drawing.Size(600, 440);
@@ -36,4 +41,5 @@ partial class FrmCallerLookup
     }
     private System.Windows.Forms.TableLayoutPanel layout;
     private WawiCallPro.App.Views.CallerLookupPage callerPage;
+    private WawiCallPro.App.Views.CallControlPanel callControls;
 }

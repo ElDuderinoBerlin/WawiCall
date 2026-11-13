@@ -14,6 +14,7 @@ partial class CallDetailsPage
         layout = new System.Windows.Forms.TableLayoutPanel();
         actions = new System.Windows.Forms.TableLayoutPanel();
         callLabel = new DevExpress.XtraEditors.LabelControl();
+        callControls = new WawiCallPro.App.Views.CallControlPanel();
         selectionLabel = new DevExpress.XtraEditors.LabelControl();
         statusLabel = new DevExpress.XtraEditors.LabelControl();
         detailsLabel = new DevExpress.XtraEditors.LabelControl();
@@ -26,8 +27,9 @@ partial class CallDetailsPage
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.Padding = new System.Windows.Forms.Padding(8);
         layout.ColumnCount = 1;
-        layout.RowCount = 5;
+        layout.RowCount = 6;
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -37,6 +39,7 @@ partial class CallDetailsPage
         callLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         callLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         callLabel.Text = "Anruf";
+        callControls.Dock = System.Windows.Forms.DockStyle.Fill;
         selectionLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         selectionLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         selectionLabel.Text = "Noch keine Anrufzuordnung.";
@@ -70,10 +73,11 @@ partial class CallDetailsPage
         actions.Controls.Add(chooseButton, 0, 0);
         actions.Controls.Add(reloadButton, 1, 0);
         layout.Controls.Add(callLabel, 0, 0);
-        layout.Controls.Add(selectionLabel, 0, 1);
-        layout.Controls.Add(statusLabel, 0, 2);
-        layout.Controls.Add(tabs, 0, 3);
-        layout.Controls.Add(actions, 0, 4);
+        layout.Controls.Add(callControls, 0, 1);
+        layout.Controls.Add(selectionLabel, 0, 2);
+        layout.Controls.Add(statusLabel, 0, 3);
+        layout.Controls.Add(tabs, 0, 4);
+        layout.Controls.Add(actions, 0, 5);
         Controls.Add(layout);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -84,6 +88,7 @@ partial class CallDetailsPage
     private System.Windows.Forms.TableLayoutPanel layout;
     private System.Windows.Forms.TableLayoutPanel actions;
     private DevExpress.XtraEditors.LabelControl callLabel;
+    private WawiCallPro.App.Views.CallControlPanel callControls;
     private DevExpress.XtraEditors.LabelControl selectionLabel;
     private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.LabelControl detailsLabel;
