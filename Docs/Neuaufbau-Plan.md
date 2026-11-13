@@ -4,7 +4,8 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 11.11.2026. Phasen 0–6 abgeschlossen und geprüft; weitere Produktphasen wie markiert offen.
+Stand: 13.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+die reale SIP-/Geräteabnahme steht aus. Phasen 8 und 14 sind teilweise umgesetzt und geprüft.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -39,6 +40,7 @@ Die Designer-, Layout-, Build-, Prüf- und Commitregeln gelten vollständig.
 ### Statuskonvention
 
 - ✅ beziehungsweise `[x]`: tatsächlich abgeschlossen und geprüft.
+- 🟨: teilweise umgesetzt und geprüft; noch offene Implementierung oder Abnahme ist ausdrücklich benannt.
 - ⬜ beziehungsweise `[ ]`: geplant, noch nicht abgeschlossen.
 - Eine Phase erhält erst nach ihrer Abnahme ein grünes Häkchen.
 - Nach jeder abgeschlossenen und geprüften Phase ohne erneute Aufforderung das ✅ in der
@@ -303,14 +305,14 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 4 | ✅ | Quantarix-Plugin-System im App-/Diagnosehost | 2 |
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
-| 7 | ⬜ | Vollständiger SIP-Gesprächsablauf | 2, 3 |
-| 8 | ⬜ | Bedienbare App und erstes vollständiges Kernprodukt | 4–7 |
+| 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz und Benachrichtigungen; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
-| 14 | ⬜ | Installation, Lizenzierung und Updates | 8, passende Ausbauphasen |
+| 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
 | 15 | ⬜ | Gesamtprüfung, Dokumentation und Übergabe | Alle zugesagten Funktionen |
 
 Jeder einzelne Checklistenpunkt innerhalb einer Phase wird separat umgesetzt, geprüft und unmittelbar mit
@@ -1221,7 +1223,7 @@ deaktivierte Regel, Stamm-/Volltrefferkollisionen und Regelwechsel sind abgedeck
 Ein eingehendes Ereignis kann ohne UI-Abhängigkeit reproduzierbar zugeordnet werden;
 die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrift-/Skinprüfung.
 
-### Phase 7 – SIP und Gesprächsablauf ⬜
+### Phase 7 – SIP und Gesprächsablauf 🟨
 
 - [x] ✅ DI-basierte SIP-Laufzeit mit SIPSorcery 10.0.17 und vorhandener CallStateMachine
   angebunden: eigene Interfaces/Factories für Transport, Konto-Lease, Zustand, Persistenz
@@ -1349,11 +1351,15 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.
 - [x] ✅ Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.
 
+- [ ] Reale Ende-zu-Ende-Abnahme mit zwei SIP-Endpunkten über die FRITZ!Box und tatsächlichen Audiogeräten
+  durchführen; noch offene TLS-/NAT-/IPv6-Profile und Ausfallszenarien nachweisen. Die abgehakten
+  Implementierungs- und isolierten Prüfpunkte ersetzen diese Gesamtphasenabnahme nicht.
+
 Abnahme: Isolierte Ablauf-/Persistenztests sowie echte Ende-zu-Ende-Anrufe mit zwei Endpunkten über die FRITZ!Box bestehen.
 Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzwerk fällt aus sind geprüft.
 App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
-### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
+### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
 
 - [x] ✅ Lexware-Installationsprüfung im Anwendungscode umgesetzt: injizierter Registry-Adapter verwendet
   `LexwareRegistry.IsInstalled()` und `PcfkRegistry.IsInstalled()` unabhängig von der Ausgabe. Beide
@@ -1863,7 +1869,7 @@ und mit echtem SIP-Anruf. Editor visuell geprüft; neue Menü-/Hostprojekte in D
 Abnahme: Mengen, Gesprächszuordnungen und Aufnahmereferenzen sind anhand eines Importberichts geprüft;
 erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich über den neuen SIPSorcery-Stack.
 
-### Phase 14 – Installation, Lizenzierung und Updates ⬜
+### Phase 14 – Installation, Lizenzierung und Updates 🟨
 
 - [x] Velopack- und Release-Skriptintegration anhand von LxTranslate konkret planen. ✅
   Nachweis vom 04.11.2026: `Docs/Velopack-Build-Plan.md` beschreibt die gelesenen App-/Toolmanifest-/
