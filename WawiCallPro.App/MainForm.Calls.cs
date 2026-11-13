@@ -61,14 +61,18 @@ public partial class MainForm
         { if (!incoming) { existing.Show(); if (!_backgroundRun) existing.Activate(); } return; }
         var lookup = CreateCallerDialog();
         lookup.BindCall(page.Call, page.AcceptAsync);
+        lookup.BindNotes(page.Notes);
         if (_backgroundRun) lookup.PrepareForBackgroundRun();
         if (incoming) lookup.ShowForIncoming(this); else lookup.Show(this);
         await lookup.Page.SearchAsync();
+        await page.Notes.LoadAsync();
     }
     internal void EnsureViewsCanClose()
     {
+        if (_callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)) throw new UnsavedCallNotesException();
         if (_pluginPages.Values.Any(view => view.HasUnsavedChanges) || _callPages.Values.Any(entry => entry.Page.HasUnsavedChanges))
             throw new UnsavedPluginChangesException();
     }
-    internal void ReportUnsavedChanges() => connectionLabel.Text = new UnsavedPluginChangesException().Message;
+    internal void ReportUnsavedChanges() => connectionLabel.Text = _callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)
+        ? new UnsavedCallNotesException().Message : new UnsavedPluginChangesException().Message;
 }

@@ -19,11 +19,14 @@ public partial class CallDetailsPage : XtraUserControl
     private Task? _stopTask;
     private CallerMatchDecision? _acceptedDecision;
     private bool _resourcesDisposed;
+    private CallNotesSession? _notes;
     internal event Action<CallDetailsPage>? ChooseRequested;
     internal CallSnapshot Call => _scope!.Call;
     internal CallViewContext? Context => _scope?.Current;
     internal Task PendingLoads => _pendingLoads;
-    internal bool HasUnsavedChanges => _views.Values.Any(view => view.HasUnsavedChanges);
+    internal CallNotesSession Notes => _notes!;
+    internal bool HasUnsavedNotes => _notes?.HasUnsavedChanges == true;
+    internal bool HasUnsavedChanges => HasUnsavedNotes || _views.Values.Any(view => view.HasUnsavedChanges);
     public CallDetailsPage()
     {
         InitializeComponent();
@@ -47,6 +50,8 @@ public partial class CallDetailsPage : XtraUserControl
     {
         _workspace = workspace; _scope = workspace.CallScopes.Create(call);
         callControls.Bind(workspace.Telephony, call);
+        _notes = workspace.CallNotes.Create(call.Id);
+        notesPanel.Bind(_notes);
         ShowCall();
     }
     internal async Task ObserveAsync(CallSnapshot call)
@@ -139,6 +144,7 @@ public partial class CallDetailsPage : XtraUserControl
     {
         await _stopping.CancelAsync();
         await callControls.StopAsync();
+        if (_notes is not null) await _notes.StopAsync();
         if (_scope is not null) await _scope.DisposeAsync();
         await Task.WhenAll(_loads.ToArray());
         foreach (var handle in _views.Values) await handle.DisposeAsync();
@@ -152,5 +158,6 @@ public partial class CallDetailsPage : XtraUserControl
     {
         if (_resourcesDisposed) return;
         _resourcesDisposed = true; _stopping.Cancel(); _stopping.Dispose();
+        _notes?.Dispose();
     }
 }

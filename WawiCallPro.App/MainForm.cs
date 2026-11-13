@@ -166,6 +166,7 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
+        await Task.WhenAll(_callPages.Values.Select(call => call.Page.Notes.StopAsync()));
         if (_operation is not null) await _operation.StopAsync();
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
@@ -193,7 +194,9 @@ public partial class MainForm : RibbonForm
         if (_pluginPages.TryGetValue(page, out var guarded) && guarded.HasUnsavedChanges) throw new UnsavedPluginChangesException();
         foreach (var call in _callPages.Where(pair => ReferenceEquals(pair.Value.Document, page)).ToArray())
         {
+            if (call.Value.Page.HasUnsavedNotes) throw new UnsavedCallNotesException();
             if (call.Value.Page.HasUnsavedChanges) throw new UnsavedPluginChangesException();
+            await call.Value.Page.Notes.StopAsync();
             foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Key).ToArray()) { await lookup.StopAsync(); lookup.Close(); }
             _callPages.Remove(call.Key);
         }

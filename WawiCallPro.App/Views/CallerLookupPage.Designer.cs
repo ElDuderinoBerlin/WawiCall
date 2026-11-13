@@ -36,6 +36,8 @@ partial class CallerLookupPage
         resultsTab = new DevExpress.XtraTab.XtraTabPage();
         scopeTab = new DevExpress.XtraTab.XtraTabPage();
         detailsTab = new DevExpress.XtraTab.XtraTabPage();
+        notesTab = new DevExpress.XtraTab.XtraTabPage();
+        notesPanel = new WawiCallPro.App.Views.CallNotesPanel();
         scopeScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         grid = new DevExpress.XtraGrid.GridControl();
@@ -123,6 +125,11 @@ partial class CallerLookupPage
         scopeTab.Text = "Suchfirmen und Cachestand";
         detailsTab.Text = "Trefferdetails";
         tabs.TabPages.AddRange(new DevExpress.XtraTab.XtraTabPage[] { resultsTab, scopeTab, detailsTab });
+        notesTab.Text = "Gesprächsnotizen";
+        notesTab.PageVisible = false;
+        notesPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        notesTab.Controls.Add(notesPanel);
+        tabs.TabPages.Add(notesTab);
         resultsTab.Controls.Add(grid);
         scopeTab.Controls.Add(scopeScroll);
         detailsTab.Controls.Add(detailsScroll);
@@ -253,6 +260,8 @@ partial class CallerLookupPage
     private DevExpress.XtraTab.XtraTabPage resultsTab;
     private DevExpress.XtraTab.XtraTabPage scopeTab;
     private DevExpress.XtraTab.XtraTabPage detailsTab;
+    private DevExpress.XtraTab.XtraTabPage notesTab;
+    private WawiCallPro.App.Views.CallNotesPanel notesPanel;
     private DevExpress.XtraEditors.XtraScrollableControl scopeScroll;
     private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
     private DevExpress.XtraGrid.GridControl grid;

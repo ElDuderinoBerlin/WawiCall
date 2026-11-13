@@ -41,6 +41,192 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task CallNotesShareDraftsKeepStableIdsAfterLostAcknowledgementsAndRejectForeignResults() => RunStaAsync(async () =>
+    {
+        var history = new NotesHistory(CommandCall());
+        using var session = new CallNotesSessionFactory(history).Create(history.Call.Id);
+        using var wrongWindow = new FrmCallerLookup(); wrongWindow.BindCall(CommandCall(), (_, _) => Task.CompletedTask);
+        Assert.ThrowsExactly<InvalidOperationException>(() => wrongWindow.BindNotes(session));
+        using var first = new CallNotesPanel(); using var second = new CallNotesPanel();
+        first.Bind(session); second.Bind(session);
+        Field<MemoEdit>(first, "draftEdit").Text = "Rückruf morgen · Ä 电话";
+        Assert.AreEqual(session.Draft, Field<MemoEdit>(second, "draftEdit").Text);
+        history.LoseAcknowledgement = true;
+        await session.SaveAsync();
+        Assert.AreEqual("Rückruf morgen · Ä 电话", session.Draft);
+        Assert.IsTrue(session.HasUnsavedChanges); Assert.HasCount(1, history.Stored);
+        StringAssert.Contains(Field<LabelControl>(second, "statusLabel").Text, "Entwurf bleibt erhalten");
+        await session.LoadAsync(); Assert.AreEqual("Rückruf morgen · Ä 电话", session.Draft);
+        await session.SaveAsync();
+        Assert.HasCount(1, history.Stored); Assert.AreEqual(history.Attempts[0], history.Attempts[1]);
+        Assert.AreEqual("", Field<MemoEdit>(first, "draftEdit").Text); Assert.IsFalse(session.HasUnsavedChanges);
+        StringAssert.Contains(Field<MemoEdit>(second, "notesEdit").Text, "Rückruf morgen");
+        session.SetDraft("Zweiter Entwurf");
+        history.Read = _ => Task.FromResult<CallHistory?>(new() { Call = history.Call with { Id = Guid.NewGuid() } });
+        await session.LoadAsync(); Assert.AreEqual("Zweiter Entwurf", session.Draft); Assert.HasCount(1, session.Notes);
+        Assert.DoesNotContain("Unexpected", session.Status);
+        session.DiscardDraft(); Assert.IsFalse(session.HasUnsavedChanges);
+        await session.StopAsync();
+    });
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task CallNotesShutdownAwaitsIgnoringStorageAndPreventsLatePublication(bool saving) => RunStaAsync(async () =>
+    {
+        var history = new NotesHistory(CommandCall());
+        using var session = new CallNotesSessionFactory(history).Create(history.Call.Id);
+        session.SetDraft("Bleibt bei Abbruch erhalten");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken captured = default;
+        history.Before = async token => { captured = token; entered.SetResult(); await release.Task; };
+        var pending = saving ? session.SaveAsync() : session.LoadAsync(); await entered.Task;
+        var duplicate = saving ? session.SaveAsync() : session.LoadAsync(); Assert.AreSame(pending, duplicate);
+        var stopping = session.StopAsync();
+        Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(stopping.IsCompleted);
+        Assert.AreEqual("Bleibt bei Abbruch erhalten", session.Draft);
+        release.SetResult(); await stopping; await pending;
+        Assert.AreEqual("Bleibt bei Abbruch erhalten", session.Draft); Assert.IsTrue(session.Notes.IsEmpty);
+        if (saving) { Assert.HasCount(1, history.Attempts); Assert.HasCount(1, history.Stored); }
+    });
+
+    [TestMethod]
+    public Task CallNotesPersistAfterCallEndAndPopupCloseWithoutBusinessAccessOrCrossCallDrafts() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        ((TestRuntime)services.GetRequiredService<IProductPluginRuntime>()).BusinessAvailable = false;
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var call = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(call);
+        var page = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id].Page;
+        var popup = form.OwnedForms.OfType<FrmCallerLookup>().Single();
+        var notes = Field<CallNotesPanel>(popup.Page, "notesPanel");
+        Field<MemoEdit>(notes, "draftEdit").Text = "Nach Gesprächsende speichern · Ä 电话";
+        Assert.AreEqual(page.Notes.Draft, Field<MemoEdit>(Field<CallNotesPanel>(page, "notesPanel"), "draftEdit").Text);
+        await Assert.ThrowsAsync<UnsavedCallNotesException>(() => form.PrepareToCloseAsync());
+        var document = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id].Document;
+        await Assert.ThrowsAsync<UnsavedCallNotesException>(() => (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [document])!);
+        form.ReportUnsavedChanges(); StringAssert.Contains(Field<LabelControl>(form, "connectionLabel").Text, "Gesprächsnotizen");
+        popup.Close(); await WaitForDialStateAsync(() => popup.IsDisposed);
+        Assert.IsTrue(page.HasUnsavedNotes);
+        await form.ObserveCallAsync(call with { Revision = call.Revision + 1, State = CallState.Ended });
+        Assert.IsTrue(page.HasUnsavedNotes);
+        var otherCall = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(otherCall);
+        var other = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[otherCall.Id].Page;
+        Assert.AreEqual("", other.Notes.Draft);
+        typeof(CallNotesPanel).GetMethod("Save_Click", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(Field<CallNotesPanel>(page, "notesPanel"), [null, EventArgs.Empty]);
+        await page.Notes.PendingOperation;
+        Assert.IsFalse(page.HasUnsavedNotes);
+        Assert.AreEqual("Nach Gesprächsende speichern · Ä 电话", (await workspace.History.GetCallAsync(call.Id))!.Notes.Single().Text);
+        Assert.IsTrue((await workspace.History.GetCallAsync(otherCall.Id))!.Notes.IsEmpty);
+        using var reopened = workspace.CallNotes.Create(call.Id); await reopened.LoadAsync(); Assert.HasCount(1, reopened.Notes);
+        using var history = new HistoryPage(); history.Bind(workspace, null); await InvokeActionAsync(history, "Refresh_Click");
+        var grid = Field<DevExpress.XtraGrid.Views.Grid.GridView>(history, "view");
+        for (var row = 0; row < grid.DataRowCount; row++)
+            if ((Guid)grid.GetRowCellValue(row, "Id") == call.Id) grid.FocusedRowHandle = row;
+        await WaitForOperationAsync(history);
+        StringAssert.Contains(Field<MemoEdit>(history, "detailsEdit").Text, "Nach Gesprächsende speichern");
+        await reopened.StopAsync(); await history.StopAsync(); await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallNotesCannotStartANewDraftWhileApplicationShutdownAwaitsOtherWork() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var call = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(call);
+        var page = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id].Page;
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pending = Field<PageOperation>(form, "_operation").RunAsync(_ => release.Task);
+        var closing = form.PrepareToCloseAsync();
+        Assert.IsFalse(closing.IsCompleted); Assert.IsTrue(page.Notes.IsStopping);
+        page.Notes.SetDraft("Must not be accepted after the close check."); Assert.AreEqual("", page.Notes.Draft);
+        release.SetResult(); await closing; await pending;
+    });
+
+    [TestMethod]
+    public Task CallNotesRenderInBothWindowsEmptyFilledSmallLargeFontAndScaledWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply(); await SeedCallerCachesAsync(workspace, services);
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var oldPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var output = Path.GetFullPath(".artifacts/phase8-call-notes/render"); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var (width, height, fontSize, scale, skin, palette) in new[] { (900, 650, 10F, 1F, oldSkin, oldPalette),
+                (600, 480, 8F, 1F, oldSkin, oldPalette), (640, 540, 16F, 1F, "Office 2019 Black", ""),
+                (600, 480, 10F, 1.5F, oldSkin, oldPalette), (900, 650, 10F, 1.25F, "Basic", "Blue Dark") })
+            foreach (var filled in new[] { false, true })
+            foreach (var popup in new[] { false, true })
+            {
+                if (string.IsNullOrEmpty(palette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                using var font = new Font("Tahoma", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var call = await CreateWorkspaceCallAsync(services);
+                if (filled) await workspace.History.SaveNoteAsync(call.Id, Guid.NewGuid(), "Rückruf vereinbart · Ä 电话\r\nMehrzeilige Gesprächsnotiz mit einer längeren Beschreibung, die bei kleiner Fensterbreite umbrechen muss.");
+                using var detail = new CallDetailsPage(); detail.Bind(workspace, call); await detail.Notes.LoadAsync();
+                if (filled) detail.Notes.SetDraft("Entwurf: Kunde bittet um Rückruf.\r\nDiese Notiz bleibt diesem Gespräch zugeordnet.");
+                using var host = new FrmCallerLookup(workspace, null); host.PrepareForBackgroundRun(); host.Font = font; host.ClientSize = new(width, height);
+                CallNotesPanel panel;
+                if (popup)
+                {
+                    host.BindCall(call, (_, _) => Task.CompletedTask); host.BindNotes(detail.Notes);
+                    Field<XtraTabControl>(host.Page, "tabs").SelectedTabPage = Field<XtraTabPage>(host.Page, "notesTab");
+                    panel = Field<CallNotesPanel>(host.Page, "notesPanel");
+                }
+                else
+                {
+                    foreach (Control child in host.Controls.Cast<Control>().ToArray()) child.Dispose(); host.Controls.Clear();
+                    detail.Dock = DockStyle.Fill; host.Controls.Add(detail);
+                    Field<XtraTabControl>(detail, "tabs").SelectedTabPage = Field<XtraTabPage>(detail, "notesTab");
+                    panel = Field<CallNotesPanel>(detail, "notesPanel");
+                }
+                host.Show(); if (scale != 1F) host.Scale(new SizeF(scale, scale)); host.PerformLayout(); Application.DoEvents();
+                CheckTableBounds(host);
+                Assert.IsTrue(Field<MemoEdit>(panel, "draftEdit").Height >= 25, "The draft must keep usable space.");
+                Assert.AreEqual(Field<SimpleButton>(panel, "saveButton").Size, Field<SimpleButton>(panel, "discardButton").Size);
+                using var shot = UiAudit.Capture(host); shot.Save(Path.Combine(output, $"notes-{popup}-{filled}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                detail.Notes.DiscardDraft(); if (popup) await host.StopAsync(); await detail.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            if (string.IsNullOrEmpty(oldPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin, oldPalette);
+        }
+    });
+
+    private sealed class NotesHistory(CallSnapshot call) : ICallHistoryService
+    {
+        internal CallSnapshot Call { get; } = call;
+        internal readonly Dictionary<Guid, CallNote> Stored = [];
+        internal readonly List<Guid> Attempts = [];
+        internal bool LoseAcknowledgement;
+        internal Func<CancellationToken, Task>? Before;
+        internal Func<CancellationToken, Task<CallHistory?>>? Read;
+        public async Task<CallHistory?> GetCallAsync(Guid callId, CancellationToken cancellationToken = default)
+        {
+            if (Before is not null) await Before(cancellationToken);
+            return Read is not null ? await Read(cancellationToken) : new() { Call = Call, Notes = Stored.Values.ToImmutableArray() };
+        }
+        public async Task<CallNote> SaveNoteAsync(Guid callId, Guid noteId, string text, CancellationToken cancellationToken = default)
+        {
+            Attempts.Add(noteId);
+            if (Before is not null) await Before(cancellationToken);
+            var now = DateTimeOffset.UtcNow;
+            var note = new CallNote(noteId, callId, text, Stored.TryGetValue(noteId, out var previous) ? previous.CreatedAtUtc : now, now);
+            Stored[noteId] = note;
+            if (LoseAcknowledgement) { LoseAcknowledgement = false; throw new InvalidOperationException("storage-sentinel"); }
+            return note;
+        }
+        public Task<Page<CallSnapshot>> GetCallsAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [TestMethod]
     public Task CallCommandsFollowObservedStateAndKeepTheCallIdentity() => RunStaAsync(async () =>
     {
         using var panel = new CallControlPanel(); panel.CreateControl();
@@ -897,7 +1083,7 @@ public sealed class AppShellTests
         release.SetResult(); await page.PendingLoads;
         Assert.AreEqual(1, plugin.Disposed); Assert.AreEqual(3, plugin.Created);
         var tabs = Field<XtraTabControl>(page, "tabs");
-        Assert.AreEqual(3, tabs.TabPages.Count);
+        Assert.HasCount(2, tabs.TabPages.Cast<XtraTabPage>().Where(tab => tab.Tag is CallViewContext));
         foreach (XtraTabPage tab in tabs.TabPages) if (tab.Tag is CallViewContext context) Assert.AreEqual(next, context.Party);
         plugin.CreatedControls.First(control => !control.IsDisposed).Tag = true;
         Assert.IsTrue(page.HasUnsavedChanges);
@@ -2560,6 +2746,7 @@ public sealed class AppShellTests
             services.AddSingleton<IPluginViewAccess, PluginViewAccess>();
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
+            services.AddSingleton<CallNotesSessionFactory>();
                 services.AddSipTelephony(false);
         }).Build();
         try

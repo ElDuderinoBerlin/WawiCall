@@ -1698,7 +1698,29 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   unsichtbar gerendert und visuell geprüft. Solution mit beiden Hosts für Pro/FinOffice in Debug/Any CPU
   rekompiliert; FinOffice als Startausgabe wiederhergestellt. Logs `.phase8-call-controls-*.log`, Bilder unter
   `.artifacts/phase8-call-controls` und `.artifacts/phase6-call-context` in den jeweiligen App-Testausgaben.
-  Keine echten Anrufe oder Audiogeräte; Notizen im Anruferfenster und die FRITZ!Box-Abnahme bleiben offen.
+  Keine echten Anrufe oder Audiogeräte; Notizen folgen im nächsten Teilpunkt, die FRITZ!Box-Abnahme bleibt offen.
+- [x] ✅ Teilpunkt Gesprächsnotizen im Anruferfenster und in den Gesprächsdetails (13.11.2026):
+  Beide Ansichten teilen eine per DI-Factory erzeugte, gesprächsgebundene Notizsitzung. Entwürfe und
+  gespeicherte Notizen bleiben an der festen Anruf-ID, unabhängig von Zuordnung, Produktquelle und Gesprächsende.
+  Schließen des Anruferfensters erhält den Entwurf in der Gesprächsseite. Gesprächsseite, Pluginwechsel und
+  Anwendungsende werden bei ungespeicherten Notizen gesperrt; Speichern oder ausdrückliches Verwerfen gibt sie frei.
+  Nach der Schließprüfung werden neue Entwürfe vor anderen ausstehenden Shutdown-Arbeiten gesperrt.
+  Speichern verwendet den vorhandenen Historien-/Notizdienst ohne neue SQL-Zugriffe oder Schemaänderungen.
+  Die Notiz-ID bleibt bei Fehlern und verlorener Speicherbestätigung erhalten, damit Wiederholen keine zweite
+  Notiz erzeugt. Eingaben bleiben bei Abruf-/Speicherfehlern erhalten; Aktualisieren ersetzt keinen Entwurf.
+  Laufende Sitzungsoperationen werden vor Freigabe ihrer besitzenden Gesprächsseite abgebrochen und abgewartet;
+  verspätete Ergebnisse werden verworfen. Fremde Gesprächs-/Notizidentitäten werden zurückgewiesen.
+  Designerfähiges `CallNotesPanel` mit DevExpress-Memoeditoren, TableLayoutPanel und gemeinsam bemessenen,
+  bei knapper Breite umbrechenden Textbuttons; vorhandene Fensterzustandsspeicherung bleibt erhalten.
+  Nachweise: Je Edition 16 gezielte App-Prüfungen mit Speicher-Doubles sowie isolierter SQLite-Persistenz,
+  erneutem Laden und Anzeige in der Historie. Enthalten sind gemeinsamer Entwurf, getrennte Anrufe,
+  Gesprächsende, geschlossenes Anruferfenster, Lexware-Sperre, verlorene Bestätigung, Doppelaufrufe, Abbruch,
+  verzögerte Antworten, Schließschutz sowie bestehende Gesprächs-/Pluginabläufe.
+  Beide Notizansichten leer/gefüllt bei 600/640/900 Breite, 8/10/16 pt, 125/150%-Layoutsimulation,
+  Basic/Blue Dark und Office 2019 Black unsichtbar gerendert und visuell geprüft.
+  Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert, FinOffice als Startausgabe hergestellt.
+  Logs `.phase8-call-notes-*.log`; Bilder unter `.artifacts/phase8-call-notes/render` in den App-Testausgaben.
+  Die vollständige Kernproduktabnahme mit echten Anrufen und produktiven Warenwirtschaftsquellen bleibt offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

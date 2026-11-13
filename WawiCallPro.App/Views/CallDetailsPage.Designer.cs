@@ -22,6 +22,8 @@ partial class CallDetailsPage
         reloadButton = new DevExpress.XtraEditors.SimpleButton();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         masterTab = new DevExpress.XtraTab.XtraTabPage();
+        notesTab = new DevExpress.XtraTab.XtraTabPage();
+        notesPanel = new WawiCallPro.App.Views.CallNotesPanel();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -56,6 +58,10 @@ partial class CallDetailsPage
         masterTab.Controls.Add(detailsScroll);
         tabs.Dock = System.Windows.Forms.DockStyle.Fill;
         tabs.TabPages.Add(masterTab);
+        notesTab.Text = "Gesprächsnotizen";
+        notesPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+        notesTab.Controls.Add(notesPanel);
+        tabs.TabPages.Add(notesTab);
         actions.AutoSize = true;
         actions.ColumnCount = 2;
         actions.RowCount = 1;
@@ -96,5 +102,7 @@ partial class CallDetailsPage
     private DevExpress.XtraEditors.SimpleButton reloadButton;
     private DevExpress.XtraTab.XtraTabControl tabs;
     private DevExpress.XtraTab.XtraTabPage masterTab;
+    private DevExpress.XtraTab.XtraTabPage notesTab;
+    private WawiCallPro.App.Views.CallNotesPanel notesPanel;
     private DevExpress.XtraEditors.XtraScrollableControl detailsScroll;
 }

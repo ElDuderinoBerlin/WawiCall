@@ -66,6 +66,7 @@ public partial class CallerLookupPage : XtraUserControl
         ShowLine();
     }
     internal CallerMatchDecision? Decision => _decision;
+    internal void BindNotes(CallNotesSession notes) { notesPanel.Bind(notes); notesTab.PageVisible = true; }
     internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
     {
         _accept = accept;

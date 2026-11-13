@@ -24,6 +24,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
                 services.AddSingleton<AppWorkspace>();
+                services.AddSingleton<CallNotesSessionFactory>();
                 services.AddSingleton<LogWindowService>();
                 services.AddSingleton<ILogWindowService>(provider => provider.GetRequiredService<LogWindowService>());
                 services.AddSingleton<ILoggerProvider, UiLogProvider>();

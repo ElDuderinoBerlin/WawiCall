@@ -18,6 +18,11 @@ public partial class FrmCallerLookup : XtraForm
     internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<WawiCallPro.Interfaces.PhoneNumbers.CallerMatchDecision, CancellationToken, Task> accept)
     { CallId = call.Id; callerPage.BindCall(call, accept); callControls.Bind(_telephony, call); callControls.Visible = true; Text = "Anrufzuordnung · " + call.StartedAtUtc.LocalDateTime.ToString("T"); }
     internal void ObserveCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call) => callControls.Observe(call);
+    internal void BindNotes(CallNotesSession notes)
+    {
+        if (CallId != notes.CallId) throw new InvalidOperationException("Call notes must belong to this caller window.");
+        callerPage.BindNotes(notes);
+    }
     internal void ShowForIncoming(IWin32Window owner) { _passive = true; try { Show(owner); } finally { _passive = false; } }
     internal Task StopAsync() => Task.WhenAll(callerPage.StopAsync(), callControls.StopAsync());
     internal void PrepareForBackgroundRun() { _backgroundRun = true; ShowInTaskbar = false; Opacity = 0; }
