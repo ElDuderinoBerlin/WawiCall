@@ -41,6 +41,110 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    [DataRow(CallState.Created)]
+    [DataRow(CallState.Dialing)]
+    [DataRow(CallState.Ringing)]
+    [DataRow(CallState.Connected)]
+    [DataRow(CallState.Held)]
+    public Task ActiveCallsBlockShutdownRestartPluginSwitchAndTheirDocument(CallState state)
+    {
+        var telephony = new CommandTelephony();
+        return WithWorkspace(async (workspace, services, plugin) =>
+        {
+            await SeedCallerCachesAsync(workspace, services);
+            using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+            form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+            var call = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(call);
+            var entry = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id];
+            var popup = form.OwnedForms.OfType<FrmCallerLookup>().Single();
+            // Even an already-ended UI snapshot must not override the live service's current state.
+            await form.ObserveCallAsync(call with { Revision = call.Revision + 1, State = CallState.Ended });
+            telephony.Current = call with { State = state };
+            form.RestartRequested = true;
+            await Assert.ThrowsAsync<ActiveCallCloseException>(() => form.PrepareToCloseAsync());
+            Assert.IsFalse(form.RestartRequested); Assert.IsFalse(Field<bool>(form, "_closing"));
+            Assert.IsFalse(entry.Page.Notes.IsStopping);
+            await Assert.ThrowsAsync<ActiveCallCloseException>(() => (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [entry.Document])!);
+            await Assert.ThrowsAsync<ActiveCallCloseException>(() => (Task)typeof(MainForm).GetMethod("PreparePluginSwitchAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, null)!);
+            Assert.IsFalse(popup.IsDisposed); Assert.IsFalse(entry.Page.IsDisposed); Assert.IsFalse(entry.Page.Notes.IsStopping);
+            Assert.AreEqual("Test.Lexware", ((TestRuntime)workspace.Plugins).ActivePluginId);
+            Assert.IsEmpty(telephony.Commands, "Blocked requests must not issue a phone command.");
+            form.ReportActiveCall();
+            Assert.AreEqual(new ActiveCallCloseException().Message, Field<LabelControl>(form, "connectionLabel").Text);
+            Assert.AreEqual(new ActiveCallCloseException().Message, PageOperation.Describe(new ActiveCallCloseException()));
+            telephony.Current = call with { State = CallState.Ended };
+            await form.PrepareToCloseAsync(); Assert.IsTrue(entry.Page.Notes.IsStopping);
+        }, telephony);
+    }
+
+    [TestMethod]
+    [DataRow(CallState.Ended)]
+    [DataRow(CallState.Failed)]
+    public Task TerminalCallsAllowShutdownEvenIfTheUiHasNotReceivedItsFinalEvent(CallState state)
+    {
+        var telephony = new CommandTelephony();
+        return WithWorkspace(async (workspace, services, plugin) =>
+        {
+            await SeedCallerCachesAsync(workspace, services);
+            using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+            form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+            var call = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(call);
+            telephony.Current = call with { State = state };
+            form.EnsureViewsCanClose(); await form.PrepareToCloseAsync();
+            Assert.IsEmpty(telephony.Commands);
+        }, telephony);
+    }
+
+    [TestMethod]
+    public Task AnotherActiveCallDoesNotPreventClosingAnUnrelatedCallDocument()
+    {
+        var telephony = new CommandTelephony();
+        return WithWorkspace(async (workspace, services, plugin) =>
+        {
+            await SeedCallerCachesAsync(workspace, services);
+            using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+            form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+            var first = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(first);
+            var second = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(second);
+            var pages = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages");
+            var closedPage = pages[first.Id].Page; var activePage = pages[second.Id].Page;
+            telephony.Current = second with { State = CallState.Connected };
+            await (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [pages[first.Id].Document])!;
+            Assert.IsTrue(closedPage.IsDisposed); Assert.IsFalse(activePage.IsDisposed); Assert.IsFalse(activePage.Notes.IsStopping);
+            Assert.HasCount(1, pages); Assert.IsEmpty(telephony.Commands);
+            await Assert.ThrowsAsync<ActiveCallCloseException>(() => form.PrepareToCloseAsync());
+            telephony.Current = null; await form.PrepareToCloseAsync();
+        }, telephony);
+    }
+
+    [TestMethod]
+    public Task ActiveCallWithoutUiDocumentBlocksActualPluginActivationAndAllowsRetryAfterEnding()
+    {
+        var telephony = new CommandTelephony();
+        return WithWorkspace(async (workspace, services, plugin) =>
+        {
+            using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+            form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+            telephony.Current = CommandCall(); // The notification has not yet reached the UI.
+            Assert.ThrowsExactly<ActiveCallCloseException>(form.EnsureViewsCanClose);
+            using var settings = form.CreateSettingsDialog(true); settings.PrepareForBackgroundRun(); settings.Show(form);
+            var settingsPage = Field<SettingsPage>(settings, "settingsPage"); await settingsPage.ReloadAsync();
+            var management = Field<PluginPage>(settingsPage, "pluginPage");
+            await management.HandleCardActionAsync("activate", 1);
+            Assert.AreEqual("Test.Lexware", ((TestRuntime)workspace.Plugins).ActivePluginId);
+            Assert.AreEqual(new ActiveCallCloseException().Message, Field<LabelControl>(management, "statusLabel").Text);
+            Assert.IsTrue(Field<SimpleButton>(settingsPage, "saveButton").Enabled);
+            Assert.AreNotEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
+            Assert.IsEmpty(telephony.Commands);
+            telephony.Current = null;
+            await management.HandleCardActionAsync("activate", 1);
+            Assert.AreEqual("Test.Dummy", ((TestRuntime)workspace.Plugins).ActivePluginId);
+            Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
+            await settings.StopAsync(); await form.PrepareToCloseAsync();
+        }, telephony);
+    }
+
+    [TestMethod]
     public Task CallNotesShareDraftsKeepStableIdsAfterLostAcknowledgementsAndRejectForeignResults() => RunStaAsync(async () =>
     {
         var history = new NotesHistory(CommandCall());
@@ -2729,7 +2833,7 @@ public sealed class AppShellTests
         public Task SaveAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default) => inner.SaveAsync(draft, expected, cancellationToken);
     }
 
-    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action) => RunStaAsync(async () =>
+    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, ITelephonyService? telephony = null) => RunStaAsync(async () =>
     {
         var root = Path.Combine(Path.GetTempPath(), "WawiCallPro-shell-" + Guid.NewGuid().ToString("N"));
         var plugin = new TestPlugin();
@@ -2748,6 +2852,7 @@ public sealed class AppShellTests
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
             services.AddSingleton<CallNotesSessionFactory>();
                 services.AddSipTelephony(false);
+            if (telephony is not null) services.AddSingleton(telephony);
         }).Build();
         try
         {

@@ -69,10 +69,20 @@ public partial class MainForm
     }
     internal void EnsureViewsCanClose()
     {
+        EnsureCallsAreIdle();
         if (_callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)) throw new UnsavedCallNotesException();
         if (_pluginPages.Values.Any(view => view.HasUnsavedChanges) || _callPages.Values.Any(entry => entry.Page.HasUnsavedChanges))
             throw new UnsavedPluginChangesException();
     }
+    private void EnsureCallsAreIdle(Guid? callId = null)
+    {
+        // The service is authoritative even before queued UI events create or update a call page.
+        if (_workspace?.Telephony?.GetCalls().Any(call => (callId is null || call.Id == callId)
+            && call.State is not (CallState.Ended or CallState.Failed)) != true) return;
+        RestartRequested = false;
+        throw new ActiveCallCloseException();
+    }
+    internal void ReportActiveCall() => connectionLabel.Text = new ActiveCallCloseException().Message;
     internal void ReportUnsavedChanges() => connectionLabel.Text = _callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)
         ? new UnsavedCallNotesException().Message : new UnsavedPluginChangesException().Message;
 }

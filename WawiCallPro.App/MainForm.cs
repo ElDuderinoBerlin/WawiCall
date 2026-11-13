@@ -194,6 +194,7 @@ public partial class MainForm : RibbonForm
         if (_pluginPages.TryGetValue(page, out var guarded) && guarded.HasUnsavedChanges) throw new UnsavedPluginChangesException();
         foreach (var call in _callPages.Where(pair => ReferenceEquals(pair.Value.Document, page)).ToArray())
         {
+            EnsureCallsAreIdle(call.Key);
             if (call.Value.Page.HasUnsavedNotes) throw new UnsavedCallNotesException();
             if (call.Value.Page.HasUnsavedChanges) throw new UnsavedPluginChangesException();
             await call.Value.Page.Notes.StopAsync();

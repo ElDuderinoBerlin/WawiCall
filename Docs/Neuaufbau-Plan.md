@@ -1721,6 +1721,27 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert, FinOffice als Startausgabe hergestellt.
   Logs `.phase8-call-notes-*.log`; Bilder unter `.artifacts/phase8-call-notes/render` in den App-Testausgaben.
   Die vollständige Kernproduktabnahme mit echten Anrufen und produktiven Warenwirtschaftsquellen bleibt offen.
+- [x] ✅ Teilpunkt Schutz aktiver Gespräche bei interaktiven Schließ-/Wechselaufträgen (13.11.2026):
+  Beenden, ein angeforderter Neustart und der vorbereitende Pluginwechsel werden bei einem bestehenden
+  aktiven Anruf abgewiesen. Ebenso bleibt die zugehörige Gesprächsseite geöffnet; das separate
+  Anruferfenster darf weiterhin geschlossen werden, da die Gesprächsseite Bedienung und Notizen erhält.
+  Geprüft wird der aktuelle Telefoniedienst, einschließlich Created, Dialing, Ringing, Connected und Held,
+  auch vor Ankunft eines UI-Ereignisses. Ended/Failed geben die Aktion frei; ein anderer aktiver Anruf
+  verhindert das Schließen einer nicht betroffenen Seite nicht. Blockierte Aufträge stoppen keine
+  Notizsitzung, schließen keine Ansichten und senden keinen Telefoniebefehl. Eine verständliche Meldung
+  fordert zum Auflegen/Ablehnen auf; ein noch vorgemerkter Neustart wird zurückgenommen.
+  Nach Ende des Anrufs ist derselbe Auftrag erneut möglich. Schutz ungespeicherter Fachansichten und
+  Notizen bleibt zusätzlich wirksam. Der Anwendungs-Context behandelt die Sperre als erwarteten Zustand
+  und fordert dadurch keinen Host-Shutdown an.
+  Nachweise: Je Edition 13 gezielte App-Prüfungen mit Telefonie-Doubles, isolierter Persistenz und
+  Hintergrundfenstern für alle fünf aktiven Zustände, beide Endzustände, veraltete/fehlende UI-Ereignisse,
+  getrennte Anrufseiten, blockierte echte Pluginaktivierung und erfolgreichen erneuten Wechsel.
+  Bestehende Notiz-/Datenbank-Shutdownprüfungen enthalten. Beide Solution-Editionen mit App/Console in
+  Debug/Any CPU rekompiliert; FinOffice als reguläre Startausgabe wiederhergestellt.
+  Logs `.phase8-call-close-*.log`. Keine Layoutänderungen, sichtbare Desktopbedienung oder echten Anrufe.
+  Die Prüfung gilt am interaktiven Auftragseingang; sie ist keine atomare Sperre für erst während des
+  anschließenden Shutdowns neu eintreffende Anrufe. Der vorhandene SIP-Shutdown bleibt dafür zuständig.
+  Tray, globale Hotkeys, native Fokusprüfung und die vollständige Kernproduktabnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
