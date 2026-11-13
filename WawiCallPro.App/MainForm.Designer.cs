@@ -22,6 +22,7 @@ partial class MainForm
         ribbon = new DevExpress.XtraBars.Ribbon.RibbonControl();
         statusBar = new DevExpress.XtraBars.Ribbon.RibbonStatusBar();
         statusItem = new DevExpress.XtraBars.BarStaticItem();
+        telephonyStatusItem = new DevExpress.XtraBars.BarStaticItem();
         skinGallery = new DevExpress.XtraBars.SkinRibbonGalleryBarItem();
         paletteGallery = new DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem();
         contentLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -41,6 +42,7 @@ partial class MainForm
         homeItem = new DevExpress.XtraBars.BarButtonItem();
         historyItem = new DevExpress.XtraBars.BarButtonItem();
         callerItem = new DevExpress.XtraBars.BarButtonItem();
+        dialItem = new DevExpress.XtraBars.BarButtonItem();
         closeItem = new DevExpress.XtraBars.BarButtonItem();
         trayItem = new DevExpress.XtraBars.BarButtonItem();
         exitItem = new DevExpress.XtraBars.BarButtonItem();
@@ -113,6 +115,12 @@ partial class MainForm
         callerItem.ItemClick += Caller_Click;
         ribbon.Items.Add(callerItem);
         workspaceGroup.ItemLinks.Add(callerItem);
+        dialItem.Caption = "Anrufen";
+        dialItem.Hint = "Mandant und Rufnummer oder SIP-Adresse für einen ausgehenden Anruf auswählen.";
+        dialItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        dialItem.ItemClick += Dial_Click;
+        ribbon.Items.Add(dialItem);
+        workspaceGroup.ItemLinks.Add(dialItem);
         closeItem.Caption = "Ansicht schließen";
         closeItem.Hint = "Ansicht schließen.";
         closeItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -196,6 +204,9 @@ partial class MainForm
         ribbon.Items.Add(statusItem);
         statusBar.Ribbon = ribbon;
         statusBar.ItemLinks.Add(statusItem);
+        telephonyStatusItem.Caption = "SIP: Nicht angemeldet";
+        ribbon.Items.Add(telephonyStatusItem);
+        statusBar.ItemLinks.Add(telephonyStatusItem);
         statusBar.Dock = System.Windows.Forms.DockStyle.Bottom;
         statusItem.Caption = "Nicht verbunden";
         homeNav.Text = "Startseite";
@@ -307,6 +318,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonControl ribbon;
     private DevExpress.XtraBars.Ribbon.RibbonStatusBar statusBar;
     private DevExpress.XtraBars.BarStaticItem statusItem;
+    private DevExpress.XtraBars.BarStaticItem telephonyStatusItem;
     private DevExpress.XtraBars.SkinRibbonGalleryBarItem skinGallery;
     private DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem paletteGallery;
     private System.Windows.Forms.TableLayoutPanel contentLayout;
@@ -326,6 +338,7 @@ partial class MainForm
     private DevExpress.XtraBars.BarButtonItem homeItem;
     private DevExpress.XtraBars.BarButtonItem historyItem;
     private DevExpress.XtraBars.BarButtonItem callerItem;
+    private DevExpress.XtraBars.BarButtonItem dialItem;
     private DevExpress.XtraBars.BarButtonItem closeItem;
     private DevExpress.XtraBars.BarButtonItem trayItem;
     private DevExpress.XtraBars.BarButtonItem exitItem;

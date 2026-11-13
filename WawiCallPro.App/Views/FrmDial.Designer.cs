@@ -1,0 +1,136 @@
+#nullable disable
+namespace WawiCallPro.App.Views;
+
+partial class FrmDial
+{
+    private System.ComponentModel.IContainer components;
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) { DisposePage(); if (components != null) components.Dispose(); }
+        base.Dispose(disposing);
+    }
+    private void InitializeComponent()
+    {
+        components = new System.ComponentModel.Container();
+        layout = new System.Windows.Forms.TableLayoutPanel();
+        actions = new System.Windows.Forms.TableLayoutPanel();
+        companyLabel = new DevExpress.XtraEditors.LabelControl();
+        destinationLabel = new DevExpress.XtraEditors.LabelControl();
+        companyEdit = new DevExpress.XtraEditors.LookUpEdit();
+        destinationEdit = new DevExpress.XtraEditors.TextEdit();
+        statusLabel = new DevExpress.XtraEditors.LabelControl();
+        dialButton = new DevExpress.XtraEditors.SimpleButton();
+        cancelButton = new DevExpress.XtraEditors.SimpleButton();
+        ((System.ComponentModel.ISupportInitialize)companyEdit.Properties).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)destinationEdit.Properties).BeginInit();
+        SuspendLayout();
+        layout.ColumnCount = 2;
+        layout.RowCount = 4;
+        layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.AutoSize = true;
+        layout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        layout.Dock = System.Windows.Forms.DockStyle.Top;
+        layout.Padding = new System.Windows.Forms.Padding(12);
+        layout.SizeChanged += Layout_Changed;
+        companyLabel.Text = "Mandant";
+        companyLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        companyLabel.Margin = new System.Windows.Forms.Padding(4, 6, 12, 6);
+        companyLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        companyEdit.Name = "companyEdit";
+        companyEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        companyEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        companyEdit.Properties.DisplayMember = "DisplayName";
+        companyEdit.Properties.ValueMember = "Key";
+        companyEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("DisplayName", "Mandant"));
+        companyEdit.Properties.ShowHeader = false;
+        companyEdit.Properties.ShowFooter = false;
+        companyEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        companyEdit.Properties.NullText = "Mandant auswählen";
+        companyEdit.Properties.Buttons.Add(new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo));
+        companyEdit.TabIndex = 0;
+        companyEdit.EditValueChanged += Input_Changed;
+        destinationLabel.Text = "Rufnummer";
+        destinationLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        destinationLabel.Margin = new System.Windows.Forms.Padding(4, 6, 12, 6);
+        destinationLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        destinationEdit.Name = "destinationEdit";
+        destinationEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        destinationEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        destinationEdit.Properties.NullValuePrompt = "Rufnummer oder SIP-Adresse";
+        destinationEdit.Properties.MaxLength = 256;
+        destinationEdit.TabIndex = 1;
+        destinationEdit.EditValueChanged += Input_Changed;
+        statusLabel.Name = "statusLabel";
+        statusLabel.Text = "Zuerst das SIP-Konto in den Einstellungen anmelden.";
+        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
+        statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        statusLabel.Margin = new System.Windows.Forms.Padding(4, 10, 4, 10);
+        actions.ColumnCount = 3;
+        actions.RowCount = 1;
+        actions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        actions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        actions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        actions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        actions.AutoSize = true;
+        actions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        actions.Dock = System.Windows.Forms.DockStyle.Fill;
+        actions.Margin = new System.Windows.Forms.Padding(0, 4, 0, 0);
+        dialButton.Name = "dialButton";
+        dialButton.Text = "Anrufen";
+        dialButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
+        dialButton.Margin = new System.Windows.Forms.Padding(4);
+        dialButton.TabIndex = 2;
+        dialButton.Click += Dial_Click;
+        cancelButton.Name = "cancelButton";
+        cancelButton.Text = "Abbrechen";
+        cancelButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
+        cancelButton.Margin = new System.Windows.Forms.Padding(4);
+        cancelButton.TabIndex = 3;
+        cancelButton.Click += Cancel_Click;
+        actions.Controls.Add(dialButton, 1, 0);
+        actions.Controls.Add(cancelButton, 2, 0);
+        layout.Controls.Add(companyLabel, 0, 0);
+        layout.Controls.Add(companyEdit, 1, 0);
+        layout.Controls.Add(destinationLabel, 0, 1);
+        layout.Controls.Add(destinationEdit, 1, 1);
+        layout.Controls.Add(statusLabel, 0, 2);
+        layout.SetColumnSpan(statusLabel, 2);
+        layout.Controls.Add(actions, 0, 3);
+        layout.SetColumnSpan(actions, 2);
+        Controls.Add(layout);
+        AcceptButton = dialButton;
+        CancelButton = cancelButton;
+        AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
+        AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+        ClientSize = new System.Drawing.Size(560, 220);
+        StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+        MaximizeBox = false;
+        MinimizeBox = false;
+        Name = "FrmDial";
+        Text = "WawiCallPro – Anrufen";
+        Load += Dial_Load;
+        Shown += Layout_Changed;
+        FormClosing += Dial_FormClosing;
+        FontChanged += Layout_Changed;
+        SizeChanged += Layout_Changed;
+        DpiChanged += Layout_Changed;
+        ((System.ComponentModel.ISupportInitialize)companyEdit.Properties).EndInit();
+        ((System.ComponentModel.ISupportInitialize)destinationEdit.Properties).EndInit();
+        ResumeLayout(false);
+        PerformLayout();
+    }
+    private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.TableLayoutPanel actions;
+    private DevExpress.XtraEditors.LabelControl companyLabel;
+    private DevExpress.XtraEditors.LabelControl destinationLabel;
+    private DevExpress.XtraEditors.LookUpEdit companyEdit;
+    private DevExpress.XtraEditors.TextEdit destinationEdit;
+    private DevExpress.XtraEditors.LabelControl statusLabel;
+    private DevExpress.XtraEditors.SimpleButton dialButton;
+    private DevExpress.XtraEditors.SimpleButton cancelButton;
+}

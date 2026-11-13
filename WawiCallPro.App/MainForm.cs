@@ -168,6 +168,7 @@ public partial class MainForm : RibbonForm
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
         foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
+        foreach (var dial in OwnedForms.OfType<FrmDial>()) await dial.StopAsync();
         foreach (var call in _callPages.Values) await call.Page.StopAsync();
         await PendingCallUpdates;
         foreach (var setup in OwnedForms.OfType<FrmDatabaseSetup>()) await setup.StopAsync();
@@ -261,6 +262,7 @@ public partial class MainForm : RibbonForm
     private async Task PreparePluginSwitchAsync()
     {
         EnsureViewsCanClose();
+        foreach (var dial in OwnedForms.OfType<FrmDial>().ToArray()) { await dial.StopAsync(); dial.Close(); }
         foreach (var call in _callPages.Values.ToArray()) await CloseDocumentAsync(call.Document);
         if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
         await _selectionTask;
@@ -303,7 +305,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);

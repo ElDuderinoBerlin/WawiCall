@@ -5,6 +5,22 @@ namespace WawiCallPro.App;
 
 public partial class MainForm
 {
+    internal FrmDial CreateDialDialog()
+    {
+        var dialog = _workspace?.Telephony is { } telephony
+            ? new FrmDial(_workspace.Directory, telephony, _workspace.Companies.Current.Company?.Key) : new FrmDial();
+        _state?.AttachWindow(dialog, "FrmDial");
+        return dialog;
+    }
+    private void Dial_Click(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+    {
+        if (_closing) return;
+        if (OwnedForms.OfType<FrmDial>().FirstOrDefault(dialog => !dialog.IsDisposed) is { } existing)
+        { existing.Show(); if (!_backgroundRun) existing.Activate(); return; }
+        var dial = CreateDialDialog();
+        if (_backgroundRun) dial.PrepareForBackgroundRun();
+        dial.Show(this);
+    }
     private readonly CancellationTokenSource _telephonyUiLifetime = new();
     private void BindTelephony()
     {
@@ -48,8 +64,7 @@ public partial class MainForm
     }
     private void UpdateTelephonyStatus()
     {
-        if (_databaseBusy) return;
-        connectionLabel.Text = _workspace?.Telephony?.Registration.State switch
+        var text = _workspace?.Telephony?.Registration.State switch
         {
             RegistrationState.Registered => "SIP-Konto angemeldet.",
             RegistrationState.Registering => "SIP-Anmeldung läuft …",
@@ -57,6 +72,16 @@ public partial class MainForm
             RegistrationState.Failed => "SIP-Anmeldung fehlgeschlagen. Einstellungen prüfen.",
             _ => "SIP-Konto nicht angemeldet."
         };
+        telephonyStatusItem.Caption = _workspace?.Telephony?.Registration.State switch
+        {
+            RegistrationState.Registered => "SIP: Angemeldet",
+            RegistrationState.Registering => "SIP: Anmeldung läuft …",
+            RegistrationState.Reconnecting => "SIP: Verbindungsaufbau …",
+            RegistrationState.Failed => "SIP: Anmeldung fehlgeschlagen",
+            _ => "SIP: Nicht angemeldet"
+        };
+        telephonyStatusItem.Hint = text;
+        if (!_databaseBusy) connectionLabel.Text = text;
         foreach (var document in _documents.Values)
             if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
                 dashboard.RefreshStatus();

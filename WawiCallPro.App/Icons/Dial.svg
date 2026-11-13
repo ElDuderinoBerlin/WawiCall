@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>.Blue{fill:#1177D7}.Green{fill:#39A65A}</style>
+  <path class="Blue" d="M5 3h5l2 7-3 2c2 4 4 6 8 8l2-3 7 2v5c0 2-2 3-4 3C12 25 4 17 2 7c0-2 1-4 3-4z"/>
+  <path class="Green" d="M19 2h11v11h-4V9l-7 7-3-3 7-7h-4z"/>
+</svg>

@@ -1636,6 +1636,29 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 - [x] ✅ SIPSorcery-Einstellungen im zentralen `FrmSettings` fachlich vervollständigen und mit den
   Telefoniediensten verbinden; allgemeine Einstellungen und Pluginverwaltung sind bereits eingebunden.
   Fachliche Wawi-Views bleiben im Plugin.
+- [x] ✅ Teilpunkt Wähldialog und dauerhafter Verbindungsstatus (13.11.2026): Das Start-Ribbon öffnet
+  über „Anrufen“ genau einen `FrmDial` mit durchsuchbarem Mandanten-Lookup und Rufnummer/SIP-Adresse.
+  Berechtigte Firmen kommen vom vorhandenen Verzeichnisdienst; ohne bestehenden Fachkontext wird kein
+  Mandant automatisch gewählt. Die Auswahl bleibt lokal im Dialog und wechselt keinen Hauptarbeitsbereich.
+  Der vorhandene injizierte Telefoniedienst übernimmt den Rufaufbau. Bei fehlender Anmeldung, aktivem
+  Gespräch, fehlendem Ziel/Mandanten und während laufender Aktionen bleibt Anrufen gesperrt.
+  Eingaben bleiben bei Fehlern erhalten; erfolgreiche Übergabe schließt den Dialog. Schließen sowie
+  Hostende/Pluginwechsel brechen ausstehende Abrufe ab und warten auf deren Ende. Ereignisbindungen
+  werden entfernt; verspätete Katalogantworten verändern keine geschlossene Ansicht.
+  Designerfähige `.cs`/`.Designer.cs`/`.resx`, TableLayoutPanel, gemeinsame DPI-Buttonhilfe und eigene
+  Fensterzustandsspeicherung nach vorhandenen LxTranslate-Mustern. Die Mindesthöhe berücksichtigt den
+  tatsächlichen DevExpress-Rahmen und wächst bei mehrzeiligen Hinweisen. `LX_UI_AUDIT_SURFACES=FrmDial`
+  begrenzt die vorhandene Renderprüfung auf den neuen Dialog.
+  Der SIP-Zustand steht zusätzlich dauerhaft in der Statusleiste und aktualisiert die Startseite auch
+  während einer Datenbankaktion; deren Fortschrittsmeldung bleibt erhalten.
+  Nachweise: Je Edition neun gezielte App-Prüfungen mit Telefonie-Doubles für Kontext, Doppelaufruf,
+  Zustandswechsel vom Hintergrundthread, aktives Gespräch, Fehler, erfolgreichen Buttonklick,
+  Schließen während Abruf/Rufaufbau, Ereignisfreigabe, Ribbon-/Statusintegration und bestehendes
+  Gesprächsrouting. Dialog leer/gefüllt bei schmaler Breite, 8/10/16 pt, 125/150%-Layoutsimulation,
+  Basic einschließlich Blue Dark/Tahoma sowie Office 2019 Black unsichtbar gerendert und visuell geprüft.
+  Beide Solution-Editionen mit App/Console in Debug/Any CPU gebaut, FinOffice als Startausgabe hergestellt.
+  Logs `.phase8-dial-*.log`, Bilder unter `.artifacts/phase8-dial` und `.artifacts/layout-reference`.
+  Keine Produktionsanrufe, Audiogeräte oder sichtbare Desktopbedienung; echte FRITZ!Box-Abnahme bleibt offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

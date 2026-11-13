@@ -40,6 +40,244 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task DialRibbonReusesItsDialogAndSipStatusUpdatesDuringDatabaseWork() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show();
+        var item = Field<DevExpress.XtraBars.BarButtonItem>(form, "dialItem");
+        Assert.IsNotNull(item.ImageOptions.SvgImage);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(item.Hint));
+        var ribbon = Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon");
+        ribbon.Minimized = false; ribbon.SelectedPage = Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "startRibbon");
+        form.PerformLayout(); Application.DoEvents();
+        var output = Path.GetFullPath(".artifacts/phase8-dial"); Directory.CreateDirectory(output);
+        using (var shot = UiAudit.Capture(form)) shot.Save(Path.Combine(output, "main-ribbon-status.png"), ImageFormat.Png);
+        item.PerformClick(); item.PerformClick();
+        Assert.HasCount(1, form.OwnedForms.OfType<FrmDial>().ToArray());
+        var dial = form.OwnedForms.OfType<FrmDial>().Single();
+        var status = Field<DevExpress.XtraBars.BarStaticItem>(form, "telephonyStatusItem");
+        var feedback = Field<LabelControl>(form, "connectionLabel");
+        typeof(MainForm).GetField("_databaseBusy", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(form, true);
+        feedback.Text = "Sicherung läuft …";
+        var update = workspace.Telephony!.GetType().GetMethod("SetRegistration", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await Task.Run(() => update.Invoke(workspace.Telephony, [RegistrationState.Reconnecting, "RegistrationRetry"]));
+        await WaitForDialStateAsync(() => status.Caption == "SIP: Verbindungsaufbau …");
+        Assert.AreEqual("Sicherung läuft …", feedback.Text);
+        Assert.IsTrue(Field<LabelControl>((HomeDashboard)form.GetActiveDocumentView()!, "sipDetail").Text.Contains("unterbrochen"));
+        typeof(MainForm).GetField("_databaseBusy", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(form, false);
+        await Task.Run(() => update.Invoke(workspace.Telephony, [RegistrationState.Registered, null]));
+        await WaitForDialStateAsync(() => status.Caption == "SIP: Angemeldet");
+        Assert.AreEqual("SIP-Konto angemeldet.", feedback.Text);
+        await form.PrepareToCloseAsync();
+        Assert.IsFalse(Field<SimpleButton>(dial, "dialButton").Enabled);
+    });
+
+    [TestMethod]
+    public Task DialDialogUsesExplicitCompanyAndPreventsDuplicateRequestsWithoutChangingWorkspace() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        await workspace.Companies.SelectAsync(companies[0]);
+        var telephony = new DialTelephony();
+        using var dialog = new FrmDial(workspace.Directory, telephony);
+        await dialog.ReloadAsync();
+        var lookup = Field<LookUpEdit>(dialog, "companyEdit");
+        var target = Field<TextEdit>(dialog, "destinationEdit");
+        Assert.IsNull(lookup.EditValue, "Loading the catalog must not silently choose a company.");
+        target.Text = "  sip:synthetic@127.0.0.1  ";
+        await dialog.DialAsync();
+        Assert.AreEqual(0, telephony.Attempts);
+        lookup.EditValue = companies[1].Key;
+        Assert.AreEqual(DevExpress.XtraEditors.Controls.SearchMode.AutoSearch, lookup.Properties.SearchMode);
+        Assert.IsFalse(lookup.Properties.ShowHeader || lookup.Properties.ShowFooter);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        telephony.BeforeDial = _ => release.Task;
+        var first = dialog.DialAsync();
+        await dialog.DialAsync();
+        Assert.AreEqual(1, telephony.Attempts);
+        Assert.IsFalse(Field<SimpleButton>(dialog, "dialButton").Enabled);
+        release.SetResult(); await first;
+        Assert.AreEqual(companies[1].Key, telephony.Company);
+        Assert.AreEqual("sip:synthetic@127.0.0.1", telephony.Destination);
+        Assert.AreEqual(telephony.CallId, dialog.CallId);
+        Assert.AreEqual(companies[0].Key, workspace.Companies.Current.Company!.Key);
+        await dialog.StopAsync();
+    });
+
+    [TestMethod]
+    public Task DialDialogTracksRegistrationAndActiveCallsAndKeepsInputAfterFailure() => RunStaAsync(async () =>
+    {
+        var directory = new TestDirectory(new("test", "Pro"));
+        var company = (await directory.GetCompaniesAsync())[0];
+        var telephony = new DialTelephony();
+        using var dialog = new FrmDial(directory, telephony, company.Key);
+        dialog.PrepareForBackgroundRun(); dialog.Show(); await dialog.ReloadAsync();
+        var target = Field<TextEdit>(dialog, "destinationEdit"); target.Text = "+49301234567";
+        var button = Field<SimpleButton>(dialog, "dialButton");
+        Assert.IsTrue(button.Enabled);
+        foreach (var registration in new[] { RegistrationState.Stopped, RegistrationState.Registering, RegistrationState.Reconnecting, RegistrationState.Failed })
+        {
+            await Task.Run(() => telephony.Register(registration));
+            await WaitForDialStateAsync(() => !button.Enabled);
+            await dialog.DialAsync(); Assert.AreEqual(0, telephony.Attempts);
+            telephony.Register(RegistrationState.Registered);
+            await WaitForDialStateAsync(() => button.Enabled);
+        }
+        telephony.SetActiveCall(true);
+        await WaitForDialStateAsync(() => !button.Enabled);
+        telephony.SetActiveCall(false);
+        await WaitForDialStateAsync(() => button.Enabled);
+        telephony.Failure = new TelephonyException("InvalidDestination");
+        await dialog.DialAsync();
+        Assert.IsNull(dialog.CallId);
+        Assert.AreEqual("+49301234567", target.Text);
+        Assert.AreEqual(company.Key, Field<LookUpEdit>(dialog, "companyEdit").EditValue);
+        Assert.AreEqual(telephony.Failure.Message, Field<LabelControl>(dialog, "statusLabel").Text);
+        Assert.IsTrue(button.Enabled);
+        telephony.Failure = null;
+        button.PerformClick();
+        await WaitForDialStateAsync(() => dialog.IsDisposed);
+        Assert.AreEqual(telephony.CallId, dialog.CallId);
+        Assert.AreEqual(0, telephony.Subscribers);
+    });
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task DialDialogClosesOnceAndAwaitsCancellationOfPendingLoadOrDial(bool duringDial) => RunStaAsync(async () =>
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var telephony = new DialTelephony();
+        var directory = new TestDirectory(new("test", "Pro"));
+        if (!duringDial) directory.ReadCatalog = async token =>
+        {
+            using var registration = token.Register(() => cancelled.TrySetResult());
+            await release.Task;
+            return [];
+        };
+        using var dialog = new FrmDial(directory, telephony);
+        dialog.PrepareForBackgroundRun(); dialog.Show();
+        Task dialing = Task.CompletedTask;
+        if (duringDial)
+        {
+            await dialog.ReloadAsync();
+            Field<LookUpEdit>(dialog, "companyEdit").EditValue = (await directory.GetCompaniesAsync())[0].Key;
+            Field<TextEdit>(dialog, "destinationEdit").Text = "123";
+            telephony.BeforeDial = async token =>
+            {
+                using var registration = token.Register(() => cancelled.TrySetResult());
+                await release.Task; token.ThrowIfCancellationRequested();
+            };
+            dialing = dialog.DialAsync();
+        }
+        dialog.Close();
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.IsTrue(dialog.Visible, "Closing must await services even if they ignore cancellation temporarily.");
+        release.SetResult(); await dialing;
+        await WaitForDialStateAsync(() => dialog.IsDisposed);
+        Assert.IsNull(dialog.CallId);
+        Assert.AreEqual(0, telephony.Subscribers);
+    });
+
+    [TestMethod]
+    public Task DialDialogRendersEmptyAndFilledAtSmallWidthLargeFontAndScaledLayouts() => RunStaAsync(async () =>
+    {
+        AppUiStartup.Apply();
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var oldPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var output = Path.GetFullPath(".artifacts/phase8-dial/render"); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var (width, fontSize, scale, skin, palette) in new[] { (560, 8F, 1F, oldSkin, oldPalette), (420, 10F, 1F, oldSkin, oldPalette),
+                (540, 16F, 1F, "Office 2019 Black", ""), (420, 10F, 1.5F, oldSkin, oldPalette), (560, 8F, 1.25F, "Basic", "Blue Dark") })
+            foreach (var populated in new[] { false, true })
+            {
+                if (!string.IsNullOrEmpty(palette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Tahoma", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var directory = new TestDirectory(new("test", "Pro"));
+                if (!populated) directory.ReadCatalog = _ => Task.FromResult(ImmutableArray<Company>.Empty);
+                var telephony = new DialTelephony();
+                using var dialog = new FrmDial(directory, telephony); dialog.PrepareForBackgroundRun();
+                dialog.Font = font; dialog.ClientSize = new(width, 220); dialog.Show(); await dialog.ReloadAsync();
+                Assert.IsFalse(Field<LabelControl>(dialog, "statusLabel").Text.Contains("Bitte warten"));
+                if (!populated) Assert.AreEqual("Keine berechtigten Mandanten verfügbar.", Field<LabelControl>(dialog, "statusLabel").Text);
+                if (populated)
+                {
+                    Field<LookUpEdit>(dialog, "companyEdit").EditValue = (await directory.GetCompaniesAsync())[1].Key;
+                    Field<TextEdit>(dialog, "destinationEdit").Text = "+49301234567";
+                    telephony.Register(RegistrationState.Reconnecting);
+                    await WaitForDialStateAsync(() => Field<LabelControl>(dialog, "statusLabel").Text.Contains("unterbrochen"));
+                }
+                if (scale != 1F) dialog.Scale(new SizeF(scale, scale)); dialog.PerformLayout(); Application.DoEvents();
+                using var shot = UiAudit.Capture(dialog); shot.Save(Path.Combine(output, $"dial-{width}-{fontSize:0}-{scale:0.0}-{skin}-{palette}-{populated}.png"), ImageFormat.Png);
+                CheckTableBounds(dialog);
+                Assert.AreEqual(Field<SimpleButton>(dialog, "dialButton").Size, Field<SimpleButton>(dialog, "cancelButton").Size);
+                Assert.IsTrue(Field<TableLayoutPanel>(dialog, "layout").Bottom <= dialog.ClientSize.Height,
+                    $"{width}/{fontSize}/{scale}/{populated}: layout={Field<TableLayoutPanel>(dialog, "layout").Bounds}, client={dialog.ClientSize}, minimum={dialog.MinimumSize}");
+                await dialog.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            if (string.IsNullOrEmpty(oldPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin, oldPalette);
+        }
+    });
+
+    private static async Task WaitForDialStateAsync(Func<bool> ready)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(3);
+        while (!ready() && DateTime.UtcNow < deadline) await Task.Delay(10);
+        Assert.IsTrue(ready(), "The dial dialog did not finish its UI update.");
+    }
+
+    private sealed class DialTelephony : ITelephonyService
+    {
+        public RegistrationSnapshot Registration { get; private set; } = new(RegistrationState.Registered, DateTimeOffset.UtcNow);
+        private EventHandler<RegistrationChangedEventArgs>? _registrations;
+        private EventHandler<CallChangedEventArgs>? _calls;
+        private ImmutableArray<CallSnapshot> _active = [];
+        internal int Subscribers => (_registrations?.GetInvocationList().Length ?? 0) + (_calls?.GetInvocationList().Length ?? 0);
+        internal int Attempts;
+        internal CompanyKey? Company;
+        internal string? Destination;
+        internal Guid CallId = Guid.NewGuid();
+        internal Exception? Failure;
+        internal Func<CancellationToken, Task>? BeforeDial;
+        public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged { add => _registrations += value; remove => _registrations -= value; }
+        public event EventHandler<CallChangedEventArgs>? CallChanged { add => _calls += value; remove => _calls -= value; }
+        public ImmutableArray<CallSnapshot> GetCalls() => _active;
+        internal void Register(RegistrationState state) { Registration = new(state, DateTimeOffset.UtcNow); _registrations?.Invoke(this, new(Registration)); }
+        internal void SetActiveCall(bool active)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var call = new CallSnapshot { Id = CallId, Revision = 1, Direction = CallDirection.Outgoing,
+                State = active ? CallState.Connected : CallState.Ended, AnsweredAtUtc = now, EndedAtUtc = active ? null : now,
+                EndReason = active ? null : CallEndReason.Completed, LocalAddress = new(NumberPresentation.Unknown),
+                RemoteAddress = new(NumberPresentation.Withheld), StartedAtUtc = now, StateChangedAtUtc = now };
+            _active = active ? [call] : [];
+            _calls?.Invoke(this, new(call));
+        }
+        public async Task<Guid> DialAsync(CompanyKey company, string destination, CancellationToken cancellationToken = default)
+        {
+            Attempts++; Company = company; Destination = destination;
+            if (BeforeDial is not null) await BeforeDial(cancellationToken);
+            if (Failure is not null) throw Failure;
+            return CallId;
+        }
+        public Task AnswerAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task HoldAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task TransferAsync(Guid callId, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [TestMethod]
     public Task PhoneMaintenanceIsRegisteredOnlyForInteractiveApplicationStarts() => RunStaAsync(async () =>
     {
         using var context = new WindowsFormsSynchronizationContext();

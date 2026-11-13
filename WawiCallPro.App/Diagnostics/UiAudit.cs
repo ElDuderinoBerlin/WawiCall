@@ -15,7 +15,7 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("HistoryPage", "history"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
+        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
@@ -76,6 +76,16 @@ internal static class UiAudit
                             using var shot = Capture(settings);
                             shot.Save(Path.Combine(outputDirectory, $"FrmSettings-{tab.Text}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
                         }
+                        continue;
+                    }
+                    if (surface == "FrmDial")
+                    {
+                        using var dial = form.CreateDialDialog();
+                        dial.PrepareForBackgroundRun(); dial.Font = font;
+                        dial.ClientSize = new Size(Math.Min(size.Width, 620), dial.ClientSize.Height);
+                        CreateHandles(dial); dial.PerformLayout();
+                        using var shot = Capture(dial);
+                        shot.Save(Path.Combine(outputDirectory, $"FrmDial-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
                         continue;
                     }
                     form.Navigate(page);
