@@ -101,6 +101,21 @@ Bei späteren Synchronisationen diese lokalen Ergänzungen und vorhandene Benutz
 - Eigene Ribbon-Buttons erhalten ein passendes SVG-Icon und einen aussagekräftigen Tooltip (`Hint` oder `SuperTip`).
   Die Beschriftung beschreibt die konkrete Aktion; reine oder unklare Kurzbezeichnungen vermeiden.
 
+### Lexware-Installationsprüfung
+
+- Alle Lexware-Tools müssen beim Start und vor Freigabe ihrer Lexware-Funktionen prüfen, ob die
+  benötigte unterstützte Produktlinie lokal installiert ist: Lexware Pro oder Financial Office (FinOffice).
+  Die Erkennung muss zur gewählten Tool-Edition passen; die jeweils andere Produktlinie genügt nicht.
+- Fehlt die passende Installation oder lässt sie sich nicht zuverlässig nachweisen, eine verständliche
+  Warnung mit der benötigten Produktlinie anzeigen. Alle davon abhängigen Funktionen deaktivieren,
+  einschließlich Menü-/Ribbonaktionen, automatischer Hintergrundabläufe und direkter Dienstaufrufe.
+  Lexware-unabhängige Funktionen bleiben nutzbar.
+- Vorhandene zentrale Installationsprüfungen wiederverwenden. Gespeicherte Verbindungsdaten oder eine
+  konfigurierte Produktlinie allein gelten nicht als Installationsnachweis.
+- Passende, ausschließlich andere und fehlende Installation sowie Fehler der Erkennung gezielt prüfen.
+  Fehlende Installation muss nachweislich Warnung und Funktionssperre auslösen; Prüfungen verwenden
+  isolierte Installations-/Registry-Doubles und verändern keine echte Lexware-Installation.
+
 ### Startfenster, Splash und Vordergrundfokus
 
 - Beim Explorer-Start kann das Schließen eines aktiven Splashs auf einem eigenen STA-Thread den Vordergrund an
