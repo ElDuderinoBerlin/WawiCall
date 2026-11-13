@@ -15,6 +15,7 @@ public static class SipServiceRegistration
         services.TryAddSingleton<ISipAccountLeaseFactory, SipAccountLeaseFactory>();
         services.TryAddSingleton<ISipMediaSessionFactory, UnavailableSipMediaSessionFactory>();
         services.TryAddSingleton<ISipCallPersistence, SipCallPersistence>();
+        services.TryAddSingleton<ISipCallOutbox, ProtectedSipCallOutbox>();
         services.TryAddSingleton<ICallStateSessionFactory, CallStateSessionFactory>();
         services.AddSingleton<SipTelephonyService>();
         services.AddSingleton<ITelephonyService>(provider => provider.GetRequiredService<SipTelephonyService>());

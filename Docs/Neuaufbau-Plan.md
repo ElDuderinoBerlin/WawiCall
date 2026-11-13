@@ -1319,7 +1319,32 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   keine Migration und kein SQL geändert. Die Warteschlange ist bislang prozesslokal: Bei Prozessabbruch
   oder Beenden während fortdauernden Datenbankausfalls können ausstehende Zustände verloren gehen.
   Dauerhafte geschützte Ablage und Wiederaufnahme nach Neustart bleiben für den folgenden Gesamtpunkt offen.
-- [ ] Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
+- [x] ✅ Dauerhafte geschützte Nachlieferung (13.11.2026): Jeder beobachtete Status wird vor dem
+  Datenbankversuch als eigener CurrentUser-DPAPI-Eintrag unter `sip-pending` im editionsbezogenen
+  Konfigurationsverzeichnis abgelegt. Verschlüsselte temporäre Dateien werden auf Datenträger geflusht
+  und anschließend atomar veröffentlicht; nur nach bestätigtem Datenbankerfolg wird der Eintrag gelöscht.
+  Arbeitsplatzherkunft wird vor Beginn des Gesprächs erfasst und bleibt beim Neustart erhalten.
+  Eine gemeinsame Dateisperre verhindert parallele Zustellung durch App und Console. Nach Abmelden
+  bleibt sie bis zur vollständigen Nachlieferung bestehen; bei leerer Warteschlange wird sie freigegeben.
+  Vor SIP-Anmeldung werden alle Dateien validiert, geordnet nachgeliefert und erst danach unvollständige
+  Gespräche als Interrupted abgeschlossen. Beschädigte, nicht entschlüsselbare oder einer anderen
+  Produktlinie/Datenbank zugeordnete Einträge werden weder übersprungen noch gelöscht; die Anmeldung scheitert.
+  Die Bindung verwendet das tatsächliche Datenbankziel der Host-Startkonfiguration. Ein Wechsel der
+  Serververbindungszeichenfolge einschließlich Kennwort erfordert bei offenen Einträgen zunächst die
+  Nachlieferung mit der bisherigen Konfiguration. Unvollständige verschlüsselte `.tmp`-Dateien werden ignoriert.
+  Nachweise: Solution einschließlich App/Console für FinOffice und Pro in Debug/Any CPU gebaut;
+  je 40 Telefonietests und vier echte SQLite-Persistenz-/Recoverytests bestanden. Ein isolierter
+  Testprozess wurde nach bestätigtem Datei-Flush hart beendet; neuer Prozessbesitz und Wiederaufnahme
+  nachgewiesen. Laufzeitneustart bei fortdauerndem Datenbankausfall sperrt Anmeldung/Recovery bis zur
+  Zustellung; verlorene Commit-Bestätigung erzeugt bei SQLite kein doppeltes Ereignis. Originalherkunft,
+  alle Revisionen und sieben Sekunden Dauer ab Annahme blieben erhalten. Manipulations-, Produkt-/
+  Zielwechsel- und Sperrtests bestanden. Logs: `.phase7-outbox-{build,tests,sqlite}-{fin,pro}.log`.
+  Keine Migration, SQL-Änderung, Produktionskonten, Audiogeräte oder sichtbaren Fenster.
+  Restrisiko: Bei gleichzeitig nicht beschreibbarem lokalem Datenträger bleiben neue Beobachtungen
+  nur im Speicher und werden als Speicherfehler gemeldet; Stromausfall-/Datenträgerverlust ist hier nicht nachgewiesen.
+  Rollback: Vor Rückkehr zu einer älteren Version alle Einträge zustellen und `sip-pending` erhalten;
+  ältere Versionen können diese Dateien nicht nachliefern. Echte FRITZ!Box-/Geräteabnahme bleibt offen.
+- [x] ✅ Statuswechsel sofort robust in die eigene Datenbank schreiben; Dauer ab Annahme ermitteln und Wiederanlauf berücksichtigen.
   Eingehende/ausgehende Richtung, Beginn/Annahme/Ende in UTC, Endgrund, Nummern und Zuordnung sowie
   PC-/Windows-Nutzer auch bei fehlender oder gescheiterter Aufnahme protokollieren; Historie nach Zeitraum abfragen.
 - [x] ✅ Keine fest eingetragene Testansage, automatische Annahme oder Aufnahme aus dem alten Versuchscode übernehmen.

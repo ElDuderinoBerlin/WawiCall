@@ -1865,6 +1865,46 @@ public sealed class AppShellTests
     });
 
     [TestMethod]
+    public Task ProtectedSipReplaySurvivesLostAcknowledgementAndPrecedesSqliteRecovery() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        var persistence = services.GetRequiredService<ISipCallPersistence>();
+        var database = services.GetRequiredService<ApplicationConfigurationService>().Current.Options.Database;
+        var origin = await services.GetRequiredService<ICallOriginProvider>().CaptureAsync();
+        var now = DateTimeOffset.UtcNow.AddSeconds(-20);
+        var ringing = new CallSnapshot { Id = Guid.NewGuid(), Revision = 1, Origin = origin, Direction = CallDirection.Incoming, State = CallState.Ringing,
+            LocalAddress = new(NumberPresentation.Available, "isolated-line"), RemoteAddress = new(NumberPresentation.Withheld),
+            StartedAtUtc = now, StateChangedAtUtc = now };
+        var connected = ringing with { Revision = 2, State = CallState.Connected, AnsweredAtUtc = now.AddSeconds(3), StateChangedAtUtc = now.AddSeconds(3) };
+        var ended = connected with { Revision = 3, State = CallState.Ended, EndedAtUtc = now.AddSeconds(10), StateChangedAtUtc = now.AddSeconds(10), EndReason = CallEndReason.RemoteHangup };
+        var unfinished = ringing with { Id = Guid.NewGuid() };
+        using (var original = new ProtectedSipCallOutbox(workspace.Paths, workspace.Secrets, workspace.Application))
+        {
+            await original.OpenAsync(database);
+            foreach (var call in new[] { ringing, connected, ended, unfinished }) await original.AppendAsync(call);
+            // The first commit succeeded but the process stopped before acknowledging its journal entry.
+            await persistence.SaveAsync(ringing);
+        }
+        using (var restarted = new ProtectedSipCallOutbox(workspace.Paths, workspace.Secrets, workspace.Application))
+        {
+            foreach (var call in await restarted.OpenAsync(database))
+            {
+                await persistence.SaveAsync(call);
+                restarted.Acknowledge(call);
+            }
+            await persistence.RecoverAsync();
+        }
+        var completed = (await workspace.History.GetCallAsync(ended.Id))!;
+        Assert.AreEqual(ended, completed.Call);
+        Assert.HasCount(3, completed.Events);
+        Assert.AreEqual(TimeSpan.FromSeconds(7), completed.Call.EndedAtUtc - completed.Call.AnsweredAtUtc);
+        var interrupted = (await workspace.History.GetCallAsync(unfinished.Id))!;
+        Assert.AreEqual(CallEndReason.Interrupted, interrupted.Call.EndReason);
+        Assert.AreEqual(origin, interrupted.Call.Origin);
+        Assert.HasCount(2, interrupted.Events);
+    });
+
+    [TestMethod]
     public Task SipStatePersistenceRetainsOriginAndRecoversOnlyUnfinishedWorkstationCalls() => WithWorkspace(async (workspace, services, plugin) =>
     {
         await workspace.Database.CreateAndMigrateAsync();

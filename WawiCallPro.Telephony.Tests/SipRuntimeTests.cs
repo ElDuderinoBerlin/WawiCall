@@ -10,6 +10,9 @@ using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
+using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Interfaces.History;
 
 namespace WawiCallPro.Telephony.Tests;
 
@@ -338,6 +341,8 @@ public sealed class SipRuntimeTests
         private SIPRequest? _lastRegistration;
         internal SIPProtocolsEnum LastContactProtocol;
         private ConfigurationStore _settings = null!;
+        private ApplicationConfigurationService _configuration = null!;
+        private bool _unavailableAudio;
         internal string Destination => "sip:workstation@127.0.0.1:" + LocalPort;
 
         internal static async Task<Fixture> CreateAsync(bool unavailableAudio = false)
@@ -367,10 +372,25 @@ public sealed class SipRuntimeTests
                     Connection = new() { BindAddress = "127.0.0.1", LocalPort = fixture.LocalPort, RegistrationTimeoutSeconds = 1, RetryIntervalSeconds = 1, RingTimeoutSeconds = 5 }
                 }
             });
-            fixture.Runtime = new(settings, protector, new SipTransportFactory(), fixture.Leases,
-                unavailableAudio ? new UnavailableSipMediaSessionFactory() : fixture.Media, fixture.Persistence,
-                new CallStateSessionFactory(), TimeProvider.System, NullLogger<SipTelephonyService>.Instance);
+            fixture._unavailableAudio = unavailableAudio;
+            fixture._configuration = new(settings);
+            await fixture._configuration.StartAsync(CancellationToken.None);
+            fixture.CreateRuntime();
             return fixture;
+        }
+        private void CreateRuntime()
+        {
+            var protector = new WindowsUserSecretProtector();
+            Runtime = new(_settings, protector, new SipTransportFactory(), Leases,
+                _unavailableAudio ? new UnavailableSipMediaSessionFactory() : Media, Persistence,
+                new CallStateSessionFactory(), TimeProvider.System, NullLogger<SipTelephonyService>.Instance,
+                new ProtectedSipCallOutbox(new ApplicationPaths(new ConfigurationLocation(_root)), protector, new("test", "Pro")),
+                new OriginProvider(Persistence), _configuration);
+        }
+        internal async Task RestartAsync()
+        {
+            await Runtime.DisposeAsync();
+            CreateRuntime();
         }
         internal Task ReplyToLastRegistrationAsync() => ReplyAsync(Volatile.Read(ref _lastRegistration)!);
 
@@ -496,6 +516,40 @@ public sealed class SipRuntimeTests
         var attempts = Volatile.Read(ref fixture.Persistence.Attempts);
         await Task.Delay(1200);
         Assert.AreEqual(attempts, Volatile.Read(ref fixture.Persistence.Attempts));
+    }
+
+    [TestMethod]
+    public async Task RestartDeliversProtectedPendingStatesBeforeRecoveryAndBlocksRegistrationDuringOutage()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Persistence.CapturedOrigin = new(Guid.NewGuid(), "original-machine", "original-user");
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        fixture.Persistence.Unavailable = true;
+        using var peer = new SIPUserAgent();
+        using var media = new TestMedia();
+        var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        var call = fixture.Runtime.GetCalls().Single();
+        await fixture.RestartAsync();
+        Assert.IsFalse(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        var registrations = fixture.Registers;
+        await Assert.ThrowsAsync<TelephonyException>(() => fixture.Runtime.ConnectAsync());
+        Assert.AreEqual(registrations, fixture.Registers);
+        Assert.AreEqual(1, fixture.Persistence.Recoveries);
+        fixture.Persistence.Unavailable = false;
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        CollectionAssert.AreEqual(new long[] { 0, 1, 2 }, fixture.Persistence.Snapshots.Select(snapshot => snapshot.Revision).ToArray());
+        Assert.IsTrue(fixture.Persistence.Snapshots.All(snapshot => snapshot.Id == call.Id && snapshot.Origin == call.Origin));
+        Assert.AreEqual(CallEndReason.Interrupted, fixture.Persistence.Snapshots.Last().EndReason);
+        Assert.AreEqual(2, fixture.Persistence.Recoveries);
+    }
+
+    private sealed class OriginProvider(MemoryPersistence persistence) : ICallOriginProvider
+    {
+        private readonly CallOrigin _fallback = new(Guid.NewGuid(), "isolated-machine", "isolated-user");
+        public Task<CallOrigin> CaptureAsync(CancellationToken cancellationToken = default) => Task.FromResult(persistence.CapturedOrigin ?? _fallback);
     }
 
     private sealed class MemoryPersistence : ISipCallPersistence

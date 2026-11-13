@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
@@ -15,11 +16,14 @@ namespace WawiCallPro.Telephony.Sip;
 public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnection, IDtmfReceiver, ICallLineContextProvider, IAsyncDisposable
 {
     private readonly ConfigurationStore _settings;
+    private readonly ApplicationConfigurationService _configuration;
     private readonly ISecretProtector _secrets;
     private readonly ISipTransportFactory _transports;
     private readonly ISipAccountLeaseFactory _leases;
     private readonly ISipMediaSessionFactory _media;
     private readonly ISipCallPersistence _persistence;
+    private readonly ISipCallOutbox _outbox;
+    private readonly ICallOriginProvider _origins;
     private readonly ICallStateSessionFactory _states;
     private readonly TimeProvider _clock;
     private readonly ILogger<SipTelephonyService> _log;
@@ -29,6 +33,10 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
     private readonly Task _eventLoop;
     // Accessed only by the event loop; retries must never overtake an earlier revision.
     private readonly Queue<CallSnapshot> _pendingWrites = new();
+    private readonly HashSet<(Guid, long)> _journaled = new();
+    private bool _outboxLoaded;
+    private volatile bool _connecting;
+    private CallOrigin? _origin;
     private readonly CancellationTokenSource _retryStopping = new();
     private readonly Task _retryLoop;
     private int _storageUnavailable;
@@ -49,10 +57,13 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
 
     public SipTelephonyService(ConfigurationStore settings, ISecretProtector secrets, ISipTransportFactory transports,
         ISipAccountLeaseFactory leases, ISipMediaSessionFactory media, ISipCallPersistence persistence,
-        ICallStateSessionFactory states, TimeProvider clock, ILogger<SipTelephonyService> log)
+        ICallStateSessionFactory states, TimeProvider clock, ILogger<SipTelephonyService> log,
+        ISipCallOutbox outbox, ICallOriginProvider origins, ApplicationConfigurationService configuration)
     {
         _settings = settings; _secrets = secrets; _transports = transports; _leases = leases; _media = media;
         _persistence = persistence; _states = states; _clock = clock; _log = log;
+        _outbox = outbox; _origins = origins;
+        _configuration = configuration;
         _eventLoop = ConsumeAsync();
         _retryLoop = RetryPersistenceAsync();
     }
@@ -81,10 +92,26 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
             var account = snapshot.Options.SipAccount ?? throw new TelephonyException("AccountMissing");
             _account = account; _devices = snapshot.Options.Devices; _stopping = false;
             _lease = _leases.Acquire(account);
+            _connecting = true;
             // A second host must never mark the first host's live calls as interrupted.
             try
             {
-                await EnqueueAsync(FlushPendingAsync).ConfigureAwait(false);
+                await EnqueueAsync(async () =>
+                {
+                    // Repositories use the startup target; database edits take effect only after restarting the host.
+                    var recovered = await _outbox.OpenAsync(_configuration.Current.Options.Database, cancellationToken).ConfigureAwait(false);
+                    if (!_outboxLoaded)
+                    {
+                        foreach (var call in recovered)
+                        {
+                            _pendingWrites.Enqueue(call);
+                            _journaled.Add((call.Id, call.Revision));
+                        }
+                        _outboxLoaded = true;
+                    }
+                    _origin = await _origins.CaptureAsync(cancellationToken).ConfigureAwait(false);
+                    await FlushPendingAsync().ConfigureAwait(false);
+                }).ConfigureAwait(false);
                 if (Volatile.Read(ref _storageUnavailable) != 0) throw new TelephonyException("DatabaseNotReady");
                 await _persistence.RecoverAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -132,7 +159,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
             SetRegistration(RegistrationState.Failed, code);
             throw new TelephonyException(code);
         }
-        finally { _commands.Release(); }
+        finally { _connecting = false; _commands.Release(); }
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -410,7 +437,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
         agent.Id = Guid.NewGuid();
         _callLines[agent.Id] = CallerLineConfiguration.ContextFor(_account!);
         var now = _clock.GetUtcNow();
-        agent.State = _states.Create(new() { Id = agent.Id, Revision = 0, Company = company, Direction = direction, State = CallState.Created,
+        agent.State = _states.Create(new() { Id = agent.Id, Revision = 0, Company = company, Origin = _origin, Direction = direction, State = CallState.Created,
             LocalAddress = new(NumberPresentation.Available, _account!.Username),
             RemoteAddress = new(string.IsNullOrEmpty(number) ? NumberPresentation.Unknown : NumberPresentation.Available, number),
             StartedAtUtc = now, StateChangedAtUtc = now });
@@ -458,6 +485,18 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
 
     private async Task FlushPendingAsync()
     {
+        if (!_outboxLoaded) return;
+        try
+        {
+            // Journal all observations first, even when the first database delivery keeps failing.
+            foreach (var call in _pendingWrites)
+            {
+                if (_journaled.Contains((call.Id, call.Revision))) continue;
+                await _outbox.AppendAsync(call, _retryStopping.Token).ConfigureAwait(false);
+                _journaled.Add((call.Id, call.Revision));
+            }
+        }
+        catch { StorageFailed(); return; }
         while (_pendingWrites.TryPeek(out var snapshot))
         {
             try
@@ -465,7 +504,9 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5), _clock);
                 using var stopping = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, _retryStopping.Token);
                 var saved = await _persistence.SaveAsync(snapshot, stopping.Token).ConfigureAwait(false);
+                _outbox.Acknowledge(snapshot);
                 _pendingWrites.Dequeue();
+                _journaled.Remove((snapshot.Id, snapshot.Revision));
                 if (_calls.TryGetValue(saved.Id, out var current) && current.Revision == saved.Revision && current != saved)
                 {
                     _calls[saved.Id] = saved;
@@ -477,12 +518,22 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
             }
             catch
             {
-                if (Interlocked.Exchange(ref _storageUnavailable, 1) == 0) Failure("CallStorageUnavailable");
+                StorageFailed();
                 return;
             }
         }
         Interlocked.Exchange(ref _storageUnavailable, 0);
         Interlocked.CompareExchange(ref _failure, null, "CallStorageUnavailable");
+        if (!_connecting && _transport is null)
+        {
+            _outbox.Close();
+            _outboxLoaded = false;
+        }
+    }
+
+    private void StorageFailed()
+    {
+        if (Interlocked.Exchange(ref _storageUnavailable, 1) == 0) Failure("CallStorageUnavailable");
     }
 
     private async Task RetryPersistenceAsync()
@@ -583,6 +634,7 @@ public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnectio
         await _retryStopping.CancelAsync().ConfigureAwait(false);
         await _retryLoop.ConfigureAwait(false);
         _disposed = true; _events.Writer.TryComplete(); await _eventLoop.ConfigureAwait(false);
+        _outbox.Close();
         _retryStopping.Dispose();
         _commands.Dispose();
     }
