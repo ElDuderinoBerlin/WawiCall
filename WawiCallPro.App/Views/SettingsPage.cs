@@ -91,6 +91,7 @@ public partial class SettingsPage : XtraUserControl
         pluginPage.ConfigureSelection(ActivatePluginAsync);
         pluginPage.RefreshCatalog();
         numberDiagnosticsPage.Bind(workspace.NumberDiagnostics, _state);
+        cacheTab.PageEnabled = workspace.CanUseBusinessDirectory;
     }
     internal async Task StopAsync()
     {
@@ -125,6 +126,7 @@ public partial class SettingsPage : XtraUserControl
             _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
             saveButton.Enabled = reloadButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
+            cacheTab.PageEnabled = _workspace.CanUseBusinessDirectory;
         }
     }
     private void DisposePage()

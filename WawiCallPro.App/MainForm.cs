@@ -78,11 +78,14 @@ public partial class MainForm : RibbonForm
         statusItem.Caption = app.ProductLine + " · " + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
         _operation = new PageOperation(this, connectionLabel);
         BindTelephony();
+        UpdateBusinessActions();
         UpdateDatabaseActions();
         _state?.Restore(this);
         _state?.Restore(dockManager);
         Navigate("home");
-        AppendOutput("Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert.");
+        AppendOutput(_workspace?.CanUseBusinessDirectory == true
+            ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."
+            : "Anwendung gestartet. Lexware-abhängige Cacheaktualisierung ist gesperrt.");
     }
 
     internal void Navigate(string id)
@@ -222,6 +225,7 @@ public partial class MainForm : RibbonForm
     internal FrmCallerLookup CreateCallerDialog() => _workspace is null ? new FrmCallerLookup() : new FrmCallerLookup(_workspace, _state);
     private void OpenCallerLookup()
     {
+        if (_workspace?.CanUseBusinessDirectory != true) { UpdateBusinessActions(); return; }
         if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId is null && !form.IsDisposed) is { } existing)
         {
             if (existing.WindowState == FormWindowState.Minimized) existing.WindowState = FormWindowState.Normal;
@@ -279,6 +283,11 @@ public partial class MainForm : RibbonForm
         UpdateDatabaseActions();
         statusItem.Caption = (_application?.ProductLine ?? _workspace?.Application.ProductLine ?? "") + " · "
             + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
+        UpdateBusinessActions();
+    }
+    private void UpdateBusinessActions()
+    {
+        callerItem.Enabled = dialItem.Enabled = _workspace?.CanUseBusinessDirectory == true;
     }
     private void ShowNavigation_Click(object sender, ItemClickEventArgs e) => navigationDock.Show();
     private void ShowOutput_Click(object sender, ItemClickEventArgs e) => outputDock.Show();

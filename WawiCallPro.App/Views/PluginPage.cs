@@ -27,6 +27,7 @@ public partial class PluginPage : XtraUserControl
         statusLabel.Update();
     }
     private readonly HtmlTemplate _activeCard = new();
+    private readonly HtmlTemplate _unavailableCard = new();
     private static readonly Lazy<SvgImage> PluginIcon = new(() => LoadIcon("Plugin"));
     private static readonly Lazy<SvgImage> DummyIcon = new(() => LoadIcon("Settings"));
     public PluginPage()
@@ -34,6 +35,7 @@ public partial class PluginPage : XtraUserControl
         InitializeComponent();
         UiButtonSizing.Attach(this);
         _activeCard.Template = CardResource("PluginCard.ActiveTemplate");
+        _unavailableCard.Template = CardResource("PluginCard.UnavailableTemplate");
         ApplyCardStyle();
         var appearance = LookAndFeel;
         appearance.StyleChanged += Appearance_Changed;
@@ -67,7 +69,7 @@ public partial class PluginPage : XtraUserControl
             .Replace("@badge", ColorTranslator.ToHtml(Blend(surface, accent, 0.12)))
             .Replace("@success", surface.GetBrightness() < 0.5F ? "#7AD28F" : "#247A40")
             .Replace("@accent", ColorTranslator.ToHtml(accent));
-        catalogView.HtmlTemplate.Styles = _activeCard.Styles = css;
+        catalogView.HtmlTemplate.Styles = _activeCard.Styles = _unavailableCard.Styles = css;
         catalogView.EmptyViewHtmlTemplate.Styles = css;
     }
     private static Color Blend(Color first, Color second, double amount) => Color.FromArgb(
@@ -85,7 +87,8 @@ public partial class PluginPage : XtraUserControl
         if (_workspace?.Plugins is not IProductPluginSelection selection) { catalogGrid.DataSource = Array.Empty<PluginRow>(); return; }
         var focused = (catalogView.GetFocusedRow() as PluginRow)?.Id;
         catalogGrid.DataSource = selection.GetAvailablePlugins().Select(choice => new PluginRow(choice.Id, choice.DisplayName,
-            choice.Version, choice.Id == selection.ActivePluginId && _workspace.Plugins.IsLoaded)).ToArray();
+            choice.Version, choice.Id == selection.ActivePluginId && _workspace.Plugins.IsLoaded,
+            _workspace.Plugins is not IProductPluginAvailability availability || availability.CanActivate(choice.Id))).ToArray();
         catalogView.PopulateColumns();
         if (catalogGrid.DataSource is PluginRow[] rows)
         {
@@ -99,23 +102,24 @@ public partial class PluginPage : XtraUserControl
     private void UpdateActivation()
     {
         var row = catalogView.GetFocusedRow() as PluginRow;
-        capabilitiesButton.Enabled = row?.IsActive == true && _operation?.IsRunning != true;
+        capabilitiesButton.Enabled = row is { IsActive: true, IsAvailable: true } && _operation?.IsRunning != true;
         if (detailsGroup.Visible && row is not null)
             pluginDetailLabel.Text = row.Name + " · Version " + row.RawVersion + "\n" + row.Description
                 + (row.IsActive ? "\nDie Fähigkeiten werden für die ausgewählten Cache-Mandanten geprüft." : "\nZum Prüfen der Fähigkeiten dieses Plugin zuerst aktivieren.");
     }
-    private sealed record PluginRow(string Id, string Name, string RawVersion, bool IsActive)
+    private sealed record PluginRow(string Id, string Name, string RawVersion, bool IsActive, bool IsAvailable)
     {
         public string Plugin => WebUtility.HtmlEncode(Name);
         public string Version => WebUtility.HtmlEncode("Version " + RawVersion);
-        public string Status => IsActive ? "Aktiv" : IsDummy ? "Testbetrieb" : "Verfügbar";
+        public string Status => !IsAvailable ? "Lexware nicht verfügbar" : IsActive ? "Aktiv" : IsDummy ? "Testbetrieb" : "Verfügbar";
         private bool IsDummy => Id.Contains("Dummy", StringComparison.OrdinalIgnoreCase);
         public string Description => IsDummy ? "Mit Beispieldaten testen – ohne Zugriff auf eine Warenwirtschaft." : "Kunden, Lieferanten und Mandanten aus der Warenwirtschaft verwenden.";
         public SvgImage Icon => IsDummy ? DummyIcon.Value : PluginIcon.Value;
     }
     private void Catalog_QueryItemTemplate(object sender, QueryItemTemplateEventArgs e)
     {
-        if (e.Row is PluginRow { IsActive: true }) e.Template = _activeCard;
+        if (e.Row is PluginRow { IsAvailable: false }) e.Template = _unavailableCard;
+        else if (e.Row is PluginRow { IsActive: true }) e.Template = _activeCard;
     }
     private void CatalogBack_Click(object? sender, EventArgs e) => pluginTabs.SelectedTabPage = installedTab;
     private void DetailsGroup_SizeChanged(object? sender, EventArgs e) => detailsScroll.AutoScrollMinSize = new Size(0, detailsGroup.Height);
@@ -145,7 +149,7 @@ public partial class PluginPage : XtraUserControl
     }
     private async Task ActivateRowAsync(PluginRow row)
     {
-        if (_operation is null || _activate is null) return;
+        if (_operation is null || _activate is null || !row.IsAvailable) return;
         await _operation.RunAsync(async token =>
         {
             _switching = true;
@@ -191,13 +195,14 @@ public partial class PluginPage : XtraUserControl
     private async Task UpdateStatusAsync(CancellationToken token)
     {
         if (_workspace?.Plugins.IsLoaded != true) { detailsLabel.Text = "Kein Plugin aktiv. Bitte einen Listeneintrag aktivieren."; return; }
+        if (!_workspace.CanUseBusinessDirectory) { statusLabel.Text = "Lexware-Funktionen sind gesperrt. Details stehen im Log-Fenster."; return; }
         var plugin = await _workspace.GetPluginAsync(token);
         detailsLabel.Text = $"Aktiv: {plugin.Name}";
         statusLabel.Text = "Plugins verwalten Sie hier. Fachansichten gehören zum Arbeitsbereich des aktiven Plugins.";
     }
     private async void Capabilities_Click(object? sender, EventArgs e)
     {
-        if (_operation is null || catalogView.GetFocusedRow() is not PluginRow { IsActive: true }) return;
+        if (_operation is null || catalogView.GetFocusedRow() is not PluginRow { IsActive: true, IsAvailable: true }) return;
         await _operation.RunAsync(async token =>
         {
             var settings = await _workspace!.Settings.LoadAsync(token);

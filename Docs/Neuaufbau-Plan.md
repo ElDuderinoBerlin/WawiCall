@@ -1355,6 +1355,29 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt ⬜
 
+- [x] ✅ Lexware-Installationsprüfung im Anwendungscode umgesetzt: injizierter Registry-Adapter verwendet
+  `LexwareRegistry.IsInstalled()` und `PcfkRegistry.IsInstalled()` unabhängig von der Ausgabe. Beide
+  Ergebnisse werden separat erfasst; Pro oder FinOffice genügt, jeder Prüfungsfehler hält die Sperre aufrecht.
+  Die beiden reinen Core-Bibliotheken stehen beiden Hosts zur Verfügung; die gewählte Plugin-Produktlinie
+  und deren technische Datenzugriffe werden dadurch nicht gewechselt. Die Registry-Merkmale belegen
+  ausdrücklich keine vollständige oder funktionsfähige Installation.
+  Pluginstart und Katalogaktualisierung prüfen den Zustand; Wechsel auf Lexware und jeder Runtime-
+  Quellaufruf prüfen unmittelbar vor Ausführung erneut. Fehlgeschlagene Wechsel erhalten eine aktive
+  Dummy-Sitzung. Ohne Lexware bleiben Dummy, lokale Historie/Datenbank und SIP-Kontoverwaltung verfügbar.
+  Im Hauptfenster sind die quellenabhängigen Anruf-/Zuordnungsaktionen gesperrt; im Einstellungsdialog
+  Telefon-Cache und Lexware-Fähigkeiten. Nicht verfügbare Plugin-Karten bieten keine Aktivieren-Aktion.
+  Fehlende Installation und Prüfungsfehler erzeugen eigene sichere Warnereignisse im vorhandenen
+  Log-Fenster, auch vor dessen Erstellung. Unveränderte Fehlerzustände fluten das Log nicht mit Wiederholungen;
+  Registry-Ausnahmeinhalte werden nicht ausgegeben. Katalogaktualisierung erkennt eine spätere Installation.
+  Nachweise: Beide Solution-Editionen samt App/Console in aktiver Debug-/Any-CPU-Konfiguration gebaut;
+  je 159 Utilities-, acht gezielte App- und 25 Console-Prüfungen bestanden. Test-Doubles prüfen keine,
+  nur Pro, nur FinOffice, beide Installationen sowie Fehler beider Prüfungen; direkte Runtime-/Verzeichnis-
+  Aufrufe, Dummy-Erhalt, erneute Freigabe und unveränderte Produktlinie sind nachgewiesen.
+  Betroffene Ansichten mit fehlender Installation/Prüffehler, kleinen Fenstern, 8/10/16 pt,
+  125%-Layoutsimulation, Basic/Blue Dark und dunklem Skin unsichtbar gerendert und visuell geprüft.
+  Nachweise `.lexware-install-*.log` und `.artifacts/lexware-installation`. Keine Produktionsdaten,
+  Registry-Änderungen, Migrationen oder sichtbare Desktopbedienung; FinOffice bleibt lokale Startausgabe.
+
 - [x] ✅ Runden Splash-Blur wie in LxTranslate wiederhergestellt: im gleichen
   PulsingProgressBarControl seitlich je 36 logische Pixel Abstand und 88 Pixel Zeichenhöhe
   für den vollständig auslaufenden Lichtschein. Die vorherigen Nullabstände schnitten

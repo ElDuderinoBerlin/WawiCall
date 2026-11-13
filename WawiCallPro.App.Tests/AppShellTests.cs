@@ -33,12 +33,87 @@ using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Security;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Tests;
 
 [TestClass, DoNotParallelize]
 public sealed class AppShellTests
 {
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task MissingLexwareWarnsInLogAndDisablesSourceActionsWhileDummyAndLocalToolsRemainAvailable(bool checkFails) => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var runtime = (TestRuntime)workspace.Plugins;
+        runtime.BusinessAvailable = false;
+        var logs = new LogWindowService();
+        using var loggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new UiLogProvider(logs)));
+        var installation = new LexwareInstallation(new MissingRegistry(checkFails), loggerFactory.CreateLogger<LexwareInstallation>());
+        installation.Check(); // The warning predates creation/binding of the main log view.
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var oldPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var output = Path.GetFullPath(".artifacts/lexware-installation"); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var (width, fontSize, skin, palette, scale) in new[] { (1100, 10F, "Basic", "", 1F),
+                (900, 8F, "Basic", "Blue Dark", 1.25F), (1100, 16F, "Office 2019 Black", "", 1F) })
+            {
+                if (palette.Length == 0) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, palette);
+                using var font = new Font("Tahoma", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                // Refill the startup queue for each independent form.
+                WawiCallPro.Utilities.Operations.OperationEvents.Write(loggerFactory.CreateLogger("test"), checkFails
+                    ? WawiCallPro.Utilities.Operations.OperationEvent.LexwareCheckFailed : WawiCallPro.Utilities.Operations.OperationEvent.LexwareMissing);
+                using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>(), logs);
+                form.PrepareForBackgroundRun(); form.Font = font; form.ClientSize = new(width, 760); form.Show();
+                Assert.IsFalse(Field<DevExpress.XtraBars.BarButtonItem>(form, "callerItem").Enabled);
+                Assert.IsFalse(Field<DevExpress.XtraBars.BarButtonItem>(form, "dialItem").Enabled);
+                Assert.IsTrue(Field<DevExpress.XtraBars.BarButtonItem>(form, "historyItem").Enabled);
+                Assert.IsTrue(Field<DevExpress.XtraBars.BarButtonItem>(form, "databaseStatusItem").Enabled);
+                form.Navigate("caller");
+                Assert.IsEmpty(form.OwnedForms.OfType<FrmCallerLookup>());
+                var log = Field<LogPanel>(form, "logPanel"); log.Drain();
+                var entries = Field<ListBoxControl>(log, "listLog").Items.Cast<object>().Select(item => item.ToString()!).ToArray();
+                Assert.IsTrue(entries.Any(text => text.Contains("Warnung:") && text.Contains("Lexware")));
+                Assert.IsFalse(entries.Any(text => text.Contains("synthetic-sensitive-value")));
+                using var settings = form.CreateSettingsDialog(true); settings.PrepareForBackgroundRun(); settings.Font = font;
+                settings.Show(form); settings.MinimumSize = Size.Empty; settings.ClientSize = new(Math.Min(width, 980), 700);
+                await Field<SettingsPage>(settings, "settingsPage").ReloadAsync();
+                var page = Field<SettingsPage>(settings, "settingsPage");
+                Assert.IsFalse(Field<XtraTabPage>(page, "cacheTab").PageEnabled);
+                Assert.IsTrue(Field<XtraTabPage>(page, "sipTab").PageEnabled);
+                var plugins = Field<PluginPage>(page, "pluginPage");
+                Assert.IsFalse(Field<SimpleButton>(plugins, "capabilitiesButton").Enabled);
+                var view = Field<DevExpress.XtraGrid.Views.Items.ItemsView>(plugins, "catalogView");
+                var blocked = view.GetRow(0)!;
+                Assert.AreEqual(false, blocked.GetType().GetProperty("IsAvailable")!.GetValue(blocked));
+                var dummy = view.GetRow(1)!;
+                Assert.AreEqual(true, dummy.GetType().GetProperty("IsAvailable")!.GetValue(dummy));
+                if (scale != 1F) { form.Scale(new SizeF(scale, scale)); settings.Scale(new SizeF(scale, scale)); }
+                form.PerformLayout(); settings.PerformLayout(); Application.DoEvents();
+                using (var shot = UiAudit.Capture(form)) shot.Save(Path.Combine(output, $"log-{checkFails}-{fontSize}-{skin}.png"), ImageFormat.Png);
+                using (var shot = UiAudit.Capture(settings)) shot.Save(Path.Combine(output, $"plugins-{checkFails}-{fontSize}-{skin}.png"), ImageFormat.Png);
+                CheckTableBounds(page);
+                await settings.StopAsync(); await form.PrepareToCloseAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance;
+            if (string.IsNullOrEmpty(oldPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin, oldPalette);
+        }
+    });
+
+    private sealed class MissingRegistry(bool fails) : ILexwareRegistryProbe
+    {
+        public bool IsProInstalled() => fails ? throw new IOException("synthetic-sensitive-value") : false;
+        public bool IsFinOfficeInstalled() => false;
+    }
+
     [TestMethod]
     public Task DialRibbonReusesItsDialogAndSipStatusUpdatesDuringDatabaseWork() => WithWorkspace(async (workspace, services, plugin) =>
     {
@@ -2413,8 +2488,11 @@ public sealed class AppShellTests
         }], false)));
         public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default) => ReadParty?.Invoke(key, cancellationToken) ?? Task.FromResult<Party?>(new() { Key = key, DisplayName = "Aktuelle Stammdaten", Number = "100" });
     }
-    private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime, IProductPluginSelection
+    private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime, IProductPluginSelection, IProductPluginAvailability
     {
+        internal bool BusinessAvailable = true;
+        public bool CanUseActivePlugin => BusinessAvailable || ActivePluginId == "Test.Dummy";
+        public bool CanActivate(string id) => BusinessAvailable || id == "Test.Dummy";
         internal bool HasCatalog = true;
         public bool IsLoaded => true;
         public string? ActivePluginId { get; private set; } = "Test.Lexware";

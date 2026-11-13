@@ -54,6 +54,7 @@ public partial class MainForm
     private async Task OpenCallLookupAsync(CallDetailsPage page, bool incoming)
     {
         if (page.IsDisposed || _closing) return;
+        if (_workspace?.CanUseBusinessDirectory != true) return;
         if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { } existing)
         { if (!incoming) { existing.Show(); if (!_backgroundRun) existing.Activate(); } return; }
         var lookup = CreateCallerDialog();

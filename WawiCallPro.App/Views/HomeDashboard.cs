@@ -52,6 +52,7 @@ public partial class HomeDashboard : XtraUserControl
             _ => "Nicht an der Telefonanlage angemeldet."
         };
         pluginValue.Text = _workspace?.Plugins.IsLoaded == true ? "Plugin geladen" : "Kein Plugin geladen";
+        if (_workspace?.Plugins.IsLoaded == true && !_workspace.CanUseBusinessDirectory) pluginValue.Text = "Lexware nicht verfügbar";
         var selection = _workspace?.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection;
         pluginDetail.Text = selection?.GetAvailablePlugins().FirstOrDefault(plugin => plugin.Id == selection.ActivePluginId)?.DisplayName
             ?? "Plugin in den Einstellungen auswählen.";

@@ -18,6 +18,9 @@
   <data name="PluginCard.ActiveTemplate" xml:space="preserve">
     <value>&lt;div class="card active"&gt;&lt;div class="heading"&gt;&lt;img class="icon" src="${Icon}"&gt;&lt;div class="identity"&gt;&lt;div class="name"&gt;${Plugin}&lt;/div&gt;&lt;div class="version"&gt;${Version}&lt;/div&gt;&lt;/div&gt;&lt;div class="badge"&gt;${Status}&lt;/div&gt;&lt;/div&gt;&lt;div class="description"&gt;${Description}&lt;/div&gt;&lt;div class="commands"&gt;&lt;div id="details" class="details"&gt;Details anzeigen&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</value>
   </data>
+  <data name="PluginCard.UnavailableTemplate" xml:space="preserve">
+    <value>&lt;div class="card"&gt;&lt;div class="heading"&gt;&lt;img class="icon" src="${Icon}"&gt;&lt;div class="identity"&gt;&lt;div class="name"&gt;${Plugin}&lt;/div&gt;&lt;div class="version"&gt;${Version}&lt;/div&gt;&lt;/div&gt;&lt;div class="badge"&gt;${Status}&lt;/div&gt;&lt;/div&gt;&lt;div class="description"&gt;Lexware wurde nicht erkannt oder die Prüfung ist fehlgeschlagen. Details stehen im Log-Fenster.&lt;/div&gt;&lt;div class="commands"&gt;&lt;div id="details" class="details"&gt;Details anzeigen&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;</value>
+  </data>
   <data name="PluginCard.Styles" xml:space="preserve">
     <value>.card { margin: 6px; padding: 14px; border: 1px solid @border; border-radius: 8px; background-color: @surface; color: @text; }
 .card.active { border-left: 4px solid @success; }

@@ -9,6 +9,7 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Parties;
 using System.Collections.Immutable;
 using WawiCallPro.Utilities.Persistence;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace WawiCallPro.Utilities.Plugins;
 
@@ -19,7 +20,8 @@ public sealed class ProductPluginRuntime(
     IPluginSessionFactory sessions,
     ProductPluginLocation location,
     ApplicationConfigurationService? configuration = null,
-    PhoneSearchChanges? phoneSearchChanges = null) : IProductPluginRuntime, IProductPluginSelection, IHostedService, IAsyncDisposable
+    PhoneSearchChanges? phoneSearchChanges = null,
+    ILexwareInstallation? installation = null) : IProductPluginRuntime, IProductPluginSelection, IProductPluginAvailability, IHostedService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1);
     private readonly CancellationTokenSource _stopping = new();
@@ -28,9 +30,19 @@ public sealed class ProductPluginRuntime(
     private CancellationTokenSource _sessionStopping = new();
     private bool _releaseFailed;
     public string? ActivePluginId { get; private set; }
+    private static bool RequiresLexware(string? id) => id is "WawiCallPro.Plugins.Lexware.Pro" or "WawiCallPro.Plugins.Lexware.FinOffice";
+    public bool CanActivate(string pluginId) => !RequiresLexware(pluginId) || installation?.Current.IsAvailable == true;
+    public bool CanUseActivePlugin => IsLoaded && ActivePluginId is not null && CanActivate(ActivePluginId);
+    private void EnsureAvailable(string? pluginId)
+    {
+        if (!RequiresLexware(pluginId)) return;
+        if (installation is null) throw new LexwareUnavailableException();
+        installation.EnsureAvailable();
+    }
 
     public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins()
     {
+        installation?.Check();
         if (!Directory.Exists(location.Directory)) return [];
         return Directory.EnumerateDirectories(location.Directory).Select(directory =>
         {
@@ -53,6 +65,7 @@ public sealed class ProductPluginRuntime(
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (!_startCalled || _stopping.IsCancellationRequested || _releaseFailed) throw new PluginRuntimeException();
+            EnsureAvailable(choice.Id);
             if (_loaded && ActivePluginId == choice.Id) return;
             _loaded = false;
             phoneSearchChanges?.PluginChanged();
@@ -110,6 +123,7 @@ public sealed class ProductPluginRuntime(
             if (_startCalled || _stopping.IsCancellationRequested)
                 throw new InvalidOperationException("Die Warenwirtschaftspluginlaufzeit wurde bereits gestartet oder beendet.");
             _startCalled = true;
+            installation?.Check();
             _session = sessions.CreateTrusted();
             try
             {
@@ -147,6 +161,7 @@ public sealed class ProductPluginRuntime(
         {
             if (!_loaded || !ReferenceEquals(sessionLifetime, _sessionStopping)) throw new PluginRuntimeException();
             linked.Token.ThrowIfCancellationRequested();
+            EnsureAvailable(ActivePluginId);
             var result = await operation(_session!.GetPlugins().Single(), linked.Token).ConfigureAwait(false);
             if (result is IPluginLifetimeResource resource) _resources.Add(resource);
             // A switch invalidates results immediately, even before linked cancellation callbacks run.
@@ -183,6 +198,8 @@ public static class ProductPluginServices
 {
     public static void AddProductPluginRuntime(this IServiceCollection services)
     {
+        services.TryAddSingleton<ILexwareRegistryProbe, LexwareRegistryProbe>();
+        services.TryAddSingleton<ILexwareInstallation, LexwareInstallation>();
         services.AddSingleton(new ProductPluginLocation(Path.Combine(AppContext.BaseDirectory, "plugins")));
         services.AddSingleton<ProductPluginRuntime>();
         services.AddSingleton<IProductPluginRuntime>(provider => provider.GetRequiredService<ProductPluginRuntime>());

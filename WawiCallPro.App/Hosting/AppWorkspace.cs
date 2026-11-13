@@ -53,6 +53,7 @@ public sealed class AppWorkspace(
     public IDatabaseSetupService DatabaseSetup { get; } = databaseSetup;
     public IBusinessDirectory Directory { get; } = directory;
     public IProductPluginRuntime Plugins { get; } = plugins;
+    public bool CanUseBusinessDirectory => Plugins.IsLoaded && (Plugins is not IProductPluginAvailability availability || availability.CanUseActivePlugin);
     public CompanyContext Companies { get; } = companies;
     public ICallHistoryService History { get; } = history;
     public ApplicationPaths Paths { get; } = paths;

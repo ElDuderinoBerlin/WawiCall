@@ -12,6 +12,8 @@
     <EmbeddedResource Include="$(WawiLicensePublicKeysFile)" LogicalName="WawiCallPro.LicensePublicKeys" />
     <ProjectReference Include="..\..\Quantarix.License.System\Quantarix.License.Client\Quantarix.License.Client.csproj" />
     <ProjectReference Include="..\..\Quantarix.Core\Quantarix.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Pcfk.Core\Quantarix.Pcfk.Core.csproj" />
     <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\Quantarix.Plugin.Hosting.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
     <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />

@@ -61,6 +61,8 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.CancellationRequested => "Abbruch angefordert.",
                 OperationEvent.ShutdownDeadlineExceeded => "Das Beenden dauert länger als vorgesehen.",
                 OperationEvent.PluginMessage => "Meldung aus der Plugin-Laufzeit.",
+                OperationEvent.LexwareMissing => "Lexware Pro und Financial Office wurden nicht erkannt. Lexware-abhängige Funktionen sind deaktiviert.",
+                OperationEvent.LexwareCheckFailed => "Die Lexware-Installationsprüfung ist fehlgeschlagen. Lexware-abhängige Funktionen bleiben gesperrt.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);

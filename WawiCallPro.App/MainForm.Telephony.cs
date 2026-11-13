@@ -15,6 +15,7 @@ public partial class MainForm
     private void Dial_Click(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
     {
         if (_closing) return;
+        if (_workspace?.CanUseBusinessDirectory != true) { UpdateBusinessActions(); return; }
         if (OwnedForms.OfType<FrmDial>().FirstOrDefault(dialog => !dialog.IsDisposed) is { } existing)
         { existing.Show(); if (!_backgroundRun) existing.Activate(); return; }
         var dial = CreateDialDialog();
