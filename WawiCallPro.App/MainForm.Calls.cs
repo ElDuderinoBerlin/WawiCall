@@ -9,6 +9,7 @@ namespace WawiCallPro.App;
 public partial class MainForm
 {
     private readonly Dictionary<Guid, (BaseDocument Document, CallDetailsPage Page)> _callPages = [];
+    private readonly HashSet<Guid> _callNotificationsHandled = [];
     private readonly List<Task> _callUpdates = [];
     private Task _pendingCallUpdates = Task.CompletedTask;
     internal Task PendingCallUpdates => _pendingCallUpdates;
@@ -36,6 +37,7 @@ public partial class MainForm
                 lookup.ObserveCall(existing.Page.Call);
                 if (existing.Page.Call.State is CallState.Ended or CallState.Failed) await lookup.Page.EndCallAsync();
             }
+            await ShowCallNotificationAsync(existing.Page);
             return;
         }
         if (call.State is CallState.Ended or CallState.Failed) return;
@@ -58,14 +60,35 @@ public partial class MainForm
     {
         if (page.IsDisposed || _closing) return;
         if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { } existing)
-        { if (!incoming) { existing.Show(); if (!_backgroundRun) existing.Activate(); } return; }
+        {
+            if (!incoming) { _callNotificationsHandled.Add(page.Call.Id); existing.Show(); if (!_backgroundRun) existing.Activate(); }
+            return;
+        }
         var lookup = CreateCallerDialog();
         lookup.BindCall(page.Call, page.AcceptAsync);
         lookup.BindNotes(page.Notes);
         if (_backgroundRun) lookup.PrepareForBackgroundRun();
-        if (incoming) lookup.ShowForIncoming(this); else lookup.Show(this);
+        // Retain lookup/selection work for every call, even when automatic windows are disabled.
+        // Ownership also keeps the hidden window in the normal close/cancellation lifecycle.
+        lookup.Owner = this;
+        if (incoming) await ShowCallNotificationAsync(page);
+        else { _callNotificationsHandled.Add(page.Call.Id); lookup.Show(this); }
         await lookup.Page.SearchAsync();
         await page.Notes.LoadAsync();
+    }
+    private async Task ShowCallNotificationAsync(CallDetailsPage page)
+    {
+        if (_closing || page.IsDisposed || page.Call.Direction != CallDirection.Incoming || page.Call.State != CallState.Ringing
+            || !_callNotificationsHandled.Add(page.Call.Id)) return;
+        try
+        {
+            var settings = await _workspace!.Settings.LoadAsync(_telephonyUiLifetime.Token);
+            if (!settings.Options.User.ShowCallNotifications || _closing || page.IsDisposed || page.Call.State != CallState.Ringing) return;
+            if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { Visible: false } lookup)
+                lookup.ShowForIncoming(this);
+        }
+        catch (OperationCanceledException) when (_closing || IsDisposed) { }
+        catch (Exception exception) { if (!_closing && !IsDisposed) connectionLabel.Text = PageOperation.Describe(exception); }
     }
     internal void EnsureViewsCanClose()
     {

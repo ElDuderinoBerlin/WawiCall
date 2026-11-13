@@ -41,6 +41,102 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task CallNotificationsRespectSavedPreferenceOncePerIncomingCallWithoutSuppressingMatching(bool enabled) => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ShowCallNotifications = enabled } }, snapshot);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents(); var original = form.GetActiveDocumentView();
+        var call = await CreateWorkspaceCallAsync(services); await form.ObserveCallAsync(call);
+        var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single(); Assert.IsFalse(lookup.Visible, "Created is not a ringing notification.");
+        Assert.IsNotNull(lookup.Page.Decision); Assert.IsNotNull((await workspace.History.GetCallAsync(call.Id))!.Lookup);
+        var shown = 0; lookup.VisibleChanged += (_, _) => { if (lookup.Visible) shown++; };
+        var ringing = call with { Revision = call.Revision + 1, State = CallState.Ringing };
+        await form.ObserveCallAsync(ringing);
+        Assert.AreEqual(enabled, lookup.Visible); Assert.AreEqual(enabled ? 1 : 0, shown);
+        await form.ObserveCallAsync(ringing with { Revision = ringing.Revision + 1 });
+        Assert.AreEqual(enabled ? 1 : 0, shown); Assert.AreSame(original, form.GetActiveDocumentView());
+        var page = Field<Dictionary<Guid, (DevExpress.XtraBars.Docking2010.Views.BaseDocument Document, CallDetailsPage Page)>>(form, "_callPages")[call.Id].Page;
+        if (!enabled)
+        {
+            await (Task)typeof(MainForm).GetMethod("OpenCallLookupAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [page, false])!;
+            Assert.IsTrue(lookup.Visible); Assert.AreEqual(1, shown, "Explicit opening remains available.");
+        }
+        page.Notes.SetDraft("Notiz unabhängig von der Benachrichtigung"); await page.Notes.SaveAsync();
+        Assert.HasCount(1, (await workspace.History.GetCallAsync(call.Id))!.Notes);
+        lookup.Close(); await WaitForDialStateAsync(() => lookup.IsDisposed);
+        await form.ObserveCallAsync(ringing with { Revision = ringing.Revision + 2 });
+        Assert.IsEmpty(form.OwnedForms.OfType<FrmCallerLookup>(), "Later ringing events must not reopen a dismissed notification.");
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallNotificationsUseNewlySavedSettingsOnlyForTheNextCall() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ShowCallNotifications = false } }, snapshot);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var first = (await CreateWorkspaceCallAsync(services)) with { Revision = 1, State = CallState.Ringing }; await form.ObserveCallAsync(first);
+        Assert.IsFalse(form.OwnedForms.OfType<FrmCallerLookup>().Single().Visible);
+        using var settings = form.CreateSettingsDialog(); settings.PrepareForBackgroundRun(); settings.Show(form);
+        var editor = Field<SettingsPage>(settings, "settingsPage"); await editor.ReloadAsync();
+        Field<CheckEdit>(editor, "notificationsEdit").Checked = true; await editor.SaveAsync(CancellationToken.None);
+        await form.ObserveCallAsync(first with { Revision = 2 });
+        Assert.IsFalse(form.OwnedForms.OfType<FrmCallerLookup>().Single().Visible, "Saving must not retroactively notify the old call.");
+        var second = (await CreateWorkspaceCallAsync(services)) with { Revision = 1, State = CallState.Ringing }; await form.ObserveCallAsync(second);
+        Assert.IsTrue(form.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == second.Id).Visible);
+        Field<CheckEdit>(editor, "notificationsEdit").Checked = false; await editor.SaveAsync(CancellationToken.None);
+        Assert.IsTrue(workspace.Configuration.Current.Options.User.ShowCallNotifications, "The startup snapshot must not be replaced to apply this preference.");
+        var third = (await CreateWorkspaceCallAsync(services)) with { Revision = 1, State = CallState.Ringing }; await form.ObserveCallAsync(third);
+        Assert.IsFalse(form.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == third.Id).Visible);
+        await settings.StopAsync(); await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallNotificationsDoNotOpenForOutgoingOrAlreadyConnectedCallsAndIgnoreLateRingingEvents() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        foreach (var (direction, state) in new[] { (CallDirection.Outgoing, CallState.Dialing), (CallDirection.Outgoing, CallState.Ringing),
+            (CallDirection.Outgoing, CallState.Connected), (CallDirection.Incoming, CallState.Connected), (CallDirection.Incoming, CallState.Held) })
+        {
+            var call = await services.GetRequiredService<ICallJournal>().BeginAsync(CommandCall() with { Direction = direction, State = CallState.Created, Revision = 0 });
+            await form.ObserveCallAsync(call with { Revision = 2, State = state });
+            var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == call.Id);
+            Assert.IsFalse(lookup.Visible, direction + "/" + state);
+            await form.ObserveCallAsync(call with { Revision = 1, State = CallState.Ringing }); Assert.IsFalse(lookup.Visible);
+            await form.ObserveCallAsync(call with { Revision = 3, State = CallState.Ended });
+            await form.ObserveCallAsync(call with { Revision = 4, State = CallState.Ringing }); Assert.IsFalse(lookup.Visible);
+        }
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
+    public Task CallNotificationsKeepHiddenLookupOwnedAndShutdownAwaitsItsPendingSource() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ShowCallNotifications = false } }, snapshot);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ((TestDirectory)workspace.Directory).ReadCatalog = async _ => { entered.TrySetResult(); await release.Task; return []; };
+        var call = await CreateWorkspaceCallAsync(services);
+        var pending = form.ObserveCallAsync(call with { Revision = 1, State = CallState.Ringing }); await entered.Task;
+        var hidden = form.OwnedForms.OfType<FrmCallerLookup>().Single(); Assert.IsFalse(hidden.Visible);
+        var closing = form.PrepareToCloseAsync(); await Task.Delay(20); Assert.IsFalse(closing.IsCompleted);
+        release.SetResult(); await closing; await pending;
+        Assert.IsNull(hidden.Page.Decision); Assert.IsFalse(hidden.Visible);
+    });
+
+    [TestMethod]
     [DataRow(CallState.Created)]
     [DataRow(CallState.Dialing)]
     [DataRow(CallState.Ringing)]

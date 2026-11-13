@@ -164,6 +164,7 @@ partial class SettingsPage
         notificationsEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         notificationsEdit.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
         notificationsEdit.Text = "Anrufe als Benachrichtigung anzeigen";
+        notificationsEdit.ToolTip = "Das Anruferfenster bei eingehenden, klingelnden Anrufen einmal automatisch öffnen. Gespeicherte Änderungen gelten für den nächsten Anruf. Zuordnung und Historie bleiben auch ohne Benachrichtigung aktiv.";
         generalLayout.Controls.Add(notificationsEdit, 0, 0);
         generalLayout.SetColumnSpan(notificationsEdit, 2);
         minimizedEdit.Name = "minimizedEdit";

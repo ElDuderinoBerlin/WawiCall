@@ -1742,6 +1742,26 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Die Prüfung gilt am interaktiven Auftragseingang; sie ist keine atomare Sperre für erst während des
   anschließenden Shutdowns neu eintreffende Anrufe. Der vorhandene SIP-Shutdown bleibt dafür zuständig.
   Tray, globale Hotkeys, native Fokusprüfung und die vollständige Kernproduktabnahme bleiben offen.
+- [x] ✅ Teilpunkt Benachrichtigungsoption für eingehende Anrufe anbinden (13.11.2026):
+  Die vorhandene Einstellung `ShowCallNotifications` steuert das automatische Anruferfenster.
+  Nur ein eingehender, klingelnder Anruf öffnet es einmal; Created, ausgehende und bereits verbundene
+  beziehungsweise gehaltene Gespräche erzeugen kein automatisches Fenster. Doppelte/veraltete Ereignisse
+  und ein späteres Ereignis nach bewusstem Schließen öffnen die Benachrichtigung nicht erneut.
+  Gespeicherte Änderungen gelten beim ersten Klingeln des nächsten Anrufs, ohne die Startkonfiguration
+  für Telefonie, Geräte oder Rendering zu ersetzen. Bereits behandelte Anrufe werden nicht nachträglich
+  eingeblendet. Ein Tooltip erläutert die Option; explizites Öffnen bleibt unabhängig davon möglich.
+  Zuordnung, Gesprächsseite, Historie und Notizen laufen auch ohne automatische Anzeige weiter.
+  Das zunächst unsichtbare Anruferfenster bleibt im Besitz des Hauptfensters und wird bei dessen
+  Shutdown beziehungsweise beim Schließen der Gesprächsseite regulär abgebrochen und abgewartet.
+  Angezeigt wird über den vorhandenen passiven `ShowForIncoming`-Pfad; kein zusätzliches Activate/TopMost.
+  Nachweise: Je Edition 14 gezielte App-Prüfungen für beide Optionswerte, Created→Ringing,
+  Wiederholungen, bewusstes Schließen, explizites Öffnen, gespeicherte Änderungen zwischen Anrufen,
+  ausgehende/verbundene/gehaltene Gespräche, verspätete Ereignisse, fortgesetzte Zuordnung und Notizen
+  sowie Shutdown während eines nicht abbrechbaren Quellabrufs des unsichtbaren Fensters.
+  Bestehende Prüfungen für Gesprächs-/Firmenkontexte, Lexware-Sperren und aktive Gespräche enthalten.
+  Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert, FinOffice als Startausgabe
+  wiederhergestellt. Logs `.phase8-notifications-*.log`. Keine Layoutänderung oder sichtbare Desktopbedienung.
+  Native Vordergrund-/Trayprüfung, globale Hotkeys, Autostart und echte Kernproduktabnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
