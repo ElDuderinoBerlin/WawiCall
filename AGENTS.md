@@ -103,18 +103,21 @@ Bei späteren Synchronisationen diese lokalen Ergänzungen und vorhandene Benutz
 
 ### Lexware-Installationsprüfung
 
-- Alle Lexware-Tools müssen beim Start und vor Freigabe ihrer Lexware-Funktionen prüfen, ob die
-  benötigte unterstützte Produktlinie lokal installiert ist: Lexware Pro oder Financial Office (FinOffice).
-  Die Erkennung muss zur gewählten Tool-Edition passen; die jeweils andere Produktlinie genügt nicht.
-- Fehlt die passende Installation oder lässt sie sich nicht zuverlässig nachweisen, eine verständliche
-  Warnung mit der benötigten Produktlinie anzeigen. Alle davon abhängigen Funktionen deaktivieren,
-  einschließlich Menü-/Ribbonaktionen, automatischer Hintergrundabläufe und direkter Dienstaufrufe.
-  Lexware-unabhängige Funktionen bleiben nutzbar.
-- Vorhandene zentrale Installationsprüfungen wiederverwenden. Gespeicherte Verbindungsdaten oder eine
-  konfigurierte Produktlinie allein gelten nicht als Installationsnachweis.
-- Passende, ausschließlich andere und fehlende Installation sowie Fehler der Erkennung gezielt prüfen.
-  Fehlende Installation muss nachweislich Warnung und Funktionssperre auslösen; Prüfungen verwenden
-  isolierte Installations-/Registry-Doubles und verändern keine echte Lexware-Installation.
+- Alle Lexware-Tools prüfen beim Start und vor Freigabe ihrer Lexware-Funktionen beide Produktlinien
+  unabhängig von der Tool-Ausgabe: `LexwareRegistry.IsInstalled()` für Pro und
+  `PcfkRegistry.IsInstalled()` für Financial Office (FinOffice). Beide Prüfungen ausführen und die
+  Ergebnisse getrennt erfassen; `lexwareVorhanden = proInstalliert || finOfficeInstalliert`.
+- Diese Funktionen prüfen Registry-Merkmale. Ein positives Ergebnis belegt weder Vollständigkeit
+  noch Funktionsfähigkeit der Installation; gespeicherte Verbindungsdaten ersetzen die Prüfung nicht.
+- Ist keine der beiden Produktlinien vorhanden oder tritt bei einer Prüfung ein Fehler auf, eine
+  verständliche Warnung im vorhandenen Log-Fenster ausgeben und die Lexware-abhängigen Funktionen
+  gesperrt lassen. Das gilt für Menü-/Ribbonaktionen, automatische Hintergrundabläufe und direkte
+  Dienstaufrufe. Lexware-unabhängige Funktionen bleiben nutzbar.
+- Die Installationsvoraussetzung zusätzlich zu bestehenden Aktionsbedingungen prüfen und unmittelbar
+  vor Lexware-abhängigen Änderungen erneut durchsetzen. Zielpfade und Zugriffe bleiben an die gewählte
+  Produktlinie gebunden; die OR-Prüfung erlaubt keinen Wechsel auf die andere Produktlinie.
+- Keine Installation, nur Pro, nur FinOffice, beide Installationen und Prüfungsfehler mit isolierten
+  Test-Doubles prüfen. Warnung im Log-Fenster und wirksame Aufrufsperre nachweisen; echte Installationen erhalten.
 
 ### Startfenster, Splash und Vordergrundfokus
 
