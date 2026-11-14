@@ -569,12 +569,9 @@ darf deshalb keine fertige RTP-Zeitachse behauptet werden. Die Verbindung mit `I
 benötigt noch eine gemeinsame Medienzeitbasis, Reihenfolge-/Jitterbehandlung, gegebenenfalls Aufteilung
 größerer PCM-Blöcke und Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
 
-Zusätzlicher Quellbefund für diesen Folgeschritt: In der externen Methode
-`WindowsAudioEndPoint.LocalAudioSampleAvailable` wird `AlignedSize(read, sizeof(short))` als
-short-Arraylänge verwendet, während `BlockCopy` read Bytes kopiert. Die Einheit Byte gegenüber
-PCM-Frames separat mit synthetischen Daten nachweisen und im externen Projekt korrigieren; diese
-Änderung verändert die bisherige Telefonie nicht still mit. Aktuell wird genau der bestehende
-Codec-Eingang beobachtet, einschließlich dieses noch separat zu prüfenden Pufferverhaltens.
+Der dabei festgestellte externe Byte-/Sample-Befund wurde anschließend separat reproduziert und
+korrigiert; siehe den folgenden Capture-Teilpunkt. Der Beobachter erhält nun den korrigierten
+Codec-Eingang ohne die zuvor angehängten Nullsamples. Diese Korrektur ist keine RTP-Zeitachsenanbindung.
 
 20 neue isolierte Prüfungen in `WawiCallPro.Console.Tests/PcmObservationTests.cs`: echte PCMA-/
 PCMU-/G.722-Folgen mit unverändertem Codec-Ergebnis, tatsächliche PCM-Raten, Fehlerisolation,
@@ -587,6 +584,61 @@ Kein Nachweis des Hardware-Endpunktaufbaus, einer Aufnahmebedienung oder vollst�
 Rollback: passiven Beobachter, optionale Schnittstellen, Mediensitzungswrapper und zugehörige Tests
 zurücknehmen und den bisherigen direkten AudioEncoder-/AudioSession-Aufbau in der Factory herstellen.
 Keine Konfiguration, Migration, externe Bibliothek oder bisherige Aufnahmedatei wurde verändert.
+
+### Korrigierter CSCore-Capture-Byte-/Samplevertrag (15.11.2026)
+
+Der im passiven Abgriff dokumentierte Befund ist am tatsächlichen Capture-Callback reproduziert:
+`IWaveSource.Read` liefert Bytes, `AudioEncoder.EncodeAudio` erhält dagegen `short`-Samples.
+Die vorherige Ausrichtung der Byteanzahl auf zwei Byte und deren Verwendung als Arraylänge
+verdoppelte die PCM-Anzahl. Ein 20-ms-Monoblock mit 160 Samples/320 Bytes bei 8 kHz wurde dadurch
+als 320 Samples einschließlich Null-Nachlauf an den Codec übergeben und als 40 ms gemeldet.
+Bei G.722 betrifft dieselbe Verwechslung 320 Samples/640 Bytes bei 16 kHz.
+
+`SIPSorceryMedia.Windows.CSCore/src/WindowsAudioEndPoint.cs` verwendet nun `read / sizeof(short)`
+und prüft vollständige Samples/Kanalframes vor der Kodierung. Der bisherige Codec-Zustand,
+Pufferinhalt und Abtastratenvertrag bleiben erhalten; der künstliche Null-Nachlauf entfällt.
+Das ältere `OnAudioSourceEncodedSample`-Ereignis liefert RTP-Ticks aus der Framezahl pro Kanal
+und `RtpClockRate / ClockRate`, unabhängig von der Länge des Codec-Nutzdatenpakets. Das neuere
+`EncodedAudioFrame` bleibt bei Dauer in Millisekunden. Normale 20-ms-Blöcke liefern für PCMA/PCMU
+160 RTP-Ticks und für G.722 ebenfalls 160 RTP-Ticks bei 320 PCM-Samples. Jitter, Paketisierung und
+Rundung sehr kleiner Zeitabschnitte sind damit nicht als vollständige Medienzeitbasis abgenommen.
+
+Externer Commit `e2975604c0e8b76253ec0362ed345eea31d90095`, Branch `fix/capture-pcm-sample-count`;
+enger Patch [cscore-capture-pcm.patch](../scripts/patches/cscore-capture-pcm.patch).
+Die vorhandene externe csproj-Paketänderung ist weder zurückgesetzt noch Teil dieses Fix-Commits.
+Die Nachweise stammen aus der bestehenden Arbeitskopie mit dieser Paketänderung. Kein Push,
+kein Paketrelease und keine Versions-/Frameworkumstellung. `deps.json` enthält weiterhin keinen
+neuen CSCore-Eintrag; der Patch hält die benötigte Quellkorrektur im Verbraucherrepository fest.
+
+Auf einem passenden ungeänderten Ausgangsstand, etwa `118ae74`, zunächst nur prüfen und erst
+bei erfolgreicher Prüfung anwenden; auf einem bereits korrigierten Stand nicht erneut anwenden:
+
+```powershell
+git -C ../SIPSorceryMedia.Windows.CSCore apply --check ../WawiCallPro/scripts/patches/cscore-capture-pcm.patch
+git -C ../SIPSorceryMedia.Windows.CSCore apply ../WawiCallPro/scripts/patches/cscore-capture-pcm.patch
+```
+
+Der Patch wurde vorwärts mit `git apply --check` gegen eine isolierte Originalquellkopie und am
+korrigierten Arbeitsstand mit `git apply --reverse --check` geprüft. Rollback
+nur dieser Korrektur durch Zurücknehmen des externen Fix-Commits oder nach separater Prüfung durch
+Rückwärtsanwenden dieses Patches; fremde Änderungen und insbesondere das csproj erhalten.
+Anschließend beide WawiCallPro-Hosts in der aktiven Konfiguration neu bauen. Der Rollback stellt
+den bekannten Nullsample-/Dauerfehler wieder her; er ist kein empfohlener Betriebszustand.
+
+`WawiCallPro.Console.Tests/CscoreCaptureTests.cs` ruft den echten privaten Handler mit synthetischer
+PCM-Quelle und injizierten Codec-/Formatfeldern auf. Der Test erzeugt ausschließlich ein
+uninitialisiertes Testobjekt und führt den normalen Konstruktor nicht aus, da dieser selbst mit
+deaktiviertem Source/Sink die Windows-Standardgeräte auflöst. Keine Hardwarefreigabe oder andere
+Instanzmethoden auf diesem Testobjekt aufrufen. Bei geänderter privater Struktur muss der eng
+begrenzte Testadapter geprüft werden; es wird kein öffentlicher Produktions-Testzugang eingeführt.
+
+Neun Prüfungen schlugen vor dem Fix fehl, danach bestehen 15 Captureprüfungen: Sampleinhalt und
+Anzahl, mehrere Reads, Stereo-Framearithmetik mit Fake-Codec, unvollständige Samples/Kanalframes,
+leere Reads, ältere RTP-Dauer und drei echte PCMA-/PCMU-/G.722-Codecfolgen. Der korrigierte
+G.722-Capturepfad speist außerdem den tatsächlichen passiven Wawi-PCM-Beobachter mit 320 Samples
+bei 16 kHz. Beide externen Target-Frameworks werden mitgebaut; Runtime-Nachweis über den .NET-11-
+Wawi-Testhost. Keine gesonderte .NET-9-Runtime- oder Hardwareabnahme. Konkrete Build-/Testläufe in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 
 ### Implementierte PCM-Aufnahmesitzung (14.11.2026)
 

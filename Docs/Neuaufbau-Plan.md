@@ -6,8 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt umgesetzt: passiver PCM-Abgriff am produktiven SIPSorcery-Codec des CSCore-Endpunkts,
-mit beobachtbaren Verbraucherfehlern und abgewarteter Abmeldung (Phase 9, Teilpunkt vom 15.11.2026).
+Zuletzt behoben: Byte-/Sample-Verwechslung im externen CSCore-Sendepuffer und falsche Einheit
+des älteren RTP-Dauerereignisses (Phase 9, Teilpunkt vom 15.11.2026). Der Fehler ist am echten
+Capture-Callback ohne Audiogeräte reproduziert und korrigiert; Patch und Regressionstests sind versioniert.
 PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind separat geprüft; ihre Verbindung mit
 einer geprüften SIP-Medienzeitbasis bleibt offen.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
@@ -321,7 +322,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Passiver PCM-Abgriff am CSCore-/SIPSorcery-Codec, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Korrigierte CSCore-Capture-Sampleanzahl und RTP-Dauer, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2179,14 +2180,38 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   keine echten Anrufe, Audiogeräte oder sichtbare GUI. Vertrag/Rollback in `Docs/Architektur.md`.
   Das ist der Codec-Abgriff, keine zeitlich vollständige SIP-Aufnahme: `EncodedAudioFrame` in
   SIPSorceryMedia.Abstractions 10.0.17 enthält keinen RTP-Zeitstempel oder Sequenzwert.
+- [x] ✅ Externen CSCore-Capture-Puffer und ältere RTP-Dauer korrigiert (15.11.2026):
+  `WindowsAudioEndPoint.LocalAudioSampleAvailable` rechnet gelesene PCM16-Bytes nun in genau
+  `read / sizeof(short)` Samples um. Zuvor erzeugten 320 Bytes ein Array mit 320 statt 160
+  Samples, einschließlich angehängter Nullen und verdoppelter Dauer. Unvollständige Samples/
+  Kanalframes werden vor der Kodierung abgewiesen. Das ältere EncodedSample-Ereignis liefert
+  RTP-Ticks aus Framezahl und Format-Raten statt aus der kodierten Nutzdatenlänge; das neuere
+  EncodedAudioFrame-Ereignis meldet weiterhin Millisekunden anhand der nun korrekten Samplezahl.
+  PCMA/PCMU bei 8 kHz und G.722 bei 16-kHz-PCM/8-kHz-RTP behalten korrekte 20-ms-Blöcke.
+  Externer Commit `e2975604c0e8b76253ec0362ed345eea31d90095` auf
+  `fix/capture-pcm-sample-count` in `SIPSorceryMedia.Windows.CSCore`; ausschließlich die
+  betroffene Quelldatei im Commit. Vorhandene Paketänderung im externen csproj erhalten
+  und außerhalb des Commits belassen. Reproduzierbarer enger Patch unter
+  `scripts/patches/cscore-capture-pcm.patch`; Anwendung/Rollback in `Docs/Architektur.md`.
+  Nachweis: neun gezielte Tests vor dem Fix fehlgeschlagen (`.capture-count-before.log`),
+  danach 15 Capture-Prüfungen bestanden. Der tatsächliche private Callback wird mit synthetischen
+  Source-/Codec-Feldern aufgerufen, ohne den geräteauflösenden Konstruktor auszuführen; keine
+  Mikrofon-/Wiedergabeinitialisierung. Drei echte Codecfolgen, mehrere Reads ohne Nullen/alte Daten,
+  Frame-/Kanalzählung, negative Teilframes, leere Reads und Weitergabe an den Wawi-PCM-Abgriff geprüft.
+  Je Edition 167 Console-, zwei gezielte App-Host- und fünf vorhandene gerätelose Loopback-SIP-/
+  Shutdownprüfungen bestanden. Beide Solution-Editionen in Debug/Any CPU inklusive externer
+  .NET-9-/11-Buildziele rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen;
+  FinOffice als reguläre Startausgabe erhalten. Runtime-Capturetests verwenden .NET 11, keine
+  gesonderte .NET-9-Runtimeabnahme. Logs `.capture-count-build-{pro,fin}.log`,
+  `.capture-count-tests-{pro,fin}.log`, `.capture-count-host-{pro,fin}.log`,
+  `.capture-count-runtime-{pro,fin}.log`; frühe gezielte Nachprüfung `.capture-count-after-fin.log`.
+  Keine echten Anrufe, Geräte oder sichtbare GUI. Medienzeitbasis/Jitter und Aufnahmebedienung bleiben offen.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche
   Reihenfolge-/Jitterbehandlung vor dem Sitzungsaufruf umsetzen. Kein Desktop-Loopback als Quelle.
-  Vorher die Senderpuffergröße in `WindowsAudioEndPoint.LocalAudioSampleAvailable` prüfen:
-  Die gelesene Byteanzahl wird im aktuellen externen Quelltext als short-Arraylänge verwendet;
-  `BlockCopy` kopiert dagegen nur diese Byteanzahl. Quellbefund separat mit synthetischen Daten
-  verifizieren und korrigieren, bevor daraus eine aufnahmebezogene Framezeit abgeleitet wird.
+  Die Capture-Byte-/Sample-Verwechslung ist durch den vorherigen Teilpunkt korrigiert; daraus
+  allein entsteht noch keine gemeinsame RTP-/Aufnahmezeitbasis.
   Manueller Start/Stop, ausdrücklich konfigurierte Automatik, geordneter Host-Shutdown und
   echte SIP-/Geräteabnahme bleiben offen.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit

@@ -1,0 +1,33 @@
+diff --git a/src/WindowsAudioEndPoint.cs b/src/WindowsAudioEndPoint.cs
+index d98d2f4..fbc89a1 100644
+--- a/src/WindowsAudioEndPoint.cs
++++ b/src/WindowsAudioEndPoint.cs
+@@ -848,12 +848,17 @@ namespace SIPSorceryMedia.Windows.CSCore
+             int read;
+             while ((read = _inputWaveSource.Read(buffer, 0, buffer.Length)) > 0)
+             {
+-                var pcm = new short[AlignedSize(read, sizeof(short))];
++                // Read returns bytes; the codec consumes interleaved PCM16 samples.
++                if (read % sizeof(short) != 0 || read % _inputWaveSource.WaveFormat.BlockAlign != 0)
++                    throw new InvalidOperationException("Captured PCM16 data must contain complete audio frames.");
++                var pcm = new short[read / sizeof(short)];
+                 Buffer.BlockCopy(buffer, 0, pcm, 0, read);
+ 
+-                var encodedSample = _audioEncoder?.EncodeAudio(pcm, _audioFormatManager.SelectedFormat);
++                var audioFormat = _audioFormatManager.SelectedFormat;
++                var encodedSample = _audioEncoder?.EncodeAudio(pcm, audioFormat);
+                 if (encodedSample != null)
+-                    OnAudioSourceEncodedSample?.Invoke((uint)encodedSample.Length, encodedSample);
++                    OnAudioSourceEncodedSample?.Invoke(
++                        (uint)((long)(pcm.Length / audioFormat.ChannelCount) * audioFormat.RtpClockRate / audioFormat.ClockRate), encodedSample);
+ 
+                 if (OnAudioSourceEncodedFrameReady != null)
+                 {
+@@ -874,7 +879,6 @@ namespace SIPSorceryMedia.Windows.CSCore
+                 return (uint)Math.Round(durationMsD);
+             }
+ 
+-            static int AlignedSize(int value, int powerOfTwo) => (((value) + (powerOfTwo) - 1) & ~((powerOfTwo) - 1));
+         }
+ 
+         /// <summary>
