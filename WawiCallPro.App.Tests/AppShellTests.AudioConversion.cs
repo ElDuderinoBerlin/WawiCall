@@ -20,6 +20,10 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<WavToMp3Converter>(converter);
             Assert.AreSame(converter, host.Services.GetRequiredService<IMp3Converter>());
             Assert.IsInstanceOfType<MediaFoundationMp3Backend>(host.Services.GetRequiredService<IMp3EncodingBackend>());
+            var mixer = host.Services.GetRequiredService<IConversationWaveMixer>();
+            Assert.IsInstanceOfType<ConversationWaveMixer>(mixer);
+            Assert.AreSame(mixer, host.Services.GetRequiredService<IConversationWaveMixer>());
+            Assert.IsInstanceOfType<ConversationWaveRenderer>(host.Services.GetRequiredService<IConversationWaveRenderer>());
         }
         finally { await ((IAsyncDisposable)host).DisposeAsync(); }
     });

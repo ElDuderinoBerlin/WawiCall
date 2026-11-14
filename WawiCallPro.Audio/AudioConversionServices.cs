@@ -6,11 +6,13 @@ namespace WawiCallPro.Audio;
 
 public static class AudioConversionServices
 {
-    /// <summary>Both hosts share a stateless converter. Native encoders, resamplers and files are per conversion.</summary>
+    /// <summary>Both hosts share stateless conversion/mixing services. Native resources and files belong to each request.</summary>
     public static IServiceCollection AddAudioConversion(this IServiceCollection services)
     {
         services.TryAddSingleton<IMp3EncodingBackend, MediaFoundationMp3Backend>();
         services.TryAddSingleton<IMp3Converter, WavToMp3Converter>();
+        services.TryAddSingleton<IConversationWaveRenderer, ConversationWaveRenderer>();
+        services.TryAddSingleton<IConversationWaveMixer, ConversationWaveMixer>();
         return services;
     }
 }
