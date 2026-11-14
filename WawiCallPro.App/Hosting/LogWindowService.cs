@@ -63,6 +63,8 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.PluginMessage => "Meldung aus der Plugin-Laufzeit.",
                 OperationEvent.LexwareMissing => "Lexware Pro und Financial Office wurden nicht erkannt. Lexware-abhängige Funktionen sind deaktiviert.",
                 OperationEvent.LexwareCheckFailed => "Die Lexware-Installationsprüfung ist fehlgeschlagen. Lexware-abhängige Funktionen bleiben gesperrt.",
+                OperationEvent.GlobalHotkeyUnavailable => "Ein globales Tastenkürzel ist nicht verfügbar und bleibt deaktiviert. Es ist möglicherweise bereits belegt. Unter Einstellungen → Tastenkürzel eine andere Kombination wählen und neu starten.",
+                OperationEvent.GlobalHotkeyReleaseFailed => "Ein globales Tastenkürzel konnte nicht abgemeldet werden. Es wird spätestens beim Zerstören des zugehörigen Fensters freigegeben.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);

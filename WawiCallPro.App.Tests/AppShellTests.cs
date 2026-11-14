@@ -41,6 +41,130 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task GlobalHotkeysRestoreOpenOneDialAndFollowHandleLifetime() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var backend = new HotkeyBackendDouble();
+        var factory = new AppHotkeyFactory(backend, new(false), Microsoft.Extensions.Logging.Abstractions.NullLogger<AppHotkeyFactory>.Instance);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun();
+        form.ConfigureHotkeys(factory, new() { ShowWindowHotkey = "Ctrl+Alt+F3", DialHotkey = "Ctrl+Alt+F4" });
+        Assert.AreEqual(0, backend.Registered.Count);
+        form.Show(); Application.DoEvents(); Assert.AreEqual(2, backend.Registered.Count);
+        form.WindowState = FormWindowState.Maximized; form.MoveToTray();
+        DispatchHotkey(form, backend.Registered[0].Id, backend.Registered[0].Key);
+        Assert.IsTrue(form.Visible); Assert.AreEqual(FormWindowState.Maximized, form.WindowState);
+        DispatchHotkey(form, backend.Registered[1].Id, backend.Registered[1].Key);
+        DispatchHotkey(form, backend.Registered[1].Id, backend.Registered[1].Key);
+        Assert.AreEqual(1, form.OwnedForms.OfType<FrmDial>().Count());
+        Assert.AreEqual(0, workspace.Telephony!.GetCalls().Length, "A shortcut opens the editor without starting a call.");
+        foreach (var dial in form.OwnedForms.OfType<FrmDial>().ToArray()) { await dial.StopAsync(); dial.Close(); }
+        await WaitForDialStateAsync(() => !form.OwnedForms.OfType<FrmDial>().Any());
+        typeof(Control).GetMethod("RecreateHandle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(form, null);
+        Assert.AreEqual(2, backend.Unregistered.Count); Assert.AreEqual(4, backend.Registered.Count);
+        form.MoveToTray(); DispatchHotkey(form, backend.Registered[0].Id, backend.Registered[0].Key);
+        Assert.IsFalse(form.Visible, "A queued message from the previous handle registration must be ignored.");
+        DispatchHotkey(form, backend.Registered[2].Id, backend.Registered[2].Key); Assert.IsTrue(form.Visible);
+        await form.PrepareToCloseAsync();
+        DispatchHotkey(form, backend.Registered[3].Id, backend.Registered[3].Key);
+        Assert.AreEqual(0, form.OwnedForms.OfType<FrmDial>().Count());
+        form.Dispose(); Assert.AreEqual(4, backend.Unregistered.Count);
+    });
+
+    [TestMethod]
+    public Task GlobalHotkeysRespectModalDialogsAndLexwareAvailability() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var backend = new HotkeyBackendDouble();
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show();
+        form.ConfigureHotkeys(new AppHotkeyFactory(backend, new(false), Microsoft.Extensions.Logging.Abstractions.NullLogger<AppHotkeyFactory>.Instance),
+            new() { ShowWindowHotkey = "Ctrl+Alt+F3", DialHotkey = "Ctrl+Alt+F4" });
+        using var modal = new FrmCallerLookup(); modal.PrepareForBackgroundRun(); Exception? failure = null;
+        modal.Shown += (_, _) =>
+        {
+            try
+            {
+                DispatchHotkey(form, backend.Registered[1].Id, backend.Registered[1].Key);
+                Assert.AreSame(modal, form.RestoreFromTray()); Assert.AreEqual(0, form.OwnedForms.OfType<FrmDial>().Count());
+            }
+            catch (Exception exception) { failure = exception; }
+            finally { modal.Close(); }
+        };
+        modal.ShowDialog(form); if (failure is not null) throw failure;
+        // The designer-only host has no available business directory and must not bypass the dial action guard.
+        using var unavailable = new MainForm(); unavailable.PrepareForBackgroundRun(); unavailable.Show();
+        var blockedBackend = new HotkeyBackendDouble();
+        unavailable.ConfigureHotkeys(new AppHotkeyFactory(blockedBackend, new(false), Microsoft.Extensions.Logging.Abstractions.NullLogger<AppHotkeyFactory>.Instance),
+            new() { DialHotkey = "Ctrl+Alt+F4" });
+        DispatchHotkey(unavailable, blockedBackend.Registered[0].Id, blockedBackend.Registered[0].Key);
+        Assert.AreEqual(0, unavailable.OwnedForms.OfType<FrmDial>().Count());
+        await unavailable.PrepareToCloseAsync(); await form.PrepareToCloseAsync();
+    });
+
+    private static void DispatchHotkey(MainForm form, int id, int key) =>
+        typeof(MainForm).GetMethod("WndProc", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form,
+            [Message.Create(form.Handle, AppHotkeySession.MessageId, new(id), AppHotkeyTests.MessageData(key))]);
+
+    [TestMethod]
+    public Task GlobalHotkeySettingsSaveReloadRejectDuplicatesAndOfferRestartAfterSave() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var settings = new FrmSettings(workspace); var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync();
+        var show = Field<ComboBoxEdit>(page, "showWindowHotkeyEdit"); var dial = Field<ComboBoxEdit>(page, "dialHotkeyEdit");
+        Assert.AreEqual(0, show.SelectedIndex); Assert.AreEqual(12, show.Properties.Items.Count);
+        show.SelectedIndex = 3; dial.SelectedIndex = 4; await page.ReloadAsync(); Assert.AreEqual(0, show.SelectedIndex);
+        show.SelectedIndex = 3; dial.SelectedIndex = 4; var prompts = 0;
+        await page.SaveAndOfferRestartAsync(() =>
+        {
+            prompts++; Assert.AreEqual("Ctrl+Alt+F3", workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.ShowWindowHotkey);
+            return false;
+        }, CancellationToken.None);
+        Assert.AreEqual(1, prompts); Assert.IsFalse(settings.RestartRequested);
+        Assert.IsNull(workspace.Configuration.Current.Options.User.ShowWindowHotkey);
+        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None); Assert.AreEqual(1, prompts);
+        dial.SelectedIndex = 3;
+        await Assert.ThrowsExactlyAsync<ConfigurationException>(() => page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None));
+        Assert.AreEqual(3, show.SelectedIndex); Assert.AreEqual(3, dial.SelectedIndex); Assert.AreEqual(1, prompts);
+        await page.ReloadAsync(); Assert.AreEqual(4, dial.SelectedIndex);
+        show.SelectedIndex = dial.SelectedIndex = 0; await page.SaveAsync(CancellationToken.None);
+        Assert.IsNull((await workspace.Settings.LoadAsync()).Options.User.DialHotkey);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task GlobalHotkeySettingsRenderAtSmallWidthsLargeFontsAndSkins() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "hotkey-settings", workspace.Application.ProductLine);
+        Directory.CreateDirectory(output);
+        var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
+        var oldSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        try
+        {
+            foreach (var enabled in new[] { false, true })
+            foreach (var (width, fontSize, scale, skin) in new[] { (980, 10F, 1F, "Basic"), (680, 16F, 1F, "Basic"),
+                (980, 10F, 1.5F, "Basic"), (680, 16F, 1F, "Office 2019 Black") })
+            {
+                if (skin == "Basic") DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, "Blue Dark");
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = font;
+                settings.ClientSize = new(width, 580); settings.Show(); Application.DoEvents();
+                settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, 580);
+                var page = Field<SettingsPage>(settings, "settingsPage");
+                page.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "hotkeysTab");
+                Field<ComboBoxEdit>(page, "showWindowHotkeyEdit").SelectedIndex = enabled ? 11 : 0;
+                Field<ComboBoxEdit>(page, "dialHotkeyEdit").SelectedIndex = enabled ? 10 : 0;
+                if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
+                CheckTableBounds(settings);
+                Assert.IsTrue(Field<LabelControl>(page, "hotkeysHint").Bottom <= Field<TableLayoutPanel>(page, "hotkeysLayout").Height);
+                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"hotkeys-{enabled}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                await settings.StopAsync();
+            }
+        }
+        finally { DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(oldSkin); WindowsFormsSettings.DefaultFont = oldFont; AppearanceObject.DefaultFont = oldAppearance; }
+    });
+
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public Task TrayRestorePreservesWindowStateAndDocumentsWithoutDisplayingATrayIcon(bool maximized) => WithWorkspace(async (workspace, services, plugin) =>

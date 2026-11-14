@@ -133,7 +133,13 @@ internal sealed class AppApplicationContext : ApplicationContext
         }
     }
 
-    private MainForm CreateMainForm() => ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
+    private MainForm CreateMainForm()
+    {
+        var form = ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
+        if (_host.Services.GetService<IAppHotkeyFactory>() is { } hotkeys)
+            form.ConfigureHotkeys(hotkeys, _host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User);
+        return form;
+    }
 
     private async void OnActivationRequested(object? sender, EventArgs args)
     {

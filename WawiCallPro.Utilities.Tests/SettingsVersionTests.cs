@@ -17,6 +17,29 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class SettingsVersionTests
 {
     [TestMethod]
+    public async Task VersionSixDefaultsToDisabledGlobalHotkeysAndVersionSevenPreservesOtherSettings()
+    {
+        using var directory = new SettingsDirectory();
+        const string json = "{\"formatVersion\":6,\"settings\":{\"user\":{\"startMinimized\":true,\"useDirectXRendering\":false}}}";
+        await File.WriteAllTextAsync(directory.Location.FilePath, json);
+        var old = await directory.Store.LoadAsync();
+        Assert.IsTrue(old.RequiresUpgrade); Assert.IsNull(old.Options.User.ShowWindowHotkey); Assert.IsNull(old.Options.User.DialHotkey);
+        Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
+        await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { ShowWindowHotkey = "Ctrl+Alt+F1", DialHotkey = "Ctrl+Alt+F11" } }, old);
+        var saved = await directory.Store.LoadAsync();
+        Assert.AreEqual(7, saved.FormatVersion); Assert.AreEqual("Ctrl+Alt+F1", saved.Options.User.ShowWindowHotkey);
+        Assert.AreEqual("Ctrl+Alt+F11", saved.Options.User.DialHotkey);
+        Assert.IsTrue(saved.Options.User.StartMinimized); Assert.IsFalse(saved.Options.User.UseDirectXRendering);
+        var bytes = await File.ReadAllBytesAsync(directory.Location.FilePath);
+        foreach (var invalid in new[] { "", "Ctrl+Alt+F0", "Ctrl+Alt+F12", "Win+F1", "Ctrl+Alt+F1 " })
+            await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { DialHotkey = invalid } }, saved));
+        await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { DialHotkey = "Ctrl+Alt+F1" } }, saved));
+        CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(directory.Location.FilePath));
+        await directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { ShowWindowHotkey = null, DialHotkey = null } }, saved);
+        Assert.IsNull((await directory.Store.LoadAsync()).Options.User.DialHotkey);
+    }
+
+    [TestMethod]
     public async Task VersionFiveDefaultsToDirectXAndExplicitRenderingPreferenceRoundTrips()
     {
         using var directory = new SettingsDirectory();
@@ -27,7 +50,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
         await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { UseDirectXRendering = true } }, old);
         var enabled = await directory.Store.LoadAsync();
-        Assert.AreEqual(6, enabled.FormatVersion); Assert.IsTrue(enabled.Options.User.UseDirectXRendering); Assert.IsTrue(enabled.Options.User.StartMinimized);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, enabled.FormatVersion); Assert.IsTrue(enabled.Options.User.UseDirectXRendering); Assert.IsTrue(enabled.Options.User.StartMinimized);
         await directory.Store.SaveAsync(enabled.Options with { User = enabled.Options.User with { UseDirectXRendering = false } }, enabled);
         Assert.IsFalse((await directory.Store.LoadAsync()).Options.User.UseDirectXRendering);
         Assert.IsTrue(new ApplicationOptions().User.UseDirectXRendering);
@@ -76,7 +99,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(ConfigurationFormat.CurrentVersion, current.FormatVersion);
         Assert.IsFalse(current.RequiresUpgrade);
         var savedJson = await File.ReadAllTextAsync(directory.Location.FilePath);
-        Assert.Contains("\"formatVersion\": 6", savedJson);
+        Assert.Contains("\"formatVersion\": " + ConfigurationFormat.CurrentVersion, savedJson);
         Assert.DoesNotContain("synthetic-migration-password", savedJson);
         Assert.AreEqual(JsonSerializer.Serialize(password), JsonSerializer.Serialize(current.Options.SipAccount!.Password));
     }
@@ -125,7 +148,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         string[] invalid =
         [
-            "{\"formatVersion\":7,\"settings\":{}}",
+            "{\"formatVersion\":8,\"settings\":{}}",
             "{\"formatVersion\":0,\"settings\":{}}",
             "{\"formatVersion\":-1,\"settings\":{}}",
             "{\"formatVersion\":\"synthetic-value\",\"settings\":{}}",

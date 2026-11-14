@@ -14,6 +14,13 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         var issues = ImmutableArray.CreateBuilder<ConfigurationIssue>();
         if (options.SipAccount is { } account) ValidateSip(account, issues);
         if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
+        if (options.User is { } user)
+        {
+            if (!GlobalHotkeySettings.IsSupported(user.ShowWindowHotkey) || !GlobalHotkeySettings.IsSupported(user.DialHotkey))
+                issues.Add(new("user.hotkeys", "Erlaubt sind deaktivierte Tastenkürzel oder Strg+Alt+F1 bis Strg+Alt+F11."));
+            if (user.ShowWindowHotkey is not null && user.ShowWindowHotkey == user.DialHotkey)
+                issues.Add(new("user.hotkeys", "Für die beiden Aktionen unterschiedliche Tastenkürzel auswählen."));
+        }
         if (options.User?.ActivePluginId is { } pluginId && (pluginId.Length is 0 or > 160
             || pluginId.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('.' or '-' or '_'))
             || pluginId is "." or ".."))

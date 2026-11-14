@@ -11,6 +11,8 @@ public sealed record UserSettings
     public bool ShowCallNotifications { get; init; } = true;
     public bool StartMinimized { get; init; }
     public bool UseDirectXRendering { get; init; } = true;
+    public string? ShowWindowHotkey { get; init; }
+    public string? DialHotkey { get; init; }
     public override string ToString() => nameof(UserSettings);
 }
 

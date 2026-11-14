@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen, Autostartoption und Tray mit Zweitstart-Aktivierung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung und konfigurierbare Shell-Tastenkürzel; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1829,6 +1829,39 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Sicherheitsumfang: lokale, benutzer-/produkt-/profilbezogene Instanzsignale; keine Änderungen an
   produktiven Daten, Konfiguration, Lizenzierung oder SIP-Konten. Rollback: diesen Teilpunkt-Commit
   zurücknehmen; es gibt weder Schemaänderungen noch zusätzliche persistente Benutzereinstellungen.
+- [x] ✅ Teilpunkt globale Tastenkürzel für Hauptfenster und Wähldialog (14.11.2026):
+  Im zentralen Einstellungsdialog gibt es den Tab „Tastenkürzel“ mit zwei DevExpress-Auswahlfeldern.
+  Beide Aktionen sind zunächst deaktiviert; auswählbar sind unterschiedliche Kombinationen aus
+  Strg+Alt+F1 bis F11. Änderungen werden ausdrücklich gespeichert und nach einem Neustart wirksam.
+  Ein Neustart wird erst nach erfolgreichem Speichern angeboten; vorhandener Gesprächs-/Notizschutz bleibt wirksam.
+  Das Anzeigen verwendet den bestehenden Tray-Wiederherstellungspfad einschließlich Maximiertzustand
+  und modalem Dialog. Wählen öffnet höchstens einen Wähldialog, beachtet die bisherige Lexware-Sperre
+  und löst keinen Anruf aus. Keine globalen Tasten für noch nicht implementierte Audio-/Ausbauaktionen.
+  Die injizierte Factory erzeugt eine Sitzung pro Hauptfensterhandle. Der Windows-Adapter reserviert
+  über `RegisterHotKey` mit `MOD_NOREPEAT`; Handlewechsel und Dispose geben eigene Registrierungen frei.
+  Neue IDs verhindern die Ausführung alter Nachrichten. Unbekannte IDs und falsche Modifikatoren/Keys
+  werden ignoriert. Konflikte deaktivieren nur die betroffene Kombination und warnen im Log-Fenster;
+  Datei-/UI-Logs verwenden feste, datenfreie Ereignisse. Diagnosen/Audits reservieren keine Tasten.
+  Konfigurationsformat 7 ergänzt `user.showWindowHotkey` und `user.dialHotkey`; frühere Versionen
+  werden ohne Schreibzugriff gelesen und erhalten deaktivierte Vorgaben. Validierung weist doppelte,
+  reservierte und unbekannte Kombinationen zurück. Andere Bereiche und der Start-Snapshot bleiben erhalten.
+  Nachweise: Je Edition 21 gezielte App-Prüfungen für Registrierung, Konflikt/Log-Warnung, Nachrichten,
+  Lebensdauer, Handlewechsel, verborgenes/maximiertes Fenster, modalen Dialog, Wähldialog-Doppelaufruf,
+  Lexware-Sperre, Speichern/Neuladen/Fehler/Neustartangebot sowie bestehende Tray-, Installer- und
+  Gesprächsschließprüfungen. Je Edition 38 Konfigurations-/Betriebslogprüfungen bestanden.
+  Native Registrierung/Kollision/Freigabe an zwei unsichtbaren Message-only-Fenstern geprüft, ohne
+  Tastatureingaben oder Fokuswechsel. Acht Aufnahmen je Edition, deaktiviert/ausgewählt, 680/980 Breite,
+  10/16 pt, 150%-Layoutsimulation, Basic/Blue Dark und Office 2019 Black unsichtbar gerendert und
+  visuell geprüft. Designer-Aufteilung, TableLayoutPanel und bestehende Fensterpersistierung erhalten.
+  Beide Solution-Editionen einschließlich App/Console in Debug/Any CPU rekompiliert; null Fehler,
+  jeweils 26 bestehende externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.phase8-hotkeys-{build,tests,config}-{pro,fin}.log`; Bilder `.artifacts/hotkey-settings/{Pro,FinOffice}`.
+  **Prüfgrenze:** Der echte Tastendruck aus einem fremden Programm einschließlich Windows-Fokusrecht
+  bleibt eine gesonderte native Gesamtabnahme. Nachrichtenrouting und Windows-Reservierung sind getrennt
+  nachgewiesen; sie werden nicht als Nachweis dieses Tastendrucks ausgegeben.
+  Technischer Vertrag, API-Quelle und Rollback stehen in `Docs/Vertraege.md`. Vor Rückkehr zu einer
+  Ausgabe ohne Format 7 eine gesicherte ältere Konfiguration wiederherstellen und den aktuellen Stand
+  erhalten. Keine Datenbankänderung; geprüft wurde ohne produktive Profile, SIP-Konten oder Audiogeräte.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

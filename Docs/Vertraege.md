@@ -737,6 +737,30 @@ Ortsvorwahlen 1–16 Ziffern. Der Offline-Parser besteht seit Phase 6/Punkt 1; s
 DI-Kontextprovider diese Firmenvorgaben und der Interpreter wendet die lokale Vorwahl an.
 Es gibt weiterhin kein automatisches Nachladen geänderter Startkonfigurationen.
 
+Seit Einstellungsformat 7 enthalten `user.showWindowHotkey` und `user.dialHotkey` optionale globale
+Tastenkürzel. `null` deaktiviert sie; zulässig sind die kanonischen Werte `Ctrl+Alt+F1` bis
+`Ctrl+Alt+F11`. Beide Aktionen benötigen unterschiedliche Kombinationen. Versionen 0–6 werden
+weiterhin gelesen und bleiben beim Laden unverändert; erst ausdrückliches Speichern schreibt Version 7.
+Fehlende Felder aktivieren keine Tastenkürzel. Der zentrale Tab **Tastenkürzel** bietet die beiden
+Auswahlfelder; Änderungen werden wie DirectX erst nach einem Neustart wirksam. Ein Neustart wird
+erst nach erfolgreichem Speichern angeboten; aktive Gespräche und ungespeicherte Notizen bleiben geschützt.
+
+Der App-Composition-Root injiziert eine Hotkey-Factory mit Windows-Adapter. Jede erzeugte Sitzung
+gehört genau einem Hauptfensterhandle; Handlewechsel melden alte Registrierungen ab und erzeugen neue
+IDs. Veraltete/fremde Nachrichten und unerwartete Modifikatoren lösen keine Aktion aus.
+Diagnosen und Audits reservieren keine Systemtasten. Der Anzeigen-Befehl verwendet den gemeinsamen
+Tray-Wiederherstellungspfad; ein offener modaler Dialog bleibt das bedienbare Ziel. Der Wähl-Befehl
+öffnet höchstens einen vorhandenen Wähldialog und beachtet dieselbe Lexware-Freigabe wie das Ribbon;
+er startet keinen Anruf. Reservierungsfehler deaktivieren nur die betroffene Kombination und erzeugen
+eine verständliche Warnung im Log-Fenster sowie ein festes, datenfreies Betriebsevent.
+
+Die Registrierung nutzt `RegisterHotKey` mit `MOD_NOREPEAT` und die Fenster-Nachricht `WM_HOTKEY`.
+F12 und Kombinationen mit der Windows-Taste werden nicht angeboten, entsprechend der
+[Microsoft-API-Dokumentation](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey).
+Die verfügbaren Kombinationen gelten für die Windows-Sitzung; parallel laufende Editionen benötigen
+unterschiedliche Belegungen. Für einen Rollback vor Format 7 eine gesicherte ältere Einstellungsdatei
+wiederherstellen und die aktuelle Datei vorher sichern; ältere Ausgaben lesen Version 7 absichtlich nicht.
+
 Die bevorzugte Firma ist nur eine Präferenz. Sie stellt weder einen nachgewiesenen Lexware-Mandanten noch
 die aktuelle Auswahl dar und wird beim Start nicht automatisch in `CompanyContext` übernommen.
 Gerätekennungen sind unveränderte CSCore-/MMDevice-IDs, keine Listenpositionen. `null` bezeichnet die spätere

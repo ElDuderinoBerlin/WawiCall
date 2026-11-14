@@ -159,6 +159,8 @@ public partial class SettingsPage : XtraUserControl
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
         directXEdit.Checked = options.User.UseDirectXRendering;
+        showWindowHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.ShowWindowHotkey);
+        dialHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.DialHotkey);
         sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
         _sipAdvanced = SipAdvancedSettings.From(options.SipAccount?.Connection ?? new());
         sipProperties.SelectedObject = _sipAdvanced;
@@ -188,7 +190,9 @@ public partial class SettingsPage : XtraUserControl
         var old = _snapshot!.Options;
         return old with
         {
-            User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked },
+            User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
+                ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
+                DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked },
             SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)
                 && string.IsNullOrWhiteSpace(authUserEdit.Text) && passwordEdit.Text.Length == 0 ? null : new SipAccountOptions
@@ -281,19 +285,21 @@ public partial class SettingsPage : XtraUserControl
     private async void Save_Click(object? sender, EventArgs e)
     {
         if (_operation is not null) await _operation.RunAsync(token => SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
-            "Die geänderte DirectX-Einstellung wurde gespeichert und wird nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Die geänderten Darstellungs- oder Tastenkürzeleinstellungen wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
             "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token));
     }
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {
-        var previous = _snapshot!.Options.User.UseDirectXRendering;
+        var previous = _snapshot!.Options.User;
         await SaveAsync(token);
-        var saved = _snapshot.Options.User.UseDirectXRendering;
-        if (saved != _workspace!.Configuration.Current.Options.User.UseDirectXRendering)
-            statusLabel.Text = "Einstellungen gespeichert. Die geänderte DirectX-Einstellung wird nach einem Neustart wirksam.";
-        if (saved != previous && saved != _workspace.Configuration.Current.Options.User.UseDirectXRendering && confirm())
+        var saved = _snapshot.Options.User;
+        if (RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User))
+            statusLabel.Text = "Einstellungen gespeichert. Geänderte DirectX- oder Tastenkürzeleinstellungen werden nach einem Neustart wirksam.";
+        if (RestartSettingsDiffer(saved, previous) && RestartSettingsDiffer(saved, _workspace.Configuration.Current.Options.User) && confirm())
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
+    private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>
+        first.UseDirectXRendering != second.UseDirectXRendering || first.ShowWindowHotkey != second.ShowWindowHotkey || first.DialHotkey != second.DialHotkey;
     private async void Reload_Click(object? sender, EventArgs e)
     {
         await ReloadAsync();

@@ -32,6 +32,8 @@ internal static class AppCompositionRoot
                 services.AddSingleton<ILogWindowService>(provider => provider.GetRequiredService<LogWindowService>());
                 services.AddSingleton<ILoggerProvider, UiLogProvider>();
                 services.AddSingleton<AppUiState>();
+                services.AddSingleton<IAppHotkeyBackend, WindowsAppHotkeyBackend>();
+                services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
                 services.AddSingleton<ISipMediaSessionFactory, WindowsSipMediaSessionFactory>();
