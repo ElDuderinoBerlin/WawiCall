@@ -313,7 +313,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
+| 11 | ⬜ | Office-Kommunikation mit geplanten Microsoft-Graph- und Gmail-API-Connectoren | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -2059,7 +2059,11 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 ### Phase 11 – Office-Kommunikation ⬜
 
 - [ ] Vorhandene Office-Anforderungen und verfügbare aktuelle Bibliotheken/API-Verträge getrennt erfassen.
-- [ ] Konkreten Connector für unterstütztes Outlook/Exchange festlegen; Authentifizierung, Clienttyp und Zielumgebung klären.
+- [ ] Microsoft 365: eigenen Connector über Microsoft Graph implementieren; Authentifizierung, Clienttyp und
+  Zielumgebung klären. Weitere Outlook-/Exchange-Zielumgebungen getrennt auf Unterstützung prüfen.
+- [ ] Gmail und Google Workspace: eigenen Connector über die Gmail API mit OAuth-Anmeldung und passenden
+  Leserechten implementieren. Beide Anbieter hinter gemeinsamen, per DI angebundenen Mailverträgen kapseln;
+  Zielbild und API-Quellen stehen in [Architektur](Architektur.md#mail-anbindung-microsoft-365-und-gmail).
 - [ ] Neue Connector-Verträge statt alter MMS.Office-Typen verwenden; kein nicht vorhandenes Quantarix.Office voraussetzen.
 - [ ] E-Mails, Kontakte und benötigte Termine kundenbezogen zuordnen; E-Mail-Adressen und Produkt-/Mandantenbezug beachten.
 - [ ] Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und optional Anhänge behandeln.

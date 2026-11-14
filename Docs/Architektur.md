@@ -379,6 +379,19 @@ lokale Ortsvorwahl und Präsentationszustände an. Firmenvorgaben werden nach vo
 gelesen; interne Nummern benötigen Anlagenbezug, unterdrückte Nummern werden nicht geparst.
 Mehrfirmensuche, StartWidth-Abgleich, Auswahlkonfiguration und UI bleiben Zielbild.
 
+## Mail-Anbindung: Microsoft 365 und Gmail
+
+Für Phase 11 sind zwei eigene Connectoren vorgesehen; beide sind noch nicht implementiert:
+
+| Anbieter | Geplanter Connector |
+|---|---|
+| Microsoft 365 | Eigener Connector über [Microsoft Graph](https://learn.microsoft.com/en-us/graph/api/user-list-messages?view=graph-rest-1.0). |
+| Gmail und Google Workspace | Eigener Connector über die [Gmail API](https://developers.google.com/workspace/gmail/api/guides/filtering), mit OAuth-Anmeldung und passenden [Leserechten](https://developers.google.com/workspace/gmail/api/auth/scopes). |
+
+Beide Connectoren verwenden gemeinsame, technikunabhängige Mailverträge und DI-Anbindung.
+Die E-Mail-Adressen aus Lexware dienen zur kundenbezogenen Zuordnung; gelesen wird das vom Benutzer
+autorisierte Postfach. Konkrete Berechtigungen und Anmeldeabläufe werden bei der Umsetzung festgelegt.
+
 ## Gesprächsaufzeichnung, WAV-Mixer und MP3
 
 Auf Nutzerwunsch ist die Aufnahme eingehender und ausgehender Gespräche verbindlicher Bestandteil.
