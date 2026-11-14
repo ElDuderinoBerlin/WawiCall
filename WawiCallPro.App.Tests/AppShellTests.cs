@@ -333,6 +333,7 @@ public sealed class AppShellTests
                 else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
                 using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 var history = new HistoryNotesDouble { Empty = state == "empty", LoseAcknowledgement = state == "failure" };
+                foreach (var call in history.Calls) history.Parties[call.Id] = HistoryParties();
                 using var page = new HistoryPage(history, new CallNotesSessionFactory(history)) { Font = font, Size = new(width, 560) };
                 using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Font = font; host.MinimumSize = Size.Empty;
                 host.Controls.Add(page); page.BringToFront(); host.ClientSize = new(width, 560); host.Show();
@@ -357,10 +358,108 @@ public sealed class AppShellTests
         }
     });
 
+    [TestMethod]
+    public Task HistoryContextKeepsHistoricalPartiesSeparateAndPreservesTextSelectionWhileTyping() => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble();
+        history.Parties[history.Calls[0].Id] = HistoryParties();
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)) { Size = new(900, 560) };
+        using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Controls.Add(page); host.Show();
+        Field<XtraTabControl>(page, "historyTabs").SelectedTabPage = Field<XtraTabPage>(page, "notesTab"); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click"); await FocusHistoryCallAsync(page, history.Calls[0].Id);
+        var details = Field<MemoEdit>(page, "detailsEdit"); var text = details.Text;
+        Assert.Contains("Ausgewählt: Kunde 100 · Historischer Kunde · Historischer Mandant · Lexware Pro", text);
+        Assert.Contains("Weiterer Treffer: Lieferantenkontakt · Weiterer Kontakt · Zweiter Mandant · Financial Office", text);
+        Assert.IsTrue(text.IndexOf("Ausgewählt:", StringComparison.Ordinal) < text.IndexOf("Weiterer Treffer:", StringComparison.Ordinal));
+        Assert.DoesNotContain("installation-private", text); Assert.DoesNotContain("opaque-party-id", text);
+        details.SelectionStart = text.IndexOf("Historischer Kunde", StringComparison.Ordinal); details.SelectionLength = "Historischer Kunde".Length;
+        Assert.AreEqual("Historischer Kunde", details.SelectedText);
+        Field<MemoEdit>(page, "noteEdit").Text = "Neuer Entwurf";
+        Assert.AreEqual("Historischer Kunde", details.SelectedText); Assert.AreEqual(text, details.Text);
+        await FocusHistoryCallAsync(page, history.Calls[1].Id);
+        Assert.DoesNotContain("Historischer Kunde", details.Text); Assert.Contains("Keine Geschäftspartnerzuordnung gespeichert", details.Text);
+        await FocusHistoryCallAsync(page, history.Calls[0].Id);
+        Assert.AreEqual("Neuer Entwurf", Field<MemoEdit>(page, "noteEdit").Text);
+        await InvokeActionAsync(page, "SaveNote_Click"); Assert.Contains("Neuer Entwurf", details.Text); Assert.Contains("Historischer Kunde", details.Text);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    [DataRow(CallEndReason.Missed, "Verpasst")]
+    [DataRow(CallEndReason.Rejected, "Abgelehnt")]
+    [DataRow(CallEndReason.Busy, "Besetzt")]
+    [DataRow(CallEndReason.Cancelled, "Abgebrochen")]
+    [DataRow(CallEndReason.Interrupted, "Unterbrochen")]
+    [DataRow(CallEndReason.Transferred, "Weitergeleitet")]
+    public Task HistoryContextShowsTerminalReasonWithWithheldNumberAndLegacyCompany(CallEndReason reason, string label) => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble();
+        history.Calls[0] = history.Calls[0] with { EndReason = reason, RemoteAddress = new(NumberPresentation.Withheld), EndedAtUtc = DateTimeOffset.UtcNow };
+        history.Parties[history.Calls[0].Id] = [HistoryParties()[0] with { CompanyDisplayName = null }];
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click"); await FocusHistoryCallAsync(page, history.Calls[0].Id);
+        var grid = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+        Assert.AreEqual(label, grid.GetFocusedRowCellValue("Zustand")); Assert.AreEqual("Unterdrückt", grid.GetFocusedRowCellValue("Rufnummer"));
+        var text = Field<MemoEdit>(page, "detailsEdit").Text;
+        Assert.Contains("Gesprächsende: " + label, text); Assert.Contains("Unterdrückt", text);
+        Assert.Contains("Mandantenname nicht gespeichert", text); Assert.DoesNotContain("installation-private", text);
+        Assert.Contains("Nicht angenommen", text); await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task HistoryContextLoadsStoredNamesWithoutLexwareAccess() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await SeedCallerCachesAsync(workspace, services); var call = await CreateWorkspaceCallAsync(services);
+        var decision = await BuildWorkspaceDecisionAsync(workspace);
+        var chosen = workspace.CallerDecisions.Choose(decision, decision.Groups[1].Candidates.First().Party);
+        var stored = await workspace.CallAssociations.SaveAsync(call.Id, chosen);
+        var selected = stored.Parties.Single(party => party.IsSelected);
+        ((TestRuntime)workspace.Plugins).BusinessAvailable = false;
+        var directory = (TestDirectory)workspace.Directory;
+        directory.ReadParty = (_, _) => throw new InvalidOperationException("No live party lookup allowed.");
+        using var page = new HistoryPage(workspace.History, workspace.CallNotes); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click");
+        var text = Field<MemoEdit>(page, "detailsEdit").Text;
+        Assert.Contains(selected.DisplayName, text); Assert.Contains(selected.CompanyDisplayName!, text);
+        foreach (var party in stored.Parties) Assert.Contains(party.DisplayName, text);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task HistoryContextRejectsInvalidSnapshotsWithoutReplacingPreviousContextOrDraft() => RunStaAsync(async () =>
+    {
+        var history = new NotesHistory(CommandCall()); var parties = HistoryParties();
+        history.Read = _ => Task.FromResult<CallHistory?>(new() { Call = history.Call, Parties = parties });
+        using var session = new CallNotesSessionFactory(history).Create(history.Call.Id);
+        await session.LoadAsync(); session.SetDraft("Erhalten");
+        foreach (var invalid in new[]
+        {
+            new CallHistory { Call = history.Call, Parties = default },
+            new CallHistory { Call = history.Call, Parties = [null!] },
+            new CallHistory { Call = history.Call, Parties = [parties[0] with { Party = null! }] },
+            new CallHistory { Call = history.Call, Notes = default }
+        })
+        {
+            history.Read = _ => Task.FromResult<CallHistory?>(invalid); await session.LoadAsync();
+            Assert.AreEqual(parties, session.StoredParties); Assert.AreSame(history.Call, session.StoredCall);
+            Assert.AreEqual("Erhalten", session.Draft); Assert.DoesNotContain("Unexpected", session.Status);
+        }
+        await session.StopAsync();
+    });
+
+    private static ImmutableArray<CallPartySnapshot> HistoryParties() =>
+    [
+        new(new(new(LexwareProductLine.Pro, "installation-private", "01"), PartyKind.Customer, "opaque-party-id"), "Historischer Kunde", "100", true)
+            { CompanyDisplayName = "Historischer Mandant" },
+        new(new(new(LexwareProductLine.FinOffice, "installation-private", "01"), PartyKind.SupplierContact, "opaque-party-id", "owner-private"), "Weiterer Kontakt", null, false)
+            { CompanyDisplayName = "Zweiter Mandant" }
+    ];
+
     private sealed class HistoryNotesDouble : ICallHistoryService
     {
         internal readonly CallSnapshot[] Calls = [CommandCall() with { Id = Guid.NewGuid(), State = CallState.Ended }, CommandCall() with { Id = Guid.NewGuid(), State = CallState.Ended }];
         internal readonly Dictionary<Guid, CallNote> Stored = [];
+        internal readonly Dictionary<Guid, ImmutableArray<CallPartySnapshot>> Parties = [];
         internal readonly List<Guid> Attempts = [];
         internal bool LoseAcknowledgement;
         internal bool Empty;
@@ -375,7 +474,8 @@ public sealed class AppShellTests
         public async Task<CallHistory?> GetCallAsync(Guid callId, CancellationToken cancellationToken = default)
         {
             if (BeforeRead is not null) await BeforeRead(cancellationToken);
-            return new CallHistory { Call = Calls.Single(call => call.Id == callId), Notes = Stored.Values.Where(note => note.CallId == callId).ToImmutableArray() };
+            return new CallHistory { Call = Calls.Single(call => call.Id == callId), Notes = Stored.Values.Where(note => note.CallId == callId).ToImmutableArray(),
+                Parties = Parties.GetValueOrDefault(callId, []) };
         }
         public async Task<CallNote> SaveNoteAsync(Guid callId, Guid noteId, string text, CancellationToken cancellationToken = default)
         {

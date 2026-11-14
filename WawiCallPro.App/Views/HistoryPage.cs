@@ -1,8 +1,12 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Common;
+using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.Parties;
+using System.Collections.Immutable;
+using System.Text;
 
 namespace WawiCallPro.App.Views;
 
@@ -20,6 +24,10 @@ public partial class HistoryPage : XtraUserControl
     private bool _syncingNotes;
     private bool _stopping;
     private Task? _stopTask;
+    private CallNotesSession? _renderedNotes;
+    private CallSnapshot? _renderedCall;
+    private ImmutableArray<CallNote> _renderedNoteList;
+    private ImmutableArray<CallPartySnapshot> _renderedParties;
     internal bool HasUnsavedNotes => _notes.Values.Any(notes => notes.HasUnsavedChanges);
     public HistoryPage()
     {
@@ -136,7 +144,7 @@ public partial class HistoryPage : XtraUserControl
             ActivateNotes(null);
             saveNoteButton.Enabled = false;
             grid.DataSource = calls.Select(call => new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
-                call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), StateName(call.State),
+                call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
                 call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "")).ToArray();
             view.Columns[nameof(HistoryRow.Id)].Visible = false;
             _state?.Restore(view, "CallHistory");
@@ -185,6 +193,7 @@ public partial class HistoryPage : XtraUserControl
     }
     private void ActivateNotes(CallNotesSession? notes)
     {
+        if (!ReferenceEquals(notes, _activeNotes)) _renderedNotes = null;
         _activeNotes = notes;
         _syncingNotes = true;
         try { noteEdit.Text = notes?.Draft ?? ""; }
@@ -210,15 +219,67 @@ public partial class HistoryPage : XtraUserControl
         noteEdit.Properties.ReadOnly = _stopping || !current || notes!.IsBusy || notes.IsStopping;
         saveNoteButton.Enabled = !noteEdit.Properties.ReadOnly && _selected.HasValue && !string.IsNullOrWhiteSpace(notes!.Draft);
         if (!current) return;
-        _syncingNotes = true;
-        try { noteEdit.Text = notes!.Draft; }
-        finally { _syncingNotes = false; }
+        if (noteEdit.Text != notes!.Draft)
+        {
+            _syncingNotes = true;
+            try { noteEdit.Text = notes.Draft; }
+            finally { _syncingNotes = false; }
+        }
         var call = notes!.StoredCall;
-        detailsEdit.Text = call is null ? "Das Gespräch ist noch nicht verfügbar." :
-            $"{row!.Rufnummer} · {row.Richtung} · {row.Zustand}\r\nArbeitsplatz: {call.Origin?.MachineName} · Benutzer: {call.Origin?.WindowsUserName}\r\n" +
-            string.Join("\r\n", notes.Notes.Select(note => note.CreatedAtUtc.LocalDateTime.ToString("g") + ": " + note.Text));
+        if (!ReferenceEquals(_renderedNotes, notes) || !ReferenceEquals(_renderedCall, call)
+            || !_renderedNoteList.Equals(notes.Notes) || !_renderedParties.Equals(notes.StoredParties))
+        {
+            detailsEdit.Text = call is null ? "Das Gespräch ist noch nicht verfügbar." : FormatDetails(call, notes.StoredParties, notes.Notes);
+            _renderedNotes = notes; _renderedCall = call; _renderedNoteList = notes.Notes; _renderedParties = notes.StoredParties;
+        }
         statusLabel.Text = notes.Status;
     }
+
+    private static string FormatDetails(CallSnapshot call, ImmutableArray<CallPartySnapshot> parties, ImmutableArray<CallNote> notes)
+    {
+        var text = new StringBuilder();
+        text.AppendLine(DisplayNumber(call.RemoteAddress) + " · " + (call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend") + " · " + HistoryState(call));
+        text.AppendLine("Beginn: " + call.StartedAtUtc.LocalDateTime.ToString("g"));
+        text.AppendLine("Angenommen: " + (call.AnsweredAtUtc?.LocalDateTime.ToString("g") ?? "Nicht angenommen"));
+        text.AppendLine("Ende: " + (call.EndedAtUtc?.LocalDateTime.ToString("g") ?? "Noch offen"));
+        if (call.EndReason is { } reason) text.AppendLine("Gesprächsende: " + EndReasonName(reason));
+        text.AppendLine("Arbeitsplatz: " + (call.Origin?.MachineName ?? "Nicht gespeichert") + " · Benutzer: " + (call.Origin?.WindowsUserName ?? "Nicht gespeichert"));
+        text.AppendLine(); text.AppendLine("Gespeicherte Zuordnung und Treffer:");
+        if (parties.IsEmpty) text.AppendLine("Keine Geschäftspartnerzuordnung gespeichert.");
+        else
+        {
+            foreach (var party in parties.OrderByDescending(party => party.IsSelected).ThenBy(party => party.Party.Kind).ThenBy(party => party.DisplayName, StringComparer.CurrentCultureIgnoreCase))
+            {
+                var product = party.Party.Company.ProductLine == LexwareProductLine.Pro ? "Lexware Pro" : "Financial Office";
+                text.AppendLine((party.IsSelected ? "Ausgewählt: " : "Weiterer Treffer: ") + PartyRole(party.Party.Kind)
+                    + (string.IsNullOrWhiteSpace(party.Number) ? "" : " " + party.Number) + " · " + party.DisplayName
+                    + " · " + (string.IsNullOrWhiteSpace(party.CompanyDisplayName) ? "Mandantenname nicht gespeichert" : party.CompanyDisplayName) + " · " + product);
+            }
+        }
+        text.AppendLine(); text.AppendLine("Gespeicherte Notizen:");
+        if (notes.IsEmpty) text.AppendLine("Keine Notizen gespeichert.");
+        else foreach (var note in notes) text.AppendLine(note.CreatedAtUtc.LocalDateTime.ToString("g") + ": " + note.Text);
+        return text.ToString().TrimEnd();
+    }
+
+    private static string PartyRole(PartyKind kind) => kind switch
+    {
+        PartyKind.Customer => "Kunde", PartyKind.Supplier => "Lieferant", PartyKind.CustomerContact => "Kundenkontakt",
+        PartyKind.SupplierContact => "Lieferantenkontakt", _ => "Geschäftspartner"
+    };
+    private static string EndReasonName(CallEndReason reason) => reason switch
+    {
+        CallEndReason.Completed => "Regulär beendet", CallEndReason.Missed => "Verpasst", CallEndReason.Rejected => "Abgelehnt",
+        CallEndReason.Busy => "Besetzt", CallEndReason.Cancelled => "Abgebrochen", CallEndReason.RemoteHangup => "Gegenstelle hat aufgelegt",
+        CallEndReason.NetworkFailure => "Verbindungsfehler", CallEndReason.Error => "Fehler", CallEndReason.Interrupted => "Unterbrochen",
+        CallEndReason.Transferred => "Weitergeleitet", _ => "Unbekannt"
+    };
+    private static string HistoryState(CallSnapshot call) => (call.State is CallState.Ended or CallState.Failed) && call.EndReason is { } reason
+        ? reason switch
+        {
+            CallEndReason.Missed or CallEndReason.Rejected or CallEndReason.Busy or CallEndReason.Cancelled or CallEndReason.Interrupted or CallEndReason.Transferred => EndReasonName(reason),
+            _ => StateName(call.State)
+        } : StateName(call.State);
     private async void SaveNote_Click(object? sender, EventArgs e)
     {
         if (_operation is null || _stopping || _activeNotes is not { } notes || _selected != notes.CallId) return;

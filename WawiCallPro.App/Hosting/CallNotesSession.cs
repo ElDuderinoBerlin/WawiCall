@@ -24,6 +24,7 @@ internal sealed class CallNotesSession(ICallHistoryService history, Guid callId)
     internal string Draft { get; private set; } = "";
     internal ImmutableArray<CallNote> Notes { get; private set; } = [];
     internal WawiCallPro.Interfaces.Telephony.CallSnapshot? StoredCall { get; private set; }
+    internal ImmutableArray<CallPartySnapshot> StoredParties { get; private set; } = [];
     internal string Status { get; private set; } = "Notizen gehören zu diesem Gespräch, unabhängig von der Firmenzuordnung.";
     internal bool IsBusy { get; private set; }
     internal bool IsStopping => _stopping;
@@ -49,9 +50,12 @@ internal sealed class CallNotesSession(ICallHistoryService history, Guid callId)
     {
         var stored = await history.GetCallAsync(CallId, token);
         token.ThrowIfCancellationRequested();
-        if (stored is not null && (stored.Call.Id != CallId || stored.Notes.Any(note => note.CallId != CallId)))
+        if (stored is not null && (stored.Call.Id != CallId || stored.Notes.IsDefault || stored.Parties.IsDefault
+            || stored.Notes.Any(note => note is null || note.CallId != CallId)
+            || stored.Parties.Any(party => party is null || party.Party is null)))
             throw new InvalidOperationException("Unexpected call identity.");
         StoredCall = stored?.Call;
+        StoredParties = stored?.Parties ?? [];
         Notes = stored?.Notes.OrderBy(note => note.CreatedAtUtc).ThenBy(note => note.Id).ToImmutableArray() ?? [];
         Status = stored is null ? "Gespräch noch nicht in der Historie verfügbar. Der Entwurf bleibt erhalten; bitte später erneut versuchen."
             : "Gesprächsnotizen geladen. Ein vorhandener Entwurf bleibt erhalten.";

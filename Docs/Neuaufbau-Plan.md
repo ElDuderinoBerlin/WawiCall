@@ -6,6 +6,8 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8 und 14 sind teilweise umgesetzt und geprüft.
+Zuletzt ergänzt: gespeicherte Geschäftspartner-/Mandantenzuordnung und Gesprächsende in der Historie
+(Phase 8, geprüfter Teilpunkt vom 14.11.2026).
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -306,7 +308,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1931,6 +1933,33 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   und Katalog-Doubles. Keine produktiven Verbindungsdaten, SIP-Anrufe oder aktivierten Audiostreams.
   Rollback durch Rücknahme dieses Commits; die bereits vorhandenen Gerätekennungen bleiben kompatibel.
   Laufender Gerätewechsel, Pegel, Wiederanbindung und reale Medien-/Klingeltonabnahme bleiben in Phase 9 offen.
+- [x] ✅ Teilpunkt gespeicherte Geschäftspartnerzuordnung und Gesprächsende in der Historie (14.11.2026):
+  „Details und Notizen“ zeigt die beim Gespräch gespeicherten Kunden, Lieferanten und Kontaktpersonen
+  mit Rolle, vorhandener Nummer, Mandantenname und Produktlinie. Die ausgewählte Zuordnung steht vor
+  weiteren Treffern; gleiche technische IDs unterschiedlicher Mandanten oder Produktlinien bleiben getrennt.
+  Fehlende historische Mandantennamen werden ausdrücklich benannt und nicht durch aktuelle Stammdaten ersetzt.
+  Beginn, Annahme, Ende und Beendigungsgrund werden mit lokalen Zeiten dargestellt. Die bestehende
+  Zustandsspalte unterscheidet verpasste, abgelehnte, besetzte, abgebrochene, unterbrochene und weitergeleitete
+  Gespräche. Unterdrückte Nummern bleiben als solche erkennbar. Keine neue Paging- oder Suchoberfläche.
+  Die Ansicht verwendet ausschließlich den vorhandenen eigenen Historienabruf, auch ohne verfügbares Lexware.
+  Ungültige Teilnehmer-/Notizsammlungen ersetzen keinen zuvor geladenen Kontext und keinen Entwurf.
+  Beim Schreiben einer Notiz wird der Detailtext nur bei geänderten gespeicherten Daten neu gesetzt;
+  dadurch bleibt eine dortige Textauswahl erhalten. Die bestehende kopierbare Detailansicht und ihr
+  Designeraufbau bleiben erhalten; umfangreiche Gesprächsdetails können wie bisher gescrollt werden.
+  Nachweise: je Edition 29 bestandene App-Prüfungen einschließlich historischem SQLite-Roundtrip ohne
+  Lexware-Zugriff, Produktlinien-/Mandantentrennung, fehlenden Altdaten, sechs Beendigungsgründen,
+  Gesprächswechsel, Textauswahl und den bisherigen Entwurfs-/Shutdown-/Speicherprüfungen.
+  Je Edition zwölf gezielte Hintergrundaufnahmen für leer, Entwurf, Speicherfehler und gespeichert mit
+  gefüllten historischen Zuordnungen bei 640/900 Breite, 10/16 pt, 150%-Layoutsimulation, Basic/Blue Dark
+  und Office 2019 Black erzeugt; repräsentative Zustände und Layoutvarianten visuell geprüft.
+  Bestehende Listenprüfung mit 501 Einträgen, optionalem Find Panel und ohne Paging ebenfalls bestanden.
+  Beide Solution-Editionen einschließlich App/Console in Debug/Any CPU rekompiliert: null Fehler,
+  jeweils 26 bekannte externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.phase8-history-context-{build,tests}-{pro,fin}.log`; aktuelle Bilder unter
+  `WawiCallPro.App.Tests/bin/Debug/{Pro,FinOffice}/net11.0-windows10.0.19041.0/.artifacts/history-notes`.
+  Sicherheitsumfang: reine Anzeige vorhandener historischer Daten, keine neuen SQL-Zugriffe, Migrationen,
+  Konfigurationsformate oder produktiven Verbindungen. Rollback durch Rücknahme dieses Commits;
+  gespeicherte Daten bleiben kompatibel. Vollständige Kernprodukt- und reale SIP-Abnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
