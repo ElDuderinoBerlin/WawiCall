@@ -8,6 +8,8 @@ Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implemen
 die reale SIP-/Geräteabnahme steht aus. Phasen 8 und 14 sind teilweise umgesetzt und geprüft.
 Zuletzt ergänzt: gespeicherte Geschäftspartner-/Mandantenzuordnung und Gesprächsende in der Historie
 (Phase 8, geprüfter Teilpunkt vom 14.11.2026).
+Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
+Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -309,7 +311,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
+| 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2001,6 +2003,16 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
 Audio-Aufgaben betreffen die laufende Medienverarbeitung und deren echte Geräteabnahme.
 
+- [x] ✅ Vorhandene Audio-Vorlage am 14.11.2026 lesend abgeglichen:
+  `D:\Application-Development\WawiCallPro_old\TestCSCoreRecording` enthält SoundRecorder,
+  WavMixer, die Klasse SimpleMixer in `SampleMixer.cs`, WavToMp3Converter, PeakLevelMeter,
+  SampleWavGainSource sowie WavFileConverter und A-Law-Hilfen. Zuordnung und direkte Quelllinks
+  stehen in [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).
+  Die MP3-Fähigkeitsprüfung ist in der aktuellen Vorlage bereits korrigiert; den früheren
+  WMA-Befund nicht erneut als offenen Quellfehler behandeln. Aufnahme aus Mikrofon/WasapiLoopback
+  muss weiterhin an die beiden SIP-Gesprächsströme angepasst werden. TTS und Ansagewiedergabe
+  sind damit noch nicht umgesetzt. Reiner Quellen-/Dokumentationsabgleich ohne Ausführung,
+  Gerätezugriff oder Änderungen am Altprojekt; kein Funktionsnachweis der folgenden Aufgaben.
 - [ ] Geräteauflistung/-wechsel, Pegel, Lautstärke, Stummschaltung und Wiederanbindung nach Geräteverlust über
   die eigene SIPSorceryMedia.Windows.CSCore-/CSCore-Anbindung umsetzen.
 - [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
@@ -2011,7 +2023,7 @@ Audio-Aufgaben betreffen die laufende Medienverarbeitung und deren echte Geräte
   anpassen. Gemeinsame Zeitbasis, tatsächliche PCM-Abtastraten, Lücken, Kanalzuordnung und Pegel prüfen;
   gültige WAV-Datei vor Konvertierung finalisieren. Kein allgemeiner Desktop-Loopback als Gesprächsquelle.
 - [ ] WAV anschließend asynchron nach MP3 encodieren; WavToMp3Converter/CSCore Media Foundation als
-  Vorlage verwenden. MP3-Fähigkeitsprüfung statt des alten WMA-Checks, unterstützte Formate/Bitraten,
+  Vorlage verwenden. Vorhandene MP3-Fähigkeitsprüfung erhalten, unterstützte Formate/Bitraten,
   Abbruch und echte Fehlerweitergabe umsetzen. Erst vollständige MP3 veröffentlichen; WAV bei Fehler erhalten.
 - [ ] Aufnahmesegmente mit Call-ID/Aufnahme-ID, Aufnahmebeginn/-ende, Dauer, WAV-/MP3-Dateireferenzen
   und Konvertierungs-/Fehlerstatus in der eigenen DB protokollieren. Zusätzliche Verträge/Migrationen ab
