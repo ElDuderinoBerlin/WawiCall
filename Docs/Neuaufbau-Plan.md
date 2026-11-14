@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel und Audio-Geräteauswahl; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1940,8 +1940,27 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 - [ ] Tray und globale Tastenkürzel integrieren; Fokus, Mehrfachfenster und Beenden mit aktivem Gespräch definieren.
 - [ ] Alle Forms/Controls als `.cs`/`.Designer.cs`/`.resx` und mit designerfähigem parameterlosem Konstruktor aufbauen.
 - [ ] DevExpress-Eingaben in TableLayoutPanel-Layouts verwenden; UI-Schrift, Skin und DPI gemeinsam berücksichtigen.
-- [ ] Auf die betroffenen Views begrenzte Renderprüfung entsprechend `LX_UI_AUDIT_SURFACES` aus der Vorlage einrichten.
-  Diese Renderinfrastruktur ist im neuen Repository erst zu implementieren.
+- [x] ✅ Auf die betroffenen Views begrenzte Renderprüfung entsprechend `LX_UI_AUDIT_SURFACES` eingerichtet;
+  vorhandene Implementierung und Nachweise am 14.11.2026 abgeglichen.
+  `Program` übernimmt `--ui-audit <Ausgabeordner>`; `AppApplicationContext` startet den Renderer im
+  vorhandenen Host und erzeugt das Hauptfenster über dessen Composition Root mit Laufzeitdiensten.
+  `WawiCallPro.App/Diagnostics/UiAudit.cs` begrenzt die Ausgabe auf die kommagetrennt angeforderten
+  Typnamen `MainForm`, `FrmSettings`, `FrmDial`, `HistoryPage`, `CallerLookupPage`, `CallDetailsPage`
+  und `PhoneNumberDiagnosticsPage`. Ohne bekannte ausgewählte Oberfläche wird der Aufruf abgewiesen.
+  Bei Arbeiten den Filter ausdrücklich setzen; ohne Filter umfasst der allgemeine Einstieg alle diese Typen.
+  Für Prüfungen ausschließlich ein isoliertes `WAWICALLPRO_CONFIG_DIR` mit Dummy-Plugin verwenden,
+  da der Host weiterhin Konfiguration und Plugin lädt. Der Auditmodus unterdrückt automatische
+  SIP-Anmeldung und Telefon-Cache-Worker,
+  echte Autostarteinträge, UI-Registry-Persistierung, globale Hotkey-Reservierung und Audio-Geräteerkennung.
+  Gezielt gefüllte/leere Fachzustände und verschachtelte Unterseiten werden ergänzend durch die
+  zugehörigen App-Tests gerendert; deren Umfang und Bildpfade stehen bei den einzelnen Teilpunkten.
+  Aktuelle Nachweise: Commit `e805b2c`, je Edition 17 bestandene Prüfungen einschließlich zentraler
+  Einstellungsseiten sowie 18 begrenzte Audio-Aufnahmen; zuvor Historiennotizen in `7c2f1f4` und
+  Hotkey-Einstellungen in `a3d8ede`. Zugehörige Build-/Bildnachweise sind in diesen Teilpunkten aufgeführt.
+  Dies ist der Abschluss der Infrastrukturaufgabe, keine vollständige Kernprodukt- oder native
+  Vordergrundabnahme. Der sichtbare Sonderlauf `TrayNative` bleibt separat freigabepflichtig.
+  Für diesen reinen Planabgleich nur Quellen-, Text- und Pfadkonsistenz geprüft; keine neuen
+  Builds oder GUI-Läufe gestartet und keine früheren Prüfungen als neue Läufe ausgegeben.
 
 Abnahme Kernprodukt: Cache-Mandanten in Einstellungen wählen → Kunden laden → Anruf empfangen → zuordnen → bedienen → Notiz speichern →
 Gespräch nach Neustart in der Historie wiederfinden. Zusätzlich ausgehender Anruf und verpasster Anruf.
