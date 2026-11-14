@@ -13,6 +13,8 @@ public static class AudioConversionServices
         services.TryAddSingleton<IMp3Converter, WavToMp3Converter>();
         services.TryAddSingleton<IConversationWaveRenderer, ConversationWaveRenderer>();
         services.TryAddSingleton<IConversationWaveMixer, ConversationWaveMixer>();
+        services.TryAddSingleton<IPcmSegmentSinkFactory, CscorePcmSegmentSinkFactory>();
+        services.TryAddSingleton<IPcmRecordingSessionFactory, PcmRecordingSessionFactory>();
         return services;
     }
 }

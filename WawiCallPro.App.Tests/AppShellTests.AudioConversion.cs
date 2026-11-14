@@ -24,6 +24,10 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<ConversationWaveMixer>(mixer);
             Assert.AreSame(mixer, host.Services.GetRequiredService<IConversationWaveMixer>());
             Assert.IsInstanceOfType<ConversationWaveRenderer>(host.Services.GetRequiredService<IConversationWaveRenderer>());
+            var recordingFactory = host.Services.GetRequiredService<IPcmRecordingSessionFactory>();
+            Assert.IsInstanceOfType<PcmRecordingSessionFactory>(recordingFactory);
+            Assert.AreSame(recordingFactory, host.Services.GetRequiredService<IPcmRecordingSessionFactory>());
+            Assert.IsInstanceOfType<CscorePcmSegmentSinkFactory>(host.Services.GetRequiredService<IPcmSegmentSinkFactory>());
         }
         finally { await ((IAsyncDisposable)host).DisposeAsync(); }
     });

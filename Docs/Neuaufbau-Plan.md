@@ -6,17 +6,17 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt umgesetzt: dateibasierter Gesprächs-WAV-Mixer mit gemeinsamer Zeitbasis, Lücken,
-CSCore-Resampling, Stereotrennung oder Mono-Mischung und sicherer Dateiveröffentlichung
-(Phase 9, Teilpunkt vom 14.11.2026). Der zuvor umgesetzte MP3-Dienst übernimmt die finalisierte WAV.
+Zuletzt umgesetzt: besessene PCM-Aufnahmesitzung mit begrenzter Callback-Warteschlange,
+getrennten CSCore-WAV-Segmenten und geordnetem Stop-/Abbruchablauf (Phase 9, Teilpunkt vom 14.11.2026).
+Sie übergibt finalisierte Quellen an den vorhandenen Zeitachsenmixer; danach ist MP3-Konvertierung möglich.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
 DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
-Dateimixer und MP3-Konvertierung mit synthetischen Audiodateien geprüft; laufende SIP-Aufnahme,
-Aufnahmesitzung und echte Audioabnahme weiterhin offen.
+PCM-Aufnahmesitzung, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
+SIP-PCM-Anbindung, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
 Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
 
@@ -320,7 +320,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Gesprächs-WAV-Dateimixer mit Zeitbasis, Lücken, Resampling und Mono-/Stereoausgabe sowie asynchrone MP3-Konvertierung; laufende SIP-Aufnahme, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ PCM-Aufnahmesitzung mit begrenztem Puffer, WAV-Segmenten und Stop-/Abbruchsteuerung, Zeitachsenmixer und MP3-Konvertierung; SIP-PCM-Anbindung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2127,11 +2127,38 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   `.wave-mixer-tests-{pro,fin}.log`, `.wave-mixer-host-{pro,fin}.log`; ausschließlich synthetische Dateien,
   keine Geräte, SIP-Verbindungen, Produktionsdaten oder sichtbare GUI. Vertrag und Rollback in
   `Docs/Architektur.md`. Kein Nachweis einer laufenden Aufnahmesitzung oder des DB-Wiederanlaufs.
-- [ ] `SoundRecorder` auf gesprächsgebundene Empfangs-/Sendedaten hinter eigenen DI-Interfaces
-  anpassen und den Dateimixer anbinden. Nicht blockierende begrenzte PCM-Warteschlange,
-  gesprächsgebundene gemeinsame Zeitbasis und tatsächliche Decoder-Abtastraten durchsetzen;
-  Überlauf als Fehler melden, WAV-Segmente vor dem Mischen finalisieren. Kein allgemeiner
-  Desktop-Loopback als Gesprächsquelle. Manuelles Starten/Stoppen und SIP-/Geräteabnahme bleiben offen.
+- [x] ✅ PCM-Aufnahmesitzung als Ersatz für die Aufnahme-/Dateikopplung aus `SoundRecorder`
+  umgesetzt (14.11.2026): `IPcmRecordingSessionFactory` erzeugt pro ausdrücklichem Auftrag eine
+  besessene `IPcmRecordingSession`; App und Console registrieren dieselbe zustandslose Factory.
+  Eigener `IPcmSegmentSinkFactory`-Adapter mit CSCore-WaveWriter. Callbackpfad kopiert höchstens
+  100 ms Mono-PCM16 und verwendet ausschließlich `TryWrite` auf einer begrenzten Mehrschreiber-Queue;
+  keine Datei-/Encoderarbeit, kein Warten auf Kapazität und keine synchronen Worker-Fortsetzungen.
+  Standard 64, ausdrücklich 1–256 Blöcke; Überlauf beendet die Aufnahme mit sichtbarem Fehlerzustand.
+  Gemeinsame aufnahmebezogene Medienposition, tatsächliche PCM-Raten, getrennte Sende-/Empfangssegmente;
+  Lücken als Stille, Ratenwechsel als neue Segmente, verspätete/überlappende Daten als Fehler.
+  Höchstens 128 Segmente sowie vorhandene Zeit-/WAV-Größengrenzen durchsetzen. Zustände Capturing,
+  Stopping, Completed, Failed und Aborted sowie beobachtbarer Capture-Task und sicherer Fehlercode.
+  Stop sperrt neue Blöcke, arbeitet angenommene Daten ab, finalisiert und prüft alle Quellen und
+  übergibt sie an den bestehenden Mixer. Wiederholtes Stoppen teilt denselben Task; Dispose während
+  Stop wartet darauf, Dispose ohne Stop bricht ab. Abbruch während nativer IO wartet auf deren
+  Rückkehr und Freigabe. Fehler-/Abbruchfälle veröffentlichen keine neue Misch-WAV vor deren Commit;
+  bestehende Ziele und Quellsegmente in einem eindeutigen Aufnahme-Unterordner erhalten.
+  Nachweise je Edition: 132 Console-Prüfungen, davon 34 neue Sitzungsprüfungen, sowie zwei gezielte
+  App-Hostprüfungen bestanden. Exakte Duplex-Samples, Lücken, kopierte Callbackdaten bei blockiertem
+  Dateiadapter, parallele Produzenten, Überlauf, Ratenwechsel, Segmentgrenze, Stop-/Dispose-/Abbruchrennen,
+  Dateifehler, Zielkonflikt, getrennte Sitzungen und tatsächlicher PCM→WAV→Misch-WAV→MP3-Pfad geprüft.
+  Bestehende Mixer-/Konvertierungstests weiterhin bestanden. Beide Solution-Editionen in Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen. FinOffice als reguläre Startausgabe
+  erhalten. Logs `.pcm-recording-build-{pro,fin}.log`, `.pcm-recording-tests-{pro,fin}.log`,
+  `.pcm-recording-host-{pro,fin}.log`. Ausschließlich synthetische PCM-Daten und isolierte Dateien;
+  keine Geräte, SIP-Verbindungen, produktiven Daten oder sichtbaren Fenster. Vertrag und Rollback
+  in `Docs/Architektur.md`. Noch keine automatische Aufnahme, Host-/UI-Bedienung oder Absturzwiederaufnahme.
+- [ ] Die PCM-Aufnahmesitzung an die tatsächlichen dekodierten Empfangs-/Sendedaten des
+  SIPSorcery-/CSCore-Medienadapters anbinden. Gemeinsame Medienzeitbasis und tatsächliche
+  Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche
+  Reihenfolge-/Jitterbehandlung vor dem Sitzungsaufruf umsetzen. Kein Desktop-Loopback als Quelle.
+  Manueller Start/Stop, ausdrücklich konfigurierte Automatik, geordneter Host-Shutdown und
+  echte SIP-/Geräteabnahme bleiben offen.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit
   `WavToMp3Converter` und injiziertem `IMp3EncodingBackend` im bestehenden Audio-Projekt.
   Beide Hosts registrieren denselben zustandslosen Dienst; native Encoder, Resampler und Dateien
