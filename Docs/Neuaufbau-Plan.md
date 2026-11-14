@@ -5,14 +5,17 @@ Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutloo
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
-die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt behoben: doppelte Lexware-/PCFK-Core-DLLs durch gemeinsamen Lade-/Deploymentvertrag;
-Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14, Teilpunkt vom 14.11.2026).
+die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+Zuletzt umgesetzt: asynchroner WAV-zu-MP3-Dienst mit CSCore/Media Foundation, sicherer Dateiveröffentlichung,
+Abbruch und nativen Fehlerprüfungen (Phase 9, Teilpunkt vom 14.11.2026).
+Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
+Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
 DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
-Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
+MP3-Konvertierung portiert und mit synthetischen Audiodateien geprüft; Aufnahme-/Mixerportierung
+und echte Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
 Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
 
@@ -316,7 +319,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
+| 9 | 🟨 | ✅ Asynchrone WAV-zu-MP3-Konvertierung über CSCore/Media Foundation; Aufnahme, Mixer, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2078,7 +2081,7 @@ Gespräch nach Neustart in der Historie wiederfinden. Zusätzlich ausgehender An
 Beide Produktlinien in Debug bauen. Betroffene Views mit befüllten/leeren Daten, kleinem Fenster,
 größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 
-### Phase 9 – Audio, Aufzeichnung und Ansagen ⬜
+### Phase 9 – Audio, Aufzeichnung und Ansagen 🟨
 
 Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
 Audio-Aufgaben betreffen die laufende Medienverarbeitung und deren echte Geräteabnahme.
@@ -2102,9 +2105,33 @@ Audio-Aufgaben betreffen die laufende Medienverarbeitung und deren echte Geräte
   SimpleMixer und SoundRecorder auf gesprächsgebundene Empfangs-/Sendedaten hinter eigenen DI-Interfaces
   anpassen. Gemeinsame Zeitbasis, tatsächliche PCM-Abtastraten, Lücken, Kanalzuordnung und Pegel prüfen;
   gültige WAV-Datei vor Konvertierung finalisieren. Kein allgemeiner Desktop-Loopback als Gesprächsquelle.
-- [ ] WAV anschließend asynchron nach MP3 encodieren; WavToMp3Converter/CSCore Media Foundation als
-  Vorlage verwenden. Vorhandene MP3-Fähigkeitsprüfung erhalten, unterstützte Formate/Bitraten,
-  Abbruch und echte Fehlerweitergabe umsetzen. Erst vollständige MP3 veröffentlichen; WAV bei Fehler erhalten.
+- [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit
+  `WavToMp3Converter` und injiziertem `IMp3EncodingBackend` im bestehenden Audio-Projekt.
+  Beide Hosts registrieren denselben zustandslosen Dienst; native Encoder, Resampler und Dateien
+  gehören jeweils einem Konvertierungsaufruf. Keine Encoder-/Geräteinitialisierung beim DI-Aufbau.
+  Die Vorlage aus `TestCSCoreRecording/WavToMp3Converter` ist überarbeitet: tatsächliche MP3-Typen
+  über `AudioSubTypes.MpegLayer3` abfragen, Abtastrate/Kanäle/Bitrate exakt auswählen, keine stille
+  Bitratenannäherung. Finalisierte PCM16-RIFF/WAVs mit einem oder zwei Kanälen werden geprüft;
+  CSCore-DMO passt die Abtastrate an das gewählte verfügbare Zielformat an. Kein Kanal-Downmix.
+  Worker-Task mit beobachtetem Abbruch bis unmittelbar vor Veröffentlichung. Der native Aufruf
+  selbst ist nicht zwangsweise abbrechbar; der Task wartet auf seine Rückkehr und räumt danach auf.
+  Eindeutige temporäre Geschwisterdatei, Encoderfinalisierung und Dateiflush vor nicht überschreibender
+  Umbenennung; die WAV bleibt auch bei Erfolg erhalten. Vorhandene oder konkurrierend erstellte Ziele
+  werden nicht ersetzt. Streamfehler zusätzlich erfassen, weil native Sink-Aufrufe sie verschlucken
+  können; Finalisierungsfehler dürfen nicht auf dem CSCore-Finalizerthread erneut ausgelöst werden.
+  Sichere Fehlercodes/-texte ohne Pfade oder native InnerException; temporäre Dateien nach Fehler/Abbruch
+  entfernen, Bereinigungsfehler ausdrücklich melden. Lokale absolute `.wav`-/`.mp3`-Dateien erforderlich.
+  Nachweise je Edition: 60 Console-Prüfungen (35 neue Audioprüfungen) und zwei gezielte App-Hostprüfungen
+  bestanden. Vier echte MP3-Kodierungen aus synthetischen 8-/16-/44,1-/48-kHz-WAVs mit anschließender
+  Dekodierung, Dauer-/Formatprüfung und Stereokanalnachweis; echte native Schreib-/Flushfehler mit
+  anschließend erfolgreicher erneuter Konvertierung. Legale PCM-Erweiterung und ungerade
+  Metadatenchunks mit RIFF-Padding geprüft; ungültige/trunkierte WAVs, nicht verfügbare Encoder
+  über Doubles, unerlaubte Formate, Abbruch, Dateifehler und Zielkonkurrenz isoliert geprüft.
+  Beide Solution-Editionen in Debug/Any CPU rekompiliert: null Fehler, je 26 bestehende externe
+  CSCore-Warnungen; FinOffice als reguläre Startausgabe hergestellt. Logs `.mp3-build-{pro,fin}.log`,
+  `.mp3-tests-{pro,fin}.log`, `.mp3-host-{pro,fin}.log`. Kein Mikrofon, keine Wiedergabe oder sichtbare GUI.
+  Vertrag, Grenzen und Rollback in `Docs/Architektur.md`. Aufnahmesitzung, Konvertierungsjobpersistenz,
+  Wiederanlauf und Bedienoberfläche bleiben eigene offene Punkte; Phase 9 bleibt teilweise umgesetzt.
 - [ ] Aufnahmesegmente mit Call-ID/Aufnahme-ID, Aufnahmebeginn/-ende, Dauer, WAV-/MP3-Dateireferenzen
   und Konvertierungs-/Fehlerstatus in der eigenen DB protokollieren. Zusätzliche Verträge/Migrationen ab
   Version 6 ausarbeiten; bestehende Migrationen 1–5 unverändert lassen. Neustart und erneute Konvertierung
