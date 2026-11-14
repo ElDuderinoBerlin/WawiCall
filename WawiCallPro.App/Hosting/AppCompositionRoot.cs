@@ -37,6 +37,7 @@ internal static class AppCompositionRoot
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
                 services.AddSingleton<ISipMediaSessionFactory, WindowsSipMediaSessionFactory>();
+                services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
                 services.AddSipTelephony(!mode.SuppressNetwork);
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();

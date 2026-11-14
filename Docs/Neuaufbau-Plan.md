@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung und konfigurierbare Shell-Tastenkürzel; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel und Audio-Geräteauswahl; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1894,6 +1894,43 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   neue SQL-Ausführung, Migration oder Konfigurationsänderung. Tests verwenden Doubles beziehungsweise
   isoliertes SQLite, keine produktiven Profile oder Telefonie. Rollback durch Rücknahme dieses Commits;
   zuvor alle Entwürfe speichern oder bewusst leeren. Die vollständige Kernproduktabnahme bleibt offen.
+- [x] ✅ Teilpunkt Audio-Geräteauswahl in den zentralen Einstellungen (14.11.2026):
+  Der Audio-Tab enthält kompakte Unterseiten „Geräte“ und „Lautstärken“. Durchsuchbare DevExpress-
+  Lookups zeigen Mikrofon, Gesprächsausgabe und geplante Klingelausgabe mit nur dem Gerätenamen.
+  Die zusätzliche Systemstandard-Option speichert `null`; konkrete Zuordnungen bleiben stabile
+  CSCore-/MMDevice-IDs. Fehlende gespeicherte Geräte bleiben als „Gerät nicht verfügbar“ erhalten,
+  auch bei leerer Liste, Abruffehlern, Neuladen und Speichern anderer Einstellungen.
+  Der neue per DI injizierte Katalog liest aktive Aufnahme-/Ausgabe-Endpunkte auf einem Worker über
+  die vorhandene CSCore-Abhängigkeit der eigenen Medienbibliothek. Enumerator, Collection und einzelne
+  Geräte werden freigegeben. Es werden keine Audio-Clients/-Streams gestartet. Diagnosen/Audits
+  unterdrücken die Erkennung ausdrücklich. Technische IDs und native Fehlermeldungen werden nicht angezeigt.
+  Geräte neu laden erhält ungespeicherte Auswahlwerte; laufende Abrufe sperren die Auswahl und
+  Doppelaufrufe. Beim Schließen wird abgebrochen und auch auf nicht kooperative Quellen gewartet;
+  verspätete Ergebnisse verändern keine geschlossene Ansicht. Fehler erlauben erneutes Laden.
+  Gerätezuordnungen verwenden das vorhandene JSON-Modell ohne neue Formatversion. Die laufende
+  Medienkonfiguration bleibt unverändert; Änderungen gelten nach dem nächsten Programmstart.
+  Klingelausgabe/-lautstärke sind sichtbar als Vorbereitung für die spätere Klingeltonfunktion gekennzeichnet.
+  Designerfähige Aufteilung, TableLayoutPanel und gemeinsame Button-/DPI-Hilfe erhalten; der neue
+  Ladebutton steht bündig zu den Eingaben. Lautstärkefelder sind auf ihren Inhalt begrenzt.
+  Die Mindesthöhe berücksichtigt Inhalt und Rahmenbereiche beider Audio-Unterseiten. Ein in der
+  erweiterten Prüfung reproduzierbarer Fehler mit veralteter Höhe einer ausgeblendeten Seite wurde
+  behoben; die Berechnung verwendet keine solche Fensterhöhen-Rückkopplung mehr.
+  Nachweise: Je Edition 17 gezielte App-Prüfungen für stabile IDs, Systemstandard, fehlende Geräte,
+  Auswahl bei Fehler/Retry, ungültige Kataloge, Doppelaufrufe, Schließen während nicht kooperativem
+  Abruf, DI-Weitergabe, Einstellungen-Roundtrip und sichere Diagnoseunterdrückung. Native CSCore-
+  Endpunktmetadaten auf diesem Rechner schreibfrei geprüft, ohne Sprachaufnahme oder Wiedergabe.
+  Wegen der gemeinsamen Mindesthöhe auch bestehende Prüfung aller Einstellungsseiten, DirectX-
+  Speichern/Neustart, Pluginwechsel/Fortschritt und Schließen nach einem Auftrag bestanden.
+  Je Edition 18 gezielte Audio-Aufnahmen für verfügbar, fehlend, leer, Fehler und Prüfmodus sowie
+  Lautstärken bei 680/980 Breite, 10/16 pt, 150%-Layoutsimulation, Basic/Blue Dark und Office 2019 Black
+  unsichtbar gerendert und visuell geprüft. Keine zusätzlichen Scrollbars zur Kaschierung von Layoutfehlern.
+  Beide Solution-Editionen einschließlich App/Console in Debug/Any CPU rekompiliert: null Fehler,
+  jeweils 26 bekannte externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.phase8-audio-devices-{build,tests}-{pro,fin}.log`; Bilder `.artifacts/audio-devices/{Pro,FinOffice}`.
+  Sicherheitsumfang: Metadatenabfrage und explizite Gerätepräferenzen; Tests verwenden isolierte Profile
+  und Katalog-Doubles. Keine produktiven Verbindungsdaten, SIP-Anrufe oder aktivierten Audiostreams.
+  Rollback durch Rücknahme dieses Commits; die bereits vorhandenen Gerätekennungen bleiben kompatibel.
+  Laufender Gerätewechsel, Pegel, Wiederanbindung und reale Medien-/Klingeltonabnahme bleiben in Phase 9 offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
@@ -1912,6 +1949,9 @@ Beide Produktlinien in Debug bauen. Betroffene Views mit befüllten/leeren Daten
 größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 
 ### Phase 9 – Audio, Aufzeichnung und Ansagen ⬜
+
+Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
+Audio-Aufgaben betreffen die laufende Medienverarbeitung und deren echte Geräteabnahme.
 
 - [ ] Geräteauflistung/-wechsel, Pegel, Lautstärke, Stummschaltung und Wiederanbindung nach Geräteverlust über
   die eigene SIPSorceryMedia.Windows.CSCore-/CSCore-Anbindung umsetzen.

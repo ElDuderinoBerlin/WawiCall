@@ -763,10 +763,28 @@ wiederherstellen und die aktuelle Datei vorher sichern; ältere Ausgaben lesen V
 
 Die bevorzugte Firma ist nur eine Präferenz. Sie stellt weder einen nachgewiesenen Lexware-Mandanten noch
 die aktuelle Auswahl dar und wird beim Start nicht automatisch in `CompanyContext` übernommen.
-Gerätekennungen sind unveränderte CSCore-/MMDevice-IDs, keine Listenpositionen. `null` bezeichnet die spätere
-Systemstandard-Auswahl; Leerwerte und Steuerzeichen werden abgewiesen. Lautstärken liegen zwischen 0 und 100.
-Geräteverfügbarkeit und die Anwendung der Benutzer-/Audiopräferenzen folgen mit der UI-/Audiointegration
-in Phase 8/9. In diesem Block werden weder Controls umgebaut noch Audiogeräte geöffnet.
+Gerätekennungen sind unveränderte CSCore-/MMDevice-IDs, keine Listenpositionen. `null` wählt den
+Systemstandard; Leerwerte und Steuerzeichen werden abgewiesen. Lautstärken liegen zwischen 0 und 100.
+Der zentrale Audio-Tab enthält die Unterseiten **Geräte** und **Lautstärken**. Die injizierte
+`IAudioDeviceCatalog`-Implementierung liest aktive Aufnahme-/Ausgabe-Endpunkte über CSCore auf einem
+Worker und gibt ausschließlich abgelöste Kennungen/Namen zurück. Enumerator, Collection und einzelne
+COM-Endpunkte werden freigegeben; es werden keine Aufnahme-/Wiedergabestreams aktiviert. Audits und
+Diagnosen liefern einen ausdrücklich unterdrückten Katalog statt einer vermeintlich leeren Geräteliste.
+
+Durchsuchbare Lookups zeigen nur Gerätenamen und die Systemstandard-Option. Gespeicherte fehlende
+Geräte bleiben mit derselben ID als „Gerät nicht verfügbar“ auswählbar; Liste, Fehler oder Abbruch
+ersetzen keine Zuordnung stillschweigend. Geräte neu laden erhält ungespeicherte Auswahlwerte und
+verhindert parallele Abrufe. Schließen bricht den Abruf ab, wartet auch auf nicht kooperative Quellen
+und verwirft verspätete Ergebnisse. Fehler enthalten weder fremde Meldungstexte noch Endpoint-IDs.
+Der Anwendungs-Host injiziert den Katalog über das Hauptfenster in den zentralen Einstellungsdialog.
+
+Erst ausdrückliches Speichern verändert die vorhandenen `devices`-Felder; ein neues JSON-Format ist
+dafür nicht erforderlich. Der laufende Medienpfad behält seinen Start-Snapshot. Mikrofon,
+Gesprächsausgabe, Gesprächslautstärke und Mikrofonpräferenz gelten nach Neustart für neue Mediensitzungen.
+Klingelausgabe/-lautstärke werden für die spätere Klingeltonfunktion gespeichert und im Dialog entsprechend
+gekennzeichnet. Laufender Gerätewechsel, Pegel und Wiederanbindung folgen in Phase 9; die Auswahl allein
+ist kein Nachweis einer funktionierenden Sprachverbindung. Rollback durch Rücknahme des Auswahl-Commits;
+das bereits bestehende Geräte-Einstellungsformat und die gespeicherten IDs bleiben kompatibel.
 
 `CommunicationDatabaseSettings` enthält zunächst die Konfigurationstokens Sqlite, SqlServer, MySql und
 PostgreSql. SQLite nutzt einen lokalen Dateinamen unter dem Konfigurationsverzeichnis oder einen

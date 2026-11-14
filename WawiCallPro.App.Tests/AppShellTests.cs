@@ -18,6 +18,7 @@ using WawiCallPro.Core.Threading;
 using WawiCallPro.Database;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Capabilities;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
@@ -40,6 +41,147 @@ namespace WawiCallPro.App.Tests;
 [TestClass, DoNotParallelize]
 public sealed class AppShellTests
 {
+    [TestMethod]
+    public Task AudioDeviceSettingsPreserveMissingEndpointsAndSaveOnlyStableIds() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { Devices = snapshot.Options.Devices with
+            { CaptureDeviceId = "missing-capture", PlaybackDeviceId = "render-one", RingDeviceId = "missing-ring", PlaybackVolumePercent = 65 } }, snapshot);
+        var catalog = new AudioCatalogDouble();
+        using var settings = new FrmSettings(workspace); settings.ConfigureAudioDevices(catalog);
+        var page = Field<SettingsPage>(settings, "settingsPage");
+        settings.PrepareForBackgroundRun(); page.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "audioTab"); settings.Show();
+        await page.ReloadAsync();
+        var capture = Field<LookUpEdit>(page, "captureDeviceEdit"); var playback = Field<LookUpEdit>(page, "playbackDeviceEdit"); var ring = Field<LookUpEdit>(page, "ringDeviceEdit");
+        Assert.AreEqual("missing-capture", capture.EditValue); Assert.Contains("nicht verfügbar", capture.Text);
+        Assert.AreEqual("Lautsprecher eins", playback.Text); Assert.AreEqual("missing-ring", ring.EditValue);
+        Assert.IsTrue(capture.Enabled); Assert.AreEqual(DevExpress.XtraEditors.Controls.SearchMode.AutoSearch, capture.Properties.SearchMode);
+        Assert.IsFalse(capture.Properties.ShowHeader); Assert.IsFalse(capture.Properties.ShowFooter);
+        Assert.AreEqual(1, capture.Properties.Columns.Count); Assert.AreEqual("Name", capture.Properties.Columns[0].FieldName);
+        capture.EditValue = "capture-two"; playback.EditValue = "render-two"; ring.EditValue = "render-one";
+        await page.SaveAsync(CancellationToken.None);
+        var saved = await workspace.Settings.LoadAsync();
+        Assert.AreEqual("capture-two", saved.Options.Devices.CaptureDeviceId); Assert.AreEqual("render-two", saved.Options.Devices.PlaybackDeviceId);
+        Assert.AreEqual("render-one", saved.Options.Devices.RingDeviceId); Assert.AreEqual(65, saved.Options.Devices.PlaybackVolumePercent);
+        Assert.IsNull(workspace.Configuration.Current.Options.Devices.CaptureDeviceId, "The running media configuration must remain the startup snapshot.");
+        catalog.Result = new([], []); await page.ReloadAudioDevicesAsync();
+        Assert.AreEqual("capture-two", capture.EditValue); Assert.Contains("nicht verfügbar", capture.Text);
+        await page.SaveAsync(CancellationToken.None); Assert.AreEqual("capture-two", (await workspace.Settings.LoadAsync()).Options.Devices.CaptureDeviceId);
+        capture.EditValue = playback.EditValue = ring.EditValue = ""; await page.SaveAsync(CancellationToken.None);
+        var defaults = (await workspace.Settings.LoadAsync()).Options.Devices;
+        Assert.IsNull(defaults.CaptureDeviceId); Assert.IsNull(defaults.PlaybackDeviceId); Assert.IsNull(defaults.RingDeviceId);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task AudioDeviceReloadRetainsUnsavedChoicesOnFailureAndAllowsRetry() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var catalog = new AudioCatalogDouble();
+        using var settings = new FrmSettings(workspace); settings.ConfigureAudioDevices(catalog);
+        var page = Field<SettingsPage>(settings, "settingsPage"); await page.ReloadAsync();
+        var capture = Field<LookUpEdit>(page, "captureDeviceEdit"); capture.EditValue = "capture-two";
+        catalog.Read = _ => throw new InvalidOperationException("private-device-error"); await page.ReloadAudioDevicesAsync();
+        Assert.AreEqual("capture-two", capture.EditValue); Assert.IsFalse(capture.Enabled);
+        Assert.Contains("Zuordnungen bleiben erhalten", Field<LabelControl>(page, "audioStatus").Text);
+        Assert.DoesNotContain("private-device-error", Field<LabelControl>(page, "audioStatus").Text);
+        Assert.IsTrue(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
+        await page.SaveAsync(CancellationToken.None); Assert.AreEqual("capture-two", (await workspace.Settings.LoadAsync()).Options.Devices.CaptureDeviceId);
+        catalog.Read = null; await page.ReloadAudioDevicesAsync(); Assert.IsTrue(capture.Enabled); Assert.AreEqual("capture-two", capture.EditValue);
+        catalog.Result = new([new("duplicate", "A"), new("duplicate", "B")], []);
+        await page.ReloadAudioDevicesAsync(); Assert.IsFalse(capture.Enabled); Assert.AreEqual("capture-two", capture.EditValue);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task AudioDeviceReloadIsSingleFlightAndShutdownAwaitsIgnoringSources() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var catalog = new AudioCatalogDouble();
+        using var settings = new FrmSettings(workspace); settings.ConfigureAudioDevices(catalog);
+        var page = Field<SettingsPage>(settings, "settingsPage"); await page.ReloadAsync();
+        var capture = Field<LookUpEdit>(page, "captureDeviceEdit"); capture.EditValue = "capture-one"; var oldSource = capture.Properties.DataSource;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken captured = default;
+        catalog.Read = async token => { captured = token; entered.TrySetResult(); await release.Task; return new([], []); };
+        var loading = page.ReloadAudioDevicesAsync(); await entered.Task;
+        var duplicate = page.ReloadAudioDevicesAsync(); Assert.AreEqual(2, catalog.Reads);
+        Assert.IsFalse(capture.Enabled); Assert.IsFalse(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
+        var stopping = settings.StopAsync(); Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(stopping.IsCompleted);
+        release.SetResult(); await loading; await duplicate; await stopping;
+        Assert.AreSame(oldSource, capture.Properties.DataSource); Assert.AreEqual("capture-one", capture.EditValue);
+        Assert.IsFalse(capture.Enabled); Assert.IsFalse(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
+    });
+
+    [TestMethod]
+    public Task AudioDeviceCatalogFlowsFromMainWindowIntoCentralSettings() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var catalog = new AudioCatalogDouble();
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>(), new LogWindowService(), catalog);
+        form.PrepareForBackgroundRun();
+        using var settings = form.CreateSettingsDialog(); var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync(); Assert.AreEqual(1, catalog.Reads); Assert.IsTrue(Field<LookUpEdit>(page, "captureDeviceEdit").Enabled);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
+    public Task AudioDeviceSettingsRenderAvailableMissingEmptyFailedAndSuppressedCatalogs() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        AppUiStartup.Apply();
+        var originalFont = WindowsFormsSettings.DefaultFont; var originalAppearance = AppearanceObject.DefaultFont;
+        var originalSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName; var originalPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "audio-devices", workspace.Application.ProductLine); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var state in new[] { "available", "missing", "empty", "failure", "suppressed" })
+            foreach (var (width, height, fontSize, scale, skin) in new[] { (980, 760, 10F, 1F, "Basic"), (680, 800, 16F, 1F, "Office 2019 Black"), (980, 760, 10F, 1.5F, "Basic") })
+            {
+                if (skin == "Basic") DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, "Blue Dark"); else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var catalog = new AudioCatalogDouble();
+                if (state == "empty") catalog.Result = new([], []);
+                if (state == "suppressed") catalog.Result = new([], [], true);
+                if (state == "failure") catalog.Read = _ => throw new InvalidOperationException("private-render-device-error");
+                using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = font; settings.ConfigureAudioDevices(catalog);
+                settings.ClientSize = new(width, height); settings.Show();
+                var page = Field<SettingsPage>(settings, "settingsPage"); await page.ReloadAsync();
+                if (state is "missing" or "available")
+                {
+                    var snapshot = await workspace.Settings.LoadAsync(); page.Apply(snapshot with { Options = snapshot.Options with { Devices = new()
+                        { CaptureDeviceId = state == "missing" ? "missing-capture" : "capture-one", PlaybackDeviceId = "render-one", RingDeviceId = "render-two" } } });
+                }
+                page.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "audioTab");
+                settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
+                if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
+                CheckTableBounds(settings);
+                Assert.AreEqual(Field<LookUpEdit>(page, "captureDeviceEdit").Left, Field<SimpleButton>(page, "refreshAudioButton").Left);
+                Assert.IsFalse(Field<TableLayoutPanel>(page, "audioLayout").AutoScroll);
+                Assert.IsTrue(Field<LabelControl>(page, "audioStatus").Bottom <= Field<TableLayoutPanel>(page, "audioLayout").ClientSize.Height);
+                using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"audio-{state}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                if (state == "available")
+                {
+                    Field<XtraTabControl>(page, "audioPages").SelectedTabPage = Field<XtraTabPage>(page, "audioLevelsTab");
+                    settings.PerformLayout(); Application.DoEvents(); CheckTableBounds(settings);
+                    using var levels = UiAudit.Capture(settings); levels.Save(Path.Combine(output, $"levels-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                }
+                await settings.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance;
+            if (string.IsNullOrEmpty(originalPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin); else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
+        }
+    });
+
+    private sealed class AudioCatalogDouble : IAudioDeviceCatalog
+    {
+        internal AudioDeviceCatalog Result = new([new("capture-one", "Mikrofon eins"), new("capture-two", "Mikrofon zwei")],
+            [new("render-one", "Lautsprecher eins"), new("render-two", "Headset zwei")]);
+        internal Func<CancellationToken, Task<AudioDeviceCatalog>>? Read;
+        internal int Reads;
+        public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default)
+        { Reads++; return Read?.Invoke(cancellationToken) ?? Task.FromResult(Result); }
+    }
+
     [TestMethod]
     public Task HistoryNotesKeepPerCallDraftsAcrossFocusRefreshAndRangeChanges() => RunStaAsync(async () =>
     {

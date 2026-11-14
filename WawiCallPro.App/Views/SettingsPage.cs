@@ -23,11 +23,24 @@ public partial class SettingsPage : XtraUserControl
     private AutoStartState? _autoStartState;
     internal event EventHandler? RestartRequested;
     internal event EventHandler? ContentSizeChanged;
-    internal int GetRequiredGeneralHeight() => generalLayout.GetPreferredSize(new(generalLayout.ClientSize.Width, 0)).Height + Height - generalLayout.Height;
+    internal int GetRequiredGeneralHeight()
+    {
+        var width = Math.Max(1, tabs.ClientSize.Width);
+        var content = Math.Max(generalLayout.GetPreferredSize(new(width, 0)).Height,
+            Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
+            + audioDevicesTab.Top + audioDevicesTab.Left);
+        var statusWidth = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal - statusLabel.Margin.Horizontal);
+        // Hidden pages may retain an old Height. Derive chrome from content and stable header/border offsets instead.
+        return content + layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left
+            + footer.GetPreferredSize(new(layout.ClientSize.Width, 0)).Height + footer.Margin.Vertical
+            + statusLabel.GetPreferredSize(new(statusWidth, 0)).Height + statusLabel.Margin.Vertical;
+    }
     public SettingsPage()
     {
         InitializeComponent();
         generalLayout.Layout += General_Layout;
+        audioLayout.Layout += General_Layout;
+        audioLevelsLayout.Layout += General_Layout;
         UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
@@ -56,6 +69,8 @@ public partial class SettingsPage : XtraUserControl
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
             var commands = _dialogCloseButton is null ? new[] { saveButton, reloadButton } : new[] { saveButton, reloadButton, _dialogCloseButton };
             var commandSize = UiButtonSizing.Apply(commands);
+            UiButtonSizing.Apply(refreshAudioButton);
+            refreshAudioButton.Margin = new Padding(captureDeviceEdit.Margin.Left, refreshAudioButton.Margin.Top, refreshAudioButton.Margin.Right, refreshAudioButton.Margin.Bottom);
             for (var i = 1; i <= 2; i++)
             {
                 footer.ColumnStyles[i].SizeType = SizeType.Absolute;
@@ -101,6 +116,8 @@ public partial class SettingsPage : XtraUserControl
     }
     internal async Task StopAsync()
     {
+        _audioStopped = true;
+        SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
         if (_operation is not null) await _operation.StopAsync();
         await pluginPage.StopAsync();
         await numberDiagnosticsPage.StopAsync();
@@ -137,6 +154,7 @@ public partial class SettingsPage : XtraUserControl
     }
     private void DisposePage()
     {
+        _audioStopped = true;
         _operation?.Dispose();
         if (_workspace?.Telephony is not null) _workspace.Telephony.RegistrationChanged -= SipRegistration_Changed;
         if (!_sipUiLifetime.IsCancellationRequested) { _sipUiLifetime.Cancel(); _sipUiLifetime.Dispose(); }
@@ -176,6 +194,7 @@ public partial class SettingsPage : XtraUserControl
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
+        ApplyAudioDevices(options.Devices);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
         _cacheCompanies.AddRange(options.Companies.Where(company => !known.Contains(company.Company))
             .Select(company => new CacheCompanyRow(company.Company, company.DisplayName ?? "Gespeicherter Mandant", company.IncludeInPhoneCache, false)));
@@ -193,7 +212,8 @@ public partial class SettingsPage : XtraUserControl
             User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
                 DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
-            Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked },
+            Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
+                CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
             SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)
                 && string.IsNullOrWhiteSpace(authUserEdit.Text) && passwordEdit.Text.Length == 0 ? null : new SipAccountOptions
             {
@@ -244,7 +264,7 @@ public partial class SettingsPage : XtraUserControl
         BindMatchingCompanies();
     }
 
-    internal Task ReloadAsync() => _operation?.RunAsync(async token => { Apply(await _workspace!.Settings.LoadAsync(token)); LoadAutoStart(); }) ?? Task.CompletedTask;
+    internal Task ReloadAsync() => _operation?.RunAsync(async token => { Apply(await _workspace!.Settings.LoadAsync(token)); LoadAutoStart(); await LoadAudioDevicesAsync(token); }) ?? Task.CompletedTask;
     private void LoadAutoStart()
     {
         if (_workspace is null) return;

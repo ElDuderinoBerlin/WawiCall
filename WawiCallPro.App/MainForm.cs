@@ -21,6 +21,7 @@ public partial class MainForm : RibbonForm
     private readonly ApplicationConfigurationService? _configuration;
     private readonly AppWorkspace? _workspace;
     private readonly AppUiState? _state;
+    private readonly WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog? _audioDevices;
     private readonly Dictionary<BaseDocument, IPluginViewHandle> _pluginPages = [];
     private readonly Dictionary<string, BaseDocument> _documents = [];
     private BaseDocument? _lastDocument;
@@ -43,6 +44,10 @@ public partial class MainForm : RibbonForm
 
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state, ILogWindowService logs)
         : this(application, configuration, workspace, state) => logPanel.Bind(logs);
+
+    public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state,
+        ILogWindowService logs, WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog audioDevices)
+        : this(application, configuration, workspace, state, logs) => _audioDevices = audioDevices ?? throw new ArgumentNullException(nameof(audioDevices));
 
     internal void PrepareForBackgroundRun()
     {
@@ -270,6 +275,7 @@ public partial class MainForm : RibbonForm
     {
         var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync);
         settings.ConfigureLayoutPersistence(_state);
+        if (_audioDevices is not null) settings.ConfigureAudioDevices(_audioDevices);
         if (plugins) settings.SelectPluginsTab();
         return settings;
     }

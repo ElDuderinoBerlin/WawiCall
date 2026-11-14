@@ -37,7 +37,8 @@ public partial class FrmSettings : XtraForm
         _sizingMinimum = true;
         try
         {
-            var height = settingsPage.GetRequiredGeneralHeight() + Height - settingsPage.Height;
+            var height = settingsPage.GetRequiredGeneralHeight() + layout.Padding.Vertical + settingsPage.Margin.Vertical
+                + closeButton.GetPreferredSize(Size.Empty).Height + closeButton.Margin.Vertical + Height - ClientSize.Height;
             MinimumSize = new(MinimumSize.Width, height);
         }
         finally { _sizingMinimum = false; }
@@ -50,6 +51,7 @@ public partial class FrmSettings : XtraForm
         settingsPage.ConfigurePluginSwitch(beforePluginSwitch);
     }
     internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
+    internal void ConfigureAudioDevices(WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog catalog) => settingsPage.ConfigureAudioDevices(catalog);
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
     internal Task StopAsync() => settingsPage.StopAsync();
     internal void ConfigureLayoutPersistence(AppUiState? state)
