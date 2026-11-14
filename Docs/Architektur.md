@@ -523,6 +523,71 @@ Artefakte sind in zusätzlichen Migrationen ab Version 6 und den Verträgen ausz
 bleiben unverändert. Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den
 Metadaten abgleichen. Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
 
+### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
+
+Die vorhandene `WindowsSipMediaSessionFactory` erzeugt weiterhin den eigenen
+`SIPSorceryMedia.Windows.CSCore.WindowsAudioEndPoint`. Dessen bisheriger SIPSorcery-`AudioEncoder`
+wird von `PcmObservingAudioEncoder` umschlossen. Nach erfolgreichem Encode wird dessen exaktes
+PCM-Eingangsarray beobachtet, nach erfolgreichem Decode dessen PCM-Ausgangsarray. Kein zweiter
+Decoder oder separater Codec-Zustand, keine Änderung der zurückgegebenen Arrays oder Formatlisten.
+Codecfehler werden weiterhin durchgereicht; Verbraucherfehler werden getrennt behandelt.
+
+Die durch dieselbe injizierte Factory erzeugte Mediensitzung bietet optional `ISipPcmMediaSession`
+mit `IConversationPcmSource`. Bestehende `ISipMediaSession`-Implementierungen, etwa Testmedien,
+benötigen diese Fähigkeit nicht. `Subscribe(IConversationPcmObserver)` liefert eine besessene,
+asynchron freizugebende Subscription. Ohne Subscription wird kein PCM beobachtet, gespeichert
+oder kopiert. Es gibt keine automatische Aufnahme und keinen zusätzlichen Hardwarezugriff.
+
+Der synchrone `TryObserve`-Callback erhält Gesprächsseite, `AudioFormat.ClockRate`, Kanalzahl und
+einen nur während des Aufrufs geliehenen PCM16-Span. Formatinformationen stammen vom tatsächlichen
+Codec-Aufruf. Bei G.722 ist ClockRate 16 kHz, unabhängig von der 8-kHz-RTP-Rate. Stereo wird mit
+seiner tatsächlichen Kanalzahl weitergegeben; ungültige Raten/Kanäle oder unvollständige Frames
+beenden die betroffenen Subscriptions als InvalidFormat. Leere PCM-Daten erzeugen keinen Callback.
+
+Beobachter müssen kurz, threadsicher und ohne Warte-/Dateioperationen arbeiten; gleichzeitige
+Sende-/Empfangsaufrufe sind möglich. Benötigte Daten vor Rückkehr kopieren, keine geliehenen
+Span-Referenzen speichern. Die Nebenläufigkeit des ursprünglichen Codecs bleibt erhalten. Der
+Callback darf nicht synchron seine eigene Abmeldung abwarten. false-Rückgabe beendet nur diesen
+Beobachter als ObserverRejected, eine Exception als ObserverFailed. Die Exception wird weder
+weitergereicht noch gespeichert. `Completion` liefert einen festen Fehlercode oder nach normaler
+Abmeldung null; LastFailure/FailureCount sind zusätzliche feste Diagnosen. Kein Fehler- oder PCM-Logging.
+
+Abmelden sperrt neue Aufrufe sofort und wartet laufende Callbacks ab. Ein erst während der Abmeldung
+auftretender Verbraucherfehler bleibt im Completion-Ergebnis sichtbar. Die Quelle hält auch bereits
+abgemeldete, noch laufende Subscriptions bis zum Abschluss nach; maximal acht aktive/auslaufende
+Subscriptions. Auslaufende Beobachterreferenzen werden freigegeben, auch wenn der Besitzer die
+Subscription anschließend noch hält. `PcmSipMediaSession` meldet alle Beobachter ab, wartet deren
+Abschluss ab und schließt danach die vorhandenen nativen Medien im finally. Gleichzeitige Freigaben
+warten denselben Task ab; bisherige native Freigabefehler bleiben beobachtbar. Ein regelwidrig
+blockierender Beobachter kann diesen Abschluss verzögern und ist kein geeigneter Aufnahmeadapter.
+
+Dieser Abgriff enthält ausdrücklich **keine Medienzeitpositionen**. Im tatsächlich verwendeten
+SIPSorceryMedia.Abstractions-10.0.17-Vertrag besitzt `EncodedAudioFrame` nur Streamindex, Format,
+Dauer und Nutzdaten, keinen RTP-Zeitstempel/Sequenzwert. Geprüft anhand der installierten Assembly
+und zugehöriger XML-Dokumentation sowie des verwendeten CSCore-Quelltexts. Aus Callbackankunftszeiten
+darf deshalb keine fertige RTP-Zeitachse behauptet werden. Die Verbindung mit `IPcmRecordingSession`
+benötigt noch eine gemeinsame Medienzeitbasis, Reihenfolge-/Jitterbehandlung, gegebenenfalls Aufteilung
+größerer PCM-Blöcke und Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
+
+Zusätzlicher Quellbefund für diesen Folgeschritt: In der externen Methode
+`WindowsAudioEndPoint.LocalAudioSampleAvailable` wird `AlignedSize(read, sizeof(short))` als
+short-Arraylänge verwendet, während `BlockCopy` read Bytes kopiert. Die Einheit Byte gegenüber
+PCM-Frames separat mit synthetischen Daten nachweisen und im externen Projekt korrigieren; diese
+Änderung verändert die bisherige Telefonie nicht still mit. Aktuell wird genau der bestehende
+Codec-Eingang beobachtet, einschließlich dieses noch separat zu prüfenden Pufferverhaltens.
+
+20 neue isolierte Prüfungen in `WawiCallPro.Console.Tests/PcmObservationTests.cs`: echte PCMA-/
+PCMU-/G.722-Folgen mit unverändertem Codec-Ergebnis, tatsächliche PCM-Raten, Fehlerisolation,
+Ablehnung, Parallelität, Abmelde-/Freigaberennen einschließlich bereits abgemeldeter Callbacks,
+späte Fehler und Freigabe von Beobachterreferenzen. Zusätzlich echte Hostregistrierung und vorhandene
+gerätelose Loopback-SIP-/Shutdownprüfungen. Konkrete Läufe in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+Kein Nachweis des Hardware-Endpunktaufbaus, einer Aufnahmebedienung oder vollständigen SIP-Aufzeichnung.
+
+Rollback: passiven Beobachter, optionale Schnittstellen, Mediensitzungswrapper und zugehörige Tests
+zurücknehmen und den bisherigen direkten AudioEncoder-/AudioSession-Aufbau in der Factory herstellen.
+Keine Konfiguration, Migration, externe Bibliothek oder bisherige Aufnahmedatei wurde verändert.
+
 ### Implementierte PCM-Aufnahmesitzung (14.11.2026)
 
 `IPcmRecordingSessionFactory` erzeugt je ausdrücklichem `PcmRecordingRequest` eine besessene

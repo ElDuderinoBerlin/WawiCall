@@ -4,19 +4,20 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt umgesetzt: besessene PCM-Aufnahmesitzung mit begrenzter Callback-Warteschlange,
-getrennten CSCore-WAV-Segmenten und geordnetem Stop-/Abbruchablauf (Phase 9, Teilpunkt vom 14.11.2026).
-Sie übergibt finalisierte Quellen an den vorhandenen Zeitachsenmixer; danach ist MP3-Konvertierung möglich.
+Zuletzt umgesetzt: passiver PCM-Abgriff am produktiven SIPSorcery-Codec des CSCore-Endpunkts,
+mit beobachtbaren Verbraucherfehlern und abgewarteter Abmeldung (Phase 9, Teilpunkt vom 15.11.2026).
+PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind separat geprüft; ihre Verbindung mit
+einer geprüften SIP-Medienzeitbasis bleibt offen.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
 DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
-PCM-Aufnahmesitzung, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
-SIP-PCM-Anbindung, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
+PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
+Zeitbasis-/Jitteranbindung der Aufnahme, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
 Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
 
@@ -320,7 +321,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ PCM-Aufnahmesitzung mit begrenztem Puffer, WAV-Segmenten und Stop-/Abbruchsteuerung, Zeitachsenmixer und MP3-Konvertierung; SIP-PCM-Anbindung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Passiver PCM-Abgriff am CSCore-/SIPSorcery-Codec, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2153,10 +2154,39 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   `.pcm-recording-host-{pro,fin}.log`. Ausschließlich synthetische PCM-Daten und isolierte Dateien;
   keine Geräte, SIP-Verbindungen, produktiven Daten oder sichtbaren Fenster. Vertrag und Rollback
   in `Docs/Architektur.md`. Noch keine automatische Aufnahme, Host-/UI-Bedienung oder Absturzwiederaufnahme.
-- [ ] Die PCM-Aufnahmesitzung an die tatsächlichen dekodierten Empfangs-/Sendedaten des
-  SIPSorcery-/CSCore-Medienadapters anbinden. Gemeinsame Medienzeitbasis und tatsächliche
+- [x] ✅ Passiven PCM-Abgriff im produktiven CSCore-Medienadapter ergänzt (15.11.2026):
+  `PcmObservingAudioEncoder` umschließt denselben SIPSorcery-`AudioEncoder`, der in den vorhandenen
+  `WindowsAudioEndPoint` injiziert wird. Exaktes Encode-Eingangs- und Decode-Ausgangsarray beobachten;
+  kein zweiter Decoder, keine Codecneuerzeugung je Paket und keine Veränderung der Telefoniedaten.
+  Die zusätzliche optionale `ISipPcmMediaSession` bietet `IConversationPcmSource`; bestehende
+  `ISipMediaSession`-Implementierungen bleiben kompatibel. Keine automatisch registrierten Beobachter,
+  Dateien oder Aufnahmen. Der injizierte Medienfactorypfad bleibt in beiden Hosts erhalten.
+  Bis zu acht aktive/noch auslaufende Beobachter, spanbasierter Callback mit Seite, tatsächlicher
+  PCM-Rate und Kanalzahl. Fehler beziehungsweise false-Rückgabe beenden nur den betreffenden
+  Beobachter und werden durch Completion-Ergebnis und feste Diagnosecodes/-zähler sichtbar;
+  keine Verbraucherexception im Audiopfad. Abmeldung sperrt neue Aufrufe und wartet laufende ab.
+  Mediensitzungsfreigabe wartet auch vorher abgemeldete, noch laufende Callbacks ab und schließt
+  anschließend native Medien. Besitz/Freigabe sowie Codecfehlerverhalten bleiben erhalten.
+  Nachweise je Edition: 152 Console-Prüfungen (20 neue Beobachterprüfungen), zwei gezielte App-Host-
+  und fünf bestehende Medien-/Shutdownprüfungen bestanden. Echte PCMA-/PCMU-/G.722-Codecfolgen über
+  jeweils drei Blöcke mit bitidentischem Encode-/Decode-Ergebnis; G.722 liefert 16-kHz-PCM bei
+  8-kHz-RTP-Rate. Fehlerisolation, Ablehnung, parallele Seiten, Abmelde-/Freigaberennen, spätes
+  Verbraucherfehlverhalten, gelöste Beobachterreferenzen und abgewartete doppelte Freigabe geprüft.
+  Beide Solution-Editionen in Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe
+  CSCore-Warnungen. FinOffice als reguläre Startausgabe erhalten. Logs `.sip-pcm-build-{pro,fin}.log`,
+  `.sip-pcm-tests-{pro,fin}.log`, `.sip-pcm-host-{pro,fin}.log`, `.sip-pcm-runtime-{pro,fin}.log`.
+  Nur synthetische PCM-/Codec-Daten, Test-Doubles und vorhandene gerätelose Loopback-SIP-Prüfungen;
+  keine echten Anrufe, Audiogeräte oder sichtbare GUI. Vertrag/Rollback in `Docs/Architektur.md`.
+  Das ist der Codec-Abgriff, keine zeitlich vollständige SIP-Aufnahme: `EncodedAudioFrame` in
+  SIPSorceryMedia.Abstractions 10.0.17 enthält keinen RTP-Zeitstempel oder Sequenzwert.
+- [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
+  Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche
   Reihenfolge-/Jitterbehandlung vor dem Sitzungsaufruf umsetzen. Kein Desktop-Loopback als Quelle.
+  Vorher die Senderpuffergröße in `WindowsAudioEndPoint.LocalAudioSampleAvailable` prüfen:
+  Die gelesene Byteanzahl wird im aktuellen externen Quelltext als short-Arraylänge verwendet;
+  `BlockCopy` kopiert dagegen nur diese Byteanzahl. Quellbefund separat mit synthetischen Daten
+  verifizieren und korrigieren, bevor daraus eine aufnahmebezogene Framezeit abgeleitet wird.
   Manueller Start/Stop, ausdrücklich konfigurierte Automatik, geordneter Host-Shutdown und
   echte SIP-/Geräteabnahme bleiben offen.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit

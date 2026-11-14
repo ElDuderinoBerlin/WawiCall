@@ -17,11 +17,12 @@ public sealed class WindowsSipMediaSessionFactory : ISipMediaSessionFactory
         MMDevice? playback = null;
         MMDevice? capture = null;
         WindowsAudioEndPoint? endpoint = null;
+        var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         try
         {
             if (devices.PlaybackDeviceId is not null) playback = enumerator.GetDevice(devices.PlaybackDeviceId);
             if (devices.CaptureDeviceId is not null) capture = enumerator.GetDevice(devices.CaptureDeviceId);
-            endpoint = new WindowsAudioEndPoint(new AudioEncoder(), playback, capture, disableSource: devices.MicrophoneMuted);
+            endpoint = new WindowsAudioEndPoint(pcm, playback, capture, disableSource: devices.MicrophoneMuted);
             if (!endpoint.IsAudioSinkInitialized || !devices.MicrophoneMuted && !endpoint.IsAudioSourceInitialized)
                 throw new WawiCallPro.Interfaces.Telephony.TelephonyException("AudioDeviceUnavailable");
             endpoint.OutputVolume = devices.PlaybackVolumePercent / 100F;
@@ -29,12 +30,16 @@ public sealed class WindowsSipMediaSessionFactory : ISipMediaSessionFactory
                 || account.Connection.EnableG722 && format.Codec == AudioCodecsEnum.G722);
             var media = new VoIPMediaSession(endpoint.ToMediaEndPoints(), System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
                 { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
-            return new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture);
+            return new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm);
         }
         catch
         {
-            try { endpoint?.Close().GetAwaiter().GetResult(); }
-            finally { playback?.Dispose(); capture?.Dispose(); }
+            try { pcm.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+            finally
+            {
+                try { endpoint?.Close().GetAwaiter().GetResult(); }
+                finally { playback?.Dispose(); capture?.Dispose(); }
+            }
             throw;
         }
     }

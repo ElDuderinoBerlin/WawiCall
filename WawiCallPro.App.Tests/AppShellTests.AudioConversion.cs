@@ -28,6 +28,7 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<PcmRecordingSessionFactory>(recordingFactory);
             Assert.AreSame(recordingFactory, host.Services.GetRequiredService<IPcmRecordingSessionFactory>());
             Assert.IsInstanceOfType<CscorePcmSegmentSinkFactory>(host.Services.GetRequiredService<IPcmSegmentSinkFactory>());
+            Assert.IsInstanceOfType<WindowsSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
         }
         finally { await ((IAsyncDisposable)host).DisposeAsync(); }
     });
