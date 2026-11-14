@@ -18,7 +18,10 @@
   <Import Project="$(MSBuildThisFileDirectory)..\Quantarix.Plugin.System\Directory.Build.targets" />
   <Target Name="GenerateWawiSharedPackageManifest" BeforeTargets="AssignTargetPaths" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Utilities'">
     <ItemGroup><SharedPackage Update="@(SharedPackage)" Condition="'%(SharedPackage.RuntimeAssemblyNames)' == ''"><RuntimeAssemblyNames>%(SharedPackage.Identity)</RuntimeAssemblyNames></SharedPackage></ItemGroup>
-    <WriteLinesToFile File="$(IntermediateOutputPath)WawiSharedPackages.txt" Lines="@(SharedPackage->'%(RuntimeAssemblyNames)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <_WawiPreloadedProjectAssembly Include="@(SharedProjectAssembly)" Condition="'%(SharedProjectAssembly.Preload)' == 'true'" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)WawiSharedPackages.txt" Lines="@(SharedPackage->'%(RuntimeAssemblyNames)');@(_WawiPreloadedProjectAssembly)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup><EmbeddedResource Include="$(IntermediateOutputPath)WawiSharedPackages.txt" LogicalName="WawiCallPro.SharedPackages" /></ItemGroup>
   </Target>
   <!-- Adapt the reference filter to MSBuild metadata matching; Identity is not custom item metadata. -->

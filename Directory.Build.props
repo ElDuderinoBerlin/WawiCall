@@ -13,6 +13,8 @@
   <ItemGroup>
     <SharedPackage Include="Serilog" />
     <SharedProjectAssembly Include="WawiCallPro.Interfaces;Quantarix.Plugin.Abstractions;WawiCallPro.Plugin.Windows" />
+    <!-- Both hosts use the registry adapters; plugins must resolve these same host-owned assemblies. -->
+    <SharedProjectAssembly Include="Quantarix.Lexware.Core;Quantarix.Pcfk.Core" Preload="true" />
     <SharedPackage Include="Dapper;Microsoft.Extensions.Configuration;Microsoft.Extensions.Configuration.Abstractions;Microsoft.Extensions.Configuration.Binder;Microsoft.Extensions.DependencyInjection;Microsoft.Extensions.DependencyInjection.Abstractions;Microsoft.Extensions.Diagnostics;Microsoft.Extensions.Diagnostics.Abstractions;Microsoft.Extensions.Logging;Microsoft.Extensions.Logging.Abstractions;Microsoft.Extensions.Options;Microsoft.Extensions.Options.ConfigurationExtensions;Microsoft.Extensions.Primitives" />
     <!-- Current shared packages each expose the matching assembly name. Packages such as DevExpress must specify RuntimeAssemblyNames explicitly. -->
   </ItemGroup>

@@ -163,13 +163,18 @@ geprüft; ergänzende Logs `.party-ui-shell-{pro,fin}.log`.
 Keine produktiven Daten, Quelldatenänderungen, Migrationen oder sichtbare Desktopbedienung.
 Rollback durch Rücknahme des UI-Teilpunkts; Suchdienst und gespeicherte Daten bleiben kompatibel.
 
-**Separater Packaging-Befund:** `scripts/test-plugin-deployment.ps1` scheitert in beiden Editionen an
-bereits vorhandenen doppelten Core-DLLs zwischen Host und Fachplugin: `Quantarix.Lexware.Core.dll`
-bei Pro, `Quantarix.Pcfk.Core.dll` bei FinOffice, jeweils App und Console. Die direkten Hostreferenzen
-stehen bereits im vorherigen Stand von `WawiCallPro.Utilities.csproj`; die private Pluginabhängigkeit
-bestand ebenfalls. Die Pro-Dateien wurden als hashgleich bestätigt. Die neue UI führt diese Referenzen
-nicht ein. Logs `.party-ui-deployment-{pro,fin}.log`; die Paketprüfung ist **fehlgeschlagen** und bleibt
-in Phase 14 offen. Shared-/Private-Vertrag und Deployment müssen dort gemeinsam korrigiert werden.
+**Behobener Packaging-Befund (14.11.2026):** Die ursprüngliche Deploymentprüfung scheiterte an
+vorhandenen doppelten Core-DLLs zwischen Host und Fachplugin: `Quantarix.Lexware.Core.dll` bei Pro,
+`Quantarix.Pcfk.Core.dll` bei FinOffice, jeweils App und Console. Die Hostreferenzen für die Registry-
+prüfung und privaten Pluginreferenzen bestanden bereits vor der Suchoberfläche. Die historischen
+Fehlerlogs `.party-ui-deployment-{pro,fin}.log` bleiben erhalten.
+
+Der Phase-14-Fix definiert beide Cores zentral als gemeinsame Projektassemblies mit `Preload="true"`.
+Der Eintrag steuert Filter und Runtime-Manifest gemeinsam. Die vorhandene Quantarix-Laufzeit verwendet
+beide im Default-ALC; private Kopien entfallen aus Build/Publish. API-/Datenzugriffs- und native
+Assemblies bleiben privat; externe Core-Bibliotheken, Registryprüfung und Signaturprüfung unverändert.
+Build-/Publishprüfung und je sechs Negativprüfungen beider Editionen bestehen jetzt. Nachweis,
+Reproduktionsbefehle und Rollback: [Build](Build.md#gemeinsam-geladene-registry-corebibliotheken-14112026).
 
 Beide Adapter implementieren Kunden, Lieferanten und Kontaktpersonen. Technische IDs werden unabhängig
 von der unveränderten Geschäftsnummer als invariant formatierte Quell-Integer abgebildet. Ein Kontakt

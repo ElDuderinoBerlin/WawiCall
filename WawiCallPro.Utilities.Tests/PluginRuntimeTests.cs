@@ -55,6 +55,75 @@ public sealed class PluginRuntimeTests
     }
 
     [TestMethod]
+    public async Task HostOwnedCoreDependenciesUseDefaultContextEvenWithStalePrivateCopies()
+    {
+        var directory = DeploySignedFixture(); var host = CreateHost();
+        var folder = Path.Combine(directory, "SignedRuntimePlugin");
+        Assert.IsTrue(File.Exists(Path.Combine(folder, "Quantarix.Lexware.Core.dll")));
+        Assert.IsTrue(File.Exists(Path.Combine(folder, "Quantarix.Pcfk.Core.dll")));
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            var contracts = host.Services.GetRequiredService<ISharedPluginContracts>();
+            var names = contracts.GetSharedPackageAssemblyNames();
+            Assert.Contains("Quantarix.Lexware.Core", names);
+            Assert.Contains("Quantarix.Pcfk.Core", names);
+            contracts.EnsureLoaded();
+            await using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+            await session.LoadAsync(directory);
+            var plugin = session.GetPlugins().Single();
+            var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
+            foreach (var (property, expected) in new[]
+            {
+                ("LexwareCoreAssembly", typeof(Quantarix.Lexware.Core.PropertyStore.PsParserFactory).Assembly),
+                ("PcfkCoreAssembly", typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly)
+            })
+            {
+                var assembly = (Assembly)plugin.GetType().GetProperty(property)!.GetValue(plugin)!;
+                Assert.AreSame(expected, assembly);
+                Assert.AreSame(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(assembly));
+                Assert.IsFalse(context.Assemblies.Any(item => item.GetName().Name == assembly.GetName().Name));
+            }
+            Assert.IsTrue(context.IsCollectible);
+            Assert.IsTrue(context.Assemblies.Any(item => item.GetName().Name == "PrivateDependency"));
+        });
+    }
+
+    [TestMethod]
+    public async Task ActualProductPluginLoadsWithoutPrivateCoreCopiesOrSourceAccess()
+    {
+        var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
+        var configuration = GetType().Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
+        Assert.IsNotNull(repository);
+        var id = "WawiCallPro.Plugins.Lexware." + variant;
+        var source = Path.Combine(repository.FullName, id, "bin", configuration, "net11.0-windows");
+        var target = Path.Combine(_root, "plugins", id);
+        Directory.CreateDirectory(target);
+        foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var destination = Path.Combine(target, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!); File.Copy(file, destination);
+        }
+        Assert.IsFalse(File.Exists(Path.Combine(target, "Quantarix.Lexware.Core.dll")));
+        Assert.IsFalse(File.Exists(Path.Combine(target, "Quantarix.Pcfk.Core.dll")));
+        var host = CreateHost();
+        await HostExecution.RunAsync(host, async _ =>
+        {
+            await using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+            await ((ISelectedPluginSession)session).LoadSelectedAsync(target);
+            var plugin = session.GetPlugins().Single();
+            Assert.AreEqual(variant, plugin.ProductLine.ToString());
+            Assert.IsNotNull(plugin.Directory); // Resolving adapters must not read installations, credentials or companies.
+            var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
+            foreach (var assembly in new[] { typeof(Quantarix.Lexware.Core.PropertyStore.PsParserFactory).Assembly,
+                typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly })
+                Assert.AreSame(assembly, context.LoadFromAssemblyName(assembly.GetName()));
+            Assert.IsTrue(context.IsCollectible);
+        });
+    }
+
+    [TestMethod]
     public async Task RealQuantarixRuntimeLoadsExecutesAndShutsDownIsolatedFixtureWithSafeLogging()
     {
         var plugins = DeployFixture(); var host = CreateHost();

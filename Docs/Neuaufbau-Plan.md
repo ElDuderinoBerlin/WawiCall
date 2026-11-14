@@ -6,8 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: plugin-eigene Kunden-/Lieferantensuche mit lokaler Mandanten-/Rollenauswahl,
-Grid-Find-Panel und schreibgeschütztem Stammdaten-Tab (Phase 8, Teilpunkt vom 14.11.2026).
+Zuletzt behoben: doppelte Lexware-/PCFK-Core-DLLs durch gemeinsamen Lade-/Deploymentvertrag;
+Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14, Teilpunkt vom 14.11.2026).
+Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
 DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
@@ -320,7 +321,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
-| 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
+| 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
 | 15 | ⬜ | Gesamtprüfung, Dokumentation und Übergabe | Alle zugesagten Funktionen |
 
 Jeder einzelne Checklistenpunkt innerhalb einer Phase wird separat umgesetzt, geprüft und unmittelbar mit
@@ -2038,8 +2039,9 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   initialer Schrift-Autoskalierung: `.party-ui-shell-{pro,fin}.log`. `LX_UI_AUDIT_SURFACES` kennt
   zusätzlich `PartySearchPage` als dienstfreie Designeransicht. Keine produktiven Daten oder GUI-Bedienung.
   Sicherheits-/Lebensdauervertrag, Grenzen und Rollback in `Docs/Vertraege.md`.
-  Zusätzliche Deployment-Prüfung ist wegen vorhandener doppelter Core-DLLs fehlgeschlagen; eigener
-  offener Packaging-Punkt in Phase 14. Reale Quell-/Lastabnahme und vollständige Kernproduktabnahme bleiben offen.
+  Die zusätzliche Deployment-Prüfung schlug damals wegen vorhandener doppelter Core-DLLs fehl;
+  der folgende Phase-14-Teilpunkt behebt diesen Befund. Reale Quell-/Lastabnahme und vollständige
+  Kernproduktabnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
@@ -2221,12 +2223,30 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
 
 ### Phase 14 – Installation, Lizenzierung und Updates 🟨
 
-- [ ] Bestehende doppelte Core-DLLs zwischen Host und Fachplugin bereinigen: Deployment-Prüfung vom
-  14.11.2026 scheitert bei Pro an `Quantarix.Lexware.Core.dll`, bei FinOffice an `Quantarix.Pcfk.Core.dll`
-  in App und Console. Hostreferenzen für die Registryprüfung und private Pluginreferenzen bestanden
-  bereits vor dem Suchoberflächen-Teilpunkt. Shared-/Private-Ladevertrag und Deployfilter gemeinsam
-  prüfen, anschließend `scripts/test-plugin-deployment.ps1` für beide Editionen nachweisen.
-  Befund/Abgrenzung in `Docs/Vertraege.md`, Logs `.party-ui-deployment-{pro,fin}.log`.
+- [x] ✅ Doppelte Core-DLLs zwischen Host und Fachplugin bereinigt (14.11.2026):
+  `Quantarix.Lexware.Core` und `Quantarix.Pcfk.Core` stehen zentral als `SharedProjectAssembly`
+  mit `Preload="true"`. Derselbe Eintrag steuert Build-/Publishfilter und Vorlademanifest. Die
+  bestehende Quantarix-Laufzeit bindet beide vor Pluginerzeugung im Default-ALC; auch alte private
+  Kopien ändern diese Typidentität nicht. Registryprüfung, Signatur-/Lizenzprüfung und externe
+  Bibliotheken bleiben unverändert. API-/Datenzugriffs- und native Pluginabhängigkeiten bleiben privat.
+  Stale Core-DLL-/PDB-Kopien entfallen aus regulären und lokalen Publish-Plugin-Ausgaben.
+  Die Deploymentprüfung verlangt beide Host-Cores und unterstützt eine ausdrückliche Konfiguration
+  sowie einen isolierten Publish-Stamm mit App-/Console-Unterordnern. Neuer Negativtest ausschließlich
+  unter `.artifacts`, mit Wiederherstellung im finally; reguläre Hostausgaben werden als Mutationsziel
+  vorab abgewiesen. Fehlende Cores, zusätzliche gemeinsame Kopie, fehlende/veränderte private DLL
+  und fehlendes Manifest werden erkannt.
+  Nachweise je Edition: 52 gezielte Host-/Plugin- und 25 Console-Prüfungen bestanden, einschließlich
+  tatsächlichem Fachpluginaufbau ohne Registry-/Quellabfrage, Default-ALC-Identität mit Privatkopien
+  sowie bestehendem Unload-/Stop-/Installationssperrverhalten. Beide Solution-Editionen in Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen. Vier lokale frameworkabhängige
+  Debug-Publishes; je vier reguläre und vier Publish-Bundleprüfungen (App/Console × Fachplugin/Dummy)
+  und sechs Negativprüfungen bestanden. Zusätzlich 50 bestehende Release-Skriptprüfungen bestanden.
+  FinOffice als reguläre Startausgabe erhalten. Keine GUI-Änderungen oder GUI-Tests erforderlich.
+  Logs `.core-sharing-{build,runtime,console,deployment,published,negative}-{pro,fin}.log`,
+  `.core-sharing-publish-{app,console}-{pro,fin}.log`, `.core-sharing-release-scripts.log`,
+  `.core-sharing-guard.log`; Publishkopien `.artifacts/core-sharing/publish`.
+  Vertrag/Rollback in `Docs/Build.md`; alte Fehlerlogs `.party-ui-deployment-{pro,fin}.log` bleiben
+  historische Reproduktion. Kein neuer Release-Setup-, Signierungs-, Installations- oder Updatenachweis.
 
 - [x] Velopack- und Release-Skriptintegration anhand von LxTranslate konkret planen. ✅
   Nachweis vom 04.11.2026: `Docs/Velopack-Build-Plan.md` beschreibt die gelesenen App-/Toolmanifest-/

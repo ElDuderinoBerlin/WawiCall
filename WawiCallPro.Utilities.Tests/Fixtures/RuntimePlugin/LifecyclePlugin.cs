@@ -49,6 +49,8 @@ public sealed class LifecyclePlugin : PrivateDependency.PluginDependencyBase, IW
     public CompanyKey EchoCompany(CompanyKey company) => company;
     public Microsoft.Extensions.DependencyInjection.IServiceCollection EchoServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) => services;
     public System.Reflection.Assembly DapperAssembly => typeof(Dapper.SqlMapper).Assembly;
+    public System.Reflection.Assembly LexwareCoreAssembly => typeof(Quantarix.Lexware.Core.PropertyStore.PsParserFactory).Assembly;
+    public System.Reflection.Assembly PcfkCoreAssembly => typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly;
     public void Initialize(IPluginHost host)
     {
         _host = host;

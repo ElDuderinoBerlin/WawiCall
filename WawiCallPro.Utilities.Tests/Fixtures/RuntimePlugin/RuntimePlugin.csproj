@@ -7,6 +7,8 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.89" />
     <ProjectReference Include="../../../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="../../../../Quantarix.Lexware.Core/Quantarix.Lexware.Core.csproj" />
+    <ProjectReference Include="../../../../Quantarix.Pcfk.Core/Quantarix.Pcfk.Core.csproj" />
     <ProjectReference Include="../PrivateDependency/PrivateDependency.csproj" />
     <ProjectReference Include="../../../../Quantarix.Plugin.System/src/Quantarix.Plugin.Abstractions/Quantarix.Plugin.Abstractions.csproj" />
   </ItemGroup>

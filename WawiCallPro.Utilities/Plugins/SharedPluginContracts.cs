@@ -9,6 +9,7 @@ namespace WawiCallPro.Utilities.Plugins;
 public interface ISharedPluginContracts
 {
     void EnsureLoaded();
+    /// <summary>Host-provided runtime dependencies, including explicitly preloaded project assemblies.</summary>
     IReadOnlySet<string> GetSharedPackageAssemblyNames();
 }
 

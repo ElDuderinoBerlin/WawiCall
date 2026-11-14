@@ -651,3 +651,54 @@ spätere lokale Änderungen sichern. Die Ausgangsdateien dieses Arbeitslaufs lie
 `.artifacts/outlook-import/baseline`. Kein Schema-/Datenformatwechsel, keine produktiven Maildaten im Test.
 Nicht nachgewiesen sind native COM-/Profil-/Object-Model-Guard-Zustände, parallele Mailbewegungen,
 echte PST-/Exchange-Ordner und die WawiCallPro-Anbindung. Dafür eine freigegebene Test-Mailbox verwenden.
+
+## Gemeinsam geladene Registry-Corebibliotheken (14.11.2026)
+
+Die Installationsprüfung benötigt `Quantarix.Lexware.Core.dll` und `Quantarix.Pcfk.Core.dll` in beiden
+Hosts. Zusätzliche private Plugin-Kopien führten zur fehlgeschlagenen Duplikatprüfung. Beide stehen
+jetzt in `Directory.Build.props` als `SharedProjectAssembly` mit `Preload="true"`. Der vorhandene
+Sharedfilter entfernt DLL-/PDB-Kopien aus Plugin-Build-/Deploy-/Publish-Ausgaben. Hostreferenzen für
+beide Produktlinien bleiben erhalten; externe Schwesterprojekte werden nicht verändert.
+
+`GenerateWawiSharedPackageManifest` übernimmt diese markierten Projektassemblies zusätzlich in die
+bestehende Ressource `WawiCallPro.SharedPackages`. `SharedPluginContracts.EnsureLoaded` lädt sie vor
+Managererzeugung im Default-ALC. Die Factory übergibt dieselben Namen an die Quantarix-Laufzeit.
+Der historische API-Name `GetSharedPackageAssemblyNames` umfasst damit auch diese Projektassemblies;
+ein SharedAssembly-Attribut in den externen Cores ist nicht erforderlich. API-/Datenzugriffsassemblies
+und native Pluginabhängigkeiten bleiben privat. Signatur-/Lizenzprüfung und Registryabfragen ändern sich nicht.
+
+Die Deploymentprüfung verlangt beide Host-Cores ausdrücklich und prüft weiterhin Manifeste, private
+Dateien/Hashes sowie das Fehlen gemeinsamer Plugin-Kopien. `-Configuration` bezeichnet den gebauten
+Stand, `-HostOutputRoot` einen lokalen Publish-Stamm mit `App` und `Console`. Die Hashprüfung
+unmittelbar nach dem Build derselben Edition ausführen; ein anschließender Build der anderen Edition
+überschreibt die gemeinsamen Projekt-Ausgaben, gegen die private Dateien geprüft werden.
+Beispiel im Repositoryroot in Debug/Any CPU; Pro separat genauso bauen und prüfen:
+
+```powershell
+$productLine = 'FinOffice'
+dotnet build WawiCallProSolution.sln -c Debug -p:Platform="Any CPU" -p:LexwareProductLine=$productLine --no-incremental
+pwsh -NoProfile -File scripts/test-plugin-deployment.ps1 -ProductLine $productLine -Configuration Debug
+dotnet publish WawiCallPro.App/WawiCallPro.App.csproj -c Debug -p:Platform="Any CPU" -p:LexwareProductLine=$productLine --no-build --no-restore -o ".artifacts/core-sharing/publish/$productLine/App"
+dotnet publish WawiCallPro.Console/WawiCallPro.Console.csproj -c Debug -p:Platform="Any CPU" -p:LexwareProductLine=$productLine --no-build --no-restore -o ".artifacts/core-sharing/publish/$productLine/Console"
+pwsh -NoProfile -File scripts/test-plugin-deployment.ps1 -ProductLine $productLine -Configuration Debug -HostOutputRoot ".artifacts/core-sharing/publish/$productLine"
+pwsh -NoProfile -File scripts/test-plugin-deployment-negative.ps1 -ProductLine $productLine -Configuration Debug -HostOutputRoot ".artifacts/core-sharing/publish/$productLine"
+```
+
+Negativprüfungen verändern ausschließlich eine zuvor positiv geprüfte Kopie unter `.artifacts`:
+je ein fehlender Host-Core, zusätzliche gemeinsame Kopie, fehlende/veränderte private DLL und fehlendes
+Manifest. Jede Änderung wird im `finally` zurückgenommen; danach muss die Baseline erneut bestehen.
+Reguläre Hostausgaben werden vor jeder Mutation als Testziel abgewiesen.
+
+Nachweis je Edition: 52 Host-/Plugin- und 25 Console-Prüfungen, vier reguläre und vier Publish-
+Bundleprüfungen sowie sechs Negativprüfungen bestanden. Der tatsächliche Fachpluginaufbau erfolgte
+isoliert ohne Registry-/Quellabfrage. Eine signierte Fixture mit alten Privatkopien belegt die Default-
+ALC-Typidentität; ihre private Abhängigkeit bleibt im collectible Kontext. Bestehende Unload-/Shutdown-/
+Installationssperrprüfungen und 50 Release-Skriptprüfungen bestanden. Beide Builds in Debug/Any CPU:
+null Fehler, je 26 bekannte externe CSCore-Warnungen. Vier lokale frameworkabhängige Debug-Publishes;
+FinOffice ist die reguläre Startausgabe. Keine GUI-Änderung; keine produktiven Profile oder Quelldaten.
+Kein neuer Release-Setup-, Signierungs-, Installations- oder Update-Nachweis.
+Logs `.core-sharing-*.log`, Publishkopien `.artifacts/core-sharing/publish/{Pro,FinOffice}/{App,Console}`.
+
+Rollback: den gesamten Änderungsschritt zurücknehmen und Hosts/Plugins derselben Edition neu bauen
+und publizieren. Vorladen und Dateibereitstellung zusammen zurücknehmen, keine einzelne Host-Core-DLL
+manuell entfernen. Konfigurationen und Bestandsdaten bleiben unverändert.
