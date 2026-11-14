@@ -16,6 +16,9 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
         if (options.User is { } user)
         {
+            if (!Enum.IsDefined(user.LogLevel)) issues.Add(new("user.logLevel", "Ein gültiges Log-Level auswählen."));
+            if (user.LogDirectory is { } directory && !IsValidLogDirectory(directory))
+                issues.Add(new("user.logDirectory", "Für das Log-Verzeichnis einen absoluten lokalen Ordnerpfad angeben."));
             if (!GlobalHotkeySettings.IsSupported(user.ShowWindowHotkey) || !GlobalHotkeySettings.IsSupported(user.DialHotkey))
                 issues.Add(new("user.hotkeys", "Erlaubt sind deaktivierte Tastenkürzel oder Strg+Alt+F1 bis Strg+Alt+F11."));
             if (user.ShowWindowHotkey is not null && user.ShowWindowHotkey == user.DialHotkey)
@@ -38,6 +41,17 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
     }
 
     private static bool SafeLineText(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512 && !value.Any(char.IsControl);
+
+    private static bool IsValidLogDirectory(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory) || directory != directory.Trim() || directory.Length > 1024
+            || directory.Any(char.IsControl) || directory.IndexOfAny(Path.GetInvalidPathChars()) >= 0
+            || directory.IndexOfAny(['*', '?']) >= 0
+            || !Path.IsPathFullyQualified(directory) || directory.StartsWith(@"\\", StringComparison.Ordinal)
+            || directory.AsSpan(2).Contains(':')) return false;
+        try { return Path.GetPathRoot(directory)?.Length == 3 && Path.GetFullPath(directory).Length > 3; }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
+    }
 
     private void ValidateSip(SipAccountOptions account, ImmutableArray<ConfigurationIssue>.Builder issues)
     {

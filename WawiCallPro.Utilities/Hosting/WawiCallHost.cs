@@ -44,6 +44,8 @@ public static class WawiCallHost
                 services.AddSingleton(provider => ConfigurationLocation.ForCurrentUser(provider.GetRequiredService<ApplicationDescriptor>().ProductLine));
                 services.AddSingleton<ApplicationPaths>();
                 services.AddSingleton<RuntimeFailureState>();
+                services.AddSingleton<RuntimeLoggingSettings>();
+                services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace));
                 services.AddSingleton<ILoggerProvider, SafeFileLoggerProvider>();
                 services.AddSingleton<Quantarix.Plugin.Abstractions.ILogger, QuantarixLogAdapter>();
                 services.AddSingleton<IPluginManagerFactory, QuantarixPluginManagerFactory>();

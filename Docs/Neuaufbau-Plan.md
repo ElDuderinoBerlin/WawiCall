@@ -6,8 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Mailansicht nach dem DevExpress-WindowsMailClient mit gemeinsamer Leseschnittstelle
-(Phase 11, Teilpunkt vom 14.11.2026); Mailanbieter und Import bleiben offen.
+Zuletzt ergänzt: Einstellungsdialog nach LxTranslate mit Log-Level/Log-Verzeichnis und aktivem
+Serilog-Dateilogging (Phase 8, Teilpunkt vom 14.11.2026). Die Mailansicht nach dem
+DevExpress-WindowsMailClient ist isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
@@ -312,7 +313,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
@@ -1366,6 +1367,30 @@ Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzw
 App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
+
+- [x] ✅ Nutzerauftrag vom 14.11.2026: Einstellungsdialog nach LxTranslate und Serilog-Protokollierung.
+  Allgemein verwendet eine flache TableLayoutPanel-Anordnung mit kräftigen Feldlabels links,
+  Log-Level und Log-Verzeichnis oben sowie bündigen Optionen rechts. Die vorhandenen WawiCallPro-Tabs
+  bleiben erhalten. Eine gemeinsame Fußzeile enthält Neu laden links und Speichern/Abbrechen rechts;
+  die zusätzliche Schließen-Zeile entfällt. Erfolgreiches Speichern schließt den Dialog, Fehler halten
+  ihn mit den Eingaben offen. X und Abbrechen verwerfen ungespeicherte Änderungen und warten weiter
+  auf laufende Aufgaben. Größenänderung, inhaltsabhängige Mindestgröße und HKCU-Persistierung erhalten.
+  Ordnerauswahl über XtraFolderBrowserDialog mit Owner und Wartecursor in try/finally.
+  Der bisher eigene Dateischreiber verwendet nun tatsächlich Serilog mit LoggingLevelSwitch und
+  begrenztem JSONL-Sink. Nur freigegebene Metadaten gelangen in Serilog; fremde Formatter, Scopes und
+  Ausnahmetexte bleiben ausgeschlossen. Log-Level und lokales Zielverzeichnis werden in Format 8
+  gespeichert und beim nächsten Hoststart übernommen. Alte Formate 0–7 werden ohne Schreibzugriff
+  gelesen. Das Log-Fenster behält notwendige Warnungen; fatale Hintergrundfehler bleiben auch mit
+  abgeschalteten Dateilogs wirksam. Sichere Bootstrap-Logs vor dem Laden bleiben im Standardordner.
+  Nachweis: je Edition 56 Konfigurations-, Host- und Loggingprüfungen sowie 14 gezielte App-Prüfungen.
+  Je acht unsichtbare Renderbilder für Allgemein, SIP/Plugins und die gemeinsame Fußzeile;
+  Vorgaben/ausgewählte Werte, 760/980 Breite, 10/16 pt, 150%-Layoutsimulation und zwei Skins.
+  Beide Solution-Editionen in Debug/Any CPU rekompiliert: null Fehler, je 26 bestehende externe
+  CSCore-Warnungen. FinOffice wieder als reguläre Startausgabe hergestellt.
+  Logs `.settings-{build,tests,utilities-tests}-{pro,fin}.log`, Bilder
+  `.artifacts/settings-reference/{Pro,FinOffice}` unter den editionsgetrennten App-Testausgaben.
+  Die interaktive Ordnerauswahl wurde nicht sichtbar geöffnet; Owner-/Cursorpfad im Quellcode geprüft.
+  Einstellungsformat, Rollback und Logvertrag stehen in `Docs/Vertraege.md`.
 
 - [x] ✅ Lexware-Installationsprüfung im Anwendungscode umgesetzt: injizierter Registry-Adapter verwendet
   `LexwareRegistry.IsInstalled()` und `PcfkRegistry.IsInstalled()` unabhängig von der Ausgabe. Beide

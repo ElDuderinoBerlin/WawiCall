@@ -27,7 +27,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
         await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { ShowWindowHotkey = "Ctrl+Alt+F1", DialHotkey = "Ctrl+Alt+F11" } }, old);
         var saved = await directory.Store.LoadAsync();
-        Assert.AreEqual(7, saved.FormatVersion); Assert.AreEqual("Ctrl+Alt+F1", saved.Options.User.ShowWindowHotkey);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, saved.FormatVersion); Assert.AreEqual("Ctrl+Alt+F1", saved.Options.User.ShowWindowHotkey);
         Assert.AreEqual("Ctrl+Alt+F11", saved.Options.User.DialHotkey);
         Assert.IsTrue(saved.Options.User.StartMinimized); Assert.IsFalse(saved.Options.User.UseDirectXRendering);
         var bytes = await File.ReadAllBytesAsync(directory.Location.FilePath);
@@ -148,7 +148,7 @@ public sealed class SettingsVersionTests
         using var directory = new SettingsDirectory();
         string[] invalid =
         [
-            "{\"formatVersion\":8,\"settings\":{}}",
+            "{\"formatVersion\":" + (ConfigurationFormat.CurrentVersion + 1) + ",\"settings\":{}}",
             "{\"formatVersion\":0,\"settings\":{}}",
             "{\"formatVersion\":-1,\"settings\":{}}",
             "{\"formatVersion\":\"synthetic-value\",\"settings\":{}}",

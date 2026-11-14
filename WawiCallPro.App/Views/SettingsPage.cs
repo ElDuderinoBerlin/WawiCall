@@ -18,10 +18,11 @@ public partial class SettingsPage : XtraUserControl
     private AppUiState? _state;
     private CancellationTokenSource? _cacheCancellation;
     private Func<Task>? _beforePluginSwitch;
-    private SimpleButton? _dialogCloseButton;
     private bool _arrangingButtons;
     private AutoStartState? _autoStartState;
     internal event EventHandler? RestartRequested;
+    internal event EventHandler? SaveCompleted;
+    internal event EventHandler? CloseRequested;
     internal event EventHandler? ContentSizeChanged;
     internal int GetRequiredGeneralHeight()
     {
@@ -54,11 +55,6 @@ public partial class SettingsPage : XtraUserControl
     }
     private void General_Layout(object? sender, LayoutEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
 
-    internal void ConfigureCommandButtons(SimpleButton closeButton)
-    {
-        _dialogCloseButton = closeButton;
-        ArrangeButtons();
-    }
     private void ButtonLayout_Changed(object? sender, EventArgs e) => ArrangeButtons();
     private void ArrangeButtons()
     {
@@ -67,15 +63,10 @@ public partial class SettingsPage : XtraUserControl
         try
         {
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
-            var commands = _dialogCloseButton is null ? new[] { saveButton, reloadButton } : new[] { saveButton, reloadButton, _dialogCloseButton };
-            var commandSize = UiButtonSizing.Apply(commands);
+            UiButtonSizing.Apply(saveButton, reloadButton, cancelButton);
+            UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(refreshAudioButton);
             refreshAudioButton.Margin = new Padding(captureDeviceEdit.Margin.Left, refreshAudioButton.Margin.Top, refreshAudioButton.Margin.Right, refreshAudioButton.Margin.Bottom);
-            for (var i = 1; i <= 2; i++)
-            {
-                footer.ColumnStyles[i].SizeType = SizeType.Absolute;
-                footer.ColumnStyles[i].Width = commandSize.Width + saveButton.Margin.Horizontal;
-            }
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
             foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
             {
@@ -177,6 +168,8 @@ public partial class SettingsPage : XtraUserControl
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
         directXEdit.Checked = options.User.UseDirectXRendering;
+        logLevelEdit.SelectedIndex = (int)options.User.LogLevel;
+        logDirectoryEdit.Text = options.User.LogDirectory ?? _workspace?.Paths.LogsDirectory ?? "";
         showWindowHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.ShowWindowHotkey);
         dialHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.DialHotkey);
         sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
@@ -210,6 +203,8 @@ public partial class SettingsPage : XtraUserControl
         return old with
         {
             User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
+                LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
+                LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
                 DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
@@ -300,13 +295,42 @@ public partial class SettingsPage : XtraUserControl
             }
             LoadAutoStart();
         }
-        statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank und Geräte werden beim nächsten Programmstart übernommen.";
+        statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank, Geräte und Protokollierung werden beim nächsten Programmstart übernommen.";
     }
     private async void Save_Click(object? sender, EventArgs e)
     {
-        if (_operation is not null) await _operation.RunAsync(token => SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
+        if (_operation is null || _operation.IsRunning) return;
+        var saved = false;
+        await _operation.RunAsync(async token =>
+        {
+            await SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
             "Die geänderten Darstellungs- oder Tastenkürzeleinstellungen wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
-            "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token));
+            "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token);
+            saved = true;
+        });
+        if (saved) SaveCompleted?.Invoke(this, EventArgs.Empty);
+    }
+    private void Cancel_Click(object? sender, EventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    private void LogDirectoryBrowse_Click(object? sender, EventArgs e)
+    {
+        var owner = (Control?)FindForm() ?? this;
+        var previousWaitCursor = owner.UseWaitCursor;
+        var previousCursor = owner.Cursor;
+        try
+        {
+            owner.UseWaitCursor = true;
+            owner.Cursor = Cursors.WaitCursor;
+            using var dialog = new XtraFolderBrowserDialog
+            {
+                Title = "Log-Verzeichnis auswählen",
+                SelectedPath = logDirectoryEdit.Text,
+                StartPosition = FormStartPosition.CenterParent
+            };
+            if (dialog.ShowDialog(owner) == DialogResult.OK) logDirectoryEdit.Text = dialog.SelectedPath;
+        }
+        catch (Exception exception) { statusLabel.Text = PageOperation.Describe(exception); }
+        finally { owner.UseWaitCursor = previousWaitCursor; owner.Cursor = previousCursor; }
     }
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {

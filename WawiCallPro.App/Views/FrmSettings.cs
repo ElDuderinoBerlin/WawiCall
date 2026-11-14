@@ -27,7 +27,9 @@ public partial class FrmSettings : XtraForm
     }
     public FrmSettings()
     {
-        InitializeComponent(); UiButtonSizing.Attach(this); settingsPage.ConfigureCommandButtons(closeButton);
+        InitializeComponent(); UiButtonSizing.Attach(this);
+        settingsPage.CloseRequested += Settings_CloseRequested;
+        settingsPage.SaveCompleted += Settings_SaveCompleted;
         settingsPage.RestartRequested += Settings_RestartRequested; settingsPage.ContentSizeChanged += ContentSize_Changed;
         SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; Load += Settings_Load;
     }
@@ -38,7 +40,7 @@ public partial class FrmSettings : XtraForm
         try
         {
             var height = settingsPage.GetRequiredGeneralHeight() + layout.Padding.Vertical + settingsPage.Margin.Vertical
-                + closeButton.GetPreferredSize(Size.Empty).Height + closeButton.Margin.Vertical + Height - ClientSize.Height;
+                + Height - ClientSize.Height;
             MinimumSize = new(MinimumSize.Width, height);
         }
         finally { _sizingMinimum = false; }
@@ -59,7 +61,8 @@ public partial class FrmSettings : XtraForm
         settingsPage.ConfigureLayoutPersistence(state);
         state?.AttachWindow(this, "FrmSettings");
     }
-    private void Close_Click(object? sender, EventArgs e) => Close();
+    private void Settings_CloseRequested(object? sender, EventArgs e) { DialogResult = DialogResult.Cancel; Close(); }
+    private void Settings_SaveCompleted(object? sender, EventArgs e) { DialogResult = DialogResult.OK; Close(); }
     private async void Settings_Load(object? sender, EventArgs e) { await settingsPage.ReloadAsync(); ContentSize_Changed(this, EventArgs.Empty); }
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {

@@ -647,6 +647,11 @@ verlassen; absolute Pfade, Laufwerksangaben und Traversal werden mit festen Meld
 Dies ist keine Dateisystemsandbox gegen Reparsepoints; konkrete Aufnahme-/Backupzugriffe folgen später.
 
 Standard-`ILogger` und `Quantarix.Plugin.Abstractions.ILogger` verwenden denselben `SafeFileLoggerProvider`.
+Seit dem 14.11.2026 führt dieser Adapter bereinigte Ereignisse durch eine tatsächliche Serilog-Pipeline
+mit `LoggingLevelSwitch` und einem synchronen, begrenzten JSONL-Sink. Fremde Zustände und Ausnahmen
+werden vor dem Serilog-Aufruf auf die nachfolgend genannten Metadaten reduziert; kein allgemeiner
+Serilog-Formatter erhält deren Inhalt. Grundlage: [Serilog-Sinks](https://github.com/serilog/serilog/wiki/Developing-a-sink)
+und [Log-Level/Switch](https://github.com/serilog/serilog/wiki/Writing-Log-Events).
 `QuantarixLogAdapter` implementiert die geprüften Methoden `LogInfo`, `LogWarning` und `LogError`.
 Die spätere Pluginmanager-Verdrahtung bleibt Phase 4. Der Quantarix-Textlogger wird hier bewusst nicht als
 Dateisink verwendet: dessen lokale Implementierung verschluckt Schreibfehler. Die Standard-Pfad-APIs erhalten
@@ -660,6 +665,17 @@ Ereigniscodes statt unbereinigter Meldungen. Jeder Schreibzugriff schließt sein
 Nicht beschreibbare Logs und das erreichte Limit melden einen festen `OperationException` und stoppen den
 Host mit Fehlerstatus. Es gibt keine automatische Löschung früherer Laufdateien; Aufbewahrung bleibt eine
 ausdrückliche Betriebsentscheidung. Die Startdiagnose bleibt davon getrennt genau ein JSON-Dokument.
+
+Unter **Einstellungen → Allgemein** stehen Log-Level und Log-Verzeichnis entsprechend LxTranslate.
+`user.logLevel` verwendet `Trace`, `Debug`, `Information` (Vorgabe), `Warning`, `Error`, `Critical` oder
+`None`; `user.logDirectory = null` verwendet den bisherigen produktbezogenen Ordner. Explizite Ordner
+müssen absolute lokale Pfade ohne Steuerzeichen, Wildcards oder alternative Datenströme sein;
+UNC-/Gerätepfade und Laufwerkswurzeln werden abgewiesen. Auswahl über einen DevExpress-Ordnerdialog
+mit Owner und wiederhergestelltem Wartecursor. Auflösen und Laden erzeugen keine Logdatei.
+Die Auswahl gilt für Dateilogs ab dem nächsten Hoststart. Meldungen vor dem Laden der Konfiguration
+verwenden die sicheren Bootstrap-Vorgaben. Das Log-Fenster behält seine Warnungen, insbesondere zur
+Lexware-Installation. Fatale Hintergrundfehler stoppen den Host auch bei `Critical`/`None` zuverlässig.
+Der Dateiname, das flache JSONL-Schema und die Fehler-/Kapazitätsbehandlung bleiben erhalten.
 
 `RuntimeFailureState` behält den ersten fatalen Betriebsfehler; `RuntimeFailureMonitor` fordert darüber
 `IHostApplicationLifetime.StopApplication` an. Framework-Hostfehler einschließlich fehlerhafter
@@ -740,7 +756,7 @@ Es gibt weiterhin kein automatisches Nachladen geänderter Startkonfigurationen.
 Seit Einstellungsformat 7 enthalten `user.showWindowHotkey` und `user.dialHotkey` optionale globale
 Tastenkürzel. `null` deaktiviert sie; zulässig sind die kanonischen Werte `Ctrl+Alt+F1` bis
 `Ctrl+Alt+F11`. Beide Aktionen benötigen unterschiedliche Kombinationen. Versionen 0–6 werden
-weiterhin gelesen und bleiben beim Laden unverändert; erst ausdrückliches Speichern schreibt Version 7.
+weiterhin gelesen und bleiben beim Laden unverändert; ausdrückliches Speichern schreibt das aktuelle Format.
 Fehlende Felder aktivieren keine Tastenkürzel. Der zentrale Tab **Tastenkürzel** bietet die beiden
 Auswahlfelder; Änderungen werden wie DirectX erst nach einem Neustart wirksam. Ein Neustart wird
 erst nach erfolgreichem Speichern angeboten; aktive Gespräche und ungespeicherte Notizen bleiben geschützt.
@@ -760,6 +776,17 @@ F12 und Kombinationen mit der Windows-Taste werden nicht angeboten, entsprechend
 Die verfügbaren Kombinationen gelten für die Windows-Sitzung; parallel laufende Editionen benötigen
 unterschiedliche Belegungen. Für einen Rollback vor Format 7 eine gesicherte ältere Einstellungsdatei
 wiederherstellen und die aktuelle Datei vorher sichern; ältere Ausgaben lesen Version 7 absichtlich nicht.
+
+Aktuelles Einstellungsformat ist **8**, ergänzt um `user.logLevel` und `user.logDirectory`.
+Versionen 0–7 bleiben lesbar und erhalten ohne Schreibzugriff die Logging-Vorgaben. Erst Speichern
+aktualisiert das Format; alle anderen Bereiche und der aktive Start-Snapshot bleiben erhalten.
+Für einen Rollback auf eine Ausgabe vor Format 8 die aktuelle Datei sichern und eine passende ältere
+Sicherung wiederherstellen. Ältere Ausgaben sollen das unbekannte Format weiterhin ablehnen.
+Der resizable Einstellungsdialog verwendet die vorhandene HKCU-Fensterpersistierung. Seine Tabs sind
+oben bündig, die Allgemein-Felder mit kräftigen Labels links und Editoren rechts angeordnet.
+Eine gemeinsame Fußzeile enthält Neu laden links sowie Speichern/Abbrechen rechts. Speichern schließt
+nach erfolgreicher Persistierung; bei Fehler bleibt die Eingabe sichtbar. X und Abbrechen warten auf
+laufende Aufgaben und verwerfen ungespeicherte Eingaben. Kein zusätzlicher Schließen-Button darunter.
 
 Die bevorzugte Firma ist nur eine Präferenz. Sie stellt weder einen nachgewiesenen Lexware-Mandanten noch
 die aktuelle Auswahl dar und wird beim Start nicht automatisch in `CompanyContext` übernommen.
