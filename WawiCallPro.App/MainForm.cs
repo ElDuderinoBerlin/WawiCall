@@ -23,6 +23,7 @@ public partial class MainForm : RibbonForm
     private readonly AppUiState? _state;
     private readonly WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog? _audioDevices;
     private readonly WawiCallPro.Interfaces.Office.IMailViewSource? _mailSource;
+    private readonly IPartySearchWorkspaceAccess? _partyWorkspaces;
     private readonly Dictionary<BaseDocument, IPluginViewHandle> _pluginPages = [];
     private readonly Dictionary<string, BaseDocument> _documents = [];
     private BaseDocument? _lastDocument;
@@ -53,6 +54,11 @@ public partial class MainForm : RibbonForm
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state,
         ILogWindowService logs, WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog audioDevices, WawiCallPro.Interfaces.Office.IMailViewSource mailSource)
         : this(application, configuration, workspace, state, logs, audioDevices) => _mailSource = mailSource ?? throw new ArgumentNullException(nameof(mailSource));
+
+    public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state,
+        ILogWindowService logs, WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog audioDevices, WawiCallPro.Interfaces.Office.IMailViewSource mailSource,
+        IPartySearchWorkspaceAccess partyWorkspaces) : this(application, configuration, workspace, state, logs, audioDevices, mailSource)
+        => _partyWorkspaces = partyWorkspaces;
 
     internal void PrepareForBackgroundRun()
     {
@@ -101,6 +107,7 @@ public partial class MainForm : RibbonForm
     internal void Navigate(string id)
     {
         if (_closing) return;
+        if (id == "parties") { if (_selectionTask.IsCompleted) _selectionTask = OpenPartyWorkspaceAsync(); return; }
         if (id == "caller") { OpenCallerLookup(); return; }
         if (id is "settings" or "plugin") { OpenSettings(id == "plugin"); return; }
         if (id == "database") { ribbon.SelectedPage = databaseRibbon; return; }
@@ -186,7 +193,7 @@ public partial class MainForm : RibbonForm
             .SelectMany(host => host.Controls.OfType<MailPage>()).Select(mail => mail.StopAsync()).ToArray();
         await Task.WhenAll(stopNotes.Concat(stopMail));
         if (_operation is not null) await _operation.StopAsync();
-        await _selectionTask;
+        await StopPartyOpeningAsync();
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
         foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
@@ -297,7 +304,7 @@ public partial class MainForm : RibbonForm
         foreach (var dial in OwnedForms.OfType<FrmDial>().ToArray()) { await dial.StopAsync(); dial.Close(); }
         foreach (var call in _callPages.Values.ToArray()) await CloseDocumentAsync(call.Document);
         if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
-        await _selectionTask;
+        await StopPartyOpeningAsync();
         await ClosePluginPagesAsync();
     }
     private void OpenSettings(bool plugins = false)
@@ -316,6 +323,7 @@ public partial class MainForm : RibbonForm
     private void UpdateBusinessActions()
     {
         callerItem.Enabled = dialItem.Enabled = _workspace?.CanUseBusinessDirectory == true;
+        partiesItem.Enabled = partiesNav.Enabled = _workspace?.CanUseBusinessDirectory == true;
     }
     private void ShowNavigation_Click(object sender, ItemClickEventArgs e) => navigationDock.Show();
     private void ShowOutput_Click(object sender, ItemClickEventArgs e) => outputDock.Show();
@@ -341,13 +349,13 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (partiesItem,"Caller"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
         }
     }
-    private void DisposePage() { UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
+    private void DisposePage() { DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {

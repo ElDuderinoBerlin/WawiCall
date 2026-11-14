@@ -33,6 +33,9 @@ internal static class AppCompositionRoot
                 services.AddSingleton<ILogWindowService>(provider => provider.GetRequiredService<LogWindowService>());
                 services.AddSingleton<ILoggerProvider, UiLogProvider>();
                 services.AddSingleton<AppUiState>();
+                services.AddSingleton<WawiCallPro.Plugin.Windows.IPartySearchPresentation, PartySearchPresentation>();
+                services.AddSingleton<WawiCallPro.Interfaces.Plugins.IPartySearchWorkspaceFactory, WawiCallPro.Plugin.Windows.PartySearchWorkspaceFactory>();
+                services.AddSingleton<WawiCallPro.Plugin.Windows.IPartySearchWorkspaceAccess, WawiCallPro.Plugin.Windows.PartySearchWorkspaceAccess>();
                 services.AddSingleton<IAppHotkeyBackend, WindowsAppHotkeyBackend>();
                 services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
                 services.AddAppStartupServices(mode);

@@ -47,6 +47,7 @@ partial class MainForm
         homeItem = new DevExpress.XtraBars.BarButtonItem();
         historyItem = new DevExpress.XtraBars.BarButtonItem();
         mailItem = new DevExpress.XtraBars.BarButtonItem();
+        partiesItem = new DevExpress.XtraBars.BarButtonItem();
         callerItem = new DevExpress.XtraBars.BarButtonItem();
         dialItem = new DevExpress.XtraBars.BarButtonItem();
         closeItem = new DevExpress.XtraBars.BarButtonItem();
@@ -64,6 +65,7 @@ partial class MainForm
         homeNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         historyNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         mailNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
+        partiesNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         settingsNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         helpNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         connectionLabel = new DevExpress.XtraEditors.LabelControl();
@@ -122,6 +124,12 @@ partial class MainForm
         mailItem.ItemClick += Mail_Click;
         ribbon.Items.Add(mailItem);
         workspaceGroup.ItemLinks.Add(mailItem);
+        partiesItem.Caption = "Kunden und Lieferanten";
+        partiesItem.Hint = "Im aktiven Plugin nach Namen, Nummer oder E-Mail suchen und Stammdaten öffnen.";
+        partiesItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        partiesItem.ItemClick += Parties_Click;
+        ribbon.Items.Add(partiesItem);
+        workspaceGroup.ItemLinks.Add(partiesItem);
         callerItem.Caption = "Anrufzuordnung";
         callerItem.Hint = "Rufnummer in allen ausgewählten berechtigten Firmen suchen und den passenden Datensatz übernehmen.";
         callerItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -234,6 +242,10 @@ partial class MainForm
         mailNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         mailNav.Click += MailNavigation_Click;
         navigation.Elements.Add(mailNav);
+        partiesNav.Text = "Kunden und Lieferanten";
+        partiesNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
+        partiesNav.Click += PartiesNavigation_Click;
+        navigation.Elements.Add(partiesNav);
         settingsNav.Text = "Einstellungen";
         settingsNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         settingsNav.Click += SettingsNavigation_Click;
@@ -384,6 +396,7 @@ partial class MainForm
     private DevExpress.XtraBars.BarButtonItem homeItem;
     private DevExpress.XtraBars.BarButtonItem historyItem;
     private DevExpress.XtraBars.BarButtonItem mailItem;
+    private DevExpress.XtraBars.BarButtonItem partiesItem;
     private DevExpress.XtraBars.BarButtonItem callerItem;
     private DevExpress.XtraBars.BarButtonItem dialItem;
     private DevExpress.XtraBars.BarButtonItem closeItem;
@@ -401,6 +414,7 @@ partial class MainForm
     private DevExpress.XtraBars.Navigation.AccordionControlElement homeNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement historyNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement mailNav;
+    private DevExpress.XtraBars.Navigation.AccordionControlElement partiesNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement settingsNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement helpNav;
     private DevExpress.XtraEditors.LabelControl connectionLabel;

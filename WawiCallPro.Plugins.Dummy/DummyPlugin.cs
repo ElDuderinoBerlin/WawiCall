@@ -11,7 +11,7 @@ using WawiCallPro.Interfaces.Plugins;
 namespace WawiCallPro.Plugins.Dummy;
 
 /// <summary>Explicit test source without ERP, network or database access.</summary>
-public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory
+public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCallPluginWorkspaces
 {
     private readonly CompanyKey _company;
     public DummyPlugin() => _company = new(ProductLine, "dummy-test-installation", "demo");
@@ -29,6 +29,8 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
     public void Configure(IWawiCallHostServices services) { if (!_initialized) throw new InvalidOperationException(); _configured = true; }
     public void Shutdown() { _configured = false; _initialized = false; }
+    public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => _configured
+        ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");
     public void Execute() => throw new NotSupportedException("Explizite Testquelle über den Datenadapter verwenden.");
     public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default)
     { Check(cancellationToken); return Task.FromResult(ImmutableArray.Create(new Company(Company, "Dummy – Testmandant"))); }

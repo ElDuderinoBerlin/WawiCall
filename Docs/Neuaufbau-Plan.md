@@ -6,9 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: gemeinsamer Suchdienst für Kunden, Lieferanten und Kontaktpersonen mit explizitem
-Mandanten und vollständigem Abruf ohne sichtbares Paging (Phase 8, Teilpunkt vom 14.11.2026).
-Die Suchoberfläche bleibt offen. Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
+Zuletzt ergänzt: plugin-eigene Kunden-/Lieferantensuche mit lokaler Mandanten-/Rollenauswahl,
+Grid-Find-Panel und schreibgeschütztem Stammdaten-Tab (Phase 8, Teilpunkt vom 14.11.2026).
+Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
 DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
@@ -314,7 +314,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, freier Geschäftspartnersuchdienst (Suchoberfläche offen), Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
@@ -2012,8 +2012,34 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   und vorhandenen Runtime-Fixtures; keine echten Quell-/Kundendaten oder sichtbare Desktopbedienung.
   Vertrag, Grenzen und Rollback in `Docs/Vertraege.md`. Ohne Quellrevision ist der mehrseitige Abruf
   keine transaktionale Bestandsaufnahme; reale Last-/Quellabnahme bleibt offen.
-- [ ] Freie Kunden-/Lieferantensuche an plugin-eigene Oberfläche anbinden: Mandant/Rolle wählen,
-  eingebautes Grid-Find-Panel an den Suchdienst anbinden, gefundene Datensätze in Fachansichten öffnen.
+- [x] ✅ Freie Kunden-/Lieferantensuche an plugin-eigene Oberfläche angebunden (14.11.2026):
+  Pro, FinOffice und Dummy erzeugen ihren Arbeitsbereich über eine typisierte Factory. Die konkrete
+  designerfähige DevExpress-Ansicht liegt im gemeinsamen Windows-Pluginprojekt, außerhalb der App.
+  Quellplugins behalten ihre UI-freien Fachverträge. Ribbon und Navigation öffnen genau eine Ansicht.
+  Lokaler durchsuchbarer Mandantennamens-Lookup und Rollenwahl; keine globale Mandantenumschaltung.
+  Strg+F blendet das eingebaute Find Panel ohne Textverlust ein/aus. Verzögerte Quellensuche über den
+  vorhandenen Suchdienst, keine parallele Suchtextbox und kein Paging. Spaltenlayout nutzt die
+  vorhandene versionierte HKCU-Hilfe ohne Sitzungsfilter; Buttons die gemeinsame DPI-/Skinhilfe.
+  Datenzeilen-Doppelklick oder Button öffnen exakt diesen Datensatz im schreibgeschützten Stammdaten-
+  Tab mit Firmen-/Rollenbezug, Kontaktdaten und Anschriften. Erweiterte Fach-Tabs bleiben Phase 10.
+  Fremde, entfernte und verspätete Daten sowie Fehler werden kontrolliert behandelt. Getrennte Lade-
+  und Abbruchpfade; Schließen/Wechsel warten auf nicht kooperative Quellen. Ausstehende Erzeugung
+  wird beim Hostschluss abgebrochen; verspätete Handles werden freigegeben, Controlreferenzen gelöst.
+  Nachweise je Edition: 16 App-, 50 gezielte Plugin-/Host- und 25 Console-Prüfungen bestanden.
+  Zwölf unsichtbare Aufnahmen je Edition für Treffer, leer, Fehler und Stammdaten bei 640/980 Breite,
+  10/16 pt, 150%-Layoutsimulation und Basic/Blue Dark beziehungsweise Office 2019 Black erzeugt;
+  repräsentative Varianten visuell geprüft. Zusätzlich drei gezielte Shell-Aufnahmen je Edition für
+  den neuen Ribbon-/Navigationseintrag bei 760/1240 Breite mit denselben Schrift-/Skalierungsvarianten.
+  TableLayoutPanel, Designer-/resx-Aufteilung erhalten.
+  Beide Solution-Editionen einschließlich App/Console in Debug/Any CPU rekompiliert: null Fehler,
+  je 26 bestehende externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.party-ui-{build,tests,runtime,console}-{pro,fin}.log`; Bilder unter den editionsgetrennten
+  App-Testausgaben in `.artifacts/party-search-ui/{Pro,FinOffice}`. Nachprüfung des Shell-Layouts nach
+  initialer Schrift-Autoskalierung: `.party-ui-shell-{pro,fin}.log`. `LX_UI_AUDIT_SURFACES` kennt
+  zusätzlich `PartySearchPage` als dienstfreie Designeransicht. Keine produktiven Daten oder GUI-Bedienung.
+  Sicherheits-/Lebensdauervertrag, Grenzen und Rollback in `Docs/Vertraege.md`.
+  Zusätzliche Deployment-Prüfung ist wegen vorhandener doppelter Core-DLLs fehlgeschlagen; eigener
+  offener Packaging-Punkt in Phase 14. Reale Quell-/Lastabnahme und vollständige Kernproduktabnahme bleiben offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
@@ -2194,6 +2220,13 @@ Abnahme: Mengen, Gesprächszuordnungen und Aufnahmereferenzen sind anhand eines 
 erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich über den neuen SIPSorcery-Stack.
 
 ### Phase 14 – Installation, Lizenzierung und Updates 🟨
+
+- [ ] Bestehende doppelte Core-DLLs zwischen Host und Fachplugin bereinigen: Deployment-Prüfung vom
+  14.11.2026 scheitert bei Pro an `Quantarix.Lexware.Core.dll`, bei FinOffice an `Quantarix.Pcfk.Core.dll`
+  in App und Console. Hostreferenzen für die Registryprüfung und private Pluginreferenzen bestanden
+  bereits vor dem Suchoberflächen-Teilpunkt. Shared-/Private-Ladevertrag und Deployfilter gemeinsam
+  prüfen, anschließend `scripts/test-plugin-deployment.ps1` für beide Editionen nachweisen.
+  Befund/Abgrenzung in `Docs/Vertraege.md`, Logs `.party-ui-deployment-{pro,fin}.log`.
 
 - [x] Velopack- und Release-Skriptintegration anhand von LxTranslate konkret planen. ✅
   Nachweis vom 04.11.2026: `Docs/Velopack-Build-Plan.md` beschreibt die gelesenen App-/Toolmanifest-/

@@ -88,7 +88,7 @@ Kunden-/Lieferantensuche nach Namen, Geschäftsnummer oder primärer E-Mail-Adre
 `PartySearchQuery` enthält einen vollständigen `CompanyKey`, einen Suchtext mit 1–200 Zeichen
 (ohne Steuerzeichen, außen getrimmt) sowie optional `PartyKind`. Ohne Rolle kommen alle vom
 Adapter gelieferten Rollen infrage; Kontakte behalten ihre Besitzer-ID. Eine globale Mandantenauswahl
-wird weder gelesen noch geändert. Die eigene Suchoberfläche und das Öffnen von Fachansichten folgen separat.
+wird weder gelesen noch geändert. Die zugehörige Plugin-Suchoberfläche ist im folgenden Abschnitt beschrieben.
 
 `PartySearchReader` liest intern höchstens 500 Treffer pro Anfrage, bis `HasMore = false` gemeldet wird.
 Die nach außen sichtbare Antwort enthält alle so gelesenen Treffer in stabiler Reihenfolge nach Name,
@@ -111,12 +111,65 @@ Es gibt keinen eigenen ServiceProvider, keine Hintergrundsynchronisierung und ke
 **Grenze:** Eine Quellsuche besitzt noch keinen serverseitigen Snapshot-/Revisionstoken. Jeder
 Adapteraufruf kann den Bestand erneut lesen. Wiederholte Identitäten fallen auf; Änderungen, die
 zwischen Seiten Treffer verschieben, sind ohne Quellversion nicht lückenlos erkennbar. Die Antwort
-ist daher keine transaktionale Bestandsaufnahme. Reale Quell-/Lastabnahme und Suchoberfläche bleiben offen.
+ist daher keine transaktionale Bestandsaufnahme. Reale Quell-/Lastabnahme bleibt offen.
 Isolierter Nachweis: je Edition 29 Reader-/Vertragsprüfungen und 50 gezielte Host-/Pluginprüfungen,
 darunter direkte Lexware-Sperre, zwei parallele Mandanten, vollständige 501 Treffer, Rollen-/Besitzer-
 trennung, Fehler nach der ersten Seite, Mengenlimit und nicht kooperativer Abruf beim Runtime-Shutdown.
 Logs `.party-search-{build,core,runtime}-{pro,fin}.log`; keine produktiven Daten oder GUI-Läufe.
 Keine Schema-/Konfigurationsänderung. Rollback durch Rücknahme dieses Teilpunkts; Bestandsdaten bleiben erhalten.
+
+### Plugin-Arbeitsbereich für freie Geschäftspartnersuche
+
+Seit dem UI-Teilpunkt vom 14.11.2026 öffnen Ribbon und Navigation **Kunden und Lieferanten** genau
+einen Arbeitsbereich des aktiven Plugins. Pro, FinOffice und Dummy implementieren dafür das optionale
+`IWawiCallPluginWorkspaces`. Die typisierte `IPartySearchWorkspaceFactory` hält Windows-/DevExpress-Typen
+aus den Quellplugins und der gemeinsamen Fachvertragsschnittstelle heraus. Die konkrete designerfähige
+`PartySearchPage` liegt in `WawiCallPro.Plugin.Windows`; die App liefert DI-Dienste, Buttonmetriken und
+Registrylayout. `PartySearchWorkspaceAccess` erzeugt den Ressourcenhandle im Runtime-Gate auf dem
+UI-Dispatcher. Der Handle gehört der Plugin-Laufzeit, wartet beim Freigeben auf alle Ladeaufgaben und
+gibt anschließend seine Controlreferenz frei. Keine DI-Auflösung in Views oder eigener ServiceProvider.
+
+Die lokale, durchsuchbare Mandantenauswahl zeigt ausschließlich Namen. Rolle und Suchtext werden mit
+dem vollständigen Mandantenschlüssel an `IPartySearch` übergeben. Die Suche verwendet das eingebaute
+[Grid-Find-Panel](https://docs.devexpress.com/WindowsForms/8869), Strg+F schaltet dessen Sichtbarkeit ohne
+Textverlust. Eine verzögerte Quellenabfrage erreicht auch zuvor nicht geladene Treffer; Suchmodus statt
+lokaler Filterung erhält die Quelltreffer. Es gibt keine separate Suchtextbox, keinen Suchbutton und
+keine Seitennavigation. Spaltenlayout wird unter dem bestehenden editionsgetrennten HKCU-Pfad
+`App/v1/Grids/PartySearch_v1` ohne Daten und Sitzungsfilter gespeichert. Tests unterdrücken diese Ablage.
+
+Button oder Doppelklick auf eine Datenzeile laden exakt den gewählten `PartyKey` über den geschützten
+Verzeichnisadapter. Der Stammdaten-Tab zeigt Firma, Rolle, Name, Geschäftsnummer, E-Mail, Aktivstatus,
+Telefone und Anschriften. Die strukturierte Textansicht bleibt zum Markieren/Kopieren schreibgeschützt.
+Fremde Identitäten werden abgewiesen, entfernte Datensätze verständlich gemeldet. Globale Mandanten-
+und Gesprächsauswahl bleiben unverändert. Erweiterte Auftrags-/Preis-/OP-Ansichten aus Phase 10 werden
+dadurch nicht als implementiert ausgegeben.
+
+Katalog, Suche und Stammdaten besitzen getrennte Abbruchpfade. Geänderte Auswahl invalidiert Treffer
+und laufende Detailabrufe. Späte Daten und späte Fehler abgebrochener Vorgänge verändern keine aktuelle
+Ansicht. Schließen und Pluginwechsel warten auch auf nicht kooperative Quellen. Eine noch ausstehende
+Ansichtserzeugung wird beim Hostschluss abgebrochen; ein verspätet gelieferter Handle wird freigegeben.
+Der begrenzte Audit-Einstieg kennt `PartySearchPage` als dienstfreie Designeransicht; gefüllte Zustände
+werden durch gezielte Tests mit Doubles gerendert.
+
+Nachweis je Edition: 16 App-, 50 gezielte Host-/Plugin- und 25 Console-Prüfungen bestanden;
+zwölf Hintergrundbilder für Treffer, leer, Fehler und Stammdaten bei 640/980 Breite, 10/16 pt,
+150%-Layoutsimulation und zwei Skins, zusätzlich drei gezielte Shell-Aufnahmen für den neuen
+Ribbon-/Navigationseintrag bei 760/1240 Breite und denselben Schrift-/Skalierungsvarianten.
+Beide Solution-Editionen in Debug/Any CPU rekompiliert, null
+Fehler und je 26 bestehende externe CSCore-Warnungen. Logs `.party-ui-{build,tests,runtime,console}-{pro,fin}.log`;
+Bilder unter den editionsgetrennten App-Testausgaben in `.artifacts/party-search-ui/{Pro,FinOffice}`.
+Die Shell-Aufnahmen wurden nach abgeschlossener initialer Schrift-Autoskalierung gezielt erneut
+geprüft; ergänzende Logs `.party-ui-shell-{pro,fin}.log`.
+Keine produktiven Daten, Quelldatenänderungen, Migrationen oder sichtbare Desktopbedienung.
+Rollback durch Rücknahme des UI-Teilpunkts; Suchdienst und gespeicherte Daten bleiben kompatibel.
+
+**Separater Packaging-Befund:** `scripts/test-plugin-deployment.ps1` scheitert in beiden Editionen an
+bereits vorhandenen doppelten Core-DLLs zwischen Host und Fachplugin: `Quantarix.Lexware.Core.dll`
+bei Pro, `Quantarix.Pcfk.Core.dll` bei FinOffice, jeweils App und Console. Die direkten Hostreferenzen
+stehen bereits im vorherigen Stand von `WawiCallPro.Utilities.csproj`; die private Pluginabhängigkeit
+bestand ebenfalls. Die Pro-Dateien wurden als hashgleich bestätigt. Die neue UI führt diese Referenzen
+nicht ein. Logs `.party-ui-deployment-{pro,fin}.log`; die Paketprüfung ist **fehlgeschlagen** und bleibt
+in Phase 14 offen. Shared-/Private-Vertrag und Deployment müssen dort gemeinsam korrigiert werden.
 
 Beide Adapter implementieren Kunden, Lieferanten und Kontaktpersonen. Technische IDs werden unabhängig
 von der unveränderten Geschäftsnummer als invariant formatierte Quell-Integer abgebildet. Ein Kontakt

@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net11.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms></PropertyGroup>
   <ItemGroup><ProjectReference Include="../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" /></ItemGroup>
+  <ItemGroup><PackageReference Include="DevExpress.Win" Version="$(DevExpressVersion)" /></ItemGroup>
 </Project>

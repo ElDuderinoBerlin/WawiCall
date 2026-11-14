@@ -3727,8 +3727,9 @@ public sealed partial class AppShellTests
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }
-    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews
+    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews, IWawiCallPluginWorkspaces
     {
+        public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => factory.Create();
         internal int Created;
         internal int Disposed;
         internal Func<string, PartyKey, CancellationToken, Task<IPluginViewLease>>? CreateAsync;

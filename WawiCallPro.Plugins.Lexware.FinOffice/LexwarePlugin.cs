@@ -7,7 +7,7 @@ using WawiCallPro.Interfaces.Plugins;
 namespace WawiCallPro.Plugins.Lexware.FinOffice;
 
 [PluginServices(typeof(FinOfficePluginServices))]
-public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin
+public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces
 {
     private bool _initialized;
     private bool _configured;
@@ -21,6 +21,8 @@ public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirec
         if (!_initialized || !ReferenceEquals(services, hostServices)) throw new InvalidOperationException("Plugin initialization/injection order.");
         _configured = true;
     }
+    public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => _configured
+        ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");
     public void Execute() => throw new NotSupportedException("Fachoperationen werden über den Datenadapter ausgeführt.");
     public void Shutdown() { _configured = false; _initialized = false; }
 }
