@@ -82,6 +82,8 @@ public sealed class LexwareInstallationTests
         Task<int> Source() => runtime.UseAsync((_, _) => Task.FromResult(++callbacks));
         await Assert.ThrowsExactlyAsync<LexwareUnavailableException>(Source);
         await Assert.ThrowsExactlyAsync<LexwareUnavailableException>(() => new PluginBusinessDirectory(runtime).GetCompaniesAsync());
+        await Assert.ThrowsExactlyAsync<LexwareUnavailableException>(() => new PluginPartySearch(runtime, new()).SearchAsync(
+            new(new CompanyKey(LexwareProductLine.Pro, "fixture", "1"), "Beispiel")));
         Assert.AreEqual(0, callbacks);
         await runtime.SwitchAsync(dummy);
         Assert.AreEqual(1, await Source());
@@ -97,6 +99,8 @@ public sealed class LexwareInstallationTests
         registry.FinOffice = false;
         await Assert.ThrowsExactlyAsync<LexwareUnavailableException>(Source);
         Assert.AreEqual(2, callbacks);
+        await Assert.ThrowsExactlyAsync<LexwareUnavailableException>(() => new PluginPartySearch(runtime, new()).SearchAsync(
+            new(new CompanyKey(LexwareProductLine.Pro, "fixture", "1"), "Beispiel")));
         Assert.AreEqual(lexware, runtime.ActivePluginId);
     }
 

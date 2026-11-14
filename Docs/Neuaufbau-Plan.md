@@ -6,9 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Einstellungsdialog nach LxTranslate mit Log-Level/Log-Verzeichnis und aktivem
-Serilog-Dateilogging (Phase 8, Teilpunkt vom 14.11.2026). Die Mailansicht nach dem
-DevExpress-WindowsMailClient ist isoliert geprüft; Mailanbieter und Import bleiben offen.
+Zuletzt ergänzt: gemeinsamer Suchdienst für Kunden, Lieferanten und Kontaktpersonen mit explizitem
+Mandanten und vollständigem Abruf ohne sichtbares Paging (Phase 8, Teilpunkt vom 14.11.2026).
+Die Suchoberfläche bleibt offen. Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
+DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
@@ -313,7 +314,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, freier Geschäftspartnersuchdienst (Suchoberfläche offen), Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
@@ -1989,6 +1990,30 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Sicherheitsumfang: reine Anzeige vorhandener historischer Daten, keine neuen SQL-Zugriffe, Migrationen,
   Konfigurationsformate oder produktiven Verbindungen. Rollback durch Rücknahme dieses Commits;
   gespeicherte Daten bleiben kompatibel. Vollständige Kernprodukt- und reale SIP-Abnahme bleiben offen.
+- [x] ✅ Teilpunkt Suchdienst für freie Kunden-/Lieferanten-/Kontaktpersonensuche (14.11.2026):
+  `IPartySearch` mit eigenem unveränderlichem Query-/Ergebnisvertrag; der vollständige Mandant und
+  eine optionale Rolle stehen in jeder Abfrage. Anzeigename, Geschäftsnummer und primäre E-Mail-Adresse
+  verwenden die vorhandene Quellfilterung. Kein Lesen oder Wechseln der globalen Mandantenauswahl.
+  Der DI-Reader sammelt intern Quellseiten bis zur letzten Seite und liefert eine stabil sortierte
+  Antwort ohne sichtbare Seitennavigation. Höchstens 25.000 Treffer; ein überschrittenes Limit verlangt
+  eine engere Suche. Ungültige Seiten, fremde Mandanten/Rollen, doppelte Identitäten und leere
+  Fortsetzungen liefern Fehler. Teilantworten werden nach Fehler oder Abbruch nicht veröffentlicht.
+  Kunden, Lieferanten und gleich nummerierte Kontakte verschiedener Besitzer bleiben getrennt.
+  Der Pluginadapter hält genau einen Laufzeitvorgang über alle Seiten. Die vorhandene Lexware-Sperre
+  gilt für direkte Aufrufe; Shutdown/Wechsel brechen ab und warten auch auf nicht kooperative Quellen.
+  App und pluginfähige Konsole erhalten dieselbe DI-Registrierung. Keine neuen Quellbibliotheken,
+  Datenbankzugriffe, Migrationen, Konfigurationsformate oder GUI-Änderungen.
+  Nachweis: je Edition 29 Reader-/Vertragsprüfungen und 50 gezielte Plugin-/Hostprüfungen bestanden;
+  501 Treffer, Rollen/Besitzer, parallele Mandanten, Mengenlimit, defekte/veränderte Antworten,
+  Fehler nach der ersten Seite, späte Antworten, echte Runtime-Lebensdauer und direkte Lexware-Sperre.
+  Beide Solution-Editionen einschließlich App/Console in Debug/Any CPU rekompiliert: null Fehler,
+  je 26 bestehende externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.party-search-{build,core,runtime}-{pro,fin}.log`. Tests ausschließlich mit isolierten Doubles
+  und vorhandenen Runtime-Fixtures; keine echten Quell-/Kundendaten oder sichtbare Desktopbedienung.
+  Vertrag, Grenzen und Rollback in `Docs/Vertraege.md`. Ohne Quellrevision ist der mehrseitige Abruf
+  keine transaktionale Bestandsaufnahme; reale Last-/Quellabnahme bleibt offen.
+- [ ] Freie Kunden-/Lieferantensuche an plugin-eigene Oberfläche anbinden: Mandant/Rolle wählen,
+  eingebautes Grid-Find-Panel an den Suchdienst anbinden, gefundene Datensätze in Fachansichten öffnen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

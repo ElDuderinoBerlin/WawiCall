@@ -205,6 +205,8 @@ public static class ProductPluginServices
         services.AddSingleton<IProductPluginRuntime>(provider => provider.GetRequiredService<ProductPluginRuntime>());
         services.AddHostedService(provider => provider.GetRequiredService<ProductPluginRuntime>());
         services.AddSingleton<IBusinessDirectory, PluginBusinessDirectory>();
+        services.AddSingleton<WawiCallPro.Core.Directory.PartySearchReader>();
+        services.AddSingleton<IPartySearch, PluginPartySearch>();
         services.AddSingleton<WawiCallPro.Interfaces.PhoneNumbers.IPhoneCacheService, WawiCallPro.Utilities.Persistence.PhoneCacheService>();
         WawiCallPro.Utilities.Persistence.PhoneSearchIndexRegistration.AddPhoneSearchIndex(services);
     }

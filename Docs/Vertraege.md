@@ -83,6 +83,41 @@ bevor sie die begrenzte Ergebnisseite bilden; `HasMore` wird aus einem zusätzli
 Ein erneuter Abruf liest erneut; eine transaktionsübergreifende Änderungssperre oder serverseitiges Paging
 wird dadurch nicht zugesagt.
 
+Seit dem Phase-8-Teilpunkt vom 14.11.2026 bündelt `IPartySearch` diese Quellseiten für die freie
+Kunden-/Lieferantensuche nach Namen, Geschäftsnummer oder primärer E-Mail-Adresse.
+`PartySearchQuery` enthält einen vollständigen `CompanyKey`, einen Suchtext mit 1–200 Zeichen
+(ohne Steuerzeichen, außen getrimmt) sowie optional `PartyKind`. Ohne Rolle kommen alle vom
+Adapter gelieferten Rollen infrage; Kontakte behalten ihre Besitzer-ID. Eine globale Mandantenauswahl
+wird weder gelesen noch geändert. Die eigene Suchoberfläche und das Öffnen von Fachansichten folgen separat.
+
+`PartySearchReader` liest intern höchstens 500 Treffer pro Anfrage, bis `HasMore = false` gemeldet wird.
+Die nach außen sichtbare Antwort enthält alle so gelesenen Treffer in stabiler Reihenfolge nach Name,
+Geschäftsnummer, Rolle, Datensatz- und Besitzer-ID; sie enthält keine Seitennavigation. Das Limit liegt
+bei 25.000 Treffern. Eine noch offene Fortsetzung am Limit liefert `PartySearchFailure.TooManyResults`
+mit der Aufforderung zum Eingrenzen statt einer still gekürzten Erfolgsantwort. Leere Fortsetzungen,
+uninitialisierte/null Listen, zu große Seiten, fremde Mandanten oder Rollen, leere Namen und wiederholte
+Identitäten werden als `InvalidResponse` abgewiesen. Fehler nach einer bereits gelesenen Seite geben
+keine Teilergebnisse zurück; eine erfolgreich leere letzte Antwort bleibt davon unterscheidbar.
+Kunden-/Lieferanten- und Kontaktidentitäten werden nicht zusammengeführt. Alle äußeren
+Suchfehlertexte sind fest; Query-/Ergebnis-`ToString()` enthält keine Suchbegriffe oder Stammdaten.
+
+`PluginPartySearch` hält für den gesamten Abruf einen einzigen `IProductPluginRuntime.UseAsync`-Vorgang.
+Damit gilt die bestehende Lexware-Installationssperre auch für direkte Suchaufrufe. Pluginwechsel und
+Shutdown brechen den Vorgang ab und warten vor der Quellfreigabe auf dessen Abschluss, einschließlich
+nicht kooperativer Abrufe. Nach jedem Abruf und vor der Rückgabe wird Abbruch geprüft. Reader und
+Adapter werden per DI durch `AddProductPluginRuntime` in App und pluginfähiger Konsole registriert.
+Es gibt keinen eigenen ServiceProvider, keine Hintergrundsynchronisierung und keinen Schreibzugriff.
+
+**Grenze:** Eine Quellsuche besitzt noch keinen serverseitigen Snapshot-/Revisionstoken. Jeder
+Adapteraufruf kann den Bestand erneut lesen. Wiederholte Identitäten fallen auf; Änderungen, die
+zwischen Seiten Treffer verschieben, sind ohne Quellversion nicht lückenlos erkennbar. Die Antwort
+ist daher keine transaktionale Bestandsaufnahme. Reale Quell-/Lastabnahme und Suchoberfläche bleiben offen.
+Isolierter Nachweis: je Edition 29 Reader-/Vertragsprüfungen und 50 gezielte Host-/Pluginprüfungen,
+darunter direkte Lexware-Sperre, zwei parallele Mandanten, vollständige 501 Treffer, Rollen-/Besitzer-
+trennung, Fehler nach der ersten Seite, Mengenlimit und nicht kooperativer Abruf beim Runtime-Shutdown.
+Logs `.party-search-{build,core,runtime}-{pro,fin}.log`; keine produktiven Daten oder GUI-Läufe.
+Keine Schema-/Konfigurationsänderung. Rollback durch Rücknahme dieses Teilpunkts; Bestandsdaten bleiben erhalten.
+
 Beide Adapter implementieren Kunden, Lieferanten und Kontaktpersonen. Technische IDs werden unabhängig
 von der unveränderten Geschäftsnummer als invariant formatierte Quell-Integer abgebildet. Ein Kontakt
 behält seine eigene ID und den vollständigen Besitzerbezug aus PartyKey. Pro verwendet `fk_kunde`,
