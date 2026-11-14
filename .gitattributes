@@ -5,3 +5,5 @@
 *.png binary
 *.ico binary
 *.snk binary
+# External source patches retain the original context and removed-line whitespace.
+scripts/patches/*.patch text eol=lf -whitespace

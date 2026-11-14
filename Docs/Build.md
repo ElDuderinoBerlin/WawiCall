@@ -619,3 +619,35 @@ Die konsumierenden Windows-Hosts und ihre Tests verwenden dafür
 `net11.0-windows10.0.19041.0` (Windows 10 ab Build 19041). Eigene Plugins und plattformneutrale
 Projekte verwenden `net11.0-windows` beziehungsweise `net11.0`. Build- und Prüfscripte verwenden den
 entsprechend angepassten Host-Ausgabeordner.
+
+### Externe MMS.Office-Leseroutine (14.11.2026)
+
+Die Outlook-Importkorrektur ist direkt in `D:\Application-Development\MMS.Office` angewandt.
+Der Ordner besitzt kein Git-Repository. Deshalb enthält
+[mms-office-outlook-import.patch](../scripts/patches/mms-office-outlook-import.patch) den vollständigen
+Änderungsstand für `Outlook/MailProvider.cs`, `Outlook/OutlookConfig.cs` und drei neue Importdateien.
+Das eigenständig aufrufbare [Prüfprojekt](../Tools/OutlookImport.Tests/OutlookImport.Tests.csproj)
+kompiliert die echten externen Reader-/Workerquellen mit Test-Doubles, ohne Outlook zu starten.
+Es ist bewusst nicht Teil der regulären Hostsolution und führt keine Office-Laufzeitabhängigkeit in die Hosts ein.
+
+```powershell
+dotnet build ../MMS.Office/MMS.Office.csproj -c Debug -p:Platform=AnyCPU --no-incremental
+dotnet test --project Tools/OutlookImport.Tests/OutlookImport.Tests.csproj -c Debug '-p:Platform=Any CPU' --no-progress
+```
+
+Bei anderer Ablage `-p:MmsOfficeDirectory=<absoluter MMS.Office-Pfad>` an den Testbefehl anhängen.
+Aktueller Nachweis: 21 Tests bestanden, Bibliotheksbuild ohne Fehler; der vollständige Altprojektgraph
+meldet 930 Nullable-/Framework-/sonstige Warnungen. Keine Warnung in den drei
+neuen Importdateien. Logs im Workspace: `.office-import-{baseline,build,tests}.log`.
+Die 44 bestehenden öffentlichen MailProvider-Deklarationen wurden gegen die Sicherung verglichen.
+Anwendbarkeit und Rücknehmbarkeit des Patches wurden ohne Änderung der Quellen geprüft:
+
+```powershell
+git -C ../MMS.Office apply --reverse --check --ignore-space-change "$PWD/scripts/patches/mms-office-outlook-import.patch"
+```
+
+Für eine Rücknahme nach Beenden aller Leser denselben Befehl ohne `--check` verwenden; vorher
+spätere lokale Änderungen sichern. Die Ausgangsdateien dieses Arbeitslaufs liegen zusätzlich unter
+`.artifacts/outlook-import/baseline`. Kein Schema-/Datenformatwechsel, keine produktiven Maildaten im Test.
+Nicht nachgewiesen sind native COM-/Profil-/Object-Model-Guard-Zustände, parallele Mailbewegungen,
+echte PST-/Exchange-Ordner und die WawiCallPro-Anbindung. Dafür eine freigegebene Test-Mailbox verwenden.

@@ -10,6 +10,8 @@ Zuletzt ergänzt: gespeicherte Geschäftspartner-/Mandantenzuordnung und Gesprä
 (Phase 8, geprüfter Teilpunkt vom 14.11.2026).
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
+Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
+Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -313,7 +315,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | ⬜ | Office-Kommunikation mit geplanten Microsoft-Graph- und Gmail-API-Connectoren | 3, 6, 8 |
+| 11 | ⬜ | Office-Kommunikation mit geplanten Graph-/Gmail-/Outlook-Desktop-Connectoren; externe MMS.Office-Leseroutine überarbeitet, Hostanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -2058,9 +2060,23 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 ### Phase 11 – Office-Kommunikation ⬜
 
+- [x] ✅ Externe Outlook-Leseroutine in `MMS.Office` robuster aufgebaut und isoliert geprüft (14.11.2026):
+  GetAll ohne Adressfilter, ausdrücklich leere Suche, exakte Datums-/Adressprüfung, Store-bezogene
+  Dublettenbehandlung, Abbruch im Durchlauf, sichtbare Lesefehler, gezielte COM-Freigabe und beendete
+  STA-Worker. Optionales Mengenlimit meldet Überschreitung als Fehler; vorhandene öffentliche
+  Methodensignaturen bleiben erhalten. 21 Regressionstests bestanden, MMS.Office in Debug/AnyCPU
+  für net10.0-windows rekompiliert: null Fehler, bestehende Warnungen im Altprojekt/Abhängigkeitsgraphen.
+  Die drei neuen Importdateien erzeugen keine Compilerwarnungen. Keine echten Postfächer geöffnet.
+  Das externe Verzeichnis hat kein Git-Repository; Patch und Tests sind hier versioniert.
+  Nachweise, Grenzen und Rollback: [Architektur](Architektur.md#klassisches-outlook-desktop-und-vorhandene-bibliotheken)
+  und [Build](Build.md#externe-mms-office-leseroutine-14112026). Dies ist ein Vorlagenschritt;
+  WawiCallPro-Import, DB-Persistierung, Kundenanzeige und native Outlook-Abnahme bleiben offen.
 - [ ] Vorhandene Office-Anforderungen und verfügbare aktuelle Bibliotheken/API-Verträge getrennt erfassen.
 - [ ] Microsoft 365: eigenen Connector über Microsoft Graph implementieren; Authentifizierung, Clienttyp und
   Zielumgebung klären. Weitere Outlook-/Exchange-Zielumgebungen getrennt auf Unterstützung prüfen.
+- [ ] Klassisches Outlook Desktop: lokalen Connector auf Basis der überarbeiteten MMS.Office-Leseroutine
+  hinter neuen Fachverträgen anbinden; ausgewählte Stores/Ordner importieren und Änderungen beziehungsweise
+  Verschiebungen wiederholbar zuordnen. Vorhandene Graph-Implementierung in `MMS.MSGraph` berücksichtigen.
 - [ ] Gmail und Google Workspace: eigenen Connector über die Gmail API mit OAuth-Anmeldung und passenden
   Leserechten implementieren. Beide Anbieter hinter gemeinsamen, per DI angebundenen Mailverträgen kapseln;
   Zielbild und API-Quellen stehen in [Architektur](Architektur.md#mail-anbindung-microsoft-365-und-gmail).

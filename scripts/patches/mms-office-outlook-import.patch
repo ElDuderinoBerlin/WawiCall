@@ -1,0 +1,778 @@
+diff --git a/Outlook/MailImportReader.cs b/Outlook/MailImportReader.cs
+new file mode 100644
+--- /dev/null
++++ b/Outlook/MailImportReader.cs
+@@ -0,0 +1,115 @@
++using System;
++using System.Collections.Generic;
++using System.Linq;
++using System.Threading;
++
++namespace MMS.Office.Outlook
++{
++    // These adapters own the handles they return. No COM object leaves a read operation.
++    internal interface IMailImportFolder<T> : IDisposable
++    {
++        string StoreId { get; }
++        string FolderId { get; }
++        IEnumerable<IMailImportFolder<T>> GetChildren();
++        IEnumerable<IMailImportMessage<T>> GetMessages(DateTime? from, DateTime? to);
++    }
++
++    internal interface IMailImportMessage<T> : IDisposable
++    {
++        string EntryId { get; }
++        DateTime ReceivedTime { get; }
++        string? GetSenderAddress();
++        IEnumerable<string> GetRecipientAddresses();
++        T Materialize(bool includeAttachments, object? tag);
++    }
++
++    internal sealed class MailImportReader<T>
++    {
++        private readonly MailFilter[]? _filters;
++        private readonly bool _recursive;
++        private readonly DateTime? _from;
++        private readonly DateTime? _to;
++        private readonly bool _includeAttachments;
++        private readonly int? _maximum;
++        private readonly CancellationToken _token;
++        private readonly HashSet<(string Store, string Folder)> _folders = new();
++        private readonly HashSet<(string Store, string Entry)> _messages = new();
++        private readonly List<T> _result = new();
++
++        internal MailImportReader(IEnumerable<MailFilter>? filters, bool recursive, DateTime? from, DateTime? to,
++            bool includeAttachments, int? maximum, CancellationToken token)
++        {
++            from = from?.Kind == DateTimeKind.Utc ? from.Value.ToLocalTime() : from;
++            to = to?.Kind == DateTimeKind.Utc ? to.Value.ToLocalTime() : to;
++            if (from > to) throw new ArgumentException("The start must not follow the end of the import period.");
++            if (maximum is <= 0) throw new ArgumentOutOfRangeException(nameof(maximum));
++            _filters = filters?.Select(filter =>
++            {
++                ArgumentNullException.ThrowIfNull(filter);
++                ArgumentException.ThrowIfNullOrWhiteSpace(filter.Address);
++                if (!Enum.IsDefined(filter.Type)) throw new ArgumentOutOfRangeException(nameof(filters));
++                return new MailFilter(filter.Address.Trim(), filter.Type, filter.Tag);
++            }).ToArray();
++            _recursive = recursive; _from = from; _to = to;
++            _includeAttachments = includeAttachments; _maximum = maximum; _token = token;
++        }
++
++        internal IReadOnlyList<T> Result => _result;
++
++        // The caller owns the root; this reader owns all child folders and messages it obtains.
++        internal void Read(IMailImportFolder<T> root)
++        {
++            _token.ThrowIfCancellationRequested();
++            if (_filters is { Length: 0 }) return; // An explicit empty search must never become GetAll.
++            var store = root.StoreId;
++            var folderId = root.FolderId;
++            ArgumentException.ThrowIfNullOrWhiteSpace(store);
++            ArgumentException.ThrowIfNullOrWhiteSpace(folderId);
++            if (!_folders.Add((store, folderId))) return;
++            foreach (var message in root.GetMessages(_from, _to))
++            {
++                using (message)
++                {
++                    _token.ThrowIfCancellationRequested();
++                    var entry = message.EntryId;
++                    ArgumentException.ThrowIfNullOrWhiteSpace(entry);
++                    var identity = (store, entry);
++                    if (_messages.Contains(identity)) continue;
++                    if (_from.HasValue || _to.HasValue)
++                    {
++                        var received = message.ReceivedTime;
++                        if (received < _from || received > _to) continue;
++                    }
++                    if (!TryMatch(message, out var tag)) continue;
++                    _token.ThrowIfCancellationRequested();
++                    if (_maximum is { } maximum && _result.Count >= maximum)
++                        throw new InvalidOperationException("The configured mail import limit was exceeded. Narrow the folders or period.");
++                    var item = message.Materialize(_includeAttachments, tag);
++                    _token.ThrowIfCancellationRequested();
++                    _messages.Add(identity);
++                    _result.Add(item);
++                }
++            }
++            if (!_recursive) return;
++            _token.ThrowIfCancellationRequested();
++            foreach (var child in root.GetChildren())
++                using (child) Read(child);
++        }
++
++        private bool TryMatch(IMailImportMessage<T> message, out object? tag)
++        {
++            tag = null;
++            if (_filters is null) return true;
++            var sender = _filters.Any(filter => filter.Type == MailAddressType.Sender) ? message.GetSenderAddress()?.Trim() : null;
++            var senderFilter = _filters.FirstOrDefault(filter => filter.Type == MailAddressType.Sender
++                && string.Equals(filter.Address, sender, StringComparison.OrdinalIgnoreCase));
++            if (senderFilter is not null) { tag = senderFilter.Tag; return true; }
++            if (!_filters.Any(filter => filter.Type == MailAddressType.Receiver)) return false;
++            var recipients = message.GetRecipientAddresses().Select(address => address.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
++            var receiverFilter = _filters.FirstOrDefault(filter => filter.Type == MailAddressType.Receiver && recipients.Contains(filter.Address));
++            if (receiverFilter is null) return false;
++            tag = receiverFilter.Tag;
++            return true;
++        }
++    }
++}
+diff --git a/Outlook/MailImportWorker.cs b/Outlook/MailImportWorker.cs
+new file mode 100644
+--- /dev/null
++++ b/Outlook/MailImportWorker.cs
+@@ -0,0 +1,31 @@
++using System;
++using System.Threading;
++using System.Threading.Tasks;
++
++namespace MMS.Office.Outlook
++{
++    internal static class MailImportWorker
++    {
++        internal static async Task<T> RunAsync<T>(Func<CancellationToken, T> read, CancellationToken token)
++        {
++            token.ThrowIfCancellationRequested();
++            var result = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
++            var worker = new Thread(() =>
++            {
++                try
++                {
++                    token.ThrowIfCancellationRequested();
++                    var value = read(token);
++                    token.ThrowIfCancellationRequested();
++                    result.SetResult(value);
++                }
++                catch (OperationCanceledException) when (token.IsCancellationRequested) { result.SetCanceled(token); }
++                catch (Exception exception) { result.SetException(exception); }
++            }) { IsBackground = true, Name = "Outlook mail import" };
++            worker.SetApartmentState(ApartmentState.STA);
++            worker.Start();
++            try { return await result.Task.ConfigureAwait(false); }
++            finally { worker.Join(); }
++        }
++    }
++}
+diff --git a/Outlook/MailProvider.cs b/Outlook/MailProvider.cs
+--- a/Outlook/MailProvider.cs
++++ b/Outlook/MailProvider.cs
+@@ -12,7 +12,6 @@
+ using Microsoft.Office.Interop.Outlook;
+ using MSOutlook = Microsoft.Office.Interop.Outlook;
+ using MMS.Utility.LinqExtensions;
+-using MMS.Utility.Threading;
+ 
+ namespace MMS.Office.Outlook
+ {
+@@ -29,120 +28,10 @@
+ 
+         #region Helper
+ 
+-        private static string GetFilterExpr(DateTime? from, DateTime? to)
+-        {
+-            return
+-                @$"[ReceivedTime] >= '{from.GetValueOrDefault(DateTime.MinValue):g}' AND [ReceivedTime] <= '{to.GetValueOrDefault(DateTime.Now.Date.AddHours(23).AddMinutes(59).AddSeconds(59)):g}'";
+-        }
+-
+-        private static string GetFilterExpr(string mailAddress, DateTime? from, DateTime? to)
+-        {
+-            return
+-                @$"[SenderEmailAddress] = '{mailAddress}' AND [ReceivedTime] >= '{from.GetValueOrDefault(DateTime.MinValue):g}' AND [ReceivedTime] <= '{to.GetValueOrDefault(DateTime.Now.Date.AddHours(23).AddMinutes(59).AddSeconds(59)):g}'";
+-        }
+-
+-        private static void GetMailsInternal(ICollection<MailMessage> result, MAPIFolder root, bool recursive, DateTime? from, DateTime? to,
+-            ICollection<MailFilter> mailFilter, bool includeAttachments)
+-        {
+-            ArgumentNullException.ThrowIfNull(result);
+-            ArgumentNullException.ThrowIfNull(root);
+-            ArgumentNullException.ThrowIfNull(mailFilter);
+-
+-            var folders = new List<MAPIFolder>();
+-
+-            var filterExpr = GetFilterExpr(from, to);
+-
+-            var senders = mailFilter
+-                .Where(a => a.Type == MailAddressType.Sender)
+-                .DistinctBy(a => a.Address)
+-                .ToLookup(a => a.Address);
+-
+-            var receivers = mailFilter
+-                .Where(a => a.Type == MailAddressType.Receiver)
+-                .DistinctBy(a => a.Address)
+-                .ToLookup(a => a.Address);
+-
+-            if (recursive)
+-            {
+-                // Note: holds all subfolders with parent (root)
+-                FolderHelper.FindMailFoldersRecursively(root, folders);
+-            }
+-            else
+-            {
+-                folders.Add(root);
+-            }
+-
+-            foreach (var folder in folders)
+-            {
+-#if DEBUG
+-                Trace.WriteLine($"searching \"{folder.FolderPath}\"");
+-#endif
+-                var items = folder.Items.Restrict(filterExpr);
+-
+-                try
+-                {
+-                    foreach (var mailItem in items.OfType<MailItem>().ToList())
+-                    {
+-                        //if (item is MailItem mailItem)
+-                        {
+-                            try
+-                            {
+-                                if (senders.Any())
+-                                {
+-                                    var senderAddress = OutlookHelper.GetSenderSmtpAddress(mailItem);
+-
+-                                    if (senderAddress.IsNotNullOrEmpty() && senders.Contains(senderAddress!))
+-                                    {
+-                                        var sender = senders[senderAddress!].Single();
+-
+-                                        var mail = CreateMail(mailItem, includeAttachments, sender.Tag);
+-                                        if (mail != null)
+-                                            result.Add(mail);
+-                                    }
+-                                }
+-
+-                                if (receivers.Any())
+-                                {
+-                                    var recipients = OutlookHelper.GetReceiverSmtpAddress(mailItem).ToLookup(a => a);
+-
+-                                    foreach (var receiverAddress in receivers)
+-                                    {
+-                                        if (recipients.Contains(receiverAddress.Key))
+-                                        {
+-                                            var receiver = receiverAddress.Single();
+-
+-                                            var mail = CreateMail(mailItem, includeAttachments, receiver.Tag);
+-                                            if (mail != null)
+-                                                result.Add(mail);
+-                                        }
+-                                    }
+-                                }
+-                            }
+-                            catch (System.Exception)
+-                            {
+-                                // ignored
+-                            }
+-                            finally
+-                            {
+-                                if (mailItem != null)
+-                                    Marshal.ReleaseComObject(mailItem);
+-                            }
+-                        }
+-                    }
+-                }
+-                finally
+-                {
+-                    if (folder != null)
+-                        Marshal.ReleaseComObject(folder);
+-                    if (items != null)
+-                        Marshal.ReleaseComObject(items);
+-                }
+-            } // foreach (var folder in folders)
+-        }
+-
+         private static MailMessage CreateMail(MailItem item, bool includeAttachments = true, object? useTag = null)
+         {
+             ArgumentNullException.ThrowIfNull(item);
++            var sender = OutlookMailImport.ReadSender(item);
+ 
+             return new MailMessage
+             {
+@@ -153,14 +42,14 @@
+                 BodyFormat = (BodyFormat)item.BodyFormat,
+                 CreationTime = item.CreationTime,
+                 Sent = item.SentOn,
+-                SenderMailAddress = item.SenderEmailAddress,
+-                SenderId = item.Sender.ID,
++                SenderMailAddress = sender.Address,
++                SenderId = sender.Id,
+                 ReceivedTime = item.ReceivedTime,
+                 Subject = item.Subject,
+                 UserTag = useTag,
+                 Flag = (FlagStatus)item.FlagStatus,
+                 FolderName = FolderHelper.GetFullFolderName(item),
+-                Recipients = OutlookHelper.GetMailRecipients(item),
++                Recipients = OutlookMailImport.ReadRecipients(item),
+                 Attachments = includeAttachments ? AttachmentHelper.GetAttachments(item) : Enumerable.Empty<FileAttachment>().ToList()
+             };
+         }
+@@ -476,143 +365,22 @@
+ 
+         #region Methods
+ 
++        private MailImportReader<MailMessage> CreateImportReader(IEnumerable<MailFilter>? filters, bool recursive,
++            DateTime? from, DateTime? to, bool includeAttachments, CancellationToken token) =>
++            new(filters, recursive, from, to, includeAttachments, Config.MaximumImportMessages, token);
++
+         private IEnumerable<MailMessage> GetMailsInternal(IEnumerable<string> storeIds, IEnumerable<DefaultFolders> wellknownFolders,
+             bool recursive, ICollection<MailFilter>? mailAddresses, DateTime? from = null, DateTime? to = null, bool includeAttachments = false)
+         {
+-            var store = default(MSOutlook.Store);
+-            var @namespace = default(NameSpace);
+-
+-            var result = new List<MailMessage>();
+-
+-            try
+-            {
+-                @namespace = Application.GetNamespace("MAPI");
+-
+-                foreach (var id in storeIds ?? [string.Empty])
+-                {
+-                    try
+-                    {
+-                        store = id.IsNotNullOrEmpty() ? @namespace.GetStoreFromID(id) : @namespace.DefaultStore;
+-
+-                        if (wellknownFolders?.Any() != true)
+-                        {
+-                            var root = default(MAPIFolder);
+-
+-                            try
+-                            {
+-                                root = store.GetRootFolder();
+-                                GetMailsInternal(result, root, recursive, from, to, mailAddresses, includeAttachments);
+-                            }
+-                            catch (System.Exception)
+-                            {
+-
+-                            }
+-                            finally
+-                            {
+-                                if (root != null) Marshal.ReleaseComObject(root);
+-                            }
+-                        }
+-                        else
+-                        {
+-                            foreach (var fld in wellknownFolders)
+-                            {
+-                                var root = default(MAPIFolder);
+-
+-                                try
+-                                {
+-                                    root = fld == DefaultFolders.FolderRoot ? (MAPIFolder)store.GetDefaultFolder(OlDefaultFolders.olFolderInbox).Parent
+-                                        : store.GetDefaultFolder((OlDefaultFolders)fld);
+-                                    GetMailsInternal(result, root, recursive, from, to, mailAddresses, includeAttachments);
+-                                }
+-                                catch (System.Exception)
+-                                {
+-
+-                                }
+-                                finally
+-                                {
+-                                    if (root != null) Marshal.ReleaseComObject(root);
+-                                }
+-                            }
+-                        }
+-                    }
+-                    catch (System.Exception)
+-                    {
+-
+-                    }
+-                    finally
+-                    {
+-                        if (store != null) Marshal.ReleaseComObject(store);
+-                    }
+-                }
+-            }
+-            catch (System.Exception)
+-            {
+-
+-            }
+-            finally
+-            {
+-                if (@namespace != null) Marshal.ReleaseComObject(@namespace);
+-            }
+-
+-            return result;
++            var reader = CreateImportReader(mailAddresses, recursive, from, to, includeAttachments, CancellationToken.None);
++            return OutlookMailImport.ReadDefaultFolders(Application!, storeIds, wellknownFolders, reader, CreateMail, CancellationToken.None);
+         }
+ 
+         private IEnumerable<MailMessage?> GetMailsInternal(IEnumerable<string> storeIds, IEnumerable<string> folderNames, bool recursive,
+             ICollection<MailFilter> mailAddresses, DateTime? from = null, DateTime? to = null, bool includeAttachments = false)
+         {
+-            var root = default(MAPIFolder);
+-            var store = default(MSOutlook.Store);
+-            var @namespace = default(NameSpace);
+-
+-            var result = new List<MailMessage>();
+-
+-            try
+-            {
+-                @namespace = Application.GetNamespace("MAPI");
+-
+-                foreach (var id in storeIds ?? [string.Empty])
+-                {
+-                    try
+-                    {
+-                        store = id.IsNotNullOrEmpty() ? @namespace.GetStoreFromID(id) : @namespace.DefaultStore;
+-                        root = store.GetRootFolder();
+-
+-                        if (folderNames?.Any() != true)
+-                        {
+-                            GetMailsInternal(result, root, recursive, from, to, mailAddresses, includeAttachments);
+-                        }
+-                        else
+-                        {
+-                            foreach (var name in folderNames)
+-                            {
+-                                var folder = FolderHelper.GetFolder(root, name);
+-
+-                                if (folder == null) continue;
+-
+-                                try
+-                                {
+-                                    GetMailsInternal(result, folder, recursive, from, to, mailAddresses, includeAttachments);
+-                                }
+-                                finally
+-                                {
+-                                    if (folder != null) Marshal.ReleaseComObject(folder);
+-                                }
+-                            }
+-                        }
+-                    }
+-                    finally
+-                    {
+-                        if (root != null) Marshal.ReleaseComObject(root);
+-                        if (store != null) Marshal.ReleaseComObject(store);
+-                    }
+-                }
+-            }
+-            finally
+-            {
+-                if (@namespace != null) Marshal.ReleaseComObject(@namespace);
+-            }
+-
+-            return result;
++            var reader = CreateImportReader(mailAddresses, recursive, from, to, includeAttachments, CancellationToken.None);
++            return OutlookMailImport.ReadNamedFolders(Application!, storeIds, folderNames, reader, CreateMail, CancellationToken.None);
+         }
+ 
+         public async Task<IEnumerable<MailMessage?>> FindInFolderAsync(
+@@ -629,9 +397,10 @@
+             DateTime? to,
+             bool includeAttachments, CancellationToken cancellationToken = default)
+         {
+-            //return await Task.FromResult(GetMailsInternal(Config.StoreIds, wellknownFolders, recursive, mailAddresses, from, to, includeAttachments));
+-            return await Task.Factory.StartNew(() => GetMailsInternal(Config.StoreIds, wellknownFolders, recursive, mailAddresses, from, to, includeAttachments), cancellationToken, TaskCreationOptions.LongRunning, new SingleThreadTaskScheduler())
+-                .ConfigureAwait(false);
++            var reader = CreateImportReader(mailAddresses, recursive, from, to, includeAttachments, cancellationToken);
++            var stores = Config.StoreIds?.ToArray(); var folders = wellknownFolders?.ToArray();
++            return await MailImportWorker.RunAsync(token => OutlookMailImport.ReadDefaultFolders(Application!, stores,
++                folders, reader, CreateMail, token), cancellationToken).ConfigureAwait(false);
+         }
+ 
+         public async Task<IEnumerable<MailMessage?>> FindInFolderNamesAsync(
+@@ -648,9 +417,10 @@
+             ICollection<string> folderNames, bool recursive, ICollection<MailFilter> mailAddresses, DateTime? from, DateTime? to,
+             bool includeAttachments, CancellationToken cancellationToken)
+         {
+-            return await Task.Factory.StartNew(() => GetMailsInternal(Config.StoreIds, folderNames, recursive, mailAddresses, from, to,
+-                        includeAttachments), cancellationToken, TaskCreationOptions.LongRunning, new SingleThreadTaskScheduler())
+-                .ConfigureAwait(false);
++            var reader = CreateImportReader(mailAddresses, recursive, from, to, includeAttachments, cancellationToken);
++            var stores = Config.StoreIds?.ToArray(); var folders = folderNames?.ToArray();
++            return await MailImportWorker.RunAsync(token => OutlookMailImport.ReadNamedFolders(Application!, stores,
++                folders, reader, CreateMail, token), cancellationToken).ConfigureAwait(false);
+         }
+ 
+         public IEnumerable<MailMessage> GetAll(ICollection<DefaultFolders>? wellknownFolders = null,
+@@ -675,9 +445,10 @@
+             DateTime? from, DateTime? to,
+             bool includeAttachments, CancellationToken cancellationToken)
+         {
+-            return await Task.Run(() => GetAll(wellknownFolders, recursive, from, to, includeAttachments),
+-                    cancellationToken)
+-                .ConfigureAwait(false);
++            var reader = CreateImportReader(null, recursive, from, to, includeAttachments, cancellationToken);
++            var stores = Config.StoreIds?.ToArray(); var folders = wellknownFolders?.ToArray();
++            return await MailImportWorker.RunAsync(token => OutlookMailImport.ReadDefaultFolders(Application!, stores,
++                folders, reader, CreateMail, token), cancellationToken).ConfigureAwait(false);
+         }
+ 
+         public IEnumerable<MailMessage?> GetAll(IEnumerable<string> folderNames = null, bool recursive = true,
+@@ -701,9 +472,10 @@
+             DateTime? from, DateTime? to,
+             bool includeAttachments, CancellationToken cancellationToken)
+         {
+-            return await Task.Run(() => GetAll(folderNames, recursive, from, to, includeAttachments),
+-                    cancellationToken)
+-                .ConfigureAwait(false);
++            var reader = CreateImportReader(null, recursive, from, to, includeAttachments, cancellationToken);
++            var stores = Config.StoreIds?.ToArray(); var folders = folderNames?.ToArray();
++            return await MailImportWorker.RunAsync(token => OutlookMailImport.ReadNamedFolders(Application!, stores,
++                folders, reader, CreateMail, token), cancellationToken).ConfigureAwait(false);
+         }
+ 
+         public MailMessage GetById(string entryId, bool includeAttachments = false)
+@@ -800,4 +572,4 @@
+ 
+         #endregion
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Outlook/OutlookConfig.cs b/Outlook/OutlookConfig.cs
+--- a/Outlook/OutlookConfig.cs
++++ b/Outlook/OutlookConfig.cs
+@@ -5,5 +5,8 @@
+     public sealed class OutlookConfig(IEnumerable<string> storeIds) : ProviderConfigBase, IProviderConfig
+     {
+         public IEnumerable<string> StoreIds { get; } = storeIds;
++
++        /// <summary>Optional maximum per read. Exceeding it fails the read instead of returning an incomplete import.</summary>
++        public int? MaximumImportMessages { get; set; }
+     }
+ }
+diff --git a/Outlook/OutlookMailImport.cs b/Outlook/OutlookMailImport.cs
+new file mode 100644
+--- /dev/null
++++ b/Outlook/OutlookMailImport.cs
+@@ -0,0 +1,239 @@
++using System;
++using System.Collections.Generic;
++using System.Globalization;
++using System.Linq;
++using System.Runtime.InteropServices;
++using System.Threading;
++using MMS.Office.Mails;
++using MSOutlook = Microsoft.Office.Interop.Outlook;
++
++namespace MMS.Office.Outlook
++{
++    internal static class OutlookMailImport
++    {
++        internal static List<MailMessage> ReadDefaultFolders(MSOutlook.Application application, IEnumerable<string>? storeIds,
++            IEnumerable<DefaultFolders>? folders, MailImportReader<MailMessage> reader,
++            Func<MSOutlook.MailItem, bool, object?, MailMessage> materialize, CancellationToken token)
++        {
++            var selected = folders?.Distinct().ToArray();
++            return ReadStores(application, storeIds, reader, (store, storeId) =>
++            {
++                foreach (var folder in selected is { Length: > 0 } ? selected : new[] { DefaultFolders.FolderRoot })
++                {
++                    token.ThrowIfCancellationRequested();
++                    var raw = folder == DefaultFolders.FolderRoot ? store.GetRootFolder() : store.GetDefaultFolder((MSOutlook.OlDefaultFolders)folder);
++                    using var source = new ComFolder(raw, storeId, materialize, token);
++                    reader.Read(source);
++                }
++            }, token);
++        }
++
++        internal static List<MailMessage> ReadNamedFolders(MSOutlook.Application application, IEnumerable<string>? storeIds,
++            IEnumerable<string>? names, MailImportReader<MailMessage> reader,
++            Func<MSOutlook.MailItem, bool, object?, MailMessage> materialize, CancellationToken token)
++        {
++            var selected = names?.Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
++            return ReadStores(application, storeIds, reader, (store, storeId) =>
++            {
++                using var root = new ComFolder(store.GetRootFolder(), storeId, materialize, token);
++                if (selected is not { Length: > 0 }) { reader.Read(root); return; }
++                foreach (var path in selected)
++                {
++                    token.ThrowIfCancellationRequested();
++                    var raw = ResolveFolder(root.Folder, path, token);
++                    if (ReferenceEquals(raw, root.Folder)) reader.Read(root);
++                    else
++                    {
++                        using var source = new ComFolder(raw, storeId, materialize, token);
++                        reader.Read(source);
++                    }
++                }
++            }, token);
++        }
++
++        private static List<MailMessage> ReadStores(MSOutlook.Application application, IEnumerable<string>? storeIds,
++            MailImportReader<MailMessage> reader, Action<MSOutlook.Store, string> read, CancellationToken token)
++        {
++            ArgumentNullException.ThrowIfNull(application);
++            MSOutlook.NameSpace? session = null;
++            try
++            {
++                token.ThrowIfCancellationRequested();
++                session = application.GetNamespace("MAPI");
++                foreach (var id in storeIds ?? new[] { string.Empty })
++                {
++                    token.ThrowIfCancellationRequested();
++                    MSOutlook.Store? store = null;
++                    try
++                    {
++                        store = string.IsNullOrEmpty(id) ? session.DefaultStore : session.GetStoreFromID(id);
++                        read(store, store.StoreID);
++                    }
++                    finally { Release(store); }
++                }
++                token.ThrowIfCancellationRequested();
++                return reader.Result.ToList();
++            }
++            finally { Release(session); }
++        }
++
++        private static MSOutlook.MAPIFolder ResolveFolder(MSOutlook.MAPIFolder root, string path, CancellationToken token)
++        {
++            var parts = path.Trim('\\', '/').Split(new[] { '\\', '/' }, StringSplitOptions.RemoveEmptyEntries);
++            var current = root;
++            var owned = false;
++            try
++            {
++                var offset = parts.Length > 0 && string.Equals(parts[0], root.Name, StringComparison.OrdinalIgnoreCase) ? 1 : 0;
++                for (var index = offset; index < parts.Length; index++)
++                {
++                    token.ThrowIfCancellationRequested();
++                    MSOutlook.Folders? children = null;
++                    MSOutlook.MAPIFolder next;
++                    try { children = current.Folders; next = children[parts[index]]; }
++                    finally { Release(children); }
++                    if (owned) Release(current);
++                    current = next; owned = true;
++                }
++                return current;
++            }
++            catch { if (owned) Release(current); throw; }
++        }
++
++        private static string DateFilter(DateTime? from, DateTime? to)
++        {
++            var terms = new List<string>();
++            if (from is { } start) terms.Add("[ReceivedTime] >= '" + start.ToLocalTimeIfUtc().ToString("g", CultureInfo.CurrentCulture) + "'");
++            // Jet date filters have minute precision. Include the final minute; the reader checks the exact bound.
++            if (to is { } end) terms.Add("[ReceivedTime] <= '" + (end < DateTime.MaxValue.AddMinutes(-1) ? end.AddMinutes(1) : end).ToLocalTimeIfUtc().ToString("g", CultureInfo.CurrentCulture) + "'");
++            return string.Join(" AND ", terms);
++        }
++
++        private static DateTime ToLocalTimeIfUtc(this DateTime value) => value.Kind == DateTimeKind.Utc ? value.ToLocalTime() : value;
++        internal static void Release(object? value) { if (value is not null && Marshal.IsComObject(value)) Marshal.ReleaseComObject(value); }
++
++        internal static (string Id, string Address) ReadSender(MSOutlook.MailItem mail)
++        {
++            MSOutlook.AddressEntry? sender = null;
++            MSOutlook.ExchangeUser? exchangeUser = null;
++            MSOutlook.PropertyAccessor? properties = null;
++            try
++            {
++                sender = mail.Sender;
++                if (mail.SenderEmailType != "EX") return (sender?.ID ?? string.Empty, mail.SenderEmailAddress ?? string.Empty);
++                if (sender is null) return (string.Empty, string.Empty);
++                if (sender.AddressEntryUserType is MSOutlook.OlAddressEntryUserType.olExchangeUserAddressEntry
++                    or MSOutlook.OlAddressEntryUserType.olExchangeRemoteUserAddressEntry)
++                {
++                    exchangeUser = sender.GetExchangeUser();
++                    if (!string.IsNullOrWhiteSpace(exchangeUser?.PrimarySmtpAddress)) return (sender.ID, exchangeUser.PrimarySmtpAddress);
++                }
++                properties = sender.PropertyAccessor;
++                return (sender.ID, ReadSmtpProperty(properties) ?? string.Empty);
++            }
++            finally { Release(properties); Release(exchangeUser); Release(sender); }
++        }
++
++        internal static List<Recipient> ReadRecipients(MSOutlook.MailItem mail)
++        {
++            var result = new List<Recipient>();
++            MSOutlook.Recipients? recipients = null;
++            try
++            {
++                recipients = mail.Recipients;
++                for (var index = 1; index <= recipients.Count; index++)
++                {
++                    MSOutlook.Recipient? recipient = null;
++                    MSOutlook.PropertyAccessor? properties = null;
++                    try
++                    {
++                        recipient = recipients[index]; properties = recipient.PropertyAccessor;
++                        var address = ReadSmtpProperty(properties);
++                        result.Add(new Recipient { Id = recipient.EntryID, Name = recipient.Name, Index = recipient.Index,
++                            Type = (MailRecipientType)recipient.Type, Address = string.IsNullOrWhiteSpace(address) ? recipient.Address : address });
++                    }
++                    finally { Release(properties); Release(recipient); }
++                }
++                return result;
++            }
++            finally { Release(recipients); }
++        }
++
++        private static string? ReadSmtpProperty(MSOutlook.PropertyAccessor properties)
++        {
++            try { return properties.GetProperty(ExtendedProps.PR_SMTP_ADDRESS) as string; }
++            catch (COMException exception) when (exception.HResult == unchecked((int)0x8004010F)) { return null; } // MAPI_E_NOT_FOUND
++        }
++
++        private sealed class ComFolder : IMailImportFolder<MailMessage>
++        {
++            private MSOutlook.MAPIFolder? _folder;
++            private readonly Func<MSOutlook.MailItem, bool, object?, MailMessage> _materialize;
++            private readonly CancellationToken _token;
++            internal ComFolder(MSOutlook.MAPIFolder folder, string storeId,
++                Func<MSOutlook.MailItem, bool, object?, MailMessage> materialize, CancellationToken token)
++            { _folder = folder; StoreId = storeId; _materialize = materialize; _token = token; }
++            internal MSOutlook.MAPIFolder Folder => _folder ?? throw new ObjectDisposedException(nameof(ComFolder));
++            public string StoreId { get; }
++            public string FolderId => Folder.EntryID;
++
++            public IEnumerable<IMailImportFolder<MailMessage>> GetChildren()
++            {
++                MSOutlook.Folders? children = null;
++                try
++                {
++                    _token.ThrowIfCancellationRequested(); children = Folder.Folders;
++                    for (var index = 1; index <= children.Count; index++)
++                    {
++                        _token.ThrowIfCancellationRequested();
++                        yield return new ComFolder(children[index], StoreId, _materialize, _token);
++                    }
++                }
++                finally { Release(children); }
++            }
++
++            public IEnumerable<IMailImportMessage<MailMessage>> GetMessages(DateTime? from, DateTime? to)
++            {
++                MSOutlook.Items? all = null;
++                MSOutlook.Items? filtered = null;
++                try
++                {
++                    _token.ThrowIfCancellationRequested();
++                    if (Folder.DefaultItemType != MSOutlook.OlItemType.olMailItem) yield break;
++                    all = Folder.Items;
++                    var expression = DateFilter(from, to);
++                    if (expression.Length > 0) filtered = all.Restrict(expression);
++                    var items = filtered ?? all;
++                    for (var index = 1; index <= items.Count; index++)
++                    {
++                        _token.ThrowIfCancellationRequested();
++                        object? item = items[index];
++                        try
++                        {
++                            if (item is not MSOutlook.MailItem mail) continue;
++                            var message = new ComMessage(mail, _materialize, _token);
++                            item = null; // Ownership transfers to the reader, including on cancellation.
++                            yield return message;
++                        }
++                        finally { Release(item); }
++                    }
++                }
++                finally { Release(filtered); Release(all); }
++            }
++            public void Dispose() { var folder = _folder; _folder = null; Release(folder); }
++        }
++
++        private sealed class ComMessage(MSOutlook.MailItem mail,
++            Func<MSOutlook.MailItem, bool, object?, MailMessage> materialize, CancellationToken token) : IMailImportMessage<MailMessage>
++        {
++            private MSOutlook.MailItem? _mail = mail;
++            private MSOutlook.MailItem Mail => _mail ?? throw new ObjectDisposedException(nameof(ComMessage));
++            public string EntryId => Mail.EntryID;
++            public DateTime ReceivedTime => Mail.ReceivedTime;
++            public string? GetSenderAddress() { token.ThrowIfCancellationRequested(); return ReadSender(Mail).Address; }
++            public IEnumerable<string> GetRecipientAddresses() { token.ThrowIfCancellationRequested(); return ReadRecipients(Mail).Select(recipient => recipient.Address).Where(address => !string.IsNullOrWhiteSpace(address)).ToArray(); }
++            public MailMessage Materialize(bool includeAttachments, object? tag) { token.ThrowIfCancellationRequested(); return materialize(Mail, includeAttachments, tag); }
++            public void Dispose() { var item = _mail; _mail = null; Release(item); }
++        }
++    }
++}

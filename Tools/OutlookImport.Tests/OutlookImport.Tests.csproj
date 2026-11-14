@@ -1,0 +1,13 @@
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+    <MmsOfficeDirectory Condition="'$(MmsOfficeDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\..\MMS.Office</MmsOfficeDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MmsOfficeDirectory)\Outlook\MailImportReader.cs" Link="Production\MailImportReader.cs" />
+    <Compile Include="$(MmsOfficeDirectory)\Outlook\MailImportWorker.cs" Link="Production\MailImportWorker.cs" />
+    <Compile Include="$(MmsOfficeDirectory)\Outlook\MailFilter.cs" Link="Production\MailFilter.cs" />
+    <Compile Include="$(MmsOfficeDirectory)\Outlook\MailAddressType.cs" Link="Production\MailAddressType.cs" />
+  </ItemGroup>
+</Project>
