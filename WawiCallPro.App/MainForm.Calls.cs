@@ -93,7 +93,7 @@ public partial class MainForm
     internal void EnsureViewsCanClose()
     {
         EnsureCallsAreIdle();
-        if (_callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)) throw new UnsavedCallNotesException();
+        if (_callPages.Values.Any(entry => entry.Page.HasUnsavedNotes) || HasUnsavedHistoryNotes) throw new UnsavedCallNotesException();
         if (_pluginPages.Values.Any(view => view.HasUnsavedChanges) || _callPages.Values.Any(entry => entry.Page.HasUnsavedChanges))
             throw new UnsavedPluginChangesException();
     }
@@ -106,6 +106,8 @@ public partial class MainForm
         throw new ActiveCallCloseException();
     }
     internal void ReportActiveCall() => connectionLabel.Text = new ActiveCallCloseException().Message;
-    internal void ReportUnsavedChanges() => connectionLabel.Text = _callPages.Values.Any(entry => entry.Page.HasUnsavedNotes)
+    private bool HasUnsavedHistoryNotes => _documents.Values.Any(document =>
+        document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HistoryPage { HasUnsavedNotes: true });
+    internal void ReportUnsavedChanges() => connectionLabel.Text = _callPages.Values.Any(entry => entry.Page.HasUnsavedNotes) || HasUnsavedHistoryNotes
         ? new UnsavedCallNotesException().Message : new UnsavedPluginChangesException().Message;
 }

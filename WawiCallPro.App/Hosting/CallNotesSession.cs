@@ -3,7 +3,7 @@ using WawiCallPro.Interfaces.History;
 
 namespace WawiCallPro.App.Hosting;
 
-/// <summary>Creates one UI-owned notes session per call; the call page owns its shutdown and disposal.</summary>
+/// <summary>Creates call-bound UI sessions; the owning call or history page stops and disposes them.</summary>
 public sealed class CallNotesSessionFactory(ICallHistoryService history)
 {
     internal CallNotesSession Create(Guid callId) => new(history, callId);
@@ -23,6 +23,7 @@ internal sealed class CallNotesSession(ICallHistoryService history, Guid callId)
     internal Guid CallId { get; } = callId;
     internal string Draft { get; private set; } = "";
     internal ImmutableArray<CallNote> Notes { get; private set; } = [];
+    internal WawiCallPro.Interfaces.Telephony.CallSnapshot? StoredCall { get; private set; }
     internal string Status { get; private set; } = "Notizen gehören zu diesem Gespräch, unabhängig von der Firmenzuordnung.";
     internal bool IsBusy { get; private set; }
     internal bool IsStopping => _stopping;
@@ -50,6 +51,7 @@ internal sealed class CallNotesSession(ICallHistoryService history, Guid callId)
         token.ThrowIfCancellationRequested();
         if (stored is not null && (stored.Call.Id != CallId || stored.Notes.Any(note => note.CallId != CallId)))
             throw new InvalidOperationException("Unexpected call identity.");
+        StoredCall = stored?.Call;
         Notes = stored?.Notes.OrderBy(note => note.CreatedAtUtc).ThenBy(note => note.Id).ToImmutableArray() ?? [];
         Status = stored is null ? "Gespräch noch nicht in der Historie verfügbar. Der Entwurf bleibt erhalten; bitte später erneut versuchen."
             : "Gesprächsnotizen geladen. Ein vorhandener Entwurf bleibt erhalten.";
@@ -104,4 +106,4 @@ internal sealed class CallNotesSession(ICallHistoryService history, Guid callId)
     }
 }
 
-internal sealed class UnsavedCallNotesException() : Exception("Ungespeicherte Gesprächsnotizen vorhanden. Bitte im Gesprächsfenster speichern oder den Entwurf verwerfen.");
+internal sealed class UnsavedCallNotesException() : Exception("Ungespeicherte Gesprächsnotizen vorhanden. Bitte Notizen speichern oder die Entwürfe leeren beziehungsweise verwerfen.");

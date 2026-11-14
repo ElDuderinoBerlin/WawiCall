@@ -306,7 +306,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, Notizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung und konfigurierbare Shell-Tastenkürzel; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung und konfigurierbare Shell-Tastenkürzel; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | ⬜ | Office-Kommunikation | 3, 6, 8 |
@@ -1862,6 +1862,38 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Technischer Vertrag, API-Quelle und Rollback stehen in `Docs/Vertraege.md`. Vor Rückkehr zu einer
   Ausgabe ohne Format 7 eine gesicherte ältere Konfiguration wiederherstellen und den aktuellen Stand
   erhalten. Keine Datenbankänderung; geprüft wurde ohne produktive Profile, SIP-Konten oder Audiogeräte.
+- [x] ✅ Teilpunkt Entwurfsschutz und wiederholbare Notizspeicherung in der Gesprächshistorie (14.11.2026):
+  Die bisherige Historienansicht verwarf beim Zeilenwechsel/Neuladen den Notiztext und erzeugte für
+  jeden Speicheraufruf eine neue ID. Sie verwendet jetzt dieselbe injizierte `CallNotesSessionFactory`
+  wie die Gesprächsansichten, mit eigenen gesprächsgebundenen Sitzungen im Besitz der Historienseite.
+  Entwürfe bleiben je Gespräch über Zeilenwechsel und erneutes Laden erhalten. Die vorherige Auswahl
+  wird wiederhergestellt. Ein neuer Zeitraum, der ungespeicherte Entwürfe ausblenden würde, wird
+  abgewiesen; die bisherige Liste und Eingabe bleiben nutzbar. Leeren des Editors verwirft den Entwurf.
+  Wiederholungen nach einer verlorenen Speicherbestätigung behalten die Notiz-ID. Ein verspätetes
+  Speicherergebnis bleibt am ursprünglichen Gespräch und ersetzt keinen inzwischen ausgewählten Entwurf.
+  Während des Speicherns sind Editor und Speichern gesperrt. Fehler erhalten Text und verständlichen Status.
+  Historien-Tab schließen, Anwendungsende/Neustart und vorbereitender Pluginwechsel prüfen auch diese
+  Entwürfe. Nach erfolgreicher Schließprüfung werden Historien- und Gesprächsnotizen vor dem ersten
+  Abwarten anderer Shutdown-Arbeiten gesperrt. Ausstehende Speicher-/Ladevorgänge werden abgebrochen
+  und vor Freigabe abgewartet; verspätete Ergebnisse löschen keinen Entwurf. Ereignisbindungen werden entfernt.
+  Die vorhandene Historienoberfläche und ihr parameterloser Designer-Konstruktor bleiben erhalten;
+  die Statusmeldung wächst jetzt vertikal, damit auch Fehlerhinweise bei großer Schrift vollständig passen.
+  Nachweise: Je Edition 20 gezielte App-Prüfungen für zwei unabhängige Entwürfe, Fokus/Refresh/Zeitraum,
+  stabile ID nach verlorener Bestätigung, Doppelaufruf, Zeilenwechsel während Save, nicht kooperativen
+  Speicher beim Lesen/Schreiben, frühen Shutdown-Schutz, Tab-/App-/Plugin-Schließschutz und echten
+  SQLite-Roundtrip. Bestehende Gesprächsnotiz-, aktive-Anruf- und vollständige Historienprüfungen enthalten.
+  Zwölf neue Aufnahmen je Edition für leer, Entwurf, Speicherfehler und gespeichert bei 640/900 Breite,
+  10/16 pt, 150%-Layoutsimulation, Basic/Blue Dark und Office 2019 Black unsichtbar gerendert und visuell
+  geprüft; bestehende Calls-Tab-Prüfung mit 501 Datensätzen, optionalem Find Panel und ohne Paging bestanden.
+  Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert: null Fehler, jeweils 26 bekannte
+  externe CSCore-Warnungen. FinOffice als reguläre Startausgabe wiederhergestellt.
+  Logs `.phase8-history-notes-{build,tests}-{pro,fin}.log`; neue Bilder unter
+  `WawiCallPro.App.Tests/bin/Debug/{Pro,FinOffice}/net11.0-windows10.0.19041.0/.artifacts/history-notes`,
+  vorhandene Listenaufnahmen unter `.artifacts/app-shell/settings-ui/history-layout`.
+  Sicherheitsumfang: reine UI-/Lebensdaueranbindung an vorhandene Historien- und Notizdienste; keine
+  neue SQL-Ausführung, Migration oder Konfigurationsänderung. Tests verwenden Doubles beziehungsweise
+  isoliertes SQLite, keine produktiven Profile oder Telefonie. Rollback durch Rücknahme dieses Commits;
+  zuvor alle Entwürfe speichern oder bewusst leeren. Die vollständige Kernproduktabnahme bleibt offen.
 - [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
   Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
   Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.

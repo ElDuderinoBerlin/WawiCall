@@ -41,6 +41,210 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppShellTests
 {
     [TestMethod]
+    public Task HistoryNotesKeepPerCallDraftsAcrossFocusRefreshAndRangeChanges() => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble();
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click");
+        var editor = Field<MemoEdit>(page, "noteEdit");
+        await FocusHistoryCallAsync(page, history.Calls[0].Id); editor.Text = "Entwurf eins · Ä 电话";
+        await FocusHistoryCallAsync(page, history.Calls[1].Id); Assert.AreEqual("", editor.Text); editor.Text = "Entwurf zwei";
+        await FocusHistoryCallAsync(page, history.Calls[0].Id); Assert.AreEqual("Entwurf eins · Ä 电话", editor.Text);
+        await InvokeActionAsync(page, "Refresh_Click");
+        Assert.AreEqual(history.Calls[0].Id, Field<Guid?>(page, "_selected")); Assert.AreEqual("Entwurf eins · Ä 电话", editor.Text);
+        Field<DateEdit>(page, "fromEdit").DateTime = DateTime.Today.AddDays(-10);
+        Field<DateEdit>(page, "toEdit").DateTime = DateTime.Today.AddDays(-5);
+        await InvokeActionAsync(page, "Refresh_Click");
+        Assert.AreEqual(2, Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view").DataRowCount);
+        Assert.AreEqual("Entwurf eins · Ä 电话", editor.Text); Assert.Contains("ausblenden", Field<LabelControl>(page, "statusLabel").Text);
+        await FocusHistoryCallAsync(page, history.Calls[1].Id); Assert.AreEqual("Entwurf zwei", editor.Text); editor.Text = "";
+        await FocusHistoryCallAsync(page, history.Calls[0].Id); editor.Text = ""; Assert.IsFalse(page.HasUnsavedNotes);
+        await InvokeActionAsync(page, "Refresh_Click");
+        Assert.AreEqual(0, Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view").DataRowCount);
+        Assert.IsTrue(editor.Properties.ReadOnly); Assert.AreEqual(0, history.Stored.Count);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task HistoryNotesRetryALostAcknowledgementWithOneStableNoteId() => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble { LoseAcknowledgement = true };
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click");
+        var callId = Field<Guid?>(page, "_selected")!.Value; var editor = Field<MemoEdit>(page, "noteEdit");
+        editor.Text = "Einmal speichern"; await InvokeActionAsync(page, "SaveNote_Click");
+        Assert.AreEqual("Einmal speichern", editor.Text); Assert.IsTrue(page.HasUnsavedNotes);
+        Assert.Contains("Entwurf bleibt erhalten", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.DoesNotContain("private-history-error", Field<LabelControl>(page, "statusLabel").Text);
+        await InvokeActionAsync(page, "SaveNote_Click");
+        Assert.AreEqual(2, history.Attempts.Count); Assert.AreEqual(history.Attempts[0], history.Attempts[1]);
+        Assert.AreEqual(1, history.Stored.Count); Assert.AreEqual(callId, history.Stored.Values.Single().CallId);
+        Assert.AreEqual("", editor.Text); Assert.IsFalse(page.HasUnsavedNotes);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task HistoryNotesLateSaveKeepsItsCallAndLoadsTheNewFocusedDraft() => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble();
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click");
+        var editor = Field<MemoEdit>(page, "noteEdit");
+        await FocusHistoryCallAsync(page, history.Calls[1].Id); editor.Text = "Entwurf im zweiten Gespräch";
+        await FocusHistoryCallAsync(page, history.Calls[0].Id); editor.Text = "Notiz im ersten Gespräch";
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        history.BeforeSave = async _ => { entered.TrySetResult(); await release.Task; };
+        var saving = InvokeActionAsync(page, "SaveNote_Click"); await entered.Task;
+        Assert.IsTrue(editor.Properties.ReadOnly); Assert.IsFalse(Field<SimpleButton>(page, "saveNoteButton").Enabled);
+        var duplicate = InvokeActionAsync(page, "SaveNote_Click");
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+        view.FocusedRowHandle = view.LocateByValue("Id", history.Calls[1].Id);
+        release.SetResult(); await saving; await duplicate;
+        Assert.AreEqual(history.Calls[0].Id, history.Stored.Values.Single().CallId); Assert.AreEqual(1, history.Attempts.Count);
+        Assert.AreEqual(history.Calls[1].Id, Field<Guid?>(page, "_selected")); Assert.AreEqual("Entwurf im zweiten Gespräch", editor.Text);
+        await page.StopAsync();
+    });
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task HistoryNotesShutdownCancelsAndAwaitsNonCooperativeStorage(bool saving) => RunStaAsync(async () =>
+    {
+        var history = new HistoryNotesDouble();
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        await InvokeActionAsync(page, "Refresh_Click"); var editor = Field<MemoEdit>(page, "noteEdit"); editor.Text = "Entwurf bei Abbruch";
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); CancellationToken captured = default;
+        async Task Block(CancellationToken token) { captured = token; entered.TrySetResult(); await release.Task; }
+        if (saving) history.BeforeSave = Block; else history.BeforeRead = Block;
+        var pending = InvokeActionAsync(page, saving ? "SaveNote_Click" : "Refresh_Click"); await entered.Task;
+        var stop = page.StopAsync(); Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(stop.IsCompleted);
+        Assert.IsTrue(editor.Properties.ReadOnly); release.SetResult(); await stop; await pending;
+        Assert.AreEqual("Entwurf bei Abbruch", editor.Text); Assert.IsTrue(page.HasUnsavedNotes);
+        Assert.IsFalse(Field<SimpleButton>(page, "saveNoteButton").Enabled);
+    });
+
+    [TestMethod]
+    public Task HistoryNotesBlockDocumentShutdownAndPluginSwitchUntilSavedOrCleared() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync(); var call = await CreateWorkspaceCallAsync(services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); form.Navigate("history");
+        var page = (HistoryPage)form.GetActiveDocumentView()!; await InvokeActionAsync(page, "Refresh_Click");
+        var editor = Field<MemoEdit>(page, "noteEdit"); editor.Text = "Historienentwurf schützt Schließen";
+        Assert.ThrowsExactly<UnsavedCallNotesException>(form.EnsureViewsCanClose);
+        await Assert.ThrowsExactlyAsync<UnsavedCallNotesException>(() => form.PrepareToCloseAsync());
+        Assert.IsFalse(Field<bool>(form, "_closing")); Assert.IsFalse(page.IsDisposed);
+        await Assert.ThrowsExactlyAsync<UnsavedCallNotesException>(() =>
+            (Task)typeof(MainForm).GetMethod("PreparePluginSwitchAsync", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(form, null)!);
+        var document = Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").ActiveDocument;
+        await Assert.ThrowsExactlyAsync<UnsavedCallNotesException>(() =>
+            (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(form, [document])!);
+        Assert.AreEqual("Historienentwurf schützt Schließen", editor.Text);
+        await InvokeActionAsync(page, "SaveNote_Click"); Assert.IsFalse(page.HasUnsavedNotes); form.EnsureViewsCanClose();
+        Assert.AreEqual("Historienentwurf schützt Schließen", (await workspace.History.GetCallAsync(call.Id))!.Notes.Single().Text);
+        editor.Text = "Entwurf zum Leeren"; Assert.IsTrue(page.HasUnsavedNotes); editor.Text = "";
+        await form.PrepareToCloseAsync(); Assert.IsTrue(editor.Properties.ReadOnly);
+    });
+
+    private static async Task FocusHistoryCallAsync(HistoryPage page, Guid callId)
+    {
+        var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+        view.FocusedRowHandle = view.LocateByValue("Id", callId); await WaitForOperationAsync(page);
+    }
+
+    [TestMethod]
+    public Task HistoryNotesFreezeBeforeApplicationShutdownAwaitsOtherWork() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync(); await CreateWorkspaceCallAsync(services);
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun(); form.Show(); form.Navigate("history");
+        var history = (HistoryPage)form.GetActiveDocumentView()!; await InvokeActionAsync(history, "Refresh_Click");
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pending = Field<PageOperation>(form, "_operation").RunAsync(_ => release.Task);
+        var closing = form.PrepareToCloseAsync();
+        try
+        {
+            Assert.IsFalse(closing.IsCompleted); Assert.IsTrue(Field<MemoEdit>(history, "noteEdit").Properties.ReadOnly);
+            Field<MemoEdit>(history, "noteEdit").Text = "Kein neuer Entwurf nach der Schließprüfung";
+            Assert.IsFalse(history.HasUnsavedNotes);
+        }
+        finally { release.TrySetResult(); await closing; await pending; }
+    });
+
+    [TestMethod]
+    public Task HistoryNotesRenderEmptyDraftFailureAndSavedStatesWithoutVisibleWindows() => RunStaAsync(async () =>
+    {
+        AppUiStartup.Apply();
+        var originalFont = WindowsFormsSettings.DefaultFont; var originalAppearance = AppearanceObject.DefaultFont;
+        var originalSkin = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
+        var originalPalette = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSvgPaletteName;
+        var line = ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine;
+        var output = Path.Combine(".artifacts", "history-notes", line); Directory.CreateDirectory(output);
+        try
+        {
+            foreach (var state in new[] { "empty", "draft", "failure", "saved" })
+            foreach (var (width, fontSize, scale, skin) in new[] { (900, 10F, 1F, "Basic"), (640, 16F, 1F, "Office 2019 Black"), (900, 10F, 1.5F, "Basic") })
+            {
+                if (skin == "Basic") DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, "Blue Dark");
+                else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
+                using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
+                var history = new HistoryNotesDouble { Empty = state == "empty", LoseAcknowledgement = state == "failure" };
+                using var page = new HistoryPage(history, new CallNotesSessionFactory(history)) { Font = font, Size = new(width, 560) };
+                using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Font = font; host.MinimumSize = Size.Empty;
+                host.Controls.Add(page); page.BringToFront(); host.ClientSize = new(width, 560); host.Show();
+                page.Size = new(width, 560);
+                CreateHandles(page); if (scale != 1F) page.Scale(new SizeF(scale, scale));
+                await InvokeActionAsync(page, "Refresh_Click");
+                if (state != "empty") Field<MemoEdit>(page, "noteEdit").Text = "Historiennotiz · Ä 电话\r\nEin Entwurf bleibt dem gewählten Gespräch zugeordnet.";
+                if (state is "failure" or "saved") await InvokeActionAsync(page, "SaveNote_Click");
+                Field<XtraTabControl>(page, "historyTabs").SelectedTabPage = Field<XtraTabPage>(page, "notesTab");
+                page.PerformLayout(); Application.DoEvents(); CheckTableBounds(page);
+                Assert.IsFalse(host.ShowInTaskbar); Assert.AreEqual(0D, host.Opacity);
+                using var shot = new Bitmap(page.Width, page.Height); page.DrawToBitmap(shot, new Rectangle(Point.Empty, page.Size));
+                shot.Save(Path.Combine(output, $"history-notes-{state}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                await page.StopAsync();
+            }
+        }
+        finally
+        {
+            WindowsFormsSettings.DefaultFont = originalFont; AppearanceObject.DefaultFont = originalAppearance;
+            if (string.IsNullOrEmpty(originalPalette)) DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin);
+            else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
+        }
+    });
+
+    private sealed class HistoryNotesDouble : ICallHistoryService
+    {
+        internal readonly CallSnapshot[] Calls = [CommandCall() with { Id = Guid.NewGuid(), State = CallState.Ended }, CommandCall() with { Id = Guid.NewGuid(), State = CallState.Ended }];
+        internal readonly Dictionary<Guid, CallNote> Stored = [];
+        internal readonly List<Guid> Attempts = [];
+        internal bool LoseAcknowledgement;
+        internal bool Empty;
+        internal Func<CancellationToken, Task>? BeforeSave;
+        internal Func<CancellationToken, Task>? BeforeRead;
+        public Task<Page<CallSnapshot>> GetCallsAsync(CallHistoryQuery query, CancellationToken cancellationToken = default)
+        {
+            var calls = Calls.Where(call => !Empty && (query.StartedFromUtc is null || call.StartedAtUtc >= query.StartedFromUtc)
+                && (query.StartedToUtc is null || call.StartedAtUtc < query.StartedToUtc)).ToArray();
+            return Task.FromResult(new Page<CallSnapshot>(calls.Skip(query.Page.Offset).Take(query.Page.Limit).ToImmutableArray(), false));
+        }
+        public async Task<CallHistory?> GetCallAsync(Guid callId, CancellationToken cancellationToken = default)
+        {
+            if (BeforeRead is not null) await BeforeRead(cancellationToken);
+            return new CallHistory { Call = Calls.Single(call => call.Id == callId), Notes = Stored.Values.Where(note => note.CallId == callId).ToImmutableArray() };
+        }
+        public async Task<CallNote> SaveNoteAsync(Guid callId, Guid noteId, string text, CancellationToken cancellationToken = default)
+        {
+            Attempts.Add(noteId); if (BeforeSave is not null) await BeforeSave(cancellationToken);
+            var now = DateTimeOffset.UtcNow; var note = new CallNote(noteId, callId, text, now, now); Stored[noteId] = note;
+            if (LoseAcknowledgement) { LoseAcknowledgement = false; throw new InvalidOperationException("private-history-error"); }
+            return note;
+        }
+    }
+
+    [TestMethod]
     public Task GlobalHotkeysRestoreOpenOneDialAndFollowHandleLifetime() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var backend = new HotkeyBackendDouble();

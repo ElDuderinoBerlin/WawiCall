@@ -166,7 +166,10 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
-        await Task.WhenAll(_callPages.Values.Select(call => call.Page.Notes.StopAsync()));
+        var stopNotes = _callPages.Values.Select(call => call.Page.Notes.StopAsync()).Concat(
+            _documents.Values.Select(document => document.Control).OfType<Panel>()
+                .SelectMany(host => host.Controls.OfType<HistoryPage>()).Select(history => history.StopAsync())).ToArray();
+        await Task.WhenAll(stopNotes);
         if (_operation is not null) await _operation.StopAsync();
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
@@ -191,6 +194,8 @@ public partial class MainForm : RibbonForm
     }
     private async Task CloseDocumentAsync(BaseDocument page)
     {
+        if (page.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HistoryPage { HasUnsavedNotes: true })
+            throw new UnsavedCallNotesException();
         if (_pluginPages.TryGetValue(page, out var guarded) && guarded.HasUnsavedChanges) throw new UnsavedPluginChangesException();
         foreach (var call in _callPages.Where(pair => ReferenceEquals(pair.Value.Document, page)).ToArray())
         {

@@ -99,7 +99,7 @@ partial class HistoryPage
         titleLabel.Appearance.Options.UseFont = true;
         statusLabel.Name = "statusLabel";
         statusLabel.Text = "Zeitraum wählen und Gespräche laden.";
-        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Default;
+        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         statusLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         fromLabel.Name = "fromLabel";
@@ -132,6 +132,8 @@ partial class HistoryPage
         saveNoteButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
         saveNoteButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         saveNoteButton.Click += SaveNote_Click;
+        noteEdit.EditValueChanged += Note_EditValueChanged;
+        noteEdit.Properties.ReadOnly = true;
         fromGroup.Controls.Add(fromLabel, 0, 0);
         fromGroup.Controls.Add(fromEdit, 1, 0);
         toGroup.Controls.Add(toLabel, 0, 0);

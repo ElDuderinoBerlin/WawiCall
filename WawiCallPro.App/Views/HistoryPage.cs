@@ -8,12 +8,19 @@ namespace WawiCallPro.App.Views;
 
 public partial class HistoryPage : XtraUserControl
 {
-    private AppWorkspace? _workspace;
+    private ICallHistoryService? _history;
+    private CallNotesSessionFactory? _notesFactory;
     private AppUiState? _state;
     private PageOperation? _operation;
     private bool _arranging;
     private Guid? _selected;
     private bool _binding;
+    private readonly Dictionary<Guid, CallNotesSession> _notes = [];
+    private CallNotesSession? _activeNotes;
+    private bool _syncingNotes;
+    private bool _stopping;
+    private Task? _stopTask;
+    internal bool HasUnsavedNotes => _notes.Values.Any(notes => notes.HasUnsavedChanges);
     public HistoryPage()
     {
         InitializeComponent();
@@ -65,18 +72,38 @@ public partial class HistoryPage : XtraUserControl
     }
     internal void Bind(AppWorkspace workspace, AppUiState? state)
     {
-        _workspace = workspace; _state = state;
+        _state = state;
+        BindHistory(workspace.History, workspace.CallNotes);
+    }
+    public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
+    private void BindHistory(ICallHistoryService history, CallNotesSessionFactory notesFactory)
+    {
+        if (_history is not null) throw new InvalidOperationException("The history page is already bound.");
+        _history = history ?? throw new ArgumentNullException(nameof(history));
+        _notesFactory = notesFactory ?? throw new ArgumentNullException(nameof(notesFactory));
         _operation = new PageOperation(this, statusLabel);
     }
-    internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
+    internal Task StopAsync() => _stopTask ??= StopCoreAsync();
+    private async Task StopCoreAsync()
+    {
+        _stopping = true;
+        UpdateNotes();
+        var notes = _notes.Values.Select(session => session.StopAsync()).ToArray();
+        if (_operation is not null) await _operation.StopAsync();
+        await Task.WhenAll(notes);
+    }
     private void DisposePage()
     {
+        _stopping = true;
+        foreach (var notes in _notes.Values) { notes.Changed -= Notes_Changed; notes.Dispose(); }
+        _notes.Clear(); _activeNotes = null;
         _operation?.Dispose();
         if (view.Columns.Count != 0) _state?.Save(view, "CallHistory");
     }
 
     private async Task LoadCallsAsync(CancellationToken token)
     {
+        if (_stopping) return;
         if (fromEdit.DateTime.Date > toEdit.DateTime.Date)
         {
             statusLabel.Text = "Der Beginn muss vor dem Ende des Zeitraums liegen.";
@@ -88,24 +115,33 @@ public partial class HistoryPage : XtraUserControl
         while (true)
         {
             token.ThrowIfCancellationRequested();
-            var batch = await _workspace!.History.GetCallsAsync(new CallHistoryQuery(new PageRequest(calls.Count, 500), StartedFromUtc: start, StartedToUtc: end), token);
+            var batch = await _history!.GetCallsAsync(new CallHistoryQuery(new PageRequest(calls.Count, 500), StartedFromUtc: start, StartedToUtc: end), token);
             calls.AddRange(batch.Items);
             if (!batch.HasMore) break;
             if (batch.Items.IsEmpty) throw new InvalidOperationException("Call history did not advance.");
         }
         token.ThrowIfCancellationRequested();
+        var loadedIds = calls.Select(call => call.Id).ToHashSet();
+        if (_notes.Values.Any(notes => notes.HasUnsavedChanges && !loadedIds.Contains(notes.CallId)))
+        {
+            statusLabel.Text = "Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.";
+            return;
+        }
+        var previous = (view.GetFocusedRow() as HistoryRow)?.Id;
         _binding = true;
         try
         {
             _selected = null;
             detailsEdit.Text = "";
-            noteEdit.Text = "";
+            ActivateNotes(null);
             saveNoteButton.Enabled = false;
             grid.DataSource = calls.Select(call => new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
                 call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), StateName(call.State),
                 call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "")).ToArray();
             view.Columns[nameof(HistoryRow.Id)].Visible = false;
             _state?.Restore(view, "CallHistory");
+            if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
+                view.FocusedRowHandle = handle;
             statusLabel.Text = calls.Count == 0 ? "Keine Gespräche im gewählten Zeitraum." : $"{calls.Count} Gespräche · Alle Mandanten. Zeiten werden lokal angezeigt.";
         }
         finally { _binding = false; }
@@ -121,6 +157,7 @@ public partial class HistoryPage : XtraUserControl
     {
         if (_binding || _operation is null) return;
         _selected = null;
+        ActivateNotes(null);
         saveNoteButton.Enabled = false;
         detailsEdit.Text = "";
         if (_operation.IsRunning) return;
@@ -128,38 +165,74 @@ public partial class HistoryPage : XtraUserControl
     }
     private async Task LoadFocusedDetailsAsync(CancellationToken token)
     {
-        while (view.GetFocusedRow() is HistoryRow row)
+        while (!_stopping && view.GetFocusedRow() is HistoryRow row)
         {
-            var history = await _workspace!.History.GetCallAsync(row.Id, token);
+            token.ThrowIfCancellationRequested();
+            if (!_notes.TryGetValue(row.Id, out var notes))
+            {
+                notes = _notesFactory!.Create(row.Id);
+                notes.Changed += Notes_Changed;
+                _notes.Add(row.Id, notes);
+            }
+            ActivateNotes(notes);
+            await notes.LoadAsync();
             token.ThrowIfCancellationRequested();
             if (view.GetFocusedRow() is not HistoryRow current) return;
             if (current.Id != row.Id) continue;
-            _selected = history?.Call.Id;
-            saveNoteButton.Enabled = history is not null;
-            detailsEdit.Text = history is null ? "Das Gespräch ist nicht mehr vorhanden." :
-                $"{row.Rufnummer} · {row.Richtung} · {row.Zustand}\r\nArbeitsplatz: {history.Call.Origin?.MachineName} · Benutzer: {history.Call.Origin?.WindowsUserName}\r\n" +
-                string.Join("\r\n", history.Notes.Select(note => note.CreatedAtUtc.LocalDateTime.ToString("g") + ": " + note.Text));
-            noteEdit.Text = "";
-            statusLabel.Text = "Gesprächsdetails geladen.";
+            UpdateNotes();
             return;
         }
     }
+    private void ActivateNotes(CallNotesSession? notes)
+    {
+        _activeNotes = notes;
+        _syncingNotes = true;
+        try { noteEdit.Text = notes?.Draft ?? ""; }
+        finally { _syncingNotes = false; }
+        UpdateNotes();
+    }
+    private void Notes_Changed(object? sender, EventArgs e)
+    {
+        if (ReferenceEquals(sender, _activeNotes) && !IsDisposed) UpdateNotes();
+    }
+    private void Note_EditValueChanged(object? sender, EventArgs e)
+    {
+        if (_syncingNotes || _stopping || _activeNotes is null) return;
+        if (noteEdit.Text.Length == 0) _activeNotes.DiscardDraft();
+        else _activeNotes.SetDraft(noteEdit.Text);
+    }
+    private void UpdateNotes()
+    {
+        var notes = _activeNotes;
+        var row = view.GetFocusedRow() as HistoryRow;
+        var current = notes is not null && row?.Id == notes.CallId;
+        _selected = current ? notes!.StoredCall?.Id : null;
+        noteEdit.Properties.ReadOnly = _stopping || !current || notes!.IsBusy || notes.IsStopping;
+        saveNoteButton.Enabled = !noteEdit.Properties.ReadOnly && _selected.HasValue && !string.IsNullOrWhiteSpace(notes!.Draft);
+        if (!current) return;
+        _syncingNotes = true;
+        try { noteEdit.Text = notes!.Draft; }
+        finally { _syncingNotes = false; }
+        var call = notes!.StoredCall;
+        detailsEdit.Text = call is null ? "Das Gespräch ist noch nicht verfügbar." :
+            $"{row!.Rufnummer} · {row.Richtung} · {row.Zustand}\r\nArbeitsplatz: {call.Origin?.MachineName} · Benutzer: {call.Origin?.WindowsUserName}\r\n" +
+            string.Join("\r\n", notes.Notes.Select(note => note.CreatedAtUtc.LocalDateTime.ToString("g") + ": " + note.Text));
+        statusLabel.Text = notes.Status;
+    }
     private async void SaveNote_Click(object? sender, EventArgs e)
     {
-        if (_operation is null || _selected is not { } id) return;
-        var text = noteEdit.Text;
+        if (_operation is null || _stopping || _activeNotes is not { } notes || _selected != notes.CallId) return;
         await _operation.RunAsync(async token =>
         {
-            if (string.IsNullOrWhiteSpace(text)) { statusLabel.Text = "Bitte einen Notiztext eingeben."; return; }
-            var note = await _workspace!.History.SaveNoteAsync(id, Guid.NewGuid(), text, token);
-            if (view.GetFocusedRow() is not HistoryRow current || current.Id != id)
+            if (string.IsNullOrWhiteSpace(notes.Draft)) { statusLabel.Text = "Bitte einen Notiztext eingeben."; return; }
+            await notes.SaveAsync();
+            token.ThrowIfCancellationRequested();
+            if (view.GetFocusedRow() is not HistoryRow current || current.Id != notes.CallId)
             {
                 await LoadFocusedDetailsAsync(token);
                 return;
             }
-            detailsEdit.Text += "\r\n" + note.CreatedAtUtc.LocalDateTime.ToString("g") + ": " + note.Text;
-            noteEdit.Text = "";
-            statusLabel.Text = "Gesprächsnotiz gespeichert.";
+            UpdateNotes();
         });
     }
 
