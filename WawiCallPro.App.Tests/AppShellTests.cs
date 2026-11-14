@@ -39,7 +39,7 @@ using WawiCallPro.Utilities.Plugins;
 namespace WawiCallPro.App.Tests;
 
 [TestClass, DoNotParallelize]
-public sealed class AppShellTests
+public sealed partial class AppShellTests
 {
     [TestMethod]
     public Task AudioDeviceSettingsPreserveMissingEndpointsAndSaveOnlyStableIds() => WithWorkspace(async (workspace, services, plugin) =>
@@ -3673,16 +3673,19 @@ public sealed class AppShellTests
             start = async (_, _) =>
             {
                 Application.Idle -= start;
-                try { await action(); done.SetResult(); }
-                catch (Exception exception) { done.SetException(exception); }
+                try { await action(); done.TrySetResult(); }
+                catch (Exception exception) { done.TrySetException(exception); }
                 finally { Application.ExitThread(); }
             };
             Application.Idle += start;
-            Application.Run();
+            ThreadExceptionEventHandler failure = (_, args) => { done.TrySetException(args.Exception); Application.ExitThread(); };
+            Application.ThreadException += failure;
+            try { Application.Run(); }
+            finally { Application.ThreadException -= failure; }
         }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
-        await done.Task.WaitAsync(TimeSpan.FromSeconds(40));
-        Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2)));
+        try { await done.Task.WaitAsync(TimeSpan.FromSeconds(40)); }
+        finally { Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2))); }
     }
     private sealed class StartupRegistryDouble : IAutoStartRegistry
     {

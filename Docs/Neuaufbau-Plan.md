@@ -5,9 +5,9 @@ Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutloo
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
 Stand: 14.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
-die reale SIP-/Geräteabnahme steht aus. Phasen 8 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: gespeicherte Geschäftspartner-/Mandantenzuordnung und Gesprächsende in der Historie
-(Phase 8, geprüfter Teilpunkt vom 14.11.2026).
+die reale SIP-/Geräteabnahme steht aus. Phasen 8, 11 und 14 sind teilweise umgesetzt und geprüft.
+Zuletzt ergänzt: Mailansicht nach dem DevExpress-WindowsMailClient mit gemeinsamer Leseschnittstelle
+(Phase 11, Teilpunkt vom 14.11.2026); Mailanbieter und Import bleiben offen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 Referenzumfang in Phase 9 und Architektur ergänzt, Portierung und Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
@@ -315,7 +315,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | ⬜ | Audio, Aufzeichnungen und Ansagen; vorhandene CSCore-Vorlage abgeglichen, Portierung offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | ⬜ | Office-Kommunikation mit geplanten Graph-/Gmail-/Outlook-Desktop-Connectoren; externe MMS.Office-Leseroutine überarbeitet, Hostanbindung offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -1979,7 +1979,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   vorhandenen Host und erzeugt das Hauptfenster über dessen Composition Root mit Laufzeitdiensten.
   `WawiCallPro.App/Diagnostics/UiAudit.cs` begrenzt die Ausgabe auf die kommagetrennt angeforderten
   Typnamen `MainForm`, `FrmSettings`, `FrmDial`, `HistoryPage`, `CallerLookupPage`, `CallDetailsPage`
-  und `PhoneNumberDiagnosticsPage`. Ohne bekannte ausgewählte Oberfläche wird der Aufruf abgewiesen.
+  und `PhoneNumberDiagnosticsPage`, seit dem Mail-Teilpunkt zusätzlich `MailPage`. Ohne bekannte ausgewählte Oberfläche wird der Aufruf abgewiesen.
   Bei Arbeiten den Filter ausdrücklich setzen; ohne Filter umfasst der allgemeine Einstieg alle diese Typen.
   Für Prüfungen ausschließlich ein isoliertes `WAWICALLPRO_CONFIG_DIR` mit Dummy-Plugin verwenden,
   da der Host weiterhin Konfiguration und Plugin lädt. Der Auditmodus unterdrückt automatische
@@ -2058,7 +2058,7 @@ Debug-Build und geeignete Audioprüfungen bestanden.
 Abnahme: Jede zugesagte Ansicht zeigt nachgewiesene echte Daten, keine Demo-Personenliste oder leere Handler.
 Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten visuell abgenommen und Debug gebaut.
 
-### Phase 11 – Office-Kommunikation ⬜
+### Phase 11 – Office-Kommunikation 🟨
 
 - [x] ✅ Externe Outlook-Leseroutine in `MMS.Office` robuster aufgebaut und isoliert geprüft (14.11.2026):
   GetAll ohne Adressfilter, ausdrücklich leere Suche, exakte Datums-/Adressprüfung, Store-bezogene
@@ -2071,6 +2071,34 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Nachweise, Grenzen und Rollback: [Architektur](Architektur.md#klassisches-outlook-desktop-und-vorhandene-bibliotheken)
   und [Build](Build.md#externe-mms-office-leseroutine-14112026). Dies ist ein Vorlagenschritt;
   WawiCallPro-Import, DB-Persistierung, Kundenanzeige und native Outlook-Abnahme bleiben offen.
+- [x] ✅ Mailansicht nach dem bereitgestellten DevExpress-WindowsMailClient aufgebaut (14.11.2026):
+  Der neue Arbeitsbereich „E-Mails“ ist über Ribbon und Navigation erreichbar. Links stehen Postfachordner,
+  in der Mitte mehrzeilige Nachrichten mit Vorschau und Hervorhebung ungelesener Einträge; rechts oder
+  bei kleiner Breite darunter der RichEdit-Lesebereich mit Absender, Empfängern, Datum und Anhangsnamen.
+  TableLayoutPanel, gemeinsame Buttonhilfe, aktiver Skin, UI-Schrift und designerfähige Aufteilung erhalten.
+  Strg+F schaltet das eingebaute Find Panel; Suchtext geht an die Quelle, damit Treffer außerhalb einer
+  Listenvorschau erhalten bleiben. Grid-Spaltenlayout wird über den bestehenden versionierten Registrypfad gespeichert.
+  `IMailViewSource` und eigene DTOs kapseln Provider-/Konto-/Nachrichtenidentitäten; SDK-Typen gelangen nicht in die UI.
+  Ordner-, Listen- und Vorschauabrufe werden getrennt abgebrochen; verspätete oder fremde Ergebnisse ersetzen
+  keine aktuelle Auswahl. Schließen wartet auch auf nicht kooperative Quellen. Lesen ändert keinen Mailstatus.
+  Externe HTML-Ressourcen und lokale Dateiverweise werden durch Ersatz des UriStreamService blockiert;
+  Links öffnen nichts automatisch. Der Lesebereich ist schreibgeschützt und bietet keine Datei-Öffnen-/Speichern-Aktionen.
+  Der reguläre Host registriert vorerst einen ausdrücklich unkonfigurierten Anbieter, keine Demo-Mails.
+  Kontoeinrichtung, echte Connectoren, Importpersistenz, Anhangsaktionen und Anzeige bei Kundenanrufen bleiben offen.
+  Nachweise: je Edition 19 gezielte App-Prüfungen einschließlich Mailzuständen, Suche, verspäteten Ergebnissen,
+  Abbruch, Ressourcenblockade, tatsächlichem DI-Aufbau und bestehendem Shell-/Notiz-Schließschutz.
+  Der neue DI-Test lud zunächst die Konfiguration nicht vor dem Fensterstart und konnte einen Windows-
+  Fehlerdialog öffnen. Er lädt nun einen isolierten Konfigurationsstand; unerwartete UI-Exceptions schlagen
+  im STA-Prüfhelfer als Testfehler durch, statt den Standarddialog zu öffnen. Der reguläre Host lädt bereits vor dem UI-Start.
+  Neun Hintergrundaufnahmen je Edition für gefüllt, leer und Fehler bei 760/1240 Breite, 10/16 pt,
+  150%-Layoutsimulation und zwei Skins erzeugt; repräsentative Varianten visuell geprüft. RichEdit wird
+  wegen seines abweichenden WM_PRINT-Verhaltens separat an der gemessenen Position gerendert.
+  Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte
+  externe CSCore-Warnungen. FinOffice als reguläre Startausgabe hergestellt.
+  Logs `.mail-view-{build,tests}-{pro,fin}.log`; Bilder unter
+  `WawiCallPro.App.Tests/bin/Debug/{Pro,FinOffice}/net11.0-windows10.0.19041.0/.artifacts/mail-view`.
+  Keine SQL-/Schemaänderung, kein echtes Postfach geöffnet. Rücknahme durch Revert dieses Teilpunkts;
+  die externe MMS.Office-Korrektur aus dem vorherigen Commit bleibt eigenständig.
 - [ ] Vorhandene Office-Anforderungen und verfügbare aktuelle Bibliotheken/API-Verträge getrennt erfassen.
 - [ ] Microsoft 365: eigenen Connector über Microsoft Graph implementieren; Authentifizierung, Clienttyp und
   Zielumgebung klären. Weitere Outlook-/Exchange-Zielumgebungen getrennt auf Unterstützung prüfen.

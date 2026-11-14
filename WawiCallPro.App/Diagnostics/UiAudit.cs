@@ -15,7 +15,7 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
+        var surfaces = new[] { ("MainForm", "home"), ("FrmSettings", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("MailPage", "mail"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
@@ -96,6 +96,15 @@ internal static class UiAudit
                     form.Show();
                     Application.DoEvents();
                     form.Refresh();
+                    if (surface == "MailPage" && form.GetActiveDocumentView() is WawiCallPro.App.Views.MailPage mail)
+                    {
+                        using var mailBitmap = CaptureMail(mail);
+                        mailBitmap.Save(Path.Combine(outputDirectory, $"MailPage-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
+                        form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout();
+                        using var scaledMailBitmap = CaptureMail(mail);
+                        scaledMailBitmap.Save(Path.Combine(outputDirectory, $"MailPage-{size.Width}-{fontSize:0}-scale150.png"), ImageFormat.Png);
+                        continue;
+                    }
                     using var bitmap = Capture(form);
                     bitmap.Save(Path.Combine(outputDirectory, $"{surface}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
                     form.Scale(new SizeF(1.5F, 1.5F));
@@ -127,6 +136,33 @@ internal static class UiAudit
         {
             using var graphics = Graphics.FromImage(bitmap);
             DrawHostedControl(view, form, graphics);
+        }
+        return bitmap;
+    }
+
+    // RichEdit's WM_PRINT ignores the destination offset when a parent prints its children.
+    // Print it separately at its actual client position instead of capturing the desktop.
+    internal static Bitmap CaptureMail(WawiCallPro.App.Views.MailPage page)
+    {
+        var editor = page.Controls.Find("mailBody", true).OfType<DevExpress.XtraRichEdit.RichEditControl>().Single();
+        var bitmap = new Bitmap(page.Width, page.Height);
+        var wasVisible = editor.Visible;
+        page.SuspendLayout();
+        try
+        {
+            editor.Visible = false;
+            page.DrawToBitmap(bitmap, new Rectangle(Point.Empty, page.Size));
+        }
+        catch { bitmap.Dispose(); throw; }
+        finally { editor.Visible = wasVisible; page.ResumeLayout(false); }
+        if (wasVisible)
+        {
+            using var content = new Bitmap(editor.Width, editor.Height);
+            editor.DrawToBitmap(content, new Rectangle(Point.Empty, editor.Size));
+            var location = page.PointToClient(editor.PointToScreen(Point.Empty));
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.SetClip(new Rectangle(location, editor.Size));
+            graphics.DrawImageUnscaled(content, location);
         }
         return bitmap;
     }

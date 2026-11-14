@@ -25,6 +25,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton(new AppWindowOptions());
                 services.AddSingleton<AppWorkspace>();
                 services.AddSingleton<CallNotesSessionFactory>();
+                services.AddSingleton<WawiCallPro.Interfaces.Office.IMailViewSource, UnconfiguredMailViewSource>();
                 services.AddSingleton<IAutoStartRegistry, AutoStartRegistry>();
                 services.AddSingleton(_ => AppStartupCommand.ForCurrentProcess());
                 services.AddSingleton<IAppAutoStart, WindowsAppAutoStart>();

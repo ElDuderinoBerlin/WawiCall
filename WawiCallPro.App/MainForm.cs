@@ -22,6 +22,7 @@ public partial class MainForm : RibbonForm
     private readonly AppWorkspace? _workspace;
     private readonly AppUiState? _state;
     private readonly WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog? _audioDevices;
+    private readonly WawiCallPro.Interfaces.Office.IMailViewSource? _mailSource;
     private readonly Dictionary<BaseDocument, IPluginViewHandle> _pluginPages = [];
     private readonly Dictionary<string, BaseDocument> _documents = [];
     private BaseDocument? _lastDocument;
@@ -48,6 +49,10 @@ public partial class MainForm : RibbonForm
     public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state,
         ILogWindowService logs, WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog audioDevices)
         : this(application, configuration, workspace, state, logs) => _audioDevices = audioDevices ?? throw new ArgumentNullException(nameof(audioDevices));
+
+    public MainForm(ApplicationDescriptor application, ApplicationConfigurationService configuration, AppWorkspace workspace, AppUiState state,
+        ILogWindowService logs, WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog audioDevices, WawiCallPro.Interfaces.Office.IMailViewSource mailSource)
+        : this(application, configuration, workspace, state, logs, audioDevices) => _mailSource = mailSource ?? throw new ArgumentNullException(nameof(mailSource));
 
     internal void PrepareForBackgroundRun()
     {
@@ -112,6 +117,9 @@ public partial class MainForm : RibbonForm
             case "history":
                 var history = new HistoryPage(); if (_workspace is not null) history.Bind(_workspace, _state);
                 content = history; caption = "Gesprächshistorie"; break;
+            case "mail":
+                var mail = new MailPage(); if (_mailSource is not null) mail.Bind(_mailSource, _state);
+                content = mail; caption = "E-Mails"; break;
             default:
                 var start = new StartPage(); start.Navigate += Navigate;
                 if (id == "help") start.SetContent("WawiCallPro verwenden",
@@ -174,7 +182,9 @@ public partial class MainForm : RibbonForm
         var stopNotes = _callPages.Values.Select(call => call.Page.Notes.StopAsync()).Concat(
             _documents.Values.Select(document => document.Control).OfType<Panel>()
                 .SelectMany(host => host.Controls.OfType<HistoryPage>()).Select(history => history.StopAsync())).ToArray();
-        await Task.WhenAll(stopNotes);
+        var stopMail = _documents.Values.Select(document => document.Control).OfType<Panel>()
+            .SelectMany(host => host.Controls.OfType<MailPage>()).Select(mail => mail.StopAsync()).ToArray();
+        await Task.WhenAll(stopNotes.Concat(stopMail));
         if (_operation is not null) await _operation.StopAsync();
         await _selectionTask;
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
@@ -189,7 +199,7 @@ public partial class MainForm : RibbonForm
     }
     private static Task StopPageAsync(Control? control) => (control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : control) switch
     {
-        HistoryPage page => page.StopAsync(), CallDetailsPage page => page.StopAsync(), _ => Task.CompletedTask
+        HistoryPage page => page.StopAsync(), CallDetailsPage page => page.StopAsync(), MailPage page => page.StopAsync(), _ => Task.CompletedTask
     };
     private async void ClosePage_Click(object sender, ItemClickEventArgs e)
     {
@@ -236,6 +246,7 @@ public partial class MainForm : RibbonForm
     private void AppendOutput(string message) => logPanel.Append(message);
     private void Home_Click(object sender, ItemClickEventArgs e) => Navigate("home");
     private void History_Click(object sender, ItemClickEventArgs e) => Navigate("history");
+    private void Mail_Click(object sender, ItemClickEventArgs e) => Navigate("mail");
     private void Caller_Click(object sender, ItemClickEventArgs e) => Navigate("caller");
     internal FrmCallerLookup CreateCallerDialog() => _workspace is null ? new FrmCallerLookup() : new FrmCallerLookup(_workspace, _state);
     private void OpenCallerLookup()
@@ -269,6 +280,7 @@ public partial class MainForm : RibbonForm
     }
     private void HomeNavigation_Click(object? sender, EventArgs e) => Navigate("home");
     private void HistoryNavigation_Click(object? sender, EventArgs e) => Navigate("history");
+    private void MailNavigation_Click(object? sender, EventArgs e) => Navigate("mail");
     private void SettingsNavigation_Click(object? sender, EventArgs e) => OpenSettings();
     private void HelpNavigation_Click(object? sender, EventArgs e) => helpDock.Show();
     internal FrmSettings CreateSettingsDialog(bool plugins = false)
@@ -329,7 +341,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
+        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);

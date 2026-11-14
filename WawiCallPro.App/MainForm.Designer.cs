@@ -46,6 +46,7 @@ partial class MainForm
         helpGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         homeItem = new DevExpress.XtraBars.BarButtonItem();
         historyItem = new DevExpress.XtraBars.BarButtonItem();
+        mailItem = new DevExpress.XtraBars.BarButtonItem();
         callerItem = new DevExpress.XtraBars.BarButtonItem();
         dialItem = new DevExpress.XtraBars.BarButtonItem();
         closeItem = new DevExpress.XtraBars.BarButtonItem();
@@ -62,6 +63,7 @@ partial class MainForm
         aboutItem = new DevExpress.XtraBars.BarButtonItem();
         homeNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         historyNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
+        mailNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         settingsNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         helpNav = new DevExpress.XtraBars.Navigation.AccordionControlElement();
         connectionLabel = new DevExpress.XtraEditors.LabelControl();
@@ -114,6 +116,12 @@ partial class MainForm
         historyItem.ItemClick += History_Click;
         ribbon.Items.Add(historyItem);
         workspaceGroup.ItemLinks.Add(historyItem);
+        mailItem.Caption = "E-Mails";
+        mailItem.Hint = "Postfachordner, Nachrichten und Lesebereich öffnen.";
+        mailItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        mailItem.ItemClick += Mail_Click;
+        ribbon.Items.Add(mailItem);
+        workspaceGroup.ItemLinks.Add(mailItem);
         callerItem.Caption = "Anrufzuordnung";
         callerItem.Hint = "Rufnummer in allen ausgewählten berechtigten Firmen suchen und den passenden Datensatz übernehmen.";
         callerItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
@@ -222,6 +230,10 @@ partial class MainForm
         historyNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         historyNav.Click += HistoryNavigation_Click;
         navigation.Elements.Add(historyNav);
+        mailNav.Text = "E-Mails";
+        mailNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
+        mailNav.Click += MailNavigation_Click;
+        navigation.Elements.Add(mailNav);
         settingsNav.Text = "Einstellungen";
         settingsNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         settingsNav.Click += SettingsNavigation_Click;
@@ -371,6 +383,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup helpGroup;
     private DevExpress.XtraBars.BarButtonItem homeItem;
     private DevExpress.XtraBars.BarButtonItem historyItem;
+    private DevExpress.XtraBars.BarButtonItem mailItem;
     private DevExpress.XtraBars.BarButtonItem callerItem;
     private DevExpress.XtraBars.BarButtonItem dialItem;
     private DevExpress.XtraBars.BarButtonItem closeItem;
@@ -387,6 +400,7 @@ partial class MainForm
     private DevExpress.XtraBars.BarButtonItem aboutItem;
     private DevExpress.XtraBars.Navigation.AccordionControlElement homeNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement historyNav;
+    private DevExpress.XtraBars.Navigation.AccordionControlElement mailNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement settingsNav;
     private DevExpress.XtraBars.Navigation.AccordionControlElement helpNav;
     private DevExpress.XtraEditors.LabelControl connectionLabel;

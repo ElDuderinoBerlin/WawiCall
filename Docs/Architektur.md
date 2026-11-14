@@ -429,6 +429,30 @@ Build-/Prüf- und Rücknahmehinweise stehen in [Build](Build.md#externe-mms-offi
 Der Nachweis umfasst 21 isolierte Tests und den Bibliotheksbuild, keine echte Outlook-Sitzung.
 Die WawiCallPro-Importoberfläche, Mailpersistenz und Anzeige bei einem Anruf sind weiterhin offen.
 
+### Mailansicht nach DevExpress WindowsMailClient
+
+`WawiCallPro.App/Views/MailPage` verwendet das Bedienmuster des vom Nutzer bereitgestellten Beispiels
+unter `C:\Users\Public\Documents\DevExpress Demos 26.1\Components\WinForms\DevExpress.WindowsMailClient.Win\CS\DevExpress.WindowsMailClient.Win`.
+Verglichen wurden insbesondere `MailViewer.Designer.cs` und `MailPresenter.cs`: kompakte Nachrichtenliste,
+Vorschautext und RichEdit-Lesebereich. Der WawiCallPro-Aufbau verwendet TableLayoutPanel und verschiebbare
+SplitContainer; die demo-eigenen LayoutControls, Datenmodelle und Beispielmails wurden nicht übernommen.
+
+Der Arbeitsbereich ist in Ribbon und Navigation eingebunden. `IMailViewSource` liefert Ordner, vollständige
+Suchergebnisse und einzelne Inhalte als eigene DTOs mit Provider-/Kontobezug. Je Abrufart besitzt die Ansicht
+Abbruch und Ergebnisprüfung; Tab-/Anwendungsende wartet ausstehende Quellen ab. Die bestehende UI-Zustandshilfe
+persistiert das Grid-Spaltenlayout ohne Suchwerte. Strg+F steuert das eingebaute Find Panel; eine Suche erreicht
+die Datenquelle und filtert nicht zusätzlich mögliche Treffer aus dem vollständigen Nachrichtentext weg.
+
+RichEdit zeigt Text/HTML schreibgeschützt mit dem aktiven Skin und der UI-Schrift. Ein eigener Ersatz des
+`IUriStreamService` verhindert Datei-/Netzwerk-Fallbacks für Ressourcen. Hyperlinks starten keine externen
+Programme. Öffnen, Neuanlegen und Speichern fremder Dokumente sind im Reader deaktiviert.
+Die Anhangszeile zeigt Metadaten; Anhangsabruf/-export und Mailversand gehören zum späteren Connectorumfang.
+
+Die reguläre DI-Registrierung verwendet bis zur Kontoeinrichtung `UnconfiguredMailViewSource` mit klarer
+Leermeldung. Gefüllte Daten existieren nur in isolierten Prüfungen. Die neue Oberfläche ist damit kein
+Nachweis bereits implementierter Graph-/Gmail-/Outlook-Connectoren oder eines Mailimports.
+Build-/Bildnachweise und die verbleibende Abnahme stehen in Phase 11 des [Neuaufbau-Plans](Neuaufbau-Plan.md).
+
 ## Gesprächsaufzeichnung, WAV-Mixer und MP3
 
 Auf Nutzerwunsch ist die Aufnahme eingehender und ausgehender Gespräche verbindlicher Bestandteil.
