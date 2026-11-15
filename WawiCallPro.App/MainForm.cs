@@ -349,7 +349,7 @@ public partial class MainForm : RibbonForm
     }
     private void ConfigureIcons()
     {
-        foreach (var (item, file) in new[] { (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (partiesItem,"Caller"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
+        foreach (var (item, file) in new[] { (navigateBackItem,"NavigateBack"), (navigateForwardItem,"NavigateForward"), (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (partiesItem,"Caller"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
         {
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
             if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
@@ -359,10 +359,12 @@ public partial class MainForm : RibbonForm
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {
+        if (IsWorkspaceDocument(document)) _viewHistory.Record(document);
         tabbedView.Controller.Activate(document);
         if (_backgroundRun && document is DevExpress.XtraBars.Docking2010.Views.Tabbed.Document tab)
             foreach (DevExpress.XtraBars.Docking2010.Views.Tabbed.DocumentGroup group in tabbedView.DocumentGroups)
                 if (group.Items.Contains(tab)) group.SetSelected(tab);
         _lastDocument = document;
+        UpdateViewNavigation();
     }
 }

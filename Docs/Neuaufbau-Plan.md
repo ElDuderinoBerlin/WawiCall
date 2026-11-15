@@ -6,9 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt korrigiert: Mailansicht auf die tatsächliche DevExpress-Vorlage mit Accordion-Ordnernavigation,
-TileView-Nachrichtenkarten und Alle/Ungelesen umgestellt (Phase 11, 15.11.2026). JSON-Import/Export und
-direkter Datenbankassistent im Einstellungsdialog sind ebenfalls ergänzt und geprüft (Phase 8).
+Zuletzt ergänzt: Zurück/Vorwärts für besuchte Views als kleine Pfeile neben dem App-Symbol in der
+Ribbon-Schnellzugriffsleiste wie in LxTranslate (Phase 8, 15.11.2026). Die korrigierte Mailansicht mit
+Accordion/TileView sowie JSON-Import/Export und direkter Datenbankassistent sind ebenfalls geprüft.
 Zuvor ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
 monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Teilpunkt vom 15.11.2026).
 Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
@@ -327,7 +327,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
@@ -1382,6 +1382,23 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
 
+- [x] ✅ Zurück/Vorwärts zwischen besuchten Views nach LxTranslate ergänzt (Nutzerauftrag 15.11.2026):
+  Kleine SVG-Pfeile ohne Text oben links in der Ribbon-Schnellzugriffsleiste, direkt nach dem App-Symbol.
+  Position, Symbole und Tooltips mit `FrmMain` und `ViewNavigationHistory` der tatsächlichen Referenz
+  verglichen. Ohne möglichen Schritt sind die Pfeile deaktiviert/grau; verfügbare Schritte bleiben blau.
+  Der pro Hauptfenster besessene Verlauf erfasst Navigation und manuelle Tabaktivierung nach
+  Dokumentidentität. Rück-/Vorwärtsschritte erzeugen keine neuen Einträge; ein neuer Besuch nach einem
+  Rücksprung ersetzt den Vorwärtszweig. Geschlossene Tabs werden überall entfernt, benachbarte doppelte
+  Einträge nach nativer Nachbaraktivierung zusammengefasst. Keine View wird für den Verlauf erneut geöffnet.
+  Noch nicht veröffentlichte Hintergrund-Anruf-Tabs zählen erst bei einem tatsächlichen Besuch.
+  Je Edition 13 gezielte Prüfungen bestanden: fünf reine Verlaufstests, vier Shell-/Renderprüfungen und
+  vier vorhandene Anruf-/Plugin-/Schließschutzregressionen. Eine ältere Navigationserwartung enthielt noch
+  nicht die bereits vorhandenen Mail-/Geschäftspartnereinträge; Erwartung und unabhängige Artefaktanlage korrigiert.
+  Je drei Hintergrundbilder bei 760/1240 Breite, 10/16 pt, zwei Skins und 150%-Layoutsimulation erzeugt;
+  Schnellzugriffsleiste in allen drei Varianten visuell kontrolliert. Beide Solution-Editionen in Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen. Reguläre App-/Console-Startausgaben
+  enthalten FinOffice. Logs `.view-history-{build,tests}-{pro,fin}.log`, Bilder `.artifacts/view-history`
+  in den App-Testausgaben. Keine sichtbaren GUI-Läufe, keine Fremddaten und kein Push.
 - [x] ✅ Datenbankeinrichtung direkt im Einstellungsdialog ergänzt (15.11.2026):
   „Datenbank einrichten …“ öffnet denselben dienstgebundenen Dreischritt-Assistenten mit dem
   Einstellungsfenster als Owner und bestehender Fensterzustandsspeicherung. Nach Übernahme werden

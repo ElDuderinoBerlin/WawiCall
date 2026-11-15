@@ -3501,11 +3501,12 @@ public sealed partial class AppShellTests
         Assert.AreSame(Field<DevExpress.XtraBars.Ribbon.RibbonPage>(form, "databaseRibbon"), Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon").SelectedPage);
         Assert.AreEqual(4, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(form, "tabbedView").Documents.Count);
         var navigation = Field<DevExpress.XtraBars.Navigation.AccordionControl>(form, "navigation");
-        CollectionAssert.AreEqual(new[] { "Startseite", "Gesprächshistorie", "Einstellungen" }, navigation.Elements.Select(element => element.Text).ToArray());
+        CollectionAssert.AreEqual(new[] { "Startseite", "Gesprächshistorie", "E-Mails", "Kunden und Lieferanten", "Einstellungen" }, navigation.Elements.Select(element => element.Text).ToArray());
         Assert.IsFalse(Field<DevExpress.XtraBars.Ribbon.RibbonControl>(form, "ribbon").Items.OfType<DevExpress.XtraBars.BarButtonItem>().Any(item => item.Caption.Contains("Plugin", StringComparison.OrdinalIgnoreCase)));
         using var navigationImage = new Bitmap(navigation.Width, navigation.Height);
         navigation.DrawToBitmap(navigationImage, new Rectangle(Point.Empty, navigation.Size));
         var navigationOutput = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "lx-startup-log");
+        Directory.CreateDirectory(navigationOutput);
         navigationImage.Save(Path.Combine(navigationOutput, "Navigation-text.png"), ImageFormat.Png);
         Assert.AreEqual(0, plugin.Created);
         var company = new Company(new(LexwareProductLine.Pro, "fixture", "1"), "Testmandant");
