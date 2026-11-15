@@ -18,7 +18,7 @@ using WawiCallPro.Interfaces.Audio;
 namespace WawiCallPro.Console.Tests;
 
 [TestClass]
-public sealed class SentRtpPcmTests
+public sealed partial class SentRtpPcmTests
 {
     [TestMethod]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMA)]
@@ -305,6 +305,14 @@ public sealed class SentRtpPcmTests
         {
             var field = typeof(AudioExtrasSource).GetField("OnAudioSourceEncodedSample", BindingFlags.Instance | BindingFlags.NonPublic)!;
             ((EncodedSampleDelegate)field.GetValue(Media.AudioExtrasSource)!)(duration, payload);
+        }
+        internal uint RemoteSsrc => _receiver.AudioStream.LocalTrack.Ssrc;
+        internal void SendRemote(ushort sequence, uint timestamp, byte[] payload) =>
+            _receiver.SendRtpRaw(SDPMediaTypesEnum.audio, payload, timestamp, 0, Format.FormatID, sequence);
+        internal void EnableReceiveBuffer()
+        {
+            var field = Field("_bufferingSource");
+            field.SetValue(Endpoint, Activator.CreateInstance(field.FieldType, new WaveFormat(Format.ClockRate, 16, 1), Format.ClockRate * 10));
         }
         internal async Task<RTPPacket[]> Packets(int count)
         {
