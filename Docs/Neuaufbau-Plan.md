@@ -6,8 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: RTP-Zeitstempel mit ausdrücklich vorgegebenem Startanker auf Aufnahmepositionen
-abbilden und geordnete PCM-Blöcke an die Aufnahmesitzung übergeben (Phase 9, Teilpunkt vom 15.11.2026).
+Zuletzt ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
+monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Teilpunkt vom 15.11.2026).
+Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
 Überläufe, Lücken, Duplikate, Aufnahmebeginn innerhalb eines Pakets und wirksame Fehlersperren sind
 isoliert geprüft. CSCore-Capturekorrektur, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind
 ebenfalls geprüft; automatische SIP-Anbindung, Ermittlung einer gemeinsamen Medienzeitbasis und
@@ -323,7 +324,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2227,6 +2228,27 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   CSCore-Warnungen; FinOffice als reguläre Startausgabe erhalten. Logs `.rtp-feed-build-{pro,fin}.log`,
   `.rtp-feed-core-{pro,fin}.log`, `.rtp-feed-tests-{pro,fin}.log`, `.rtp-feed-host-{pro,fin}.log`.
   Ausschließlich synthetische Pakete/PCM und isolierte Dateien, keine Audiogeräte, Anrufe oder sichtbare GUI.
+- [x] ✅ Kodierte RTP-Audiopakete vor der Dekodierung begrenzt ordnen (15.11.2026):
+  `IRtpAudioPacketBufferFactory` in beiden Hosts registriert; je identifiziertem Audiostream ein eigener
+  besessener Puffer mit expliziter erster Sequenznummer und RTP-Taktrate. Standard 64, maximal 256 Pakete,
+  jeweils höchstens 4096 Payloadbytes; keine unbegrenzte Warteschlange. Sequenzüberläufe berücksichtigen,
+  gepufferte identische Duplikate und bereits überholte Pakete vor dem Decoder auslassen. Widersprüchliche
+  Duplikate, Quellen-/Taktratenwechsel, mehrdeutige/große Sprünge oder Überlauf beenden den Puffer mit
+  festem Fehlercode und geben gepufferte Payloadreferenzen frei. Kopien behalten jeweils ihren eigenen
+  Payloadtyp und RTP-Zeitstempel, auch bei Codecwechseln.
+  Fehlende Sequenzen nach monotoner Wartefrist überspringen (Standard 60 ms, konfigurierbar 0–1000 ms);
+  weitere Ankünfte verlängern eine bestehende Frist nicht. `NextPacketDelay` erlaubt dem Besitzer die
+  erneute Abfrage ohne neues Paket. Keine eigenen Timer/Threads, keine Wiedergabetaktung und keine
+  Ersetzung der Medienzeit durch Ankunftszeiten. `CompleteInput` erlaubt geordnetes Restleeren;
+  `Dispose` verwirft die Restdaten. Der spätere Live-Adapter muss Abfrage, Dekodierung und PCM-Übergabe
+  serialisieren, Fristen bedienen und Pufferfehler an die Aufnahmesperre weitergeben.
+  25 neue Core-Prüfungen und sieben neue Integrationstests bestanden. Tatsächliche PCMA-/PCMU-/G.722-
+  Dekodierung erhält geordnete Pakete genau einmal; resultierende WAV-Samples stimmen mit geordneter
+  Referenzdekodierung überein. Paketlücken ergeben Stille anhand unveränderter RTP-Zeit; keine Audiogeräte.
+  Je Edition 55 gezielte Core-, 179 Console- und zwei App-Host-Prüfungen bestanden. Beide Solution-Editionen
+  in Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; reguläre Startausgabe
+  FinOffice. Logs `.rtp-order-{build,core,tests,host}-{pro,fin}.log`. Kein nativer SIP-Empfang umverdrahtet;
+  gemeinsame Zeitanker, Live-Jitterverdrahtung und reale Abnahme bleiben offen.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche
