@@ -53,6 +53,29 @@ Der Plugin-Manager verwendet die vorhandene Quantarix-Pluginlaufzeit. Seine Ober
 zulässige Plugins, Produktlinie, Version, Fähigkeiten, Ladezustand und Konfiguration. Ein jeweiliger
 Pro-/FinOffice-Build enthält ausschließlich die dazu passenden Warenwirtschaftsbibliotheken.
 
+### Übertragbare Einstellungen als JSON (15.11.2026)
+
+Der zentrale Einstellungsdialog bietet Importieren/Exportieren nach LxTranslate. Die gemeinsame
+Fußzeile wechselt bei wenig Platz in zwei Zeilen. DevExpress-Dateidialoge erhalten Owner, JSON-Filter
+und einen Wartecursor, der auch bei Abbruch und Fehlern wiederhergestellt wird. Export verwendet
+den gespeicherten Stand; Import ersetzt nach Bestätigung auch die noch ungespeicherten UI-Eingaben.
+
+Der eigene JSON-Vertrag Version 1 enthält ausschließlich allgemeine/logbezogene Benutzervorgaben,
+Tastenkürzel sowie Lautstärken und Mikrofon-Stummschaltung. Zugangsdaten, Datenbank-/ERP-/SIP-
+Verbindungen, aktive Plugins, Mandanten-/Leitungszuordnungen und Geräte-IDs sind nicht Teil dieses
+Formats und bleiben beim Import lokal erhalten. Windows-Autostart ist eine lokale Betriebssystemoption.
+Der interne Einstellungsvertrag Version 8 und dessen geschützte Werte werden unverändert beibehalten;
+die interne Datei `connection.local.json` ist kein Import-/Exportziel.
+
+`ConfigurationStore` übernimmt die Dateioperationen über den bereits injizierten Persistenzdienst.
+Export finalisiert eine temporäre Geschwisterdatei inklusive Flush vor atomarer Zielersetzung.
+Import begrenzt die Datei auf 128 KiB, verwirft fremde Versionen/Produkte, fehlende, unbekannte und
+doppelte Felder sowie ungültige Werte und speichert erst danach mit dem vorhandenen Konkurrenzschutz.
+Fehler lassen den gespeicherten Stand erhalten; Meldungen geben keine fremden Pfade/JSON-Inhalte aus.
+Der UI-Bearbeitungsstand wird nach erfolgreichem Import aktualisiert. Laufende Dienste behalten
+ihre Startkonfiguration; der Dialog bietet einen Neustart an. Prüfungen und Rendernachweise in
+[Phase 8](Neuaufbau-Plan.md#phase-8--app-und-erstes-vollständiges-kernprodukt-).
+
 ## Fachansichten nach LxOutlook-Vorlage
 
 Zusätzliche fachliche Referenz ist `D:\Application-Development\OutlookBlazorAddin` mit LxOutlook.

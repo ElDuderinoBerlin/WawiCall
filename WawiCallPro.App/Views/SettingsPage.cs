@@ -40,6 +40,8 @@ public partial class SettingsPage : XtraUserControl
     {
         InitializeComponent();
         databaseLayout.Layout += DatabaseLayout_Changed;
+        footer.SizeChanged += ButtonLayout_Changed;
+        footer.Layout += General_Layout;
         generalLayout.Layout += General_Layout;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
@@ -64,7 +66,8 @@ public partial class SettingsPage : XtraUserControl
         try
         {
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
-            UiButtonSizing.Apply(saveButton, reloadButton, cancelButton);
+            UiButtonSizing.Apply(saveButton, reloadButton, cancelButton, importButton, exportButton);
+            ArrangeTransferActions();
             UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(refreshAudioButton);
@@ -111,6 +114,7 @@ public partial class SettingsPage : XtraUserControl
     internal async Task StopAsync()
     {
         databaseSetupButton.Enabled = false;
+        importButton.Enabled = exportButton.Enabled = false;
         if (_databaseDialog is { } databaseDialog)
         {
             await databaseDialog.StopAsync();
@@ -128,7 +132,7 @@ public partial class SettingsPage : XtraUserControl
     private async Task ActivatePluginAsync(string id, CancellationToken token)
     {
         if (_workspace?.Plugins is not WawiCallPro.Interfaces.Plugins.IProductPluginSelection selection) return;
-        saveButton.Enabled = reloadButton.Enabled = false;
+        saveButton.Enabled = reloadButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
         try
         {
@@ -147,7 +151,7 @@ public partial class SettingsPage : XtraUserControl
         {
             _operation?.Dispose(); _operation = new PageOperation(this, statusLabel);
             _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
-            saveButton.Enabled = reloadButton.Enabled = true;
+            saveButton.Enabled = reloadButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
             cacheTab.PageEnabled = _workspace.CanUseBusinessDirectory;
         }

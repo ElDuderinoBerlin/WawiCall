@@ -121,7 +121,8 @@ public sealed partial class AppShellTests
                 var save = Field<SimpleButton>(page, "saveButton"); var cancel = Field<SimpleButton>(page, "cancelButton");
                 Assert.AreEqual(save.Size, cancel.Size); Assert.AreEqual(save.Top, cancel.Top);
                 Assert.AreEqual(Field<TextEdit>(page, "logDirectoryEdit").Left, Field<ComboBoxEdit>(page, "logLevelEdit").Left);
-                Assert.AreEqual(3, Field<TableLayoutPanel>(page, "footer").Controls.Count);
+                Assert.AreEqual(2, Field<TableLayoutPanel>(page, "footer").Controls.Count);
+                Assert.AreEqual(3, Field<TableLayoutPanel>(page, "transferActions").Controls.Count);
                 Assert.AreEqual(1, Field<TableLayoutPanel>(form, "layout").RowCount);
                 Assert.IsFalse(form.Visible);
                 using var shot = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);

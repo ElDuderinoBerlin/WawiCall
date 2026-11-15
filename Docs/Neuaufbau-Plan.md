@@ -6,8 +6,8 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt korrigiert: Datenbankeinrichtung direkt im Einstellungsdialog nach LxTranslate zugänglich
-gemacht; Assistent, Entwurfserhalt und kompakter Datenbank-Tab geprüft (Phase 8, 15.11.2026).
+Zuletzt korrigiert: JSON-Import/Export und direkter Datenbankassistent im Einstellungsdialog nach
+LxTranslate ergänzt; Dateiprüfung, Entwurfserhalt und adaptive Fußzeile geprüft (Phase 8, 15.11.2026).
 Zuvor ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
 monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Teilpunkt vom 15.11.2026).
 Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
@@ -19,8 +19,8 @@ Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentver
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die bestehende Mailansicht sind isoliert
-geprüft. Der Nutzerabgleich vom 15.11.2026 zeigt fehlenden JSON-Import/Export und Abweichungen von der
-gewünschten DevExpress-Mailvorlage; diese Korrekturen bleiben offen. Mailanbieter und Mailimport fehlen.
+geprüft. Der fehlende JSON-Import/Export aus dem Nutzerabgleich vom 15.11.2026 ist ergänzt;
+Abweichungen von der gewünschten DevExpress-Mailvorlage werden noch korrigiert. Mailanbieter und Mailimport fehlen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
 Zeitbasis-/Jitteranbindung der Aufnahme, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
@@ -326,7 +326,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
@@ -1396,7 +1396,23 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; reguläre Startausgabe FinOffice.
   Logs `.settings-db-{build,tests}-{pro,fin}.log`; Bilder unter den jeweiligen App-Testausgaben
   `.artifacts/settings-database/{Pro,FinOffice}`. Keine SQL-/Schemaänderung oder produktive Datenbank.
-- [ ] JSON-Import/Export im Einstellungsdialog nach LxTranslate vervollständigen (Nutzerkorrektur 15.11.2026).
+- [x] ✅ JSON-Import/Export im Einstellungsdialog nach LxTranslate ergänzt (Nutzerkorrektur 15.11.2026).
+  Importieren/Exportieren links neben Neu laden, Speichern/Abbrechen rechts; bei wenig Platz
+  zweizeilige TableLayoutPanel-Fußzeile mit gemeinsamer Button-/DPI-Hilfe. DevExpress-Dateidialoge
+  mit JSON-Filter, Owner und zuverlässig zurückgesetztem Wartecursor für Auswahl und Dateioperation.
+  Exportiert werden gespeicherte allgemeine Optionen, Logoptionen, Tastenkürzel, Lautstärken und
+  Mikrofon-Stummschaltung. Eigener strenger WawiCallPro-JSON-Vertrag Version 1; keine Zugangsdaten,
+  Verbindungen, Plugin-/Mandanten-/Leitungszuordnungen oder Geräte-IDs. Diese lokalen Werte bleiben
+  beim Import erhalten. Import bestätigt den Ersatz ungespeicherter Eingaben, speichert über den
+  bestehenden Konkurrenzschutz und bietet Neustart an; laufende Dienste behalten ihren Startstand.
+  Export über temporäre Geschwisterdatei, Flush und atomare Ersetzung; Abbruch, Format-/Wertfehler,
+  unbekannte/doppelte JSON-Felder, Größenlimit und veraltete Bearbeitungsstände sind geprüft.
+  Je Edition 40 gezielte Utilities- und zehn App-Prüfungen bestanden; gefüllte/leere Allgemein-Ansichten
+  bei 760/980 Breite, 10/16 pt, zwei Skins und 150%-Layoutsimulation ohne sichtbare Fenster gerendert.
+  Große Schrift und Standardansicht visuell geprüft. Beide Solution-Editionen in Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; reguläre Startausgabe FinOffice.
+  Logs `.settings-json-{build,utilities,tests}-{pro,fin}.log`; Bilder unter `.artifacts/settings-reference`
+  in den App-Testausgaben. Rücknahme durch Revert dieses Teilpunkts; interne Konfigurationsversion bleibt 8.
 - [x] ✅ Nutzerauftrag vom 14.11.2026: Einstellungsdialog nach LxTranslate und Serilog-Protokollierung.
   Allgemein verwendet eine flache TableLayoutPanel-Anordnung mit kräftigen Feldlabels links,
   Log-Level und Log-Verzeichnis oben sowie bündigen Optionen rechts. Die vorhandenen WawiCallPro-Tabs
