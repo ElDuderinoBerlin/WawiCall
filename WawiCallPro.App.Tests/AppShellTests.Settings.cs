@@ -128,7 +128,7 @@ public sealed partial class AppShellTests
                 shot.Save(Path.Combine(output, $"general-{populated}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
                 if (!populated && width == 980 && scale == 1F)
                 {
-                    foreach (var field in new[] { "sipTab", "pluginTab" })
+                    foreach (var field in new[] { "sipTab", "pluginTab", "databaseTab" })
                     {
                         form.SettingsTabs.SelectedTabPage = Field<DevExpress.XtraTab.XtraTabPage>(page, field);
                         CreateHandles(form); form.PerformLayout(); CheckTableBounds(form);

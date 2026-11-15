@@ -39,6 +39,7 @@ public partial class SettingsPage : XtraUserControl
     public SettingsPage()
     {
         InitializeComponent();
+        databaseLayout.Layout += DatabaseLayout_Changed;
         generalLayout.Layout += General_Layout;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
@@ -65,6 +66,7 @@ public partial class SettingsPage : XtraUserControl
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
             UiButtonSizing.Apply(saveButton, reloadButton, cancelButton);
             UiButtonSizing.Apply(logDirectoryBrowseButton);
+            UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(refreshAudioButton);
             refreshAudioButton.Margin = new Padding(captureDeviceEdit.Margin.Left, refreshAudioButton.Margin.Top, refreshAudioButton.Margin.Right, refreshAudioButton.Margin.Bottom);
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
@@ -94,6 +96,7 @@ public partial class SettingsPage : XtraUserControl
     internal void Bind(AppWorkspace workspace)
     {
         _workspace = workspace;
+        databaseSetupButton.Enabled = true;
         if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
         UpdateSipStatus();
         _operation = new PageOperation(this, statusLabel);
@@ -107,6 +110,12 @@ public partial class SettingsPage : XtraUserControl
     }
     internal async Task StopAsync()
     {
+        databaseSetupButton.Enabled = false;
+        if (_databaseDialog is { } databaseDialog)
+        {
+            await databaseDialog.StopAsync();
+            databaseDialog.Close();
+        }
         _audioStopped = true;
         SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
         if (_operation is not null) await _operation.StopAsync();
@@ -181,9 +190,7 @@ public partial class SettingsPage : XtraUserControl
         usernameEdit.Text = options.SipAccount?.Username ?? "";
         authUserEdit.Text = options.SipAccount?.AuthenticationUsername ?? "";
         passwordEdit.Text = "";
-        providerValue.Text = options.Database.Provider.ToString();
-        sqlitePathValue.Text = options.Database.Provider == CommunicationDatabaseProvider.Sqlite ? options.Database.SqliteFileName ?? "communications.db" : "–";
-        databaseConnectionValue.Text = options.Database.ConnectionString is null ? "–" : "Geschützt gespeichert";
+        ApplyDatabase(options.Database);
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;

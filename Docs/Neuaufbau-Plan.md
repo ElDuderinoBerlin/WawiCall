@@ -6,7 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
+Zuletzt korrigiert: Datenbankeinrichtung direkt im Einstellungsdialog nach LxTranslate zugänglich
+gemacht; Assistent, Entwurfserhalt und kompakter Datenbank-Tab geprüft (Phase 8, 15.11.2026).
+Zuvor ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
 monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Teilpunkt vom 15.11.2026).
 Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
 Überläufe, Lücken, Duplikate, Aufnahmebeginn innerhalb eines Pakets und wirksame Fehlersperren sind
@@ -16,8 +18,9 @@ Jitterbehandlung bleiben offen.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
-Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die Mailansicht nach dem
-DevExpress-WindowsMailClient sind isoliert geprüft; Mailanbieter und Import bleiben offen.
+Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die bestehende Mailansicht sind isoliert
+geprüft. Der Nutzerabgleich vom 15.11.2026 zeigt fehlenden JSON-Import/Export und Abweichungen von der
+gewünschten DevExpress-Mailvorlage; diese Korrekturen bleiben offen. Mailanbieter und Mailimport fehlen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
 Zeitbasis-/Jitteranbindung der Aufnahme, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
@@ -1378,6 +1381,22 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
 
+- [x] ✅ Datenbankeinrichtung direkt im Einstellungsdialog ergänzt (15.11.2026):
+  „Datenbank einrichten …“ öffnet denselben dienstgebundenen Dreischritt-Assistenten mit dem
+  Einstellungsfenster als Owner und bestehender Fensterzustandsspeicherung. Nach Übernahme werden
+  die gespeicherten Datenbankwerte und der Speicherkonkurrenzstand aktualisiert; ungespeicherte
+  Eingaben anderer Tabs bleiben erhalten. Laufende Repositories bleiben am bisherigen Startziel;
+  der notwendige Neustart wird angezeigt. Abbruch ändert die Einstellungen nicht. Beim Stoppen
+  werden auch ein offener Assistent und dessen laufende Arbeit beendet/abgewartet.
+  Datenbank-Tab verwendet ein inhaltsgroßes Tabellenlayout oben; Button, Anzeigewerte und Hinweis
+  bleiben auch nach Schrift-/DPI-Skalierung ausgerichtet. Je Edition acht gezielte App-Prüfungen
+  bestanden, einschließlich echter isolierter SQLite-Einrichtung, erneutem Speichern und Schließschutz.
+  Je drei unsichtbare Renderbilder bei 760/980 Breite, 10/16 pt, 150%-Layoutsimulation und zwei Skins;
+  große Schrift und skalierte Variante visuell geprüft. Beide Solution-Editionen in Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; reguläre Startausgabe FinOffice.
+  Logs `.settings-db-{build,tests}-{pro,fin}.log`; Bilder unter den jeweiligen App-Testausgaben
+  `.artifacts/settings-database/{Pro,FinOffice}`. Keine SQL-/Schemaänderung oder produktive Datenbank.
+- [ ] JSON-Import/Export im Einstellungsdialog nach LxTranslate vervollständigen (Nutzerkorrektur 15.11.2026).
 - [x] ✅ Nutzerauftrag vom 14.11.2026: Einstellungsdialog nach LxTranslate und Serilog-Protokollierung.
   Allgemein verwendet eine flache TableLayoutPanel-Anordnung mit kräftigen Feldlabels links,
   Log-Level und Log-Verzeichnis oben sowie bündigen Optionen rechts. Die vorhandenen WawiCallPro-Tabs
@@ -1452,7 +1471,8 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Fortschritts-UserControls samt Designer-/Ressourcendateien. Einstieg im Ribbon unter
   Datenbank einrichten; die bisherigen separaten Befehle Anlegen/Aktualisieren/Leerfreigabe
   sind im Assistenten gebündelt. Status sowie SQLite-Sicherung und Wiederherstellung
-  bleiben Ribbonaktionen. Der Einstellungsdialog zeigt den gespeicherten Stand als Labels.
+  bleiben Ribbonaktionen. Der Einstellungsdialog zeigt den gespeicherten Stand als Labels und
+  öffnet seit der Korrektur vom 15.11.2026 denselben Assistenten direkt im Datenbank-Tab.
   Tabellenlayout, gleich große Dialogbuttons mit Innenabständen und Fensterzustandsspeicherung
   sind angebunden. Auch unvollständige Provider-Eingaben bleiben beim Wechsel erhalten.
   IDatabaseSetupService und typisierte Datenbankfactory sind im gemeinsamen DI-Host registriert.
