@@ -640,13 +640,62 @@ Dieser Baustein ist noch nicht automatisch mit `IConversationPcmSource` verbunde
 müssen bereits **vor** der zustandsbehafteten Dekodierung behandelt werden. Beim verwendeten
 [SIPSorcery-10.0.17-Audiostream](https://github.com/sipsorcery-org/sipsorcery/blob/08c2ed0ad72c423ca06950dee2e842488a219884/src/SIPSorcery/net/RTP/Streams/AudioStream.cs)
 wird `OnAudioFrameReceived` vor dem öffentlichen RTP-Paketereignis ausgelöst. Der bestehende PCM-Callback
-besitzt deshalb nicht automatisch die zum aktuellen Paket gehörenden Headerdaten. Eine sichere Zuordnung,
-gemeinsame Ankerermittlung und Lebensdauerverdrahtung im SIP-Gespräch bleiben eigene offene Schritte.
+besitzt deshalb nicht automatisch die zum aktuellen Paket gehörenden Headerdaten. Die folgende
+Empfangsbindung ergänzt diese Zuordnung. Gemeinsame Ankerermittlung und die Verbindung zur
+Aufnahmesitzung einschließlich Live-Jitterbehandlung bleiben offen.
 
 30 gezielte Core-Prüfungen und fünf neue Integrationstests mit realem Aufnahme-/WAV-Pfad prüfen
 Zeitprojektion, Überläufe, Lücken, G.722, Zuschnitt, Nebenläufigkeit, Queuefehler und wirksame Sperren.
 Beide Hostregistrierungen sind geprüft; konkrete Editionsläufe und Grenzen stehen in
 [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-). Keine Geräte-/SIP-Abnahme.
+
+### Empfangs-RTP-Header am vorhandenen PCM-Decoder (15.11.2026)
+
+`ISipRtpPcmBridgeFactory` ist in beiden Hosts als zustandslose Factory registriert.
+`WindowsSipMediaSessionFactory` besitzt pro Gespräch eine Bindung zwischen `VoIPMediaSession`,
+dem vorhandenen CSCore-Sink und seinem `PcmObservingAudioEncoder`. Kein Gerätezugriff beim DI-Aufbau.
+Auch Sitzungen ohne Mikrofonquelle können bereits vor der SDP-Aushandlung gebunden werden.
+
+Die Bindung berücksichtigt die oben dokumentierte Ereignisreihenfolge der gepinnten SDK-Version:
+Sie ersetzt ausschließlich den unmittelbaren `GotEncodedMediaFrame`-Handler des eigenen Sinks,
+behält den ursprünglichen Frame und ruft denselben Sink im folgenden RTP-Ereignis auf.
+Andere Ereignishandler bleiben erhalten. Höchstens acht gleichzeitig ausstehende Frames werden
+nach Dispatchthread zugeordnet; Nutzdaten müssen dieselbe Arrayreferenz und denselben Payloadtyp
+haben. Das ist eine synchrone Headerzuordnung, kein Jitterpuffer und keine Paketumsortierung.
+
+Ein kurzlebiger Kontext verbindet genau diesen nativen Decode-Aufruf mit SSRC, Sequenznummer,
+RTP-Zeitstempel und RTP-Taktrate. `IReceivedRtpPcmObserver` erhält diese Werte zusammen mit den
+unveränderten PCM-Samples, deren tatsächlicher Rate und Kanalzahl. Der Basis-Callback bleibt für
+Sendedaten zuständig. Es gibt keinen zweiten Decoder; G.722 behält 16-kHz-PCM bei 8-kHz-RTP.
+Der Kontext ist nur einmal konsumierbar, wird im `finally` gesperrt und gibt seine Payloadreferenz
+frei. Ein erfasster, später fortgesetzter ExecutionContext darf ihn nicht wiederverwenden.
+
+Fehlende oder widersprüchliche Zuordnung, überzählige ausstehende Frames, übersprungene Dekodierung
+bei geschlossenem Sink und native Codecfehler sperren zeitabhängige Beobachter mit
+`ReceivedMetadataUnavailable`. Neue solche Beobachter bleiben nach einem Bindungsfehler gesperrt.
+Verwaiste Frames werden ohne erfundene Zeitstempel an den vorhandenen Sink gegeben; passive
+Beobachter bleiben nutzbar. Verbraucherfehler behalten die vorhandene isolierte Behandlung.
+Native Codecfehler werden unverändert weitergereicht. Die Bindung protokolliert weder PCM noch Header
+und führt keine Dateioperationen aus.
+
+`PcmSipMediaSession` sperrt zuerst die Empfangsbindung, entfernt deren Ereignishandler und wartet
+laufende Sinkaufrufe ab. Danach werden PCM-Beobachter freigegeben und die vorhandenen nativen Medien
+im `finally` geschlossen. Mehrfache Freigaben warten denselben Task ab. Eine Mediensitzung kann
+nicht gleichzeitig mehrfach gebunden werden; ausstehende Payloadreferenzen werden beim Schließen verworfen.
+
+24 neue Prüfungen in `ReceivedRtpPcmTests.cs` verwenden den tatsächlichen CSCore-Sink mit einem
+Speicherpuffer ohne Geräteinitialisierung. Drei UDP-Loopbacks handeln SDP für PCMA, PCMU und G.722
+aus und vergleichen echte empfangene Header sowie PCM mit der Referenzdekodierung. Weitere Fälle
+prüfen Sequenz-/Zeitstempelüberlauf, einmalige Dekodierung, Parallelität, begrenzte Zuordnung,
+Metadaten-/Codecfehler, verzögerte Kontexte, geschlossenen Sink und geordnetes Freigeben.
+Beide DI-Hosts und vorhandene SIP-Lebenszyklen sind geprüft; Editionsnachweise stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+
+Offen bleiben Sendeanker, eine gemeinsame Medienzeitbasis, die Live-Einbindung der Paketordnung
+vor der zustandsbehafteten Dekodierung und die Aufnahmesteuerung. Diese Bindung startet keine
+Aufnahme und belegt weder Gerätewiedergabe noch vollständige Gesprächsaufzeichnung.
+Rollback: Bridge-Registrierung/-Besitz und optionale Empfangsbeobachtung zurücknehmen; damit
+wieder den ursprünglichen unmittelbaren Sink-Handler verwenden. Keine Migration oder Konfiguration.
 
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
@@ -686,12 +735,14 @@ Abschluss ab und schließt danach die vorhandenen nativen Medien im finally. Gle
 warten denselben Task ab; bisherige native Freigabefehler bleiben beobachtbar. Ein regelwidrig
 blockierender Beobachter kann diesen Abschluss verzögern und ist kein geeigneter Aufnahmeadapter.
 
-Dieser Abgriff enthält ausdrücklich **keine Medienzeitpositionen**. Im tatsächlich verwendeten
+Der Basis-Callback enthält weiterhin **keine Medienzeitpositionen**. Im tatsächlich verwendeten
 SIPSorceryMedia.Abstractions-10.0.17-Vertrag besitzt `EncodedAudioFrame` nur Streamindex, Format,
 Dauer und Nutzdaten, keinen RTP-Zeitstempel/Sequenzwert. Geprüft anhand der installierten Assembly
 und zugehöriger XML-Dokumentation sowie des verwendeten CSCore-Quelltexts. Aus Callbackankunftszeiten
-darf deshalb keine fertige RTP-Zeitachse behauptet werden. Die Verbindung mit `IPcmRecordingSession`
-benötigt noch eine gemeinsame Medienzeitbasis und Reihenfolge-/Jitterbehandlung. Die oben beschriebene
+darf deshalb keine fertige RTP-Zeitachse behauptet werden. Der oben ergänzte optionale
+`IReceivedRtpPcmObserver` erhält korrelierte Empfangsheader; das liefert noch keine gemeinsame
+Sende-/Empfangszeitbasis. Die Verbindung mit `IPcmRecordingSession` benötigt diese Basis und
+Reihenfolge-/Jitterbehandlung vor der Dekodierung. Die oben beschriebene
 RTP-/PCM-Aufnahmeübergabe übernimmt bei explizit gelieferten Ankern die Aufteilung größerer PCM-Blöcke
 und den Zuschnitt bei Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
 

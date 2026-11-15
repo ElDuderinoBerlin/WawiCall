@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Zurück/Vorwärts für besuchte Views als kleine Pfeile neben dem App-Symbol in der
+Zuletzt ergänzt: Empfangs-RTP-Header mit dem vorhandenen CSCore-PCM-Decoder korreliert;
+SSRC, Sequenz und RTP-Zeitstempel stehen optional zusammen mit den tatsächlichen PCM-Samples bereit
+(Phase 9, 15.11.2026). Drei gerätelose UDP-Loopbackläufe prüfen PCMA, PCMU und G.722.
+Zuvor ergänzt: Zurück/Vorwärts für besuchte Views als kleine Pfeile neben dem App-Symbol in der
 Ribbon-Schnellzugriffsleiste wie in LxTranslate (Phase 8, 15.11.2026). Die korrigierte Mailansicht mit
 Accordion/TileView sowie JSON-Import/Export und direkter Datenbankassistent sind ebenfalls geprüft.
 Zuvor ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
@@ -328,7 +331,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Empfangs-RTP-Header am vorhandenen PCM-Decoder, begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; gemeinsame SIP-Zeitbasis und Live-Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2303,12 +2306,35 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   in Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; reguläre Startausgabe
   FinOffice. Logs `.rtp-order-{build,core,tests,host}-{pro,fin}.log`. Kein nativer SIP-Empfang umverdrahtet;
   gemeinsame Zeitanker, Live-Jitterverdrahtung und reale Abnahme bleiben offen.
+- [x] ✅ Empfangs-RTP-Header mit dem vorhandenen PCM-Decoder korrelieren (15.11.2026):
+  `ISipRtpPcmBridgeFactory` in beiden Hosts registriert; `WindowsSipMediaSessionFactory` bindet
+  den vorhandenen CSCore-Sink je Gespräch an dieselbe Codec-Instanz. Der ursprüngliche Frame wird
+  nach dem unmittelbar folgenden RTP-Ereignis genau einmal an denselben Sink weitergereicht.
+  Nutzdatenreferenz, Payloadtyp und Format müssen zusammenpassen; kein zusätzlicher Decoder.
+  `IReceivedRtpPcmObserver` erhält optional echte SSRC, Sequenz, RTP-Zeitstempel/-Taktrate und
+  unveränderte PCM-Samples mit tatsächlicher Abtastrate/Kanalzahl. G.722: 8-kHz-RTP, 16-kHz-PCM.
+  Höchstens acht ausstehende Framezuordnungen; fehlende/widersprüchliche Metadaten, übersprungene
+  Dekodierung oder Codecfehler beenden zeitabhängige Beobachter mit festem Fehlercode.
+  Bestehende passive Beobachter und der normale Sink bleiben von Beobachterfehlern isoliert.
+  Der kurzlebige Paketkontext ist nur einmal verwendbar und nach Callbackende gesperrt;
+  asynchron fortgesetzte ExecutionContexts können keinen alten Zeitstempel übernehmen.
+  Freigabe wartet laufende Sinkaufrufe ab, danach Beobachter abmelden und native Medien schließen.
+  Sink-only-Sitzungen bei stummem Mikrofon benötigen vor SDP noch keinen AudioStream.
+  24 neue Prüfungen mit echtem CSCore-Sink und ausschließlich Speicherpuffer statt Hardware;
+  drei davon echte UDP-Loopbacks nach SDP-Aushandlung für PCMA/PCMU/G.722. Header, Samples,
+  Überläufe, Nebenläufigkeit, fehlende Header, geschlossener Sink und Freigabereihenfolge geprüft.
+  Je Edition 203 Console-, zwei App-Host- und vier gezielte SIP-Lebenszyklusprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe
+  CSCore-Warnungen; reguläre Startausgabe FinOffice. Logs `.rtp-context-{build,tests,host,runtime}-{pro,fin}.log`.
+  Keine echten Anrufe, Audiogeräte oder sichtbare GUI. Kein Live-Jitterpuffer, keine gemeinsame
+  Sende-/Empfangszeitbasis und noch keine automatische Verbindung zur Aufnahmesitzung.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche
   Reihenfolge-/Jitterbehandlung vor dem Sitzungsaufruf umsetzen. Kein Desktop-Loopback als Quelle.
   Die Capture-Byte-/Sample-Verwechslung ist durch den vorherigen Teilpunkt korrigiert; daraus
-  allein entsteht noch keine gemeinsame RTP-/Aufnahmezeitbasis.
+  allein entsteht noch keine gemeinsame RTP-/Aufnahmezeitbasis. Empfangsheader stehen durch den
+  vorherigen Teilpunkt bereit; Sendeanker und die gemeinsame Aufnahmezeitbasis fehlen weiterhin.
   Manueller Start/Stop, ausdrücklich konfigurierte Automatik, geordneter Host-Shutdown und
   echte SIP-/Geräteabnahme bleiben offen.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit

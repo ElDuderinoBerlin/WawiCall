@@ -9,7 +9,7 @@ using WawiCallPro.Utilities.Configuration;
 namespace WawiCallPro.Audio;
 
 /// <summary>Uses the user's CSCore endpoint; construction occurs only when media is requested.</summary>
-public sealed class WindowsSipMediaSessionFactory : ISipMediaSessionFactory
+public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges) : ISipMediaSessionFactory
 {
     public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices)
     {
@@ -17,6 +17,8 @@ public sealed class WindowsSipMediaSessionFactory : ISipMediaSessionFactory
         MMDevice? playback = null;
         MMDevice? capture = null;
         WindowsAudioEndPoint? endpoint = null;
+        VoIPMediaSession? media = null;
+        IAsyncDisposable? receive = null;
         var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         try
         {
@@ -28,17 +30,26 @@ public sealed class WindowsSipMediaSessionFactory : ISipMediaSessionFactory
             endpoint.OutputVolume = devices.PlaybackVolumePercent / 100F;
             endpoint.RestrictFormats(format => format.Codec is AudioCodecsEnum.PCMA or AudioCodecsEnum.PCMU
                 || account.Connection.EnableG722 && format.Codec == AudioCodecsEnum.G722);
-            var media = new VoIPMediaSession(endpoint.ToMediaEndPoints(), System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
+            media = new VoIPMediaSession(endpoint.ToMediaEndPoints(), System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
                 { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
-            return new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm);
+            receive = bridges.Create(media, endpoint, pcm);
+            return new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm, receive);
         }
         catch
         {
-            try { pcm.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+            try { if (receive is not null) receive.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
             finally
             {
-                try { endpoint?.Close().GetAwaiter().GetResult(); }
-                finally { playback?.Dispose(); capture?.Dispose(); }
+                try { pcm.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                finally
+                {
+                    try { media?.Close("Media setup failed"); }
+                    finally
+                    {
+                        try { endpoint?.Close().GetAwaiter().GetResult(); }
+                        finally { playback?.Dispose(); capture?.Dispose(); }
+                    }
+                }
             }
             throw;
         }

@@ -1,0 +1,98 @@
+using System.Net;
+using SIPSorcery.Media;
+using SIPSorcery.Net;
+using SIPSorceryMedia.Abstractions;
+using WawiCallPro.Interfaces.Audio;
+
+namespace WawiCallPro.Audio;
+
+internal sealed class SipRtpPcmBridge : IAsyncDisposable
+{
+    private readonly VoIPMediaSession _media;
+    private readonly IAudioSink _sink;
+    private readonly PcmObservingAudioEncoder _encoder;
+    private readonly Action _release;
+    private readonly object _gate = new();
+    private readonly Dictionary<int, EncodedAudioFrame> _pending = new();
+    private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool _closed;
+    private int _inflight;
+    private Task? _dispose;
+
+    internal SipRtpPcmBridge(VoIPMediaSession media, IAudioSink sink, PcmObservingAudioEncoder encoder, Action release)
+    {
+        _media = media; _sink = sink; _encoder = encoder; _release = release;
+        // In pinned SIPSorcery 10.0.17 a frame and its RTP event run synchronously on the same dispatch thread.
+        // Keep the original frame/format and delay only its existing sink call, never decode another copy.
+        media.OnAudioFrameReceived -= sink.GotEncodedMediaFrame;
+        media.OnAudioFrameReceived += FrameReceived;
+        media.OnRtpPacketReceived += PacketReceived;
+    }
+
+    private void FrameReceived(EncodedAudioFrame frame)
+    {
+        EncodedAudioFrame? orphan = null;
+        var forwardPlain = false;
+        lock (_gate)
+        {
+            if (_closed) return;
+            _inflight++;
+            var thread = Environment.CurrentManagedThreadId;
+            if (_pending.Remove(thread, out var previous)) orphan = previous;
+            if (_pending.Count >= 8) forwardPlain = true;
+            else _pending.Add(thread, frame);
+        }
+        try
+        {
+            if (orphan is not null || forwardPlain) _encoder.RejectReceivedMetadata();
+            if (orphan is not null) _sink.GotEncodedMediaFrame(orphan);
+            if (forwardPlain) _sink.GotEncodedMediaFrame(frame);
+        }
+        finally { Exit(); }
+    }
+
+    private void PacketReceived(IPEndPoint remote, SDPMediaTypesEnum mediaType, RTPPacket packet)
+    {
+        if (mediaType != SDPMediaTypesEnum.audio) return;
+        EncodedAudioFrame frame;
+        lock (_gate)
+        {
+            if (_closed || !_pending.Remove(Environment.CurrentManagedThreadId, out frame!)) return;
+            _inflight++;
+        }
+        try
+        {
+            var format = frame.AudioFormat;
+            if (!ReferenceEquals(frame.EncodedAudio, packet.Payload) || format.FormatID != packet.Header.PayloadType || format.RtpClockRate is < 1 or > 192000)
+            {
+                _encoder.RejectReceivedMetadata();
+                _sink.GotEncodedMediaFrame(frame);
+                return;
+            }
+            _encoder.DeliverReceivedFrame(new(packet.Header.SyncSource, packet.Header.SequenceNumber, packet.Header.Timestamp, format.RtpClockRate), frame, _sink);
+        }
+        catch { _encoder.RejectReceivedMetadata(); throw; }
+        finally { Exit(); }
+    }
+
+    private void Exit()
+    {
+        lock (_gate)
+        {
+            _inflight--;
+            if (_closed && _inflight == 0) _drained.TrySetResult();
+        }
+    }
+    public ValueTask DisposeAsync() { lock (_gate) return new(_dispose ??= DisposeCoreAsync()); }
+    private async Task DisposeCoreAsync()
+    {
+        _closed = true;
+        _media.OnAudioFrameReceived -= FrameReceived;
+        _media.OnRtpPacketReceived -= PacketReceived;
+        if (_pending.Count != 0) _encoder.RejectReceivedMetadata();
+        _pending.Clear();
+        if (_inflight == 0) _drained.TrySetResult();
+        await _drained.Task.ConfigureAwait(false);
+        _release();
+    }
+}

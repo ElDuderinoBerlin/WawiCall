@@ -14,6 +14,8 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
     private bool _closed;
     private long _failureCount;
     private int _lastFailure;
+    private int _receivedMetadataUnavailable;
+    private readonly AsyncLocal<ReceiveContext?> _receiveContext = new();
 
     public List<AudioFormat> SupportedFormats => inner.SupportedFormats;
     public long FailureCount => Interlocked.Read(ref _failureCount);
@@ -31,25 +33,63 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
 
     public short[] DecodeAudio(byte[] encoded, AudioFormat format)
     {
-        var pcm = inner.DecodeAudio(encoded, format);
-        Publish(ConversationAudioSide.Received, format, pcm);
-        return pcm;
+        var context = _receiveContext.Value;
+        RtpPcmPacketPosition? position = context is not null && context.TryConsume(encoded, format) ? context.Packet : null;
+        try
+        {
+            var pcm = inner.DecodeAudio(encoded, format);
+            if (context is not null && pcm.Length == 0) RejectReceivedMetadata();
+            Publish(ConversationAudioSide.Received, format, pcm, position);
+            return pcm;
+        }
+        catch
+        {
+            RejectReceivedMetadata();
+            throw;
+        }
+    }
+
+    internal void DeliverReceivedFrame(RtpPcmPacketPosition packet, EncodedAudioFrame frame, IAudioSink sink)
+    {
+        var previous = _receiveContext.Value;
+        var context = new ReceiveContext(packet, frame.EncodedAudio, frame.AudioFormat);
+        _receiveContext.Value = context;
+        try
+        {
+            sink.GotEncodedMediaFrame(frame);
+            if (!context.WasConsumed) RejectReceivedMetadata();
+        }
+        finally { context.Retire(); _receiveContext.Value = previous; }
+    }
+
+    internal void RejectReceivedMetadata()
+    {
+        Volatile.Write(ref _receivedMetadataUnavailable, 1);
+        foreach (var subscription in Volatile.Read(ref _subscriptions))
+        {
+            if (!subscription.TryEnter(out var observer)) continue;
+            try { if (observer is IReceivedRtpPcmObserver) Retire(subscription, PcmObservationFailure.ReceivedMetadataUnavailable); }
+            finally { subscription.Exit(); }
+        }
     }
 
     public IConversationPcmSubscription Subscribe(IConversationPcmObserver observer)
     {
         ArgumentNullException.ThrowIfNull(observer);
+        Subscription subscription;
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_closed, this);
             if (_subscriptions.Length + _retiring.Count >= 8) throw new InvalidOperationException("Zu viele PCM-Beobachter für diese Mediensitzung.");
-            var subscription = new Subscription(this, observer);
+            subscription = new Subscription(this, observer);
             Volatile.Write(ref _subscriptions, [.. _subscriptions, subscription]);
-            return subscription;
         }
+        if (observer is IReceivedRtpPcmObserver && Volatile.Read(ref _receivedMetadataUnavailable) != 0)
+            Retire(subscription, PcmObservationFailure.ReceivedMetadataUnavailable);
+        return subscription;
     }
 
-    private void Publish(ConversationAudioSide side, AudioFormat format, short[] pcm)
+    private void Publish(ConversationAudioSide side, AudioFormat format, short[] pcm, RtpPcmPacketPosition? packet = null)
     {
         var subscriptions = Volatile.Read(ref _subscriptions);
         if (subscriptions.Length == 0 || pcm.Length == 0) return;
@@ -60,6 +100,13 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
             try
             {
                 if (invalid) Retire(subscription, PcmObservationFailure.InvalidFormat);
+                else if (side == ConversationAudioSide.Received && observer is IReceivedRtpPcmObserver received)
+                {
+                    if (packet is null || Volatile.Read(ref _receivedMetadataUnavailable) != 0)
+                        Retire(subscription, PcmObservationFailure.ReceivedMetadataUnavailable);
+                    else if (!received.TryObserveReceived(packet.Value, format.ClockRate, format.ChannelCount, pcm))
+                        Retire(subscription, PcmObservationFailure.ObserverRejected);
+                }
                 else if (!observer.TryObserve(side, format.ClockRate, format.ChannelCount, pcm))
                     Retire(subscription, PcmObservationFailure.ObserverRejected);
             }
@@ -85,6 +132,19 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
     }
 
     private void OnCompleted(Subscription subscription) { lock (_gate) _retiring.Remove(subscription); }
+
+    private sealed class ReceiveContext(RtpPcmPacketPosition packet, byte[] payload, AudioFormat format)
+    {
+        private int _active = 1, _remaining = 1;
+        private byte[]? _payload = payload;
+        internal RtpPcmPacketPosition Packet { get; } = packet;
+        internal bool WasConsumed => Volatile.Read(ref _remaining) == 0;
+        internal bool TryConsume(byte[] encoded, AudioFormat actual) => Volatile.Read(ref _active) == 1
+            && ReferenceEquals(encoded, Volatile.Read(ref _payload)) && actual.FormatID == format.FormatID && actual.Codec == format.Codec
+            && actual.ClockRate == format.ClockRate && actual.RtpClockRate == format.RtpClockRate && actual.ChannelCount == format.ChannelCount
+            && Interlocked.Exchange(ref _remaining, 0) == 1;
+        internal void Retire() { Volatile.Write(ref _active, 0); Interlocked.Exchange(ref _payload, null); }
+    }
 
     public ValueTask DisposeAsync()
     {

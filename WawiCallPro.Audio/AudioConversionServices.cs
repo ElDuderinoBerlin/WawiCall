@@ -10,6 +10,7 @@ public static class AudioConversionServices
     public static IServiceCollection AddAudioConversion(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<ISipRtpPcmBridgeFactory, SipRtpPcmBridgeFactory>();
         services.TryAddSingleton<IMp3EncodingBackend, MediaFoundationMp3Backend>();
         services.TryAddSingleton<IMp3Converter, WavToMp3Converter>();
         services.TryAddSingleton<IConversationWaveRenderer, ConversationWaveRenderer>();

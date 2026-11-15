@@ -8,6 +8,9 @@ public sealed class PcmSipMediaSession(ISipMediaSession inner, PcmObservingAudio
 {
     private readonly object _gate = new();
     private Task? _dispose;
+    private readonly IAsyncDisposable? _receive;
+    public PcmSipMediaSession(ISipMediaSession inner, PcmObservingAudioEncoder pcm, IAsyncDisposable receive) : this(inner, pcm) =>
+        _receive = receive ?? throw new ArgumentNullException(nameof(receive));
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
     public IConversationPcmSource PcmSource => pcm;
     public void ApplyPlaybackSettings() => inner.ApplyPlaybackSettings();
@@ -17,7 +20,11 @@ public sealed class PcmSipMediaSession(ISipMediaSession inner, PcmObservingAudio
     }
     private async Task DisposeCoreAsync()
     {
-        try { await pcm.DisposeAsync().ConfigureAwait(false); }
-        finally { await inner.DisposeAsync().ConfigureAwait(false); }
+        try { if (_receive is not null) await _receive.DisposeAsync().ConfigureAwait(false); }
+        finally
+        {
+            try { await pcm.DisposeAsync().ConfigureAwait(false); }
+            finally { await inner.DisposeAsync().ConfigureAwait(false); }
+        }
     }
 }

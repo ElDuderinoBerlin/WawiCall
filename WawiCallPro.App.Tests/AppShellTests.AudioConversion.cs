@@ -35,6 +35,9 @@ public sealed partial class AppShellTests
             var packets = host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>(packets);
             Assert.AreSame(packets, host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>());
+            var bridge = host.Services.GetRequiredService<ISipRtpPcmBridgeFactory>();
+            Assert.IsInstanceOfType<SipRtpPcmBridgeFactory>(bridge);
+            Assert.AreSame(bridge, host.Services.GetRequiredService<ISipRtpPcmBridgeFactory>());
         }
         finally { await ((IAsyncDisposable)host).DisposeAsync(); }
     });
