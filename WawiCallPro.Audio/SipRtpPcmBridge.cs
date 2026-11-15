@@ -11,6 +11,7 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
     private readonly VoIPMediaSession _media;
     private readonly PcmObservingAudioEncoder _encoder;
     private readonly SipRtpAudioReceiver _receiver;
+    private readonly SipRtpPcmSender? _sender;
     private readonly Action _release;
     private readonly object _gate = new();
     private readonly Dictionary<int, EncodedAudioFrame> _pending = new();
@@ -23,6 +24,8 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
         SipRtpAudioReceiver receiver, Action release)
     {
         _media = media; _encoder = encoder; _receiver = receiver; _release = release;
+        try { if (media.Media.AudioSource is not null) _sender = new(media, encoder); }
+        catch { receiver.DisposeAsync().AsTask().GetAwaiter().GetResult(); throw; }
         // In pinned SIPSorcery 10.0.17 a frame and its RTP event run synchronously on the same dispatch thread.
         // Keep the original frame/format and delay only its existing sink call, never decode another copy.
         media.OnAudioFrameReceived -= sink.GotEncodedMediaFrame;
@@ -94,7 +97,11 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
         _pending.Clear();
         if (_inflight == 0) _drained.TrySetResult();
         await _drained.Task.ConfigureAwait(false);
-        try { await _receiver.DisposeAsync().ConfigureAwait(false); }
-        finally { _release(); }
+        try { if (_sender is not null) await _sender.DisposeAsync().ConfigureAwait(false); }
+        finally
+        {
+            try { await _receiver.DisposeAsync().ConfigureAwait(false); }
+            finally { _release(); }
+        }
     }
 }

@@ -768,7 +768,8 @@ den bestehenden `IRtpPcmRecordingFeed` weiter. Damit bleiben RTP-Zeitstempel, Se
 Lücken und der Aufnahmeoffset maßgeblich. Größere Blöcke werden weiterhin durch den Feed begrenzt
 geteilt, negative Offsets schneiden Samples vor Aufnahmebeginn ab. Mono-PCM ist Voraussetzung;
 die tatsächliche Decoder-Abtastrate bleibt erhalten, insbesondere 16-kHz-G.722-PCM bei 8-kHz-RTP.
-Sende-Callbacks werden nicht in die Aufnahme übernommen, weil sie noch keine passende Medienposition liefern.
+Dieser Empfangsadapter übernimmt keine Sende-Callbacks in die Aufnahme. Die unten ergänzte optionale
+Sendezeitposition ist noch mit einem Aufnahmeanker und einer eigenen Sendekopplung zu verbinden.
 
 Eine nur asynchrone Überwachung von Subscription-`Completion` würde eine Lücke lassen: Nach einem
 Medienfehler könnte `StopAsync` starten, bevor der Fehlerbeobachter wieder eingeplant wird. Deshalb
@@ -805,12 +806,76 @@ Eine separat synthetisch positionierte Sendespur in der Stereo-WAV-Prüfung ist 
 automatischen Zuordnung des realen Sendepfads. Editionsläufe stehen in
 [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 
-Offen bleiben Medienpositionen der Sendeseite, verlässliche gemeinsame Sende-/Empfangsanker,
+Lokale Sendezeitfenster sind im folgenden Abschnitt ergänzt. Offen bleiben ihre Aufnahmezuordnung,
+verlässliche gemeinsame Sende-/Empfangsanker,
 Aufnahmebedienung/-automatik, geordnete Host-Aufnahmesteuerung und echte SIP-/Geräteabnahme.
 Callback-Ankunft, unabhängige Samplezähler und Wanduhr werden nicht als gemeinsame Zeitbasis verwendet.
 Rollback: Empfangsbindungs-Factory/-Adapter, DI-Registrierung und optionale synchrone Fehlerfähigkeit
 zurücknehmen; die vorherigen RTP-/PCM-Feeds und Aufnahmedateien bleiben erhalten. Keine Migration
 oder Konfiguration geändert und keine automatische Aufzeichnung beim Anwendungsstart ergänzt.
+
+### Lokale RTP-Sendefenster am CSCore-PCM-Abgriff (15.11.2026)
+
+Die bestehende Mediensitzungsfactory erzeugt jetzt zusätzlich einen besessenen `SipRtpPcmSender`,
+wenn eine Audioquelle vorhanden ist. Keine weitere DI-Auflösung in der View und kein zweiter Codec.
+Die Verdrahtung berücksichtigt die tatsächliche
+[VoIPMediaSession 10.0.17](https://github.com/sipsorcery-org/sipsorcery/blob/08c2ed0ad72c423ca06950dee2e842488a219884/src/SIPSorcery/app/Media/VoIPMediaSession.cs):
+Der Sender ersetzt den unmittelbaren `SendAudio`-Handler der Quelle durch einen eigenen Handler,
+der denselben nativen Sendeaufruf genau einmal ausführt. Andere Quellhandler bleiben erhalten.
+Auch der Extras-Sendehandler wird über dieselbe serielle Sendesperre geführt.
+
+`PcmObservingAudioEncoder` behält nach erfolgreicher Kodierung nur für aktive `ISentRtpPcmObserver`
+eine besessene PCM-Kopie zusammen mit Format und Referenz des originalen Codec-Payloads.
+Es gibt höchstens acht ausstehende Zuordnungen nach Capturethread; ein Block darf höchstens zwei
+Sekunden PCM mit 8–192 kHz und einem oder zwei Kanälen sowie höchstens 65536 kodierte Bytes enthalten.
+Der spätere Quellcallback muss genau denselben Payload liefern. Es wird kein weiterer Encode- oder
+Decode-Aufruf zur Beobachtung ausgeführt. Ohne solche Beobachter entsteht keine zusätzliche PCM-Kopie.
+
+Vor dem nativen Senden werden der lokale Track, SSRC und sein RTP-Zeitstempel gelesen. Nach dem
+Senden müssen Track/SSRC unverändert sein, die Zeit um die tatsächlich übergebene RTP-Dauer
+fortgeschritten sein und das ausgewählte native Format zum Codec-Aufruf passen. Die Dauer muss
+außerdem zur ursprünglichen PCM-Frameanzahl und RTP-/PCM-Rate gehören. Erst dann erhält
+`TryObserveSent` ein `SentRtpPcmPosition` mit SSRC, Beginn, RTP-Taktrate und Dauer sowie die
+ursprünglichen PCM-Samples, deren wirkliche Rate und Kanalzahl. Bei G.722 bleiben 8-kHz-RTP
+und 16-kHz-PCM getrennt. Ein längerer Kodierblock darf durch den nativen Sender in mehrere Pakete
+zerlegt werden; sein beobachtetes PCM bildet ein einziges Zeitfenster. Sequenznummern und
+Paketgrenzen werden hierfür nicht erfunden oder durch zusätzliche Sendeschritte verbraucht.
+
+Die Zuordnung bezeichnet ein überprüft fortgeschrittenes **lokales Sendezeitfenster**, keinen
+Zustellnachweis. Sie umfasst den kontrollierten Quell-/Extraspfad. Gleichzeitigkeit mit direkten
+fremden RTP-Produzenten beziehungsweise DTMF und der vollständige Halte-/Wiederaufnahmepfad bleiben
+gesondert abzunehmen. Extras-Daten liefern keine Mikrofon-PCM-Kopie; ihre Zeitfortschritte bleiben
+als Lücke zwischen den Mikrofonfenstern sichtbar. Es wird weder eine Ankunftsuhr noch ein
+unabhängiger Samplezähler als Ersatz für die lokale RTP-Position verwendet.
+
+Fehlende/widersprüchliche Zuordnung, übersprungener nativer Sendefortschritt, Überlauf, verwaiste
+Codec-Ergebnisse und native Codecfehler sperren nur Sendezeitbeobachter als `SentMetadataUnavailable`.
+Die synchrone Fehlerfähigkeit des PCM-Abgriffs bleibt dabei wirksam. Neue Sendezeitbeobachter
+bleiben nach einem Bindungsfehler gesperrt. Reine Empfangs- und Basisbeobachter bleiben nutzbar;
+native Codec-/Sendefehler behalten ihre Ausnahme. Verbraucherfehler werden wie bisher isoliert.
+Ein Kodierblock kann nur einmal als zeitpositioniertes PCM ausgegeben werden. Die bestehende
+Basisbeobachtung erfolgt weiterhin unmittelbar nach dem Encode; nur die ausdrücklich aktivierte
+Sendezeitbeobachtung wartet auf die Quell-/RTP-Zuordnung.
+
+Freigabe sperrt neue Sendecallbacks, entfernt die eigenen Quellhandler und wartet laufende
+Sendeaufrufe/Beobachter ab. Ausstehende nicht zugeordnete Captureblöcke erzeugen die feste
+Fehlermeldung und geben ihre Referenzen frei. Der übergeordnete Medienwrapper beendet Sender und
+Empfänger vor der PCM-Quelle und den nativen Ressourcen. Mehrfache Freigaben warten denselben Task ab.
+
+22 zusätzliche Prüfungen in `SentRtpPcmTests.cs` nutzen den tatsächlichen CSCore-Capturehandler mit
+synthetischem `IWaveSource` und ohne Geräteinitialisierung. Lokale UDP-Pakete für PCMA, PCMU und
+G.722 stimmen mit beobachteter SSRC, RTP-Zeit, PCM-Rate und Codec-Payload überein. Weitere Fälle
+prüfen Fragmentierung eines 500-ms-Blocks, Zeitstempelüberlauf, Extras-Lücken, unterdrücktes Senden,
+falschen Payload/Dauer, begrenzte verwaiste Blöcke, PCM-Besitz, einmalige Zuordnung, parallele
+Quellübergaben, Verbraucher-/Codecfehler, Empfangsisolation und laufende Beobachter beim Schließen.
+Eine fehlende Zieladresse bleibt als ursprünglicher nativer Sendefehler sichtbar.
+
+Die Sendekopplung zur Aufnahmesitzung, verlässliche gemeinsame Sende-/Empfangsanker, Aufnahmebedienung,
+DTMF-/Halten-Abnahme und echte Audiogeräteprüfung bleiben offen. Es wird keine Aufnahme gestartet.
+Rollback: Sender, optionale Sendezeitbeobachtung und Senderbesitz zurücknehmen und die ursprünglichen
+nativen Quellhandler wieder verwenden. Empfangskopplung, Migrationen, Konfiguration und bestehende
+Aufnahmedateien bleiben erhalten. Editionsnachweise stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
