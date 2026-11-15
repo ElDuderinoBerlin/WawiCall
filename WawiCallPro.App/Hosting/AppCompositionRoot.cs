@@ -40,7 +40,8 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
-                services.AddSingleton<ISipMediaSessionFactory, WindowsSipMediaSessionFactory>();
+                services.AddSingleton<WindowsSipMediaSessionFactory>();
+                services.AddSingleton<ISipMediaSessionFactory, RecordingSipMediaSessionFactory>();
                 services.AddAudioConversion();
                 services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
                 services.AddSipTelephony(!mode.SuppressNetwork);

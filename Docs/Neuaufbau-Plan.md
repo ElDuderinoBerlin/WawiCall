@@ -6,10 +6,15 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: besitzender Duplex-Aufnahmeablauf als Dienst für expliziten Start, geordneten Stop
+Zuletzt ergänzt: expliziten Aufnahmeaufruf der verbundenen Call-ID zuordnen und den Aufnahmebesitz
+in beiden Hosts an die CSCore-Mediensitzung binden. Gesprächsende und Host-Stop warten die Bereinigung
+ab; eine ungestoppte Aufnahme wird ohne Mix abgebrochen, ein begonnener Stop abgewartet
+(Phase 9, 15.11.2026). Automatische Zeitanker, Aufnahmebedienung und echte Geräteabnahme bleiben offen.
+Zuvor ergänzt: besitzender Duplex-Aufnahmeablauf als Dienst für expliziten Start, geordneten Stop
 und Abbruch. Beide Bindungen werden vor einer gemeinsamen Live-Subscription vorbereitet; Stop wartet
 die Übergaben ab und finalisiert erst danach, Freigabe ohne Stop veröffentlicht keinen Mix
-(Phase 9, 15.11.2026). Automatische Zeitanker, Bedienoberfläche und Gesprächs-/Host-Anschluss bleiben offen.
+(Phase 9, 15.11.2026). Der Gesprächs-/Host-Anschluss ist durch den folgenden Teilpunkt ergänzt;
+automatische Zeitanker und Bedienoberfläche bleiben offen.
 Zuvor ergänzt: Sendekopplung zur Aufnahme mit explizitem RTP-Zeitanker. Zusammen mit der
 Empfangsbindung sind beide Gesprächsseiten mit vorgegebenen gemeinsamen Aufnahmeoffsets anschließbar;
 PCMA/PCMU/G.722 sind vom tatsächlichen Capture und UDP-Empfang bis zur Stereo-WAV samplegenau
@@ -350,7 +355,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Besitzender Aufnahmedienst mit explizitem Start/Stop/Abbruch und gemeinsamer Live-Subscription, Sende-/Empfangskopplung mit expliziten Zeitankern und synchroner Fehlersperre, samplegenaue Duplex-WAVs aus Capture/UDP, lokale RTP-Sendefenster, Paketordnung vor dem CSCore-Decoder, Empfangs-RTP-Header, korrigierter Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische gemeinsame Ankerermittlung, Gesprächs-/Host-Aufnahmesteuerung, DTMF/Halten und Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Aufnahmeaufruf der aktiven Call-ID zugeordnet und Aufnahmebesitz an Gesprächsende/Host-Stop gebunden; besitzender Aufnahmedienst mit explizitem Start/Stop/Abbruch und gemeinsamer Live-Subscription, Sende-/Empfangskopplung mit expliziten Zeitankern und synchroner Fehlersperre, samplegenaue Duplex-WAVs aus Capture/UDP, lokale RTP-Sendefenster, Paketordnung vor dem CSCore-Decoder, Empfangs-RTP-Header, korrigierter Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische gemeinsame Ankerermittlung, automatische Finalisierung mit geprüfter Endzeit, DTMF/Halten und Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2479,8 +2484,31 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
   Reguläre Startausgabe FinOffice; Logs `.duplex-lifetime-{build,core,tests,host,runtime}-{pro,fin}.log`.
   Synthetisches Audio, lokale UDP-Loopbacks und isolierte WAVs; keine Geräte oder sichtbare GUI.
-  Der Dienst ist noch nicht über Aufnahmebuttons bedienbar und noch nicht in Gesprächs-/Host-Shutdown
-  eingebunden. Automatische gemeinsame Ankerermittlung, Aufnahmeautomatik und echte Abnahme bleiben offen.
+  Der Gesprächs-/Host-Anschluss ist durch den folgenden Teilpunkt ergänzt. Aufnahmebuttons,
+  automatische gemeinsame Ankerermittlung, Aufnahmeautomatik und echte Abnahme bleiben offen.
+- [x] ✅ Explizite Aufnahme dem aktiven Gespräch zuordnen und bei Gesprächsende/Host-Shutdown freigeben
+  (15.11.2026): `ICallRecordingService` löst in beiden Hosts dieselbe SIP-Dienstinstanz auf.
+  Die Call-ID im Auftrag muss zum verbundenen Gespräch gehören; Klingeln, Halten, beendete/fremde
+  Gespräche und fehlende Aufnahmefähigkeit erlauben keinen Aufnahmestart. Prüfung und Start laufen
+  in derselben Ereignisqueue wie der Gesprächsabschluss; ein zuvor verarbeiteter Abschluss gewinnt.
+  Beide Hosts verwenden eine besitzende `RecordingSipMediaSession` um den bestehenden CSCore-Adapter.
+  Sie erlaubt höchstens eine laufende Aufnahme und wartet beim Schließen zuerst deren Freigabe ab,
+  danach folgen RTP-Brücke, Beobachter und native Medien. Ein paralleler Start wird serialisiert;
+  beim Schließen noch laufender Aufbau wird abgewartet und eine spät erzeugte Aufnahme freigegeben.
+  Freigabe ohne expliziten Stop bricht ohne Mix ab; ein bereits laufender Stop wird einschließlich
+  Fehler/Abbruch abgewartet. Native Medien werden auch bei Aufnahmefehlern geschlossen.
+  Ein ausdrücklich gestoppter oder abgebrochener Vorgang erlaubt einen weiteren Aufnahmeabschnitt.
+  Neun neue isolierte Besitzerprüfungen und vier tatsächliche Audiointegrationen bestanden, darunter
+  PCMA-/PCMU-/G.722-Stereo-WAVs mit samplegenauen Kanälen und unveränderter Datei nach Medienende.
+  Sechs neue SIP-Loopbackprüfungen belegen Remote-BYE, lokales Auflegen, Disconnect und tatsächlichen
+  `IHost.StopAsync`, wartende Bereinigung vor Medien-/Kontofreigabe, BYE während Aufnahmestart sowie
+  Sperren ohne verbundene Call-ID oder Aufnahmefähigkeit. DI-Aufbau startet keine Audiogeräte.
+  Je Edition 313 Console-, zehn gezielte SIP-, 15 Duplex-Core- und zwei App-Hostprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Reguläre Startausgabe FinOffice; Logs `.recording-owner-{build,tests,runtime,core,host}-{pro,fin}.log`.
+  Nur synthetisches PCM, isolierte WAVs und lokale UDP-SIP-/RTP-Loopbacks; keine Geräte oder sichtbare GUI.
+  Keine automatische Aufnahme oder Finalisierung mit geratener Endzeit. Gemeinsame Anker und gültige
+  Enddauer müssen weiterhin ausdrücklich geliefert werden; Automatik, Bedienung und reale Abnahme offen.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften gemeinsamen Zeitbasis für beide Gesprächsseiten an den
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Die erforderliche
@@ -2492,7 +2520,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Sende- und Empfangsaufnahme sind bei ausdrücklich vorgegebenen Ankern angeschlossen; die automatische
   Ermittlung einer verlässlichen gemeinsamen Sende-/Empfangszeitbasis fehlt weiterhin.
   Explizite Start-/Stop-/Abbruchaufrufe sind als Dienst vorhanden. Aufnahmebedienung, ausdrücklich
-  konfigurierte Automatik, Gesprächs-/Host-Anschluss und echte SIP-/Geräteabnahme bleiben offen.
+  konfigurierte Automatik, automatische Finalisierung mit geprüfter Endzeit und echte SIP-/Geräteabnahme
+  bleiben offen. Gesprächszuordnung und geordneter Abbruch bei Gesprächs-/Host-Ende sind oben ergänzt.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit
   `WavToMp3Converter` und injiziertem `IMp3EncodingBackend` im bestehenden Audio-Projekt.
   Beide Hosts registrieren denselben zustandslosen Dienst; native Encoder, Resampler und Dateien

@@ -17,7 +17,7 @@ using WawiCallPro.Interfaces.History;
 namespace WawiCallPro.Telephony.Tests;
 
 [TestClass, DoNotParallelize]
-public sealed class SipRuntimeTests
+public sealed partial class SipRuntimeTests
 {
     [TestMethod]
     public async Task RealUdpRegistrationAndUnregistrationUseConfiguredPortsAndSafeStatus()
@@ -342,6 +342,7 @@ public sealed class SipRuntimeTests
         internal SIPProtocolsEnum LastContactProtocol;
         private ConfigurationStore _settings = null!;
         private ApplicationConfigurationService _configuration = null!;
+        internal ApplicationConfigurationService Configuration => _configuration;
         private bool _unavailableAudio;
         internal string Destination => "sip:workstation@127.0.0.1:" + LocalPort;
 
@@ -576,10 +577,11 @@ public sealed class SipRuntimeTests
     }
     private sealed class MediaFactory : ISipMediaSessionFactory
     {
+        internal Func<ISipMediaSession, ISipMediaSession>? Wrap;
         internal int Created;
         internal int Closed;
         public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices)
-        { Interlocked.Increment(ref Created); return new TestMedia(() => Interlocked.Increment(ref Closed)); }
+        { Interlocked.Increment(ref Created); var media = new TestMedia(() => Interlocked.Increment(ref Closed)); return Wrap?.Invoke(media) ?? media; }
     }
     private sealed class TestMedia(Action? closed = null) : ISipMediaSession, IDisposable
     {

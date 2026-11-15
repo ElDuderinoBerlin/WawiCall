@@ -13,7 +13,7 @@ using WawiCallPro.Utilities.Security;
 namespace WawiCallPro.Telephony.Sip;
 
 /// <summary>One account and one live call per workstation. Observations are persisted and published in queue order.</summary>
-public sealed class SipTelephonyService : ITelephonyService, ITelephonyConnection, IDtmfReceiver, ICallLineContextProvider, IAsyncDisposable
+public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyConnection, IDtmfReceiver, ICallLineContextProvider, IAsyncDisposable
 {
     private readonly ConfigurationStore _settings;
     private readonly ApplicationConfigurationService _configuration;

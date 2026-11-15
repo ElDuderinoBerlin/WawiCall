@@ -19,6 +19,7 @@ public static class SipServiceRegistration
         services.TryAddSingleton<ICallStateSessionFactory, CallStateSessionFactory>();
         services.AddSingleton<SipTelephonyService>();
         services.AddSingleton<ITelephonyService>(provider => provider.GetRequiredService<SipTelephonyService>());
+        services.AddSingleton<WawiCallPro.Interfaces.Audio.ICallRecordingService>(provider => provider.GetRequiredService<SipTelephonyService>());
         services.AddSingleton<ITelephonyConnection>(provider => provider.GetRequiredService<SipTelephonyService>());
         services.AddSingleton<IDtmfReceiver>(provider => provider.GetRequiredService<SipTelephonyService>());
         services.AddSingleton(new SipHostOptions(allowAutomaticRegistration));

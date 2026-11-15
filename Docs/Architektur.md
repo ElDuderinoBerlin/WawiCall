@@ -990,14 +990,63 @@ Fehlersperren, normale Quellenden, Startfehler, unzulässige Dauern, Erhalt eine
 erstellten Ziels und einen vollständigen Duplexvorgang mit nur einem freien Live-Beobachterslot.
 Die Quelle bleibt nach Stop/Abbruch weiter nutzbar; die fertige WAV wird nicht weiter verändert.
 
-Die API ist ein expliziter Aufnahmeablauf ohne Bedienoberfläche. Automatische gemeinsame Ankerermittlung,
-Aufnahmebuttons/-automatik, Zuordnung zum laufenden Gespräch und der Aufruf beim Gesprächs-/Host-Shutdown
-bleiben offen. Ebenso DTMF/Halten, Wiedergabetaktung und echte SIP-/Geräteabnahme. Keine automatische
+Die API ist ein expliziter Aufnahmeablauf ohne Bedienoberfläche. Der nachfolgende Anschluss ergänzt
+Gesprächszuordnung und Freigabe beim Gesprächs-/Host-Shutdown. Automatische gemeinsame Ankerermittlung,
+Aufnahmebuttons/-automatik bleiben offen. Ebenso DTMF/Halten, Wiedergabetaktung und echte SIP-/Geräteabnahme. Keine automatische
 Aufnahme oder Dateiveröffentlichung beim Anwendungsstart. Editionsnachweise stehen in
 [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 Rollback: Duplex-Ablauf, interne Weiterleitung, Verträge und zugehörigen DI-Eintrag zurücknehmen;
 beide bestehenden Einzelbindungen und die ursprüngliche Aufnahmesitzung bleiben nutzbar.
 Keine Konfiguration, Migration, externe Audiobibliothek oder bestehende Aufnahme geändert.
+
+### Aufnahmebesitz im Gespräch und beim Host-Shutdown (15.11.2026)
+
+`ICallRecordingService` ist in beiden Hosts ein Alias derselben `SipTelephonyService`-Instanz.
+`StartRecordingAsync` erhält den vollständigen Auftrag einschließlich Call-ID und ausdrücklich
+aufeinander bezogener Zeitanker. Nur das aktuell verbundene Gespräch darf starten; Klingeln,
+Halten, eine fremde oder beendete Call-ID und eine Mediensitzung ohne Aufnahmefähigkeit werden
+zurückgewiesen. Der Aufruf läuft nach der Kommando-Sperre in der bestehenden SIP-Ereignisqueue.
+Dort werden Zustand und Medien erneut geprüft: Ein zuvor verarbeiteter Gesprächsabschluss kann
+keinen nachträglichen Aufnahmestart erhalten. Trifft BYE während des Starts ein, wartet dessen
+Abschluss auf die Zuordnung und gibt anschließend auch die neu erzeugte Aufnahme frei.
+
+`RecordingSipMediaSessionFactory` ergänzt in App und Console einen besitzenden Wrapper um die
+vorhandene `WindowsSipMediaSessionFactory`; DI-Auflösung selbst öffnet keine Geräte. Die neue
+`ISipRecordingMediaSession`-Fähigkeit ist optional, bestehende alternative Medienadapter bleiben
+ohne Aufnahme verwendbar. `RecordingSipMediaSession` besitzt innere Mediensitzung und höchstens
+eine aktive Duplex-Aufnahme. Die zurückgegebene Aufnahme bleibt ausdrücklich stopp-/abbrechbar,
+ihre idempotente Bereinigung gehört zusätzlich dem Gespräch. Der native Medienadapter und die
+Aufnahmefactory werden injiziert; keine DI-Auflösung in Fachlogik oder Mediencallbacks.
+
+Start und Schließen sind serialisiert. Ein weiterer Start während Capturing/Stopping wird
+abgelehnt. Nach abgeschlossenem oder ausdrücklich abgebrochenem Vorgang kann ein neuer Abschnitt
+beginnen; zuvor wird der alte Besitzer freigegeben. Dessen Stopfehler bleiben dabei beobachtbar.
+Beginnt Schließen während eines Starts, wartet es auf dessen Rückkehr; eine erst danach erzeugte
+Aufnahme bleibt beim Besitzer und wird abgebrochen. Wiederholtes Schließen teilt denselben Task.
+
+Beim Gesprächsende führt der bestehende SIP-Abschluss die Medienfreigabe aus. Der bestehende
+Hostdienst ruft bei `IHost.StopAsync` `DisconnectAsync` auf und wartet diesen Weg vor der
+Kontofreigabe ab. Der Wrapper gibt zuerst die Aufnahme frei, danach die innere Sitzung mit
+RTP-Brücke, PCM-Beobachtern und nativen Medien. Aufnahmefehler verhindern den inneren Cleanup
+nicht. Ohne vorherigen Stop entsteht kein Mix; Quellsegmente bleiben nach dem bisherigen Vertrag
+erhalten. Ein laufender Stop wird einschließlich Ergebnis, Fehler oder Abbruch abgewartet.
+Die bereits fertig veröffentlichte WAV bleibt bei späterem Medienende unverändert. SIPSorcery
+kann seine native Sitzung bereits vor dem Wrapper-Cleanup schließen; die neue Ordnung beschreibt
+den besessenen Cleanup und ersetzt keinen Nachweis des nativen Geräteverhaltens.
+
+Neun Besitzerprüfungen prüfen parallele Starts, Schließen während des Starts, wartenden Stop,
+Stopfehler mit anschließendem Mediencleanup, erneuten Abschnitt, Startfehler, Tokenabbruch und
+fehlende synchrone PCM-Fehlerfähigkeit. Vier Audiointegrationen nutzen tatsächlichen CSCore-Capture,
+UDP-Empfang und Dateien: drei samplegenaue Stereo-WAVs für PCMA/PCMU/G.722 sowie Abbruch ohne Mix.
+Sechs SIP-Loopbacks prüfen Remote-BYE, Auflegen, Disconnect, tatsächlichen Host-Stop, Start/BYE sowie
+fehlende Aufnahmefähigkeit und ungültige Gesprächszuordnung. Editionsnachweise stehen in Phase 9.
+
+Automatische Aufnahme, gemeinsame Ankerermittlung, eine geprüfte automatische Enddauer und
+Aufnahmebedienung bleiben offen. Weder Call-Wanduhr noch Paketankunft ersetzen die Medienzeit;
+Gesprächsende wird daher ohne expliziten Stop nicht als erfolgreiche Aufnahme veröffentlicht.
+Rollback: die beiden Host-Registrierungen auf `WindowsSipMediaSessionFactory` zurückstellen,
+Aufnahmefähigkeits-/Gesprächsvertrag, Wrapper und SIP-Aufnahmealias entfernen. Der unabhängige
+Duplex-Aufnahmedienst und die Einzelbindungen bleiben nutzbar; keine Migration oder Konfiguration.
 
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
