@@ -637,13 +637,14 @@ Exceptions verlassen den Mediencallback nicht; Diagnosen enthalten feste Codes s
 Asynchrone Feed-Freigabe sperrt neue Aufrufe und wartet laufende Übergaben ab. Der Besitzer gibt erst
 alle Feeds frei und stoppt danach die Sitzung; der Feed selbst besitzt oder beendet diese nicht.
 
-Dieser Baustein ist noch nicht automatisch mit `IConversationPcmSource` verbunden. Reihenfolge/Jitter
+Der unten beschriebene Empfangsadapter verbindet diesen Baustein auf ausdrücklichen Aufruf mit
+`IConversationPcmFailureSource` und einem vorgegebenen Aufnahmeanker. Reihenfolge/Jitter
 müssen bereits **vor** der zustandsbehafteten Dekodierung behandelt werden. Beim verwendeten
 [SIPSorcery-10.0.17-Audiostream](https://github.com/sipsorcery-org/sipsorcery/blob/08c2ed0ad72c423ca06950dee2e842488a219884/src/SIPSorcery/net/RTP/Streams/AudioStream.cs)
 wird `OnAudioFrameReceived` vor dem öffentlichen RTP-Paketereignis ausgelöst. Der bestehende PCM-Callback
 besitzt deshalb nicht automatisch die zum aktuellen Paket gehörenden Headerdaten. Die folgende
 Empfangsbindung ergänzt diese Zuordnung und die Paketordnung vor der Dekodierung. Gemeinsame
-Ankerermittlung und die Verbindung zur Aufnahmesitzung bleiben offen.
+Ankerermittlung für beide Gesprächsseiten und die Aufnahmesteuerung bleiben offen.
 
 30 gezielte Core-Prüfungen und fünf neue Integrationstests mit realem Aufnahme-/WAV-Pfad prüfen
 Zeitprojektion, Überläufe, Lücken, G.722, Zuschnitt, Nebenläufigkeit, Queuefehler und wirksame Sperren.
@@ -728,8 +729,8 @@ Keine getaktete Wiedergabe, adaptive Latenzregelung oder Rekonstruktion verloren
 Bei Pufferfehlern werden Restdaten freigegeben und zeitabhängige Beobachter über
 `ReceivedMetadataUnavailable` gesperrt. Die bestehende Wiedergabe/passive Beobachtung kann danach
 mit neu eintreffenden Frames ohne Zeitzuordnung weiterlaufen; verworfene Restpakete werden nicht
-als erfolgreiche Aufnahme ausgegeben. Ohne angebundene Aufnahmesitzung ist dies noch keine
-automatische `IPcmRecordingInputGuard`-Verdrahtung. Rekursive Aufrufe aus einem Sink/Beobachter
+als erfolgreiche Aufnahme ausgegeben. Bei ausdrücklich angebundener Empfangsaufnahme setzt der
+folgende Adapter zusätzlich synchron `IPcmRecordingInputGuard`. Rekursive Aufrufe aus einem Sink/Beobachter
 werden ebenfalls gesperrt, statt erneut in denselben zustandsbehafteten Decoder einzutreten.
 Ein Codecfehler im Timer verlässt den Threadpool-Callback nicht. Der Hostlogger erhält ausschließlich
 einen festen Warntext ohne Exception, Header oder Audio; seine Ausgabe läuft über das vorhandene Logging.
@@ -748,9 +749,68 @@ Systemtimer beim Schließen, fehlerhaftes Restleeren, geschlossener Sink und rek
 Die vorhandene Parallelitätsprüfung belegt jetzt serialisierten Empfang statt paralleler Decoderaufrufe.
 Sämtliche Audiodaten sind synthetisch; keine Geräte- oder echte Gesprächsabnahme.
 
-Gemeinsame Sende-/Empfangsanker, Anschluss an die Aufnahmesitzung und Aufnahmebedienung bleiben offen.
+Gemeinsame Sende-/Empfangsanker und Aufnahmebedienung bleiben offen. Die ausdrückliche Empfangs-
+Aufnahmekopplung mit vorgegebenem Anker ist im folgenden Abschnitt beschrieben.
 Rollback: Receiver und seine Factory-Abhängigkeiten zurücknehmen und die vorherige synchrone
 Header-/PCM-Zuordnung wieder direkt an denselben Sink geben. Keine Konfiguration oder Migration geändert.
+
+### Empfangsaufnahme mit explizitem Zeitanker und synchroner Fehlersperre (15.11.2026)
+
+`IReceivedPcmRecordingBindingFactory` ist in beiden Hosts als zustandslose Singleton-Factory registriert.
+`AttachAsync` erhält eine bereits aufnehmende, geliehene `IPcmRecordingSession`, deren wirksamen
+`IPcmRecordingInputGuard`, die optionale PCM-Quellfähigkeit `IConversationPcmFailureSource` und einen
+ausdrücklich vorgegebenen `RtpPcmTimelineAnchor`. Die Bindung besitzt ihre Subscription und den
+Empfangsfeed. Sie öffnet keine Dateien, Geräte oder Transporte und beginnt keine Aufnahme.
+Ein fehlgeschlagener Subscription-Aufbau gibt den bereits erzeugten Feed frei und sperrt die Aufnahme.
+
+Der Adapter implementiert `IReceivedRtpPcmObserver` und reicht bereits geordnete Empfangssamples an
+den bestehenden `IRtpPcmRecordingFeed` weiter. Damit bleiben RTP-Zeitstempel, Sequenzüberläufe,
+Lücken und der Aufnahmeoffset maßgeblich. Größere Blöcke werden weiterhin durch den Feed begrenzt
+geteilt, negative Offsets schneiden Samples vor Aufnahmebeginn ab. Mono-PCM ist Voraussetzung;
+die tatsächliche Decoder-Abtastrate bleibt erhalten, insbesondere 16-kHz-G.722-PCM bei 8-kHz-RTP.
+Sende-Callbacks werden nicht in die Aufnahme übernommen, weil sie noch keine passende Medienposition liefern.
+
+Eine nur asynchrone Überwachung von Subscription-`Completion` würde eine Lücke lassen: Nach einem
+Medienfehler könnte `StopAsync` starten, bevor der Fehlerbeobachter wieder eingeplant wird. Deshalb
+garantiert `IConversationPcmFailureSource` zusätzlich die synchrone Benachrichtigung eines optionalen
+`IConversationPcmFailureObserver`, bevor der fehlschlagende Medienaufruf zurückkehrt und bevor die
+Subscription abschließt. `PcmObservingAudioEncoder` unterstützt diesen Vertrag. Die Benachrichtigung
+bleibt kurz, threadsicher und ohne IO. Ausnahmen eines fremden Fehlerbeobachters verlassen den
+Mediencallback nicht; der ursprüngliche feste Fehlercode bleibt erhalten.
+
+Die Empfangsbindung setzt dabei unmittelbar die Aufnahmesperre: ungültiges PCM als `InvalidBlock`,
+fehlende Metadaten oder Beobachterfehler als `TimelineConflict`. Feed-/Aufnahmefehler behalten ihre
+ursprüngliche erste Ursache, etwa `BufferOverflow`. Die Bindung führt einen eigenen festen Fehlercode;
+keine Audio-, Header-, Datei- oder Exceptiondetails im Diagnostikvertrag. Bereits fehlerhafte
+Empfangsmetadaten sperren auch eine neu angehängte Aufnahme, bevor `AttachAsync` zurückkehrt.
+
+Abmelden sperrt neue Aufrufe und wartet laufende PCM-Übergaben einschließlich Fehlerbenachrichtigung
+ab; anschließend wird der Feed freigegeben. Ein Fehler während einer bereits begonnenen Abmeldung
+bleibt sichtbar. `Completion` endet nach diesem Ablauf mit einem festen Fehlercode oder null.
+Mehrfache `DisposeAsync`-Aufrufe warten denselben Task ab. Die geliehene Quelle und Aufnahmesitzung
+bleiben nutzbar; die Bindung stoppt oder entsorgt sie nicht. Der Besitzer wartet Bindungsfreigabe
+beziehungsweise `Completion` ab und ruft erst danach `session.StopAsync` mit einer gültigen Dauer auf.
+Beim geordneten Medienende leert `PcmSipMediaSession` zuerst den Empfangspuffer und schließt danach
+die PCM-Quelle. Die Bindung verarbeitet dabei die Restpakete und schließt ihren Feed automatisch ab.
+Aufnahmefinalisierung, Dauerwahl und Ergebnisverwaltung bleiben Aufgabe der Aufnahmesteuerung.
+
+23 zusätzliche Prüfungen in `ReceivedRtpPcmTests.Recording.cs` verwenden tatsächliche Aufnahmesitzungen,
+CSCore-WAV-Dateien und ausschließlich synthetisches Audio. Drei UDP-Loopbacks für PCMA, PCMU und G.722
+prüfen den vollständigen Empfangsweg bis zu sampleidentischen WAV-Kanälen. Weitere Fälle prüfen
+vertauschte/doppelte Pakete, Lücken, Überläufe, Aufnahmeoffset und Beginn innerhalb eines G.722-Pakets,
+sofortiges Stoppen nach Medien-/Timerfehler, Stereoablehnung, erhaltene erste Aufnahmefehler,
+normalen Quellabschluss, fehlgeschlagenes Anhängen und geliehene Lebensdauern. Abmelde-/Fehlerrennen
+belegen synchrone Sperre und verzögerten Abschluss bis zur Rückkehr laufender Übergaben.
+Eine separat synthetisch positionierte Sendespur in der Stereo-WAV-Prüfung ist kein Nachweis der
+automatischen Zuordnung des realen Sendepfads. Editionsläufe stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+
+Offen bleiben Medienpositionen der Sendeseite, verlässliche gemeinsame Sende-/Empfangsanker,
+Aufnahmebedienung/-automatik, geordnete Host-Aufnahmesteuerung und echte SIP-/Geräteabnahme.
+Callback-Ankunft, unabhängige Samplezähler und Wanduhr werden nicht als gemeinsame Zeitbasis verwendet.
+Rollback: Empfangsbindungs-Factory/-Adapter, DI-Registrierung und optionale synchrone Fehlerfähigkeit
+zurücknehmen; die vorherigen RTP-/PCM-Feeds und Aufnahmedateien bleiben erhalten. Keine Migration
+oder Konfiguration geändert und keine automatische Aufzeichnung beim Anwendungsstart ergänzt.
 
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
@@ -797,10 +857,11 @@ Dauer und Nutzdaten, keinen RTP-Zeitstempel/Sequenzwert. Geprüft anhand der ins
 und zugehöriger XML-Dokumentation sowie des verwendeten CSCore-Quelltexts. Aus Callbackankunftszeiten
 darf deshalb keine fertige RTP-Zeitachse behauptet werden. Der oben ergänzte optionale
 `IReceivedRtpPcmObserver` erhält korrelierte Empfangsheader; das liefert noch keine gemeinsame
-Sende-/Empfangszeitbasis. Die Verbindung mit `IPcmRecordingSession` benötigt diese Basis und
-Reihenfolge-/Jitterbehandlung vor der Dekodierung. Die oben beschriebene
+Sende-/Empfangszeitbasis. Eine vollständige beidseitige Aufnahme benötigt diese Basis;
+die Empfangspaketordnung vor der Dekodierung ist bereits angebunden. Die oben beschriebene
 RTP-/PCM-Aufnahmeübergabe übernimmt bei explizit gelieferten Ankern die Aufteilung größerer PCM-Blöcke
-und den Zuschnitt bei Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
+und den Zuschnitt bei Aufnahmebeginn mitten im Gespräch. Der Empfangsadapter verbindet sie auf
+ausdrücklichen Aufruf mit der Aufnahme; eine automatische beidseitige Kopplung bleibt offen.
 
 Der dabei festgestellte externe Byte-/Sample-Befund wurde anschließend separat reproduziert und
 korrigiert; siehe den folgenden Capture-Teilpunkt. Der Beobachter erhält nun den korrigierten
@@ -941,9 +1002,11 @@ Ratenwechsel, Pufferbesitz, begrenzten Überlauf, parallele Produzenten, Segment
 Abbruchabläufe, Fehler und Ressourcenfreigabe sowie PCM→Quell-WAV→Misch-WAV→MP3 mit Dekodierung.
 Die tatsächlichen App-/Console-Registrierungen sind ohne Aufnahmeinitialisierung geprüft. Konkrete Läufe
 stehen in [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
-Keine Mikrofon-, Geräte-, SIP- oder Aufnahme-UI-Prüfung. Der SIPSorcery-/CSCore-Adapter liefert bislang
-noch keine Daten an diese Sitzung; manuelle Bedienung, ausdrücklich konfigurierte Automatik,
-Gesprächslebensdauer, Host-Shutdown und DB-/Wiederanlaufanbindung sind weitere offene Schritte.
+Diese ursprünglichen Sitzungstests prüfen keine Mikrofone, Geräte, SIP-Verbindungen oder Aufnahme-UI.
+Der oben ergänzte Empfangsadapter liefert bei explizitem Aufnahmeanker nun Daten aus dem
+SIPSorcery-/CSCore-Empfang bis zur WAV-Datei; eigene UDP-Loopbacknachweise stehen beim Adapter.
+Sendepfad und gemeinsame Medienzeitbasis, manuelle Bedienung, ausdrücklich konfigurierte Automatik,
+Host-Aufnahmesteuerung und DB-/Wiederanlaufanbindung sind weitere offene Schritte.
 
 Rollback: Sitzungsfactory, Sitzung, CSCore-Segmentadapter, neue Verträge/Tests und die beiden
 zusätzlichen DI-Einträge gemeinsam zurücknehmen. WAV-Mixer und MP3-Dienst bleiben eigenständig

@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: begrenzte RTP-Paketordnung im tatsächlichen SIP-/CSCore-Empfangspfad angebunden.
+Zuletzt ergänzt: Empfangs-PCM ausdrücklich mit der Aufnahmesitzung verbunden, mit vorgegebenem
+RTP-Aufnahmeanker und synchroner Fehlersperre. UDP-Loopbacks prüfen PCMA, PCMU und G.722 bis zur
+samplegenauen WAV-Ausgabe (Phase 9, 15.11.2026). Sendepositionen und gemeinsame Zeitanker bleiben offen.
+Zuvor ergänzt: begrenzte RTP-Paketordnung im tatsächlichen SIP-/CSCore-Empfangspfad angebunden.
 Paketordnung, Dekodierung und PCM-Übergabe laufen serialisiert; ein besessener Timer bedient
 Lückenfristen ohne neue Ankunft und wird vor dem geordneten Restleeren beendet (Phase 9, 15.11.2026).
 Zuvor ergänzt: Empfangs-RTP-Header mit dem vorhandenen CSCore-PCM-Decoder korreliert;
@@ -20,8 +23,8 @@ monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Tei
 Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
 Überläufe, Lücken, Duplikate, Aufnahmebeginn innerhalb eines Pakets und wirksame Fehlersperren sind
 isoliert geprüft. CSCore-Capturekorrektur, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind
-ebenfalls geprüft; gemeinsame Sende-/Empfangsanker, Anschluss an die Aufnahmesitzung und getaktete
-Wiedergabe-/Jitterregelung bleiben offen.
+ebenfalls geprüft; die Empfangskopplung zur Aufnahmesitzung benötigt einen expliziten Zeitanker.
+Gemeinsame Sende-/Empfangsanker, Sendekopplung und getaktete Wiedergabe-/Jitterregelung bleiben offen.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
@@ -30,7 +33,7 @@ geprüft. Der fehlende JSON-Import/Export aus dem Nutzerabgleich vom 15.11.2026 
 die Abweichungen von der gewünschten DevExpress-Mailvorlage sind korrigiert. Mailanbieter und Mailimport fehlen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
-gemeinsame Aufnahmezeitbasis, Aufnahmeanbindung/-bedienung und echte Audioabnahme weiterhin offen.
+gemeinsame Aufnahmezeitbasis, Sendekopplung, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
 Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
 
@@ -334,7 +337,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Paketordnung mit Fristtimer im SIP-/CSCore-Empfang vor dem vorhandenen Decoder, Empfangs-RTP-Header am PCM-Abgriff, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; gemeinsame Medienzeitbasis und Aufnahmeanbindung, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Empfangs-Aufnahmekopplung mit explizitem Zeitanker und synchroner Fehlersperre, Paketordnung mit Fristtimer vor dem CSCore-Decoder, Empfangs-RTP-Header am PCM-Abgriff, RTP-/PCM-Feeds, korrigierter CSCore-Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; gemeinsame Medienzeitbasis und Sendekopplung, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2357,14 +2360,42 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Reguläre Startausgabe FinOffice; Logs `.rtp-live-{build,tests,host,runtime}-{pro,fin}.log`.
   Ausschließlich synthetisches Audio und lokale UDP-Loopbacks; keine echten Geräte, Anrufe oder sichtbare GUI.
   Gemeinsame Medienzeitbasis, Aufnahmeanbindung/-bedienung und getaktete Wiedergabe-/Jitterregelung bleiben offen.
-- [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
+- [x] ✅ Empfangs-PCM mit explizitem Aufnahmeanker an die Aufnahmesitzung anschließen (15.11.2026):
+  `IReceivedPcmRecordingBindingFactory` in beiden Hosts registriert. `AttachAsync` bindet die optionale
+  PCM-Quellfähigkeit `IConversationPcmFailureSource` an eine bereits aufnehmende Sitzung mit
+  `IPcmRecordingInputGuard` und ausdrücklich vorgegebenem RTP-Aufnahmeanker. Die Bindung besitzt
+  Subscription und Empfangsfeed; Quelle und Aufnahmesitzung bleiben geliehen.
+  Geordnete RTP-/PCM-Daten nutzen den bestehenden Feed einschließlich tatsächlicher Decoder-Abtastrate,
+  Paketlücken, Überläufen und Zuschnitt vor Aufnahmebeginn. Mono ist erforderlich. Sende-Callbacks
+  bleiben ohne Aufnahmeübergabe, solange ihnen die passende Medienposition fehlt.
+  `IConversationPcmFailureObserver` meldet Fehler synchron vor Rückkehr des Medienaufrufs und vor
+  Subscription-Abschluss. `PcmObservingAudioEncoder` wartet dabei auch laufende Fehlerbenachrichtigungen
+  ab; fehlerhafte fremde Benachrichtigungen verlassen den Mediencallback nicht.
+  Metadaten-/Codec-/Beobachterfehler setzen sofort die Aufnahmesperre. Direkt anschließendes Stoppen
+  kann keinen lückenhaften Mitschnitt veröffentlichen; bestehende erste Aufnahmefehler bleiben erhalten.
+  Abmelden wartet laufende Übergaben und den Feedabschluss ab, stoppt oder entsorgt die geliehene
+  Sitzung nicht. Erst danach finalisiert der Besitzer die Aufnahme. Geordnetes Medienende leert
+  Empfangsrestpakete vor PCM-Quellabschluss; die Bindung schließt daraufhin ihren Feed ab.
+  23 neue Prüfungen mit tatsächlichen Aufnahmesitzungen und WAV-Samples bestanden, darunter drei
+  UDP-Loopbacks für PCMA/PCMU/G.722. Paketordnung, Lücken, Überläufe, expliziter Offset, G.722-Zuschnitt,
+  sofortige Fehlersperre, Abmelde-/Fehlerrennen, Stereoablehnung, fehlgeschlagenes Anhängen, geliehene
+  Lebensdauern und Abschluss nach geordnetem Medienende geprüft. Synthetisch positionierte Sendespur
+  im Stereo-WAV-Test belegt keine automatische Sendepfad-Ankerung.
+  Je Edition 246 Console-, zwei App-Host- und vier SIP-Lebenszyklusprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Reguläre Startausgabe FinOffice; Logs `.receive-binding-{build,tests,host,runtime}-{pro,fin}.log`.
+  Keine echten Anrufe, Audiogeräte oder sichtbare GUI. Keine gemeinsame Zeitbasis aus Callback-Ankunft
+  oder Wanduhr abgeleitet. Sendepositionen, gemeinsame Ankerermittlung, Aufnahmebedienung/-automatik,
+  Host-Aufnahmesteuerung und echte Abnahme bleiben offen; Phase 9 bleibt teilweise umgesetzt.
+- [ ] Die PCM-Aufnahmesitzung mit einer geprüften gemeinsamen Zeitbasis für beide Gesprächsseiten an den
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Die erforderliche
   Paketordnung und Lückenfrist vor der Dekodierung sind durch den vorherigen Teilpunkt angebunden;
   getaktete Wiedergabe-/Jitterregelung weiterhin gesondert prüfen. Kein Desktop-Loopback als Quelle.
   Die Capture-Byte-/Sample-Verwechslung ist durch den vorherigen Teilpunkt korrigiert; daraus
   allein entsteht noch keine gemeinsame RTP-/Aufnahmezeitbasis. Empfangsheader stehen durch den
-  vorherigen Teilpunkt bereit; Sendeanker und die gemeinsame Aufnahmezeitbasis fehlen weiterhin.
+  vorherigen Teilpunkt bereit; der Empfang ist bei ausdrücklich vorgegebenem Anker angebunden.
+  Sendepositionen/-anker und die automatische gemeinsame Aufnahmezeitbasis fehlen weiterhin.
   Manueller Start/Stop, ausdrücklich konfigurierte Automatik, geordneter Host-Shutdown und
   echte SIP-/Geräteabnahme bleiben offen.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit

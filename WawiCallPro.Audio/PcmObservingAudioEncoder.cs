@@ -5,7 +5,7 @@ namespace WawiCallPro.Audio;
 
 /// <summary>Observes the exact encode input/decode output of an owned SIPSorcery codec.
 /// Codec exceptions retain their normal behavior; observer failures are isolated and observable.</summary>
-public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncoder, IConversationPcmSource, IAsyncDisposable
+public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncoder, IConversationPcmFailureSource, IAsyncDisposable
 {
     private readonly object _gate = new();
     private Subscription[] _subscriptions = [];
@@ -167,6 +167,7 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
         // 1 = active, -1 = retired normally, 100 + code = retired with a failure.
         private int _status = 1;
         private int _inflight;
+        private int _retirements;
         public Task<PcmObservationFailure?> Completion => _completion.Task;
 
         internal bool TryEnter(out IConversationPcmObserver observer)
@@ -185,19 +186,34 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
 
         internal bool Retire(PcmObservationFailure? failure)
         {
-            while (true)
+            Interlocked.Increment(ref _retirements);
+            var observer = Volatile.Read(ref _observer);
+            try
             {
-                var status = Volatile.Read(ref _status);
-                if (status >= 100 || status == -1 && (failure is null || Volatile.Read(ref _inflight) == 0)) return false;
-                var retired = failure is { } value ? 100 + (int)value : -1;
-                if (Interlocked.CompareExchange(ref _status, retired, status) == status) break;
+                while (true)
+                {
+                    var status = Volatile.Read(ref _status);
+                    if (status >= 100 || status == -1 && (failure is null || Volatile.Read(ref _inflight) == 0)) return false;
+                    var retired = failure is { } value ? 100 + (int)value : -1;
+                    if (Interlocked.CompareExchange(ref _status, retired, status) == status) break;
+                }
+                if (failure is { } reason && observer is IConversationPcmFailureObserver boundary)
+                {
+                    try { boundary.OnPcmObservationFailed(reason); }
+                    catch (Exception) { /* A faulty boundary must not throw into media processing. */ }
+                }
+                return true;
             }
-            if (Volatile.Read(ref _inflight) == 0) Complete();
-            return true;
+            finally
+            {
+                if (Interlocked.Decrement(ref _retirements) == 0 && Volatile.Read(ref _inflight) == 0 && Volatile.Read(ref _status) != 1)
+                    Complete();
+            }
         }
 
         private void Complete()
         {
+            if (Volatile.Read(ref _retirements) != 0 || Volatile.Read(ref _inflight) != 0) return;
             Interlocked.Exchange(ref _observer, null);
             var status = Volatile.Read(ref _status);
             _completion.TrySetResult(status < 100 ? null : (PcmObservationFailure)(status - 100));

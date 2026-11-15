@@ -18,6 +18,7 @@ public static class AudioConversionServices
         services.TryAddSingleton<IPcmSegmentSinkFactory, CscorePcmSegmentSinkFactory>();
         services.TryAddSingleton<IPcmRecordingSessionFactory, PcmRecordingSessionFactory>();
         services.TryAddSingleton<IRtpPcmRecordingFeedFactory, WawiCallPro.Core.Audio.RtpPcmRecordingFeedFactory>();
+        services.TryAddSingleton<IReceivedPcmRecordingBindingFactory, WawiCallPro.Core.Audio.ReceivedPcmRecordingBindingFactory>();
         services.TryAddSingleton<IRtpAudioPacketBufferFactory, WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>();
         return services;
     }

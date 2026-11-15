@@ -17,6 +17,17 @@ public interface IReceivedRtpPcmObserver : IConversationPcmObserver
     bool TryObserveReceived(RtpPcmPacketPosition packet, int sampleRate, int channels, ReadOnlySpan<short> samples);
 }
 
+/// <summary>Optional synchronous failure boundary. Do not wait, perform IO or throw from this callback.
+/// A failure may arrive while a PCM callback is still draining; implementations must be thread-safe.</summary>
+public interface IConversationPcmFailureObserver
+{
+    void OnPcmObservationFailed(PcmObservationFailure failure);
+}
+
+/// <summary>Promises to notify failure-aware observers before the failing media call returns and before
+/// subscription Completion. This allows a recording to reject input before a caller can stop/publish it.</summary>
+public interface IConversationPcmFailureSource : IConversationPcmSource { }
+
 /// <summary>Disposal retires the observer immediately and awaits callbacks already in progress.
 /// Completion reports rejection/failure, or null after normal retirement; no exception escapes into audio processing.</summary>
 public interface IConversationPcmSubscription : IAsyncDisposable

@@ -32,6 +32,9 @@ public sealed partial class AppShellTests
             var feeds = host.Services.GetRequiredService<IRtpPcmRecordingFeedFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpPcmRecordingFeedFactory>(feeds);
             Assert.AreSame(feeds, host.Services.GetRequiredService<IRtpPcmRecordingFeedFactory>());
+            var bindings = host.Services.GetRequiredService<IReceivedPcmRecordingBindingFactory>();
+            Assert.IsInstanceOfType<WawiCallPro.Core.Audio.ReceivedPcmRecordingBindingFactory>(bindings);
+            Assert.AreSame(bindings, host.Services.GetRequiredService<IReceivedPcmRecordingBindingFactory>());
             var packets = host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>(packets);
             Assert.AreSame(packets, host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>());
