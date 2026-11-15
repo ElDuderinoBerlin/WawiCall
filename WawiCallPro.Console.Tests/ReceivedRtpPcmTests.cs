@@ -19,7 +19,7 @@ using SIPSorcery.SIP.App;
 namespace WawiCallPro.Console.Tests;
 
 [TestClass]
-public sealed class ReceivedRtpPcmTests
+public sealed partial class ReceivedRtpPcmTests
 {
     [TestMethod]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMA)]
@@ -127,7 +127,7 @@ public sealed class ReceivedRtpPcmTests
     [TestMethod]
     public async Task BindingValidationPreventsDoubleDecodingAndClosedOrForeignSinks()
     {
-        await using var fixture = new Fixture(); var factory = new SipRtpPcmBridgeFactory();
+        await using var fixture = new Fixture(); var factory = CreateFactory();
         Assert.ThrowsExactly<InvalidOperationException>(() => factory.Create(fixture.Media, fixture.Endpoint, fixture.Tap));
         await using var other = new Fixture(); Assert.ThrowsExactly<ArgumentException>(() => factory.Create(fixture.Media, other.Endpoint, fixture.Tap));
         fixture.Media.Close("Synthetic test"); Assert.ThrowsExactly<ArgumentException>(() => factory.Create(fixture.Media, fixture.Endpoint, fixture.Tap));
@@ -136,19 +136,23 @@ public sealed class ReceivedRtpPcmTests
     [TestMethod]
     public async Task ParallelNativeCallbacksKeepTheirOwnRtpContext()
     {
-        await using var fixture = new Fixture(); using var entered = new CountdownEvent(2); using var release = new ManualResetEventSlim();
-        var observer = new Observer { Behavior = () => { entered.Signal(); release.Wait(); return true; } };
+        await using var fixture = new Fixture(); using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
+        var observer = new Observer { Behavior = () => { entered.Set(); release.Wait(); return true; } };
         await using var subscription = fixture.Tap.Subscribe(observer); var encoder = new AudioEncoder();
         var first = encoder.EncodeAudio(Samples(160, 0), fixture.Format); var second = encoder.EncodeAudio(Samples(160, 2), fixture.Format);
-        var positions = new[] { new RtpPcmPacketPosition(17, 10, 1000, 8000), new RtpPcmPacketPosition(19, 40, 9000, 8000) };
-        var dispatches = new[]
+        var positions = new[] { new RtpPcmPacketPosition(17, 10, 1000, 8000), new RtpPcmPacketPosition(17, 11, 1160, 8000) };
+        var firstDispatch = Task.Run(() => fixture.Dispatch(positions[0], first));
+        Task? secondDispatch = null;
+        try
         {
-            Task.Factory.StartNew(() => fixture.Dispatch(positions[0], first), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default),
-            Task.Factory.StartNew(() => fixture.Dispatch(positions[1], second), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)
-        };
-        try { Assert.IsTrue(entered.Wait(TimeSpan.FromSeconds(10))); }
+            Assert.IsTrue(entered.Wait(TimeSpan.FromSeconds(10)));
+            using var started = new ManualResetEventSlim();
+            secondDispatch = Task.Run(() => { started.Set(); fixture.Dispatch(positions[1], second); });
+            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(10)));
+            Assert.IsFalse(secondDispatch.IsCompleted); Assert.AreEqual(1, fixture.Decoder.Decodes);
+        }
         finally { release.Set(); }
-        await Task.WhenAll(dispatches); Assert.AreEqual(2, fixture.Decoder.Decodes); Assert.AreEqual(2, observer.Frames.Count);
+        await firstDispatch; await secondDispatch!; Assert.AreEqual(2, fixture.Decoder.Decodes); Assert.AreEqual(2, observer.Frames.Count);
         foreach (var frame in observer.Frames)
         {
             var index = Array.IndexOf(positions, frame.Position); Assert.IsTrue(index >= 0);
@@ -275,7 +279,7 @@ public sealed class ReceivedRtpPcmTests
         try
         {
             Assert.IsNull(media.AudioStream);
-            await using var bridge = new SipRtpPcmBridgeFactory().Create(media, fixture.Endpoint, fixture.Tap);
+            await using var bridge = CreateFactory().Create(media, fixture.Endpoint, fixture.Tap);
         }
         finally { media.Close("Synthetic test"); }
     }
@@ -289,6 +293,12 @@ public sealed class ReceivedRtpPcmTests
     }
 
     private static short[] Samples(int count, int block) => Enumerable.Range(block * count, count).Select(index => (short)(Math.Sin(index * 0.17) * 10000)).ToArray();
+    private static SipRtpPcmBridgeFactory CreateFactory(TimeProvider? clock = null)
+    {
+        clock ??= TimeProvider.System;
+        return new(new WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory(clock), clock,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SipRtpPcmBridgeFactory>.Instance);
+    }
     private sealed record Frame(RtpPcmPacketPosition Position, int Rate, int Channels, short[] Samples);
     private sealed class Observer : IReceivedRtpPcmObserver
     {
@@ -326,7 +336,7 @@ public sealed class ReceivedRtpPcmTests
         internal VoIPMediaSession Media { get; }
         internal IAsyncDisposable Bridge { get; }
         private readonly IWaveSource _playback;
-        internal Fixture(SDPWellKnownMediaFormatsEnum codec = SDPWellKnownMediaFormatsEnum.PCMA)
+        internal Fixture(SDPWellKnownMediaFormatsEnum codec = SDPWellKnownMediaFormatsEnum.PCMA, ISipRtpPcmBridgeFactory? bridges = null)
         {
             Format = new(codec); Tap = new(Decoder);
             // Never call the device-resolving CSCore constructor. Exercise its real sink with only a memory buffer.
@@ -337,7 +347,7 @@ public sealed class ReceivedRtpPcmTests
             playbackField.SetValue(Endpoint, _playback);
             var source = new AudioExtrasSource(); source.RestrictFormats(format => format.Codec == Format.Codec); source.SetSource(AudioSourcesEnum.None);
             Media = new VoIPMediaSession(new MediaEndPoints { AudioSource = source, AudioSink = Endpoint }, IPAddress.Loopback, 0);
-            Bridge = new SipRtpPcmBridgeFactory().Create(Media, Endpoint, Tap);
+            Bridge = (bridges ?? CreateFactory()).Create(Media, Endpoint, Tap);
         }
         internal void Dispatch(RtpPcmPacketPosition position, byte[] payload)
         {

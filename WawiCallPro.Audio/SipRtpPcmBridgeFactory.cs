@@ -1,11 +1,14 @@
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using SIPSorcery.Media;
 using SIPSorceryMedia.Abstractions;
+using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;
 
 /// <summary>Creates per-call RTP/PCM bindings without opening devices or starting media.</summary>
-public sealed class SipRtpPcmBridgeFactory : ISipRtpPcmBridgeFactory
+public sealed class SipRtpPcmBridgeFactory(IRtpAudioPacketBufferFactory buffers, TimeProvider clock,
+    ILogger<SipRtpPcmBridgeFactory> logger) : ISipRtpPcmBridgeFactory
 {
     private static readonly object Gate = new();
     private static readonly ConditionalWeakTable<VoIPMediaSession, object> Bindings = new();
@@ -19,7 +22,9 @@ public sealed class SipRtpPcmBridgeFactory : ISipRtpPcmBridgeFactory
         {
             if (Bindings.TryGetValue(media, out _)) throw new InvalidOperationException("Diese Mediensitzung besitzt bereits eine RTP-/PCM-Bindung.");
             Bindings.Add(media, new object());
-            try { return new SipRtpPcmBridge(media, sink, encoder, () => { lock (Gate) Bindings.Remove(media); }); }
+            try { return new SipRtpPcmBridge(media, sink, encoder,
+                new SipRtpAudioReceiver(buffers, clock, sink, encoder, logger),
+                () => { lock (Gate) Bindings.Remove(media); }); }
             catch { Bindings.Remove(media); throw; }
         }
     }

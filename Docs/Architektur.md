@@ -600,8 +600,9 @@ bevor er eine betroffene Aufnahme stoppt. Der unabhängige Puffer kennt/besitzt 
 25 deterministische Core-Prüfungen sowie sieben Integrationsprüfungen belegen echte PCMA-/PCMU-/G.722-
 Dekodierung nach Paketordnung, ursprüngliche Formate bei Codecwechsel, genau einmal beobachtetes PCM,
 sampleidentische WAVs, Stille bei Paketlücken und erforderliche Fehlersperren. Keine Audiogeräte oder
-echten Anrufe. Die Verdrahtung in den nativen SIP-/CSCore-Empfangspfad einschließlich gemeinsamer
-Zeitanker bleibt offen; siehe [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+echten Anrufe. Die unten beschriebene Empfangsbindung verwendet diesen Puffer jetzt vor dem
+vorhandenen Decoder. Gemeinsame Zeitanker und die Aufnahmeverbindung bleiben offen;
+siehe [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 
 ### RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker (15.11.2026)
 
@@ -641,8 +642,8 @@ müssen bereits **vor** der zustandsbehafteten Dekodierung behandelt werden. Bei
 [SIPSorcery-10.0.17-Audiostream](https://github.com/sipsorcery-org/sipsorcery/blob/08c2ed0ad72c423ca06950dee2e842488a219884/src/SIPSorcery/net/RTP/Streams/AudioStream.cs)
 wird `OnAudioFrameReceived` vor dem öffentlichen RTP-Paketereignis ausgelöst. Der bestehende PCM-Callback
 besitzt deshalb nicht automatisch die zum aktuellen Paket gehörenden Headerdaten. Die folgende
-Empfangsbindung ergänzt diese Zuordnung. Gemeinsame Ankerermittlung und die Verbindung zur
-Aufnahmesitzung einschließlich Live-Jitterbehandlung bleiben offen.
+Empfangsbindung ergänzt diese Zuordnung und die Paketordnung vor der Dekodierung. Gemeinsame
+Ankerermittlung und die Verbindung zur Aufnahmesitzung bleiben offen.
 
 30 gezielte Core-Prüfungen und fünf neue Integrationstests mit realem Aufnahme-/WAV-Pfad prüfen
 Zeitprojektion, Überläufe, Lücken, G.722, Zuschnitt, Nebenläufigkeit, Queuefehler und wirksame Sperren.
@@ -658,10 +659,12 @@ Auch Sitzungen ohne Mikrofonquelle können bereits vor der SDP-Aushandlung gebun
 
 Die Bindung berücksichtigt die oben dokumentierte Ereignisreihenfolge der gepinnten SDK-Version:
 Sie ersetzt ausschließlich den unmittelbaren `GotEncodedMediaFrame`-Handler des eigenen Sinks,
-behält den ursprünglichen Frame und ruft denselben Sink im folgenden RTP-Ereignis auf.
+behält dessen Format und ordnet ihm im folgenden RTP-Ereignis den Header zu. Die kodierten Daten
+werden anschließend über die unten beschriebene Paketordnung an denselben Sink gegeben.
 Andere Ereignishandler bleiben erhalten. Höchstens acht gleichzeitig ausstehende Frames werden
 nach Dispatchthread zugeordnet; Nutzdaten müssen dieselbe Arrayreferenz und denselben Payloadtyp
-haben. Das ist eine synchrone Headerzuordnung, kein Jitterpuffer und keine Paketumsortierung.
+haben. Die Headerzuordnung selbst bleibt synchron; die nachfolgende Paketordnung kann die
+Dekodierung bis zum Ablauf ihrer Lückenfrist verzögern.
 
 Ein kurzlebiger Kontext verbindet genau diesen nativen Decode-Aufruf mit SSRC, Sequenznummer,
 RTP-Zeitstempel und RTP-Taktrate. `IReceivedRtpPcmObserver` erhält diese Werte zusammen mit den
@@ -675,11 +678,13 @@ bei geschlossenem Sink und native Codecfehler sperren zeitabhängige Beobachter 
 `ReceivedMetadataUnavailable`. Neue solche Beobachter bleiben nach einem Bindungsfehler gesperrt.
 Verwaiste Frames werden ohne erfundene Zeitstempel an den vorhandenen Sink gegeben; passive
 Beobachter bleiben nutzbar. Verbraucherfehler behalten die vorhandene isolierte Behandlung.
-Native Codecfehler werden unverändert weitergereicht. Die Bindung protokolliert weder PCM noch Header
-und führt keine Dateioperationen aus.
+Native Codecfehler im aufrufenden Empfangspfad werden unverändert weitergereicht. Im Timer werden
+sie wie unten beschrieben abgefangen. Die Bindung protokolliert weder PCM noch Header und führt
+keine Dateioperationen aus.
 
 `PcmSipMediaSession` sperrt zuerst die Empfangsbindung, entfernt deren Ereignishandler und wartet
-laufende Sinkaufrufe ab. Danach werden PCM-Beobachter freigegeben und die vorhandenen nativen Medien
+laufende Empfangsaufrufe ab. Danach beendet sie den Fristtimer und leert geordnete Restpakete,
+bevor PCM-Beobachter freigegeben und die vorhandenen nativen Medien
 im `finally` geschlossen. Mehrfache Freigaben warten denselben Task ab. Eine Mediensitzung kann
 nicht gleichzeitig mehrfach gebunden werden; ausstehende Payloadreferenzen werden beim Schließen verworfen.
 
@@ -691,11 +696,61 @@ Metadaten-/Codecfehler, verzögerte Kontexte, geschlossenen Sink und geordnetes 
 Beide DI-Hosts und vorhandene SIP-Lebenszyklen sind geprüft; Editionsnachweise stehen in
 [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
 
-Offen bleiben Sendeanker, eine gemeinsame Medienzeitbasis, die Live-Einbindung der Paketordnung
-vor der zustandsbehafteten Dekodierung und die Aufnahmesteuerung. Diese Bindung startet keine
+Offen bleiben Sendeanker, eine gemeinsame Medienzeitbasis und die Aufnahmesteuerung. Diese Bindung startet keine
 Aufnahme und belegt weder Gerätewiedergabe noch vollständige Gesprächsaufzeichnung.
 Rollback: Bridge-Registrierung/-Besitz und optionale Empfangsbeobachtung zurücknehmen; damit
 wieder den ursprünglichen unmittelbaren Sink-Handler verwenden. Keine Migration oder Konfiguration.
+
+### Paketordnung im tatsächlichen SIP-/CSCore-Empfangspfad (15.11.2026)
+
+Die Empfangsbindung besitzt jetzt zusätzlich einen `SipRtpAudioReceiver`. Die per DI zugeführte
+`IRtpAudioPacketBufferFactory` und derselbe `TimeProvider` wie im Puffer bestimmen Paketgrenzen und
+Fristen. Ein Timer entsteht erst beim Aufbau einer Mediensitzung, keine Hardware beim DI-Aufbau.
+Der erste vollständig zugeordnete Audioheader legt SSRC, erste Sequenz und RTP-Taktrate fest;
+Pakete vor diesem Beobachtungsbeginn lassen sich daraus nicht rekonstruieren.
+
+Pro Sitzung werden standardmäßig höchstens 64 kodierte Pakete mit jeweils höchstens 4096 Bytes
+gehalten. Der Receiver hält daneben nur die zugehörigen Frame-/Formatmetadaten. Enqueue, geordnetes
+Dequeue, genau ein Aufruf des vorhandenen Sinks/Decoders und PCM-Übergabe sind serialisiert.
+Gepufferte Duplikate und bereits überholte Pakete erreichen den Decoder nicht. Jedes ausgegebene
+Paket behält seine eigenen Header und sein ausgehandeltes Format, auch bei PCMA/G.722-Wechseln.
+Die native Frame-Dauer wird für die Sink-Kompatibilität mitgeführt; Medienposition und tatsächliche
+Sampledauer stammen weiterhin aus RTP-Header beziehungsweise dekodiertem PCM.
+
+Der besessene One-shot-Timer bedient `NextPacketDelay` auch ohne neues Paket. Standardmäßig nach
+60 ms wird die fehlende Sequenz übersprungen; neue Ankünfte verlängern die Frist nicht. Ein beim
+Armen bereits fälliger Timer darf die Decoder-Sperre noch belegt vorfinden. In diesem Fall fragt
+derselbe Timer nach einer Millisekunde erneut ab, damit die letzte Lücke nicht ohne weitere Ankunft
+liegen bleibt. Es werden keine separaten Task-Warteschlangen für Timerabfragen aufgebaut.
+Ankunftszeiten bestimmen ausschließlich diese Frist; ursprüngliche RTP-Zeitstempel bleiben erhalten.
+Keine getaktete Wiedergabe, adaptive Latenzregelung oder Rekonstruktion verlorener Sprache.
+
+Bei Pufferfehlern werden Restdaten freigegeben und zeitabhängige Beobachter über
+`ReceivedMetadataUnavailable` gesperrt. Die bestehende Wiedergabe/passive Beobachtung kann danach
+mit neu eintreffenden Frames ohne Zeitzuordnung weiterlaufen; verworfene Restpakete werden nicht
+als erfolgreiche Aufnahme ausgegeben. Ohne angebundene Aufnahmesitzung ist dies noch keine
+automatische `IPcmRecordingInputGuard`-Verdrahtung. Rekursive Aufrufe aus einem Sink/Beobachter
+werden ebenfalls gesperrt, statt erneut in denselben zustandsbehafteten Decoder einzutreten.
+Ein Codecfehler im Timer verlässt den Threadpool-Callback nicht. Der Hostlogger erhält ausschließlich
+einen festen Warntext ohne Exception, Header oder Audio; seine Ausgabe läuft über das vorhandene Logging.
+
+Beim Freigeben werden neue Übergaben gesperrt, laufende Decoder-/Timeraufrufe abgewartet und der Timer
+beendet. `CompleteInput` leert die verbleibenden geordneten Pakete ohne weitere Lückenwartezeit.
+Erst danach meldet `PcmSipMediaSession` die Beobachter ab und schließt die nativen Medien.
+Auch ein Fehler beim Restleeren lässt Timer, Referenzen, Beobachter und native Ressourcen frei;
+der Fehler bleibt über den gemeinsam abgewarteten Freigabetask sichtbar.
+
+20 zusätzliche Prüfungen in `ReceivedRtpPcmTests.Ordering.cs`: drei echte UDP-Loopbacks mit vertauschten
+und doppelten PCMA-/PCMU-/G.722-Paketen, sampleidentischer Decoder-/Speicher-Sink-Ausgabe, Fristablauf
+ohne neue Ankunft, Sequenz-/Zeitstempelüberlauf, Payloadbesitz, Codecwechsel, Pufferfehler und
+unveränderte Zeitstempel. Dazu deterministisch reproduzierter Timer-/Sperren-Rennfall, aktiver echter
+Systemtimer beim Schließen, fehlerhaftes Restleeren, geschlossener Sink und rekursive Übergabe.
+Die vorhandene Parallelitätsprüfung belegt jetzt serialisierten Empfang statt paralleler Decoderaufrufe.
+Sämtliche Audiodaten sind synthetisch; keine Geräte- oder echte Gesprächsabnahme.
+
+Gemeinsame Sende-/Empfangsanker, Anschluss an die Aufnahmesitzung und Aufnahmebedienung bleiben offen.
+Rollback: Receiver und seine Factory-Abhängigkeiten zurücknehmen und die vorherige synchrone
+Header-/PCM-Zuordnung wieder direkt an denselben Sink geben. Keine Konfiguration oder Migration geändert.
 
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
@@ -720,7 +775,8 @@ beenden die betroffenen Subscriptions als InvalidFormat. Leere PCM-Daten erzeuge
 
 Beobachter müssen kurz, threadsicher und ohne Warte-/Dateioperationen arbeiten; gleichzeitige
 Sende-/Empfangsaufrufe sind möglich. Benötigte Daten vor Rückkehr kopieren, keine geliehenen
-Span-Referenzen speichern. Die Nebenläufigkeit des ursprünglichen Codecs bleibt erhalten. Der
+Span-Referenzen speichern. Sende-/Empfangsseite können weiterhin gleichzeitig laufen; der produktive
+Empfangsadapter serialisiert jetzt Paketordnung, Dekodierung und Empfangsbeobachtung. Der
 Callback darf nicht synchron seine eigene Abmeldung abwarten. false-Rückgabe beendet nur diesen
 Beobachter als ObserverRejected, eine Exception als ObserverFailed. Die Exception wird weder
 weitergereicht noch gespeichert. `Completion` liefert einen festen Fehlercode oder nach normaler

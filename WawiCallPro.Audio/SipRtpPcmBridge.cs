@@ -9,8 +9,8 @@ namespace WawiCallPro.Audio;
 internal sealed class SipRtpPcmBridge : IAsyncDisposable
 {
     private readonly VoIPMediaSession _media;
-    private readonly IAudioSink _sink;
     private readonly PcmObservingAudioEncoder _encoder;
+    private readonly SipRtpAudioReceiver _receiver;
     private readonly Action _release;
     private readonly object _gate = new();
     private readonly Dictionary<int, EncodedAudioFrame> _pending = new();
@@ -19,9 +19,10 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
     private int _inflight;
     private Task? _dispose;
 
-    internal SipRtpPcmBridge(VoIPMediaSession media, IAudioSink sink, PcmObservingAudioEncoder encoder, Action release)
+    internal SipRtpPcmBridge(VoIPMediaSession media, IAudioSink sink, PcmObservingAudioEncoder encoder,
+        SipRtpAudioReceiver receiver, Action release)
     {
-        _media = media; _sink = sink; _encoder = encoder; _release = release;
+        _media = media; _encoder = encoder; _receiver = receiver; _release = release;
         // In pinned SIPSorcery 10.0.17 a frame and its RTP event run synchronously on the same dispatch thread.
         // Keep the original frame/format and delay only its existing sink call, never decode another copy.
         media.OnAudioFrameReceived -= sink.GotEncodedMediaFrame;
@@ -45,8 +46,8 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
         try
         {
             if (orphan is not null || forwardPlain) _encoder.RejectReceivedMetadata();
-            if (orphan is not null) _sink.GotEncodedMediaFrame(orphan);
-            if (forwardPlain) _sink.GotEncodedMediaFrame(frame);
+            if (orphan is not null) _receiver.ReceiveWithoutMetadata(orphan);
+            if (forwardPlain) _receiver.ReceiveWithoutMetadata(frame);
         }
         finally { Exit(); }
     }
@@ -66,10 +67,10 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
             if (!ReferenceEquals(frame.EncodedAudio, packet.Payload) || format.FormatID != packet.Header.PayloadType || format.RtpClockRate is < 1 or > 192000)
             {
                 _encoder.RejectReceivedMetadata();
-                _sink.GotEncodedMediaFrame(frame);
+                _receiver.ReceiveWithoutMetadata(frame);
                 return;
             }
-            _encoder.DeliverReceivedFrame(new(packet.Header.SyncSource, packet.Header.SequenceNumber, packet.Header.Timestamp, format.RtpClockRate), frame, _sink);
+            _receiver.Receive(new(packet.Header.SyncSource, packet.Header.SequenceNumber, packet.Header.Timestamp, format.RtpClockRate), frame);
         }
         catch { _encoder.RejectReceivedMetadata(); throw; }
         finally { Exit(); }
@@ -93,6 +94,7 @@ internal sealed class SipRtpPcmBridge : IAsyncDisposable
         _pending.Clear();
         if (_inflight == 0) _drained.TrySetResult();
         await _drained.Task.ConfigureAwait(false);
-        _release();
+        try { await _receiver.DisposeAsync().ConfigureAwait(false); }
+        finally { _release(); }
     }
 }
