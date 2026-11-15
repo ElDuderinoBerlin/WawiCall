@@ -523,6 +523,51 @@ Artefakte sind in zusätzlichen Migrationen ab Version 6 und den Verträgen ausz
 bleiben unverändert. Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den
 Metadaten abgleichen. Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
 
+### RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker (15.11.2026)
+
+`IRtpPcmRecordingFeedFactory` erzeugt je Gesprächsseite einen besessenen Feed, der eine bereits
+aufnehmende `IPcmRecordingSession` ausleiht. Die zustandslose Factory ist über die gemeinsame
+Audioregistrierung in beiden Hosts verfügbar. Ein `RtpPcmTimelineAnchor` ordnet ein erwartetes Paket
+(SSRC, Sequenznummer, RTP-Zeitstempel und RTP-Taktrate) ausdrücklich einer aufnahmebezogenen Position zu.
+Die Sende-/Empfangsanker müssen vom späteren SIP-Adapter auf dieselbe Aufnahmezeitbasis bezogen werden.
+Keine Ankunftszeitmessung, Geräteuhr oder stillschweigende Gleichsetzung beider ersten Pakete.
+
+`TryAppend` erhält Paketposition und bereits geordnetes, dekodiertes Mono-PCM16 mit tatsächlicher
+PCM-Abtastrate. RTP-Ticks bestimmen die Position, PCM-Samplezahl/-Rate die Dauer; damit bleiben
+G.722 mit 8-kHz-RTP und 16-kHz-PCM sowie spätere PCM-Ratenwechsel getrennt. Modulare Sequenz- und
+Zeitstempelüberläufe werden berücksichtigt, auch mehrere Zeitstempelumläufe in langen Sitzungen.
+Das letzte identische Sequenz-/Zeitstempelpaar zählt als Duplikat; ältere Pakete zählen als verspätet
+und werden ausgelassen. Zeitlücken bleiben erhalten und werden im vorhandenen Aufnahme-/Mixpfad still.
+Halbe Sequenznummernumläufe sind mehrdeutig und werden abgelehnt. Vorwärtssprünge über fünf Minuten,
+Quellen-/RTP-Taktratenwechsel, widersprüchliche Sequenzen oder überlappende Samples beenden die
+betroffene Aufnahme als Fehler. Ein Fortsetzen benötigt eine neue Sitzung mit explizitem Anker.
+
+Ein Anker darf bis zu zwei Sekunden vor Aufnahmebeginn liegen. Vorherige Samples werden abgeschnitten;
+vollständig davor liegende Pakete aktualisieren die Medienposition, erzeugen aber keine Audiodaten.
+Ein Paket darf bis zu zwei Sekunden PCM enthalten und wird anhand seiner ursprünglichen Sampleposition
+in höchstens 100-ms-Blöcke geteilt. Dadurch entsteht keine kumulierte Rundungsdrift. Das Aufnahmefenster
+bleibt auf acht Stunden begrenzt; die strengeren Datei-/Queuegrenzen der Aufnahmesitzung gelten weiter.
+
+Pro Feed ist nur ein gleichzeitiger Schreiber zulässig. Konkurrierende Aufrufe, ungültige Metadaten
+oder abgelehnte Übergaben schließen den Feed. `IPcmRecordingInputGuard` setzt zusätzlich die geliehene
+Aufnahmesitzung auf Fehler, damit `StopAsync` keinen lückenhaften Teilmitschnitt als Erfolg veröffentlicht.
+Die erste Ursache bleibt erhalten, insbesondere ein bereits festgestellter Queueüberlauf. Verbraucher-
+Exceptions verlassen den Mediencallback nicht; Diagnosen enthalten feste Codes statt PCM oder Pfaden.
+Asynchrone Feed-Freigabe sperrt neue Aufrufe und wartet laufende Übergaben ab. Der Besitzer gibt erst
+alle Feeds frei und stoppt danach die Sitzung; der Feed selbst besitzt oder beendet diese nicht.
+
+Dieser Baustein ist noch nicht automatisch mit `IConversationPcmSource` verbunden. Reihenfolge/Jitter
+müssen bereits **vor** der zustandsbehafteten Dekodierung behandelt werden. Beim verwendeten
+[SIPSorcery-10.0.17-Audiostream](https://github.com/sipsorcery-org/sipsorcery/blob/08c2ed0ad72c423ca06950dee2e842488a219884/src/SIPSorcery/net/RTP/Streams/AudioStream.cs)
+wird `OnAudioFrameReceived` vor dem öffentlichen RTP-Paketereignis ausgelöst. Der bestehende PCM-Callback
+besitzt deshalb nicht automatisch die zum aktuellen Paket gehörenden Headerdaten. Eine sichere Zuordnung,
+gemeinsame Ankerermittlung und Lebensdauerverdrahtung im SIP-Gespräch bleiben eigene offene Schritte.
+
+30 gezielte Core-Prüfungen und fünf neue Integrationstests mit realem Aufnahme-/WAV-Pfad prüfen
+Zeitprojektion, Überläufe, Lücken, G.722, Zuschnitt, Nebenläufigkeit, Queuefehler und wirksame Sperren.
+Beide Hostregistrierungen sind geprüft; konkrete Editionsläufe und Grenzen stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-). Keine Geräte-/SIP-Abnahme.
+
 ### Passiver PCM-Abgriff im CSCore-Medienadapter (15.11.2026)
 
 Die vorhandene `WindowsSipMediaSessionFactory` erzeugt weiterhin den eigenen
@@ -566,8 +611,9 @@ SIPSorceryMedia.Abstractions-10.0.17-Vertrag besitzt `EncodedAudioFrame` nur Str
 Dauer und Nutzdaten, keinen RTP-Zeitstempel/Sequenzwert. Geprüft anhand der installierten Assembly
 und zugehöriger XML-Dokumentation sowie des verwendeten CSCore-Quelltexts. Aus Callbackankunftszeiten
 darf deshalb keine fertige RTP-Zeitachse behauptet werden. Die Verbindung mit `IPcmRecordingSession`
-benötigt noch eine gemeinsame Medienzeitbasis, Reihenfolge-/Jitterbehandlung, gegebenenfalls Aufteilung
-größerer PCM-Blöcke und Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
+benötigt noch eine gemeinsame Medienzeitbasis und Reihenfolge-/Jitterbehandlung. Die oben beschriebene
+RTP-/PCM-Aufnahmeübergabe übernimmt bei explizit gelieferten Ankern die Aufteilung größerer PCM-Blöcke
+und den Zuschnitt bei Aufnahmebeginn mitten im Gespräch. Keine direkte automatische Kopplung.
 
 Der dabei festgestellte externe Byte-/Sample-Befund wurde anschließend separat reproduziert und
 korrigiert; siehe den folgenden Capture-Teilpunkt. Der Beobachter erhält nun den korrigierten

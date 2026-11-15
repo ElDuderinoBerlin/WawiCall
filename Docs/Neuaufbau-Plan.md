@@ -6,11 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt behoben: Byte-/Sample-Verwechslung im externen CSCore-Sendepuffer und falsche Einheit
-des älteren RTP-Dauerereignisses (Phase 9, Teilpunkt vom 15.11.2026). Der Fehler ist am echten
-Capture-Callback ohne Audiogeräte reproduziert und korrigiert; Patch und Regressionstests sind versioniert.
-PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind separat geprüft; ihre Verbindung mit
-einer geprüften SIP-Medienzeitbasis bleibt offen.
+Zuletzt ergänzt: RTP-Zeitstempel mit ausdrücklich vorgegebenem Startanker auf Aufnahmepositionen
+abbilden und geordnete PCM-Blöcke an die Aufnahmesitzung übergeben (Phase 9, Teilpunkt vom 15.11.2026).
+Überläufe, Lücken, Duplikate, Aufnahmebeginn innerhalb eines Pakets und wirksame Fehlersperren sind
+isoliert geprüft. CSCore-Capturekorrektur, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Dienst sind
+ebenfalls geprüft; automatische SIP-Anbindung, Ermittlung einer gemeinsamen Medienzeitbasis und
+Jitterbehandlung bleiben offen.
 Die doppelten Lexware-/PCFK-Core-DLLs sind durch gemeinsamen Lade-/Deploymentvertrag bereinigt;
 Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
@@ -322,7 +323,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungsdialog nach LxTranslate mit Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Korrigierte CSCore-Capture-Sampleanzahl und RTP-Dauer, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitter, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2206,6 +2207,26 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   `.capture-count-tests-{pro,fin}.log`, `.capture-count-host-{pro,fin}.log`,
   `.capture-count-runtime-{pro,fin}.log`; frühe gezielte Nachprüfung `.capture-count-after-fin.log`.
   Keine echten Anrufe, Geräte oder sichtbare GUI. Medienzeitbasis/Jitter und Aufnahmebedienung bleiben offen.
+- [x] ✅ RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker umgesetzt (15.11.2026):
+  `IRtpPcmRecordingFeedFactory` ist in beiden Hosts als zustandslose Singleton-Factory registriert;
+  je Gesprächsseite entsteht ein eigener Feed mit geliehener `IPcmRecordingSession`.
+  Vorgegebene SSRC, Sequenznummer, RTP-Zeitstempel/-Taktrate und Aufnahmeoffset bestimmen die Position;
+  tatsächliche PCM-Abtastrate bestimmt die Sampledauer. Keine Ankunfts- oder Wanduhr als Ersatzzeitbasis.
+  Sequenz-/Zeitstempelüberläufe und Lücken bleiben erhalten, letzte Duplikate und ältere Pakete werden
+  gezählt und ausgelassen; widersprüchliche Werte, Überlappung, Quellen-/Taktratenwechsel oder parallele
+  Aufrufe sperren auch die Aufnahmesitzung über `IPcmRecordingInputGuard`. Kein erfolgreicher Teilmitschnitt.
+  Negative Startoffsets schneiden vor dem Aufnahmebeginn liegende Samples ab; bis zu zwei Sekunden PCM
+  werden ohne kumulierte Rundungsdrift in höchstens 100-ms-Blöcke geteilt. Die vorhandene begrenzte
+  Aufnahmequeue bleibt maßgeblich; Überlauf behält seine ursprüngliche Fehlerursache.
+  Feed-Freigabe sperrt neue Aufrufe und wartet laufende Übergaben ab; erst danach Sitzung stoppen.
+  Eingaben müssen bereits vor der zustandsbehafteten Dekodierung geordnet sein. Kein Jitterpuffer,
+  kein automatischer Codec-Abgriff und keine automatische Ermittlung gemeinsamer Sende-/Empfangsanker.
+  Je Edition 30 gezielte Core-, 172 Console- und zwei App-Host-Prüfungen bestanden; fünf neue
+  Integrationstests prüfen tatsächliche WAV-Samples, Stille, G.722-Raten, Zuschnitt und Fehlersperren.
+  Beide Solution-Editionen in Debug/Any CPU rekompiliert: null Fehler und je 26 bekannte externe
+  CSCore-Warnungen; FinOffice als reguläre Startausgabe erhalten. Logs `.rtp-feed-build-{pro,fin}.log`,
+  `.rtp-feed-core-{pro,fin}.log`, `.rtp-feed-tests-{pro,fin}.log`, `.rtp-feed-host-{pro,fin}.log`.
+  Ausschließlich synthetische Pakete/PCM und isolierte Dateien, keine Audiogeräte, Anrufe oder sichtbare GUI.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften Zeit-/Jitteranbindung an den vorhandenen
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Erforderliche

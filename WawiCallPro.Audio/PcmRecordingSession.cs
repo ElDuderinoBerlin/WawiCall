@@ -4,7 +4,7 @@ using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;
 
-internal sealed class PcmRecordingSession : IPcmRecordingSession
+internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingInputGuard
 {
     private readonly PcmRecordingRequest _request;
     private readonly IPcmSegmentSinkFactory _sinks;
@@ -179,6 +179,11 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession
     }
 
     private void ThrowIfFailed() { if (Failure is { } failure) throw new PcmRecordingException(failure); }
+    void IPcmRecordingInputGuard.RejectInput(PcmRecordingFailure failure)
+    {
+        if (!Enum.IsDefined(failure)) throw new ArgumentOutOfRangeException(nameof(failure));
+        Fail(failure, capturingOnly: true);
+    }
     private void Fail(PcmRecordingFailure failure, bool capturingOnly = false)
     {
         while (true)
