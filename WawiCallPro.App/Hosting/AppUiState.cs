@@ -129,6 +129,17 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
     {
         if (Enabled) view.SaveLayoutToRegistry(KeyPath + @"\Grids\" + name);
     }
+    internal void Restore(DevExpress.XtraGrid.Views.Tile.TileView view, string name)
+    {
+        view.OptionsLayout.StoreAllOptions = false;
+        view.OptionsLayout.StoreDataSettings = false;
+        view.OptionsLayout.StoreColumnSet = true;
+        if (Enabled) view.RestoreLayoutFromRegistry(KeyPath + @"\Grids\" + name);
+    }
+    internal void Save(DevExpress.XtraGrid.Views.Tile.TileView view, string name)
+    {
+        if (Enabled) view.SaveLayoutToRegistry(KeyPath + @"\Grids\" + name);
+    }
     internal void Reset()
     {
         if (Enabled) Registry.CurrentUser.DeleteSubKeyTree(KeyPath, false);

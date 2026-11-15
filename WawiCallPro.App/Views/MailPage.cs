@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using DevExpress.Office.Services;
 using DevExpress.XtraEditors;
+using DevExpress.XtraBars.Navigation;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Office;
 
@@ -18,10 +19,18 @@ public partial class MailPage : XtraUserControl
     private MailFolderKey? _folder;
     private string _search = "";
     private ImmutableArray<MailFolder> _folders = [];
+    private readonly Dictionary<MailFolderKey, AccordionControlElement> _folderElements = new();
+    private string _emptyListText = "Keine Nachrichten.";
+    private static readonly Lazy<DevExpress.Utils.Svg.SvgImage> FolderIcon = new(() =>
+    {
+        using var stream = typeof(MailPage).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons.MailFolder.svg")!;
+        return DevExpress.Utils.Svg.SvgImage.FromStream(stream);
+    });
 
     public MailPage()
     {
         InitializeComponent();
+        ClearPreview("Wählen Sie eine Nachricht aus.");
         UiButtonSizing.Attach(this);
         body.ReplaceService<IUriStreamService>(new BlockedMailResources());
         FontChanged += Appearance_Changed; SizeChanged += Appearance_Changed; DpiChangedAfterParent += Appearance_Changed;
@@ -34,7 +43,7 @@ public partial class MailPage : XtraUserControl
     {
         if (_source is not null) throw new InvalidOperationException("The mail page is already bound.");
         _source = source ?? throw new ArgumentNullException(nameof(source)); _state = state;
-        _state?.Restore(messagesView, "MailMessages_v1"); reloadButton.Enabled = true; searchTimer.Start();
+        _state?.Restore(messagesView, "MailTiles_v2"); reloadButton.Enabled = true; searchTimer.Start();
     }
 
     internal Task ReloadAsync()
@@ -46,7 +55,7 @@ public partial class MailPage : XtraUserControl
     }
     private async Task LoadCatalogAsync(CancellationToken token)
     {
-        reloadButton.Enabled = false; folderTree.Enabled = messagesGrid.Enabled = false; statusLabel.Text = "Postfachordner werden geladen …";
+        reloadButton.Enabled = false; foldersAccordion.Enabled = messagesGrid.Enabled = false; statusLabel.Text = "Postfachordner werden geladen …";
         ClearPreview("Ordner werden geladen …");
         try
         {
@@ -57,15 +66,15 @@ public partial class MailPage : XtraUserControl
             _binding = true;
             try
             {
-                folderTree.DataSource = _folders.Select(folder => new FolderRow(folder.Key, folder.Parent,
-                    folder.UnreadCount is > 0 ? $"{folder.Name} ({folder.UnreadCount})" : folder.Name)).ToArray();
-                folderTree.ExpandAll(); _folder = selected?.Key;
-                if (_folder is not null) folderTree.FocusedNode = folderTree.FindNodeByKeyID(_folder);
+                BindFolders(); _folder = selected?.Key;
+                if (_folder is not null) foldersAccordion.SelectedElement = _folderElements[_folder];
             }
             finally { _binding = false; }
             if (_folder is null)
             {
                 messagesGrid.DataSource = Array.Empty<MessageRow>(); folderLabel.Text = "Postfach";
+                _emptyListText = "Noch keine Nachrichten";
+                foldersEmpty.Text = "Kein Postfach verbunden.";
                 statusLabel.Text = catalog.Status; ClearPreview("Kein Postfach verbunden."); return;
             }
             await LoadCurrentFolderAsync();
@@ -76,7 +85,7 @@ public partial class MailPage : XtraUserControl
             if (!token.IsCancellationRequested)
             {
                 _binding = true;
-                try { folderTree.DataSource = Array.Empty<FolderRow>(); _folders = []; _folder = null; }
+                try { _folders = []; _folder = null; BindFolders(); foldersEmpty.Text = "Postfächer konnten nicht geladen werden."; }
                 finally { _binding = false; }
                 ClearMailList(); statusLabel.Text = PageOperation.Describe(exception);
             }
@@ -84,7 +93,7 @@ public partial class MailPage : XtraUserControl
         finally
         {
             if (!_stopping && !token.IsCancellationRequested)
-            { reloadButton.Enabled = folderTree.Enabled = messagesGrid.Enabled = true; searchTimer.Start(); }
+            { reloadButton.Enabled = foldersAccordion.Enabled = messagesGrid.Enabled = true; searchTimer.Start(); }
         }
     }
 
@@ -112,6 +121,7 @@ public partial class MailPage : XtraUserControl
             try
             {
                 messagesGrid.DataSource = items.OrderByDescending(item => item.Date).Select(item => new MessageRow(item)).ToArray();
+                _emptyListText = search.Length == 0 ? "Keine Nachrichten in diesem Ordner" : "Keine Nachrichten gefunden";
                 if (previous is not null && messagesView.LocateByValue("Key", previous) is var handle && handle >= 0) messagesView.FocusedRowHandle = handle;
             }
             finally { _binding = false; }
@@ -144,6 +154,8 @@ public partial class MailPage : XtraUserControl
             attachmentsLabel.Text = message.Attachments.IsEmpty ? "" : (message.Attachments.Length == 1 ? "Anhang: " : "Anhänge: ")
                 + string.Join(" · ", message.Attachments.Select(attachment => attachment.Name));
             attachmentsLabel.Visible = !message.Attachments.IsEmpty;
+            subjectLabel.Visible = senderLabel.Visible = recipientsLabel.Visible = dateLabel.Visible = body.Visible = true;
+            readerEmpty.Visible = false;
             if (string.IsNullOrWhiteSpace(message.Html)) body.Text = message.Text;
             else body.HtmlText = message.Html;
             ApplyReaderAppearance();
@@ -158,11 +170,14 @@ public partial class MailPage : XtraUserControl
         try { messagesGrid.DataSource = Array.Empty<MessageRow>(); }
         finally { _binding = false; }
         ClearPreview("Keine Nachricht ausgewählt.");
+        _emptyListText = "Nachrichten konnten nicht geladen werden.";
     }
     private void ClearPreview(string text)
     {
         subjectLabel.Text = text; senderLabel.Text = recipientsLabel.Text = dateLabel.Text = attachmentsLabel.Text = "";
         attachmentsLabel.Visible = false; body.Text = ""; ApplyReaderAppearance();
+        subjectLabel.Visible = senderLabel.Visible = recipientsLabel.Visible = dateLabel.Visible = body.Visible = false;
+        readerEmpty.Text = text; readerEmpty.Visible = true;
     }
     private static void ValidateFolders(ImmutableArray<MailFolder> folders)
     {
@@ -191,7 +206,7 @@ public partial class MailPage : XtraUserControl
     internal Task StopAsync() => _stopTask ??= _disposed ? Task.WhenAll(_pending.ToArray()) : StopCoreAsync();
     private async Task StopCoreAsync()
     {
-        _stopping = true; reloadButton.Enabled = false; folderTree.Enabled = messagesGrid.Enabled = false; searchTimer.Stop();
+        _stopping = true; reloadButton.Enabled = false; foldersAccordion.Enabled = messagesGrid.Enabled = false; searchTimer.Stop();
         _lifetime.Cancel(); await Task.WhenAll(_pending.ToArray());
     }
     private void DisposePage()
@@ -199,14 +214,19 @@ public partial class MailPage : XtraUserControl
         if (_disposed) return;
         _disposed = true;
         _stopping = true; _lifetime.Cancel(); Cancel(ref _catalogCancellation); Cancel(ref _listCancellation); Cancel(ref _previewCancellation);
-        _state?.Save(messagesView, "MailMessages_v1"); _lifetime.Dispose();
+        _state?.Save(messagesView, "MailTiles_v2"); _lifetime.Dispose();
     }
     private async void MailPage_Load(object? sender, EventArgs e) => await ReloadAsync();
     private async void Reload_Click(object? sender, EventArgs e) => await ReloadAsync();
-    private async void Folder_FocusedNodeChanged(object sender, DevExpress.XtraTreeList.FocusedNodeChangedEventArgs e)
+    private async void Folder_SelectedElementChanged(object sender, SelectedElementChangedEventArgs e)
     {
-        if (_binding || _stopping || folderTree.GetDataRecordByNode(e.Node) is not FolderRow folder) return;
-        _folder = folder.Key; await LoadCurrentFolderAsync();
+        if (_binding || _stopping || e.Element?.Tag is not MailFolderKey key) return;
+        _folder = key; await LoadCurrentFolderAsync();
+    }
+    private async void Folder_ElementClick(object sender, ElementClickEventArgs e)
+    {
+        if (_binding || _stopping || e.Element.Style != ElementStyle.Group || e.Element.Tag is not MailFolderKey key) return;
+        _folder = key; await LoadCurrentFolderAsync();
     }
     private async void Message_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
     { if (!_binding && !_stopping) await LoadFocusedMessageAsync(); }
@@ -217,8 +237,55 @@ public partial class MailPage : XtraUserControl
     }
     private async void Search_Tick(object? sender, EventArgs e)
     { if (_source is not null && _folder is not null && !_stopping && _search != (messagesView.FindFilterText ?? "")) await LoadCurrentFolderAsync(); }
-    private void Message_RowStyle(object sender, DevExpress.XtraGrid.Views.Grid.RowStyleEventArgs e)
-    { if (messagesView.GetRow(e.RowHandle) is MessageRow { IsRead: false }) e.Appearance.FontStyleDelta = FontStyle.Bold; }
+    private void Message_ItemCustomize(object sender, DevExpress.XtraGrid.Views.Tile.TileViewItemCustomizeEventArgs e)
+    {
+        var unread = messagesView.GetRow(e.RowHandle) is MessageRow { IsRead: false };
+        e.Item.Elements[0].Appearance.Normal.FontStyleDelta = unread ? FontStyle.Bold : FontStyle.Regular;
+        e.Item.Elements[2].Appearance.Normal.FontStyleDelta = unread ? FontStyle.Bold : FontStyle.Regular;
+        e.Item.Elements[2].Appearance.Normal.ForeColor = unread ? DevExpress.LookAndFeel.DXSkinColors.ForeColors.Question : ForeColor;
+        e.Item.Elements[2].Appearance.Normal.Options.UseForeColor = true;
+    }
+    private void Message_DrawEmpty(object sender, DevExpress.XtraGrid.Views.Base.CustomDrawEventArgs e)
+    {
+        TextRenderer.DrawText(e.Cache.Graphics, _emptyListText, Font, e.Bounds, ForeColor,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+        e.Handled = true;
+    }
+    private void Message_CustomRowFilter(object sender, DevExpress.XtraGrid.Views.Base.RowFilterEventArgs e)
+    {
+        // The provider searches complete messages. TileView must not filter those backend hits by their list snippet again.
+        e.Visible = !ReferenceEquals(filterTabs.SelectedItem, unreadMessagesTab)
+            || messagesGrid.DataSource is MessageRow[] rows && e.ListSourceRow >= 0 && e.ListSourceRow < rows.Length && !rows[e.ListSourceRow].IsRead;
+        e.Handled = true;
+    }
+    private async void MailFilter_SelectedItemChanged(object sender, NavigationBarItemEventArgs e)
+    {
+        if (_binding || _stopping || _source is null) return;
+        _binding = true;
+        try { messagesView.ActiveFilterString = ReferenceEquals(filterTabs.SelectedItem, unreadMessagesTab) ? "[IsRead] = False" : ""; }
+        finally { _binding = false; }
+        await LoadFocusedMessageAsync();
+    }
+    private void BindFolders()
+    {
+        foldersAccordion.Elements.Clear(); _folderElements.Clear();
+        foreach (var folder in _folders)
+        {
+            var group = _folders.Any(candidate => candidate.Parent == folder.Key);
+            var element = new AccordionControlElement(group ? ElementStyle.Group : ElementStyle.Item)
+            { Text = folder.UnreadCount is > 0 ? $"{folder.Name} ({folder.UnreadCount})" : folder.Name, Tag = folder.Key, Expanded = true };
+            element.ImageOptions.SvgImage = FolderIcon.Value;
+            element.ImageOptions.SvgImageSize = new Size(16, 16);
+            _folderElements.Add(folder.Key, element);
+        }
+        foreach (var folder in _folders)
+        {
+            if (folder.Parent is null) foldersAccordion.Elements.Add(_folderElements[folder.Key]);
+            else _folderElements[folder.Parent].Elements.Add(_folderElements[folder.Key]);
+        }
+        foldersAccordion.Visible = !_folders.IsEmpty; foldersEmpty.Visible = _folders.IsEmpty;
+        Appearance_Changed(this, EventArgs.Empty);
+    }
     private void ReadingPosition_Click(object? sender, EventArgs e) { _preferBottom = !_preferBottom; Appearance_Changed(this, EventArgs.Empty); }
     private void Body_HyperlinkClick(object sender, DevExpress.XtraRichEdit.HyperlinkClickEventArgs e)
     { e.Handled = true; statusLabel.Text = "Zum Öffnen den Link kopieren."; }
@@ -239,10 +306,21 @@ public partial class MailPage : XtraUserControl
         {
             UiButtonSizing.Apply(reloadButton, readingPositionButton);
             var unit = Math.Max(Font.Height, LogicalToDeviceUnits(16));
-            foldersSplit.SplitterPosition = Math.Min(unit * 11, Math.Max(unit * 6, Width / 4));
+            filterTabs.AppearanceItem.Normal.Font = Font;
+            filterTabs.AppearanceItem.Hovered.Font = Font;
+            filterTabs.AppearanceItem.Pressed.Font = Font;
+            filterTabs.AppearanceItem.Normal.Options.UseFont = true;
+            filterTabs.AppearanceItem.Hovered.Options.UseFont = true;
+            filterTabs.AppearanceItem.Pressed.Options.UseFont = true;
+            filterTabs.Font = Font;
+            var folderWidth = _folderElements.Values.Select(element => TextRenderer.MeasureText(element.Text, Font).Width).DefaultIfEmpty(unit * 8).Max() + unit * 3;
+            foldersSplit.SplitterPosition = Math.Min(Math.Max(unit * 11, folderWidth), Math.Max(unit * 6, Width * 35 / 100));
             var horizontal = !_preferBottom && Width >= unit * 62;
             contentSplit.Horizontal = horizontal;
-            contentSplit.SplitterPosition = horizontal ? Math.Max(unit * 15, contentSplit.Width * 42 / 100) : Math.Max(unit * 7, contentSplit.Height * 40 / 100);
+            contentSplit.SplitterPosition = horizontal ? Math.Min(unit * 23, Math.Max(unit * 15, contentSplit.Width * 42 / 100)) : Math.Max(unit * 7, contentSplit.Height * 40 / 100);
+            messagesView.OptionsTiles.ItemPadding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(8), LogicalToDeviceUnits(12), LogicalToDeviceUnits(8));
+            messagesView.OptionsTiles.ItemSize = new Size(Math.Max(unit * 12, messagesGrid.Width), Font.Height * 4 + messagesView.OptionsTiles.ItemPadding.Vertical);
+            messagesView.TileColumns[1].Length.Value = TextRenderer.MeasureText("00.00.", Font).Width + LogicalToDeviceUnits(6);
             readingPositionButton.Text = _preferBottom ? "Lesebereich rechts" : "Lesebereich unten";
             UiButtonSizing.Apply(reloadButton, readingPositionButton);
             ApplyReaderAppearance();
@@ -257,14 +335,13 @@ public partial class MailPage : XtraUserControl
         body.Document.DefaultCharacterProperties.FontSize = Font.Size;
     }
 
-    private sealed record FolderRow(MailFolderKey Key, MailFolderKey? Parent, string Name);
     private sealed class MessageRow(MailListItem item)
     {
         public MailMessageKey Key => item.Key;
         public string Sender => item.Sender;
         public string Subject => string.IsNullOrWhiteSpace(item.Subject) ? "(Kein Betreff)" : item.Subject;
-        public string Summary => Sender + "\r\n" + Subject + (item.AttachmentCount > 0 ? $"\r\n{item.AttachmentCount} " + (item.AttachmentCount == 1 ? "Anhang" : "Anhänge") : "");
-        public string DateText => item.Date.LocalDateTime.ToString("dd.MM.yyyy") + "\r\n" + item.Date.LocalDateTime.ToString("HH:mm");
+        public string DateText => item.Date.LocalDateTime.Date == DateTime.Today ? item.Date.LocalDateTime.ToString("HH:mm") : item.Date.LocalDateTime.ToString("dd.MM.");
+        public string PreviewText => item.Preview + (item.AttachmentCount > 0 ? $"\r\n{item.AttachmentCount} " + (item.AttachmentCount == 1 ? "Anhang" : "Anhänge") : "");
         public string Preview => item.Preview;
         public DateTime Date => item.Date.LocalDateTime;
         public string Attachments => item.AttachmentCount > 0 ? item.AttachmentCount.ToString() : "";

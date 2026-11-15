@@ -6,8 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt korrigiert: JSON-Import/Export und direkter Datenbankassistent im Einstellungsdialog nach
-LxTranslate ergänzt; Dateiprüfung, Entwurfserhalt und adaptive Fußzeile geprüft (Phase 8, 15.11.2026).
+Zuletzt korrigiert: Mailansicht auf die tatsächliche DevExpress-Vorlage mit Accordion-Ordnernavigation,
+TileView-Nachrichtenkarten und Alle/Ungelesen umgestellt (Phase 11, 15.11.2026). JSON-Import/Export und
+direkter Datenbankassistent im Einstellungsdialog sind ebenfalls ergänzt und geprüft (Phase 8).
 Zuvor ergänzt: begrenzter Puffer für kodierte RTP-Audiopakete vor der Dekodierung, mit
 monotonen Lückenfristen und unveränderten Paket-/Formatmetadaten (Phase 9, Teilpunkt vom 15.11.2026).
 Die RTP-/PCM-Aufnahmeübergabe bildet ausdrücklich vorgegebene Startanker auf Aufnahmepositionen ab.
@@ -20,7 +21,7 @@ Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die bestehende Mailansicht sind isoliert
 geprüft. Der fehlende JSON-Import/Export aus dem Nutzerabgleich vom 15.11.2026 ist ergänzt;
-Abweichungen von der gewünschten DevExpress-Mailvorlage werden noch korrigiert. Mailanbieter und Mailimport fehlen.
+die Abweichungen von der gewünschten DevExpress-Mailvorlage sind korrigiert. Mailanbieter und Mailimport fehlen.
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
 Zeitbasis-/Jitteranbindung der Aufnahme, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
@@ -329,7 +330,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Begrenzte RTP-Paketordnung vor Dekodierung, RTP-/PCM-Aufnahmeübergabe mit explizitem Zeitanker, korrigierter CSCore-Capture, passiver PCM-Abgriff, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische SIP-Zeitbasis/Jitterverdrahtung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Mailansicht mit Ordnern, Liste und Lesebereich; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -2364,7 +2365,27 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Nachweise, Grenzen und Rollback: [Architektur](Architektur.md#klassisches-outlook-desktop-und-vorhandene-bibliotheken)
   und [Build](Build.md#externe-mms-office-leseroutine-14112026). Dies ist ein Vorlagenschritt;
   WawiCallPro-Import, DB-Persistierung, Kundenanzeige und native Outlook-Abnahme bleiben offen.
-- [x] ✅ Mailansicht nach dem bereitgestellten DevExpress-WindowsMailClient aufgebaut (14.11.2026):
+- [x] ✅ Mailansicht nach Nutzerabgleich mit der tatsächlichen DevExpress-Vorlage korrigiert (15.11.2026):
+  `MailViewer.Designer.cs`, `MailViewer.cs`, `MailPresenter` und die Ordnernavigation des gelieferten
+  WindowsMailClient erneut verglichen. Die frühere GridView-/TreeList-Annäherung ist durch TileView-
+  Nachrichtenkarten und AccordionControl-Ordner mit SVG-Glyphen ersetzt. Alle/Ungelesen entspricht
+  dem OfficeNavigationBar-Muster; ungelesene Betreffzeilen sind hervorgehoben. Schrift, Kartenhöhe und
+  Ordnerbreite passen sich dem aktiven Skin und der konfigurierten UI-Schrift an. Kleine Breiten nutzen
+  den Lesebereich unter der Liste; breite Fenster begrenzen die Listenbreite. Keine leeren Editorrahmen
+  bei fehlendem Postfach oder fehlender Nachricht. TableLayoutPanel und Designer-/Ressourcenaufteilung bleiben.
+  Strg+F verwendet das eingebaute Find Panel und reicht die Suche weiterhin an den Anbieter weiter.
+  TileView filterte zunächst Backendtreffer nochmals anhand der Listenvorschau; die RowFilter-Anbindung
+  verhindert dies und setzt nur Alle/Ungelesen lokal um. Laufzeitfilter bleiben außerhalb des versionierten
+  Spaltenlayoutpfads `MailTiles_v2`. Quellen-/Kontoprüfung, Abbruch, spätere Ergebnisse und blockierte
+  HTML-Ressourcen bleiben erhalten. Kein Mailstatus wird durch Auswahl oder Ungelesen-Filter verändert.
+  Je Edition 16 gezielte Mailprüfungen bestanden. Je neun Hintergrundbilder für gefüllt, leer und Fehler,
+  760/1240 Breite, 10/16 pt, zwei Skins und 150%-Layoutsimulation erzeugt; Standardansicht, große Schrift
+  und Leerzustand visuell kontrolliert. Die Renderprüfung kontrolliert nur gezeichnete Controls im transparenten
+  Host; ausgeblendete alternative Platzhalter dürfen nach Skalierung alte native Bounds behalten.
+  Beide Solution-Editionen in Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen;
+  reguläre Startausgabe FinOffice. Logs `.mail-demo-{build,tests}-{pro,fin}.log`, Bilder `.artifacts/mail-view`
+  in den App-Testausgaben. Echte Mailanbieter und Import bleiben offen; keine echten Postfächer geöffnet.
+- [x] ✅ Erste Mailansicht aufgebaut (14.11.2026; Darstellung durch die Korrektur vom 15.11.2026 ersetzt):
   Der neue Arbeitsbereich „E-Mails“ ist über Ribbon und Navigation erreichbar. Links stehen Postfachordner,
   in der Mitte mehrzeilige Nachrichten mit Vorschau und Hervorhebung ungelesener Einträge; rechts oder
   bei kleiner Breite darunter der RichEdit-Lesebereich mit Absender, Empfängern, Datum und Anhangsnamen.

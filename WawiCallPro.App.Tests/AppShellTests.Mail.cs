@@ -5,9 +5,9 @@ using System.Reflection;
 using DevExpress.Office.Services;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
-using DevExpress.XtraGrid.Views.Grid;
+using DevExpress.XtraGrid.Views.Tile;
 using DevExpress.XtraRichEdit;
-using DevExpress.XtraTreeList;
+using DevExpress.XtraBars.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
@@ -33,8 +33,8 @@ public sealed partial class AppShellTests
         var resources = reader.GetService<IUriStreamService>(); Assert.IsInstanceOfType<BlockedMailResources>(resources);
         Assert.AreSame(Stream.Null, resources.GetStream("https://example.test/tracker"));
         Assert.AreSame(Stream.Null, resources.GetStream("file:///C:/private.png"));
-        Assert.IsFalse(Field<GridView>(page, "messagesView").IsFindPanelVisible);
-        Assert.AreEqual(2, Field<GridView>(page, "messagesView").DataRowCount); Assert.AreEqual(0, source.Writes);
+        Assert.IsFalse(Field<TileView>(page, "messagesView").IsFindPanelVisible);
+        Assert.AreEqual(2, Field<TileView>(page, "messagesView").DataRowCount); Assert.AreEqual(0, source.Writes);
         await page.StopAsync();
     });
 
@@ -43,7 +43,7 @@ public sealed partial class AppShellTests
     {
         var source = new MailSourceDouble();
         using var page = new MailPage(); page.Bind(source, null); CreateHandles(page); await page.ReloadAsync();
-        var grid = Field<GridView>(page, "messagesView"); grid.ApplyFindFilter("Suchwort nur im vollständigen Text");
+        var grid = Field<TileView>(page, "messagesView"); grid.ApplyFindFilter("Suchwort nur im vollständigen Text");
         await page.LoadCurrentFolderAsync();
         Assert.AreEqual("Suchwort nur im vollständigen Text", source.LastSearch); Assert.AreEqual(2, grid.DataRowCount);
         var key = grid.GetFocusedRowCellValue("Subject"); Assert.IsNotNull(key);
@@ -59,7 +59,7 @@ public sealed partial class AppShellTests
         await page.LoadFocusedMessageAsync(); Assert.DoesNotContain("private-body", Field<RichEditControl>(page, "body").Text);
         Assert.Contains("nicht geladen", Field<LabelControl>(page, "subjectLabel").Text);
         source.List = (_, _, _) => throw new InvalidOperationException("private-source-token");
-        await page.LoadCurrentFolderAsync(); Assert.AreEqual(0, Field<GridView>(page, "messagesView").DataRowCount);
+        await page.LoadCurrentFolderAsync(); Assert.AreEqual(0, Field<TileView>(page, "messagesView").DataRowCount);
         Assert.DoesNotContain("private-source-token", Field<LabelControl>(page, "statusLabel").Text); await page.StopAsync();
     });
 
@@ -77,7 +77,7 @@ public sealed partial class AppShellTests
         {
             source.Catalog = new(invalid, ""); await page.ReloadAsync();
             Assert.Contains("fehlgeschlagen", Field<LabelControl>(page, "statusLabel").Text);
-            Assert.AreEqual(0, Field<GridView>(page, "messagesView").DataRowCount);
+            Assert.AreEqual(0, Field<TileView>(page, "messagesView").DataRowCount);
         }
         await page.StopAsync();
     });
@@ -95,7 +95,7 @@ public sealed partial class AppShellTests
             return source.Messages(folder);
         };
         var old = page.LoadCurrentFolderAsync(); await entered.Task;
-        var tree = Field<TreeList>(page, "folderTree"); tree.FocusedNode = tree.FindNodeByKeyID(source.Sent);
+        var folders = Field<Dictionary<MailFolderKey, AccordionControlElement>>(page, "_folderElements"); Field<AccordionControl>(page, "foldersAccordion").SelectedElement = folders[source.Sent];
         await page.LoadCurrentFolderAsync(); Assert.IsTrue(oldToken.IsCancellationRequested);
         release.SetResult(); await old;
         Assert.AreEqual("Gesendet", Field<LabelControl>(page, "folderLabel").Text);
@@ -111,7 +111,7 @@ public sealed partial class AppShellTests
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         source.Read = async (key, _) => { if (key.Id == "1") { entered.TrySetResult(); await release.Task; } return source.Content(key); };
         var old = page.LoadFocusedMessageAsync(); await entered.Task;
-        Field<GridView>(page, "messagesView").FocusedRowHandle = 1; await page.LoadFocusedMessageAsync();
+        Field<TileView>(page, "messagesView").FocusedRowHandle = 1; await page.LoadFocusedMessageAsync();
         release.SetResult(); await old;
         Assert.AreEqual("Terminabstimmung", Field<LabelControl>(page, "subjectLabel").Text); await page.StopAsync();
     });
@@ -134,7 +134,7 @@ public sealed partial class AppShellTests
         await entered.Task; var closing = page.StopAsync();
         try { Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(closing.IsCompleted); Assert.IsFalse(Field<SimpleButton>(page, "reloadButton").Enabled); }
         finally { release.SetResult(); await closing; await pending; }
-        Assert.IsFalse(Field<TreeList>(page, "folderTree").Enabled); Assert.IsFalse(Field<GridView>(page, "messagesView").GridControl.Enabled);
+        Assert.IsFalse(Field<AccordionControl>(page, "foldersAccordion").Enabled); Assert.IsFalse(Field<TileView>(page, "messagesView").GridControl.Enabled);
     });
 
     [TestMethod]
@@ -154,7 +154,7 @@ public sealed partial class AppShellTests
     {
         using var page = new MailPage(); page.Bind(new UnconfiguredMailViewSource(), null); CreateHandles(page); await page.ReloadAsync();
         Assert.Contains("Kein Postfach verbunden", Field<LabelControl>(page, "statusLabel").Text);
-        Assert.AreEqual(0, Field<GridView>(page, "messagesView").DataRowCount); await page.StopAsync();
+        Assert.AreEqual(0, Field<TileView>(page, "messagesView").DataRowCount); await page.StopAsync();
     });
 
     [TestMethod]
@@ -200,13 +200,25 @@ public sealed partial class AppShellTests
     {
         using var page = new MailPage { Size = new(1400, 720) }; page.Bind(new MailSourceDouble(), null);
         using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Controls.Add(page); host.Show(); CreateHandles(page); await page.ReloadAsync();
-        var grid = Field<GridView>(page, "messagesView");
+        var grid = Field<TileView>(page, "messagesView");
         var handler = typeof(MailPage).GetMethod("ProcessCmdKey", BindingFlags.Instance | BindingFlags.NonPublic)!;
         object[] arguments = [Message.Create(page.Handle, 0, IntPtr.Zero, IntPtr.Zero), Keys.Control | Keys.F];
         Assert.AreEqual(true, handler.Invoke(page, arguments)); Assert.IsTrue(grid.IsFindPanelVisible);
         Assert.AreEqual(true, handler.Invoke(page, arguments)); Assert.IsFalse(grid.IsFindPanelVisible);
         Field<SimpleButton>(page, "readingPositionButton").PerformClick();
         Assert.IsFalse(Field<SplitContainerControl>(page, "contentSplit").Horizontal); await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task MailViewUsesDemoTilesAccordionAndUnreadFilterWithoutChangingMailStatus() => RunStaAsync(async () =>
+    {
+        var source = new MailSourceDouble(); using var page = new MailPage(); page.Bind(source, null); CreateHandles(page); await page.ReloadAsync();
+        var view = Field<TileView>(page, "messagesView"); var folders = Field<AccordionControl>(page, "foldersAccordion");
+        Assert.AreEqual(TileViewLayoutMode.List, view.OptionsTiles.LayoutMode); Assert.AreEqual(2, view.DataRowCount); Assert.AreEqual(1, folders.Elements.Count);
+        Assert.IsNotNull(folders.Elements[0].ImageOptions.SvgImage);
+        var tabs = Field<OfficeNavigationBar>(page, "filterTabs"); tabs.SelectedItem = Field<NavigationBarItem>(page, "unreadMessagesTab");
+        Assert.AreEqual(1, view.DataRowCount); tabs.SelectedItem = Field<NavigationBarItem>(page, "allMessagesTab"); Assert.AreEqual(2, view.DataRowCount);
+        Assert.AreEqual(0, source.Writes); await page.StopAsync();
     });
 
     [TestMethod]
@@ -233,7 +245,7 @@ public sealed partial class AppShellTests
                 using var host = new MainForm(); host.PrepareForBackgroundRun(); host.Font = font; host.MinimumSize = Size.Empty;
                 host.Controls.Add(page); page.BringToFront(); host.ClientSize = page.Size; host.Show(); page.Size = new(width, 720);
                 CreateHandles(page); if (scale != 1F) page.Scale(new SizeF(scale, scale)); await page.ReloadAsync();
-                page.PerformLayout(); Application.DoEvents(); CheckTableBounds(page);
+                page.PerformLayout(); Application.DoEvents(); CheckVisibleMailBounds(page);
                 Assert.AreEqual(0D, host.Opacity); Assert.IsFalse(host.ShowInTaskbar);
                 Assert.IsTrue(Field<SimpleButton>(page, "reloadButton").Bounds.Right <= Field<TableLayoutPanel>(page, "toolbar").ClientSize.Width);
                 using var shot = WawiCallPro.App.Diagnostics.UiAudit.CaptureMail(page);
@@ -248,6 +260,19 @@ public sealed partial class AppShellTests
             else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(originalSkin, originalPalette);
         }
     });
+
+    private static void CheckVisibleMailBounds(Control parent)
+    {
+        // The mail audit uses a shown, transparent host. Hidden alternate placeholders retain stale native bounds after scaling.
+        foreach (Control control in parent.Controls)
+        {
+            if (!control.Visible) continue;
+            if (parent is TableLayoutPanel && control is LabelControl or SimpleButton or TextEdit)
+                Assert.IsTrue(control.Left >= 0 && control.Top >= 0 && control.Right <= parent.ClientSize.Width + 1 && control.Bottom <= parent.ClientSize.Height + 1,
+                    $"Clipped {control.Name}: {control.Bounds} in {parent.ClientSize}");
+            CheckVisibleMailBounds(control);
+        }
+    }
 
     private sealed class MailSourceDouble : IMailViewSource
     {
