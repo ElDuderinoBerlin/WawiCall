@@ -6,11 +6,16 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: optionale Datenbankgrundlage für getrennte kanonische WAV-/MP3-Dateien je Aufnahme.
+Zuletzt ergänzt: WAV-Artefakte aus erfolgreich abgeschlossenen Aufnahmen und geschützten Abschlussaufträgen
+automatisch bestätigen. Gemeinsamer PCM-WAV-Prüfer, gesperrte Datei, ursprüngliche geschützte Prüfsumme,
+Dateigröße und vorhandene Katalogeinträge werden geprüft; erst nach Artefaktbestätigung wird der Auftrag
+entfernt (Phase 9, 16.11.2026). 17 neue Prüfungen sowie sechs erweiterte Capture-/UDP-Wiederanläufe.
+MP3-Anschluss, vollständiger Dateiabgleich, verwaiste Dateien und dauerhafte Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: optionale Datenbankgrundlage für getrennte kanonische WAV-/MP3-Dateien je Aufnahme.
 Migration 11 ergänzt eigene Pfade, Verfügbarkeit, bestätigte Dateigröße/Prüfsumme und Schreibversionen;
 bestehende Aufnahmeverweise und Verläufe bleiben unverändert und erhalten keine erfundenen Artefakte
 (Phase 9, 16.11.2026). 19 neue Prüfungen einschließlich gefülltem Upgrade und Spaltendokumentation.
-Dateidienst-Anschluss, vollständiger Dateiabgleich und dauerhafte Konvertierungsjobs bleiben offen.
+Den WAV-Anschluss ergänzt der folgende Teilpunkt; vollständiger Dateiabgleich und dauerhafte Konvertierungsjobs bleiben offen.
 Zuvor ergänzt: Wiederanlauf für unterbrochene DB-Aufnahmevorgänge ohne WAV und Abschlussauftrag.
 Nach Gesprächsrecovery und Zustellung vorhandener Abschlussaufträge werden ausschließlich eigene,
 beendete Gespräche mit noch laufendem Aufnahmeverlauf geprüft. Bei nachgewiesen fehlender WAV werden
@@ -392,7 +397,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Artefakt-Anschluss an Dateidienste, Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; MP3-Anschluss, Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2774,8 +2779,40 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Grenze: Der Artefaktkatalog wird noch nicht automatisch vom Aufnahmedienst/Encoder befüllt. Bestätigte
   Metadaten ersetzen keine aktuelle Dateiprüfung. Dateiabgleich, Dateidienst-Anschluss, dauerhafte
   Konvertierungsjobs und kontrollierte neue Inhaltsgenerationen bleiben offen.
+- [x] ✅ WAV-Artefaktbestätigung an Aufnahmeabschluss und geschützte Wiederholung anschließen (16.11.2026):
+  Beide Hosts verwenden den injizierten `IRecordingCompletionPublisher`. `DurableRecordingJournal`
+  und die bestehende lokale Abschlussrecovery bestätigen den Auftrag erst nach erfolgreicher
+  WAV-Katalogzustellung. Der vorhandene PCM-WAV-Prüfer liegt gemeinsam in Core und wird weiterhin
+  von Mixer, Segmentprüfung und Konvertierung verwendet; keine zweite Parserimplementierung.
+  Vor der Aufnahme-/Capturebestätigung werden Header, PCM-Format, Framezahl und Ergebniszuordnung geprüft.
+  Die unter dem geschützten Auftrag gehaltene WAV bleibt lesegesperrt; ihr neu berechneter SHA-256 muss
+  mit dem ursprünglichen geschützten Dateihash übereinstimmen. Die vorhandene v1-Auftragsablage bleibt lesbar.
+  Als stabile WAV-Artefakt-ID dient die Aufnahme-ID. Registrierung erfolgt ausstehend, danach verfügbar
+  mit tatsächlicher Länge und kanonischer Prüfsumme. Ein identisches bereits verfügbares Artefakt wird
+  ohne Versionsänderung akzeptiert; ein identisches fehlendes kann wieder verfügbar werden. Besitzer-,
+  Pfad-, Hash- und Versionskonflikte sowie unbekannte fehlgeschlagene Katalogeinträge werden nicht
+  überschrieben. MP3-Einträge bleiben unverändert. Fehler-/Abbruchzustände erzeugen keine Artefakte.
+  Aufnahmeverweis/Capture bleiben eine gemeinsame DB-Transaktion; Artefaktregistrierung/-bestätigung
+  folgen in eigenen Transaktionen. Das ist keine atomare Transaktion über alle drei Zeilen und die Datei.
+  Bei einer Störung können Aufnahme/Capture bereits bestätigt sein, während das Artefakt aussteht;
+  der geschützte Auftrag bleibt dann erhalten. Wiederholung bestätigt die fehlenden Schritte ohne
+  erneute Aufnahme/Mischung, doppelte Artefakte oder unnötige Versionswechsel.
+  17 neue Prüfungen: 14 Utilities-Fälle und drei zusätzliche tatsächliche PCMA-/PCMU-/G.722-Capture-/UDP-
+  Abschlüsse. Sechs bestehende echte Wiederanlauffälle prüfen zusätzlich den Artefaktinhalt. Ungültige
+  Header/Formate/Frames, geänderte/fehlende WAVs, abweichender geschützter Hash, Katalogkonflikte,
+  Abbruch/Fehler und Wiederholung nach unsicherer Artefaktbestätigung geprüft. Quelldateien und vorhandene
+  MP3-Metadaten bleiben erhalten; Dateisperre während der Katalogschreibvorgänge nachgewiesen.
+  Gemeinsame neue Ablaufabnahme über `scripts/test-database-providers.ps1` auf SQLite sowie isolierten
+  SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Instanzen für beide Editionen bestanden. Je Edition
+  125 DB-, 376 Console-, 26 gezielte Utilities-, zehn SIP- und zwei App-Hostprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen;
+  reguläre Startausgabe FinOffice. Nachweise `.wave-artifact-{build,providers,tests,utilities,sip,host}-{pro,fin}.log`.
+  Schema 11 unverändert. Nur synthetisches Audio/Metadaten und isolierte Dateien/Datenbanken/Loopbacks;
+  keine GUI oder Audiogeräte. Kein echter Prozessabbruch als geprüft behauptet.
+  Grenze: Nur explizite, überprüfbare Abschlussaufträge werden übernommen. Vorhandene WAVs ohne
+  Auftrag, verwaiste Dateien, MP3-Artefaktzustellung, Inhaltsgenerationen und dauerhafte Jobs bleiben offen.
 - [ ] Vorhandene/unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
-  den Artefaktkatalog an Aufnahme-/Dateidienste anschließen und Konvertierungsstatus/Jobs persistieren.
+  MP3-Artefaktzustellung anschließen und Konvertierungsstatus/Jobs persistieren.
   Weitere Migrationen ab Version 12 ergänzen; bestehende
   Migrationen 1–11 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

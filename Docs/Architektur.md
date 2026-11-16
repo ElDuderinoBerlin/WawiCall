@@ -815,9 +815,9 @@ Austausch des bestätigten Inhalts benötigt einen eigenen Ablauf für neue Inha
 mit dem jetzigen Metadaten-Schreibpfad ausdrücklich nicht implementiert.
 
 Das Repository führt keine Dateiprüfung aus, berechnet keine Hashes, erzeugt keine Audiodateien und
-startet keine Konvertierungsjobs. Die Eingaben eines künftigen Dateidienstes müssen den tatsächlich
-geprüften Dateien entsprechen. Der Katalog wird noch nicht automatisch durch Aufnahmedienst oder
-Encoder befüllt; dies ist die Datenbankgrundlage für den folgenden Anschluss und vollständigen Abgleich.
+startet keine Konvertierungsjobs. Seine Eingaben müssen den tatsächlich geprüften Dateien entsprechen.
+Den automatischen Anschluss für explizit abgeschlossene WAVs ergänzt der folgende Teilpunkt.
+Encoder-/MP3-Anschluss und vollständiger Dateiabgleich bleiben offen.
 Alte Available-Verweise werden ohne neue Prüfnachweise nicht in den Artefaktkatalog übernommen.
 
 19 neue Prüfungen decken Vertragsfehler, Lebenszyklus, Besitz-/Pfad-/Hashkonflikte, Schreibversionen,
@@ -833,6 +833,61 @@ Schema-10-Host wird vom bestehenden Versionsschutz gesperrt. Keine manuelle Entf
 Rücksetzung von Versionseinträgen. Migrationen 1–10 bleiben unverändert. Laufzeitdienste können den noch
 optionalen Katalog ungenutzt lassen, ohne bestehende Aufnahmefunktionen zu entfernen. Dauerhafte Jobs,
 Inhaltsgenerationen und der Abgleich vorhandener/verwaister Dateien bleiben weitere offene Punkte.
+
+### WAV-Artefaktzustellung aus geschützten Aufnahmeabschlüssen (16.11.2026)
+
+`IRecordingCompletionPublisher` ist im gemeinsamen Host als zustandsloser `RecordingWaveArtifactPublisher`
+registriert. Der besitzende Aufnahmedienst verwendet ihn über `DurableRecordingJournal`; dieselbe
+Bestätigung läuft bei Wiederanlauf über die bestehende lokale `RecordingJournalRecovery`. Die bisherigen
+Workstation-/Gesprächs-/Datenbankprüfungen der Recovery bleiben bestehen. Es wird kein neuer automatisch
+verbindender Dienst und keine allgemeine Dateisuche gestartet.
+
+Vor der Aufnahme-/Capturebestätigung prüft der Publisher Zuordnung, Abschlusszustand, Format und die
+tatsächlichen PCM-WAV-Headerdaten gegen Abtastrate, Kanäle und Framezahl. Der vorhandene begrenzte
+PCM16-RIFF-Prüfer ist dafür nach Core verlegt und wird gemeinsam von Mix-, Segment-, Konvertierungs-
+und Artefaktprüfung genutzt. Die Algorithmik bleibt erhalten. Fehler-/Abbruchzustände benötigen keine
+WAV und erzeugen keinen Katalogeintrag.
+
+Der geschützte Zustellauftrag besitzt die Vorgangslease und das nur lesend geteilte WAV-Handle während
+aller Bestätigungsschritte. `IRecordingJournalDelivery.WaveSha256` gibt den ursprünglichen geschützten
+Dateihash weiter; das v1-Dateiformat und der DPAPI-Zweck ändern sich nicht. Der Publisher berechnet den
+aktuellen Datei-SHA-256 aus diesem Stream und vergleicht ihn mit dem geschützten Original. Erst dann
+werden Länge und kanonischer Hash als Artefakt bestätigt. Keine Änderung des Dateiinhalts und keine
+erneute Audioerfassung/Mischung. Diese Sperren ersetzen nicht die vollständige Abwehr sämtlicher
+gleichzeitiger externer Dateisystemänderungen durch denselben Windows-Benutzer.
+
+Die WAV-Artefakt-ID entspricht der Recording-ID. Sie ist eine separate Tabellenidentität und verändert
+den Aufnahmeverweis nicht. Der Publisher registriert Pending und bestätigt anschließend Available unter
+dem unveränderten relativen Pfad. Ein vorhandenes identisches Available-Artefakt wird ohne weiteres
+Schreiben akzeptiert. Missing kann nur bei passendem vorhandenen Dateihash und gleicher Größe wieder
+Available werden; Änderungszeiten laufen nicht hinter dem Katalogstand zurück. Abweichende IDs, Besitzer,
+Pfade oder Fingerprints sowie Failed-Katalogzustände werden nicht blind übernommen oder zurückgesetzt.
+MP3-Katalogeinträge bleiben unberührt. Fremde Dateiinhalte werden nicht als vermeintliche Wiederherstellung
+eines alten Artefakts akzeptiert.
+
+Aufnahmeverweis und Captureverlauf werden weiterhin gemeinsam bestätigt. Artefaktregistrierung und
+Artefaktabschluss sind zusätzliche eigene DB-Transaktionen; es gibt keine gemeinsame Dateisystem-/DB-
+Transaktion oder atomare Dreizeilenbestätigung. Bei Fehlern können die ersten beiden Zeilen bereits
+bestätigt sein und das Artefakt noch fehlen/Pending sein. Die Zustelllease wird aber erst nach erfolgreicher
+Artefaktbestätigung quittiert. Stop beziehungsweise Wiederanlauf melden unbestätigte Zustellung und
+erhalten Auftrag/WAV. Eine neue Dienstinstanz erkennt exakte bereits bestätigte Metadaten, ergänzt den
+Katalog und entfernt erst danach den Auftrag. Ein verlorener Artefakt-Commit-Ack erzeugt weder weitere
+Artefaktzeilen noch zusätzliche bestätigte Versionen.
+
+14 neue Utilities-Fälle prüfen tatsächliche Dateien mit SQLite, Konflikte und die Störstellen vor/nach
+Artefaktbestätigung. Die gemeinsame Ablaufabnahme mit geschützter Ablage, Dateisperren, erhaltenen MP3-
+Metadaten und neuen Zustellinstanzen läuft zusätzlich auf allen vier nativen Server-Engines beider Editionen.
+Drei neue tatsächliche synthetische Capture-/UDP-Läufe und sechs erweiterte Wiederanlauffälle prüfen
+PCMA, PCMU und G.722 bis zur Datei und ihrem Kataloghash. Die bestehenden Mixer-/Konvertierungstests prüfen
+den gemeinsamen Parser weiter. Dies ist kein Nachweis eines echten Prozessabbruchs oder echter Audiogeräte.
+Konkrete Editionsnachweise stehen im Phase-9-Teilpunkt des Neuaufbauplans.
+
+Schema 11 bleibt unverändert. Der Anschluss übernimmt ausschließlich explizite, geschützte Abschlussaufträge;
+alte Available-Verweise oder verwaiste WAVs werden ohne passende Nachweise nicht rückgefüllt. MP3-Zustellung,
+kontrollierte neue Inhaltsgenerationen, vollständiger Dateiabgleich und dauerhafte Konvertierungsjobs bleiben
+offen. Rollback: Aufnahme-/Recoverybestätigung auf den früheren Stand vor Artefaktzustellung zurückstellen,
+vorhandene Aufträge und Artefaktmetadaten erhalten. Dann kann ein späterer Abgleich Kataloglücken behandeln;
+Schema- oder Dateiinhalte dürfen dazu nicht pauschal zurückgesetzt oder gelöscht werden.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

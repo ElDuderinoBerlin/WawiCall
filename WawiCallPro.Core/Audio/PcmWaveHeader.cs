@@ -1,14 +1,15 @@
 using System.Text;
 using WawiCallPro.Interfaces.Audio;
 
-namespace WawiCallPro.Audio;
+namespace WawiCallPro.Core.Audio;
 
-internal sealed record PcmWaveHeader(int SampleRate, int Channels, long DataOffset, long DataLength)
+/// <summary>Validated seekable PCM16 WAV metadata shared by recording, mixing and conversion services.</summary>
+public sealed record PcmWaveHeader(int SampleRate, int Channels, long DataOffset, long DataLength)
 {
-    internal TimeSpan Duration => TimeSpan.FromSeconds(DataLength / (double)(SampleRate * Channels * 2));
+    public TimeSpan Duration => TimeSpan.FromSeconds(DataLength / (double)(SampleRate * Channels * 2));
 
     // Reject unfinished RIFF sizes and truncated chunks before a native decoder sees the input.
-    internal static PcmWaveHeader Read(Stream stream, CancellationToken token)
+    public static PcmWaveHeader Read(Stream stream, CancellationToken token)
     {
         try
         {

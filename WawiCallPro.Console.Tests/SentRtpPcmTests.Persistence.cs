@@ -118,6 +118,7 @@ public sealed partial class SentRtpPcmTests
             new PcmSipMediaSession(new RecordingNativeMedia(fixture.Media), fixture.Tap, fixture.Bridge), new PersistedDuplexPcmRecordingFactory(DuplexFactory(), journal ?? Journal, Paths, TimeProvider.System));
         internal Task<StoredRecording?> Recording() => new DapperRecordingRepository(new(_target, new())).GetAsync(_id);
         internal Task<StoredRecordingCapture?> Capture() => new DapperRecordingCaptureRepository(new(_target, new())).GetAsync(_id);
+        internal Task<IReadOnlyList<StoredRecordingArtifact>> Artifacts() => new DapperRecordingArtifactRepository(new(_target, new())).GetForRecordingAsync(_id);
         public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
     }
     private sealed class FaultJournal(IRecordingJournal inner, bool commit) : IRecordingJournal

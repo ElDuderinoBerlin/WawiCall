@@ -8,8 +8,13 @@ using WawiCallPro.Utilities.Persistence;
 namespace WawiCallPro.Audio;
 
 /// <summary>Only the selected database, local workstation and terminal calls may receive a pending completion.</summary>
-public sealed class RecordingJournalRecovery(IRecordingJournalOutbox pending, DapperRecordingJournal journal,
-    ICallRepository calls, IWorkstationIdentity workstation, ILogger<RecordingJournalRecovery> log) : IRecordingJournalRecovery
+public sealed class RecordingJournalRecovery(
+    IRecordingJournalOutbox pending,
+    DapperRecordingJournal journal,
+    ICallRepository calls,
+    IWorkstationIdentity workstation,
+    ILogger<RecordingJournalRecovery> log,
+    IRecordingCompletionPublisher completions) : IRecordingJournalRecovery
 {
     public async Task<RecordingJournalRecoveryResult> RecoverAsync(CancellationToken cancellationToken = default)
     {
@@ -33,14 +38,9 @@ public sealed class RecordingJournalRecovery(IRecordingJournalOutbox pending, Da
                 var call = await calls.GetAsync(delivery.Recording.Recording.CallId, cancellationToken).ConfigureAwait(false);
                 if (call?.History.Call.Origin?.WorkstationId != local || call.History.Call.State is not (CallState.Ended or CallState.Failed))
                 { deferred++; continue; }
-                if (delivery.Capture.Capture.State == PcmRecordingState.Completed)
-                {
-                    var header = PcmWaveHeader.Read(delivery.Wave ?? throw new RecordingOutboxException(), cancellationToken);
-                    var capture = delivery.Capture.Capture;
-                    if (header.SampleRate != capture.SampleRate || header.Channels != capture.Channels || header.DataLength / (header.Channels * 2) != capture.FrameCount)
-                        throw new RecordingOutboxException();
-                }
+                completions.Validate(delivery, cancellationToken);
                 await journal.WriteAsync(delivery.Recording, delivery.Capture, cancellationToken).ConfigureAwait(false);
+                await completions.PublishAsync(delivery, cancellationToken).ConfigureAwait(false);
                 delivery.Acknowledge(); delivered++;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

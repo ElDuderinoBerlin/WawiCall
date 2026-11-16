@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using CSCore;
 using CSCore.Codecs.WAV;
 using CSCore.DSP;
+using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;

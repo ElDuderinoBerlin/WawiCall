@@ -16,6 +16,8 @@ public interface IRecordingJournalDelivery : IAsyncDisposable
     RecordingWrite Recording { get; }
     RecordingCaptureWrite Capture { get; }
     Stream? Wave { get; }
+    /// <summary>Original protected SHA-256 for a completed WAV; null for failure/abort deliveries.</summary>
+    string? WaveSha256 { get; }
     void Acknowledge();
 }
 

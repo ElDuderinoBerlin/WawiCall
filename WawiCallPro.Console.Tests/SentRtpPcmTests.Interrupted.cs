@@ -98,7 +98,7 @@ public sealed partial class SentRtpPcmTests
         await using var fixture = new Fixture(); await fixture.Connect(); using var files = new PersistedFiles(); var request = await files.Initialize(fixture);
         await BeginUnfinished(files, request); var pending = await Pending(files); var origin = await EndForInterruption(files, request);
         var targets = new SwitchTarget(DatabaseTarget.Sqlite(Path.Combine(files.Paths.RootDirectory, "not-created.db")));
-        var failing = new DurableRecordingJournal(Backend(targets), pending);
+        var failing = new DurableRecordingJournal(Backend(targets), pending, Publisher(files));
         var result = await Interrupted(files, pending, origin.WorkstationId, journal: failing).RecoverAsync();
         Assert.AreEqual(new InterruptedRecordingRecoveryResult(0, 0, 1), result); Assert.AreEqual(1, pending.GetPending().Count);
         Assert.AreEqual(PcmRecordingState.Capturing, (await files.Capture())!.Capture.State);
@@ -112,7 +112,7 @@ public sealed partial class SentRtpPcmTests
     {
         await using var fixture = new Fixture(); await fixture.Connect(); using var files = new PersistedFiles(); var request = await files.Initialize(fixture);
         await BeginUnfinished(files, request); var pending = await Pending(files); var origin = await EndForInterruption(files, request);
-        var durable = new DurableRecordingJournal(new(new(files.Target, new())), pending);
+        var durable = new DurableRecordingJournal(new(new(files.Target, new())), pending, Publisher(files));
         var mutating = new BeforeInterruptWrite(durable, async () =>
         {
             var saved = (await files.Capture())!; var old = saved.Capture;
@@ -159,7 +159,7 @@ public sealed partial class SentRtpPcmTests
     }
     private static InterruptedRecordingRecovery Interrupted(PersistedFiles files, IRecordingJournalOutbox pending, Guid? workstation,
         IRecordingFileProbe? probe = null, IRecordingJournal? journal = null, InterruptedLog? log = null) =>
-        new(new DapperInterruptedRecordingQuery(new(files.Target, new())), journal ?? new DurableRecordingJournal(new(new(files.Target, new())), pending),
+        new(new DapperInterruptedRecordingQuery(new(files.Target, new())), journal ?? new DurableRecordingJournal(new(new(files.Target, new())), pending, Publisher(files)),
             pending, probe ?? new LocalRecordingFileProbe(files.Paths), new Identity(workstation), TimeProvider.System, log ?? (ILogger<InterruptedRecordingRecovery>)NullLogger<InterruptedRecordingRecovery>.Instance);
     private sealed class DeniedWaveProbe : IRecordingFileProbe
     { public bool IsAbsent(string relativePath) => throw new UnauthorizedAccessException("private-content"); }

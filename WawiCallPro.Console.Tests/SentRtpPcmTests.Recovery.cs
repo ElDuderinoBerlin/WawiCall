@@ -33,7 +33,7 @@ public sealed partial class SentRtpPcmTests
         await using var fixture = new Fixture(codec); await fixture.Connect(); using var files = new PersistedFiles(); var request = await files.Initialize(fixture);
         var outbox = await Pending(files); var targets = new SwitchTarget(files.Target);
         var backend = Backend(targets); IRecordingJournalOutbox publishing = committed ? new FailedAcknowledgement(outbox) : outbox;
-        var media = files.Media(fixture, new DurableRecordingJournal(backend, publishing));
+        var media = files.Media(fixture, new DurableRecordingJournal(backend, publishing, Publisher(files)));
         try
         {
             var recording = await media.StartRecordingAsync(request); fixture.Capture(Samples(fixture.Format.ClockRate / 50, 0)); await fixture.Packets(1);
@@ -54,6 +54,11 @@ public sealed partial class SentRtpPcmTests
         Assert.AreEqual(PcmRecordingState.Completed, (await files.Capture())!.Capture.State);
         Assert.AreEqual(2L, (await files.Capture())!.Version); Assert.AreEqual(2L, (await files.Recording())!.Version);
         Assert.AreEqual(RecordingAvailability.Available, (await files.Recording())!.Recording.Availability);
+        var artifact = (await files.Artifacts()).Single();
+        Assert.AreEqual(request.Recording.RecordingId, artifact.Artifact.Id); Assert.AreEqual(2L, artifact.Version);
+        Assert.AreEqual(RecordingArtifactFormat.Wave, artifact.Artifact.Format); Assert.AreEqual(RecordingAvailability.Available, artifact.Artifact.Availability);
+        Assert.AreEqual(before.LongLength, artifact.Artifact.ByteLength);
+        Assert.AreEqual(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(before)).ToLowerInvariant(), artifact.Artifact.Sha256);
         Assert.AreEqual(0, outbox.GetPending().Count); CollectionAssert.AreEqual(before, File.ReadAllBytes(files.Output));
         Assert.AreEqual(1, fixture.Codec.Encodes); Assert.AreEqual(new RecordingJournalRecoveryResult(0, 0, 0), await recovered.RecoverAsync());
     }
@@ -95,7 +100,7 @@ public sealed partial class SentRtpPcmTests
     public async Task AbortedCaptureReceiptNeedsNoWaveAndIsDeliveredAfterCallRecovery()
     {
         await using var fixture = new Fixture(); await fixture.Connect(); using var files = new PersistedFiles(); var request = await files.Initialize(fixture);
-        var outbox = await Pending(files); var targets = new SwitchTarget(files.Target); var media = files.Media(fixture, new DurableRecordingJournal(Backend(targets), outbox));
+        var outbox = await Pending(files); var targets = new SwitchTarget(files.Target); var media = files.Media(fixture, new DurableRecordingJournal(Backend(targets), outbox, Publisher(files)));
         var recording = await media.StartRecordingAsync(request); targets.Current = DatabaseTarget.Sqlite(Path.Combine(files.Paths.RootDirectory, "not-created.db"));
         await Assert.ThrowsExactlyAsync<RecordingPersistenceException>(() => media.DisposeAsync().AsTask()); Assert.AreEqual(1, outbox.GetPending().Count);
         var calls = new DapperCallRepository(new(files.Target, new())); var origin = (await calls.GetAsync(request.Recording.CallId))!.History.Call.Origin!;
@@ -125,7 +130,8 @@ public sealed partial class SentRtpPcmTests
     }
     private static DapperRecordingJournal Backend(SwitchTarget target) => new(new DatabaseRepositoryContext(target, new(), new DatabaseMigrationEngineFactory(), new DatabaseMigrationLock()));
     private static RecordingJournalRecovery Recovery(PersistedFiles files, IRecordingJournalOutbox pending, IWorkstationIdentity identity, ILogger<RecordingJournalRecovery>? log = null) =>
-        new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity, log ?? NullLogger<RecordingJournalRecovery>.Instance);
+        new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity, log ?? NullLogger<RecordingJournalRecovery>.Instance, Publisher(files));
+    private static RecordingWaveArtifactPublisher Publisher(PersistedFiles files) => new(new DapperRecordingArtifactRepository(new(files.Target, new())));
     private sealed class SwitchTarget(DatabaseTarget target) : IDatabaseTargetSource
     { internal DatabaseTarget Current = target; public DatabaseTarget GetTarget() => Current; }
     private sealed class Identity(Guid? id) : IWorkstationIdentity
@@ -148,6 +154,7 @@ public sealed partial class SentRtpPcmTests
         private sealed class Delivery(IRecordingJournalDelivery inner) : IRecordingJournalDelivery
         {
             public RecordingWrite Recording => inner.Recording; public RecordingCaptureWrite Capture => inner.Capture; public Stream? Wave => inner.Wave;
+            public string? WaveSha256 => inner.WaveSha256;
             public void Acknowledge() => throw new RecordingOutboxException(); public ValueTask DisposeAsync() => inner.DisposeAsync();
         }
     }

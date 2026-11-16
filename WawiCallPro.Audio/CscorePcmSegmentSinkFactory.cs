@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using CSCore;
 using CSCore.Codecs.WAV;
+using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;

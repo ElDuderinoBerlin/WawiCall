@@ -341,7 +341,8 @@ Optionale Ergänzung ab Migration 11. Je Aufnahme ist höchstens ein kanonisches
 zulässig; WAV und MP3 erhalten getrennte IDs, Pfade, Verfügbarkeit und Schreibversionen. Bestehende
 Aufnahmeverweise und Verläufe werden nicht verändert und erhalten keine automatisch erfundenen Artefakte.
 Die Call-ID wird über `recordings` gelesen. Das Repository prüft keine Audiodateien und berechnet
-keine Hashes; verfügbare Metadaten müssen später vom zuständigen Dateidienst bestätigt werden.
+keine Hashes. Die WAV-Abschlusszustellung bestätigt diese Werte anhand der lesegesperrten Datei und
+des geschützten Originalhashs; MP3-Anschluss und vollständiger Dateiabgleich bleiben offen.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|

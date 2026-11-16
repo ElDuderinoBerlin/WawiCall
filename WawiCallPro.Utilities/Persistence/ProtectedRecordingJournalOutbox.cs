@@ -175,6 +175,7 @@ public sealed class ProtectedRecordingJournalOutbox(ApplicationPaths paths, ISec
         public RecordingWrite Recording => entry.Recording;
         public RecordingCaptureWrite Capture => entry.Capture;
         public Stream? Wave => wave;
+        public string? WaveSha256 => entry.Digest;
         public void Acknowledge() { try { CheckLink(path); File.Delete(path); } catch (Exception) { throw new RecordingOutboxException(); } }
         public async ValueTask DisposeAsync() { try { if (wave is not null) await wave.DisposeAsync().ConfigureAwait(false); } finally { await lease.DisposeAsync().ConfigureAwait(false); } }
     }
