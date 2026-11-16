@@ -28,7 +28,7 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<PcmRecordingSessionFactory>(recordingFactory);
             Assert.AreSame(recordingFactory, host.Services.GetRequiredService<IPcmRecordingSessionFactory>());
             Assert.IsInstanceOfType<CscorePcmSegmentSinkFactory>(host.Services.GetRequiredService<IPcmSegmentSinkFactory>());
-            Assert.IsInstanceOfType<RecordingSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
+            Assert.IsInstanceOfType<PersistedSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
             Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<ICallRecordingService>());
             var feeds = host.Services.GetRequiredService<IRtpPcmRecordingFeedFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpPcmRecordingFeedFactory>(feeds);
@@ -48,6 +48,9 @@ public sealed partial class AppShellTests
             var captures = host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>();
             Assert.IsInstanceOfType<WawiCallPro.Database.Repositories.DapperRecordingCaptureRepository>(captures);
             Assert.AreSame(captures, host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>());
+            var persisted = host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>();
+            Assert.IsInstanceOfType<PersistedDuplexPcmRecordingFactory>(persisted);
+            Assert.AreSame(persisted, host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>());
             var packets = host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>(packets);
             Assert.AreSame(packets, host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>());

@@ -30,6 +30,7 @@ public sealed class RecordingSipMediaSession(ISipPcmMediaSession inner, IDuplexP
             if (_recording is { } previous)
             {
                 try { await previous.DisposeAsync().ConfigureAwait(false); }
+                catch (RecordingPersistenceException) when (previous.State == PcmRecordingState.Completed && previous is IRecordingPersistenceStatus { HasPendingPersistence: false }) { }
                 finally { _recording = null; }
             }
             if (inner.PcmSource is not IConversationPcmFailureSource source)
@@ -56,7 +57,14 @@ public sealed class RecordingSipMediaSession(ISipPcmMediaSession inner, IDuplexP
         await _commands.WaitAsync().ConfigureAwait(false);
         try
         {
-            try { if (_recording is { } recording) await recording.DisposeAsync().ConfigureAwait(false); }
+            try
+            {
+                if (_recording is { } recording)
+                {
+                    try { await recording.DisposeAsync().ConfigureAwait(false); }
+                    catch (RecordingPersistenceException) when (recording.State == PcmRecordingState.Completed && recording is IRecordingPersistenceStatus { HasPendingPersistence: false }) { }
+                }
+            }
             finally
             {
                 _recording = null;

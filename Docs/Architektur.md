@@ -565,7 +565,8 @@ relative Dateireferenzen mit Call-ID/Aufnahme-ID. Ausstehende Repositories und H
 
 Die Recording-Struktur enthält Pfad, Format, Dauer und Verfügbarkeit. Migration 10 ergänzt optional
 Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Capturevorgangs. Die automatische Übergabe aus
-dem Aufnahmedienst sowie getrennte WAV-/MP3-Artefakte und Konvertierungsjobs bleiben auszuarbeiten;
+dem Aufnahmedienst ergänzt der Journal-/Dienstanschluss unten. Getrennte WAV-/MP3-Artefakte und
+Konvertierungsjobs bleiben auszuarbeiten;
 weitere Migrationen beginnen ab Version 11. Bestehende Migrationen und Daten bleiben erhalten.
 Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den Metadaten abgleichen.
 Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
@@ -611,11 +612,76 @@ bleiben erhalten und erhalten keine künstlichen Capturezeilen. Derselbe Nachwei
 SQLite sowie isolierten nativen SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Instanzen, beide
 Produktlinien. Die bestehenden Migrations-/Repository-/Hostprüfungen bleiben Teil des Providerlaufs.
 
-Aufnahmeaktionen schreiben diese Metadaten noch nicht automatisch. WAV-/MP3-Artefakte und dauerhafte
-Konvertierungsjobs fehlen weiterhin. Das Repository ändert keine Dateiverfügbarkeit und bestätigt
-keine Dateiinhalte; vorhandene Aufnahmezeilen, Dateien und Abgriffdienste bleiben unabhängig nutzbar.
+Der folgende Journal-/Dienstanschluss ergänzt die automatische Übergabe aus Aufnahmeaktionen.
+Getrennte WAV-/MP3-Artefakte und dauerhafte Konvertierungsjobs fehlen weiterhin. Das Einzelrepository
+ändert keine Dateiverfügbarkeit und bestätigt keine Dateiinhalte; vorhandene Aufnahmezeilen, Dateien
+und unabhängige Abgriffdienste bleiben nutzbar.
 Rollback eines bereits angewendeten Schemas erfolgt über die vorherige Datenbanksicherung;
 Migrationen bleiben vorwärtsgerichtet. Ein älterer Host darf das neuere Schema nicht beschreiben.
+
+### Persistenter Aufnahmedienst mit atomarem Journal (16.11.2026)
+
+App und Console ergänzen ihre Audioregistrierung ausdrücklich mit `AddPersistedRecordings`.
+`PersistedSipMediaSessionFactory` stellt der vorhandenen besitzenden Mediensitzung den persistenten
+Duplex-Dienst bereit. Der unabhängige `IDuplexPcmRecordingFactory` bleibt für Audiovorgänge ohne DB
+nutzbar; bei einer persistenten Gesprächsaufnahme gibt es keinen stillen Rückfall auf diesen Pfad.
+DI-Aufbau öffnet weder Datenbank noch Geräte. Gesprächsende und Host-Shutdown warten weiterhin auf
+den besessenen Aufnahmeabschluss einschließlich seiner Metadatenoperationen.
+
+Ein persistenter Auftrag benötigt `RecordingEpochUtc`: den vom Aufrufer bereits verifizierten
+UTC-Zeitpunkt zu Null auf derselben Aufnahmezeitachse wie die beiden RTP-Anker. Dies wird weder
+aus Gesprächsbeginn noch aus Paketankunft ermittelt. Nicht-UTC-, fehlende oder zukünftige Epochen
+werden zurückgewiesen. Der Resolver für NTP-Referenzen beschafft diese UTC-Korrelation nicht selbst.
+WAV-Ziele müssen lokal unter `ApplicationPaths.RecordingsDirectory` liegen; in der DB wird nur
+die relative Referenz gespeichert. Vorhandene Reparsepunkte im Zielpfad sind unzulässig. Die
+Pfadprüfung ist keine atomare Sperre gegen externe gleichzeitige Verzeichnisänderungen.
+
+`IRecordingJournal` bündelt den existierenden Aufnahmeverweis und seinen Captureverlauf in einer
+Dapper-Transaktion. Dazu werden die bisherigen Schreiboperationen innerhalb derselben Session
+wiederverwendet. Beide IDs, Call-Zuordnung, Status, Dauer und Änderungszeit müssen zusammenpassen;
+Verweis und Format dürfen nicht verschoben werden. Start ist ein strikter Insert beider Zeilen,
+damit eine wiederverwendete ID keinen zweiten Besitzer eines bestehenden Vorgangs erzeugt.
+Die Elternzeile wird durch den vorhandenen Call-Fremdschlüssel gebunden. Erst nach Bestätigung
+werden der Aufnahmeordner und die eigentliche Audiositzung erzeugt.
+
+Stop prüft Dauer-/Frame-/WAV-Grenzen sowie das daraus auf der bestätigten UTC-Epoche berechnete
+Medienende vor dem Abmelden. Ein zukünftiges Ende ist unzulässig. Die bestehende Audiositzung
+drainiert/finalisiert die WAV; anschließend werden deren Verweis, tatsächliche Framezahl, Dauer,
+Ende und erfolgreicher Status gemeinsam bestätigt. Resultatidentität/-format/-länge müssen mit
+dem Auftrag übereinstimmen. Startupfehler, Stopfehler und Freigabe ohne Stop werden als feste
+Fehler-/Abbruchzustände gespeichert; ohne bestätigte Medienendposition bleiben Ende/Dauer unbekannt.
+Ein DB-Ausfall vor Start erzeugt keine Audioartefakte. Das bestehende Nichtüberschreiben des WAV-
+Ziels bleibt erhalten. Unabhängige Abgriff-/Codecaufrufe führen weiterhin keine DB-Zugriffe aus.
+
+Scheitert die Abschlussbestätigung nach fertiger WAV, wirft Stop `RecordingPersistenceException`;
+die Datei bleibt erhalten und ein unbestätigter DB-Stand wird nicht als erfolgreicher Abschluss
+zurückgegeben. Audiostatus und Metadatenbestätigung sind getrennt. `IRecordingPersistenceStatus`
+zeigt den ausstehenden Auftrag an und bietet dessen ausdrückliche Wiederholung. Beide erwarteten
+Versionen und die ursprüngliche Änderungszeit bleiben unverändert. Das Journal erkennt nur die
+vollständig passende Wiederholung beider zuletzt bestätigten Zeilen. Ein teilweiser Versionsreplay
+führt zum Rollback, auch wenn die Elternzeile innerhalb der Transaktion schon geändert war.
+Ein tatsächlicher Parallelkonflikt wird nicht überschrieben. Wiederholung mischt oder erfasst
+kein Audio erneut und funktioniert auch nach Freigabe der Audioreferenzen.
+
+Der erste Stop-Task behält sein Ergebnis. Ist ausschließlich seine Metadatenstörung inzwischen
+bestätigt behoben und die WAV erfolgreich, blockiert dieser alte Fehler den nächsten Abschnitt
+oder Mediencleanup nicht. Unbestätigte Persistenzfehler und Audio-/Cleanupfehler bleiben sichtbar.
+Besitz, Abmeldung und Freigabe der bisherigen Medienpipeline bleiben erhalten.
+
+23 Ablaufprüfungen mit isolierten Adaptern und sieben zusätzliche Integrationen prüfen echte
+synthetische CSCore-Capture-/RTP-/WAV-Verarbeitung mit SQLite. PCMA, PCMU und G.722 liefern
+samplegenaue Stereo-WAVs und gemeinsame Metadaten. Tests erhalten fertige Dateien bei fehlender
+Bestätigung/unsicherem Commit, bestätigen exakt erneut, beginnen einen weiteren Abschnitt und
+behalten konkurrierende Zieldateien. Das Journal prüft Rollback und vollständige Wiederholungen
+zusätzlich auf allen fünf nativen/SQLite-Engines. Konkrete Editionsnachweise stehen in Phase 9.
+
+Der ausstehende Metadatenauftrag lebt derzeit im Besitzobjekt. Ein Prozessverlust benötigt den
+noch offenen Host-Recovery-/Dateiabgleich; insbesondere bei ungewissem Startcommit oder fehlgeschlagener
+Startup-Fehlerbestätigung darf nicht blind dieselbe Aufnahme-ID erneut gestartet werden. Getrennte
+Artefaktverwaltung, dauerhafte Konvertierungsjobs, Live-Zeitreferenzen und Aufnahmebedienung bleiben offen.
+Rollback: Hosts auf die vorherige `RecordingSipMediaSessionFactory` zurückstellen und persistente
+Factory-/Journalregistrierungen entfernen. Schema 10 und bisherige Metadaten bleiben erhalten;
+der eigenständige Duplex-Dienst ist weiterhin verfügbar. Es entsteht keine Migration 11.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

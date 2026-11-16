@@ -6,11 +6,18 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Datenbankgrundlage für Aufnahmebeginn, bekanntes Ende, PCM-Format, Framezahl und
+Zuletzt ergänzt: expliziten Aufnahmedienst in beiden Hosts automatisch an das Aufnahmejournal
+angeschlossen. Start-, Abschluss-, Fehler- und Abbruchdaten werden gemeinsam mit den WAV-Verweisen
+transaktional gespeichert. Eine fertiggestellte WAV bleibt bei fehlender DB-Bestätigung erhalten;
+der genaue Metadatenauftrag kann ohne erneute Aufnahme/Mischung wiederholt werden
+(Phase 9, 16.11.2026). Eine ausdrücklich bekannte UTC-Aufnahmeepoche bleibt erforderlich.
+Host-Recovery nach Neustart, Dateiabgleich und dauerhafte Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: Datenbankgrundlage für Aufnahmebeginn, bekanntes Ende, PCM-Format, Framezahl und
 Ergebnis/Fehlerstatus. Migration 10 ergänzt optionale Verlaufszeilen ohne Änderungen an alten Aufnahmen;
 Dapper-Repository mit Schreibversionen, idempotenten Wiederholungen und transaktionaler Wiederherstellung
 für ausdrücklich ausgewählte beendete Gespräche (Phase 9, 16.11.2026). Alle fünf Engines geprüft.
-Automatische Übergabe aus dem Aufnahmedienst, WAV-/MP3-Artefakte und Konvertierungsjobs bleiben offen.
+Die Übergabe aus dem Aufnahmedienst ist im folgenden Teilpunkt ergänzt; getrennte WAV-/MP3-Artefakte
+und Konvertierungsjobs bleiben offen.
 Zuvor ergänzt: Aufnahmeanker aus ausdrücklich verifizierten gemeinsamen RTP-/NTP-Abtastzeitreferenzen
 berechnen. Uhr-/Quellenwechsel, unplausible Taktverläufe, zu weit entfernte Startpositionen und ungültige Offsets
 werden zurückgewiesen; RTP-/NTP-Überläufe bleiben relativ berechenbar. Drei Capture-/UDP-Läufe prüfen
@@ -366,7 +373,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Aufnahmeverlauf mit Migration 10, Dapper-Recovery und Fünf-Engine-Nachweis; Ankerberechnung aus verifizierten gemeinsamen Abtastzeitreferenzen; besitzender Duplex-Dienst mit Call-Zuordnung und Gesprächs-/Host-Cleanup, Sende-/Empfangskopplung, RTP-Paketordnung und CSCore-Abgriff, samplegenaue WAVs, PCM-Sitzung, Zeitachsenmixer und MP3-Konvertierung; automatische Persistenzanbindung und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung und Enddauer, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Host-Recovery-/Dateiabgleich und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2614,9 +2621,46 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Reguläre Startausgabe FinOffice. Nachweise `.capture-metadata-build-{pro,fin}.log`,
   `.capture-metadata-providers-{pro,fin}.log`, `.capture-metadata-db-pro.log` sowie
   `.capture-metadata-{tests,host}-{pro,fin}.log`. Keine Geräte, GUI oder produktiven Datenbanken verwendet.
-  Dies ist die DB-Grundlage: Laufender Aufnahmedienst, Host-Recovery-Automatik, WAV-/MP3-Dateikonsistenz
-  und Konvertierungsjobpersistenz sind noch nicht automatisch daran angeschlossen.
-- [ ] Aufnahmedienst mit den Metadatenrepositories verbinden; WAV-/MP3-Dateireferenzen und
+  Die automatische Übergabe aus dem Aufnahmedienst ergänzt der folgende Teilpunkt. Host-Recovery,
+  vollständiger WAV-/MP3-Dateiabgleich und Konvertierungsjobpersistenz bleiben offen.
+- [x] ✅ Aufnahmedienst mit atomarem Aufnahmejournal verbinden (16.11.2026): beide Hosts verwenden
+  `PersistedSipMediaSessionFactory` mit dem registrierten persistenten Duplex-Dienst. Die unabhängige
+  Audiofactory bleibt ohne Datenbank nutzbar; persistente Aufnahmen fallen bei DB-Fehlern nicht darauf zurück.
+  `RecordingEpochUtc` ist eine ausdrücklich bekannte UTC-Korrelation zum Nullpunkt der gemeinsamen
+  Aufnahmezeitachse. Fehlende, nicht-UTC- oder zukünftige Epochen sowie ungültige WAV-Ziele werden vor
+  dem Journal zurückgewiesen. WAVs liegen unter dem lokalen Aufnahmeverzeichnis; vorhandene
+  Verknüpfungen in diesem Pfad werden abgewiesen. Dies ersetzt keine atomare Absicherung gegen
+  gleichzeitige externe Dateisystemänderungen.
+  `IRecordingJournal` speichert Aufnahmeverweis und Verlauf in derselben Dapper-Transaktion über die
+  wiederverwendeten vorhandenen Schreibpfade. Start beansprucht eine neue ID strikt; ein zweiter
+  Start derselben ID übernimmt keinen laufenden Vorgang. Erst nach DB-Bestätigung werden Zielordner
+  und Aufnahme angelegt. Startupfehler und Abbruch werden ohne behauptetes Medienende gespeichert.
+  Stop prüft Dauergrenzen vor dem Abmelden, finalisiert die WAV und bestätigt danach Verweis, Framezahl,
+  Mediendauer und Status gemeinsam. Ende folgt aus bestätigter UTC-Epoche und finalisierten Frames;
+  zukünftige Endpositionen werden vor Stop abgewiesen. Kein Ende aus Gesprächsdauer oder Callback-Ankunft.
+  Freigabe ohne Stop bricht ab; Gesprächs-/Host-Cleanup wartet diese Persistierung ebenfalls ab.
+  Scheitert die Abschlussbestätigung, bleibt die WAV erhalten und Stop meldet den Persistenzfehler.
+  `IRecordingPersistenceStatus` stellt einen ausstehenden Auftrag und seine ausdrückliche Wiederholung
+  bereit. Dabei bleiben beide erwarteten Versionen, Daten und Änderungszeitpunkt erhalten. Ein unsicherer
+  bereits erfolgter Commit wird beim exakten Wiederholen erkannt; weder Aufnahme noch Mix laufen erneut.
+  Echte Versions-/Besitzkonflikte werden nicht blind überschrieben. Nach bestätigter Wiederholung
+  blockiert der alte Stopfehler keinen neuen Aufnahmeabschnitt; sein ursprünglicher Task bleibt fehlerhaft.
+  23 neue isolierte Ablaufprüfungen, sieben neue Capture-/UDP-/WAV-/SQLite-Integrationen und eine neue
+  Journalprüfung. Samplegenaue PCMA-/PCMU-/G.722-Dateien, Datei-/DB-Fehler, unsicherer Commit, bewahrte
+  Zieldateien, Wiederholung, erneuter Abschnitt, fehlende Epoche, Abbruch und Cleanupfehler geprüft.
+  Journalläufe prüfen echte Transaktionsrollbacks und beide Versionsstände auf allen fünf Engines.
+  Je Edition 346 Console-, 105 DB-, 50 gezielte Core- und zwei App-Hostprüfungen bestanden.
+  `scripts/test-database-providers.ps1` für Pro und FinOffice bestanden: SQLite sowie isolierte
+  native SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Läufe, einschließlich gemeinsamem Journal,
+  striktem Start, vollständiger Wiederholung und Transaktionsrollback bei teilweisen Versionskonflikten.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Reguläre Startausgabe FinOffice. Nachweise `.persisted-capture-{build,providers,tests,core,host}-{pro,fin}.log`
+  und `.persisted-capture-db-pro.log`. Nur synthetisches Audio, isolierte Datenbanken/Dateien und lokale
+  UDP-Loopbacks; keine Audiogeräte, sichtbare GUI oder produktiven Datenbanken verwendet.
+  Keine neue Migration; Schema 10 und alte Daten bleiben erhalten. Der ausstehende Wiederholungsauftrag
+  lebt bisher im Vorgangsspeicher. Neustart-/Dateiabgleich, automatische Live-Zeitreferenzen,
+  Aufnahmebedienung und dauerhafte Konvertierungsjobs bleiben offen.
+- [ ] Host-Recovery und Dateien nach Neustart abgleichen; getrennte WAV-/MP3-Artefakte und
   Konvertierungsstatus/Jobs persistieren. Weitere Migrationen ab Version 11 ergänzen; bestehende
   Migrationen 1–10 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

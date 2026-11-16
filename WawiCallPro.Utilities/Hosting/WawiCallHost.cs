@@ -86,6 +86,7 @@ public static class WawiCallHost
                 services.AddSingleton<ICallNoteRepository, DapperCallNoteRepository>();
                 services.AddSingleton<IRecordingRepository, DapperRecordingRepository>();
                 services.AddSingleton<IRecordingCaptureRepository, DapperRecordingCaptureRepository>();
+                services.AddSingleton<IRecordingJournal, DapperRecordingJournal>();
                 services.AddSingleton<INumberParseLogRepository, DapperNumberParseLogRepository>();
                 services.AddSingleton<IPhoneNumberDiagnostics, PhoneNumberDiagnostics>();
                 services.AddSingleton<DapperPhoneMatchingRepository>();

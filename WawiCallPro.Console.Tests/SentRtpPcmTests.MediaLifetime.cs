@@ -19,7 +19,7 @@ public sealed partial class SentRtpPcmTests
     {
         await using var fixture = new Fixture(codec); fixture.EnableReceiveBuffer(); await fixture.Connect(); using var files = new RecordingFiles();
         using var host = ConsoleCompositionRoot.Build(loadPlugins: false);
-        Assert.IsInstanceOfType<RecordingSipMediaSessionFactory>(host.Services.GetRequiredService<ISipMediaSessionFactory>());
+        Assert.IsInstanceOfType<PersistedSipMediaSessionFactory>(host.Services.GetRequiredService<ISipMediaSessionFactory>());
         Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<ICallRecordingService>());
         await using var media = new RecordingSipMediaSession(new PcmSipMediaSession(new RecordingNativeMedia(fixture.Media), fixture.Tap, fixture.Bridge), DuplexFactory());
         var recording = await media.StartRecordingAsync(DuplexRequest(fixture, files)); var rate = fixture.Format.ClockRate; var block = rate / 50; var input = Samples(block, 0);

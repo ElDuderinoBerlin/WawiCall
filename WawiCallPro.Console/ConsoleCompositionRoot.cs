@@ -18,8 +18,9 @@ internal static class ConsoleCompositionRoot
             if (loadPlugins) services.AddProductPluginRuntime();
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
             services.AddSingleton<WindowsSipMediaSessionFactory>();
-            services.AddSingleton<ISipMediaSessionFactory, RecordingSipMediaSessionFactory>();
+            services.AddSingleton<ISipMediaSessionFactory, PersistedSipMediaSessionFactory>();
             services.AddAudioConversion();
+            services.AddPersistedRecordings();
             services.AddSipTelephony(false);
             services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
         })

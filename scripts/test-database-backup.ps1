@@ -54,6 +54,8 @@ foreach(var item in configurations)
     await RepositoryAcceptance.CompaniesAndCacheAsync(target);
     await RepositoryAcceptance.HistoryAsync(target);
     await RecordingCaptureAcceptance.RunAsync(target);
+    await RecordingJournalAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": atomic recording journal, strict start, complete replay and rollback on partial version conflicts passed.");
     await RecordingCaptureAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
     Console.WriteLine(item.Engine + ": capture lifecycle, idempotent writes, recovery, constraints, concurrency and populated version 9 upgrade passed.");
     await RepositoryAcceptance.RulesAsync(target);

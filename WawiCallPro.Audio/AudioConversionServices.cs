@@ -25,4 +25,11 @@ public static class AudioConversionServices
         services.TryAddSingleton<IRtpAudioPacketBufferFactory, WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>();
         return services;
     }
+
+    /// <summary>Hosts opt into call persistence after registering the shared database journal and application paths.</summary>
+    public static IServiceCollection AddPersistedRecordings(this IServiceCollection services)
+    {
+        services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
+        return services;
+    }
 }

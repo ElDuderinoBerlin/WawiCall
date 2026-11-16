@@ -4,7 +4,8 @@ namespace WawiCallPro.Interfaces.Audio;
 public interface ICallRecordingService
 {
     /// <summary>The request's CallId must identify the currently connected call. Both anchors must share a
-    /// caller-established recording epoch. The returned controller supports explicit Stop/abort; the call
+    /// caller-established recording epoch. Production hosts additionally require RecordingEpochUtc and a
+    /// WAV under the application's recordings root. The returned controller supports explicit Stop/abort; the call
     /// also owns its cleanup. Call end or host shutdown aborts an unstopped recording without publishing a mix.</summary>
     Task<IDuplexPcmRecording> StartRecordingAsync(DuplexPcmRecordingRequest request, CancellationToken cancellationToken = default);
 }

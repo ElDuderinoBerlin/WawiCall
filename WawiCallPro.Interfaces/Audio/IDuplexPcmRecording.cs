@@ -3,6 +3,9 @@ namespace WawiCallPro.Interfaces.Audio;
 /// <summary>Both anchors must refer to the same caller-established recording epoch. No automatic calibration is implied.</summary>
 public sealed record DuplexPcmRecordingRequest(PcmRecordingRequest Recording, SentPcmTimelineAnchor Sent, RtpPcmTimelineAnchor Received)
 {
+    /// <summary>Optional for standalone audio. Persisted call recording requires the caller-verified UTC instant
+    /// corresponding to zero on the shared recording timeline, not call start or packet arrival.</summary>
+    public DateTimeOffset? RecordingEpochUtc { get; init; }
     public override string ToString() => nameof(DuplexPcmRecordingRequest);
 }
 
