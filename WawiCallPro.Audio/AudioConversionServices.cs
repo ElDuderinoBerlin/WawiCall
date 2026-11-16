@@ -31,8 +31,10 @@ public static class AudioConversionServices
     {
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
+        services.TryAddSingleton<IInterruptedRecordingRecovery, InterruptedRecordingRecovery>();
+        services.TryAddSingleton<RecordingRecoverySipPersistence>();
         services.TryAddSingleton<WawiCallPro.Telephony.Sip.SipCallPersistence>();
-        services.TryAddSingleton<WawiCallPro.Telephony.Sip.ISipCallPersistence, RecordingRecoverySipPersistence>();
+        services.TryAddSingleton<WawiCallPro.Telephony.Sip.ISipCallPersistence, InterruptedRecordingSipPersistence>();
         return services;
     }
 }

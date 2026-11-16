@@ -6,7 +6,14 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: geschützte dauerhafte Zustellaufträge für Aufnahmeabschlüsse und Wiederanlauf in
+Zuletzt ergänzt: Wiederanlauf für unterbrochene DB-Aufnahmevorgänge ohne WAV und Abschlussauftrag.
+Nach Gesprächsrecovery und Zustellung vorhandener Abschlussaufträge werden ausschließlich eigene,
+beendete Gespräche mit noch laufendem Aufnahmeverlauf geprüft. Bei nachgewiesen fehlender WAV werden
+Verweis und Verlauf atomar als fehlgeschlagen/unterbrochen bestätigt; Medienende und Dauer bleiben
+unbekannt (Phase 9, 16.11.2026). 15 neue Prüfungen einschließlich 103-Vorgänge-Paging bestanden;
+die neue Abfrage ist auf allen fünf Engines geprüft. Vorhandene/unbestätigte WAVs, verwaiste Dateien,
+vollständiger Dateiabgleich und Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: geschützte dauerhafte Zustellaufträge für Aufnahmeabschlüsse und Wiederanlauf in
 beiden Hosts. Nach der SIP-Gesprächswiederherstellung werden nur nachweisbare Aufträge für eigene,
 beendete Gespräche an dieselbe Datenbank zugestellt; fertige WAVs werden dabei nicht erneut gemischt.
 DPAPI, Dateihash, WAV-Prüfung, exakte Schreibversionen und Dateisperren sichern diesen Ablauf ab
@@ -380,7 +387,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Recovery ohne Abschlussauftrag, vollständiger Dateiabgleich und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2695,9 +2702,45 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Keine SQL-/Migrationsänderung; vorhandene Fünf-Engine-Journalnachweise bleiben unverändert.
   Grenze: Erst ein vollständig abgelegter Auftrag ist wiederholbar. Prozessverlust zwischen
   WAV-Veröffentlichung und Ablage, unsicherer Startcommit und unfertige/verwaiste Dateien sind
-  weiterhin offen. Kein Wiederaufnehmen von Audio und kein vollständiger Dateiabgleich.
-- [ ] Host-Recovery ohne abgelegten Abschlussauftrag und vollständigen Dateiabgleich nach Neustart
-  ergänzen; getrennte WAV-/MP3-Artefakte und
+  damit noch nicht vollständig abgeglichen. Nachweisbare unterbrochene DB-Vorgänge ohne WAV behandelt
+  der folgende Teilpunkt. Kein Wiederaufnehmen von Audio und kein vollständiger Dateiabgleich.
+- [x] ✅ Unterbrochene DB-Aufnahmen ohne WAV und Abschlussauftrag im Host wiederherstellen (16.11.2026):
+  `IInterruptedRecordingQuery` liest mit Dapper nur Capturing-/Stopping-Verläufe zu noch ausstehenden
+  WAV-Verweisen ohne Dauer, deren Gespräch bereits beendet/fehlgeschlagen ist und zum gespeicherten
+  lokalen Arbeitsplatz gehört. Terminale Verläufe, andere Verfügbarkeiten/Formate, fremde/laufende
+  Gespräche sowie Altaufnahmen ohne Capturezeile bleiben unverändert. Exklusiver Recording-ID-Cursor
+  und begrenzte Seiten verhindern übersprungene Vorgänge, wenn frühere Kandidaten abgeschlossen werden.
+  `InterruptedRecordingSipPersistence` führt zuerst die bestehende Gesprächsrecovery und die geschützte
+  Abschlusszustellung aus; erst danach folgt der neue Abgleich unter derselben SIP-Kontolease.
+  Ohne vorhandene Arbeitsplatz-ID oder lesbare Abschlussauftragsliste wird nichts unterbrochen.
+  Aufträge haben Vorrang, auch wenn ihr Inhalt beschädigt ist oder die referenzierte WAV fehlt.
+  `LocalRecordingFileProbe` unterscheidet tatsächliche Abwesenheit von Zugriffsfehlern, Reparsepunkten,
+  ungültigen Verzeichniskomponenten und vorhandenen Dateien/Verzeichnissen. Vorhandene Artefakte werden
+  weder gelöscht noch als erfolgreiche Aufnahme übernommen. Diese Pfadprüfung ist keine atomare
+  Absicherung gegen sämtliche externen gleichzeitigen Dateisystemänderungen.
+  Bei fehlender WAV speichert das bestehende dauerhafte Journal Verweis Failed und Capture Aborted/
+  Interrupted in einer Transaktion mit beiden gelesenen Schreibversionen. Beginn und Format bleiben
+  erhalten, Ende/Frames/Dauer unbekannt. Änderungszeit läuft auch bei zurückgestellter Uhr nicht hinter
+  Gesprächs-/Metadatenstand zurück. DB-Ausfall bewahrt den geschützten Abbruchauftrag; die bestehende
+  Abschlussrecovery kann ihn später exakt zustellen. Versionskonflikte überschreiben keine Änderungen.
+  15 neue Prüfungen: 13 isolierte Ablauf-/SQLite-Integrationen, ein Dateiprobe-Test und eine gemeinsame
+  Query-Abnahme. 103 Vorgänge über mehrere Seiten, vorhandene Dateien/Verzeichnisse, beschädigte und
+  ausstehende Aufträge, fehlende/fremde Identität, Zugriffssperre, Abbruch, DB-Ausfall, Versionskonflikt
+  und wirkungslose Wiederholung geprüft. Sechs bestehende PCMA-/PCMU-/G.722-Abschlussläufe prüfen nun
+  auch die neue äußere Recovery-Reihenfolge ohne erneute Audioerfassung.
+  `scripts/test-database-providers.ps1` für beide Editionen bestanden: SQLite, SQL Server 15,
+  PostgreSQL 17, MySQL 8.4 und MariaDB 11.1 auf isolierten Instanzen; Filter und fortgesetzte Seiten
+  nach Änderung voriger Kandidaten auf jeder Engine nachgewiesen. Je Edition 373 Console-, 106 DB-,
+  zwölf gezielte Utilities-, zehn SIP- und zwei App-Hostprüfungen bestanden. Beide Solution-Editionen
+  Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; Startausgabe FinOffice.
+  Nachweise `.interrupted-recording-{build,providers,tests,utilities,sip,host}-{pro,fin}.log`.
+  Ergänzter Zeitrücklauf-Nachweis: `.interrupted-recording-clock-{pro,fin}.log`.
+  Keine Migration und keine GUI-/Gerätebedienung; Schema 10 und bestehende Daten bleiben erhalten.
+  Grenzen: vorhandene WAVs ohne überprüfbaren Abschluss, verwaiste/partielle Audiodateien und Vorgänge
+  ohne nachweisbare DB-Zeilen werden nicht automatisch rekonstruiert. Vollständiger Dateiabgleich,
+  Artefaktverwaltung und Konvertierungsjobs bleiben offen.
+- [ ] Vorhandene/unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
+  getrennte WAV-/MP3-Artefakte und
   Konvertierungsstatus/Jobs persistieren. Weitere Migrationen ab Version 11 ergänzen; bestehende
   Migrationen 1–10 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

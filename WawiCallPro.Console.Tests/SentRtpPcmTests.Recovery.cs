@@ -45,7 +45,9 @@ public sealed partial class SentRtpPcmTests
         var call = (await calls.GetAsync(request.Recording.CallId))!.History.Call; var origin = call.Origin!;
         var recovered = Recovery(files, await Pending(files, createSettings: false), new Identity(origin.WorkstationId));
         Assert.AreEqual(new RecordingJournalRecoveryResult(0, 1, 0), await recovered.RecoverAsync());
-        var callRecovery = new RecordingRecoverySipPersistence(new SipCallPersistence(calls, new Origin(origin), TimeProvider.System), recovered);
+        var callRecovery = new InterruptedRecordingSipPersistence(
+            new RecordingRecoverySipPersistence(new SipCallPersistence(calls, new Origin(origin), TimeProvider.System), recovered),
+            Interrupted(files, outbox, origin.WorkstationId));
         await callRecovery.RecoverAsync();
         Assert.AreEqual(CallState.Failed, (await calls.GetAsync(call.Id))!.History.Call.State);
         Assert.AreEqual(CallEndReason.Interrupted, (await calls.GetAsync(call.Id))!.History.Call.EndReason);

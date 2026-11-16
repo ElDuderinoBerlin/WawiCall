@@ -726,10 +726,62 @@ Builds und weitere Editionsprüfungen sind im Phase-9-Teilpunkt des Neuaufbaupla
 
 Die Garantie beginnt erst mit vollständig veröffentlichtem Auftrag: Ein Prozessverlust nach WAV-Abschluss
 vor dessen Ablage, unsichere Startcommits und unfertige/verwaiste Audiodateien benötigen weiterhin einen
-gesonderten Abgleich. Die Recovery zeichnet nicht erneut auf, mischt nicht erneut und startet keine
+gesonderten Abgleich. Der folgende Teilpunkt behandelt nachweisbare DB-Aufnahmen ohne WAV/Abschlussauftrag.
+Die Recovery zeichnet nicht erneut auf, mischt nicht erneut und startet keine
 Konvertierung. Schema 10 bleibt unverändert. Rollback: Journalregistrierung auf `DapperRecordingJournal`
 und SIP-Persistenzregistrierung auf `SipCallPersistence` zurückstellen; geschützte Aufträge und WAVs für
 späteren Abgleich erhalten, nicht löschen. Vorhandene Daten werden dabei nicht zurückmigriert.
+
+### Unterbrochene Aufnahmen ohne WAV und Abschlussauftrag (16.11.2026)
+
+`InterruptedRecordingSipPersistence` ergänzt die Startreihenfolge beider Hosts: SIP-Gesprächsrecovery,
+geschützte Abschlusszustellung, danach `IInterruptedRecordingRecovery`. Die bestehende Kontolease ist
+weiterhin Voraussetzung; es wird kein zusätzlicher automatisch verbindender Dienst gestartet.
+Die gespeicherte lokale Arbeitsplatz-ID wird nur gelesen. Ohne sie oder ohne lesbare Liste ausstehender
+Abschlussaufträge darf der neue Abgleich keine Aufnahmen unterbrechen.
+
+`DapperInterruptedRecordingQuery` liest in der gewählten Kommunikationsdatenbank ausschließlich eigene,
+bereits beendete/fehlgeschlagene Gespräche mit noch laufenden Capturing-/Stopping-Verläufen. Der
+zugehörige WAV-Verweis muss Pending sein und noch keine Dauer behaupten. Terminale Capturezustände,
+andere Verfügbarkeiten/Formate und Altaufnahmen ohne Capturezeile sind ausgeschlossen. Parametrisierte
+Abfragen verwenden den vorhandenen Repository-Context mit serialisierbarem Lesesnapshot. Begrenzte
+Seiten und ein exklusiver Recording-ID-Cursor ersetzen einen veränderlichen Offset: Der Abschluss einer
+vorigen Seite darf die nachfolgenden Kandidaten nicht überspringen. Beide Schreibversionen werden gelesen.
+
+Jeder noch vorhandene Abschlussauftrag blockiert die Unterbrechung seiner Recording-ID, auch bei
+beschädigtem Inhalt oder fehlender WAV. Ein während des Abgleichs neu veröffentlichter, abweichender
+Auftrag wird durch das exklusive/exakte Staging des bestehenden Journals geschützt. Ein unlesbares
+Auftragsverzeichnis wird nicht als leere Liste behandelt. `LocalRecordingFileProbe` prüft die relative
+Referenz unter dem Aufnahmeverzeichnis komponentenweise. Nur tatsächliche File-/DirectoryNotFound-Fälle
+belegen Abwesenheit. Zugriffsfehler, vorgefundene Reparsepunkte oder eine Datei anstelle eines nötigen
+Verzeichnisses sperren die Zustellung. Jede vorhandene Datei, auch eine unbekannte oder ungültige WAV,
+und jedes Verzeichnis am Ziel bleiben erhalten und werden zum weiteren Abgleich zurückgestellt.
+Dies ist keine atomare Sperre gegen sämtliche gleichzeitigen externen Dateisystemänderungen.
+
+Nur bei fehlender WAV und fehlendem Abschlussauftrag wird der Verlauf als Aborted/Interrupted und der
+Verweis als Failed gemeinsam über `IRecordingJournal` bestätigt. Beginn, Identität, Zielpfad und PCM-Format
+bleiben unverändert. Ende, Framezahl und Dauer bleiben NULL; Gesprächsende ist kein erfundenes Medienende.
+Die Änderungszeit ist mindestens so neu wie Gesprächszustand und beide Metadatenstände, auch wenn die
+Systemuhr zurückgestellt wurde. Beide erwarteten Schreibversionen verhindern blindes Überschreiben;
+ein Teilkonflikt rollt die gemeinsame Transaktion zurück. Der Abbruchauftrag wird vor DB-Zustellung
+geschützt abgelegt. Scheitert die Bestätigung, kann die vorhandene Abschlussrecovery ihn nach Neuaufbau
+der Dienste exakt erneut zustellen. Wiederholung eines bestätigten Abgleichs verändert keine Versionen.
+Warnungen enthalten keine rohen Ausnahmeinhalte oder Dateipfade; Abbruch bleibt beobachtbar.
+
+13 neue isolierte Ablauf-/SQLite-Fälle prüfen Reihenfolge, Wiederholung, 103 Aufnahmevorgänge mit
+Seitenwechsel, erhaltene Artefakte/Aufträge, Besitz-/Zugriffssperren, DB-Ausfall und konkurrierende
+Metadatenänderung. Eine zusätzliche Dateiprüfung unterscheidet Abwesenheit von ungültigen Elternpfaden.
+Die gemeinsame Query-Abnahme läuft auf SQLite und getrennten isolierten SQL-Server-, PostgreSQL-,
+MySQL- und MariaDB-Instanzen beider Editionen. Sechs bestehende synthetische Capture-/UDP-/WAV-Läufe
+prüfen die neue äußere Startreihenfolge mit erfolgreicher Abschlusszustellung vor dem Abgleich.
+Dies ersetzt keinen echten Prozessabbruch oder eine Geräteabnahme. Editionsnachweise stehen in Phase 9.
+
+Vorhandene WAVs ohne überprüfbaren Abschluss, unreferenzierte/partielle Dateien und Vorgänge ohne
+nachweisbare DB-Zeilen werden weiterhin nicht automatisch rekonstruiert. Es werden keine Audiodateien
+gelöscht oder neu gemischt. Schema 10 bleibt unverändert. Rollback: Die ISipCallPersistence-Registrierung
+auf `RecordingRecoverySipPersistence` zurückstellen; die geschützte Abschlusszustellung bleibt erhalten,
+der zusätzliche Unterbrechungsabgleich entfällt. Bereits bestätigte Zustände bleiben erhalten und dürfen
+nicht pauschal zurückgesetzt werden. Geschützte Aufträge und Audioartefakte für späteren Abgleich bewahren.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 
