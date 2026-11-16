@@ -30,6 +30,9 @@ public static class AudioConversionServices
     public static IServiceCollection AddPersistedRecordings(this IServiceCollection services)
     {
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
+        services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
+        services.TryAddSingleton<WawiCallPro.Telephony.Sip.SipCallPersistence>();
+        services.TryAddSingleton<WawiCallPro.Telephony.Sip.ISipCallPersistence, RecordingRecoverySipPersistence>();
         return services;
     }
 }

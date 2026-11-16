@@ -6,12 +6,19 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: expliziten Aufnahmedienst in beiden Hosts automatisch an das Aufnahmejournal
+Zuletzt ergänzt: geschützte dauerhafte Zustellaufträge für Aufnahmeabschlüsse und Wiederanlauf in
+beiden Hosts. Nach der SIP-Gesprächswiederherstellung werden nur nachweisbare Aufträge für eigene,
+beendete Gespräche an dieselbe Datenbank zugestellt; fertige WAVs werden dabei nicht erneut gemischt.
+DPAPI, Dateihash, WAV-Prüfung, exakte Schreibversionen und Dateisperren sichern diesen Ablauf ab
+(Phase 9, 16.11.2026). 25 neue Prüfungen bestanden. Prozessverlust vor der Auftragsablage,
+unfertige/verwaiste Audiodateien, vollständiger Dateiabgleich und Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: expliziten Aufnahmedienst in beiden Hosts automatisch an das Aufnahmejournal
 angeschlossen. Start-, Abschluss-, Fehler- und Abbruchdaten werden gemeinsam mit den WAV-Verweisen
 transaktional gespeichert. Eine fertiggestellte WAV bleibt bei fehlender DB-Bestätigung erhalten;
 der genaue Metadatenauftrag kann ohne erneute Aufnahme/Mischung wiederholt werden
 (Phase 9, 16.11.2026). Eine ausdrücklich bekannte UTC-Aufnahmeepoche bleibt erforderlich.
-Host-Recovery nach Neustart, Dateiabgleich und dauerhafte Konvertierungsjobs bleiben offen.
+Die nachfolgende Recovery ergänzt dauerhaft abgelegte Abschlussaufträge; vollständiger Dateiabgleich
+und dauerhafte Konvertierungsjobs bleiben offen.
 Zuvor ergänzt: Datenbankgrundlage für Aufnahmebeginn, bekanntes Ende, PCM-Format, Framezahl und
 Ergebnis/Fehlerstatus. Migration 10 ergänzt optionale Verlaufszeilen ohne Änderungen an alten Aufnahmen;
 Dapper-Repository mit Schreibversionen, idempotenten Wiederholungen und transaktionaler Wiederherstellung
@@ -373,7 +380,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Host-Recovery-/Dateiabgleich und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Recovery ohne Abschlussauftrag, vollständiger Dateiabgleich und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2658,9 +2665,39 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   und `.persisted-capture-db-pro.log`. Nur synthetisches Audio, isolierte Datenbanken/Dateien und lokale
   UDP-Loopbacks; keine Audiogeräte, sichtbare GUI oder produktiven Datenbanken verwendet.
   Keine neue Migration; Schema 10 und alte Daten bleiben erhalten. Der ausstehende Wiederholungsauftrag
-  lebt bisher im Vorgangsspeicher. Neustart-/Dateiabgleich, automatische Live-Zeitreferenzen,
-  Aufnahmebedienung und dauerhafte Konvertierungsjobs bleiben offen.
-- [ ] Host-Recovery und Dateien nach Neustart abgleichen; getrennte WAV-/MP3-Artefakte und
+  lebte zunächst im Vorgangsspeicher; der folgende Teilpunkt ergänzt seine dauerhafte Ablage.
+  Vollständiger Dateiabgleich, automatische Live-Zeitreferenzen, Aufnahmebedienung und dauerhafte
+  Konvertierungsjobs bleiben offen.
+- [x] ✅ Dauerhafte Aufnahmeabschlussaufträge und begrenzten Host-Wiederanlauf anbinden (16.11.2026):
+  `DurableRecordingJournal` legt terminale Metadaten vor der DB-Zustellung unter `recording-pending`
+  ab. Beide Schreibversionen, Änderungszeit, Call-/Recording-ID, Ergebnis und relative WAV-Referenz
+  bleiben exakt erhalten. DPAPI CurrentUser mit eigenem Zweck schützt die Nutzdaten; Produktlinie und
+  unverändertes Start-Datenbankziel werden über einen Hash gebunden. Keine Klartext-Ersatzablage.
+  Temporäre Datei mit Flush und anschließendem Move, exklusive Vorgangslease und Löschen erst nach
+  bestätigter DB-Transaktion. Ein unsicherer Commit wird über das bestehende exakte Journal-Replay
+  erkannt. Fehlgeschlagene Bestätigung oder Bereinigung lässt den Auftrag zur Wiederholung liegen.
+  Fertige WAVs werden beim Ablegen gehasht; beim Wiederöffnen müssen Hash, PCM-WAV-Header, Abtastrate,
+  Kanäle und Framezahl stimmen. Ein Lesehandle sperrt Schreiben/Löschen bis zur Bestätigung.
+  Abbruch-/Fehleraufträge benötigen keine WAV und behaupten kein unbekanntes Medienende.
+  Beide Hosts registrieren die Recovery über DI. Beim SIP-Verbindungsaufbau läuft sie nach bestehender
+  Gesprächsrecovery unter der bereits erworbenen Kontolease. Nur beendete/fehlgeschlagene Gespräche
+  des gespeicherten lokalen Arbeitsplatzes sind zustellbar. Fehlende Identität, fremde/laufende
+  Gespräche, Ziel-/Versionskonflikte, beschädigte Aufträge oder geänderte/fehlende WAVs werden nicht
+  überschrieben oder verworfen. Fehler erzeugen Warnungen ohne rohe Pfade oder Ausnahmetexte.
+  25 neue Prüfungen: elf Outbox-Fälle und 14 Wiederanlauffälle einschließlich tatsächlicher
+  synthetischer CSCore-/UDP-/WAV-Verarbeitung für PCMA, PCMU und G.722, DB-Ausfall sowie unbestätigtem
+  Commit. Neu aufgebaute Dienste öffnen dieselben geschützten Dateien; kein Betriebssystem-Prozessabbruch
+  simuliert. Je Edition 360 Console-, 105 DB-, 50 gezielte Core-, elf Outbox-, zehn SIP- und zwei
+  App-Hostprüfungen bestanden. Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler,
+  je 26 bekannte externe CSCore-Warnungen. Reguläre Startausgabe FinOffice.
+  Nachweise `.recording-recovery-{build,tests,db,core,outbox,sip,host}-{pro,fin}.log`.
+  Nur synthetische Daten, isolierte Dateien/SQLite und Loopbacks; keine GUI oder Audiogeräte.
+  Keine SQL-/Migrationsänderung; vorhandene Fünf-Engine-Journalnachweise bleiben unverändert.
+  Grenze: Erst ein vollständig abgelegter Auftrag ist wiederholbar. Prozessverlust zwischen
+  WAV-Veröffentlichung und Ablage, unsicherer Startcommit und unfertige/verwaiste Dateien sind
+  weiterhin offen. Kein Wiederaufnehmen von Audio und kein vollständiger Dateiabgleich.
+- [ ] Host-Recovery ohne abgelegten Abschlussauftrag und vollständigen Dateiabgleich nach Neustart
+  ergänzen; getrennte WAV-/MP3-Artefakte und
   Konvertierungsstatus/Jobs persistieren. Weitere Migrationen ab Version 11 ergänzen; bestehende
   Migrationen 1–10 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

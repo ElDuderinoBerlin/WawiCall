@@ -99,6 +99,7 @@ public sealed partial class SentRtpPcmTests
         private readonly string _root = Path.Combine(Path.GetTempPath(), "wcp-persistent-wave-" + Guid.NewGuid().ToString("N"));
         private DatabaseTarget _target = null!; private Guid _id;
         internal ApplicationPaths Paths { get; }
+        internal DatabaseTarget Target => _target;
         internal string Output => Path.Combine(Paths.RecordingsDirectory, "captured.wav");
         internal IRecordingJournal Journal { get; private set; } = null!;
         internal PersistedFiles() => Paths = new(new ConfigurationLocation(_root));
