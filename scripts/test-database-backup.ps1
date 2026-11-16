@@ -43,7 +43,7 @@ foreach(var item in configurations)
             Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
         }
         await ProviderCompatibilityAcceptance.RunAsync(target);
-        Console.WriteLine(item.Engine + ": migrations 1-10, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
+        Console.WriteLine(item.Engine + ": migrations 1-11, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
     }
     if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else
@@ -55,6 +55,9 @@ foreach(var item in configurations)
     await RepositoryAcceptance.HistoryAsync(target);
     await RecordingCaptureAcceptance.RunAsync(target);
     await RecordingJournalAcceptance.RunAsync(target);
+    await RecordingArtifactAcceptance.RunAsync(target);
+    await RecordingArtifactAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
+    Console.WriteLine(item.Engine + ": canonical WAV/MP3 artifacts, fingerprints, ownership, conflicts, constraints and populated version 10 upgrade passed.");
     await InterruptedRecordingQueryAcceptance.RunAsync(target);
     Console.WriteLine(item.Engine + ": interrupted capture query, workstation/terminal filters and stable keyset pages passed.");
     Console.WriteLine(item.Engine + ": atomic recording journal, strict start, complete replay and rollback on partial version conflicts passed.");

@@ -48,6 +48,7 @@ public sealed partial class AppShellTests
             var captures = host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>();
             Assert.IsInstanceOfType<WawiCallPro.Database.Repositories.DapperRecordingCaptureRepository>(captures);
             Assert.AreSame(captures, host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>());
+            Assert.IsInstanceOfType<WawiCallPro.Database.Repositories.DapperRecordingArtifactRepository>(host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingArtifactRepository>());
             var persisted = host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>();
             Assert.IsInstanceOfType<PersistedDuplexPcmRecordingFactory>(persisted);
             Assert.AreSame(persisted, host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>());

@@ -565,9 +565,9 @@ relative Dateireferenzen mit Call-ID/Aufnahme-ID. Ausstehende Repositories und H
 
 Die Recording-Struktur enthält Pfad, Format, Dauer und Verfügbarkeit. Migration 10 ergänzt optional
 Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Capturevorgangs. Die automatische Übergabe aus
-dem Aufnahmedienst ergänzt der Journal-/Dienstanschluss unten. Getrennte WAV-/MP3-Artefakte und
-Konvertierungsjobs bleiben auszuarbeiten;
-weitere Migrationen beginnen ab Version 11. Bestehende Migrationen und Daten bleiben erhalten.
+dem Aufnahmedienst ergänzt der Journal-/Dienstanschluss unten. Migration 11 ergänzt optionale,
+getrennte WAV-/MP3-Dateimetadaten. Ihr Anschluss an die Dateidienste und dauerhafte Konvertierungsjobs
+bleiben auszuarbeiten; weitere Migrationen beginnen ab Version 12. Bestehende Migrationen und Daten bleiben erhalten.
 Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den Metadaten abgleichen.
 Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
 
@@ -613,7 +613,8 @@ SQLite sowie isolierten nativen SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Ins
 Produktlinien. Die bestehenden Migrations-/Repository-/Hostprüfungen bleiben Teil des Providerlaufs.
 
 Der folgende Journal-/Dienstanschluss ergänzt die automatische Übergabe aus Aufnahmeaktionen.
-Getrennte WAV-/MP3-Artefakte und dauerhafte Konvertierungsjobs fehlen weiterhin. Das Einzelrepository
+Optionale WAV-/MP3-Artefaktmetadaten ergänzt Migration 11 weiter unten; ihr Dateidienst-Anschluss und
+dauerhafte Konvertierungsjobs fehlen weiterhin. Das Einzelrepository
 ändert keine Dateiverfügbarkeit und bestätigt keine Dateiinhalte; vorhandene Aufnahmezeilen, Dateien
 und unabhängige Abgriffdienste bleiben nutzbar.
 Rollback eines bereits angewendeten Schemas erfolgt über die vorherige Datenbanksicherung;
@@ -782,6 +783,56 @@ gelöscht oder neu gemischt. Schema 10 bleibt unverändert. Rollback: Die ISipCa
 auf `RecordingRecoverySipPersistence` zurückstellen; die geschützte Abschlusszustellung bleibt erhalten,
 der zusätzliche Unterbrechungsabgleich entfällt. Bereits bestätigte Zustände bleiben erhalten und dürfen
 nicht pauschal zurückgesetzt werden. Geschützte Aufträge und Audioartefakte für späteren Abgleich bewahren.
+
+### Optionale WAV-/MP3-Artefaktmetadaten (16.11.2026)
+
+Migration 11 ergänzt `recordingartifacts` als optionale Kindtabelle von `recordings`. Jede Aufnahme
+kann je ein kanonisches WAV- und MP3-Artefakt mit eigener ID, relativer Dateireferenz, Verfügbarkeit,
+Dateigröße, SHA-256, Erstellungs-/Änderungszeit und Schreibversion besitzen. Die Call-ID wird aus der
+Elternaufnahme gelesen. Bestehende Aufnahmeverweise und Captureverläufe bleiben unverändert; aus alten
+Metadaten werden keine behaupteten Dateien oder Fingerprints rückgefüllt. Alle zehn neuen Spalten sind
+einzeln in [Datenbank-Tabellen-und-Spalten](Datenbank-Tabellen-und-Spalten.md#recordingartifacts--getrennte-wav--und-mp3-dateimetadaten) erklärt.
+
+Tabellen, Spalten und eindeutiger Index werden in der Migration mit der regulären FluentMigrator-API
+definiert. Native Inline-Checks ergänzen Typ-/Wertebereiche, relative Pfade, Dateiendung, Hashformat,
+Zeiten und Ergebnisfelder. Der Fremdschlüssel verhindert verwaiste Artefakte; die eindeutige Kombination
+aus Recording-ID und Format verhindert doppelte kanonische Artefakte. Globale Dateinamenkollisionen
+zwischen verschiedenen Aufnahmen werden dadurch nicht geprüft und bleiben Aufgabe der Dateidienste.
+
+`IRecordingArtifactRepository` ist im gemeinsamen Host als Dapper-Adapter registriert. Konstruktion
+öffnet keine Datenbank oder Datei. Schreiboperationen laufen im vorhandenen serialisierbaren Context
+mit Eltern-/Call-Prüfung und optimistischer Schreibversion. ID, Aufnahmebesitz, Format und Pfad bleiben
+unveränderlich. Exakte Wiederholung des letzten bestätigten Auftrags mit vorheriger Version und gleicher
+Änderungszeit liefert denselben Stand; ein Versions-/Inhaltskonflikt wird nicht blind überschrieben.
+WAV- und MP3-Metadaten ändern weder Gesprächsrevision noch Capturezustand oder alten Aufnahmeverweis.
+
+Ein Artefakt wird zunächst Pending ohne Größe/Hash registriert. Danach sind Available mit positiver
+Dateigröße und kanonischem SHA-256 oder Failed ohne Fingerprint möglich. Failed kann unter derselben ID
+wieder Pending werden; dadurch entstehen bei erneutem Versuch keine zusätzlichen Artefakte. Einmal
+bestätigte Fingerprints bleiben erhalten: Available und Missing wechseln ausschließlich unter Erhalt
+von Größe und Prüfsumme. Das erlaubt den späteren Abgleich mit unveränderten Dateien. Ein kontrollierter
+Austausch des bestätigten Inhalts benötigt einen eigenen Ablauf für neue Inhaltsgenerationen; er ist
+mit dem jetzigen Metadaten-Schreibpfad ausdrücklich nicht implementiert.
+
+Das Repository führt keine Dateiprüfung aus, berechnet keine Hashes, erzeugt keine Audiodateien und
+startet keine Konvertierungsjobs. Die Eingaben eines künftigen Dateidienstes müssen den tatsächlich
+geprüften Dateien entsprechen. Der Katalog wird noch nicht automatisch durch Aufnahmedienst oder
+Encoder befüllt; dies ist die Datenbankgrundlage für den folgenden Anschluss und vollständigen Abgleich.
+Alte Available-Verweise werden ohne neue Prüfnachweise nicht in den Artefaktkatalog übernommen.
+
+19 neue Prüfungen decken Vertragsfehler, Lebenszyklus, Besitz-/Pfad-/Hashkonflikte, Schreibversionen,
+exakte Wiederholung, Wiederanlauf nach Fehler, Versionserschöpfung, Abbruch, konkurrierende Schreiber,
+native Constraints und ein gefülltes Upgrade von Version 10 ab. Jede neue Spalte wird mit der deutschen
+Dokumentation verglichen. Alle Migrationen werden einzeln auf ihre Tabellenzahlen geprüft; die bestehenden
+Version-9-Upgrades erhalten ebenfalls alte Daten. Dieselbe Artefakt-Abnahme und das gefüllte Version-10-
+Upgrade laufen auf SQLite und isolierten SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Instanzen beider
+Editionen. Build-/Editionsnachweise stehen im Phase-9-Teilpunkt des Neuaufbauplans.
+
+Rollback eines bereits angewendeten Schemas benötigt eine geprüfte Sicherung vor Migration 11; ein
+Schema-10-Host wird vom bestehenden Versionsschutz gesperrt. Keine manuelle Entfernung der Tabelle oder
+Rücksetzung von Versionseinträgen. Migrationen 1–10 bleiben unverändert. Laufzeitdienste können den noch
+optionalen Katalog ungenutzt lassen, ohne bestehende Aufnahmefunktionen zu entfernen. Dauerhafte Jobs,
+Inhaltsgenerationen und der Abgleich vorhandener/verwaister Dateien bleiben weitere offene Punkte.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

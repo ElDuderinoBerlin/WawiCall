@@ -335,13 +335,38 @@ Start-/Endzeiten. Pfad, Format und Dateiverfügbarkeit bleiben in `recordings`; 
 | `writeversion` | Ganzzahl 64 Bit | Nein | Eigene optimistische Schreibversion ab 1; unabhängig von Gesprächsrevision und Aufnahme-Dateimetadaten. |
 | `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt des zuletzt bestätigten Metadatenstands; nicht vor bekanntem Aufnahmebeginn/-ende. |
 
+## recordingartifacts – Getrennte WAV- und MP3-Dateimetadaten
+
+Optionale Ergänzung ab Migration 11. Je Aufnahme ist höchstens ein kanonisches Artefakt pro Format
+zulässig; WAV und MP3 erhalten getrennte IDs, Pfade, Verfügbarkeit und Schreibversionen. Bestehende
+Aufnahmeverweise und Verläufe werden nicht verändert und erhalten keine automatisch erfundenen Artefakte.
+Die Call-ID wird über `recordings` gelesen. Das Repository prüft keine Audiodateien und berechnet
+keine Hashes; verfügbare Metadaten müssen später vom zuständigen Dateidienst bestätigt werden.
+
+| Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
+|---|---|---|---|
+| `id` | Kanonische GUID (32) | Nein | Stabile Primärschlüssel-ID dieses Dateiartefakts; bei Wiederholungen und erneutem Versuch wiederverwenden. |
+| `recordingid` | Kanonische GUID (32) | Nein | Fremdschlüssel auf die übergeordnete Aufnahme in `recordings`; zusammen mit `format` eindeutig. |
+| `format` | Ganzzahl 32 Bit | Nein | 1 = WAV, 2 = MP3. Je Aufnahme maximal ein Eintrag pro Format; Format und Identität bleiben nach dem Anlegen unverändert. |
+| `relativepath` | Unicode-Text (1024) | Nein | Stabiler relativer Pfad unter dem Aufnahmeverzeichnis mit passender Dateiendung; keine Quellmaschinenpfade. Die Pfadidentität ist nach dem Anlegen unveränderlich. |
+| `availability` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = als verfügbar bestätigt, 2 = zuvor bestätigte Datei fehlt, 3 = Erstellung fehlgeschlagen. Das Repository führt keine aktuelle Dateisystemprüfung aus. |
+| `bytelength` | Ganzzahl 64 Bit | Ja | Positive bestätigte Dateigröße in Bytes bei Verfügbarkeit 1 oder 2. Bei 0 oder 3 unbekannt; nach erster Bestätigung unveränderlich. |
+| `sha256` | Kanonischer Hextext (64) | Ja | Bestätigte SHA-256-Prüfsumme in ASCII-Kleinbuchstaben bei Verfügbarkeit 1 oder 2; zusammen mit `bytelength` gesetzt. Beim Fehlend-Markieren erhalten und nicht durch ungeprüfte Dateiinhalte ersetzen. |
+| `writeversion` | Ganzzahl 64 Bit | Nein | Eigene optimistische Schreibversion ab 1; unabhängig von Aufnahmeverweis, Captureverlauf und Gesprächsrevision. |
+| `createdatutc` | UTC-Ticks | Nein | Zeitpunkt der erstmalig bestätigten Artefaktregistrierung; bleibt bei Wiederholungen und Statusänderungen erhalten. |
+| `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt des zuletzt bestätigten Metadatenstands; mindestens Erstellungszeit und nicht rückwärts gegenüber dem vorherigen Schreibstand. |
+
+Ein ausstehendes Artefakt kann verfügbar oder fehlgeschlagen werden. Ein fehlgeschlagener Versuch kann
+unter derselben ID wieder ausstehend werden. Verfügbare und fehlende Artefakte wechseln ausschließlich
+zwischen diesen beiden Zuständen und behalten Größe/Prüfsumme. Dies ist keine Konvertierungsjobverwaltung.
+
 ## versioninfo – Technische Migrationsverwaltung
 
 Wird ausschließlich von FluentMigrator verwaltet. Die Einträge belegen die angewendeten Schemaänderungen, nicht den Versionsstand der externen Lexware-Installation.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
-| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–10. Kein Fachrepository schreibt diese Spalte. |
+| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–11. Kein Fachrepository schreibt diese Spalte. |
 | `appliedon` | Datum/Zeit UTC | Ja | Nativer UTC-Datum/Zeit-Wert des Runners für die Anwendung der Migration; anders als Fachzeiten keine .NET-Tickspalte. Darf bei alten Metadaten NULL sein. |
 | `description` | Unicode-Text (1024) | Ja | Beschreibung der angewendeten Migration aus dem Migrationsattribut; kein Platz für fachliche Gesprächs- oder Kundendaten. |
 
@@ -356,6 +381,8 @@ verhindern verwaiste Zeilen und unbeabsichtigtes Löschen referenzierter Datens�
 Aufnahmeverweise haben eigene Schreibversionen; sie verändern nicht den fachlichen Telefoniezustand.
 `recordingcaptures` ergänzt eine Aufnahme optional um ihren Verlauf und eine eigene Schreibversion.
 Ein fehlender Verlauf alter Aufnahmen bleibt unbekannt; unbekannte Medienendzeiten werden nicht ergänzt.
+`recordingartifacts` ergänzt optionale Dateimetadaten je Aufnahme und Format, ohne den alten Aufnahmeverweis
+umzudeuten. Fingerprints und Pfadidentität bleiben nach ihrer Bestätigung erhalten.
 
 Die beiden Quellherkunftsspalten an `parties` und die drei an `partyaddresses` werden jeweils vollständig
 gespeichert oder gemeinsam als unbekannt behandelt. Ländertext und Länderkennung bleiben getrennt.
@@ -364,7 +391,7 @@ Die Adresse `orderAddress` eines Lieferanten sowie Telefonnummern aus verschiede
 
 ## Abgleich mit dem tatsächlichen Schema
 
-Die Spaltenliste wird gegen eine durch die echten Migrationen 1–10 angelegte SQLite-Datenbank abgeglichen;
+Die Spaltenliste wird gegen eine durch die echten Migrationen 1–11 angelegte SQLite-Datenbank abgeglichen;
 die nur für MySQL/MariaDB berechnete Auswahlspalte ist zusätzlich aufgeführt. Der Abgleich verlangt zu
 jeder tatsächlichen Spalte genau eine Beschreibungszeile. Der native Providerlauf prüft unabhängig davon
 Neuaufbau, gefülltes Upgrade, Constraints und Repositoryzugriffe auf allen fünf Engines.

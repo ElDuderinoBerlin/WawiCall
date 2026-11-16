@@ -6,7 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Wiederanlauf für unterbrochene DB-Aufnahmevorgänge ohne WAV und Abschlussauftrag.
+Zuletzt ergänzt: optionale Datenbankgrundlage für getrennte kanonische WAV-/MP3-Dateien je Aufnahme.
+Migration 11 ergänzt eigene Pfade, Verfügbarkeit, bestätigte Dateigröße/Prüfsumme und Schreibversionen;
+bestehende Aufnahmeverweise und Verläufe bleiben unverändert und erhalten keine erfundenen Artefakte
+(Phase 9, 16.11.2026). 19 neue Prüfungen einschließlich gefülltem Upgrade und Spaltendokumentation.
+Dateidienst-Anschluss, vollständiger Dateiabgleich und dauerhafte Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: Wiederanlauf für unterbrochene DB-Aufnahmevorgänge ohne WAV und Abschlussauftrag.
 Nach Gesprächsrecovery und Zustellung vorhandener Abschlussaufträge werden ausschließlich eigene,
 beendete Gespräche mit noch laufendem Aufnahmeverlauf geprüft. Bei nachgewiesen fehlender WAV werden
 Verweis und Verlauf atomar als fehlgeschlagen/unterbrochen bestätigt; Medienende und Dauer bleiben
@@ -387,7 +392,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; Artefakt-Anschluss an Dateidienste, Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2739,10 +2744,40 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Grenzen: vorhandene WAVs ohne überprüfbaren Abschluss, verwaiste/partielle Audiodateien und Vorgänge
   ohne nachweisbare DB-Zeilen werden nicht automatisch rekonstruiert. Vollständiger Dateiabgleich,
   Artefaktverwaltung und Konvertierungsjobs bleiben offen.
+- [x] ✅ Optionale Dateimetadaten für getrennte WAV-/MP3-Artefakte einführen (16.11.2026):
+  Migration 11 erstellt `recordingartifacts` vollständig mit der regulären FluentMigrator-API,
+  Fremdschlüssel auf `recordings`, eindeutiger Aufnahme-/Formatkombination und nativen Constraints.
+  Bestehende Aufnahmeverweise, Capturezeilen und Audiodateien werden nicht geändert; keine automatische
+  Rückfüllung alter Aufnahmen. Je Aufnahme höchstens ein kanonisches WAV- und ein MP3-Artefakt mit
+  getrennten IDs, Pfaden, Verfügbarkeiten und Schreibversionen. Die Call-ID wird über die Elternaufnahme
+  geprüft; ID, Aufnahmebesitz, Format und Pfad bleiben nach Registrierung stabil.
+  `IRecordingArtifactRepository` ist im gemeinsamen Host per DI verfügbar. Es führt ausschließlich
+  parametrisierte Dapper-Zugriffe aus; kein Dateizugriff oder Hash-/Konvertierungslauf im Repository.
+  Registrierung beginnt ausstehend ohne erfundene Dateigröße/Prüfsumme. Verfügbare und später fehlende
+  Dateien benötigen eine positive Größe und kanonischen SHA-256; bestätigte Fingerprints bleiben bei
+  Verfügbarkeitswechseln erhalten. Fehlgeschlagene Erstellung kann unter derselben ID wieder ausstehend
+  werden. Beide Dateiformate bleiben unabhängig vom Gesprächs- und Capturezustand verwaltbar.
+  Erwartete Schreibversionen, unveränderlicher Besitz, monotone Änderungszeiten und exakte Wiederholung
+  des letzten bestätigten Auftrags verhindern blindes Überschreiben und doppelte Artefaktregistrierung.
+  19 neue Prüfungen: 16 negative Vertragsfälle, gemeinsame Lebenszyklus-/Constraint-Abnahme, gefülltes
+  Upgrade von Version 10 und tatsächlicher Spalten-/Dokumentationsabgleich. Besitz-/Pfad-/Hashkonflikte,
+  wirkungslose Wiederholung, fehlende Eltern, Abbruch, Wiederanlauf nach Fehler, Versionserschöpfung,
+  Fremdschlüssel, Format-Eindeutigkeit und konkurrierende Schreiber geprüft. Migrationen 1–11 werden
+  zusätzlich einzeln mit ihren Tabellenzahlen geprüft; bestehende Version-9-Upgrades laufen nun bis 11.
+  `scripts/test-database-providers.ps1` für beide Editionen bestanden: SQLite sowie isolierte SQL-Server-,
+  PostgreSQL-, MySQL- und MariaDB-Läufe einschließlich tatsächlicher neuer Zugriffe/Constraints und
+  gefülltem Version-10-Upgrade. Jede der zehn neuen Spalten deutsch dokumentiert und mit SQLite abgeglichen.
+  Je Edition 125 DB-, 373 Console-, zwölf gezielte Utilities-, zehn SIP- und zwei App-Hostprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen;
+  reguläre Startausgabe FinOffice. Nachweise `.recording-artifacts-{build,providers,tests,utilities,sip,host}-{pro,fin}.log`.
+  Nur synthetische Metadaten und isolierte Datenbanken; keine GUI-/Gerätebedienung.
+  Grenze: Der Artefaktkatalog wird noch nicht automatisch vom Aufnahmedienst/Encoder befüllt. Bestätigte
+  Metadaten ersetzen keine aktuelle Dateiprüfung. Dateiabgleich, Dateidienst-Anschluss, dauerhafte
+  Konvertierungsjobs und kontrollierte neue Inhaltsgenerationen bleiben offen.
 - [ ] Vorhandene/unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
-  getrennte WAV-/MP3-Artefakte und
-  Konvertierungsstatus/Jobs persistieren. Weitere Migrationen ab Version 11 ergänzen; bestehende
-  Migrationen 1–10 unverändert lassen. Neustart und erneute Konvertierung
+  den Artefaktkatalog an Aufnahme-/Dateidienste anschließen und Konvertierungsstatus/Jobs persistieren.
+  Weitere Migrationen ab Version 12 ergänzen; bestehende
+  Migrationen 1–11 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).
 - [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
 - [ ] Aufnahmen abspielen, exportieren und konvertieren; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.
