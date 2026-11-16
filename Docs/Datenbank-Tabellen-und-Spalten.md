@@ -1,12 +1,16 @@
 # Datenbank: Tabellen und Spalten
 
-Stand: 11.11.2026, vollständiges Produktschema nach Migration 9.
+Stand: 16.11.2026, vollständiges Produktschema nach Migration 10.
+
+Migration 10 ergänzt `recordingcaptures` für Beginn, bekanntes Ende, PCM-Format und Ergebnis einer
+Aufnahme. Bereits gespeicherte Aufnahmen und Migrationen 1–9 bleiben unverändert; fehlende historische
+Abtastzeit-/Aufnahmezeiten werden nicht ergänzt.
 
 Migration 9 korrigiert ausschließlich den SQL-Server-Constraint `ck_numberparselogs_code_ascii`:
 Fehlercodes mit Bindestrich wie `number.not-a-number` sind zulässig. Zeichen außerhalb von
 ASCII-Buchstaben, Ziffern, Punkt, Unterstrich und Bindestrich bleiben ausgeschlossen.
-Tabellen, Spalten, vorhandene Beobachtungen und Migrationen 1–8 bleiben erhalten. Auf SQLite,
-PostgreSQL, MySQL und MariaDB wird nur die erfolgreiche Migrationsversion vermerkt.
+Bei Migration 9 bleiben Tabellen, Spalten und vorhandene Beobachtungen erhalten. Auf SQLite,
+PostgreSQL, MySQL und MariaDB wird für diese Migration nur die erfolgreiche Migrationsversion vermerkt.
 Eine Rückkehr zum vorherigen Schemastand erfolgt über eine vorher erstellte Datenbanksicherung;
 die ausgelieferten Migrationen bleiben vorwärtsgerichtet.
 Dieses Nachschlagewerk erklärt jede Tabelle und jede Spalte auf Deutsch. Die englischen technischen
@@ -42,6 +46,7 @@ Indexdefinitionen und Migrationstests beschreibt ergänzend [Datenbankschema.md]
 | `callnotes` | Eigenständig bearbeitbare Gesprächsnotizen |
 | `callevents` | Unveränderliche Gesprächsereignisse |
 | `recordings` | Verweise auf Aufnahmedateien |
+| `recordingcaptures` | Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Aufnahmevorgangs |
 | `numberparselogs` | Fachliche Fehler beim Nummernlesen |
 | `calllookups` | Suchstand der Anruferzuordnung |
 | `phonematchsettings` | Mandantenprofil für Stammnummernabgleich |
@@ -311,13 +316,32 @@ Beschreibt öffentliche Nummernblöcke einer Kunden- oder Lieferantenorganisatio
 | `writeversion` | Ganzzahl 64 Bit | Nein | Schreibversion dieser einzelnen Blockregel ab 1. |
 | `changedatutc` | UTC-Ticks | Nein | Zeitpunkt der letzten bestätigten Änderung dieser Blockregel. |
 
+## recordingcaptures – Verlauf einer PCM-Aufnahme
+
+Optionale 1:1-Ergänzung zu `recordings` ab Migration 10. Alte Aufnahmen erhalten keine erfundenen
+Start-/Endzeiten. Pfad, Format und Dateiverfügbarkeit bleiben in `recordings`; die Call-ID folgt
+über dessen Fremdschlüssel. Diese Metadaten bestätigen keine tatsächlich vorhandene Audiodatei.
+
+| Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
+|---|---|---|---|
+| `id` | Kanonische GUID (32) | Nein | Identisch mit der Aufnahme-ID in `recordings`; Primär- und Fremdschlüssel. |
+| `startedatutc` | UTC-Ticks | Nein | Ausdrücklich erfasster Aufnahmebeginn, unabhängig vom Gesprächsbeginn. |
+| `endedatutc` | UTC-Ticks | Ja | Bekanntes tatsächliches Aufnahmeende; bei Unterbrechung unbekannt und nicht aus dem Gesprächsende abgeleitet. |
+| `state` | Ganzzahl 32 Bit | Nein | Aufnahmestatus: 0 läuft, 1 wird abgeschlossen, 2 abgeschlossen, 3 fehlgeschlagen, 4 abgebrochen. Terminale Status werden durch das Repository nicht wieder geöffnet. |
+| `samplerate` | Ganzzahl 32 Bit | Nein | PCM-Zielabtastrate: 8000, 16000, 32000, 44100 oder 48000 Hz; keine RTP-Taktrate. |
+| `channels` | Ganzzahl 32 Bit | Nein | Kanalzahl der Ziel-WAV: 1 Mono oder 2 Stereo. |
+| `framecount` | Ganzzahl 64 Bit | Ja | Finalisierte Framezahl nur nach erfolgreichem Abschluss; daraus entsteht die Mediendauer. Acht-Stunden- und CSCore-WAV-Größengrenze gelten zusätzlich. |
+| `failure` | Ganzzahl 32 Bit | Ja | Fester Fehlercode: 1 ungültiges PCM, 2 Pufferüberlauf, 3 Zeitkonflikt, 4 Segmentgrenze, 5 Dateifehler, 6 Mischfehler, 7 Abbruch, 8 Unterbrechung, 9 Startfehler. Keine nativen Ausnahmetexte oder Dateipfade. |
+| `writeversion` | Ganzzahl 64 Bit | Nein | Eigene optimistische Schreibversion ab 1; unabhängig von Gesprächsrevision und Aufnahme-Dateimetadaten. |
+| `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt des zuletzt bestätigten Metadatenstands; nicht vor bekanntem Aufnahmebeginn/-ende. |
+
 ## versioninfo – Technische Migrationsverwaltung
 
 Wird ausschließlich von FluentMigrator verwaltet. Die Einträge belegen die angewendeten Schemaänderungen, nicht den Versionsstand der externen Lexware-Installation.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
-| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–8. Kein Fachrepository schreibt diese Spalte. |
+| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–10. Kein Fachrepository schreibt diese Spalte. |
 | `appliedon` | Datum/Zeit UTC | Ja | Nativer UTC-Datum/Zeit-Wert des Runners für die Anwendung der Migration; anders als Fachzeiten keine .NET-Tickspalte. Darf bei alten Metadaten NULL sein. |
 | `description` | Unicode-Text (1024) | Ja | Beschreibung der angewendeten Migration aus dem Migrationsattribut; kein Platz für fachliche Gesprächs- oder Kundendaten. |
 
@@ -330,6 +354,8 @@ behalten ihre vollständige Quellidentität unabhängig von diesen Cachezeilen.
 `phonecalls` besitzt Teilnehmer, Ereignisse, Notizen, Suchstand und Aufnahmeverweise. Fremdschlüssel
 verhindern verwaiste Zeilen und unbeabsichtigtes Löschen referenzierter Datensätze. Notizen und
 Aufnahmeverweise haben eigene Schreibversionen; sie verändern nicht den fachlichen Telefoniezustand.
+`recordingcaptures` ergänzt eine Aufnahme optional um ihren Verlauf und eine eigene Schreibversion.
+Ein fehlender Verlauf alter Aufnahmen bleibt unbekannt; unbekannte Medienendzeiten werden nicht ergänzt.
 
 Die beiden Quellherkunftsspalten an `parties` und die drei an `partyaddresses` werden jeweils vollständig
 gespeichert oder gemeinsam als unbekannt behandelt. Ländertext und Länderkennung bleiben getrennt.
@@ -338,7 +364,7 @@ Die Adresse `orderAddress` eines Lieferanten sowie Telefonnummern aus verschiede
 
 ## Abgleich mit dem tatsächlichen Schema
 
-Die Spaltenliste wurde gegen eine durch die echten Migrationen 1–8 angelegte SQLite-Datenbank abgeglichen;
+Die Spaltenliste wird gegen eine durch die echten Migrationen 1–10 angelegte SQLite-Datenbank abgeglichen;
 die nur für MySQL/MariaDB berechnete Auswahlspalte ist zusätzlich aufgeführt. Der Abgleich verlangt zu
 jeder tatsächlichen Spalte genau eine Beschreibungszeile. Der native Providerlauf prüft unabhängig davon
 Neuaufbau, gefülltes Upgrade, Constraints und Repositoryzugriffe auf allen fünf Engines.

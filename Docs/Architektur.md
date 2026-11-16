@@ -563,11 +563,59 @@ Gesprächsdauer beginnt bei Annahme; Zeitbereichsabfragen verwenden UTC. Zu eine
 Aufnahmesegmente gehören. Audio liegt als Datei im Aufnahmeverzeichnis, die DB enthält Metadaten und
 relative Dateireferenzen mit Call-ID/Aufnahme-ID. Ausstehende Repositories und Host-/SIP-Anbindung bleiben erforderlich.
 
-Die bestehende Recording-Struktur enthält Pfad, Format, Dauer und Verfügbarkeit, aber noch keinen
-exakten Aufnahmebeginn/-ende oder belastbaren Konvertierungszustand. Diese Metadaten und WAV-/MP3-
-Artefakte sind in zusätzlichen Migrationen ab Version 6 und den Verträgen auszuarbeiten; Versionen 1–5
-bleiben unverändert. Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den
-Metadaten abgleichen. Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
+Die Recording-Struktur enthält Pfad, Format, Dauer und Verfügbarkeit. Migration 10 ergänzt optional
+Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Capturevorgangs. Die automatische Übergabe aus
+dem Aufnahmedienst sowie getrennte WAV-/MP3-Artefakte und Konvertierungsjobs bleiben auszuarbeiten;
+weitere Migrationen beginnen ab Version 11. Bestehende Migrationen und Daten bleiben erhalten.
+Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den Metadaten abgleichen.
+Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
+
+### Persistenter Aufnahmeverlauf und gezielte Recovery (16.11.2026)
+
+Migration 10 erstellt mit der regulären FluentMigrator-API `recordingcaptures` als optionale
+1:1-Ergänzung zu `recordings`. Die Aufnahme-ID ist zugleich Primär-/Fremdschlüssel; die Call-ID
+wird über den bestehenden Aufnahmeverweis gelesen. Bestehende Aufnahmen bekommen keine erfundenen
+Beginn-/Endzeiten. Die zehn neuen Spalten stehen einzeln in
+[Datenbank-Tabellen-und-Spalten](Datenbank-Tabellen-und-Spalten.md#recordingcaptures--verlauf-einer-pcm-aufnahme).
+
+`RecordingCapture` beschreibt Beginn, bekanntes Ende, PCM-Zielabtastrate/-kanäle, Status, Framezahl
+und einen festen Fehlercode. Aktive Vorgänge haben keine Ergebnisdaten; erfolgreicher Abschluss
+benötigt bekanntes Ende und positive Framezahl. Fehler/Abbruch benötigen einen Fehlercode und
+behaupten keine erfolgreiche WAV. Unbekanntes Medienende bleibt NULL. Die Mediendauer folgt allein
+aus Frames und Zielabtastrate, unabhängig von Gesprächsdauer oder UTC-Zeitdifferenz.
+Format, UTC-Zeitfolge, Zustandskombinationen und Acht-Stunden-/CSCore-WAV-Größe sind im Vertrag und
+in nativen SQL-Constraints begrenzt. Fehlercodes enthalten keine Dateipfade oder Ausnahmetexte.
+
+Der gemeinsame Host registriert `IRecordingCaptureRepository` als Singleton-Dapper-Adapter.
+Sein Aufbau greift nicht auf eine Datenbank zu. Operationen verwenden den bestehenden Context mit
+Schemavorprüfung, Migrationssperre, frischer Verbindung, serialisierbarer Transaktion und Abbruch.
+Alle SQL-Zugriffe sind parametrisiert und laufen über Dapper. Aufnahmebesitz wird über die
+Elternzeile geprüft. Beginn, Zielabtastrate und Kanalzahl bleiben nach dem Insert unveränderlich.
+Ein neuer Vorgang beginnt laufend; Abschluss und terminale Fehler-/Abbruchzustände dürfen nicht
+zurückgesetzt werden. Eine eigene Schreibversion schützt konkurrierende Änderungen.
+Wird exakt der unmittelbar vorherige Auftrag mit demselben vorherigen Versionsstand und
+Änderungszeitpunkt wiederholt, liefert das Repository den bestehenden Stand ohne neue Zeile/Version.
+
+`RecoverEndedCallAsync` erfordert eine ausdrücklich ausgewählte, bereits beendete oder
+fehlgeschlagene Call-ID. Nur deren noch laufende/abschließende Vorgänge werden als unterbrochen
+markiert. Fertige Aufnahmen und alle nicht ausgewählten Gespräche bleiben erhalten. Beginn und
+Format bleiben bestehen, Medienende und Dauer bleiben unbekannt. Wiederholung ist wirkungslos.
+Ein Konflikt, etwa eine rückwärts laufende Änderungszeit oder erschöpfte Schreibversion, rollt die
+gesamte Recovery zurück. Live-Gespräche dürfen so nicht wiederhergestellt werden. Der Aufruf ist
+noch nicht als Host-Automatik angeschlossen; insbesondere gibt es keinen globalen pauschalen Reset.
+
+15 neue Datenbankprüfungen belegen Lebenszyklus, exakte Wiederholungen, neue Lesekontexte,
+Versions-/Besitz-/Formatkonflikte, Abbruch, SQL-Constraints, atomare Recovery und konkurrierende
+Schreiber. Ein gefülltes Schema 9 wird auf 10 aktualisiert; bestehende Aufnahme-/Gesprächsdaten
+bleiben erhalten und erhalten keine künstlichen Capturezeilen. Derselbe Nachweis läuft auf
+SQLite sowie isolierten nativen SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Instanzen, beide
+Produktlinien. Die bestehenden Migrations-/Repository-/Hostprüfungen bleiben Teil des Providerlaufs.
+
+Aufnahmeaktionen schreiben diese Metadaten noch nicht automatisch. WAV-/MP3-Artefakte und dauerhafte
+Konvertierungsjobs fehlen weiterhin. Das Repository ändert keine Dateiverfügbarkeit und bestätigt
+keine Dateiinhalte; vorhandene Aufnahmezeilen, Dateien und Abgriffdienste bleiben unabhängig nutzbar.
+Rollback eines bereits angewendeten Schemas erfolgt über die vorherige Datenbanksicherung;
+Migrationen bleiben vorwärtsgerichtet. Ein älterer Host darf das neuere Schema nicht beschreiben.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

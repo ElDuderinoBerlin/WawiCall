@@ -33,10 +33,10 @@ public sealed class ProductSchemaTests
         var migrator = new DatabaseMigrator(new(), engine);
         var status = await migrator.MigrateAsync(target);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, status.AppliedVersions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, status.AppliedVersions.ToArray());
         using (var db = Open(target))
         {
-            Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordings,versioninfo,wawicallpro_metadata",
+            Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,numberparselogs,parties,partyaddresses,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordingcaptures,recordings,versioninfo,wawicallpro_metadata",
                 Scalar(db, "SELECT group_concat(name,',') FROM (SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name)"));
             Assert.AreEqual("WawiCallPro.Communications", Scalar(db, "SELECT applicationid FROM wawicallpro_metadata"));
             Assert.AreEqual(1L, Scalar(db, "SELECT formatversion FROM wawicallpro_metadata"));

@@ -6,7 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Aufnahmeanker aus ausdrücklich verifizierten gemeinsamen RTP-/NTP-Abtastzeitreferenzen
+Zuletzt ergänzt: Datenbankgrundlage für Aufnahmebeginn, bekanntes Ende, PCM-Format, Framezahl und
+Ergebnis/Fehlerstatus. Migration 10 ergänzt optionale Verlaufszeilen ohne Änderungen an alten Aufnahmen;
+Dapper-Repository mit Schreibversionen, idempotenten Wiederholungen und transaktionaler Wiederherstellung
+für ausdrücklich ausgewählte beendete Gespräche (Phase 9, 16.11.2026). Alle fünf Engines geprüft.
+Automatische Übergabe aus dem Aufnahmedienst, WAV-/MP3-Artefakte und Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: Aufnahmeanker aus ausdrücklich verifizierten gemeinsamen RTP-/NTP-Abtastzeitreferenzen
 berechnen. Uhr-/Quellenwechsel, unplausible Taktverläufe, zu weit entfernte Startpositionen und ungültige Offsets
 werden zurückgewiesen; RTP-/NTP-Überläufe bleiben relativ berechenbar. Drei Capture-/UDP-Läufe prüfen
 die berechneten Anker bis zur samplegenauen Stereo-WAV (Phase 9, 16.11.2026).
@@ -361,7 +366,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Ankerberechnung aus verifizierten gemeinsamen Abtastzeitreferenzen mit Plausibilitätsprüfung; Aufnahmeaufruf der aktiven Call-ID zugeordnet und Aufnahmebesitz an Gesprächsende/Host-Stop gebunden; besitzender Aufnahmedienst mit explizitem Start/Stop/Abbruch und gemeinsamer Live-Subscription, Sende-/Empfangskopplung mit expliziten Zeitankern und synchroner Fehlersperre, samplegenaue Duplex-WAVs aus Capture/UDP, lokale RTP-Sendefenster, Paketordnung vor dem CSCore-Decoder, Empfangs-RTP-Header, korrigierter Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische Live-Ermittlung/-Überwachung gemeinsamer Abtastzeitreferenzen, automatische Finalisierung mit geprüfter Endzeit, DTMF/Halten und Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Aufnahmeverlauf mit Migration 10, Dapper-Recovery und Fünf-Engine-Nachweis; Ankerberechnung aus verifizierten gemeinsamen Abtastzeitreferenzen; besitzender Duplex-Dienst mit Call-Zuordnung und Gesprächs-/Host-Cleanup, Sende-/Empfangskopplung, RTP-Paketordnung und CSCore-Abgriff, samplegenaue WAVs, PCM-Sitzung, Zeitachsenmixer und MP3-Konvertierung; automatische Persistenzanbindung und Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung und Enddauer, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2584,9 +2589,36 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   `.mp3-tests-{pro,fin}.log`, `.mp3-host-{pro,fin}.log`. Kein Mikrofon, keine Wiedergabe oder sichtbare GUI.
   Vertrag, Grenzen und Rollback in `Docs/Architektur.md`. Aufnahmesitzung, Konvertierungsjobpersistenz,
   Wiederanlauf und Bedienoberfläche bleiben eigene offene Punkte; Phase 9 bleibt teilweise umgesetzt.
-- [ ] Aufnahmesegmente mit Call-ID/Aufnahme-ID, Aufnahmebeginn/-ende, Dauer, WAV-/MP3-Dateireferenzen
-  und Konvertierungs-/Fehlerstatus in der eigenen DB protokollieren. Zusätzliche Verträge/Migrationen ab
-  Version 6 ausarbeiten; bestehende Migrationen 1–5 unverändert lassen. Neustart und erneute Konvertierung
+- [x] ✅ Datenbankgrundlage für Aufnahmeverlauf und gezielte Wiederherstellung ergänzen (16.11.2026):
+  Migration 10 erstellt `recordingcaptures` als optionale 1:1-Ergänzung zu `recordings`. Bestehende
+  Aufnahmezeilen und Migrationen 1–9 bleiben unverändert; historische Aufnahmezeiten werden nicht erfunden.
+  Call-Zuordnung folgt über die bestehende Aufnahme-ID. Beginn, bekanntes Ende, PCM-Zielformat,
+  finalisierte Framezahl, Aufnahmestatus, feste Fehlercodes und eigene Schreibversion werden gespeichert.
+  Dauer folgt aus Frames und Abtastrate; Gesprächsdauer und verstrichene Wanduhr werden nicht übernommen.
+  `IRecordingCaptureRepository`/Dapper-Implementierung sind im gemeinsamen Host registriert, ohne beim
+  Auflösen eine Datenbank zu öffnen. Parameterisierte Abfragen/Änderungen laufen im vorhandenen Adapter
+  mit Transaktion, Schemavorprüfung, Abbruch und Compare-and-swap. Identische Wiederholung des unmittelbar
+  vorherigen Schreibauftrags ist idempotent; Start, Format und Besitz bleiben unveränderlich.
+  Nur laufend → Abschluss/Fehler/Abbruch; terminale Vorgänge werden nicht erneut geöffnet. SQL-Constraints
+  prüfen Formate, Zustandskombinationen, Zeitfolge sowie Acht-Stunden-/WAV-Größengrenzen zusätzlich.
+  Explizite Recovery markiert ausschließlich unfertige Aufnahmen eines bereits beendeten/fehlgeschlagenen
+  Gesprächs als unterbrochen. Unbekanntes Medienende und Dauer bleiben NULL. Andere Gespräche und fertige
+  Vorgänge bleiben erhalten; widersprüchliche Zeitfolgen rollen die gesamte Recovery zurück.
+  15 neue Datenbankprüfungen; insgesamt je Edition 104 DB-, 316 Console- und zwei App-Hostprüfungen bestanden.
+  Wiederholbarer Einstieg `scripts/test-database-providers.ps1` für beide Editionen bestanden: SQLite,
+  SQL Server 15, PostgreSQL 17, MySQL 8.4 und MariaDB 11.1 getrennt auf isolierten Instanzen.
+  Native Läufe prüfen tatsächliche neue SQL-Zugriffe/Constraints, konkurrierende Schreiber, Fehler-/Abbruch-
+  status, Recovery sowie gefülltes Upgrade von Version 9 ohne künstliche Capturezeilen. Nachlesen mit
+  neuem Repository-/Verbindungskontext bestanden; jede neue Spalte deutsch dokumentiert und abgeglichen.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Reguläre Startausgabe FinOffice. Nachweise `.capture-metadata-build-{pro,fin}.log`,
+  `.capture-metadata-providers-{pro,fin}.log`, `.capture-metadata-db-pro.log` sowie
+  `.capture-metadata-{tests,host}-{pro,fin}.log`. Keine Geräte, GUI oder produktiven Datenbanken verwendet.
+  Dies ist die DB-Grundlage: Laufender Aufnahmedienst, Host-Recovery-Automatik, WAV-/MP3-Dateikonsistenz
+  und Konvertierungsjobpersistenz sind noch nicht automatisch daran angeschlossen.
+- [ ] Aufnahmedienst mit den Metadatenrepositories verbinden; WAV-/MP3-Dateireferenzen und
+  Konvertierungsstatus/Jobs persistieren. Weitere Migrationen ab Version 11 ergänzen; bestehende
+  Migrationen 1–10 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).
 - [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
 - [ ] Aufnahmen abspielen, exportieren und konvertieren; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.

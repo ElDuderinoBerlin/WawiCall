@@ -43,7 +43,7 @@ foreach(var item in configurations)
             Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
         }
         await ProviderCompatibilityAcceptance.RunAsync(target);
-        Console.WriteLine(item.Engine + ": migrations 1-9, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
+        Console.WriteLine(item.Engine + ": migrations 1-10, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
     }
     if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else
@@ -53,6 +53,9 @@ foreach(var item in configurations)
     }
     await RepositoryAcceptance.CompaniesAndCacheAsync(target);
     await RepositoryAcceptance.HistoryAsync(target);
+    await RecordingCaptureAcceptance.RunAsync(target);
+    await RecordingCaptureAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
+    Console.WriteLine(item.Engine + ": capture lifecycle, idempotent writes, recovery, constraints, concurrency and populated version 9 upgrade passed.");
     await RepositoryAcceptance.RulesAsync(target);
     await RepositoryAcceptance.ConcurrencyAsync(target);
     if(full) await NativeHostAcceptance.RunAsync(target.Type, item.ConnectionString, args[1]);

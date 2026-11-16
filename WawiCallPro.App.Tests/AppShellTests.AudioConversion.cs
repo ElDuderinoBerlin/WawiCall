@@ -45,6 +45,9 @@ public sealed partial class AppShellTests
             var anchors = host.Services.GetRequiredService<IRtpRecordingAnchorResolver>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpRecordingAnchorResolver>(anchors);
             Assert.AreSame(anchors, host.Services.GetRequiredService<IRtpRecordingAnchorResolver>());
+            var captures = host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>();
+            Assert.IsInstanceOfType<WawiCallPro.Database.Repositories.DapperRecordingCaptureRepository>(captures);
+            Assert.AreSame(captures, host.Services.GetRequiredService<WawiCallPro.Database.Contracts.IRecordingCaptureRepository>());
             var packets = host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>(packets);
             Assert.AreSame(packets, host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>());
