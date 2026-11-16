@@ -4,9 +4,15 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 15.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: expliziten Aufnahmeaufruf der verbundenen Call-ID zuordnen und den Aufnahmebesitz
+Zuletzt ergänzt: Aufnahmeanker aus ausdrücklich verifizierten gemeinsamen RTP-/NTP-Abtastzeitreferenzen
+berechnen. Uhr-/Quellenwechsel, unplausible Taktverläufe, zu weit entfernte Startpositionen und ungültige Offsets
+werden zurückgewiesen; RTP-/NTP-Überläufe bleiben relativ berechenbar. Drei Capture-/UDP-Läufe prüfen
+die berechneten Anker bis zur samplegenauen Stereo-WAV (Phase 9, 16.11.2026).
+Automatische Live-Ermittlung und Überwachung der gemeinsamen Abtastzeitreferenzen bleiben offen;
+ungeprüfte SDK-Senderberichte sind dafür ungeeignet. Aufnahmebedienung und Geräteabnahme ebenfalls offen.
+Zuvor ergänzt: expliziten Aufnahmeaufruf der verbundenen Call-ID zuordnen und den Aufnahmebesitz
 in beiden Hosts an die CSCore-Mediensitzung binden. Gesprächsende und Host-Stop warten die Bereinigung
 ab; eine ungestoppte Aufnahme wird ohne Mix abgebrochen, ein begonnener Stop abgewartet
 (Phase 9, 15.11.2026). Automatische Zeitanker, Aufnahmebedienung und echte Geräteabnahme bleiben offen.
@@ -355,7 +361,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Aufnahmeaufruf der aktiven Call-ID zugeordnet und Aufnahmebesitz an Gesprächsende/Host-Stop gebunden; besitzender Aufnahmedienst mit explizitem Start/Stop/Abbruch und gemeinsamer Live-Subscription, Sende-/Empfangskopplung mit expliziten Zeitankern und synchroner Fehlersperre, samplegenaue Duplex-WAVs aus Capture/UDP, lokale RTP-Sendefenster, Paketordnung vor dem CSCore-Decoder, Empfangs-RTP-Header, korrigierter Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische gemeinsame Ankerermittlung, automatische Finalisierung mit geprüfter Endzeit, DTMF/Halten und Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Ankerberechnung aus verifizierten gemeinsamen Abtastzeitreferenzen mit Plausibilitätsprüfung; Aufnahmeaufruf der aktiven Call-ID zugeordnet und Aufnahmebesitz an Gesprächsende/Host-Stop gebunden; besitzender Aufnahmedienst mit explizitem Start/Stop/Abbruch und gemeinsamer Live-Subscription, Sende-/Empfangskopplung mit expliziten Zeitankern und synchroner Fehlersperre, samplegenaue Duplex-WAVs aus Capture/UDP, lokale RTP-Sendefenster, Paketordnung vor dem CSCore-Decoder, Empfangs-RTP-Header, korrigierter Capture, PCM-Aufnahmesitzung, Zeitachsenmixer und MP3-Konvertierung; automatische Live-Ermittlung/-Überwachung gemeinsamer Abtastzeitreferenzen, automatische Finalisierung mit geprüfter Endzeit, DTMF/Halten und Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2509,6 +2515,33 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Nur synthetisches PCM, isolierte WAVs und lokale UDP-SIP-/RTP-Loopbacks; keine Geräte oder sichtbare GUI.
   Keine automatische Aufnahme oder Finalisierung mit geratener Endzeit. Gemeinsame Anker und gültige
   Enddauer müssen weiterhin ausdrücklich geliefert werden; Automatik, Bedienung und reale Abnahme offen.
+- [x] ✅ Gemeinsame Aufnahmeanker aus verifizierten RTP-Abtastzeitreferenzen berechnen und prüfen
+  (16.11.2026): `IRtpRecordingAnchorResolver` in beiden Hosts als zustandslosen Dienst registriert.
+  Pro Seite zwei geordnete RTP-/NTP-Abtastzeitpaare, eine ausdrücklich verifizierte gemeinsame Uhr-ID,
+  Aufnahmebeginn auf dieser Uhr und ausgewählte Sende-/Empfangspositionen übernehmen. Die Uhr-ID
+  bezeichnet die vom Aufrufer bereits nachgewiesene Synchronisation; gleiche IDs beweisen sie nicht.
+  Daraus den bestehenden Duplex-Auftrag mit beiden Aufnahmeoffsets erzeugen; IDs, Zielpfad,
+  PCM-Zielformat und ursprüngliche RTP-Metadaten erhalten. Kein Datei-/Gerätezugriff im Resolver.
+  Referenzen müssen 1–60 Sekunden auseinanderliegen; Taktvergleich mit maximal 500 ppm plus einer
+  RTP-Einheit Quantisierung. Startposition höchstens zwei Sekunden von der letzten Referenz entfernt.
+  Gemeinsame Uhr, SSRC, RTP-Taktraten und nichtleere Referenzen prüfen; Offsetbereich vor und nach
+  Rundung auf `TimeSpan` begrenzen. Modulare RTP-/NTP-Differenzen und `Int128`-Festkommarechnung
+  behandeln Überläufe einschließlich NTP-Erawechsel ohne Kalenderumrechnung oder Fließkomma.
+  35 neue Core-Prüfungen und drei neue Audiointegrationen bestanden. PCMA/PCMU/G.722 mit tatsächlichem
+  synthetischem CSCore-Capture und UDP-Empfang bis zur samplegenauen Stereo-WAV: Aufnahmebeginn innerhalb
+  des Sendeblocks und abweichender Empfangsoffset aus gemeinsamen Referenzen berechnet.
+  G.722 behält 8-kHz-RTP-Takt und 16-kHz-PCM getrennt. Gemeinsamer Medienbesitzer bleibt angeschlossen.
+  Je Edition 50 gezielte Core-, 316 Console-, zehn SIP- und zwei App-Hostprüfungen bestanden.
+  Beide Solution-Editionen Debug/Any CPU rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Reguläre Startausgabe FinOffice; Logs `.rtp-anchor-{build,core,tests,runtime,host}-{pro,fin}.log`.
+  Nur synthetische Abtastzeitreferenzen, isolierte Dateien und lokale UDP-Loopbacks; keine Geräte/GUI.
+  Wichtiges Analyseergebnis: CSCore stellt im verwendeten Capturepfad noch keine Abtastzeitreferenz
+  bereit. SIPSorcery 10.0.17 paart im Senderbericht die aktuelle Berichtszeit mit dem letzten
+  RTP-Zeitstempel; dies ist keine verifizierte Abtastzeitkorrelation. Quellen und Grenzen in
+  [Architektur](Architektur.md#ankerberechnung-aus-verifizierten-abtastzeitreferenzen-16112026).
+  Der Resolver setzt verifizierte Referenzen voraus; eine automatische Übernahme von Berichten ist nicht
+  angebunden. Er ermittelt keine Uhrsynchronisation und korrigiert keine laufende Taktdrift.
+  Automatische Live-Referenzen und deren Überwachung bleiben offen.
 - [ ] Die PCM-Aufnahmesitzung mit einer geprüften gemeinsamen Zeitbasis für beide Gesprächsseiten an den
   Codec-Abgriff des SIPSorcery-/CSCore-Medienadapters anschließen. Gemeinsame Medienzeitbasis und tatsächliche
   Decoder-Abtastraten liefern; G.722-PCM nicht mit der RTP-Taktrate verwechseln. Die erforderliche
@@ -2518,7 +2551,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   allein entsteht noch keine gemeinsame RTP-/Aufnahmezeitbasis. Empfangsheader stehen durch den
   vorherigen Teilpunkt bereit; der Empfang ist bei ausdrücklich vorgegebenem Anker angebunden.
   Sende- und Empfangsaufnahme sind bei ausdrücklich vorgegebenen Ankern angeschlossen; die automatische
-  Ermittlung einer verlässlichen gemeinsamen Sende-/Empfangszeitbasis fehlt weiterhin.
+  Live-Ermittlung einer verlässlichen gemeinsamen Sende-/Empfangszeitbasis fehlt weiterhin. Der obige
+  Resolver berechnet Anker aus bereits verifizierten Referenzen; er beschafft oder verifiziert diese
+  Referenzen nicht selbst und ersetzt keine laufende Drift-/Diskontinuitätsüberwachung.
   Explizite Start-/Stop-/Abbruchaufrufe sind als Dienst vorhanden. Aufnahmebedienung, ausdrücklich
   konfigurierte Automatik, automatische Finalisierung mit geprüfter Endzeit und echte SIP-/Geräteabnahme
   bleiben offen. Gesprächszuordnung und geordneter Abbruch bei Gesprächs-/Host-Ende sind oben ergänzt.
