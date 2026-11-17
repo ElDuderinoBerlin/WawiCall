@@ -9,10 +9,10 @@ die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise u
 Zuletzt ergänzt: lesende Anbindungen für Outlook Desktop, Microsoft 365 und Gmail samt zentraler
 Kontoeinrichtung, geschütztem Import, wiederaufnehmbarer Synchronisierung und Kundenmails bei Anrufen.
 Die vorhandene Microsoft-App-Anmeldung ist lokal übernommen und erfolgreich authentifiziert;
-der reale Ordnerzugriff bleibt mit HTTP 403 gesperrt, weil das Token nur Mail.Send enthält.
-Mail.Read mit Administratorzustimmung und ein erneuter Lesetest stehen aus.
-495 gezielte Prüfungen je Edition und beide regulären Solution-Builds bestanden. Echte OAuth-Zustimmung,
-Tenant-Leserechte und lokale Outlook-Installation bleiben als Benutzerabnahme offen (Phase 11).
+nach der Nutzerfreigabe von Leserechten sind echter Ordnerzugriff und ein begrenzter Nachrichten-
+Metadatenabruf mit HTTP 200 geprüft. Das lokale FinOffice-Konto ist aktiviert; Importordner sind noch auszuwählen.
+495 gezielte Prüfungen je Edition und beide regulären Solution-Builds bestanden. Vollständiger Mailimport,
+Google-OAuth und lokale Outlook-Installation bleiben als Benutzerabnahme offen (Phase 11).
 Zuvor ergänzt: tatsächliche Prozessabbrüche an fünf Grenzen der nativen MP3-Verarbeitung mit
 synthetischen Dateien und eigener SQLite-Datenbank. Vor Vorbereitung bleiben Teildateien erhalten;
 geschützte Originale werden danach ohne zweite Kodierung bestätigt. Echte Kindprozess-PIDs,
@@ -3131,13 +3131,29 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 ### Phase 11 – Office-Kommunikation 🟨
 
+- [x] ✅ Microsoft-365-Lesezugriff nach der vom Benutzer erteilten Freigabe erneut nativ geprüft
+  (17.11.2026). Ausschließlich die bereits geschützte lokale FinOffice-Konfiguration verwendet,
+  ein frisches Anwendungstoken angefordert und dessen vorhandene Mail-Leserollen ohne Tokenausgabe
+  geprüft. Der reguläre `MailAccounts.ConnectAsync`-/Graph-Connector lädt erfolgreich 15 Ordner;
+  zusätzlich liefert `messages?$top=1&$select=id` einen Metadatensatz. Alle Graph-Antworten HTTP 200.
+  Keine Betreffzeilen, Nachrichtenkörper, Anhangsdaten, opaken IDs oder Kontokennungen ausgegeben.
+  Konto aktiviert und entfernte Identität gebunden gespeichert; keine Importordner automatisch gewählt,
+  kein Nachrichtenimport gestartet. Vorherige Konfiguration gesichert, nicht mailbezogene Einstellungen
+  und LxPrintStudio-Quelle nach erneutem Laden unverändert bestätigt.
+  Das neue Token enthält neben Mail.Read auch Mail.ReadWrite und Mail.ReadBasic.All; die Anwendung
+  benötigt für ihre Mail-Lesefunktionen Mail.Read und führt keine Mailänderungen aus. Tenantrechte
+  wurden ausschließlich vom Benutzer angepasst. Lokale redigierte Nachweise:
+  `.artifacts/mail-live-probe/retest.log` und `verify-after-connect.log`.
+  Der vorherige HTTP-403-Befund unten ist damit behoben. Nachrichtenkörper, Anhänge und vollständiger
+  Import-/Deltaablauf dieses echten Postfachs bleiben außerhalb dieses begrenzten Verbindungstests.
+
 - [x] ✅ Vorhandene Microsoft-365-App-Anmeldung auf ausdrücklichen Nutzerauftrag geschützt in die
   aktive lokale FinOffice-Konfiguration übernommen und gegen Microsoft geprüft (17.11.2026).
   Sicherung der vorherigen lokalen Konfiguration angelegt; alle nicht mailbezogenen Einstellungen
   nach erneutem Laden unverändert. LxPrintStudio-Quelle ausschließlich gelesen; erneute getrennte
   Prüfsummenprüfung und unveränderter ursprünglicher Dateizeitstempel bestätigt. Keine Kennungen,
   Postfachnamen, Secrets, Tokens oder Nachrichteninhalte in Repository oder Prüfprotokolle übernommen.
-  Ergebnis: OAuth-Clientanmeldung erfolgreich; Token enthält `Mail.Send`, jedoch weder `Mail.Read`
+  Erstes Ergebnis vor der anschließenden Nutzerfreigabe: OAuth-Clientanmeldung erfolgreich; Token enthält `Mail.Send`, jedoch weder `Mail.Read`
   noch `Mail.ReadWrite` oder `Mail.ReadBasic.All`. Der echte Ordnerabruf über den regulären Connector
   endet mit HTTP 403 / `AccessDenied`. Damit sind die Zugangsdaten gültig, die Lesefunktion bleibt
   gesperrt. Konto als deaktivierter Entwurf gespeichert, keine Ordner gewählt und kein Mailimport gestartet.
@@ -3276,9 +3292,11 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 - [ ] Kontakte und benötigte Termine kundenbezogen zuordnen; nicht Teil des aktuellen Mail-Leseauftrags.
 - [x] ✅ Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und gezielte Anhangsabrufe behandelt.
 - [x] ✅ Migration 13 für Office-Tabellen und Repository-Tests auf allen fünf tatsächlichen Engines ergänzt.
-- [ ] Native Benutzerabnahme: Microsoft-Lesezugriff nach Freigabe von Mail.Read erneut prüfen
-  (Clientanmeldung erfolgreich, Ordnerzugriff derzeit HTTP 403); Google-Desktop-OAuth und klassisches
-  Outlook mit den gewünschten Postfächern weiterhin prüfen. Keine Nachrichteninhalte durch den Agenten gelesen.
+- [x] ✅ Native Microsoft-Verbindungsprüfung nach Freigabe: Clientanmeldung, Ordnerzugriff und begrenzter
+  Nachrichten-Metadatenabruf erfolgreich; HTTP-403-Befund behoben.
+- [ ] Native Benutzerabnahme: gewünschte Microsoft-Importordner auswählen und den vollständigen Import
+  einschließlich Nachrichtenkörpern, Deltaabrufen und Anhängen prüfen; Google-Desktop-OAuth und
+  klassisches Outlook separat prüfen. Bislang keine Nachrichtenkörper durch den Agenten gelesen.
 - [ ] LDAP nur bei konkretem Bedarf als separaten Connector umsetzen; bisher leere Klasse ist keine fertige Funktion.
 
 Abnahme: Synchronisieren und wiederholtes Synchronisieren ohne Duplikate, Zuordnung, Abbruch und
