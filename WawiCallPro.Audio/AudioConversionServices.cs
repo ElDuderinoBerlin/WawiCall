@@ -33,8 +33,12 @@ public static class AudioConversionServices
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
         services.TryAddSingleton<IInterruptedRecordingRecovery, InterruptedRecordingRecovery>();
         services.TryAddSingleton<RecordingRecoverySipPersistence>();
+        services.TryAddSingleton<InterruptedRecordingSipPersistence>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.RecordingArtifactAuditScheduler>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingArtifactAuditScheduler>(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingArtifactAuditScheduler>());
+        services.AddHostedService(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingArtifactAuditScheduler>());
         services.TryAddSingleton<WawiCallPro.Telephony.Sip.SipCallPersistence>();
-        services.TryAddSingleton<WawiCallPro.Telephony.Sip.ISipCallPersistence, InterruptedRecordingSipPersistence>();
+        services.TryAddSingleton<WawiCallPro.Telephony.Sip.ISipCallPersistence, ReconciledRecordingSipPersistence>();
         return services;
     }
 }

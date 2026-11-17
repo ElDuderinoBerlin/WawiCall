@@ -66,7 +66,7 @@ public sealed class DapperRecordingArtifactRepository(DatabaseRepositoryContext 
             return new StoredRecordingArtifact(item, version, created, write.ChangedAtUtc);
         }, cancellationToken);
     }
-    private static StoredRecordingArtifact Read(RepositoryRow row) => new(new(row.Id("id"), row.Id("recordingid"), row.Id("callid"),
+    internal static StoredRecordingArtifact Read(RepositoryRow row) => new(new(row.Id("id"), row.Id("recordingid"), row.Id("callid"),
         (RecordingArtifactFormat)checked((int)row.Long("format")), row.Text("relativepath"), (RecordingAvailability)checked((int)row.Long("availability")),
         row.OptionalLong("bytelength"), row.OptionalText("sha256")), row.Long("writeversion"), row.Utc("createdatutc"), row.Utc("updatedatutc"));
     private static void Conflict() => throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);

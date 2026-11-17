@@ -57,6 +57,9 @@ foreach(var item in configurations)
     await RecordingJournalAcceptance.RunAsync(target);
     await RecordingArtifactAcceptance.RunAsync(target);
     await RecordingWaveArtifactAcceptance.RunAsync(target);
+    await RecordingArtifactAuditQueryAcceptance.RunAsync(target);
+    await RecordingArtifactAuditAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": local WAV audit query, missing/original-file restoration, stable fingerprints and preserved metadata passed.");
     Console.WriteLine(item.Engine + ": protected WAV delivery, locked fingerprint publication, retained MP3 metadata and uncertain artifact acknowledgement replay passed.");
     await RecordingArtifactAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
     Console.WriteLine(item.Engine + ": canonical WAV/MP3 artifacts, fingerprints, ownership, conflicts, constraints and populated version 10 upgrade passed.");

@@ -7,6 +7,13 @@ public interface IRecordingJournalOutbox
     IReadOnlyList<Guid> GetPending();
     Task<IRecordingJournalDelivery> StageAsync(RecordingWrite recording, RecordingCaptureWrite capture, CancellationToken cancellationToken = default);
     Task<IRecordingJournalDelivery> OpenAsync(Guid recordingId, CancellationToken cancellationToken = default);
+    /// <summary>Shares the publisher's exclusive recording lease; an existing completion must take precedence over audit.</summary>
+    IRecordingArtifactAuditLease AcquireInspection(Guid recordingId);
+}
+
+public interface IRecordingArtifactAuditLease : IAsyncDisposable
+{
+    bool HasPending { get; }
 }
 
 /// <summary>Owns a per-entry lease and, for completed captures, a read lock on the verified WAV.

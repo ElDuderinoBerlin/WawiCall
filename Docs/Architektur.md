@@ -889,6 +889,58 @@ offen. Rollback: Aufnahme-/Recoverybestätigung auf den früheren Stand vor Arte
 vorhandene Aufträge und Artefaktmetadaten erhalten. Dann kann ein späterer Abgleich Kataloglücken behandeln;
 Schema- oder Dateiinhalte dürfen dazu nicht pauschal zurückgesetzt oder gelöscht werden.
 
+### Hintergrundabgleich bekannter WAV-Artefakte (17.11.2026)
+
+Nach der bisherigen SIP-/Abschluss-/Unterbrechungsrecovery fordert `ReconciledRecordingSipPersistence`
+einen Dateiabgleich an. `RecordingArtifactAuditScheduler` ist ein besessener Hosted Worker: Der Start
+allein führt keine Datei-/DB-Arbeit aus. Ein begrenzter Kanal fasst parallele Anforderungen zusammen,
+jeweils ein Abgleich läuft. Die SIP-Anmeldung wartet nicht auf Dateihashes. Host-Stop bricht die laufende
+Prüfung ab; asynchrone Freigabe wartet deren Bereinigung ab. Es wird keine SIP-Verbindung automatisch
+angefordert. Die Prüfung darf nach Freigabe der SIP-Kontolease weiterlaufen; ihre eigenen Schutzbedingungen
+sind unveränderlicher Gesprächsbesitz/-abschluss, Recording-Lease und optimistische Artefaktversion.
+
+`DapperRecordingArtifactAuditQuery` liefert begrenzte, exklusiv über die Artefakt-ID fortgesetzte Seiten:
+nur WAV, Available/Missing, beendete/fehlgeschlagene Gespräche und gespeicherte lokale Workstation-ID.
+Ohne vorhandene Identität wird nichts verändert. Pending-/Failed-Artefakte, MP3, fremde/laufende Gespräche
+und alte Verweise ohne Artefakt werden nicht geprüft. Alle Zugriffe verwenden den vorhandenen Dapper-
+Context; Schema 11 bleibt unverändert. Der Abgleich verändert ausschließlich Artefaktverfügbarkeit/-version.
+Aufnahmeverweis, Captureverlauf, Gesprächsdaten und Audioinhalte werden nicht umgeschrieben.
+
+Ausstehende Abschlussaufträge haben Vorrang. Die Prüfung liest die Auftragsliste fehlersicher und erwirbt
+vor jeder Dateibeobachtung dieselbe exklusive Recording-Lease wie die Abschlusszustellung. Unter dieser
+Lease wird die aktuelle Existenz eines Auftrags erneut geprüft; auch ein nach der ersten Auflistung
+veröffentlichter Auftrag sperrt den Abgleich. Beschädigte Dateien werden nicht verworfen. Die Lease
+verhindert gleichzeitig eine neue Abschlusszustellung bis zum Ende der Artefaktbestätigung.
+
+`RecordingArtifactFileInspector` liest ausschließlich den registrierten relativen Pfad. Bekannte
+Reparsepunkte, falsche Verzeichniskomponenten und Zugriffsfehler werden abgewiesen. Ein nur lesend geteiltes
+Datei-Handle bleibt bis zur DB-Bestätigung offen. PCM-WAV-Header, Dateigröße und SHA-256 müssen zum
+bestätigten Fingerprint passen. Fehlende oder veränderte Originalbytes führen zu Missing; Größe und
+Originalhash bleiben erhalten. Eine identisch zurückgelegte gültige WAV darf wieder Available werden.
+Es werden keine neuen Inhalte als Ersatzfingerprint übernommen. Verzeichnisse am Dateiziel und Dateisperren
+werden als ungeklärter Zugriff behandelt und nicht als Dateiabwesenheit behauptet.
+
+Gleiche Zustände verursachen keinen Schreibvorgang. Für einen Wechsel gelten die gelesene Schreibversion
+und eine nicht rückwärts laufende Änderungszeit. Parallele Änderungen werden nicht überschrieben; eine
+unbestätigte Commit-Antwort ist beim nächsten Abgleich über den tatsächlichen Status ohne Versionssprung
+erkennbar. Fehlende/veränderte Dateien und unvollständige Prüfungen erzeugen zusammengefasste, verständliche
+Warnungen im vorhandenen Log-Fenster. Nur geschlossene Ereigniscodes gelangen ins strukturierte Logging,
+keine Dateipfade oder rohen Ausnahmeinhalte. Neue Logtexte verändern keine Fenster-/Controllayouts.
+
+18 Datei-/SQLite-Fälle prüfen Originalverlust/-wiederherstellung, unveränderte Fingerprints, Header-/Längen-
+und Inhaltsänderungen, geschützte/späte Aufträge, Zugriffssperren, Besitz, 103 Kandidaten, Versionskonflikte
+und unsicheren Commit. Zwei Schedulerfälle prüfen nicht blockierende Anforderung, Fehlerbeobachtung und
+abgewartete Abbruchbereinigung; zwei fensterlose Logprüfungen belegen die deutschen Warnungen. Die gemeinsame
+Query- und Ablaufabnahme läuft auf SQLite sowie getrennten isolierten SQL-Server-, PostgreSQL-, MySQL- und
+MariaDB-Instanzen beider Editionen. Konkrete Build-/Editionsnachweise stehen in Phase 9.
+
+Eine fehlende Datei lässt sich nicht sperren. Externe Änderungen zwischen Beobachtung und Statusbestätigung
+oder danach sind deshalb kein atomar ausgeschlossener Zustand; Folgelauf und spätere Nutzungsprüfung bleiben
+erforderlich. Nicht registrierte/verwaiste Dateien werden weder entdeckt noch übernommen/gelöscht. MP3-
+Abgleich, Konvertierungsjobs und neue Inhaltsgenerationen bleiben offen. Rollback: den zusätzlichen Hosted
+Worker und Trigger abmelden; Abschluss- und Aufnahmerecovery bleiben erhalten. Katalogstatus kann später
+erneut geprüft werden. Keine pauschale Rücksetzung von Fingerprints, Versionen oder Dateien.
+
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 
 `IRtpAudioPacketBufferFactory` ist über die gemeinsame Audioregistrierung in beiden Hosts verfügbar.

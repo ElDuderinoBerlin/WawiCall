@@ -4,9 +4,15 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 16.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 17.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: WAV-Artefakte aus erfolgreich abgeschlossenen Aufnahmen und geschützten Abschlussaufträgen
+Zuletzt ergänzt: bekannter WAV-Artefaktkatalog wird nach SIP-Wiederanlauf im Hintergrund abgeglichen.
+Nur bestätigte WAVs beendeter Gespräche des lokalen Arbeitsplatzes werden geprüft. Fehlende oder veränderte
+Originaldateien werden als nicht verfügbar markiert; ausschließlich passende Originalbytes können den
+Status wiederherstellen. Abschlussaufträge und Dateiinhalte bleiben erhalten (Phase 9, 17.11.2026).
+23 neue Prüfungen einschließlich Paging, Aufnahmesperre, Worker-Lebensdauer und deutscher Log-Warnungen.
+MP3-Abgleich, nicht registrierte/verwaiste Dateien und dauerhafte Konvertierungsjobs bleiben offen.
+Zuvor ergänzt: WAV-Artefakte aus erfolgreich abgeschlossenen Aufnahmen und geschützten Abschlussaufträgen
 automatisch bestätigen. Gemeinsamer PCM-WAV-Prüfer, gesperrte Datei, ursprüngliche geschützte Prüfsumme,
 Dateigröße und vorhandene Katalogeinträge werden geprüft; erst nach Artefaktbestätigung wird der Auftrag
 entfernt (Phase 9, 16.11.2026). 17 neue Prüfungen sowie sechs erweiterte Capture-/UDP-Wiederanläufe.
@@ -397,7 +403,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; MP3-Anschluss, Abgleich vorhandener/unbestätigter WAVs und verwaister Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; MP3-Anschluss/-Abgleich, unbestätigte/verwaiste Dateien, Konvertierungsjobs, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2811,7 +2817,41 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   keine GUI oder Audiogeräte. Kein echter Prozessabbruch als geprüft behauptet.
   Grenze: Nur explizite, überprüfbare Abschlussaufträge werden übernommen. Vorhandene WAVs ohne
   Auftrag, verwaiste Dateien, MP3-Artefaktzustellung, Inhaltsgenerationen und dauerhafte Jobs bleiben offen.
-- [ ] Vorhandene/unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
+- [x] ✅ Bereits bestätigte WAV-Artefakte beim Wiederanlauf mit den Originaldateien abgleichen (17.11.2026):
+  `IRecordingArtifactAuditQuery` liest mit Dapper ausschließlich Available-/Missing-WAV-Artefakte bereits
+  beendeter/fehlgeschlagener Gespräche des gespeicherten lokalen Arbeitsplatzes. Begrenzte Seiten mit
+  exklusivem ID-Cursor; fremde/laufende Gespräche, Pending/Failed, MP3 und Altaufnahmen ohne Katalog bleiben
+  ausgeschlossen. Der Dateiprüfer liest ausschließlich die registrierten relativen Pfade, keine Ordnersuche.
+  Header, Dateigröße und Original-SHA-256 müssen stimmen. Fehlende oder abweichende Originalbytes führen zu
+  Missing unter Erhalt des Fingerprints; ausschließlich identische wiedergefundene WAVs werden Available.
+  Unveränderte Statusstände werden nicht erneut geschrieben. Aufnahmeverweise, Captureverläufe, Dateien und
+  MP3-Metadaten bleiben erhalten. Zugriffsfehler, gesperrte Dateien und Verzeichnisse am Dateiziel werden
+  nicht als Dateiabwesenheit interpretiert. Vorhandene Reparsepunkte sperren die Prüfung.
+  Der Prüfer hält das nur lesend geteilte Datei-Handle bis zur DB-Bestätigung. Zusätzlich nutzt er dieselbe
+  exklusive Recording-Lease wie Abschlusszustellungen. Vorhandene und erst während der Kandidatenabfrage
+  veröffentlichte Abschlussaufträge haben Vorrang; beschädigte/unlesbare Auftragslisten werden nicht als
+  leer behandelt. Erwartete Schreibversionen verhindern blindes Überschreiben paralleler Katalogänderungen.
+  Beide Hosts fordern den Abgleich nach der bisherigen SIP-/Aufnahme-Recovery an. Ein besessener Worker
+  arbeitet im Hintergrund, mit einem zusammengefassten Folgeauftrag und beobachtbarem Abbruch/Host-Stop;
+  die SIP-Anmeldung wartet nicht auf Dateihashes. Kein automatisch verbindender Dienst. Die eigentliche
+  Prüfung schützt sich über Recording-Leases und Terminal-/Arbeitsplatzfilter, nicht über eine dauerhaft
+  gehaltene SIP-Kontolease. Verständliche Warnungen im bestehenden Log-Fenster, keine rohen Pfade/Fehlertexte.
+  23 neue Prüfungen: 18 Datei-/SQLite-Abläufe, zwei Scheduler-Lebensdauerfälle, eine gemeinsame Query-Abnahme
+  und zwei fensterlose Logprüfungen. 103 Kandidaten, geänderte Header/Längen/Inhalte, fehlende Originale,
+  Wiederherstellung, Zugriffssperren, späte Aufträge, Versionskonflikte, unsicherer Commit, fehlende/fremde
+  Identität und wirkungslose Wiederholung geprüft. Sechs bestehende Capture-/UDP-Wiederanläufe prüfen den
+  neuen Trigger nach bestätigter Abschlusszustellung. Worker-Stop wartet die Abbruchbereinigung ab.
+  `scripts/test-database-providers.ps1` für beide Editionen bestanden: SQLite, SQL Server, PostgreSQL,
+  MySQL und MariaDB auf isolierten Instanzen; neue Query und tatsächlicher Missing-/Available-Abgleich mit
+  unveränderten Fingerprints/Elternmetadaten nachgewiesen. Je Edition 126 DB-, 376 Console-, 46 gezielte
+  Utilities-, zehn SIP- und vier App-Host-/Logprüfungen bestanden. Beide Solution-Editionen Debug/Any CPU
+  rekompiliert: null Fehler, je 26 bekannte externe CSCore-Warnungen; Startausgabe FinOffice.
+  Nachweise `.artifact-audit-{build,providers,tests,utilities,sip,host}-{pro,fin}.log`. Schema 11 unverändert;
+  nur synthetische Daten und isolierte Dateien/DBs/Loopbacks, keine sichtbare GUI oder Audiogeräte.
+  Grenze: keine atomare Dateisystem-/DB-Transaktion; externe Dateiveränderungen nach einer Beobachtung
+  können erst ein Folgelauf beziehungsweise eine erneute Nutzungsprüfung erkennen. Keine pauschale
+  Übernahme unregistrierter Dateien, kein vollständiger Verzeichnisabgleich und kein echter Prozessabbruchtest.
+- [ ] Unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
   MP3-Artefaktzustellung anschließen und Konvertierungsstatus/Jobs persistieren.
   Weitere Migrationen ab Version 12 ergänzen; bestehende
   Migrationen 1–11 unverändert lassen. Neustart und erneute Konvertierung

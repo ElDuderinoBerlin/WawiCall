@@ -55,7 +55,8 @@ public sealed partial class AppShellTests
             Assert.AreSame(persisted, host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>());
             Assert.IsInstanceOfType<RecordingJournalRecovery>(host.Services.GetRequiredService<IRecordingJournalRecovery>());
             Assert.IsInstanceOfType<InterruptedRecordingRecovery>(host.Services.GetRequiredService<IInterruptedRecordingRecovery>());
-            Assert.IsInstanceOfType<InterruptedRecordingSipPersistence>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipCallPersistence>());
+            Assert.IsInstanceOfType<ReconciledRecordingSipPersistence>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipCallPersistence>());
+            Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingArtifactReconciliation>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingArtifactReconciliation>());
             var packets = host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpAudioPacketBufferFactory>(packets);
             Assert.AreSame(packets, host.Services.GetRequiredService<IRtpAudioPacketBufferFactory>());

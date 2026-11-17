@@ -350,7 +350,7 @@ des geschützten Originalhashs; MP3-Anschluss und vollständiger Dateiabgleich b
 | `recordingid` | Kanonische GUID (32) | Nein | Fremdschlüssel auf die übergeordnete Aufnahme in `recordings`; zusammen mit `format` eindeutig. |
 | `format` | Ganzzahl 32 Bit | Nein | 1 = WAV, 2 = MP3. Je Aufnahme maximal ein Eintrag pro Format; Format und Identität bleiben nach dem Anlegen unverändert. |
 | `relativepath` | Unicode-Text (1024) | Nein | Stabiler relativer Pfad unter dem Aufnahmeverzeichnis mit passender Dateiendung; keine Quellmaschinenpfade. Die Pfadidentität ist nach dem Anlegen unveränderlich. |
-| `availability` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = als verfügbar bestätigt, 2 = zuvor bestätigte Datei fehlt, 3 = Erstellung fehlgeschlagen. Das Repository führt keine aktuelle Dateisystemprüfung aus. |
+| `availability` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = als verfügbar bestätigt, 2 = bestätigte Originaldatei fehlt oder ihr Inhalt stimmt nicht mehr überein, 3 = Erstellung fehlgeschlagen. Der WAV-Abgleich bestätigt Größe, Header und Originalhash; das Repository selbst führt keine Dateisystemprüfung aus. |
 | `bytelength` | Ganzzahl 64 Bit | Ja | Positive bestätigte Dateigröße in Bytes bei Verfügbarkeit 1 oder 2. Bei 0 oder 3 unbekannt; nach erster Bestätigung unveränderlich. |
 | `sha256` | Kanonischer Hextext (64) | Ja | Bestätigte SHA-256-Prüfsumme in ASCII-Kleinbuchstaben bei Verfügbarkeit 1 oder 2; zusammen mit `bytelength` gesetzt. Beim Fehlend-Markieren erhalten und nicht durch ungeprüfte Dateiinhalte ersetzen. |
 | `writeversion` | Ganzzahl 64 Bit | Nein | Eigene optimistische Schreibversion ab 1; unabhängig von Aufnahmeverweis, Captureverlauf und Gesprächsrevision. |

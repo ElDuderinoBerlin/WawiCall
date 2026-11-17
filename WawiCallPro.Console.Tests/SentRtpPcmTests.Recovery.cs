@@ -45,10 +45,13 @@ public sealed partial class SentRtpPcmTests
         var call = (await calls.GetAsync(request.Recording.CallId))!.History.Call; var origin = call.Origin!;
         var recovered = Recovery(files, await Pending(files, createSettings: false), new Identity(origin.WorkstationId));
         Assert.AreEqual(new RecordingJournalRecoveryResult(0, 1, 0), await recovered.RecoverAsync());
-        var callRecovery = new InterruptedRecordingSipPersistence(
+        var recoveredCalls = new InterruptedRecordingSipPersistence(
             new RecordingRecoverySipPersistence(new SipCallPersistence(calls, new Origin(origin), TimeProvider.System), recovered),
             Interrupted(files, outbox, origin.WorkstationId));
+        var requested = false;
+        var callRecovery = new ReconciledRecordingSipPersistence(recoveredCalls, new AuditRequest(() => { Assert.AreEqual(0, outbox.GetPending().Count); requested = true; }));
         await callRecovery.RecoverAsync();
+        Assert.IsTrue(requested);
         Assert.AreEqual(CallState.Failed, (await calls.GetAsync(call.Id))!.History.Call.State);
         Assert.AreEqual(CallEndReason.Interrupted, (await calls.GetAsync(call.Id))!.History.Call.EndReason);
         Assert.AreEqual(PcmRecordingState.Completed, (await files.Capture())!.Capture.State);
@@ -132,6 +135,7 @@ public sealed partial class SentRtpPcmTests
     private static RecordingJournalRecovery Recovery(PersistedFiles files, IRecordingJournalOutbox pending, IWorkstationIdentity identity, ILogger<RecordingJournalRecovery>? log = null) =>
         new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity, log ?? NullLogger<RecordingJournalRecovery>.Instance, Publisher(files));
     private static RecordingWaveArtifactPublisher Publisher(PersistedFiles files) => new(new DapperRecordingArtifactRepository(new(files.Target, new())));
+    private sealed class AuditRequest(Action request) : IRecordingArtifactAuditScheduler { public void Request() => request(); }
     private sealed class SwitchTarget(DatabaseTarget target) : IDatabaseTargetSource
     { internal DatabaseTarget Current = target; public DatabaseTarget GetTarget() => Current; }
     private sealed class Identity(Guid? id) : IWorkstationIdentity
@@ -149,6 +153,7 @@ public sealed partial class SentRtpPcmTests
     private sealed class FailedAcknowledgement(IRecordingJournalOutbox inner) : IRecordingJournalOutbox
     {
         public IReadOnlyList<Guid> GetPending() => inner.GetPending();
+        public IRecordingArtifactAuditLease AcquireInspection(Guid recordingId) => inner.AcquireInspection(recordingId);
         public Task<IRecordingJournalDelivery> OpenAsync(Guid id, CancellationToken token = default) => inner.OpenAsync(id, token);
         public async Task<IRecordingJournalDelivery> StageAsync(RecordingWrite recording, RecordingCaptureWrite capture, CancellationToken token = default) => new Delivery(await inner.StageAsync(recording, capture, token));
         private sealed class Delivery(IRecordingJournalDelivery inner) : IRecordingJournalDelivery

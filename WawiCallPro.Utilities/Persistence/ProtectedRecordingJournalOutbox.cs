@@ -157,6 +157,25 @@ public sealed class ProtectedRecordingJournalOutbox(ApplicationPaths paths, ISec
         if (File.Exists(path)) CheckLink(path);
         return new(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None, 1, FileOptions.DeleteOnClose);
     }
+    public IRecordingArtifactAuditLease AcquireInspection(Guid recordingId)
+    {
+        _ = DatabaseId.Encode(recordingId); FileStream? lease = null;
+        try
+        {
+            Directory.CreateDirectory(Root); CheckLink(Root); lease = Lease(recordingId);
+            var pending = false;
+            try { CheckLink(EntryPath(recordingId)); pending = true; }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+            return new InspectionLease(lease, pending);
+        }
+        catch (Exception) { lease?.Dispose(); throw new RecordingOutboxException(); }
+    }
+    private sealed class InspectionLease(FileStream lease, bool pending) : IRecordingArtifactAuditLease
+    {
+        public bool HasPending => pending;
+        public ValueTask DisposeAsync() => lease.DisposeAsync();
+    }
     private string EntryPath(Guid id) => Path.Combine(Root, id.ToString("N") + ".pending");
     private static void CheckLink(string path) { if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new RecordingOutboxException(); }
     private static void Validate(RecordingWrite recording, RecordingCaptureWrite capture)
