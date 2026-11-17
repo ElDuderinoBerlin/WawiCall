@@ -8,6 +8,9 @@ Stand: 17.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implemen
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Zuletzt ergänzt: lesende Anbindungen für Outlook Desktop, Microsoft 365 und Gmail samt zentraler
 Kontoeinrichtung, geschütztem Import, wiederaufnehmbarer Synchronisierung und Kundenmails bei Anrufen.
+Die vorhandene Microsoft-App-Anmeldung ist lokal übernommen und erfolgreich authentifiziert;
+der reale Ordnerzugriff bleibt mit HTTP 403 gesperrt, weil das Token nur Mail.Send enthält.
+Mail.Read mit Administratorzustimmung und ein erneuter Lesetest stehen aus.
 495 gezielte Prüfungen je Edition und beide regulären Solution-Builds bestanden. Echte OAuth-Zustimmung,
 Tenant-Leserechte und lokale Outlook-Installation bleiben als Benutzerabnahme offen (Phase 11).
 Zuvor ergänzt: tatsächliche Prozessabbrüche an fünf Grenzen der nativen MP3-Verarbeitung mit
@@ -3128,6 +3131,24 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 ### Phase 11 – Office-Kommunikation 🟨
 
+- [x] ✅ Vorhandene Microsoft-365-App-Anmeldung auf ausdrücklichen Nutzerauftrag geschützt in die
+  aktive lokale FinOffice-Konfiguration übernommen und gegen Microsoft geprüft (17.11.2026).
+  Sicherung der vorherigen lokalen Konfiguration angelegt; alle nicht mailbezogenen Einstellungen
+  nach erneutem Laden unverändert. LxPrintStudio-Quelle ausschließlich gelesen; erneute getrennte
+  Prüfsummenprüfung und unveränderter ursprünglicher Dateizeitstempel bestätigt. Keine Kennungen,
+  Postfachnamen, Secrets, Tokens oder Nachrichteninhalte in Repository oder Prüfprotokolle übernommen.
+  Ergebnis: OAuth-Clientanmeldung erfolgreich; Token enthält `Mail.Send`, jedoch weder `Mail.Read`
+  noch `Mail.ReadWrite` oder `Mail.ReadBasic.All`. Der echte Ordnerabruf über den regulären Connector
+  endet mit HTTP 403 / `AccessDenied`. Damit sind die Zugangsdaten gültig, die Lesefunktion bleibt
+  gesperrt. Konto als deaktivierter Entwurf gespeichert, keine Ordner gewählt und kein Mailimport gestartet.
+  Erforderlich: `Mail.Read` als Microsoft-Graph-Anwendungsberechtigung plus Administratorzustimmung
+  für die vorhandene App; danach erneut verbinden und Ordnerzugriff prüfen. Keine Tenantrechte geändert.
+  Redigierte lokale Nachweise: `.artifacts/mail-live-probe/result.log` und `verify-local.log`.
+  Die erste Diagnose enthielt einen unzuverlässigen Prüfsummenvergleich mit Span über einen asynchronen
+  Aufruf; dessen boolesches Ergebnis wird nicht als Dateinachweis gewertet. Der getrennte erneute
+  Lese-/Prüfsummenvergleich ist erfolgreich. Nur lokale Konfiguration und Dokumentation geändert;
+  kein Produktcode, Anwendungsbuild oder GUI-Lauf für diesen Einrichtungsschritt erforderlich.
+
 - [x] ✅ Mailanbindung im App-Host fertig angeschlossen (17.11.2026): E-Mail-Tab in den zentralen
   Einstellungen, mehrere Konten, öffentliche Microsoft-Desktop-Anmeldung oder vorhandene App-Anmeldung,
   geschützter LxPrintStudio-/Google-Clientimport, benannte Outlook-Stores, Ordner-Checkboxen, Zeitraum,
@@ -3148,7 +3169,8 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   die veraltete SQLite-Schreibweisen-Erwartung im Settings-Test ist an die bestehende Anzeige angepasst.
   Nachweise `.mail-integration-{build,office,config,app,console}-{pro,fin}.log`, Bilder unter
   `.artifacts/app-shell/settings-ui/mail-settings`. FinOffice ist die reguläre Startausgabe.
-  Keine echte Anmeldung, kein echtes Postfach und keine produktive Datenbank durch den Agenten geöffnet.
+  Während dieser Implementierungsprüfung keine echte Anmeldung, kein echtes Postfach und keine produktive
+  Datenbank durch den Agenten geöffnet; der spätere ausdrückliche Nutzerauftrag ist oben separat dokumentiert.
   Microsoft-Leserechte und native Outlook-/Google-Anmeldung bleiben ausdrücklich Benutzerabnahmen.
   Einrichtung: [Postfach einrichten](Architektur.md#postfach-einrichten). Rücknahme durch Revert der
   Mailanbindung und gesicherte Konfiguration; Datenbankmigration 13 aus dem vorherigen Teilpunkt erhalten.
@@ -3254,8 +3276,9 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 - [ ] Kontakte und benötigte Termine kundenbezogen zuordnen; nicht Teil des aktuellen Mail-Leseauftrags.
 - [x] ✅ Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und gezielte Anhangsabrufe behandelt.
 - [x] ✅ Migration 13 für Office-Tabellen und Repository-Tests auf allen fünf tatsächlichen Engines ergänzt.
-- [ ] Native Benutzerabnahme: Microsoft-Tenant mit Mail.Read, Google-Desktop-OAuth und klassisches Outlook
-  mit den gewünschten Postfächern prüfen; keine echten Postfächer durch den Agenten gelesen.
+- [ ] Native Benutzerabnahme: Microsoft-Lesezugriff nach Freigabe von Mail.Read erneut prüfen
+  (Clientanmeldung erfolgreich, Ordnerzugriff derzeit HTTP 403); Google-Desktop-OAuth und klassisches
+  Outlook mit den gewünschten Postfächern weiterhin prüfen. Keine Nachrichteninhalte durch den Agenten gelesen.
 - [ ] LDAP nur bei konkretem Bedarf als separaten Connector umsetzen; bisher leere Klasse ist keine fertige Funktion.
 
 Abnahme: Synchronisieren und wiederholtes Synchronisieren ohne Duplikate, Zuordnung, Abbruch und
