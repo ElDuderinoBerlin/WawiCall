@@ -1247,14 +1247,56 @@ Nachweise prüfen gespeicherte Running-Stände mit neuen Diensten, aktive Besitz
 laufende/beendete Gespräche, geschützte Version-1-/Version-2-Aufträge, geänderte Versuche, späte Aufträge,
 vorhandene Ziele, erhaltene Teildateien, unsichere Antworten, Abbruch und explizites erneutes Einreihen.
 Die Abfrage und der Wiederherstellungs-/Wiederholungsablauf laufen auf allen fünf Engines; konkrete
-Laufergebnisse stehen im Plan. Dies ist kein tatsächlicher Betriebssystem-Prozessabbruch- oder
-Stromausfallnachweis. Unbekannte Dateien, vollständiger Verzeichnisabgleich, Warteschlange und Bedienung
+Laufergebnisse stehen im Plan. Dieser Dienstnachweis simuliert Besitzerverlust; die folgende Prüfung
+ergänzt tatsächliche Prozessabbrüche mit SQLite. Ein Stromausfallnachweis bleibt aus. Unbekannte Dateien, vollständiger Verzeichnisabgleich, Warteschlange und Bedienung
 bleiben offen. Schema und Migrationen 1–12 bleiben unverändert.
 
 Rollback: zusätzliche Kandidatenabfrage, Dienst, Startanschluss und Ereignisabbildung gemeinsam
 zurücknehmen. Bereits bestätigte Failed/Interrupted-Stände sind reguläre Schema-12-Daten und bleiben
 erhalten. Vorhandene Abschlussaufträge mit einer kompatiblen Version zustellen; Dateien und Versuche
 nicht pauschal löschen, zurücksetzen oder erneut kodieren.
+
+### Tatsächliche Prozessabbrüche bei der MP3-Verarbeitung (17.11.2026)
+
+`Mp3ProcessCrashTests` startet je Prüfpunkt einen eigenen unsichtbaren `dotnet`-Testprozess mit
+derselben gebauten Testassembly. Der Kindprozess verwendet eine eigene temporäre SQLite-Datenbank,
+synthetische Stereo-WAV, echte DPAPI-Aufträge, den CSCore-Media-Foundation-Encoder und die produktiven
+Aufnahmesperren/MP3-Sitzungsdienste. Es wird kein Anwendungshost gestartet und kein Audiogerät geöffnet.
+Nur der angeforderte Prüfpunkt wird im Kind ausgeführt; weitere Testfälle starten keine Kindprozesse.
+
+Fünf gezielte Grenzen: erster positiver nativer Ausgabeblock vor Rückkehr des Encoders, finalisierte
+Datei vor geschützter Vorbereitung, unmittelbar nach Vorbereitung, nach Dateiumbenennung vor Rückgabe
+an die Sitzung und nach atomarer DB-Bestätigung vor Quittierung des Auftrags. Der Kindprozess meldet
+PID, Assemblypfade, Fixture-IDs und die tatsächliche Länge/Prüfsumme seiner Datei erst nach Flush
+über eine atomar veröffentlichte Bereitschaftsdatei. Anschließend bleibt er am Prüfpunkt blockiert.
+
+Der Elternprozess prüft den beobachteten Datenbank-/Dateistand, die getrennte PID und die tatsächlich
+laufenden Assemblies. Die Aufnahmesperre muss einen zweiten Wiederhersteller weiterhin abweisen.
+Dann beendet ausschließlich der Elternprozess seinen eigenen Kindprozess mit `Process.Kill` und
+wartet dessen Ende mit einem Fehler-Exitcode ab. Der Kindprozess führt dabei keine geordnete Freigabe
+oder Abschlussbestätigung aus. Erst danach werden neue Dienste aus der gespeicherten Konfiguration
+und Fixture-Metadaten aufgebaut; Prozesszustand wird nicht als Wiederherstellungsergebnis weitergereicht.
+
+Vor geschützter Vorbereitung müssen Versuch und Ziel als Failed/Interrupted bestätigt werden und die
+ursprünglichen temporären Bytes erhalten bleiben. Ab Vorbereitung muss der geschützte Auftrag die
+ursprüngliche Datei veröffentlichen beziehungsweise bereits bestätigte Metadaten idempotent quittieren.
+Originalhash, Dateigröße, Versuch-ID/Zähler und eingefrorene Zeitpunkte bleiben erhalten. Alle Fälle
+enden mit Jobversion 3 und Zielversion 2; Wiederholung verändert diese Versionen nicht. Quell-WAV,
+Quellartefakt, Aufnahme/Capture und eine fremde synthetische Datei bleiben unverändert. Der Encoder
+wird genau einmal gestartet; erfolgreich wiederhergestellte MP3s werden mit dem echten Decoder
+auf Stereo, Abtastrate, Dauer und vorhandenes Audiosignal geprüft.
+
+Die Läufe erzeugen unter `.artifacts/mp3-process-crash/<Edition>` JSON-Nachweise mit Prüfpunkt,
+Zeit, Eltern-/Kind-PID, Exitcode, tatsächlichen Assemblypfaden, Framework, Hashes und resultierenden
+Versionen. Temporäre Fixture-Verzeichnisse werden erst nach Ende des eigenen Kindes entfernt;
+der berechnete absolute Pfad muss unter dem temporären Verzeichnis liegen und dem Fixture-Namensschema
+entsprechen. Konkrete Editionsergebnisse und Logs stehen im Plan.
+
+Grenzen: Windows und SQLite; die bisherigen fünf Engine-Prüfungen der Dienste bleiben getrennte
+Nachweise. Diese Tests ersetzen keine serverbasierte Prozessabbruch-, Stromausfall-, Geräte- oder
+echte Gesprächsabnahme. Produktivcode, Datenbankschema und Migrationen 1–12 bleiben unverändert.
+Rollback: ausschließlich Testfälle/Fixture und zugehörige Dokumentation zurücknehmen; gespeicherte
+Produktivdateien oder Auftragsstände werden dadurch nicht verändert.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

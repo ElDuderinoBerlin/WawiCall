@@ -348,7 +348,9 @@ Abgelegte MP3-Abschlussaufträge werden beim Hoststart zugestellt. Version-2-Auf
 die finalisierte temporäre Datei vor der Umbenennung; Wiederaufnahme prüft Originalhash, Versuch und
 aktuelle Katalogversionen vor Veröffentlichung. Verwaiste Running-Versuche ohne solchen Auftrag werden
 unter Aufnahmesperre kontrolliert als Failed/Interrupted bestätigt. Vollständiger Dateiabgleich und
-tatsächliche Prozessabbruchabnahme bleiben offen.
+serverbasierte Prozessabbruch-/Stromausfallabnahme bleiben offen. Fünf tatsächliche Prozessabbrüche
+mit isolierter SQLite-Datenbank prüfen Kodierausgabe, Vorbereitung, Veröffentlichung und DB-Quittierung;
+Aufnahme-/Capture- und Artefaktstände bleiben dabei erhalten beziehungsweise werden exakt einmal bestätigt.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
