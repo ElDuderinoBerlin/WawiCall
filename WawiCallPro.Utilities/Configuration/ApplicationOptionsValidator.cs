@@ -53,7 +53,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
                 account.MaximumMessages is < 1 or > 100000 || account.FolderIds.IsDefault || account.FolderIds.Length > 1024 ||
                 account.FolderIds.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 4096 || id.Any(char.IsControl)) || account.FolderIds.Distinct().Count() != account.FolderIds.Length ||
                 account.RemoteIdentity is { } identity && (identity.Length > 1024 || identity.Any(char.IsControl)) ||
-                account.OutlookStoreId is { } store && (store.Length > 4096 || store.Any(char.IsControl)))
+                account.OutlookStoreId is { } store && (store.Length > 4096 || store.Any(char.IsControl)) ||
+                account.FolderNames is null || account.FolderNames.Count > 1024 || account.FolderNames.Any(pair => !account.FolderIds.Contains(pair.Key) || !SafeLineText(pair.Value)))
                 issues.Add(new("mailAccounts", "Postfachname, Kennungen, Zeitraum oder Mengenbegrenzung prüfen."));
             if (!account.Enabled || account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.OutlookDesktop) continue;
             if (account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.Microsoft365 &&

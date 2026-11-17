@@ -54,6 +54,8 @@ partial class SettingsPage
         cacheTextEdit = new DevExpress.XtraEditors.Repository.RepositoryItemMemoEdit();
         layout = new System.Windows.Forms.TableLayoutPanel();
         tabs = new DevExpress.XtraTab.XtraTabControl();
+        mailTab = new DevExpress.XtraTab.XtraTabPage();
+        mailSettingsPage = new WawiCallPro.App.Views.MailSettingsPage();
         pluginTab = new DevExpress.XtraTab.XtraTabPage();
         pluginPage = new WawiCallPro.App.Views.PluginPage();
         statusLabel = new DevExpress.XtraEditors.LabelControl();
@@ -854,6 +856,10 @@ partial class SettingsPage
         loadCompaniesButton.Click += LoadCompanies_Click;
         cacheTab.Text = "Telefon-Cache";
         tabs.TabPages.Add(cacheTab);
+        mailTab.Text = "E-Mail";
+        mailSettingsPage.Dock = System.Windows.Forms.DockStyle.Fill;
+        mailTab.Controls.Add(mailSettingsPage);
+        tabs.TabPages.Add(mailTab);
         cacheTab.Controls.Add(cachePages);
         cachePages.Dock = System.Windows.Forms.DockStyle.Fill;
         cachePages.Name = "cachePages";
@@ -1228,4 +1234,6 @@ partial class SettingsPage
     private DevExpress.XtraEditors.SimpleButton loadMatchingCompaniesButton;
     private DevExpress.XtraEditors.SimpleButton loadMatchingRuleButton;
     private DevExpress.XtraEditors.SimpleButton saveMatchingRuleButton;
+    private DevExpress.XtraTab.XtraTabPage mailTab;
+    private WawiCallPro.App.Views.MailSettingsPage mailSettingsPage;
 }

@@ -126,6 +126,7 @@ public partial class MainForm : RibbonForm
                 content = history; caption = "Gesprächshistorie"; break;
             case "mail":
                 var mail = new MailPage(); if (_mailSource is not null) mail.Bind(_mailSource, _state);
+                if (_workspace?.Mail is not null) mail.ConfigureMailActions(_workspace.Mail, true);
                 content = mail; caption = "E-Mails"; break;
             default:
                 var start = new StartPage(); start.Navigate += Navigate;

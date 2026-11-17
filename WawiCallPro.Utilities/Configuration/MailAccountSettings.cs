@@ -22,6 +22,8 @@ public sealed record MailAccountSettings
     public string? RemoteIdentity { get; init; }
     public string? OutlookStoreId { get; init; }
     public ImmutableArray<string> FolderIds { get; init; } = [];
+    public ImmutableDictionary<string, string> FolderNames { get; init; } = ImmutableDictionary<string, string>.Empty;
+    public WawiCallPro.Interfaces.Companies.CompanyKey? Company { get; init; }
     public int ImportDays { get; init; } = 365;
     public int MaximumMessages { get; init; } = 10000;
     public bool SynchronizeOnStartup { get; init; }

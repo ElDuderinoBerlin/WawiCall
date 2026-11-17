@@ -81,7 +81,7 @@ public sealed class GmailConnector(MailAccountSettings account, MailHttp http) :
         var recipients = new[] { (Header("To"), "to"), (Header("Cc"), "cc"), (Header("Bcc"), "bcc") }.SelectMany(item => ParseAddresses(item.Item1, item.Item2)).ToImmutableArray();
         var sender = ParseAddresses(Header("From"), "from").FirstOrDefault()?.Address ?? "";
         var content = new MailContent(MessageKey(data.Required("id")), Header("Subject"), Header("From"), Header("To"), Header("Cc"), DateTimeOffset.FromUnixTimeMilliseconds(timestamp), text.Length > 0 ? text.ToString() : data.Text("snippet"), html.Length > 0 ? html.ToString() : null, [.. attachments]);
-        return new(content, Header("Message-ID"), sender, recipients, labels, data.Text("historyId") + (labels.Contains("UNREAD") ? ":unread" : ":read"));
+        return new(content, Header("Message-ID"), sender, recipients, labels, data.Text("historyId") + (labels.Contains("UNREAD") ? ":unread" : ":read")) { IsRead = !labels.Contains("UNREAD"), Preview = data.Text("snippet") };
     }
     public async Task<MailChangePage> GetChangesAsync(string folderId, string? checkpoint, string? nextPage, CancellationToken cancellationToken = default)
     {
@@ -115,7 +115,9 @@ public sealed class GmailConnector(MailAccountSettings account, MailHttp http) :
         {
             var data = (await Get("messages/" + MailJson.Encode(messageId) + "?format=full", cancellationToken))!.Value;
             JsonElement Find(JsonElement part) { if (part.Text("partId") == attachmentId[7..]) return part; foreach (var child in part.Items("parts")) { var match = Find(child); if (match.ValueKind != JsonValueKind.Undefined) return match; } return default; }
-            return Decode(Find(data.Child("payload")).Child("body").Text("data"));
+            var part = Find(data.Child("payload"));
+            if (part.ValueKind == JsonValueKind.Undefined) throw new MailException(MailFailure.InvalidResponse);
+            return Decode(part.Child("body").Text("data"));
         }
         var attachment = (await Get("messages/" + MailJson.Encode(messageId) + "/attachments/" + MailJson.Encode(attachmentId), cancellationToken))!.Value;
         return Decode(attachment.Text("data"));

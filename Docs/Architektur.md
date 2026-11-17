@@ -472,10 +472,11 @@ Die WawiCallPro-Importoberfläche, Mailpersistenz und Anzeige bei einem Anruf si
 
 `WawiCallPro.Office` enthält eigene Connectoren für klassisches Outlook Desktop, Microsoft Graph
 und Gmail. `IMailConnector` liefert ausschließlich neutrale Ordner-, Nachrichten-, Änderungs- und
-Anhangsdaten. `ConfiguredMailViewSource` führt mehrere explizit konfigurierte Konten zusammen;
+Anhangsdaten. `ImportedMailViewSource` führt mehrere explizit konfigurierte Konten zusammen;
 Provider und lokale Konto-GUID gehören zu jeder Quellidentität. Kein Lesen verändert den Gelesen-Status.
-Dieser Baustein stellt die Anbieter bereit; Einrichtung, Importpersistenz und Anschluss im App-Host
-werden in den folgenden Teilpunkten ergänzt.
+Der App-Host registriert die echten Anbieter, die lokale Importablage und die Kontoeinrichtung im
+zentralen Einstellungsdialog. Der Browser liest die bestätigten lokalen Schnappschüsse und funktioniert
+damit auch ohne aktuelle Verbindung; ein deaktiviertes Konto wird nicht freigegeben.
 
 Microsoft-Anmeldung verwendet MSAL: interaktive Desktop-Anmeldung über Systembrowser mit delegiertem
 Mail.Read/User.Read oder eine ausdrücklich konfigurierte App-Anmeldung mit Tenant-GUID, Client-ID,
@@ -567,12 +568,53 @@ Nur Alle/Ungelesen wird lokal auf die gelieferten Daten angewendet; Lesen verän
 RichEdit zeigt Text/HTML schreibgeschützt mit dem aktiven Skin und der UI-Schrift. Ein eigener Ersatz des
 `IUriStreamService` verhindert Datei-/Netzwerk-Fallbacks für Ressourcen. Hyperlinks starten keine externen
 Programme. Öffnen, Neuanlegen und Speichern fremder Dokumente sind im Reader deaktiviert.
-Die Anhangszeile zeigt Metadaten; Anhangsabruf/-export und Mailversand gehören zum späteren Connectorumfang.
+Die Anhangszeile zeigt Metadaten. Ein gezielter Abruf über den Anbieter speichert Anhänge bis 5 MiB
+nach Auswahl in einem besitzenden DevExpress-Speicherdialog. Die Ausgabe wird erst nach vollständigem
+Download atomar ersetzt, bei Abbruch bleiben vorhandene Dateien erhalten. Keine Datei wird automatisch
+geöffnet. RichEdit bleibt unabhängig davon schreibgeschützt; Mailversand gehört nicht zum Leseumfang.
 
-Die reguläre DI-Registrierung verwendet bis zur Kontoeinrichtung `UnconfiguredMailViewSource` mit klarer
-Leermeldung. Gefüllte Daten existieren nur in isolierten Prüfungen. Die neue Oberfläche ist damit kein
-Nachweis bereits implementierter Graph-/Gmail-/Outlook-Connectoren oder eines Mailimports.
+Die reguläre DI-Registrierung verwendet `ImportedMailViewSource` mit klarer Leermeldung ohne Konten.
+Aktualisieren importiert Änderungen der freigegebenen Ordner und lädt die lokale Ansicht neu.
+Optional startet ein geordnet beendeter Hintergrunddienst beim Programmstart einen stillen Import;
+fehlende Anmeldung und Leserechte werden diagnostiziert, ohne einen Browser zu öffnen.
+Eine kundenbezogene Quelle prüft bei jedem Abruf Kontoaktivierung, explizite Ordner, vollständigen
+Produkt-/Installations-/Mandantenschlüssel und exakte kanonisierte E-Mail-Adressen des Geschäftspartners.
+Fehlende Adressen liefern keine Nachrichten. Der Mail-Tab eines Anrufs behält seinen angenommenen
+Geschäftspartnerkontext; er verändert weder den globalen Mandanten noch vorhandene Fach-Tabs.
 Build-/Bildnachweise und die verbleibende Abnahme stehen in Phase 11 des [Neuaufbau-Plans](Neuaufbau-Plan.md).
+
+### Postfach einrichten
+
+Unter **Einstellungen → E-Mail** ein Postfach hinzufügen oder **Aus LxPrintStudio übernehmen** wählen.
+Eine vorhandene Kommunikationsdatenbank muss zuvor über den Datenbank-Assistenten auf Schema 13
+gebracht werden; die Anwendung führt keinen stillen Rückbau oder Ersatz bestehender Datenbanken aus.
+Die Übernahme liest dessen lokale `appsettings.json` und schützt ein vorhandenes Microsoft-App-Secret
+für WawiCallPro neu. Sie übernimmt keine SMTP-Kennwörter, ändert die Quelldatei nicht und liest keine Mails.
+Clientdaten werden zunächst als deaktivierter Entwurf angezeigt. **Verbinden** speichert nur die
+Postfachdaten, prüft Anmeldung und Ordner-Leserechte und aktiviert das Konto nach erfolgreicher Prüfung.
+Ungespeicherte allgemeine Einstellungen in anderen Tabs bleiben als Entwurf erhalten.
+
+Für eine neue Microsoft-Desktop-Registrierung Client-ID und Entra-Mandant eintragen und die öffentliche
+Desktop-Anmeldung mit `http://localhost`, `Mail.Read` und `User.Read` einrichten. Vorhandene App-Anmeldung
+benötigt stattdessen eine konkrete Tenant-GUID, Client-ID, geschütztes Secret und Zielpostfach sowie
+`Mail.Read` als Anwendungsberechtigung mit Administratorzustimmung. Vorhandenes `Mail.Send` reicht nicht.
+Der Benutzer beziehungsweise Administrator erteilt diese Rechte; die Anwendung erweitert sie nicht selbst.
+
+Für Gmail/Google Workspace die Gmail API und einen OAuth-Desktop-Client im eigenen Google-Projekt
+einrichten. **Google-Client importieren** liest die Client-JSON, **Verbinden** öffnet die Google-Anmeldung
+mit `gmail.readonly`. Im Testbetrieb muss das Konto für den Zustimmungsbildschirm freigegeben sein.
+Für Outlook Desktop ein klassisches Outlook-Profil voraussetzen; ein Store kann über dessen Namen
+ausgewählt werden. Das neue Outlook ersetzt diesen COM-Zugriff nicht;
+[Microsofts Funktionsvergleich](https://support.microsoft.com/en-us/outlook/getstarted/feature-comparison-between-new-outlook-and-classic-outlook)
+führt das Outlook Object Model dort als nicht unterstützt auf.
+
+Nach dem Verbinden **Importordner → Ordner laden** wählen und ausschließlich benötigte Ordner anhaken.
+Zeitraum, Mengenbegrenzung und optionalen Startimport festlegen; 0 Tage umfasst alle Nachrichten.
+**Importieren** bestätigt die Auswahl und beginnt den wiederaufnehmbaren Import. Für Kundenmails bei
+Anrufen zusätzlich den passenden **Lexware-Mandanten** auswählen. Ohne diese Zuordnung bleibt das
+Postfach im allgemeinen Mailbrowser nutzbar, wird aber keinem Kundenkontext zugeordnet.
+Die Lesefunktionen sind mit isolierten Anbietern geprüft; echte OAuth-Zustimmung, Tenantberechtigungen
+und die konkrete lokale Outlook-Installation benötigen weiterhin eine Abnahme durch den Benutzer.
 
 ## Gesprächsaufzeichnung, WAV-Mixer und MP3
 

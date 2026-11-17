@@ -24,6 +24,7 @@
     <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
     <ProjectReference Include="..\WawiCallPro.Telephony.Sip\WawiCallPro.Telephony.Sip.csproj" />
     <ProjectReference Include="..\WawiCallPro.Audio\WawiCallPro.Audio.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Office\WawiCallPro.Office.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Icons\*.svg" />

@@ -8,6 +8,7 @@ using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Office;
 using WawiCallPro.Plugin.Windows;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
@@ -43,7 +44,8 @@ public sealed class AppWorkspace(
     ICallAssociationService callAssociations,
     IPhoneNumberDiagnostics numberDiagnostics,
     CallNotesSessionFactory callNotes,
-    IAppAutoStart autoStart)
+    IAppAutoStart autoStart,
+    MailApplication mail)
 {
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
@@ -71,6 +73,7 @@ public sealed class AppWorkspace(
     public IPhoneNumberDiagnostics NumberDiagnostics { get; } = numberDiagnostics;
     public CallNotesSessionFactory CallNotes { get; } = callNotes;
     public IAppAutoStart AutoStart { get; } = autoStart;
+    public WawiCallPro.Office.MailApplication Mail { get; } = mail;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

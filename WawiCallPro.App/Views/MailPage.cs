@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.IO;
 using DevExpress.Office.Services;
 using DevExpress.XtraEditors;
 using DevExpress.XtraBars.Navigation;
@@ -10,6 +11,10 @@ namespace WawiCallPro.App.Views;
 public partial class MailPage : XtraUserControl
 {
     private IMailViewSource? _source;
+    private WawiCallPro.Office.MailApplication? _application;
+    private MailContent? _message;
+    private bool _allowImport;
+    private string _catalogStatus = "";
     private AppUiState? _state;
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _catalogCancellation, _listCancellation, _previewCancellation;
@@ -37,6 +42,7 @@ public partial class MailPage : XtraUserControl
         var appearance = LookAndFeel; appearance.StyleChanged += Appearance_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= Appearance_Changed;
         Appearance_Changed(this, EventArgs.Empty);
+        attachmentEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name"));
     }
 
     internal void Bind(IMailViewSource source, AppUiState? state)
@@ -53,6 +59,8 @@ public partial class MailPage : XtraUserControl
         Cancel(ref _listCancellation); Cancel(ref _previewCancellation); searchTimer.Stop();
         return Track(LoadCatalogAsync(token));
     }
+    internal void ConfigureMailActions(WawiCallPro.Office.MailApplication application, bool allowImport)
+    { _application = application; _allowImport = allowImport; }
     private async Task LoadCatalogAsync(CancellationToken token)
     {
         reloadButton.Enabled = false; foldersAccordion.Enabled = messagesGrid.Enabled = false; statusLabel.Text = "Postfachordner werden geladen …";
@@ -77,6 +85,7 @@ public partial class MailPage : XtraUserControl
                 foldersEmpty.Text = "Kein Postfach verbunden.";
                 statusLabel.Text = catalog.Status; ClearPreview("Kein Postfach verbunden."); return;
             }
+            _catalogStatus = catalog.Status;
             await LoadCurrentFolderAsync();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -125,7 +134,8 @@ public partial class MailPage : XtraUserControl
                 if (previous is not null && messagesView.LocateByValue("Key", previous) is var handle && handle >= 0) messagesView.FocusedRowHandle = handle;
             }
             finally { _binding = false; }
-            statusLabel.Text = items.IsEmpty ? "Keine Nachrichten für diese Auswahl." : $"{items.Length} Nachrichten · Strg+F zum Suchen";
+            statusLabel.Text = (items.IsEmpty ? "Keine Nachrichten für diese Auswahl." : $"{items.Length} Nachrichten · Strg+F zum Suchen")
+                + (_catalogStatus.Length == 0 ? "" : " · " + _catalogStatus);
             await LoadFocusedMessageAsync();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -154,6 +164,10 @@ public partial class MailPage : XtraUserControl
             attachmentsLabel.Text = message.Attachments.IsEmpty ? "" : (message.Attachments.Length == 1 ? "Anhang: " : "Anhänge: ")
                 + string.Join(" · ", message.Attachments.Select(attachment => attachment.Name));
             attachmentsLabel.Visible = !message.Attachments.IsEmpty;
+            _message = message;
+            attachmentEdit.Properties.DataSource = message.Attachments.Where(item => item.Id is not null).ToArray();
+            attachmentEdit.EditValue = message.Attachments.FirstOrDefault(item => item.Id is not null)?.Id;
+            attachmentActions.Visible = _application is not null && message.Attachments.Any(item => item.Id is not null);
             subjectLabel.Visible = senderLabel.Visible = recipientsLabel.Visible = dateLabel.Visible = body.Visible = true;
             readerEmpty.Visible = false;
             if (string.IsNullOrWhiteSpace(message.Html)) body.Text = message.Text;
@@ -174,6 +188,7 @@ public partial class MailPage : XtraUserControl
     }
     private void ClearPreview(string text)
     {
+        _message = null; attachmentActions.Visible = false; attachmentEdit.Properties.DataSource = null;
         subjectLabel.Text = text; senderLabel.Text = recipientsLabel.Text = dateLabel.Text = attachmentsLabel.Text = "";
         attachmentsLabel.Visible = false; body.Text = ""; ApplyReaderAppearance();
         subjectLabel.Visible = senderLabel.Visible = recipientsLabel.Visible = dateLabel.Visible = body.Visible = false;
@@ -217,7 +232,53 @@ public partial class MailPage : XtraUserControl
         _state?.Save(messagesView, "MailTiles_v2"); _lifetime.Dispose();
     }
     private async void MailPage_Load(object? sender, EventArgs e) => await ReloadAsync();
-    private async void Reload_Click(object? sender, EventArgs e) => await ReloadAsync();
+    private async void Reload_Click(object? sender, EventArgs e) => await Track(ImportAndReloadAsync());
+    private async Task ImportAndReloadAsync()
+    {
+        if (_stopping || !reloadButton.Enabled) return;
+        reloadButton.Enabled = false;
+        try
+        {
+            if (_allowImport && _application is not null)
+            {
+                statusLabel.Text = "Nachrichten werden abgerufen …";
+                foreach (var account in (await _application.Accounts.GetAsync(_lifetime.Token)).Where(item => item.Enabled && !item.FolderIds.IsEmpty))
+                    await _application.Synchronization.SynchronizeAsync(account.Id, cancellationToken: _lifetime.Token);
+            }
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) { if (!_stopping) statusLabel.Text = PageOperation.Describe(exception); }
+        finally { if (!_stopping) reloadButton.Enabled = true; }
+    }
+    private async void SaveAttachment_Click(object? sender, EventArgs e) => await Track(SaveAttachmentAsync());
+    private async Task SaveAttachmentAsync()
+    {
+        if (_application is null || _message is not { } message || attachmentEdit.EditValue is not string id || _stopping) return;
+        var attachment = message.Attachments.Single(item => item.Id == id); var owner = (Control?)FindForm() ?? this;
+        var waiting = owner.UseWaitCursor; var cursor = owner.Cursor; saveAttachmentButton.Enabled = false;
+        string? temporary = null;
+        try
+        {
+            owner.UseWaitCursor = true; owner.Cursor = Cursors.WaitCursor;
+            using var dialog = new XtraSaveFileDialog { Title = "E-Mail-Anhang speichern", FileName = Path.GetFileName(attachment.Name), OverwritePrompt = true, RestoreDirectory = true, Filter = "Alle Dateien (*.*)|*.*" };
+            if (dialog.ShowDialog(owner) != DialogResult.OK) return;
+            var bytes = await _application.DownloadAsync(message.Key, id, _lifetime.Token);
+            var destination = Path.GetFullPath(dialog.FileName);
+            temporary = Path.Combine(Path.GetDirectoryName(destination)!, ".wawi-mail-" + Guid.NewGuid().ToString("N") + ".tmp");
+            await using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true))
+            { await file.WriteAsync(bytes, _lifetime.Token); await file.FlushAsync(_lifetime.Token); file.Flush(true); }
+            _lifetime.Token.ThrowIfCancellationRequested(); File.Move(temporary, destination, true); temporary = null;
+            statusLabel.Text = "Anhang gespeichert. Die Datei wurde nicht geöffnet.";
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) { if (!_stopping) statusLabel.Text = PageOperation.Describe(exception); }
+        finally
+        {
+            if (temporary is not null) { try { File.Delete(temporary); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+            if (!owner.IsDisposed) { owner.UseWaitCursor = waiting; owner.Cursor = cursor; } if (!_stopping) saveAttachmentButton.Enabled = true;
+        }
+    }
     private async void Folder_SelectedElementChanged(object sender, SelectedElementChangedEventArgs e)
     {
         if (_binding || _stopping || e.Element?.Tag is not MailFolderKey key) return;
@@ -305,6 +366,7 @@ public partial class MailPage : XtraUserControl
         try
         {
             UiButtonSizing.Apply(reloadButton, readingPositionButton);
+            UiButtonSizing.Apply(saveAttachmentButton);
             var unit = Math.Max(Font.Height, LogicalToDeviceUnits(16));
             filterTabs.AppearanceItem.Normal.Font = Font;
             filterTabs.AppearanceItem.Hovered.Font = Font;
@@ -313,6 +375,7 @@ public partial class MailPage : XtraUserControl
             filterTabs.AppearanceItem.Hovered.Options.UseFont = true;
             filterTabs.AppearanceItem.Pressed.Options.UseFont = true;
             filterTabs.Font = Font;
+            filterTabs.MinimumSize = new Size(0, TextRenderer.MeasureText("Ungelesen", Font).Height + LogicalToDeviceUnits(16));
             var folderWidth = _folderElements.Values.Select(element => TextRenderer.MeasureText(element.Text, Font).Width).DefaultIfEmpty(unit * 8).Max() + unit * 3;
             foldersSplit.SplitterPosition = Math.Min(Math.Max(unit * 11, folderWidth), Math.Max(unit * 6, Width * 35 / 100));
             var horizontal = !_preferBottom && Width >= unit * 62;

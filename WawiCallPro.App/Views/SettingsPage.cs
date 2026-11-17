@@ -30,6 +30,7 @@ public partial class SettingsPage : XtraUserControl
         var content = Math.Max(generalLayout.GetPreferredSize(new(width, 0)).Height,
             Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
             + audioDevicesTab.Top + audioDevicesTab.Left);
+        if (tabs.SelectedTabPage == mailTab) content = Math.Max(content, mailSettingsPage.GetRequiredHeight());
         var statusWidth = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal - statusLabel.Margin.Horizontal);
         // Hidden pages may retain an old Height. Derive chrome from content and stable header/border offsets instead.
         return content + layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left
@@ -43,6 +44,7 @@ public partial class SettingsPage : XtraUserControl
         footer.SizeChanged += ButtonLayout_Changed;
         footer.Layout += General_Layout;
         generalLayout.Layout += General_Layout;
+        tabs.SelectedPageChanged += SettingsTab_Changed;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
         UiButtonSizing.Attach(this);
@@ -57,6 +59,7 @@ public partial class SettingsPage : XtraUserControl
         ArrangeButtons();
     }
     private void General_Layout(object? sender, LayoutEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
+    private void SettingsTab_Changed(object? sender, DevExpress.XtraTab.TabPageChangedEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
 
     private void ButtonLayout_Changed(object? sender, EventArgs e) => ArrangeButtons();
     private void ArrangeButtons()
@@ -103,6 +106,7 @@ public partial class SettingsPage : XtraUserControl
         if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
         UpdateSipStatus();
         _operation = new PageOperation(this, statusLabel);
+        mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
         Apply(workspace.Configuration.Current);
         LoadAutoStart();
         pluginPage.Bind(workspace, _state);
@@ -125,6 +129,7 @@ public partial class SettingsPage : XtraUserControl
         if (_operation is not null) await _operation.StopAsync();
         await pluginPage.StopAsync();
         await numberDiagnosticsPage.StopAsync();
+        await mailSettingsPage.StopAsync();
     }
     internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
@@ -171,10 +176,12 @@ public partial class SettingsPage : XtraUserControl
         _state?.Restore(cacheView, "CacheSources");
         pluginPage.ConfigureLayoutPersistence(state);
         numberDiagnosticsPage.ConfigureLayoutPersistence(state);
+        mailSettingsPage.ConfigureLayoutPersistence(state);
     }
 
     internal void Apply(ConfigurationSnapshot snapshot)
     {
+        mailSettingsPage.Apply(snapshot.Options.MailAccounts, snapshot.Options.Companies);
         _snapshot = snapshot;
         var options = snapshot.Options;
         ApplyCallerLine(options);
@@ -230,7 +237,8 @@ public partial class SettingsPage : XtraUserControl
             },
 
             Companies = ReadCompanySettings(old),
-            CallerLineAssignment = _lineDraft
+            CallerLineAssignment = _lineDraft,
+            MailAccounts = mailSettingsPage.ReadAccounts()
         };
     }
 
@@ -271,6 +279,22 @@ public partial class SettingsPage : XtraUserControl
     }
 
     internal Task ReloadAsync() => _operation?.RunAsync(async token => { Apply(await _workspace!.Settings.LoadAsync(token)); LoadAutoStart(); await LoadAudioDevicesAsync(token); }) ?? Task.CompletedTask;
+    private async Task ReloadMailSettingsAsync(CancellationToken token)
+    {
+        var next = await _workspace!.Settings.LoadAsync(token);
+        // Refresh mail state without silently accepting concurrent edits to the other open settings tabs.
+        var previousGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(_snapshot!.Options with { MailAccounts = [] });
+        var nextGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(next.Options with { MailAccounts = [] });
+        if (!previousGeneral.AsSpan().SequenceEqual(nextGeneral)) throw new WawiCallPro.Interfaces.Office.MailException(WawiCallPro.Interfaces.Office.MailFailure.Conflict);
+        _snapshot = next;
+        mailSettingsPage.Apply(_snapshot.Options.MailAccounts, _snapshot.Options.Companies);
+    }
+    private async Task SaveMailSettingsAsync(CancellationToken token)
+    {
+        var options = _snapshot!.Options with { MailAccounts = mailSettingsPage.ReadAccounts() };
+        await _workspace!.Settings.SaveAsync(options, _snapshot, token);
+        await ReloadMailSettingsAsync(token);
+    }
     private void LoadAutoStart()
     {
         if (_workspace is null) return;

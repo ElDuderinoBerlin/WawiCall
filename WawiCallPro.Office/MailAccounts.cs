@@ -70,6 +70,7 @@ public sealed class MailAccounts(
         await settings.SaveAsync(snapshot.Options with { MailAccounts = snapshot.Options.MailAccounts.Select(item => item.Id == id ? item with { Enabled = false } : item).ToImmutableArray() }, snapshot, token);
     }
     public Task<MailFolderCatalog> GetFoldersAsync(MailAccountSettings account, CancellationToken token = default) => connectors.Create(account).GetFoldersAsync(token);
+    public Task ForgetAuthenticationAsync(MailAccountSettings account, CancellationToken token = default) => authentication.DisconnectAsync(account, token);
     public Task<ImmutableArray<MailStore>> GetOutlookStoresAsync(MailAccountSettings account, CancellationToken token = default) =>
         OperatingSystem.IsWindows() ? new OutlookDesktopConnector(account).GetStoresAsync(token) : throw new MailException(MailFailure.NotSupported);
     public async Task<MailAccountSettings> ReadGoogleClientAsync(string path, CancellationToken token = default)

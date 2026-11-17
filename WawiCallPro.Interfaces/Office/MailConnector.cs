@@ -9,6 +9,8 @@ public sealed record MailEnvelope(MailContent Content, string? InternetMessageId
     ImmutableArray<MailRecipient> Recipients, ImmutableArray<string> FolderIds, string Revision)
 {
     public string? StableId { get; init; }
+    public bool IsRead { get; init; }
+    public string Preview { get; init; } = "";
 }
 /// <summary>A checkpoint is committed only together with every change in this page. A null next page ends the round.</summary>
 public sealed record MailChangePage(ImmutableArray<MailEnvelope> Messages, ImmutableArray<string> RemovedIds,

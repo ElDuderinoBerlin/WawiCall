@@ -175,7 +175,7 @@ public sealed class OutlookDesktopConnector(MailAccountSettings account) : IMail
             try { stable = store + ":" + Convert.ToHexString((byte[])((dynamic)accessor).GetProperty("http://schemas.microsoft.com/mapi/proptag/0x0FF90102")); }
             catch (COMException) { stable = Encode(store, messageEntryId); }
             return new(content, Property("0x1035001F"), sender, [.. addresses], [Encode(store, (string)((dynamic)parent).EntryID)],
-                ((DateTime)item.LastModificationTime).ToUniversalTime().Ticks + ((bool)item.UnRead ? ":unread" : ":read")) { StableId = stable };
+                ((DateTime)item.LastModificationTime).ToUniversalTime().Ticks + ((bool)item.UnRead ? ":unread" : ":read")) { StableId = stable, IsRead = !(bool)item.UnRead, Preview = text[..Math.Min(256, text.Length)] };
         }
         finally { Release(parent); Release(attachments); Release(recipients); Release(accessor); }
     }

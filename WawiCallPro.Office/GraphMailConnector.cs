@@ -61,7 +61,7 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
     }
     public async Task<MailEnvelope?> GetMessageAsync(string messageId, CancellationToken cancellationToken = default)
     {
-        var item = await Get("messages/" + MailJson.Encode(messageId) + "?$select=id,parentFolderId,internetMessageId,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,body,isRead,changeKey", cancellationToken, missing: true);
+        var item = await Get("messages/" + MailJson.Encode(messageId) + "?$select=id,parentFolderId,internetMessageId,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,body,bodyPreview,isRead,changeKey", cancellationToken, missing: true);
         if (item is null) return null;
         var attachments = new List<MailAttachmentInfo>(); string? page = "messages/" + MailJson.Encode(messageId) + "/attachments?$select=id,name,size&$top=100"; var seen = new HashSet<string>();
         while (page is not null)
@@ -76,7 +76,7 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
         { var address = recipient.Child("emailAddress"); return new MailRecipient(address.Text("address"), address.Text("name"), kind.Item2); })).ToImmutableArray();
         var body = value.Child("body"); var html = body.Text("contentType").Equals("html", StringComparison.OrdinalIgnoreCase);
         var content = new MailContent(MessageKey(value.Required("id")), value.Text("subject"), Display(from), Join(recipients, "to"), Join(recipients, "cc"), value.Date("receivedDateTime"), html ? "" : body.Text("content"), html ? body.Text("content") : null, [.. attachments]);
-        return new(content, value.Text("internetMessageId"), from.Text("address"), recipients, [value.Required("parentFolderId")], value.Text("changeKey"));
+        return new(content, value.Text("internetMessageId"), from.Text("address"), recipients, [value.Required("parentFolderId")], value.Text("changeKey")) { IsRead = value.Flag("isRead"), Preview = value.Text("bodyPreview") };
     }
     public async Task<MailChangePage> GetChangesAsync(string folderId, string? checkpoint, string? nextPage, CancellationToken cancellationToken = default)
     {
@@ -84,6 +84,9 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
         var route = nextPage ?? checkpoint ?? initial; JsonElement data;
         try { data = (await Get(route, cancellationToken, cursor: checkpoint is not null || nextPage is not null))!.Value; }
         catch (MailCursorExpiredException) { return new([], [], null, null, true); }
+        if (!data.TryGetProperty("value", out var changes) || changes.ValueKind != JsonValueKind.Array ||
+            string.IsNullOrWhiteSpace(data.Text("@odata.nextLink")) && string.IsNullOrWhiteSpace(data.Text("@odata.deltaLink")))
+            throw new MailException(MailFailure.InvalidResponse);
         var messages = new List<MailEnvelope>(); var removed = new List<string>();
         foreach (var change in data.Items("value"))
         {
@@ -95,7 +98,8 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
     public async Task<byte[]> GetAttachmentAsync(string messageId, string attachmentId, CancellationToken cancellationToken = default)
     {
         var file = (await Get("messages/" + MailJson.Encode(messageId) + "/attachments/" + MailJson.Encode(attachmentId), cancellationToken))!.Value;
-        var bytes = Convert.FromBase64String(file.Text("contentBytes"));
+        if (!file.TryGetProperty("contentBytes", out var content) || content.ValueKind != JsonValueKind.String) throw new MailException(MailFailure.NotSupported);
+        var bytes = Convert.FromBase64String(content.GetString()!);
         if (bytes.Length > 5 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded);
         return bytes;
     }

@@ -6,7 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 17.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: tatsächliche Prozessabbrüche an fünf Grenzen der nativen MP3-Verarbeitung mit
+Zuletzt ergänzt: lesende Anbindungen für Outlook Desktop, Microsoft 365 und Gmail samt zentraler
+Kontoeinrichtung, geschütztem Import, wiederaufnehmbarer Synchronisierung und Kundenmails bei Anrufen.
+495 gezielte Prüfungen je Edition und beide regulären Solution-Builds bestanden. Echte OAuth-Zustimmung,
+Tenant-Leserechte und lokale Outlook-Installation bleiben als Benutzerabnahme offen (Phase 11).
+Zuvor ergänzt: tatsächliche Prozessabbrüche an fünf Grenzen der nativen MP3-Verarbeitung mit
 synthetischen Dateien und eigener SQLite-Datenbank. Vor Vorbereitung bleiben Teildateien erhalten;
 geschützte Originale werden danach ohne zweite Kodierung bestätigt. Echte Kindprozess-PIDs,
 Fehler-Exitcodes, Hashes und unveränderte Schreibversionen werden erfasst (Phase 9, 17.11.2026).
@@ -138,12 +142,13 @@ Build- und Publish-Pluginprüfungen beider Editionen bestehen (Phase 14).
 Die plugin-eigene Kunden-/Lieferantensuche mit Stammdaten-Tab ist isoliert geprüft.
 Einstellungsdialog mit Logoptionen und aktivem Serilog sowie die bestehende Mailansicht sind isoliert
 geprüft. Der fehlende JSON-Import/Export aus dem Nutzerabgleich vom 15.11.2026 ist ergänzt;
-die Abweichungen von der gewünschten DevExpress-Mailvorlage sind korrigiert. Mailanbieter und Mailimport fehlen.
+die Abweichungen von der gewünschten DevExpress-Mailvorlage sind korrigiert. Mailanbieter, Kontoeinrichtung
+und geschützter Mailimport sind inzwischen implementiert und isoliert geprüft (Phase 11, 17.11.2026).
 Audio-Vorlage `WawiCallPro_old/TestCSCoreRecording` am 14.11.2026 erneut lesend abgeglichen;
 PCM-Aufnahmesitzung, Codec-Abgriff, Dateimixer und MP3-Konvertierung mit synthetischen Audiodaten geprüft;
 automatische gemeinsame Aufnahmeanker, Aufnahmebedienung und echte Audioabnahme weiterhin offen.
 Die externe MMS.Office-Leseroutine ist überarbeitet und isoliert geprüft; ihre Einbindung als
-Outlook-Desktop-Connector in Phase 11 steht weiterhin aus.
+Outlook-Desktop-Connector ist in Phase 11 über einen eigenen STA-/COM-Adapter angebunden.
 
 ## 1. Auftrag und Arbeitsstand
 
@@ -400,7 +405,7 @@ weiter SQL Anywhere unterstützen muss, erhält dies einen eigenen nachgewiesene
 | `callnotes` / `callevents` | Notizen sowie geordnete Status-/Gesprächsereignisse |
 | `recordings` | Gesprächsbezug, relativer Dateipfad, Format, Dauer, Verfügbarkeit; Audiodaten zunächst dateibasiert |
 | `numberparselogs` | Ungültige Quellnummern mit Produkt-/Mandanten-/Datensatzbezug und Fehlergrund |
-| `mailmessages` / `mailattachments` | Späterer Office-Ausbau: eindeutige Connector-ID, Beteiligte, Inhalt/Metadaten und Anhangsverweise |
+| `mailaccounts`, `mailmessages`, `mailaddresses`, `mailmemberships`, `mailsyncstate` | Office-Import ab Migration 13: Kontobindung, geschützter Inhalt einschließlich Anhangsmetadaten, exakte Adressindizes, Ordner und atomare Synchronisierungsstände |
 | FluentMigrator-Versionsinformationen | Ausschließlich Versionsverwaltung des neuen WawiCallPro-Schemas |
 | `wawicallpro_metadata` | Eigentumskennung der eigenen Kommunikationsdatenbank, Metadatenformat und Initialisierungszeit; Teil der ersten Migration |
 
@@ -447,7 +452,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Anbieterkerne für Outlook Desktop/Microsoft 365/Gmail mit geschützter Anmeldung und lokalen Kontoverträgen; ✅ atomare Importdatenbank mit Kontobindung und Synchronisierungsständen; ✅ Mailansicht nach tatsächlicher DevExpress-Vorlage. Kontoeinrichtung, App-Anschluss, Synchronisierungsdienst und Kundenanbindung offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ atomarer Import und Synchronisierung; ✅ Outlook-artige Mailansicht mit Anhangsspeicherung und Kundenmails bei Anrufen. Native Kontoabnahme, Kontakte/Termine und bedarfsabhängiges LDAP offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -3123,6 +3128,31 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 ### Phase 11 – Office-Kommunikation 🟨
 
+- [x] ✅ Mailanbindung im App-Host fertig angeschlossen (17.11.2026): E-Mail-Tab in den zentralen
+  Einstellungen, mehrere Konten, öffentliche Microsoft-Desktop-Anmeldung oder vorhandene App-Anmeldung,
+  geschützter LxPrintStudio-/Google-Clientimport, benannte Outlook-Stores, Ordner-Checkboxen, Zeitraum,
+  Mengenbegrenzung, Anmeldung/Abmeldung, Import/Abbruch und optionaler stiller Startimport.
+  Verbindungsaktionen speichern ausschließlich Postfachdaten; allgemeine Entwürfe bleiben erhalten.
+  `MailImportService` verschlüsselt Nachrichten und Cursor vor der atomaren Ablage, setzt abgebrochene
+  Seiten fort, behandelt abgelaufene Cursor sicher und importiert bei globaler Gmail-History keine
+  nicht ausgewählten Ordner. Der Browser liest lokale Schnappschüsse; Aktualisieren ruft Änderungen ab.
+  Kundenmails sind an die explizite Postfach-/Mandantenzuordnung und vollständige, exakte Adressen
+  gebunden. Leere Adressen geben keine Mails frei; jeder Anruf-Tab behält seinen Geschäftspartnerkontext.
+  Anhänge bis 5 MiB gezielt über DevExpress speichern, mit Wartecursor, atomarer Ausgabe und ohne Öffnen.
+  Pro/FinOffice je 33 Office-, 47 Konfigurations-/Versions-/Transfer-, 29 gezielte App- und 386 vollständige
+  Console-Prüfungen bestanden (495 je Edition). Beide regulären Solution-Builds Debug/Any CPU: null Fehler,
+  je 26 bekannte externe CSCore-Warnungen. 27 gezielte Hintergrundbilder für Kontozustände, Ordner,
+  große Schrift, kleinere Fenster, 150%-Layoutsimulation, Skins, Anhänge und Anrufkontext erzeugt;
+  repräsentative Varianten selbst visuell geprüft und abgeschnittene Auswahlbereiche korrigiert.
+  Der allgemeine alte Tab-Renderlauf überlässt den neuen, anbieterabhängigen Tab seinem eigenen Audit;
+  die veraltete SQLite-Schreibweisen-Erwartung im Settings-Test ist an die bestehende Anzeige angepasst.
+  Nachweise `.mail-integration-{build,office,config,app,console}-{pro,fin}.log`, Bilder unter
+  `.artifacts/app-shell/settings-ui/mail-settings`. FinOffice ist die reguläre Startausgabe.
+  Keine echte Anmeldung, kein echtes Postfach und keine produktive Datenbank durch den Agenten geöffnet.
+  Microsoft-Leserechte und native Outlook-/Google-Anmeldung bleiben ausdrücklich Benutzerabnahmen.
+  Einrichtung: [Postfach einrichten](Architektur.md#postfach-einrichten). Rücknahme durch Revert der
+  Mailanbindung und gesicherte Konfiguration; Datenbankmigration 13 aus dem vorherigen Teilpunkt erhalten.
+
 - [x] ✅ Importdatenbank mit Nachrichten-/Adress-/Ordnerindizes und atomaren Synchronisierungsständen
   ergänzen (17.11.2026). Migration 13 mit regulärer FluentMigrator-API; Migrationen 1–12 unverändert.
   Dapper-Repository mit Kontobindung, Schreibversionsprüfung, idempotenten Seitenbestätigungen,
@@ -3149,7 +3179,7 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   null Fehler, je 26 bekannte externe CSCore-Warnungen; abschließende Startausgabe FinOffice.
   Nachweise `.mail-connectors-{build,office,config,console}-{pro,fin}.log`. Keine echten Postfächer
   geöffnet; native Outlook- und Cloud-Anmeldung bleiben gesonderte Abnahmen. App-Anschluss,
-  Importdatenbank und Oberfläche folgen im selben Arbeitsauftrag.
+  Importdatenbank und Oberfläche sind durch die nachfolgenden Teilpunkte ergänzt.
 - [x] ✅ Externe Outlook-Leseroutine in `MMS.Office` robuster aufgebaut und isoliert geprüft (14.11.2026):
   GetAll ohne Adressfilter, ausdrücklich leere Suche, exakte Datums-/Adressprüfung, Store-bezogene
   Dublettenbehandlung, Abbruch im Durchlauf, sichtbare Lesefehler, gezielte COM-Freigabe und beendete
@@ -3193,8 +3223,9 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   keine aktuelle Auswahl. Schließen wartet auch auf nicht kooperative Quellen. Lesen ändert keinen Mailstatus.
   Externe HTML-Ressourcen und lokale Dateiverweise werden durch Ersatz des UriStreamService blockiert;
   Links öffnen nichts automatisch. Der Lesebereich ist schreibgeschützt und bietet keine Datei-Öffnen-/Speichern-Aktionen.
-  Der reguläre Host registriert vorerst einen ausdrücklich unkonfigurierten Anbieter, keine Demo-Mails.
-  Kontoeinrichtung, echte Connectoren, Importpersistenz, Anhangsaktionen und Anzeige bei Kundenanrufen bleiben offen.
+  Der reguläre Host registrierte zu diesem Zeitpunkt einen ausdrücklich unkonfigurierten Anbieter.
+  Dieser Zwischenstand wurde am 17.11.2026 durch echte Connectoren, Kontoeinrichtung, Importpersistenz,
+  Anhangsaktionen und kundenbezogene Anruf-Tabs ersetzt; weiterhin keine Demo-Mails im Produkt.
   Nachweise: je Edition 19 gezielte App-Prüfungen einschließlich Mailzuständen, Suche, verspäteten Ergebnissen,
   Abbruch, Ressourcenblockade, tatsächlichem DI-Aufbau und bestehendem Shell-/Notiz-Schließschutz.
   Der neue DI-Test lud zunächst die Konfiguration nicht vor dem Fensterstart und konnte einen Windows-
@@ -3209,19 +3240,22 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   `WawiCallPro.App.Tests/bin/Debug/{Pro,FinOffice}/net11.0-windows10.0.19041.0/.artifacts/mail-view`.
   Keine SQL-/Schemaänderung, kein echtes Postfach geöffnet. Rücknahme durch Revert dieses Teilpunkts;
   die externe MMS.Office-Korrektur aus dem vorherigen Commit bleibt eigenständig.
-- [ ] Vorhandene Office-Anforderungen und verfügbare aktuelle Bibliotheken/API-Verträge getrennt erfassen.
-- [ ] Microsoft 365: eigenen Connector über Microsoft Graph implementieren; Authentifizierung, Clienttyp und
-  Zielumgebung klären. Weitere Outlook-/Exchange-Zielumgebungen getrennt auf Unterstützung prüfen.
-- [ ] Klassisches Outlook Desktop: lokalen Connector auf Basis der überarbeiteten MMS.Office-Leseroutine
+- [x] ✅ Vorhandene Office-Anforderungen, MMS.Office/MMS.MSGraph und aktuelle API-Verträge getrennt erfasst.
+- [x] ✅ Microsoft 365: eigenen lesenden Connector über Microsoft Graph mit explizitem Clienttyp implementiert.
+- [ ] Weitere Exchange-/Outlook-Zielumgebungen außerhalb der implementierten Microsoft-Graph-Cloud getrennt prüfen.
+- [x] ✅ Klassisches Outlook Desktop: lokalen Connector auf Basis der überarbeiteten MMS.Office-Leseroutine
   hinter neuen Fachverträgen anbinden; ausgewählte Stores/Ordner importieren und Änderungen beziehungsweise
   Verschiebungen wiederholbar zuordnen. Vorhandene Graph-Implementierung in `MMS.MSGraph` berücksichtigen.
-- [ ] Gmail und Google Workspace: eigenen Connector über die Gmail API mit OAuth-Anmeldung und passenden
+- [x] ✅ Gmail und Google Workspace: eigenen Connector über die Gmail API mit OAuth-Anmeldung und passenden
   Leserechten implementieren. Beide Anbieter hinter gemeinsamen, per DI angebundenen Mailverträgen kapseln;
   Zielbild und API-Quellen stehen in [Architektur](Architektur.md#mail-anbindung-microsoft-365-und-gmail).
-- [ ] Neue Connector-Verträge statt alter MMS.Office-Typen verwenden; kein nicht vorhandenes Quantarix.Office voraussetzen.
-- [ ] E-Mails, Kontakte und benötigte Termine kundenbezogen zuordnen; E-Mail-Adressen und Produkt-/Mandantenbezug beachten.
-- [ ] Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und optional Anhänge behandeln.
-- [ ] Eigene neue FluentMigrator-Migration für Office-Tabellen und Repository-Tests ergänzen.
+- [x] ✅ Neue Connector-Verträge statt alter MMS.Office-Typen verwendet; kein Quantarix.Office vorausgesetzt.
+- [x] ✅ E-Mails kundenbezogen zugeordnet; exakte E-Mail-Adressen und Produkt-/Installations-/Mandantenbezug durchgesetzt.
+- [ ] Kontakte und benötigte Termine kundenbezogen zuordnen; nicht Teil des aktuellen Mail-Leseauftrags.
+- [x] ✅ Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und gezielte Anhangsabrufe behandelt.
+- [x] ✅ Migration 13 für Office-Tabellen und Repository-Tests auf allen fünf tatsächlichen Engines ergänzt.
+- [ ] Native Benutzerabnahme: Microsoft-Tenant mit Mail.Read, Google-Desktop-OAuth und klassisches Outlook
+  mit den gewünschten Postfächern prüfen; keine echten Postfächer durch den Agenten gelesen.
 - [ ] LDAP nur bei konkretem Bedarf als separaten Connector umsetzen; bisher leere Klasse ist keine fertige Funktion.
 
 Abnahme: Synchronisieren und wiederholtes Synchronisieren ohne Duplikate, Zuordnung, Abbruch und

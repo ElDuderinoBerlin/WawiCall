@@ -1,5 +1,6 @@
 using System.Reflection;
 using WawiCallPro.Audio;
+using WawiCallPro.Office;
 using WawiCallPro.Telephony.Sip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton(new AppWindowOptions());
                 services.AddSingleton<AppWorkspace>();
                 services.AddSingleton<CallNotesSessionFactory>();
-                services.AddSingleton<WawiCallPro.Interfaces.Office.IMailViewSource, UnconfiguredMailViewSource>();
+                services.AddMailConnectors();
                 services.AddSingleton<IAutoStartRegistry, AutoStartRegistry>();
                 services.AddSingleton(_ => AppStartupCommand.ForCurrentProcess());
                 services.AddSingleton<IAppAutoStart, WindowsAppAutoStart>();
@@ -47,6 +48,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
                 services.AddSipTelephony(!mode.SuppressNetwork);
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
+                if (!mode.SuppressNetwork) services.AddHostedService<MailStartupImport>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();
                 services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
                 services.AddSingleton<IUiDispatcher>(_ => new SynchronizationContextUiDispatcher(uiContext));

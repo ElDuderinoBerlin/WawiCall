@@ -169,11 +169,11 @@ public sealed partial class AppShellTests
         try
         {
             await host.Services.GetRequiredService<WawiCallPro.Utilities.Configuration.ApplicationConfigurationService>().StartAsync(default);
-            Assert.IsInstanceOfType<UnconfiguredMailViewSource>(host.Services.GetRequiredService<IMailViewSource>());
+            Assert.IsInstanceOfType<WawiCallPro.Office.ImportedMailViewSource>(host.Services.GetRequiredService<IMailViewSource>());
             using var form = ActivatorUtilities.CreateInstance<MainForm>(host.Services); form.PrepareForBackgroundRun();
             form.Show(); form.Navigate("mail");
             var page = (MailPage)form.GetActiveDocumentView()!; await page.ReloadAsync();
-            Assert.Contains("Kein Postfach verbunden", Field<LabelControl>(page, "statusLabel").Text); await form.PrepareToCloseAsync();
+            Assert.Contains("Kein importiertes Postfach", Field<LabelControl>(page, "statusLabel").Text); await form.PrepareToCloseAsync();
         }
         finally
         {
@@ -301,6 +301,6 @@ public sealed partial class AppShellTests
         internal MailContent Content(MailMessageKey key) => new(key, key.Id == "1" ? "Rückfrage zum Angebot" : key.Id == "2" ? "Terminabstimmung" : "Ihre Unterlagen",
             "Erika Muster <kunde@example.test>", "Finanzbüro <info@example.test>", "", DateTimeOffset.Now,
             "Guten Tag, vielen Dank für Ihr Angebot. Können wir die Liefertermine noch besprechen?",
-            "<html><body><h2>Guten Tag,</h2><p>vielen Dank für Ihr Angebot. Können wir die <b>Liefertermine</b> noch besprechen?</p><p>Mit freundlichen Grüßen<br>Erika Muster</p></body></html>", [new("Angebot.pdf", 12345)]);
+            "<html><body><h2>Guten Tag,</h2><p>vielen Dank für Ihr Angebot. Können wir die <b>Liefertermine</b> noch besprechen?</p><p>Mit freundlichen Grüßen<br>Erika Muster</p></body></html>", [new("Angebot.pdf", 12345) { Id = "synthetic-file" }]);
     }
 }

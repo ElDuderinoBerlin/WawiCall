@@ -2843,6 +2843,8 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(page, "cancelButton").Size);
                 foreach (XtraTabPage tab in tabs.TabPages)
                 {
+                    // Mail has provider-dependent visibility and its own focused audit with a transparent native host.
+                    if (tab.Text == "E-Mail") continue;
                     tabs.SelectedTabPage = tab;
                     CreateHandles(form);
                     form.PerformLayout();
@@ -3249,7 +3251,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual("test-secret-sentinel", password.Reveal());
         Assert.DoesNotContain("test-secret-sentinel", await File.ReadAllTextAsync(services.GetRequiredService<ConfigurationLocation>().FilePath));
         await Assert.ThrowsAsync<ConfigurationException>(() => second.SaveAsync(CancellationToken.None));
-        Assert.AreEqual("Sqlite", Field<LabelControl>(first, "providerValue").Text);
+        Assert.AreEqual("SQLite", Field<LabelControl>(first, "providerValue").Text);
         Assert.AreEqual(CommunicationDatabaseProvider.Sqlite, (await workspace.Settings.LoadAsync()).Options.Database.Provider);
     });
 
@@ -3624,6 +3626,7 @@ public sealed partial class AppShellTests
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
             services.AddSingleton<CallNotesSessionFactory>();
+            WawiCallPro.Office.MailServiceRegistration.AddMailConnectors(services);
             services.AddSingleton<IAutoStartRegistry, StartupRegistryDouble>();
             services.AddSingleton<IAppAutoStart>(provider => new WindowsAppAutoStart(provider.GetRequiredService<IAutoStartRegistry>(),
                 new("WawiCallPro.App.Test", "\"C:\\Fixture App\\WawiCallPro.App.Test.exe\""), new StartupExecutionMode(false)));

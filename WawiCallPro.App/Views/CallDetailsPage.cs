@@ -16,6 +16,7 @@ public partial class CallDetailsPage : XtraUserControl
     private readonly List<Task> _loads = [];
     private Task _pendingLoads = Task.CompletedTask;
     private readonly Dictionary<XtraTabPage, IPluginViewHandle> _views = [];
+    private readonly Dictionary<WawiCallPro.Interfaces.Parties.PartyKey, MailPage> _mailViews = [];
     private Task? _stopTask;
     private CallerMatchDecision? _acceptedDecision;
     private bool _resourcesDisposed;
@@ -114,6 +115,18 @@ public partial class CallDetailsPage : XtraUserControl
                     + "\n" + string.Join("\n", party.Addresses.Select(address => string.Join(" ", new[] { address.Street, address.HouseNumber, address.PostalCode, address.City }.Where(value => !string.IsNullOrEmpty(value)))));
             })) return;
             if (party is null) return;
+            if (_workspace.Mail is not null)
+            {
+                MailPage? mail = null;
+                if (await operation.PublishAsync(_workspace.Dispatcher, () =>
+                {
+                    if (_mailViews.ContainsKey(party.Key)) return;
+                    mail = new MailPage { Dock = DockStyle.Fill };
+                    mail.Bind(_workspace.Mail.ForParty(party), null); mail.ConfigureMailActions(_workspace.Mail, false);
+                    var mailTab = new XtraTabPage { Text = context.CompanyName + " · " + context.PartyName + " · E-Mails", Tag = context };
+                    mailTab.Controls.Add(mail); tabs.TabPages.Add(mailTab); _mailViews.Add(party.Key, mail);
+                }) && mail is not null) await mail.ReloadAsync();
+            }
             // The generic master-data tab works with every product adapter, even without optional Windows views.
             var plugin = await _workspace.GetPluginAsync(operation.CancellationToken);
             foreach (var descriptor in plugin.Views)
@@ -146,7 +159,9 @@ public partial class CallDetailsPage : XtraUserControl
         await callControls.StopAsync();
         if (_notes is not null) await _notes.StopAsync();
         if (_scope is not null) await _scope.DisposeAsync();
+        await Task.WhenAll(_mailViews.Values.Select(page => page.StopAsync()));
         await Task.WhenAll(_loads.ToArray());
+        _mailViews.Clear();
         foreach (var handle in _views.Values) await handle.DisposeAsync();
         _views.Clear();
     }
