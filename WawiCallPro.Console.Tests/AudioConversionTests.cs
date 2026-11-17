@@ -322,6 +322,43 @@ public sealed class AudioConversionTests
         // Construction must not inspect any devices, configuration, source files or encoder capabilities.
     }
 
+    [TestMethod]
+    [DataRow("success")][DataRow("cancel")][DataRow("interrupted")][DataRow("collision")]
+    public async Task PublicationHandoffPrecedesRenameAndRetainsPreparedOutputOnUncertainty(string mode)
+    {
+        using var files = new Files(); using var cancellation = new CancellationTokenSource();
+        var source = File.ReadAllBytes(files.Wave); string? temporary = null; Mp3ConversionResult? original = null;
+        var observer = new Publication((path, output, result, token) =>
+        {
+            temporary = path; original = result;
+            Assert.IsFalse(File.Exists(files.Mp3)); Assert.AreEqual(result.FileSize, output.Length);
+            output.Position = 0;
+            Assert.AreEqual(result.Sha256, Convert.ToHexString(SHA256.HashData(output)).ToLowerInvariant());
+            Assert.ThrowsExactly<IOException>(() => File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite).Dispose());
+            if (mode == "cancel") cancellation.Cancel();
+            if (mode == "collision") File.WriteAllBytes(files.Mp3, [77]);
+            if (mode == "interrupted") throw new IOException("synthetic-private-handoff-detail");
+        });
+        var running = new WavToMp3Converter(new Backend()).ConvertAsync(files.Request() with { Publication = observer }, cancellation.Token);
+        if (mode is "success" or "cancel")
+        {
+            var saved = await running; Assert.AreEqual(original, saved);
+            Assert.IsTrue(File.Exists(files.Mp3)); Assert.IsFalse(File.Exists(temporary));
+        }
+        else
+        {
+            var error = await Assert.ThrowsExactlyAsync<Mp3ConversionException>(() => running);
+            Assert.DoesNotContain("synthetic-private-handoff-detail", error.ToString()); Assert.IsNull(error.InnerException);
+            Assert.IsNotNull(original); Assert.IsTrue(File.Exists(temporary));
+            Assert.AreEqual(original.Sha256, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(temporary))).ToLowerInvariant());
+            if (mode == "collision") CollectionAssert.AreEqual(new byte[] { 77 }, File.ReadAllBytes(files.Mp3));
+            else Assert.IsFalse(File.Exists(files.Mp3));
+        }
+        CollectionAssert.AreEqual(source, File.ReadAllBytes(files.Wave));
+    }
+    private sealed class Publication(Action<string, FileStream, Mp3ConversionResult, CancellationToken> action) : IMp3PublicationObserver
+    { public void Prepare(string path, FileStream output, Mp3ConversionResult result, CancellationToken token) => action(path, output, result, token); }
+
     private sealed class Backend(Func<Stream, Stream, CancellationToken, TimeSpan>? encode = null) : IMp3EncodingBackend
     {
         internal int Calls;

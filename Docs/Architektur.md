@@ -1144,7 +1144,7 @@ Voraussetzung. Aktive Sitzungen und noch ausstehende WAV-Abschlüsse haben Vorra
 zurückgestellt. Nach Entschlüsselung werden Binding, Werte und Originaldatei erneut geprüft; das
 unveränderte Paar geht direkt an das atomare Dapper-Journal. Erfolgreich bestätigte DB-Stände mit
 noch nicht quittiertem Auftrag werden idempotent wiedererkannt. Konflikte werden weder durch neue
-Versionen noch durch neue Hashes aufgelöst. Es wird kein Encoder aufgerufen und keine Datei übernommen.
+Versionen noch durch neue Hashes aufgelöst. Es wird kein Encoder aufgerufen und keine ungeschützte Datei übernommen.
 
 `RecordingConversionRecoveryStartup` startet in App und Console einen einzelnen beobachteten
 Hintergrunddurchlauf nach Konfigurationsstart. Start und DI-Aufbau öffnen keine Audiogeräte.
@@ -1153,10 +1153,10 @@ SIP-Kontosperre. Zurückgestellte/fehlgeschlagene Aufträge bleiben für einen w
 oder den nächsten Hoststart erhalten. Eine feste deutsche Warnung im bestehenden Log-Fenster
 verwendet ausschließlich `RecordingConversionRecoveryIncomplete`, keine nativen Fehlertexte/Pfade.
 
-Grenze: Der Auftrag wird nach erfolgreicher Dateiveröffentlichung und Prüfung abgelegt. Prozessverlust
-zwischen Veröffentlichung und dieser Ablage bleibt unbestätigt; solche Dateien werden nicht erkannt
-oder automatisch adoptiert. Automatische Kodierungswarteschlange, Bedienung, laufende Aufnahme-
-Sitzungsbindung an Host-Stop und vollständiger Verzeichnisabgleich bleiben offen. Keine neue Migration.
+Der ursprüngliche Version-1-Auftrag setzt eine bereits veröffentlichte Datei voraus. Der folgende
+Version-2-Anschluss sichert den Abschluss vor der Dateiumbenennung. Automatische Kodierungswarteschlange,
+Bedienung, laufende Aufnahme-Sitzungsbindung an Host-Stop und vollständiger Verzeichnisabgleich bleiben offen.
+Keine neue Migration.
 
 Prüfungen verwenden neue Dienstinstanzen, echte DPAPI-Aufträge, isolierte Dateien/DBs, simulierte
 Unterbrechung vor/nach DB-Bestätigung, Success/Failed, ursprüngliche und veränderte Dateien, Decoder-
@@ -1170,6 +1170,46 @@ Neue Instanzen und erhaltene Dateien belegen keinen nativ ausgeführten Prozessa
 Rollback: Decorator, neuer Outbox-/Recovery-Dienst, Startworker und ihre Registrierungen gemeinsam
 zurücknehmen. Vorhandene `mp3-pending`-Dateien erhalten und vor erneutem Einreihen kontrolliert
 zustellen; Dateien und Running-Aufträge nicht pauschal löschen/zurücksetzen. Schema 12 bleibt bestehen.
+
+### Vorbereitete MP3-Veröffentlichung mit geschütztem Wiederanlauf (17.11.2026)
+
+Eine persistierte Konvertierung übergibt einen `IMp3PublicationObserver` im Laufzeitauftrag an den
+Encoderadapter. Nach erfolgreicher Finalisierung, Flush und ursprünglicher SHA-256-Berechnung ruft
+`WavToMp3Converter` diesen Beobachter auf seinem Arbeits-Thread auf. Die temporäre Datei ist dabei
+weiterhin exklusiv geöffnet und das Ziel noch nicht veröffentlicht. Die Sitzung friert das genaue
+Completed-/Available-Paar einschließlich Schreibversionen, Versuch und Änderungszeit ein.
+
+`StagePrepared` prüft die ursprüngliche Datei und legt dieses Paar mit dem temporären relativen Pfad
+als Version-2-Auftrag geschützt und dauerhaft ab. Derselbe DPAPI-Purpose und dieselbe Datenbank-/Produktbindung
+bleiben bestehen; alte Version-1-Aufträge sind weiter lesbar. Zulässig sind ausschließlich kanonische
+`.wawi-mp3-<GUID>.tmp`-Dateien im Verzeichnis des kanonischen MP3-Ziels. Kein absoluter Pfad, keine Traversierung,
+Links oder frei gewählte Fremddatei. Erst danach schließt der Adapter die Datei und benennt sie ohne
+Überschreiben um. Nach erfolgreicher Übergabe wird ein Abbruch bis zur Veröffentlichung/Bestätigung
+nicht mehr berücksichtigt. Fehler nach Beginn dieser Übergabe lassen Originaldatei und vorhandenen
+Auftrag erhalten; ein vorbereiteter Erfolg wird nicht nachträglich durch ein Fehlerpaar ersetzt.
+
+Die Live-Sitzung bestätigt nur die veröffentlichte, erneut geprüfte Datei und verwendet exakt das
+vorbereitete Paar. Ein Adapter, der den Beobachter ignoriert, kann keinen erfolgreichen Abschluss bestätigen.
+Ein unsicherer Übergabe-/Veröffentlichungsausgang bleibt für den Wiederanlauf gesperrt; `ConfirmAsync`
+und Freigabe übernehmen keine ungeprüfte temporäre Datei. Die Freigabe löst die Dateisperren auch im Fehlerfall.
+
+Beim Wiederanlauf ist `ResumeAsync` an das aus der aktuellen Datenbank gelesene Ziel und den Versuch gebunden.
+Lokale Gesprächsherkunft, Gesprächsende sowie Aufnahme-/Auftragssperre gelten weiterhin. Nur wenn Identität,
+Pfad, Format, Versuch und für eine noch vorbereitete Datei auch Running-/Pending-Status und Schreibversionen
+passen, darf die Originaldatei veröffentlicht werden. Größe und Hash werden vor der Umbenennung und danach
+an der endgültigen MP3 geprüft. Die finale Datei bleibt während DB-Zustellung lesegesperrt. Sind temporäre
+und endgültige Datei gleichzeitig vorhanden, bleibt die Kollision ungeklärt; keine Datei wird überschrieben
+oder gelöscht. `OpenAsync` und die gewöhnliche Abschlussablage veröffentlichen keine temporären Dateien.
+
+Grenzen: Prozessverlust während der Kodierung oder vor dauerhafter Vorbereitung, unbekannte temporäre Dateien,
+vollständiger Verzeichnisabgleich, automatische Warteschlange und Bedienung bleiben offen. Die Prüfungen
+verwenden erhaltene Dateien und neue Dienstinstanzen unmittelbar vor/nach der Umbenennung; dies ist kein
+Nachweis eines tatsächlichen Betriebssystem-Prozessabbruchs oder Stromausfalls. Native Encoder-/Decoderprüfung
+nutzt ausschließlich synthetische Audiodaten ohne Geräte. Schema und Migrationen 1–12 bleiben unverändert.
+
+Rollback: Beobachteranschluss, vorbereitete Ablage und Wiederaufnahme gemeinsam zurücknehmen. Vorhandene
+Version-2-Aufträge und zugehörige Dateien erhalten und mit einer kompatiblen Version kontrolliert zustellen;
+eine ältere Version kann diese Aufträge nicht bearbeiten. Keine laufenden Aufträge pauschal zurücksetzen.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

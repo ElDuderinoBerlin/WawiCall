@@ -42,6 +42,46 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
         catch (DirectoryNotFoundException) { return false; }
         catch (Exception) { throw new RecordingConversionOutboxException(); }
     }
+    public void StagePrepared(RecordingArtifactWrite target, RecordingConversionWrite conversion, string temporaryRelativePath,
+        FileStream original, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Validate(target, conversion);
+            if (conversion.Job.State != RecordingConversionState.Completed) throw new RecordingConversionOutboxException();
+            var entry = new Entry(2, Binding(), target, conversion, temporaryRelativePath);
+            var temporary = PreparedPath(entry);
+            if (!string.Equals(Path.GetFullPath(original.Name), temporary, StringComparison.OrdinalIgnoreCase) ||
+                probe.IsAbsent(temporaryRelativePath) || !probe.IsAbsent(target.Artifact.RelativePath) ||
+                original.Length is < 1 or > int.MaxValue || original.Length != target.Artifact.ByteLength)
+                throw new RecordingConversionOutboxException();
+            var position = original.Position;
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested(); original.Flush(true); original.Position = 0;
+                var digest = Convert.ToHexString(SHA256.HashData(original)).ToLowerInvariant();
+                if (digest != target.Artifact.Sha256) throw new RecordingConversionOutboxException();
+            }
+            finally { original.Position = position; }
+            Directory.CreateDirectory(Root); CheckLink(Root);
+            using var lease = Lease(conversion.Job.Id);
+            if (HasPending(conversion.Job.Id) || GetPending().Count >= 4096) throw new RecordingConversionOutboxException();
+            var encrypted = secrets.Protect(JsonSerializer.Serialize(entry, Json), Purpose);
+            var receipt = Path.Combine(Root, "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                using (var file = new FileStream(receipt, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    JsonSerializer.Serialize(file, encrypted, Json); file.Flush(true);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Move(receipt, EntryPath(conversion.Job.Id), false);
+            }
+            finally { if (File.Exists(receipt)) File.Delete(receipt); }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception) { throw new RecordingConversionOutboxException(); }
+    }
     public async Task<IRecordingConversionDelivery> StageAsync(RecordingArtifactWrite target, RecordingConversionWrite conversion, CancellationToken cancellationToken = default)
     {
         Validate(target, conversion); FileStream? lease = null; FileStream? output = null;
@@ -59,6 +99,7 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
                 if (GetPending().Count >= 4096) throw new RecordingConversionOutboxException();
                 entry = new(1, Binding(), target, conversion);
             }
+            if (entry.PreparedRelativePath is not null && !probe.IsAbsent(entry.PreparedRelativePath)) throw new RecordingConversionOutboxException();
             output = await VerifyAsync(entry, cancellationToken).ConfigureAwait(false);
             if (!HasPending(id)) await PublishAsync(EntryPath(id), entry, cancellationToken).ConfigureAwait(false);
             return new Delivery(EntryPath(id), entry, lease, output);
@@ -84,6 +125,41 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
         {
             cancellationToken.ThrowIfCancellationRequested(); CheckLink(Root); lease = Lease(jobId);
             var entry = await ReadAsync(jobId, cancellationToken).ConfigureAwait(false);
+            if (entry.PreparedRelativePath is not null && !probe.IsAbsent(entry.PreparedRelativePath)) throw new RecordingConversionOutboxException();
+            output = await VerifyAsync(entry, cancellationToken).ConfigureAwait(false);
+            return new Delivery(EntryPath(jobId), entry, lease, output);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { output?.Dispose(); lease?.Dispose(); throw; }
+        catch (Exception) { output?.Dispose(); lease?.Dispose(); throw new RecordingConversionOutboxException(); }
+    }
+    public async Task<IRecordingConversionDelivery> ResumeAsync(StoredRecordingArtifact target, StoredRecordingConversion conversion, CancellationToken cancellationToken = default)
+    {
+        var jobId = conversion.Job.Id; FileStream? lease = null; FileStream? output = null;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested(); CheckLink(Root); lease = Lease(jobId);
+            var entry = await ReadAsync(jobId, cancellationToken).ConfigureAwait(false);
+            if (entry.Target.Artifact.Id != target.Artifact.Id || entry.Target.Artifact.RecordingId != target.Artifact.RecordingId ||
+                entry.Target.Artifact.CallId != target.Artifact.CallId || entry.Target.Artifact.RelativePath != target.Artifact.RelativePath ||
+                entry.Conversion.Job.SourceArtifactId != conversion.Job.SourceArtifactId || entry.Conversion.Job.TargetArtifactId != conversion.Job.TargetArtifactId ||
+                entry.Conversion.Job.Format != conversion.Job.Format || entry.Conversion.Job.AttemptId != conversion.Job.AttemptId || entry.Conversion.Job.Attempts != conversion.Job.Attempts)
+                throw new RecordingConversionOutboxException();
+            if (entry.PreparedRelativePath is not null && !probe.IsAbsent(entry.PreparedRelativePath))
+            {
+                if (target.Artifact.Availability != RecordingAvailability.Pending || conversion.Job.State != RecordingConversionState.Running ||
+                    target.Version != entry.Target.ExpectedVersion || conversion.Version != entry.Conversion.ExpectedVersion)
+                    throw new RecordingConversionOutboxException();
+                if (!probe.IsAbsent(entry.Target.Artifact.RelativePath)) throw new RecordingConversionOutboxException();
+                // Only the protected original may be promoted; never overwrite an existing destination.
+                await using (var prepared = new FileStream(PreparedPath(entry), FileMode.Open, FileAccess.Read, FileShare.Read, 65536, true))
+                {
+                    if (probe.IsAbsent(entry.PreparedRelativePath) || prepared.Length is < 1 or > int.MaxValue || prepared.Length != entry.Target.Artifact.ByteLength ||
+                        Convert.ToHexString(await SHA256.HashDataAsync(prepared, cancellationToken).ConfigureAwait(false)).ToLowerInvariant() != entry.Target.Artifact.Sha256)
+                        throw new RecordingConversionOutboxException();
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Move(PreparedPath(entry), paths.ResolveRecordingPath(entry.Target.Artifact.RelativePath), false);
+            }
             output = await VerifyAsync(entry, cancellationToken).ConfigureAwait(false);
             return new Delivery(EntryPath(jobId), entry, lease, output);
         }
@@ -99,8 +175,23 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
         using var plain = secrets.Unprotect(encrypted, Purpose);
         var entry = JsonSerializer.Deserialize<Entry>(plain.Reveal(), Json) ?? throw new RecordingConversionOutboxException();
         Validate(entry.Target, entry.Conversion);
-        if (entry.Version != 1 || entry.Binding != Binding() || entry.Conversion.Job.Id != id) throw new RecordingConversionOutboxException();
+        if (entry.Binding != Binding() || entry.Conversion.Job.Id != id) throw new RecordingConversionOutboxException();
+        if (entry.Version == 2 && entry.PreparedRelativePath is not null && entry.Conversion.Job.State == RecordingConversionState.Completed)
+            _ = PreparedPath(entry);
+        else if (entry.Version != 1 || entry.PreparedRelativePath is not null) throw new RecordingConversionOutboxException();
         return entry;
+    }
+    private string PreparedPath(Entry entry)
+    {
+        var relative = entry.PreparedRelativePath;
+        if (relative is null || relative.Length > 1024 || relative.Contains('\\') || relative.Contains(':') || relative.Any(char.IsControl) ||
+            relative.Split('/').Any(part => part is "" or "." or "..") ||
+            Path.GetDirectoryName(relative) != Path.GetDirectoryName(entry.Target.Artifact.RelativePath)) throw new RecordingConversionOutboxException();
+        var name = Path.GetFileName(relative);
+        if (name.Length != 46 || !name.StartsWith(".wawi-mp3-", StringComparison.Ordinal) || !name.EndsWith(".tmp", StringComparison.Ordinal) ||
+            !Guid.TryParseExact(name.Substring(10, 32), "N", out var id) || id == Guid.Empty || name.Substring(10, 32) != id.ToString("N"))
+            throw new RecordingConversionOutboxException();
+        return paths.ResolveRecordingPath(relative);
     }
     private async Task<FileStream?> VerifyAsync(Entry entry, CancellationToken token)
     {
@@ -160,7 +251,7 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
             artifact.Availability != (job.State == RecordingConversionState.Completed ? RecordingAvailability.Available : RecordingAvailability.Failed))
             throw new RecordingConversionOutboxException();
     }
-    private sealed record Entry(int Version, string Binding, RecordingArtifactWrite Target, RecordingConversionWrite Conversion);
+    private sealed record Entry(int Version, string Binding, RecordingArtifactWrite Target, RecordingConversionWrite Conversion, string? PreparedRelativePath = null);
     private sealed class Delivery(string path, Entry entry, FileStream lease, FileStream? output) : IRecordingConversionDelivery
     {
         public RecordingArtifactWrite Target => entry.Target;

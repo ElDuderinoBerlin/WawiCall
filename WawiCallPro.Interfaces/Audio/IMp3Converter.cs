@@ -8,7 +8,17 @@ public sealed record Mp3EncodingFormat(int SampleRate, int Channels, int BitRate
 /// <summary>Explicit local files. The finalized PCM16 WAV is retained; an existing destination is never replaced.</summary>
 public sealed record Mp3ConversionRequest(string WavePath, string Mp3Path, Mp3EncodingFormat Format)
 {
+    /// <summary>Optional durable publication handoff, invoked on the encoding worker before the rename.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IMp3PublicationObserver? Publication { get; init; }
     public override string ToString() => nameof(Mp3ConversionRequest);
+}
+
+/// <summary>Persists the original finalized output while it is still exclusively open. After a successful
+/// handoff publication must finish despite cancellation. A failed handoff retains the temporary file.</summary>
+public interface IMp3PublicationObserver
+{
+    void Prepare(string temporaryPath, FileStream output, Mp3ConversionResult result, CancellationToken cancellationToken);
 }
 
 public sealed record Mp3ConversionResult(TimeSpan SourceDuration, long FileSize, Mp3EncodingFormat Format)

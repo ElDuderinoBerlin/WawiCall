@@ -6,9 +6,19 @@ using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Persistence;
 
-internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, StoredRecordingArtifact target, TimeSpan duration,
-    Mp3ConversionRequest request, FileStream wave, IRecordingArtifactAuditLease lease, IMp3Converter converter,
-    IRecordingConversionJournal journal, ApplicationPaths paths, IRecordingFileProbe probe, TimeProvider clock) : IPersistedMp3Conversion
+internal sealed class PersistedMp3Conversion(
+    StoredRecordingConversion claimed,
+    StoredRecordingArtifact target,
+    TimeSpan duration,
+    Mp3ConversionRequest request,
+    FileStream wave,
+    IRecordingArtifactAuditLease lease,
+    IMp3Converter converter,
+    IRecordingConversionJournal journal,
+    ApplicationPaths paths,
+    IRecordingFileProbe probe,
+    TimeProvider clock,
+    IRecordingConversionOutbox conversions) : IPersistedMp3Conversion, IMp3PublicationObserver
 {
     private readonly object _gate = new();
     private readonly CancellationTokenSource _stop = new();
@@ -18,6 +28,7 @@ internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, 
     private RecordingConversionWrite? _jobWrite;
     private FileStream? _output;
     private bool _disposed;
+    private bool _publicationAttempted, _readyForConfirmation;
 
     public Task<StoredRecordingConversionJournal> RunAsync(CancellationToken cancellationToken = default)
     {
@@ -29,6 +40,7 @@ internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, 
     }
     private Task<StoredRecordingConversionJournal> ConfirmCore(CancellationToken token)
     {
+        if (_publicationAttempted && !_readyForConfirmation) throw new RecordingConversionOutboxException();
         if (_artifactWrite is null || _jobWrite is null) throw new InvalidOperationException("Das Konvertierungsergebnis liegt noch nicht vor.");
         if (_confirmationTask is null || _confirmationTask.IsFaulted || _confirmationTask.IsCanceled)
             _confirmationTask = journal.WriteAsync(_artifactWrite, _jobWrite, token);
@@ -40,8 +52,9 @@ internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, 
         Mp3ConversionResult? result = null; RecordingConversionFailure? failure = null; var canceled = false;
         try
         {
-            result = await converter.ConvertAsync(request, linked.Token).ConfigureAwait(false);
+            result = await converter.ConvertAsync(request with { Publication = this }, linked.Token).ConfigureAwait(false);
             await VerifyAsync(result).ConfigureAwait(false); // Publication has committed: finish confirmation even if cancellation now arrives.
+            if (!_publicationAttempted) throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed);
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { failure = RecordingConversionFailure.Cancelled; canceled = true; }
         catch (Mp3ConversionException error)
@@ -58,12 +71,32 @@ internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, 
             };
         }
         catch (Exception) { failure = RecordingConversionFailure.EncodingFailed; }
-        Prepare(result, failure);
+        if (_publicationAttempted)
+        {
+            if (failure is not null) throw new RecordingConversionOutboxException();
+            lock (_gate) _readyForConfirmation = true;
+        }
+        else Prepare(result, failure);
         Task<StoredRecordingConversionJournal> confirmation;
         lock (_gate) confirmation = ConfirmCore(CancellationToken.None);
         var saved = await confirmation.ConfigureAwait(false);
         if (canceled) throw new OperationCanceledException(linked.Token);
         return saved;
+    }
+    public void Prepare(string temporaryPath, FileStream output, Mp3ConversionResult result, CancellationToken cancellationToken)
+    {
+        if (result.Format != request.Format || result.SourceDuration != duration || result.FileSize is <= 0 or > int.MaxValue ||
+            result.Sha256 is not { Length: 64 } hash || hash.Any(ch => !(ch is >= '0' and <= '9' or >= 'a' and <= 'f')))
+            throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed);
+        lock (_gate)
+        {
+            if (_publicationAttempted) throw new RecordingConversionOutboxException();
+            cancellationToken.ThrowIfCancellationRequested();
+            Prepare(result, null);
+            _publicationAttempted = true; _readyForConfirmation = false;
+            var relative = Path.GetRelativePath(paths.RecordingsDirectory, temporaryPath).Replace('\\', '/');
+            conversions.StagePrepared(_artifactWrite!, _jobWrite!, relative, output, cancellationToken);
+        }
     }
     private async Task VerifyAsync(Mp3ConversionResult result)
     {
@@ -85,7 +118,7 @@ internal sealed class PersistedMp3Conversion(StoredRecordingConversion claimed, 
         var completed = new RecordingConversionJob(job.Id, job.SourceArtifactId, job.TargetArtifactId, job.Format,
             success ? RecordingConversionState.Completed : RecordingConversionState.Failed, job.Attempts, job.AttemptId, success ? null : failure ?? RecordingConversionFailure.Cancelled);
         var changed = clock.GetUtcNow(); if (changed < claimed.UpdatedAtUtc) changed = claimed.UpdatedAtUtc; if (changed < target.UpdatedAtUtc) changed = target.UpdatedAtUtc;
-        lock (_gate) { _artifactWrite = new(artifact, target.Version, changed); _jobWrite = new(completed, claimed.Version, changed); }
+        lock (_gate) { _artifactWrite = new(artifact, target.Version, changed); _jobWrite = new(completed, claimed.Version, changed); _readyForConfirmation = true; }
     }
     public ValueTask DisposeAsync()
     {

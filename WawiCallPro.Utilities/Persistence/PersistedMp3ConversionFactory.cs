@@ -64,7 +64,7 @@ public sealed class PersistedMp3ConversionFactory(
             var changed = clock.GetUtcNow(); if (changed < saved.UpdatedAtUtc) changed = saved.UpdatedAtUtc;
             var claimed = await jobs.WriteAsync(new(attempt, saved.Version, changed), cancellationToken).ConfigureAwait(false);
             return new PersistedMp3Conversion(claimed, target, header.Duration, new(paths.ResolveRecordingPath(source.Artifact.RelativePath), output, job.Format),
-                wave, lease, converter, journal, paths, probe, clock);
+                wave, lease, converter, journal, paths, probe, clock, conversions);
         }
         catch (Exception error)
         {

@@ -29,10 +29,11 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
         ValidatePath(request.Mp3Path, ".mp3");
         var source = Path.GetFullPath(request.WavePath);
         var destination = Path.GetFullPath(request.Mp3Path);
-        return Task.Run(() => Convert(source, destination, request.Format, cancellationToken), cancellationToken);
+        return Task.Run(() => Convert(source, destination, request.Format, cancellationToken, request.Publication), cancellationToken);
     }
 
-    private Mp3ConversionResult Convert(string source, string destination, Mp3EncodingFormat format, CancellationToken token)
+    private Mp3ConversionResult Convert(string source, string destination, Mp3EncodingFormat format,
+        CancellationToken token, IMp3PublicationObserver? publication)
     {
         token.ThrowIfCancellationRequested();
         using var input = OpenSource(source);
@@ -40,6 +41,7 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
             throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable);
         var temporary = Path.Combine(Path.GetDirectoryName(destination)!, ".wawi-mp3-" + Guid.NewGuid().ToString("N") + ".tmp");
         var created = false;
+        var preserveTemporary = false;
         try
         {
             TimeSpan duration;
@@ -64,8 +66,15 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
                     hash.AppendData(buffer, 0, read);
                 }
                 digest = System.Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+                token.ThrowIfCancellationRequested();
+                if (publication is not null)
+                {
+                    // The handoff may have committed even when its caller observes an error.
+                    preserveTemporary = true;
+                    publication.Prepare(temporary, output, new(duration, fileSize, format) { Sha256 = digest }, token);
+                }
             }
-            token.ThrowIfCancellationRequested();
+            if (publication is null) token.ThrowIfCancellationRequested();
             try { File.Move(temporary, destination, overwrite: false); }
             catch (IOException) { throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable); }
             catch (UnauthorizedAccessException) { throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable); }
@@ -77,7 +86,7 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
         catch (Exception) { throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed); }
         finally
         {
-            if (created)
+            if (created && !preserveTemporary)
             {
                 try { File.Delete(temporary); }
                 catch (Exception) { throw new Mp3ConversionException(Mp3ConversionFailure.CleanupFailed); }

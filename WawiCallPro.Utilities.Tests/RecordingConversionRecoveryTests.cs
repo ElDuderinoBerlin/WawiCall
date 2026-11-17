@@ -208,9 +208,12 @@ internal sealed class AbandonedMp3(Mp3AttemptFixture ready, ProtectedRecordingCo
     public void Dispose() => ready.Dispose();
     private sealed class StopDelivery(IRecordingConversionOutbox inner, bool after) : IRecordingConversionOutbox
     {
+        public void StagePrepared(RecordingArtifactWrite target, RecordingConversionWrite conversion, string temporaryRelativePath, FileStream original, CancellationToken token = default) =>
+            inner.StagePrepared(target, conversion, temporaryRelativePath, original, token);
         public IReadOnlyList<Guid> GetPending() => inner.GetPending(); public bool HasPending(Guid id) => inner.HasPending(id);
         public IAsyncDisposable AcquireEmpty(Guid id) => inner.AcquireEmpty(id);
         public Task<IRecordingConversionDelivery> OpenAsync(Guid id, CancellationToken token = default) => inner.OpenAsync(id, token);
+        public Task<IRecordingConversionDelivery> ResumeAsync(StoredRecordingArtifact target, StoredRecordingConversion conversion, CancellationToken token = default) => inner.ResumeAsync(target, conversion, token);
         public async Task<IRecordingConversionDelivery> StageAsync(RecordingArtifactWrite target, RecordingConversionWrite job, CancellationToken token = default)
         {
             var delivery = await inner.StageAsync(target, job, token);

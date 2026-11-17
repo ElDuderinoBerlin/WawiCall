@@ -133,7 +133,7 @@ public static class PersistedMp3Acceptance
         foreach (var fault in new[] { "none", "before", "after" })
         {
             using var ready = await Mp3AttemptFixture.Create(target); var converter = new AttemptConverter();
-            var journal = new UncertainJournal(ready.Journal, fault);
+            var journal = new UncertainJournal(new DurableRecordingConversionJournal(ready.Journal, ready.File.ConversionOutbox()), fault);
             var owner = await ready.Factory(converter, ready.Workstation, journal).StartAsync(ready.Pair.Conversion.Job.Id);
             Assert.ThrowsExactly<IOException>(() => { using var invalid = File.Open(ready.File.Wave, FileMode.Open, FileAccess.Write, FileShare.ReadWrite); });
             await Assert.ThrowsExactlyAsync<RepositoryConflictException>(async () => { await using var duplicate = await ready.Factory(converter, ready.Workstation).StartAsync(ready.Pair.Conversion.Job.Id); });
@@ -190,7 +190,7 @@ internal sealed class Mp3AttemptFixture(WaveArtifactFixture file, Guid workstati
     }
     internal PersistedMp3ConversionFactory Factory(IMp3Converter converter, Guid? local, IRecordingConversionJournal? journal = null) =>
         new(Jobs, file.Artifacts, file.Captures, new DapperCallRepository(new(file.Target, new())), new Identity(local), file.Paths,
-            file.Outbox, new LocalRecordingFileProbe(file.Paths), converter, journal ?? Journal, TimeProvider.System, file.ConversionOutbox());
+            file.Outbox, new LocalRecordingFileProbe(file.Paths), converter, journal ?? new DurableRecordingConversionJournal(Journal, file.ConversionOutbox()), TimeProvider.System, file.ConversionOutbox());
     public void Dispose() => file.Dispose();
     private sealed class Identity(Guid? local) : IWorkstationIdentity
     { public Task<Guid?> GetAsync(CancellationToken token = default) => Task.FromResult(local); public Task<Guid> InitializeAsync(CancellationToken token = default) => throw new AssertFailedException("Must not create an identity."); }
@@ -212,7 +212,7 @@ internal sealed class AttemptConverter : IMp3Converter
             token.ThrowIfCancellationRequested();
             if (Failure == "error") throw new IOException("private-native-detail");
             if (Failure == "foreign-cancellation") throw new OperationCanceledException("private-native-detail");
-            var result = Publish(request);
+            var result = Publish(Failure is null ? request : request with { Publication = null });
             if (Failure == "removed") File.Delete(request.Mp3Path);
             if (Failure == "changed") { var bytes = File.ReadAllBytes(request.Mp3Path); bytes[^1] ^= 1; File.WriteAllBytes(request.Mp3Path, bytes); }
             return Failure switch
@@ -225,7 +225,15 @@ internal sealed class AttemptConverter : IMp3Converter
     }
     internal static Mp3ConversionResult Publish(Mp3ConversionRequest request)
     {
-        byte[] bytes = [1, 3, 5, 7, 9, 11]; using (var file = new FileStream(request.Mp3Path, FileMode.CreateNew, FileAccess.Write)) file.Write(bytes);
-        return new(TimeSpan.FromMilliseconds(20), bytes.Length, request.Format) { Sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() };
+        byte[] bytes = [1, 3, 5, 7, 9, 11];
+        var result = new Mp3ConversionResult(TimeSpan.FromMilliseconds(20), bytes.Length, request.Format) { Sha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() };
+        var temporary = Path.Combine(Path.GetDirectoryName(request.Mp3Path)!, ".wawi-mp3-" + Guid.NewGuid().ToString("N") + ".tmp");
+        using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+        {
+            file.Write(bytes); file.Flush(true);
+            request.Publication?.Prepare(temporary, file, result, CancellationToken.None);
+        }
+        File.Move(temporary, request.Mp3Path, false);
+        return result;
     }
 }

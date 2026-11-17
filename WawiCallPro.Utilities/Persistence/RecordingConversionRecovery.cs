@@ -40,7 +40,7 @@ public sealed class RecordingConversionRecovery(IRecordingConversionOutbox pendi
                     catch (RecordingOutboxException) { deferred++; continue; }
                     await using var owned = lease;
                     if (lease.HasPending) { deferred++; continue; }
-                    await using var delivery = await pending.OpenAsync(id, cancellationToken).ConfigureAwait(false);
+                    await using var delivery = await pending.ResumeAsync(target, current, cancellationToken).ConfigureAwait(false);
                     if (delivery.Target.Artifact.Id != target.Artifact.Id || delivery.Target.Artifact.RecordingId != target.Artifact.RecordingId ||
                         delivery.Target.Artifact.CallId != target.Artifact.CallId || delivery.Conversion.Job.SourceArtifactId != current.Job.SourceArtifactId)
                         throw new RepositoryConflictException(RepositoryConflictKind.OwnershipMismatch);
