@@ -29,6 +29,7 @@ public static class AudioConversionServices
     /// <summary>Hosts opt into call persistence after registering the shared database journal and application paths.</summary>
     public static IServiceCollection AddPersistedRecordings(this IServiceCollection services)
     {
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory, WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>();
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
         services.TryAddSingleton<IInterruptedRecordingRecovery, InterruptedRecordingRecovery>();

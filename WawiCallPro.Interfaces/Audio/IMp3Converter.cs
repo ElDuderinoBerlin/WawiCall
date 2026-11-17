@@ -11,7 +11,12 @@ public sealed record Mp3ConversionRequest(string WavePath, string Mp3Path, Mp3En
     public override string ToString() => nameof(Mp3ConversionRequest);
 }
 
-public sealed record Mp3ConversionResult(TimeSpan SourceDuration, long FileSize, Mp3EncodingFormat Format);
+public sealed record Mp3ConversionResult(TimeSpan SourceDuration, long FileSize, Mp3EncodingFormat Format)
+{
+    /// <summary>Original finalized output fingerprint, calculated before publication. Legacy providers may
+    /// omit it; their output cannot be confirmed by the persisted conversion workflow.</summary>
+    public string? Sha256 { get; init; }
+}
 
 /// <summary>Runs off the caller thread. Success means the encoder has finalized and the complete MP3 is published.
 /// Cancellation is observed until publication; cancellation after that commit does not undo a successful conversion.</summary>

@@ -38,6 +38,7 @@ public sealed class AudioConversionTests
         finally { gate.Set(); }
         var result = await task;
         Assert.AreEqual(TimeSpan.FromSeconds(1), result.SourceDuration); Assert.AreEqual(6L, result.FileSize);
+        Assert.AreEqual(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Mp3))).ToLowerInvariant(), result.Sha256);
         CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4, 5, 6 }, File.ReadAllBytes(files.Mp3));
         files.AssertSourceAndNoTemporaryFiles(before);
     }
@@ -211,6 +212,7 @@ public sealed class AudioConversionTests
         var format = formats.First(item => item.SampleRate == targetRate && item.Channels == channels && item.BitRate == bitRate);
         var result = await converter.ConvertAsync(files.Request() with { Format = format });
         Assert.AreEqual(TimeSpan.FromSeconds(2), result.SourceDuration); Assert.IsTrue(result.FileSize > 1000);
+        Assert.AreEqual(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Mp3))).ToLowerInvariant(), result.Sha256);
         using (var decoder = new MediaFoundationDecoder(files.Mp3))
         {
             Assert.AreEqual(targetRate, decoder.WaveFormat.SampleRate); Assert.AreEqual(channels, decoder.WaveFormat.Channels);

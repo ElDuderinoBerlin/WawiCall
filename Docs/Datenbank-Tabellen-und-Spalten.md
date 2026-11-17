@@ -342,7 +342,9 @@ zulässig; WAV und MP3 erhalten getrennte IDs, Pfade, Verfügbarkeit und Schreib
 Aufnahmeverweise und Verläufe werden nicht verändert und erhalten keine automatisch erfundenen Artefakte.
 Die Call-ID wird über `recordings` gelesen. Das Repository prüft keine Audiodateien und berechnet
 keine Hashes. Die WAV-Abschlusszustellung bestätigt diese Werte anhand der lesegesperrten Datei und
-des geschützten Originalhashs; MP3-Anschluss und vollständiger Dateiabgleich bleiben offen.
+des geschützten Originalhashs. Explizite MP3-Konvertierungssitzungen bestätigen die eigene Ausgabe
+gegen den vor Veröffentlichung berechneten Originalhash, während die Datei lesend gesperrt bleibt.
+Automatische MP3-Zustellung nach Prozessverlust und vollständiger Dateiabgleich bleiben offen.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|

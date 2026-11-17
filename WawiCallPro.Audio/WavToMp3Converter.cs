@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;
@@ -43,6 +44,7 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
         {
             TimeSpan duration;
             long fileSize;
+            string digest;
             using (var output = OpenDestination(temporary))
             {
                 created = true;
@@ -52,13 +54,23 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
                     throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed);
                 output.Flush(flushToDisk: true);
                 fileSize = output.Length;
+                output.Position = 0;
+                using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                var buffer = new byte[65536];
+                int read;
+                while ((read = output.Read(buffer, 0, buffer.Length)) != 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                    hash.AppendData(buffer, 0, read);
+                }
+                digest = System.Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
             }
             token.ThrowIfCancellationRequested();
             try { File.Move(temporary, destination, overwrite: false); }
             catch (IOException) { throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable); }
             catch (UnauthorizedAccessException) { throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable); }
             created = false;
-            return new Mp3ConversionResult(duration, fileSize, format);
+            return new Mp3ConversionResult(duration, fileSize, format) { Sha256 = digest };
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Mp3ConversionException) { throw; }

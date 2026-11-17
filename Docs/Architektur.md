@@ -1044,6 +1044,69 @@ Synthetische Metadaten und neue Dienstinstanzen belegen keinen echten Prozessabb
 Rollback: Journal, Vertrag und DI-Eintrag gemeinsam zurücknehmen; die gemeinsamen internen Schreibmethoden
 können von den Einzelrepositories weiterverwendet werden. Keine Schemaänderung oder Audiodatei zurückrollen.
 
+### Explizite MP3-Konvertierung mit eigener Sitzung (17.11.2026)
+
+`IPersistedMp3ConversionFactory` ist über `AddPersistedRecordings` in App und Console registriert.
+`StartAsync(jobId)` übernimmt ausschließlich einen ausdrücklich gewählten Pending-Auftrag des lokalen
+Arbeitsplatzes für ein beendetes Gespräch. Laufende/abgeschlossene Aufträge werden nicht übernommen;
+die Arbeitsplatzidentität wird gelesen und nicht neu angelegt. Vorhandenes bestätigtes WAV, ausstehendes
+kanonisches MP3-Ziel, abgeschlossener Capture und passende Rate/Kanäle sind erforderlich.
+
+Vor dem Reservieren des Versuchs werden die gemeinsame Aufnahmesperre, ausstehende WAV-Abschlussaufträge,
+Pfadkomponenten, WAV-Header, tatsächliche Länge und ursprünglicher SHA-256 geprüft. Die Quelle wird
+gegen Schreiber/Löschen lesend gesperrt. Ein bereits vorhandenes Ziel oder fehlender Zielordner sperrt
+den Start; Ordner und Fremddateien werden nicht automatisch angelegt/übernommen. Das konkrete Zielformat
+muss vom installierten Encoder gemeldet werden. Erst danach bestätigt das bestehende Repository
+`Running` mit neuer Versuchs-ID und um eins erhöhtem Versuchszähler. Während der Kodierung bleibt keine
+Datenbanktransaktion offen; die gemeinsame Aufnahmesperre schützt ausschließlich diese Aufnahme.
+
+Die zurückgegebene `IPersistedMp3Conversion` gehört dem Aufrufer. `RunAsync` kodiert einmal, parallele
+Aufrufe teilen denselben Task. Die Sitzung hält Quelle, Aufnahmesperre und später die bestätigte MP3 bis zum
+abgewarteten `DisposeAsync`. Die Ausgabe verwendet den vorhandenen `WavToMp3Converter` und den
+CSCore-/Media-Foundation-Adapter. Nach Finalisierung/Flush wird die SHA-256 noch in der exklusiv geöffneten
+temporären Datei berechnet und anschließend wie bisher ohne Überschreiben veröffentlicht.
+`Mp3ConversionResult.Sha256` ist eine zusätzliche optionale DTO-Eigenschaft; der produktive Konverter
+liefert sie immer. Ein Adapter ohne Originalhash kann kein persistiertes verfügbares MP3 bestätigen.
+
+Die Sitzung öffnet das veröffentlichte Ziel lesend gegen Schreiber/Löschen und vergleicht Ergebnisformat,
+Quelldauer, Größe und tatsächlichen Hash mit dem ursprünglichen Konverterergebnis. Danach bestätigt das
+MP3-Journal `Available/Completed` mit den ursprünglichen erwarteten Versionen und einem gemeinsamen
+Zeitpunkt. Der Hash belegt die vom eigenen Konverter erzeugten Bytes. Dies ist kein allgemeiner
+Decoder oder Import fremder MP3-Dateien; die produktive Kodierung wird zusätzlich nativ mit Dekodierung geprüft.
+
+Encoderfehler und ungültige Ergebnisse bestätigen `Failed/Failed` mit festem Fehlercode ohne native
+Fehlertexte. Abbruch vor Veröffentlichung bestätigt `Failed/Cancelled` und propagiert anschließend
+die Cancellation. Ein bereits erfolgreich veröffentlichtes Ergebnis wird auch bei späterem Abbruch
+fertig bestätigt. Freigabe ohne `RunAsync` bestätigt den reservierten Versuch als abgebrochen.
+Freigabe während einer Kodierung fordert Abbruch an und wartet auch eine nicht kooperative Rückkehr ab,
+bevor Dateien und Aufnahmesperre freigegeben werden. Sämtliche WAVs und bereits veröffentlichte Ziele
+bleiben auch bei Fehlern erhalten.
+
+Bei fehlender oder unsicherer DB-Bestätigung bleiben Originaldaten, Datei-Lesesperren und das exakte
+vorbereitete Metadatenpaar in der lebenden Sitzung erhalten. `ConfirmAsync` wiederholt ausschließlich
+dieses Paar; kein erneutes Kodieren, kein Neuvergeben von IDs/Versionen oder Überschreiben.
+Ein dauerhafter Versionskonflikt bleibt ein Fehler. `DisposeAsync` beobachtet diesen Fehler und gibt
+die Ressourcen trotzdem frei; danach ist diese Sitzung nicht mehr wiederholbar. Unbestätigte Dateien
+und gegebenenfalls Running-Aufträge werden für eine spätere kontrollierte Aufklärung erhalten.
+
+Grenzen: ausdrücklicher Dienstaufruf und Aufruferbesitz, keine automatische Hintergrundwarteschlange,
+Bedienoberfläche oder automatische Bindung offener Sitzungen an Host-Stop. Das Metadatenpaar liegt in
+diesem Teilpunkt nur im Arbeitsspeicher. Prozessverlust zwischen Veröffentlichung und Bestätigung benötigt
+weiterhin einen geschützten dauerhaften Zustellauftrag; ein neuer Host darf solche Dateien/Running-Jobs
+nicht blind übernehmen oder erneut kodieren. Schema 12 und Migrationen 1–12 bleiben unverändert.
+
+Prüfungen: eigene temporäre WAVs und isolierte DBs, Start-/Eigentümersperren, Quelle/Ziel gesperrt,
+geänderte Dateien/Ergebnisdaten, nicht vorhandener Originalhash, Kodierungsfehler, Cancellation,
+Freigabe ohne Start und während nicht kooperativer Verarbeitung, bestätigte und unsichere DB-Antworten,
+wiederholbare Metadaten ohne zweite Kodierung und bleibender Versionskonflikt. Derselbe Zustellablauf
+läuft auf allen fünf Engines. Der native Console-Lauf verwendet den echten CSCore-Encoder und Decoder
+bis zum gespeicherten abgeschlossenen Auftrag. Konkrete Ergebnisse stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-). Keine Geräte-/SIP- oder Prozessabbruchabnahme.
+
+Rollback: Sitzungsvertrag, Factory/Sitzung, DI-Eintrag und ihre Prüfungen gemeinsam zurücknehmen.
+Die additive Ergebnis-Prüfsumme und die atomaren Einzelrepositories können erhalten bleiben.
+Vorhandene Dateien und Auftragsstände behalten; kein pauschales Zurücksetzen laufender Aufträge.
+
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 
 `IRtpAudioPacketBufferFactory` ist über die gemeinsame Audioregistrierung in beiden Hosts verfügbar.
