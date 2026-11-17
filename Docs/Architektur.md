@@ -468,6 +468,65 @@ Build-/Prüf- und Rücknahmehinweise stehen in [Build](Build.md#externe-mms-offi
 Der Nachweis umfasst 21 isolierte Tests und den Bibliotheksbuild, keine echte Outlook-Sitzung.
 Die WawiCallPro-Importoberfläche, Mailpersistenz und Anzeige bei einem Anruf sind weiterhin offen.
 
+### Mailconnectoren und geschützte Anmeldung (17.11.2026)
+
+`WawiCallPro.Office` enthält eigene Connectoren für klassisches Outlook Desktop, Microsoft Graph
+und Gmail. `IMailConnector` liefert ausschließlich neutrale Ordner-, Nachrichten-, Änderungs- und
+Anhangsdaten. `ConfiguredMailViewSource` führt mehrere explizit konfigurierte Konten zusammen;
+Provider und lokale Konto-GUID gehören zu jeder Quellidentität. Kein Lesen verändert den Gelesen-Status.
+Dieser Baustein stellt die Anbieter bereit; Einrichtung, Importpersistenz und Anschluss im App-Host
+werden in den folgenden Teilpunkten ergänzt.
+
+Microsoft-Anmeldung verwendet MSAL: interaktive Desktop-Anmeldung über Systembrowser mit delegiertem
+Mail.Read/User.Read oder eine ausdrücklich konfigurierte App-Anmeldung mit Tenant-GUID, Client-ID,
+geschütztem Client-Secret und festem Zielpostfach. Die vorhandene LxPrintStudio-Konfiguration kann
+explizit gelesen werden; ihr DPAPI-Secret wird direkt für WawiCallPro neu geschützt. Quelldatei und
+SMTP-Zugangsdaten bleiben unverändert. Erfolgreiche Tokenbeschaffung bestätigt noch keine Leserechte;
+die Verbindung prüft zusätzlich einen tatsächlichen Ordnerabruf. App-Berechtigung Mail.Read benötigt
+die entsprechende Freigabe des Administrators. Die Connectoren führen ausschließlich GET-Aufrufe aus.
+
+Gmail verwendet die offizielle Google-Authentifizierungsbibliothek mit PKCE, Systembrowser,
+Loopback-Empfänger und gmail.readonly. Importiert wird ausschließlich eine Desktop-Clientdefinition
+mit `installed`-Abschnitt. Normale Lesevorgänge erneuern Tokens still oder verlangen eine ausdrückliche
+erneute Anmeldung; sie öffnen keinen Browser. Ein verbundenes Konto darf seine entfernte Identität
+nicht unbemerkt wechseln. Abmelden deaktiviert das Konto und entfernt den lokalen Tokenzustand.
+
+Einstellungen ab Format 9 enthalten lokale Kontodefinitionen. Das portable Einstellungsformat bleibt
+eine Positivliste und exportiert keine Mailkonten, Client-Secrets oder Tokens. Tokenzustand wird
+unter `mail-tokens-v1` mit DPAPI CurrentUser gespeichert, an Konto/Anbieter/Client/Mandant gebunden und
+atomar ersetzt. Begrenztes Chunking hält die bestehenden Größenlimits des Secret-Protectors ein;
+Reihenfolge und Anzahl der Chunks sind kryptographisch an den Zweck gebunden. Es gibt keinen
+Klartext-Fallback. Auftragssperren serialisieren parallele Tokenoperationen; Fehlertexte enthalten
+keine Antwortinhalte, Zugangsdaten oder Anmelde-URLs.
+
+Graph verwendet ImmutableId, folgt Fortsetzungslinks nur innerhalb des festen Anbieter-/Kontopfads,
+behandelt verschobene Nachrichten erneut über ihre aktuelle Identität und erkennt abgelaufene
+Delta-Checkpoints. Gmail hält den History-Anker einer initialen Runde über alle Seiten fest und
+liest spätere Änderungen über die History API. MIME-Text, HTML, Empfänger und Anhangsmetadaten
+werden getrennt abgebildet. Vollständige Abfragen sind begrenzt; Überschreitung wird als Fehler
+gemeldet statt als unvollständiger Erfolg. Redirects für Bearer-Anfragen sind deaktiviert.
+
+Outlook nutzt den überarbeiteten generischen MMS.Office-Reader und eigene COM-Adapter. Objekte werden
+auf einem STA-Thread erzeugt, gelesen und vor dessen Ende freigegeben. Store-ID und Entry-ID bilden
+die aktuelle Öffnungsadresse; der storebezogene PR_RECORD_KEY dient, sofern verfügbar, als stabile
+Objektidentität. PR_SEARCH_KEY wird nicht zur Deduplizierung verwendet, weil Kopien denselben Suchschlüssel
+haben können. Kein COM-Objekt verlässt den Reader. Anhangsinhalte werden nur ausdrücklich, größenbegrenzt
+und über eine private temporäre Datei gelesen; es gibt keine automatische Dateiöffnung.
+
+Quellen: [Graph ImmutableId](https://learn.microsoft.com/en-us/graph/outlook-immutable-id),
+[Graph Delta](https://learn.microsoft.com/en-us/graph/api/message-delta),
+[MSAL-Cache](https://learn.microsoft.com/en-us/entra/msal/dotnet/how-to/token-cache-serialization),
+[Gmail-Scopes](https://developers.google.com/workspace/gmail/api/auth/scopes),
+[Google Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app),
+[MAPI Record-/Search-Keys](https://learn.microsoft.com/en-us/office/client-developer/outlook/mapi/mapi-record-and-search-keys).
+
+Prüfungen verwenden ausschließlich HTTP-/Token-Doubles, synthetische Clientdaten und isolierte
+Konfigurationsverzeichnisse. Eine lokale LxPrintStudio-Quelldatei wurde auf vorhandene Appdaten und
+Entschlüsselbarkeit geprüft, ohne Werte auszugeben oder ein Postfach zu öffnen. Live-Anmeldung,
+native Outlook-Abnahme und tatsächlich erteilte Cloud-Berechtigungen bleiben gesondert nachzuweisen.
+Rollback: Connectoren, lokale Konfigurationsgruppe und neue Formatversion gemeinsam zurücknehmen;
+geschützte Benutzerdaten erhalten und vor Einsatz einer älteren Version kontrolliert migrieren.
+
 ### Mailansicht nach DevExpress WindowsMailClient
 
 `WawiCallPro.App/Views/MailPage` verwendet das Bedienmuster des vom Nutzer bereitgestellten Beispiels

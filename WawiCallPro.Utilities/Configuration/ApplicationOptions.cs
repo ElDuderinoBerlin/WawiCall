@@ -22,6 +22,7 @@ public sealed record ApplicationOptions
     public CommunicationDatabaseSettings Database { get; init; } = new();
     public ImmutableArray<CompanySettings> Companies { get; init; } = [];
     public CallerLineAssignment? CallerLineAssignment { get; init; }
+    public ImmutableArray<MailAccountSettings> MailAccounts { get; init; } = [];
 
     public CompanySettings? FindCompanySettings(CompanyKey company)
     {

@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>The version belongs to settings JSON, independently of the DPAPI envelope version.</summary>
 public static class ConfigurationFormat
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -23,7 +23,8 @@ public static class ConfigurationFormat
             new JsonStringEnumConverter<Microsoft.Extensions.Logging.LogLevel>(allowIntegerValues: false),
             new JsonStringEnumConverter<SipTransport>(allowIntegerValues: false),
             new JsonStringEnumConverter<CommunicationDatabaseProvider>(allowIntegerValues: false),
-            new JsonStringEnumConverter<LexwareProductLine>(allowIntegerValues: false)
+            new JsonStringEnumConverter<LexwareProductLine>(allowIntegerValues: false),
+            new JsonStringEnumConverter<WawiCallPro.Interfaces.Office.MailProviderKind>(allowIntegerValues: false)
         }
     };
 
@@ -47,7 +48,7 @@ public static class ConfigurationFormat
                 };
             }
             if (!version.TryGetInt32(out var value) || value is < 1 or > CurrentVersion)
-                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1 bis 8.");
+                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1 bis 9.");
             var envelope = root.Deserialize<SettingsDocument>(JsonOptions)!;
             return new ConfigurationSnapshot(envelope.Settings, true) { FormatVersion = value, ContentHash = ComputeHash(bytes) };
         }

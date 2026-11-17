@@ -32,6 +32,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         ValidateDevices(options.Devices, issues);
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
+        ValidateMail(options.MailAccounts, issues);
         if (options.CallerLineAssignment is { } mapping && (mapping.Company is null || mapping.Line is null
             || !SafeLineText(mapping.DisplayName) || !SafeLineText(mapping.Line.TelephonySystemId) || !SafeLineText(mapping.Line.LineId)
             || mapping.Line.DefaultRegion is not null && !IsValidRegion(mapping.Line.DefaultRegion)
@@ -41,6 +42,40 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
     }
 
     private static bool SafeLineText(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512 && !value.Any(char.IsControl);
+
+    private void ValidateMail(ImmutableArray<MailAccountSettings> accounts, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        if (accounts.IsDefault || accounts.Length > 32 || accounts.Any(account => account is null) || accounts.Select(account => account.Id).Distinct().Count() != accounts.Length)
+        { issues.Add(new("mailAccounts", "Höchstens 32 unterschiedliche Postfächer konfigurieren.")); return; }
+        foreach (var account in accounts)
+        {
+            if (account.Id == Guid.Empty || !Enum.IsDefined(account.Provider) || !SafeLineText(account.DisplayName) || account.ImportDays is < 0 or > 36500 ||
+                account.MaximumMessages is < 1 or > 100000 || account.FolderIds.IsDefault || account.FolderIds.Length > 1024 ||
+                account.FolderIds.Any(id => string.IsNullOrWhiteSpace(id) || id.Length > 4096 || id.Any(char.IsControl)) || account.FolderIds.Distinct().Count() != account.FolderIds.Length ||
+                account.RemoteIdentity is { } identity && (identity.Length > 1024 || identity.Any(char.IsControl)) ||
+                account.OutlookStoreId is { } store && (store.Length > 4096 || store.Any(char.IsControl)))
+                issues.Add(new("mailAccounts", "Postfachname, Kennungen, Zeitraum oder Mengenbegrenzung prüfen."));
+            if (!account.Enabled || account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.OutlookDesktop) continue;
+            if (account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.Microsoft365 &&
+                (!Guid.TryParse(account.ClientId, out var client) || client == Guid.Empty ||
+                 account.Tenant is not ("common" or "organizations" or "consumers") && !Guid.TryParse(account.Tenant, out _)))
+                issues.Add(new("mailAccounts", "Für Microsoft 365 eine gültige Client-ID und einen Mandanten (GUID/common/organizations/consumers) eintragen."));
+            if (account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.Microsoft365 && account.ApplicationAuthentication)
+            {
+                if (!Guid.TryParse(account.Tenant, out _) || !System.Net.Mail.MailAddress.TryCreate(account.Mailbox, out var mailbox) || mailbox.Address != account.Mailbox)
+                    issues.Add(new("mailAccounts", "Für die Microsoft-App-Anmeldung eine Mandanten-GUID und die genaue Postfachadresse eintragen."));
+                try { using var value = secrets.Unprotect(account.MicrosoftClientSecret ?? throw new SecretProtectionException(), MailAccountSettings.MicrosoftSecretPurpose); if (value.IsEmpty) throw new SecretProtectionException(); }
+                catch (SecretProtectionException) { issues.Add(new("mailAccounts", "Das geschützte Microsoft-App-Secret fehlt oder ist beschädigt.")); }
+            }
+            if (account.Provider == WawiCallPro.Interfaces.Office.MailProviderKind.Gmail)
+            {
+                if (string.IsNullOrWhiteSpace(account.ClientId) || !account.ClientId.EndsWith(".apps.googleusercontent.com", StringComparison.Ordinal) || account.ClientId.Any(char.IsWhiteSpace))
+                    issues.Add(new("mailAccounts", "Für Gmail die Client-ID einer Google-Desktop-App eintragen."));
+                try { using var secret = secrets.Unprotect(account.GoogleClientSecret ?? throw new SecretProtectionException(), MailAccountSettings.GoogleSecretPurpose); if (secret.IsEmpty) throw new SecretProtectionException(); }
+                catch (SecretProtectionException) { issues.Add(new("mailAccounts", "Die Google-Desktop-Clientdaten fehlen oder können nicht entschlüsselt werden.")); }
+            }
+        }
+    }
 
     private static bool IsValidLogDirectory(string directory)
     {

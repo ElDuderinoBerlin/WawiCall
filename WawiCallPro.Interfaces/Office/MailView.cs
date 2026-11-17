@@ -9,7 +9,10 @@ public sealed record MailFolder(MailFolderKey Key, MailFolderKey? Parent, string
 public sealed record MailFolderCatalog(ImmutableArray<MailFolder> Folders, string Status);
 public sealed record MailListItem(MailMessageKey Key, MailFolderKey Folder, string Sender, string Subject,
     DateTimeOffset Date, string Preview, bool IsRead, int AttachmentCount);
-public sealed record MailAttachmentInfo(string Name, long? Size);
+public sealed record MailAttachmentInfo(string Name, long? Size)
+{
+    public string? Id { get; init; }
+}
 /// <summary>Detached, read-only content. HTML resources and hyperlinks require explicit UI handling.</summary>
 public sealed record MailContent(MailMessageKey Key, string Subject, string From, string To, string Cc,
     DateTimeOffset Date, string Text, string? Html, ImmutableArray<MailAttachmentInfo> Attachments);
