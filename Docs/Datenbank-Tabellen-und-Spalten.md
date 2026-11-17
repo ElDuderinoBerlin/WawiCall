@@ -417,9 +417,63 @@ Wird ausschließlich von FluentMigrator verwaltet. Die Einträge belegen die ang
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
-| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–12. Kein Fachrepository schreibt diese Spalte. |
+| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–13. Kein Fachrepository schreibt diese Spalte. |
 | `appliedon` | Datum/Zeit UTC | Ja | Nativer UTC-Datum/Zeit-Wert des Runners für die Anwendung der Migration; anders als Fachzeiten keine .NET-Tickspalte. Darf bei alten Metadaten NULL sein. |
 | `description` | Unicode-Text (1024) | Ja | Beschreibung der angewendeten Migration aus dem Migrationsattribut; kein Platz für fachliche Gesprächs- oder Kundendaten. |
+
+## mailaccounts – Bindung eines importierten Postfachs
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `id` | Hex 32 | Nein | Lokale, nicht leere Konto-ID aus der Konfiguration. |
+| `provider` | Ganzzahl | Nein | Anbieter: 1 Outlook Desktop, 2 Microsoft 365, 3 Gmail. |
+| `binding` | Hex 64 | Nein | SHA-256 der Anbieter-, Client- und Postfachidentität; verhindert unbemerkten Kontowechsel. |
+| `createdatutc` | UTC-Ticks | Nein | Zeitpunkt des ersten bestätigten Imports. |
+
+## mailmessages – Geschützte Nachrichten
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `id` | Hex 64 | Nein | Aus Konto und stabiler Quellidentität abgeleiteter Primärschlüssel. |
+| `accountid` | Hex 32 | Nein | Fremdschlüssel des Postfachs. |
+| `stablehash` | Hex 64 | Nein | Kontoabhängig eindeutiger Hash der stabilen Anbieteridentität. |
+| `sourcehash` | Hex 64 | Nein | Hash der aktuellen Quell-ID, bei Outlook nach Verschiebungen gegebenenfalls geändert. |
+| `revisionhash` | Hex 64 | Nein | Fingerprint des vollständigen Nachrichtenstands. |
+| `receivedatutc` | UTC-Ticks | Nein | Empfangszeit der Nachricht. |
+| `payload` | Unicode-Text | Nein | Mit Windows-Benutzerbindung verschlüsselter Inhalt samt Betreff, Beteiligten und Anhangsmetadaten; maximal 4 MiB. |
+| `hidden` | Ganzzahl | Nein | 1: gelöscht oder außerhalb des importierten Bereichs; 0: sichtbar. |
+| `createdatutc` | UTC-Ticks | Nein | Erste lokale Bestätigung dieser Nachricht. |
+| `updatedatutc` | UTC-Ticks | Nein | Letzte bestätigte Änderung; nicht vor dem Erstellzeitpunkt. |
+
+## mailaddresses – Exakter Adressindex
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `messageid` | Hex 64 | Nein | Fremdschlüssel der Nachricht. |
+| `addresshash` | Hex 64 | Nein | Hash einer kanonisierten vollständigen Absender- oder Empfängeradresse, ohne Anzeigename. |
+
+## mailmemberships – Importierte Ordnerzugehörigkeit
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `messageid` | Hex 64 | Nein | Fremdschlüssel der Nachricht. |
+| `folderhash` | Hex 64 | Nein | Hash der opaken Ordner-ID; wird stets zusammen mit dem Konto ausgewertet. |
+| `generation` | Hex 32 | Nein | Abgleichrunde, in der diese Zugehörigkeit zuletzt bestätigt wurde. |
+
+## mailsyncstate – Atomar bestätigte Synchronisierung
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `id` | Hex 64 | Nein | Aus Konto und Ordner abgeleiteter Primärschlüssel. |
+| `accountid` | Hex 32 | Nein | Fremdschlüssel des Postfachs. |
+| `folderhash` | Hex 64 | Nein | Hash der zu diesem Konto gehörenden Ordner-ID. |
+| `checkpoint` | Unicode-Text | Ja | Geschützter Anbieterstand für den nächsten Änderungsabruf. |
+| `nextpage` | Unicode-Text | Ja | Geschützte Fortsetzung einer noch nicht vollständig abgerufenen Runde. |
+| `generation` | Hex 32 | Nein | Kennung der aktuellen Abgleichrunde. |
+| `snapshot` | Ganzzahl | Nein | 1 bei vollständigem Ordnerabgleich, 0 bei Änderungsabruf. |
+| `lastpagehash` | Hex 64 | Nein | Fingerprint der zuletzt bestätigten Seite für idempotente Wiederholung. |
+| `writeversion` | Ganzzahl 64 Bit | Nein | Optimistische Schreibversion ab 1. |
+| `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt der letzten gemeinsam mit Nachrichten bestätigten Seite. |
 
 ## Beziehungen und Lebensdauer
 
@@ -444,7 +498,7 @@ Die Adresse `orderAddress` eines Lieferanten sowie Telefonnummern aus verschiede
 
 ## Abgleich mit dem tatsächlichen Schema
 
-Die Spaltenliste wird gegen eine durch die echten Migrationen 1–12 angelegte SQLite-Datenbank abgeglichen;
+Die Spaltenliste wird gegen eine durch die echten Migrationen 1–13 angelegte SQLite-Datenbank abgeglichen;
 die nur für MySQL/MariaDB berechnete Auswahlspalte ist zusätzlich aufgeführt. Der Abgleich verlangt zu
 jeder tatsächlichen Spalte genau eine Beschreibungszeile. Der native Providerlauf prüft unabhängig davon
 Neuaufbau, gefülltes Upgrade, Constraints und Repositoryzugriffe auf allen fünf Engines.

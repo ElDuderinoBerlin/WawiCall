@@ -134,7 +134,7 @@ public static class RecordingCaptureAcceptance
         var context = new DatabaseRepositoryContext(new Target(target), factory, new VersionNineFactory(old), new DatabaseMigrationLock());
         var call = await CallAsync(context); var recording = await RecordingAsync(context, call.History.Call.Id);
         var status = await new DatabaseMigrator(factory, new FluentMigratorEngine(target.Type)).MigrateAsync(target);
-        Assert.AreEqual(12L, status.AppliedVersions.Last());
+        Assert.AreEqual(13L, status.AppliedVersions.Last());
         Assert.AreEqual(recording, (await new DapperRecordingRepository(new(target, factory)).GetAsync(recording.Id))!.Recording);
         Assert.IsNull(await new DapperRecordingCaptureRepository(new(target, factory)).GetAsync(recording.Id));
         var repeated = await new DatabaseMigrator(factory, new FluentMigratorEngine(target.Type)).MigrateAsync(target);

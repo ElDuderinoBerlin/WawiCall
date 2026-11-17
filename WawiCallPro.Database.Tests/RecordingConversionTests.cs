@@ -147,7 +147,7 @@ public static class RecordingConversionAcceptance
         var oldContext = new DatabaseRepositoryContext(new FixedTarget(target), factory, new VersionElevenFactory(old), new DatabaseMigrationLock());
         var seed = await SeedAsync(oldContext, registerTarget: true); var oldArtifacts = await new DapperRecordingArtifactRepository(oldContext).GetForRecordingAsync(seed.Recording.Recording.Id);
         var migrator = new DatabaseMigrator(factory, new FluentMigratorEngine(target.Type));
-        var status = await migrator.MigrateAsync(target); Assert.AreEqual(12L, status.AppliedVersions.Last());
+        var status = await migrator.MigrateAsync(target); Assert.AreEqual(13L, status.AppliedVersions.Last());
         var context = new DatabaseRepositoryContext(target, factory);
         Assert.AreEqual(seed.Recording, await new DapperRecordingRepository(context).GetAsync(seed.Recording.Recording.Id));
         Assert.AreEqual(seed.Capture, await new DapperRecordingCaptureRepository(context).GetAsync(seed.Recording.Recording.Id));

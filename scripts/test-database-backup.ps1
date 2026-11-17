@@ -43,7 +43,7 @@ foreach(var item in configurations)
             Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
         }
         await ProviderCompatibilityAcceptance.RunAsync(target);
-        Console.WriteLine(item.Engine + ": migrations 1-12, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
+        Console.WriteLine(item.Engine + ": migrations 1-13, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
     }
     if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else
@@ -52,6 +52,8 @@ foreach(var item in configurations)
         if(status.State != DatabaseSchemaState.Current) throw new Exception("Schema creation failed");
     }
     await RepositoryAcceptance.CompaniesAndCacheAsync(target);
+    await MailImportAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": encrypted mail page/cursor transactions, snapshot completion, moves, scope filters and rollback passed.");
     await RepositoryAcceptance.HistoryAsync(target);
     await RecordingCaptureAcceptance.RunAsync(target);
     await RecordingJournalAcceptance.RunAsync(target);

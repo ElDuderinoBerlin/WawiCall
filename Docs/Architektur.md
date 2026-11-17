@@ -527,6 +527,22 @@ native Outlook-Abnahme und tatsächlich erteilte Cloud-Berechtigungen bleiben ge
 Rollback: Connectoren, lokale Konfigurationsgruppe und neue Formatversion gemeinsam zurücknehmen;
 geschützte Benutzerdaten erhalten und vor Einsatz einer älteren Version kontrolliert migrieren.
 
+### Persistierter Mailimport
+
+Migration 13 ergänzt Postfachbindungen, verschlüsselte Nachrichtenschnappschüsse, gehashte exakte
+Adressindizes, Ordnerzugehörigkeiten und Synchronisierungsstände. `DapperMailImportRepository`
+bestätigt jede Nachrichtenseite zusammen mit ihrem Fortsetzungszeiger in einer Transaktion.
+Schreibversionen verhindern veraltete Bestätigungen; derselbe Seitenfingerprint ist wiederholbar.
+Erst die letzte erfolgreiche Seite einer vollständigen Abgleichrunde entfernt nicht mehr bestätigte
+Ordnerzugehörigkeiten. Unvollständige Runden behalten bisherige Nachrichten.
+
+Konten sind an Anbieter und Postfachidentität gebunden. Stabile Nachrichtenidentitäten erhalten
+den lokalen Datensatz bei einer geänderten Outlook-EntryID. Gelöschte oder nicht mehr im gewählten
+Bereich liegende Nachrichten werden ausgeblendet; Inhalte werden dabei nicht hart gelöscht.
+Eine leere Ordnerfreigabe oder ausdrücklich leere Adresssuche liefert keine Nachrichten.
+Adresshashes sind Suchindizes und keine Verschlüsselung; Inhalte und Fortsetzungszeiger schützt
+der aufrufende Office-Dienst vor Übergabe an das Repository mit Windows-Benutzerbindung.
+
 ### Mailansicht nach DevExpress WindowsMailClient
 
 `WawiCallPro.App/Views/MailPage` verwendet das Bedienmuster des vom Nutzer bereitgestellten Beispiels
