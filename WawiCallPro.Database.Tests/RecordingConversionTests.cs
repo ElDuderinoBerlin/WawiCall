@@ -66,7 +66,7 @@ public static class RecordingConversionAcceptance
     public static async Task RunAsync(DatabaseTarget target)
     {
         var context = new DatabaseRepositoryContext(target, new()); var jobs = new DapperRecordingConversionRepository(context);
-        var seed = await SeedAsync(context); var pending = Job(seed);
+        var seed = await SeedAsync(context, registerTarget: true); var pending = Job(seed);
         var unknown = new RecordingConversionJob(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), pending.Format, RecordingConversionState.Pending);
         await Conflict(() => jobs.WriteAsync(new(unknown, null, Changed)), RepositoryConflictKind.MissingRecord);
         await Conflict(() => jobs.WriteAsync(new(State(pending, RecordingConversionState.Running, 1, Guid.NewGuid()), null, Changed)), RepositoryConflictKind.SnapshotMismatch);
@@ -111,14 +111,14 @@ public static class RecordingConversionAcceptance
         Assert.AreEqual(2, (await artifacts.GetForRecordingAsync(seed.Recording.Recording.Id)).Count);
         await Constraints(target, completed.Job);
 
-        var other = await SeedAsync(context, seed.Workstation); var waiting = Job(other);
+        var other = await SeedAsync(context, true, seed.Workstation); var waiting = Job(other);
         await artifacts.WriteAsync(new(new(other.Wave.Id, other.Wave.RecordingId, other.Wave.CallId, other.Wave.Format, other.Wave.RelativePath, RecordingAvailability.Missing, 684, Digest), 2, Changed));
         await Conflict(() => jobs.WriteAsync(new(waiting, null, Changed)), RepositoryConflictKind.SnapshotMismatch);
         Assert.IsNull(await jobs.GetAsync(waiting.Id));
         await artifacts.WriteAsync(new(Available(other.Wave), 3, Changed));
         var wrongFormat = new RecordingConversionJob(waiting.Id, waiting.SourceArtifactId, waiting.TargetArtifactId, new(16000, 2, 128000), RecordingConversionState.Pending);
         await Conflict(() => jobs.WriteAsync(new(wrongFormat, null, Changed)), RepositoryConflictKind.SnapshotMismatch);
-        var foreign = await SeedAsync(context);
+        var foreign = await SeedAsync(context, registerTarget: true);
         var crossOwner = new RecordingConversionJob(Guid.NewGuid(), other.Wave.Id, foreign.Mp3.Id, pending.Format, RecordingConversionState.Pending);
         await Conflict(() => jobs.WriteAsync(new(crossOwner, null, Changed)), RepositoryConflictKind.OwnershipMismatch);
         await Assert.ThrowsAsync<OperationCanceledException>(() => jobs.WriteAsync(new(waiting, null, Changed), new CancellationToken(true)));
@@ -145,7 +145,7 @@ public static class RecordingConversionAcceptance
         var factory = new DatabaseFactory(); var creation = await new DatabaseProvisioner(factory).CreateAsync(target);
         var old = new VersionElevenEngine(target.Type); await new DatabaseMigrator(factory, old).MigrateAsync(target, creation: creation);
         var oldContext = new DatabaseRepositoryContext(new FixedTarget(target), factory, new VersionElevenFactory(old), new DatabaseMigrationLock());
-        var seed = await SeedAsync(oldContext); var oldArtifacts = await new DapperRecordingArtifactRepository(oldContext).GetForRecordingAsync(seed.Recording.Recording.Id);
+        var seed = await SeedAsync(oldContext, registerTarget: true); var oldArtifacts = await new DapperRecordingArtifactRepository(oldContext).GetForRecordingAsync(seed.Recording.Recording.Id);
         var migrator = new DatabaseMigrator(factory, new FluentMigratorEngine(target.Type));
         var status = await migrator.MigrateAsync(target); Assert.AreEqual(12L, status.AppliedVersions.Last());
         var context = new DatabaseRepositoryContext(target, factory);
@@ -158,7 +158,8 @@ public static class RecordingConversionAcceptance
         await new DapperRecordingConversionRepository(context).WriteAsync(new(Job(seed), null, Changed));
     }
 
-    private static async Task<Seed> SeedAsync(DatabaseRepositoryContext context, Guid? workstation = null)
+    internal static async Task<Seed> SeedAsync(DatabaseRepositoryContext context,
+        bool registerTarget, Guid? workstation = null)
     {
         var owner = workstation ?? Guid.NewGuid();
         var call = new CallSnapshot { Id = Guid.NewGuid(), State = CallState.Connected, Direction = CallDirection.Incoming, Revision = 0,
@@ -173,7 +174,7 @@ public static class RecordingConversionAcceptance
         var mp3 = new RecordingArtifact(Guid.NewGuid(), recording.Id, call.Id, RecordingArtifactFormat.Mp3, "conversions/Ziel Ä 电话.mp3", RecordingAvailability.Pending);
         var artifacts = new DapperRecordingArtifactRepository(context);
         await artifacts.WriteAsync(new(wave, null, Time.AddSeconds(1))); await artifacts.WriteAsync(new(Available(wave), 1, Time.AddSeconds(1)));
-        await artifacts.WriteAsync(new(mp3, null, Time.AddSeconds(1)));
+        if (registerTarget) await artifacts.WriteAsync(new(mp3, null, Time.AddSeconds(1)));
         return new(saved.Recording, saved.Capture, wave, mp3, owner);
     }
     private static RecordingArtifact Available(RecordingArtifact file) => new(file.Id, file.RecordingId, file.CallId, file.Format, file.RelativePath, RecordingAvailability.Available, 684, Digest);
@@ -198,7 +199,7 @@ public static class RecordingConversionAcceptance
             $"SELECT @duplicate,sourceartifactid,targetartifactid,samplerate,channels,bitrate,state,attempts,attemptid,failure,writeversion,createdatutc,updatedatutc FROM {table} WHERE id=@id", new { duplicate = DatabaseId.Encode(Guid.NewGuid()), id = DatabaseId.Encode(job.Id) }));
         await Assert.ThrowsAsync<DbException>(() => db.ExecuteAsync($"DELETE FROM {DatabaseSql.Table(target.Type, "recordingartifacts")} WHERE id=@id", new { id = DatabaseId.Encode(job.SourceArtifactId) }));
     }
-    private sealed record Seed(StoredRecording Recording, StoredRecordingCapture Capture, RecordingArtifact Wave, RecordingArtifact Mp3, Guid Workstation);
+    internal sealed record Seed(StoredRecording Recording, StoredRecordingCapture Capture, RecordingArtifact Wave, RecordingArtifact Mp3, Guid Workstation);
     private sealed class FixedTarget(DatabaseTarget target) : IDatabaseTargetSource { public DatabaseTarget GetTarget() => target; }
     private sealed class VersionElevenEngine(DatabaseType type) : IDatabaseMigrationEngine
     {

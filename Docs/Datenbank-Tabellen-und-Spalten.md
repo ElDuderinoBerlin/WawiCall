@@ -365,7 +365,9 @@ zwischen diesen beiden Zuständen und behalten Größe/Prüfsumme. Dies ist kein
 
 Optionale Tabelle ab Migration 12; keine automatische Anlage für Bestandsaufnahmen. Ein Auftrag
 verbindet das kanonische WAV mit dem kanonischen MP3 derselben abgeschlossenen Aufnahme. Beide
-Artefakte müssen bereits registriert sein. Das Repository prüft Metadaten, keine Dateien oder Encoder.
+Artefakte müssen beim Auftragsschreiben registriert sein. Das Konvertierungsjournal legt ein neues
+MP3-Ziel und seinen Auftrag gemeinsam in einer Transaktion an; das Quell-WAV ist vorher bestätigt.
+Die Repositories und das Journal prüfen Metadaten, keine Dateien oder Encoder.
 Je Quelle und Ziel höchstens ein Auftrag; Wiederholungen verwenden dieselbe Auftrags-/Artefaktidentität.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
@@ -386,8 +388,10 @@ Je Quelle und Ziel höchstens ein Auftrag; Wiederholungen verwenden dieselbe Auf
 
 Erlaubt sind ausstehend → laufend → abgeschlossen/fehlgeschlagen sowie fehlgeschlagen → ausstehend.
 Ein Neustart allein beendet keinen laufenden Versuch. Erst nach nachgewiesenem Ende seines Besitzers
-darf er ausdrücklich mit passender Schreibversion als unterbrochen markiert werden. Das Einreihen,
-die Encoder-Ausführung und die gemeinsame MP3-Artefaktzustellung werden im folgenden Arbeitsschritt angebunden.
+darf er ausdrücklich mit passender Schreibversion als unterbrochen markiert werden. Das Konvertierungsjournal
+bestätigt Abschluss, Fehler oder erneutes Einreihen zusammen mit dem passenden MP3-Artefaktstatus.
+Beide Schreibversionen müssen passen; nur ein vollständiges identisches Paar ist wiederholbar.
+Automatisches Einreihen, Encoder-Ausführung und sichere Dateizustellung bleiben noch anzubinden.
 
 ## versioninfo – Technische Migrationsverwaltung
 

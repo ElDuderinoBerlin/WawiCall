@@ -57,6 +57,8 @@ foreach(var item in configurations)
     await RecordingJournalAcceptance.RunAsync(target);
     await RecordingArtifactAcceptance.RunAsync(target);
     await RecordingConversionAcceptance.RunAsync(target);
+    await RecordingConversionJournalAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": atomic MP3 artifact/job enqueue, completion, interrupted retry, rollback, pair replay and competing writers passed.");
     await RecordingConversionAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
     Console.WriteLine(item.Engine + ": durable MP3 job restart, CAS claims, interrupted retry, unique artifacts, constraints and populated v11 upgrade passed.");
     await RecordingWaveArtifactAcceptance.RunAsync(target);

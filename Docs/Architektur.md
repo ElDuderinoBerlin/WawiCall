@@ -979,13 +979,12 @@ und denselben Auftrag erneut einreihen. Kein automatisches Zurücksetzen fremder
 Die Arbeitsplatzabfrage nutzt die ursprüngliche Gesprächsherkunft und stabile GUID-Schlüsselseiten;
 kein Zugriff auf fremde Arbeitsplatzaufträge über diese Abfrage, keine automatische globale Recovery.
 
-Grenzen dieses Teilpunkts: nur Metadaten und explizite Aufrufe. Automatisches Einreihen, besitzender
-Encoder-Worker, sichere Wiederaufnahme nach tatsächlichem Prozessabbruch und die gemeinsame MP3-
-Artefaktzustellung sind noch anzuschließen. Insbesondere müssen die Fenster zwischen Artefaktanlage
-und Auftrag, Dateiveröffentlichung und Artefaktbestätigung sowie Artefaktbestätigung und Jobabschluss
-im Folgeschritt abgesichert werden. Dieser Vertrag allein garantiert keine atomare Dateisystem-/DB-
-Transaktion oder bereits ausführbare automatische Konvertierung. Bestätigte Inhalte werden weder
-überschrieben noch durch eine neue Generation ersetzt; WAVs und vorhandene MP3s bleiben erhalten.
+Grenzen dieses Teilpunkts: nur Metadaten und explizite Aufrufe. Das folgende Journal ergänzt atomare
+Anlage und gemeinsame Statusbestätigung von MP3-Ziel und Auftrag. Automatisches Einreihen, besitzender
+Encoder-Worker und sichere Dateiveröffentlichung/Wiederaufnahme nach tatsächlichem Prozessabbruch
+bleiben offen. Die Repositoryverträge garantieren keine atomare Dateisystem-/DB-Transaktion oder bereits
+ausführbare automatische Konvertierung. Bestätigte Inhalte werden weder überschrieben noch durch eine
+neue Generation ersetzt; WAVs und vorhandene MP3s bleiben erhalten.
 
 Prüfungen: synthetische Metadaten mit neuen Repositoryinstanzen, exklusiver Start, explizite
 Unterbrechung/Wiederholung ohne zweite Artefakte oder Jobs, verspätete Ergebnisse, Fehlend-Sperre,
@@ -997,6 +996,53 @@ im nativen Provider-Einstieg enthalten; konkrete Ergebnisse stehen in
 Rollback: Dienstregistrierung, Repository, Verträge und Tests gemeinsam zurücknehmen. Eine bereits
 angewendete Vorwärtsmigration nicht aus einer produktiven Datenbank entfernen oder manuell herabstufen;
 vorherige Version nur mit passend wiederhergestelltem Backup verwenden. Keine Audiodateien löschen.
+
+### Atomare MP3-Auftragsannahme und Statusbestätigung (17.11.2026)
+
+`IRecordingConversionJournal` ist in beiden Hosts als zustandsloser Singleton mit injiziertem
+`DatabaseRepositoryContext` registriert. Es ergänzt die einzelnen Artefakt-/Auftragsrepositories um
+eine gemeinsame serialisierbare Dapper-Transaktion. Schema und Migrationen 1–12 bleiben unverändert.
+Die mit Rider extrahierten internen Schreibmethoden behalten die vorhandenen Prüfungen zu Eigentümer,
+Format, Zustand, Zeitfolge, Schreibversion und Versuchs-ID; keine zweite Implementierung dieser Regeln.
+
+`BeginAsync` erhält ausdrücklich ein neues ausstehendes MP3-Artefakt und einen neuen ausstehenden
+Auftrag mit Versuchszähler 0. Ziel-ID und Änderungszeit müssen übereinstimmen; beide erwarteten
+Versionen sind NULL. Das bestätigte verfügbare Quell-WAV gehört zu einem abgeschlossenen Capture.
+Das Journal registriert Ziel und Auftrag zusammen. Ein Konflikt beim nachfolgenden Auftragsschreiben
+rollt auch die Zielanlage zurück. Alleinstehende Ziele oder nur einzeln passende Schreibstände werden
+nicht automatisch übernommen. Wiederholungen verwenden dieselben IDs, Werte und ursprünglichen Zeitpunkte;
+nur ein vollständig passendes unmittelbar gespeichertes Paar wird ohne neue Version zurückgegeben.
+
+Der exklusive Start bleibt eine einzelne Auftragsänderung `Pending → Running` über das vorhandene
+Repository. Das MP3-Artefakt ändert dabei weder Status noch Version. `WriteAsync` erhält anschließend
+beide erwarteten Versionen und denselben Änderungszeitpunkt. Erlaubte Paare sind `Available/Completed`,
+`Failed/Failed` und `Pending/Pending` zur ausdrücklichen Wiederholung. Ein laufender Versuch kann
+nicht als solches Paar gespeichert werden. Erfolgs-/Fehlerdaten müssen zum aktuellen Versuch gehören;
+die erlaubten Übergänge und Versuchszähler werden weiterhin vom Auftragsrepository geprüft.
+
+Beide Versionsprüfungen erfolgen vor dem ersten Schreibschritt. Schlägt danach etwa die Prüfung der
+Versuchs-ID, eines geänderten Zielformats oder die Versionserhöhung des Auftrags fehl, wird die bereits
+vorgenommene Artefaktänderung ebenfalls zurückgerollt. Nur die exakte Wiederholung des gesamten letzten
+Paars ist idempotent. Dabei werden die gespeicherten Inhalte, Versionen und Zeitpunkte verglichen;
+dies ist kein historischer Nachweis einer früheren gemeinsamen Transaktion. Ein veralteter Schreibstand
+nur einer Hälfte wird zurückgewiesen; kein stilles Vervollständigen eines Teilstands. Konkurrierende unterschiedliche Abschlüsse
+können nicht verschiedene Metadatenhälften hinterlassen.
+
+Das Journal liest keine Audiodateien, bestätigt keine tatsächlichen Encoderergebnisse und startet keine
+Aufnahme oder Konvertierung. Vor einer Erfolgsbestätigung muss der spätere Dateidienst die MP3-Datei
+einschließlich Größe, Hash und Format prüfen und ihre Veröffentlichung absichern. Dateiveröffentlichung
+und diese Datenbanktransaktion bleiben getrennt; der besitzende Worker und sein geschützter Wiederanlauf
+stehen weiterhin aus. Bestehende Dateien werden weder erzeugt noch gelöscht oder überschrieben.
+
+Prüfungen: explizite Neuanlage, Dienstneuaufbau und exakte Paarwiederholung, keine Übernahme unabhängig
+angelegter Ziele, fehlende Quelle, Abbruch, konkurrierende Anlage/Abschlüsse, Unterbrechung und zweiter
+Versuch, gemischte Schreibversionen sowie Rücknahme nach Fehlern beim zweiten Schreibschritt einschließlich
+erschöpftem Versionszähler. Derselbe Ablauf läuft über den Provider-Einstieg auf allen fünf Engines;
+konkrete Ergebnisse stehen in [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+Synthetische Metadaten und neue Dienstinstanzen belegen keinen echten Prozessabbruch oder Dateiwiederanlauf.
+
+Rollback: Journal, Vertrag und DI-Eintrag gemeinsam zurücknehmen; die gemeinsamen internen Schreibmethoden
+können von den Einzelrepositories weiterverwendet werden. Keine Schemaänderung oder Audiodatei zurückrollen.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 
