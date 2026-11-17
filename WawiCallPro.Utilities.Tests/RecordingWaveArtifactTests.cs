@@ -199,6 +199,8 @@ internal sealed class WaveArtifactFixture : IDisposable
     internal DurableRecordingJournal Journal(IRecordingArtifactRepository? repository = null) =>
         new(new(new(Target, new())), ReopenOutbox(), new RecordingWaveArtifactPublisher(repository ?? new DapperRecordingArtifactRepository(new(Target, new()))));
     private ProtectedRecordingJournalOutbox ReopenOutbox() => new(Paths, _secrets, _configuration, new("WawiCallPro", "Pro"));
+    internal ProtectedRecordingConversionOutbox ConversionOutbox(string productLine = "Pro") =>
+        new(Paths, _secrets, _configuration, new("WawiCallPro", productLine), new LocalRecordingFileProbe(Paths));
     internal RecordingArtifact PendingArtifact(Guid id, string path) => new(id, Id, CompletedRecording.Recording.CallId, RecordingArtifactFormat.Wave, path, RecordingAvailability.Pending);
     internal void WriteWave(int rate = 8000, int frames = 160)
     {

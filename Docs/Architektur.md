@@ -1091,9 +1091,10 @@ und gegebenenfalls Running-Aufträge werden für eine spätere kontrollierte Auf
 
 Grenzen: ausdrücklicher Dienstaufruf und Aufruferbesitz, keine automatische Hintergrundwarteschlange,
 Bedienoberfläche oder automatische Bindung offener Sitzungen an Host-Stop. Das Metadatenpaar liegt in
-diesem Teilpunkt nur im Arbeitsspeicher. Prozessverlust zwischen Veröffentlichung und Bestätigung benötigt
-weiterhin einen geschützten dauerhaften Zustellauftrag; ein neuer Host darf solche Dateien/Running-Jobs
-nicht blind übernehmen oder erneut kodieren. Schema 12 und Migrationen 1–12 bleiben unverändert.
+diesem ursprünglichen Teilpunkt nur im Arbeitsspeicher. Der folgende Zustellanschluss legt das genaue
+Paar vor der Datenbankbestätigung geschützt ab. Prozessverlust vor dieser Auftragsablage benötigt
+weiterhin einen gesonderten Nachweis; ein neuer Host darf unbestätigte Dateien/Running-Jobs ohne
+passenden geschützten Auftrag nicht übernehmen oder erneut kodieren. Schema 12 bleibt unverändert.
 
 Prüfungen: eigene temporäre WAVs und isolierte DBs, Start-/Eigentümersperren, Quelle/Ziel gesperrt,
 geänderte Dateien/Ergebnisdaten, nicht vorhandener Originalhash, Kodierungsfehler, Cancellation,
@@ -1106,6 +1107,69 @@ bis zum gespeicherten abgeschlossenen Auftrag. Konkrete Ergebnisse stehen in
 Rollback: Sitzungsvertrag, Factory/Sitzung, DI-Eintrag und ihre Prüfungen gemeinsam zurücknehmen.
 Die additive Ergebnis-Prüfsumme und die atomaren Einzelrepositories können erhalten bleiben.
 Vorhandene Dateien und Auftragsstände behalten; kein pauschales Zurücksetzen laufender Aufträge.
+
+### Geschützte MP3-Abschlussaufträge und Wiederzustellung beim Hoststart (17.11.2026)
+
+`DurableRecordingConversionJournal` ersetzt in beiden Hosts die direkte Journalregistrierung.
+Bei Completed/Failed wird das exakte MP3-/Auftragspaar über `IRecordingConversionOutbox` gespeichert,
+bevor das bestehende Dapper-Journal beide Metadatenstände atomar bestätigt. Erst danach wird der
+Zustellauftrag quittiert und entfernt. Fehler bei Ablage, DB-Bestätigung oder Quittierung lassen
+Dateien und noch vorhandene Zustellaufträge erhalten. Die ursprünglichen Schreibversionen, Werte
+und Änderungszeitpunkte werden bei Wiederholungen unverändert weitergereicht.
+
+`ProtectedRecordingConversionOutbox` speichert versionierte Aufträge unter `mp3-pending/<Job-ID>.pending`.
+DPAPI CurrentUser mit eigener Purpose `recording-conversion-v1` schützt den vollständigen Inhalt;
+WAV-Aufträge werden nicht als MP3-Aufträge akzeptiert. Ein Hash bindet den Inhalt an Produktlinie,
+Provider und das exakte Datenbankziel der eingefrorenen Startkonfiguration. Keine Zugangsdaten im
+Auftragsinhalt, kein Klartext-Fallback. JSON-Tiefe 16, höchstens 64 KiB je geschützter Datei und maximal
+4096 Aufträge begrenzen das Lesen. IDs und Dateinamen müssen kanonisch sein; erkannte Links und
+ungültige Inhalte werden zurückgewiesen. Veröffentlichung über eigene temporäre Datei, Flush und
+nicht überschreibende Umbenennung; nur eigene temporäre Dateien werden bereinigt.
+
+Ein Completed-Auftrag wird nur mit passender lesbarer MP3 angenommen. Größe und tatsächlicher SHA-256
+müssen den bestätigten Originalwerten im Metadatenpaar entsprechen. Die Datei bleibt während der
+Zustellung gegen Schreiber/Löschen gesperrt. Failed-Aufträge besitzen keinen bestätigten Dateihash;
+ihre Zustellung liest oder verändert keine möglicherweise vorhandene unbestätigte MP3.
+
+Die exklusive Auftragssperre schützt Ablage, Lesen und Quittierung. `AcquireEmpty` hält dieselbe Sperre
+während Anlage, erneutem Einreihen und Reservieren eines Konvertierungsversuchs, solange kein
+Abschlussauftrag aussteht. Dadurch reicht eine ungeschützte Vorabfrage nach Pending-Dateien nicht
+zum Vorbeilaufen an einem bereits abgelegten Abschluss. Auch ein unabhängig erneut eingereihter
+Auftrag darf bei vorhandenem Abschluss nicht neu kodiert werden. Zusätzlich bleibt die gemeinsame
+Aufnahmesperre maßgeblich: Reihenfolge Aufnahme → Auftrag, Freigabe in umgekehrter Reihenfolge.
+
+`RecordingConversionRecovery` liest ausschließlich abgelegte Auftrags-IDs. Die aktuelle Datenbank,
+Auftrags-/Artefaktidentität, lokale vorhandene Arbeitsplatz-GUID und ein beendetes Gespräch sind
+Voraussetzung. Aktive Sitzungen und noch ausstehende WAV-Abschlüsse haben Vorrang und werden
+zurückgestellt. Nach Entschlüsselung werden Binding, Werte und Originaldatei erneut geprüft; das
+unveränderte Paar geht direkt an das atomare Dapper-Journal. Erfolgreich bestätigte DB-Stände mit
+noch nicht quittiertem Auftrag werden idempotent wiedererkannt. Konflikte werden weder durch neue
+Versionen noch durch neue Hashes aufgelöst. Es wird kein Encoder aufgerufen und keine Datei übernommen.
+
+`RecordingConversionRecoveryStartup` startet in App und Console einen einzelnen beobachteten
+Hintergrunddurchlauf nach Konfigurationsstart. Start und DI-Aufbau öffnen keine Audiogeräte.
+Host-Stop fordert Abbruch an; asynchrone Freigabe wartet den Durchlauf ab. Der Ablauf belegt keine
+SIP-Kontosperre. Zurückgestellte/fehlgeschlagene Aufträge bleiben für einen weiteren expliziten Lauf
+oder den nächsten Hoststart erhalten. Eine feste deutsche Warnung im bestehenden Log-Fenster
+verwendet ausschließlich `RecordingConversionRecoveryIncomplete`, keine nativen Fehlertexte/Pfade.
+
+Grenze: Der Auftrag wird nach erfolgreicher Dateiveröffentlichung und Prüfung abgelegt. Prozessverlust
+zwischen Veröffentlichung und dieser Ablage bleibt unbestätigt; solche Dateien werden nicht erkannt
+oder automatisch adoptiert. Automatische Kodierungswarteschlange, Bedienung, laufende Aufnahme-
+Sitzungsbindung an Host-Stop und vollständiger Verzeichnisabgleich bleiben offen. Keine neue Migration.
+
+Prüfungen verwenden neue Dienstinstanzen, echte DPAPI-Aufträge, isolierte Dateien/DBs, simulierte
+Unterbrechung vor/nach DB-Bestätigung, Success/Failed, ursprüngliche und veränderte Dateien, Decoder-
+unabhängige Zustellung ohne zweite Kodierung, Produkt-/DB-Binding, getrennte WAV-Purpose, fehlende
+Identität, fremden Arbeitsplatz, Sperren, korrupte/zu große Aufträge, Versionskonflikte und Vorrang
+vor erneutem Start. Derselbe Zustellablauf läuft auf allen fünf Engines. Der vorhandene native
+CSCore-Lauf bestätigt seine echte MP3 jetzt ebenfalls über das geschützte Journal. Konkrete Ergebnisse
+stehen in [Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-).
+Neue Instanzen und erhaltene Dateien belegen keinen nativ ausgeführten Prozessabbruch/Stromausfall.
+
+Rollback: Decorator, neuer Outbox-/Recovery-Dienst, Startworker und ihre Registrierungen gemeinsam
+zurücknehmen. Vorhandene `mp3-pending`-Dateien erhalten und vor erneutem Einreihen kontrolliert
+zustellen; Dateien und Running-Aufträge nicht pauschal löschen/zurücksetzen. Schema 12 bleibt bestehen.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

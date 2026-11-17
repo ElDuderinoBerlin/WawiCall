@@ -8,10 +8,19 @@ using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Persistence;
 
-public sealed class PersistedMp3ConversionFactory(IRecordingConversionRepository jobs, IRecordingArtifactRepository artifacts,
-    IRecordingCaptureRepository captures, ICallRepository calls, IWorkstationIdentity workstation, ApplicationPaths paths,
-    IRecordingJournalOutbox pending, IRecordingFileProbe probe, IMp3Converter converter, IRecordingConversionJournal journal,
-    TimeProvider clock) : IPersistedMp3ConversionFactory
+public sealed class PersistedMp3ConversionFactory(
+    IRecordingConversionRepository jobs,
+    IRecordingArtifactRepository artifacts,
+    IRecordingCaptureRepository captures,
+    ICallRepository calls,
+    IWorkstationIdentity workstation,
+    ApplicationPaths paths,
+    IRecordingJournalOutbox pending,
+    IRecordingFileProbe probe,
+    IMp3Converter converter,
+    IRecordingConversionJournal journal,
+    TimeProvider clock,
+    IRecordingConversionOutbox conversions) : IPersistedMp3ConversionFactory
 {
     public async Task<IPersistedMp3Conversion> StartAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
@@ -35,6 +44,7 @@ public sealed class PersistedMp3ConversionFactory(IRecordingConversionRepository
         try
         {
             if (lease.HasPending) throw new RecordingOutboxException();
+            await using var empty = conversions.AcquireEmpty(job.Id);
             if (probe.IsAbsent(source.Artifact.RelativePath)) throw new Mp3ConversionException(Mp3ConversionFailure.SourceUnavailable);
             try { wave = new(paths.ResolveRecordingPath(source.Artifact.RelativePath), FileMode.Open, FileAccess.Read, FileShare.Read, 65536, true); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { throw new Mp3ConversionException(Mp3ConversionFailure.SourceUnavailable); }
@@ -60,7 +70,7 @@ public sealed class PersistedMp3ConversionFactory(IRecordingConversionRepository
         {
             try { if (wave is not null) await wave.DisposeAsync().ConfigureAwait(false); }
             finally { await lease.DisposeAsync().ConfigureAwait(false); }
-            if (error is RepositoryConflictException or WawiCallPro.Database.DatabaseOperationException or Mp3ConversionException or RecordingOutboxException ||
+            if (error is RepositoryConflictException or WawiCallPro.Database.DatabaseOperationException or Mp3ConversionException or RecordingOutboxException or RecordingConversionOutboxException ||
                 error is OperationCanceledException && cancellationToken.IsCancellationRequested) throw;
             throw new RecordingOutboxException();
         }

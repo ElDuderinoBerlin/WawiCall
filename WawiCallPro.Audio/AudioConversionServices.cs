@@ -30,6 +30,7 @@ public static class AudioConversionServices
     public static IServiceCollection AddPersistedRecordings(this IServiceCollection services)
     {
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory, WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>();
+        services.AddHostedService<WawiCallPro.Utilities.Persistence.RecordingConversionRecoveryStartup>();
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
         services.TryAddSingleton<IInterruptedRecordingRecovery, InterruptedRecordingRecovery>();

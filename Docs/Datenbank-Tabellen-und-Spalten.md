@@ -344,7 +344,8 @@ Die Call-ID wird über `recordings` gelesen. Das Repository prüft keine Audioda
 keine Hashes. Die WAV-Abschlusszustellung bestätigt diese Werte anhand der lesegesperrten Datei und
 des geschützten Originalhashs. Explizite MP3-Konvertierungssitzungen bestätigen die eigene Ausgabe
 gegen den vor Veröffentlichung berechneten Originalhash, während die Datei lesend gesperrt bleibt.
-Automatische MP3-Zustellung nach Prozessverlust und vollständiger Dateiabgleich bleiben offen.
+Abgelegte MP3-Abschlussaufträge werden beim Hoststart zugestellt. Prozessverlust vor Auftragsablage
+und vollständiger Dateiabgleich bleiben offen.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
@@ -393,7 +394,10 @@ Ein Neustart allein beendet keinen laufenden Versuch. Erst nach nachgewiesenem E
 darf er ausdrücklich mit passender Schreibversion als unterbrochen markiert werden. Das Konvertierungsjournal
 bestätigt Abschluss, Fehler oder erneutes Einreihen zusammen mit dem passenden MP3-Artefaktstatus.
 Beide Schreibversionen müssen passen; nur ein vollständiges identisches Paar ist wiederholbar.
-Automatisches Einreihen, Encoder-Ausführung und sichere Dateizustellung bleiben noch anzubinden.
+Explizite Konvertierungssitzungen können die eigene Ausgabe bestätigen. Das geschützte MP3-Journal
+legt terminale Paare vor DB-Zustellung ab und stellt sie beim Hoststart ohne erneute Kodierung zu.
+Originaldatei, Binding, Arbeitsplatz und Schreibversionen müssen weiterhin passen. Automatisches
+Einreihen und das Fenster zwischen Dateiveröffentlichung und Auftragsablage bleiben offen.
 
 ## versioninfo – Technische Migrationsverwaltung
 

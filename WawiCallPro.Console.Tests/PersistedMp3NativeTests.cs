@@ -8,8 +8,10 @@ using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Utilities.Persistence;
+using WawiCallPro.Utilities.Security;
 
 namespace WawiCallPro.Console.Tests;
 
@@ -58,11 +60,18 @@ public sealed class PersistedMp3NativeTests
             var jobs = new DapperRecordingConversionRepository(context); var journal = new DapperRecordingConversionJournal(context);
             await journal.BeginAsync(new(output, null, changed), new(job, null, changed));
             var converter = new WavToMp3Converter(new MediaFoundationMp3Backend());
+            var secrets = new WindowsUserSecretProtector();
+            var store = new ConfigurationStore(new ConfigurationLocation(root), new ApplicationOptionsValidator(secrets), null);
+            await store.SaveAsync(new() { Database = new() { SqliteFileName = "native.db" } });
+            var configuration = new ApplicationConfigurationService(store); await configuration.StartAsync(CancellationToken.None);
+            var outbox = new ProtectedRecordingConversionOutbox(paths, secrets, configuration, new ApplicationDescriptor("WawiCallPro", "Pro"), new LocalRecordingFileProbe(paths));
+            var durable = new DurableRecordingConversionJournal(journal, outbox);
             var factory = new PersistedMp3ConversionFactory(jobs, artifacts, captures, calls, new Identity(local), paths, new EmptyOutbox(),
-                new LocalRecordingFileProbe(paths), converter, journal, TimeProvider.System);
+                new LocalRecordingFileProbe(paths), converter, durable, TimeProvider.System, outbox);
             await using var owner = await factory.StartAsync(job.Id);
             var completed = await owner.RunAsync(); var mp3 = paths.ResolveRecordingPath("native.mp3");
             Assert.AreEqual(RecordingConversionState.Completed, completed.Conversion.Job.State); Assert.AreEqual(3L, completed.Conversion.Version);
+            Assert.AreEqual(0, outbox.GetPending().Count);
             Assert.AreEqual(2L, completed.Target.Version); Assert.IsTrue(completed.Target.Artifact.ByteLength > 1000);
             Assert.AreEqual(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(mp3))).ToLowerInvariant(), completed.Target.Artifact.Sha256);
             Assert.AreEqual(digest, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(wave))).ToLowerInvariant());

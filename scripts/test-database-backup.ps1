@@ -59,6 +59,8 @@ foreach(var item in configurations)
     await RecordingConversionAcceptance.RunAsync(target);
     await RecordingConversionJournalAcceptance.RunAsync(target);
     await PersistedMp3Acceptance.RunAsync(target);
+    await RecordingConversionRecoveryAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": protected MP3 success/failure recovery before/after DB acknowledgement, original-file verification, retained receipts and no re-encoding passed.");
     Console.WriteLine(item.Engine + ": owned MP3 attempt, source/output locks, exact completion retry before/after uncertain DB acknowledgement and retained WAV passed.");
     Console.WriteLine(item.Engine + ": atomic MP3 artifact/job enqueue, completion, interrupted retry, rollback, pair replay and competing writers passed.");
     await RecordingConversionAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));

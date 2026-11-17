@@ -113,7 +113,7 @@ public sealed class PersistedMp3ConversionTests
     {
         using var ready = await Mp3AttemptFixture.Create(); var file = ready.File; var converter = new AttemptConverter();
         var factory = new PersistedMp3ConversionFactory(ready.Jobs, file.Artifacts, file.Captures, new DapperCallRepository(new(file.Target, new())),
-            new ProbeIdentity(ready.Workstation), file.Paths, file.Outbox, new FailingProbe(), converter, ready.Journal, TimeProvider.System);
+            new ProbeIdentity(ready.Workstation), file.Paths, file.Outbox, new FailingProbe(), converter, ready.Journal, TimeProvider.System, file.ConversionOutbox());
         var error = await Assert.ThrowsExactlyAsync<RecordingOutboxException>(() => factory.StartAsync(ready.Pair.Conversion.Job.Id));
         Assert.IsNull(error.InnerException); Assert.DoesNotContain("private-probe-path", error.ToString());
         Assert.AreEqual(ready.Pair.Conversion, await ready.Jobs.GetAsync(ready.Pair.Conversion.Job.Id)); Assert.AreEqual(0, converter.Calls);
@@ -190,7 +190,7 @@ internal sealed class Mp3AttemptFixture(WaveArtifactFixture file, Guid workstati
     }
     internal PersistedMp3ConversionFactory Factory(IMp3Converter converter, Guid? local, IRecordingConversionJournal? journal = null) =>
         new(Jobs, file.Artifacts, file.Captures, new DapperCallRepository(new(file.Target, new())), new Identity(local), file.Paths,
-            file.Outbox, new LocalRecordingFileProbe(file.Paths), converter, journal ?? Journal, TimeProvider.System);
+            file.Outbox, new LocalRecordingFileProbe(file.Paths), converter, journal ?? Journal, TimeProvider.System, file.ConversionOutbox());
     public void Dispose() => file.Dispose();
     private sealed class Identity(Guid? local) : IWorkstationIdentity
     { public Task<Guid?> GetAsync(CancellationToken token = default) => Task.FromResult(local); public Task<Guid> InitializeAsync(CancellationToken token = default) => throw new AssertFailedException("Must not create an identity."); }

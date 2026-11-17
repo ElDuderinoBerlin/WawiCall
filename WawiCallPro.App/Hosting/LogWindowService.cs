@@ -67,6 +67,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.GlobalHotkeyReleaseFailed => "Ein globales Tastenkürzel konnte nicht abgemeldet werden. Es wird spätestens beim Zerstören des zugehörigen Fensters freigegeben.",
                 OperationEvent.RecordingArtifactUnavailable => "Mindestens eine bestätigte WAV-Aufnahme fehlt oder wurde verändert. Die Datei muss vor ihrer Verwendung erneut geprüft werden; die ursprüngliche Prüfsumme bleibt erhalten.",
                 OperationEvent.RecordingArtifactAuditIncomplete => "Der Abgleich der Aufnahme-Dateien konnte nicht vollständig bestätigt werden. Betroffene Einträge und ausstehende Abschlussaufträge bleiben zur erneuten Prüfung erhalten.",
+                OperationEvent.RecordingConversionRecoveryIncomplete => "Ausstehende MP3-Abschlüsse konnten nicht vollständig bestätigt werden. Aufträge und Dateien bleiben für eine erneute Prüfung erhalten.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);
