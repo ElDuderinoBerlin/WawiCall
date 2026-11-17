@@ -17,7 +17,7 @@ public sealed class RecordingConversionRecoveryStartupTests
             try { await Task.Delay(Timeout.Infinite, token); return new(0, 0, 0); }
             finally { exited = true; }
         });
-        var worker = new RecordingConversionRecoveryStartup(recovery, new StartupLog()); await worker.StartAsync(CancellationToken.None);
+        var worker = new RecordingConversionRecoveryStartup(recovery, new StartupLog(), new Interrupted(_ => throw new AssertFailedException())); await worker.StartAsync(CancellationToken.None);
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)); await worker.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
         await worker.DisposeAsync(); Assert.AreEqual(1, calls); Assert.IsTrue(exited);
     }
@@ -27,10 +27,32 @@ public sealed class RecordingConversionRecoveryStartupTests
     {
         var calls = 0; var log = new StartupLog();
         var recovery = new Recovery(token => { calls++; if (fail) throw new IOException("private-native-path"); return Task.FromResult(new RecordingConversionRecoveryResult(0, 0, 0)); });
-        await using var worker = new RecordingConversionRecoveryStartup(recovery, log);
+        var interruptions = 0;
+        await using var worker = new RecordingConversionRecoveryStartup(recovery, log, new Interrupted(_ => { interruptions++; Assert.AreEqual(1, calls); return Task.FromResult(new InterruptedMp3RecoveryResult(0, 0, 0)); }));
         await worker.StartAsync(CancellationToken.None); await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.AreEqual(1, calls); Assert.AreEqual(fail ? 1 : 0, log.Warnings);
+        Assert.AreEqual(fail ? 0 : 1, interruptions);
     }
+    [TestMethod]
+    public async Task DisposalAlsoCancelsAndAwaitsTheInterruptionPass()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var exited = false;
+        await using var worker = new RecordingConversionRecoveryStartup(new Recovery(_ => Task.FromResult(new RecordingConversionRecoveryResult(0, 0, 0))),
+            new StartupLog(), new Interrupted(async token => { entered.SetResult(); try { await Task.Delay(Timeout.Infinite, token); return new(0, 0, 0); } finally { exited = true; } }));
+        await worker.StartAsync(CancellationToken.None); await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await worker.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10)); Assert.IsTrue(exited);
+    }
+    [TestMethod]
+    public async Task InterruptionPassFailureIsRedactedAndObserved()
+    {
+        var log = new StartupLog();
+        await using var worker = new RecordingConversionRecoveryStartup(new Recovery(_ => Task.FromResult(new RecordingConversionRecoveryResult(0, 0, 0))), log,
+            new Interrupted(_ => throw new IOException("private-interruption-path")));
+        await worker.StartAsync(CancellationToken.None); await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.AreEqual(1, log.Warnings);
+    }
+    private sealed class Interrupted(Func<CancellationToken, Task<InterruptedMp3RecoveryResult>> recover) : IInterruptedMp3Recovery
+    { public Task<InterruptedMp3RecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
     private sealed class Recovery(Func<CancellationToken, Task<RecordingConversionRecoveryResult>> recover) : IRecordingConversionRecovery
     { public Task<RecordingConversionRecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
     private sealed class StartupLog : ILogger<RecordingConversionRecoveryStartup>

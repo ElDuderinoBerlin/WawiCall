@@ -346,8 +346,9 @@ des geschützten Originalhashs. Explizite MP3-Konvertierungssitzungen bestätige
 gegen den vor Veröffentlichung berechneten Originalhash, während die Datei lesend gesperrt bleibt.
 Abgelegte MP3-Abschlussaufträge werden beim Hoststart zugestellt. Version-2-Aufträge sichern bereits
 die finalisierte temporäre Datei vor der Umbenennung; Wiederaufnahme prüft Originalhash, Versuch und
-aktuelle Katalogversionen vor Veröffentlichung. Prozessverlust vor dieser Vorbereitung und vollständiger
-Dateiabgleich bleiben offen.
+aktuelle Katalogversionen vor Veröffentlichung. Verwaiste Running-Versuche ohne solchen Auftrag werden
+unter Aufnahmesperre kontrolliert als Failed/Interrupted bestätigt. Vollständiger Dateiabgleich und
+tatsächliche Prozessabbruchabnahme bleiben offen.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
@@ -400,8 +401,13 @@ Explizite Konvertierungssitzungen können die eigene Ausgabe bestätigen. Das ge
 legt terminale Paare vor DB-Zustellung ab und stellt sie beim Hoststart ohne erneute Kodierung zu.
 Originaldatei, Binding, Arbeitsplatz und Schreibversionen müssen weiterhin passen. Automatisches
 Einreihen bleibt offen. Das Fenster vor der Dateiumbenennung wird durch einen geschützten Version-2-Auftrag
-mit dem unveränderten Abschluss-/Artefaktpaar abgesichert; Verlust während der Kodierung oder vor
-dauerhafter Vorbereitung bleibt offen. Dies ergänzt keine Tabellen oder Spalten; Schema 12 bleibt bestehen.
+mit dem unveränderten Abschluss-/Artefaktpaar abgesichert. Verwaiste Versuche vor dauerhafter Vorbereitung
+werden wie folgt behandelt. Dies ergänzt keine Tabellen oder Spalten; Schema 12 bleibt bestehen.
+Für Running-Versuche ohne geschützten Abschluss und ohne kanonische MP3 kann der Startdienst nach
+Erwerb der exklusiven Aufnahmesperre das unveränderte Artefakt-/Versuchspaar als Failed/Interrupted
+bestätigen. Versuch-ID und Zähler bleiben erhalten; Teildateien werden weder gelesen noch entfernt.
+Aktive Besitzer, offene WAV-Abschlüsse und geschützte MP3-Aufträge haben Vorrang. Ein neuer Versuch
+wird erst ausdrücklich eingereiht, danach mit neuer Versuch-ID reserviert. Verzeichnisabgleich bleibt offen.
 
 ## versioninfo – Technische Migrationsverwaltung
 

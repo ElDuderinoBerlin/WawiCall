@@ -92,6 +92,8 @@ public static class WawiCallHost
                 services.AddSingleton<IRecordingConversionOutbox, ProtectedRecordingConversionOutbox>();
                 services.AddSingleton<IRecordingConversionJournal, DurableRecordingConversionJournal>();
                 services.AddSingleton<IRecordingConversionRecovery, RecordingConversionRecovery>();
+                services.AddSingleton<IInterruptedRecordingConversionQuery, DapperInterruptedRecordingConversionQuery>();
+                services.AddSingleton<IInterruptedMp3Recovery, InterruptedMp3Recovery>();
                 services.AddSingleton<IRecordingArtifactAuditQuery, DapperRecordingArtifactAuditQuery>();
                 services.AddSingleton<IRecordingArtifactFileInspector, RecordingArtifactFileInspector>();
                 services.AddSingleton<IRecordingArtifactReconciliation, RecordingArtifactReconciliation>();

@@ -68,6 +68,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.RecordingArtifactUnavailable => "Mindestens eine bestätigte WAV-Aufnahme fehlt oder wurde verändert. Die Datei muss vor ihrer Verwendung erneut geprüft werden; die ursprüngliche Prüfsumme bleibt erhalten.",
                 OperationEvent.RecordingArtifactAuditIncomplete => "Der Abgleich der Aufnahme-Dateien konnte nicht vollständig bestätigt werden. Betroffene Einträge und ausstehende Abschlussaufträge bleiben zur erneuten Prüfung erhalten.",
                 OperationEvent.RecordingConversionRecoveryIncomplete => "Ausstehende MP3-Abschlüsse konnten nicht vollständig bestätigt werden. Aufträge und Dateien bleiben für eine erneute Prüfung erhalten.",
+                OperationEvent.RecordingConversionInterrupted => "Unterbrochene MP3-Konvertierungen wurden als fehlgeschlagen markiert. Die WAV-Aufnahmen und vorhandene temporäre Dateien bleiben erhalten.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);

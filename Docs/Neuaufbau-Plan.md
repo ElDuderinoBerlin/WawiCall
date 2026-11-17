@@ -6,7 +6,13 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 17.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: geschützte Vorbereitung der finalisierten temporären MP3 vor ihrer Umbenennung.
+Zuletzt ergänzt: Wiederherstellung verwaister laufender MP3-Versuche vor geschützter Vorbereitung.
+Nur lokale beendete Gespräche ohne aktive Sitzung, Abschlussauftrag oder kanonische MP3 werden
+unter exklusiver Aufnahmesperre als Failed/Interrupted bestätigt. Versuch und Teildateien bleiben
+erhalten; ein neuer Versuch wird ausdrücklich eingereiht (Phase 9, 17.11.2026). Dateiabgleich,
+automatische Warteschlange, Bedienung und tatsächliche Prozessabbruchabnahme bleiben offen.
+21 neue Prüfungen; beide Editionen mit je 680 ausgewählten Tests und allen fünf Engines bestanden.
+Zuvor ergänzt: geschützte Vorbereitung der finalisierten temporären MP3 vor ihrer Umbenennung.
 Ein Version-2-Auftrag bewahrt Originalhash, temporären Pfad und das genaue Abschluss-/Artefaktpaar.
 Der Wiederanlauf veröffentlicht ausschließlich die passende geprüfte Originaldatei und bestätigt
 dasselbe Paar ohne erneute Kodierung. Kollisionen und veränderte Dateien bleiben erhalten (Phase 9, 17.11.2026).
@@ -433,7 +439,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, Prozessverlust während Kodierung/vor Vorbereitung, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, tatsächliche Prozessabbruchabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Korrigierte Mailansicht mit Accordion, TileView, Alle/Ungelesen und Lesebereich nach tatsächlicher DevExpress-Vorlage; externe MMS.Office-Leseroutine überarbeitet. Graph-/Gmail-/Outlook-Connectoren, Import und Kundenanbindung offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -3024,9 +3030,35 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   OS-Prozessabbruch/Stromausfall. Unbekannte Dateien bei Verlust während der Kodierung oder vor
   dauerhafter Vorbereitung, Warteschlange, Bedienung und vollständiger Dateiabgleich bleiben offen.
   Schema und Migrationen 1–12 unverändert; Rollback und Versionskompatibilität in der Architektur beschrieben.
+- ✅ Verwaiste MP3-Versuche vor geschützter Vorbereitung kontrolliert beenden (17.11.2026).
+  Neue Dapper-Abfrage für lokale Running-Versuche beendeter/fehlgeschlagener Gespräche mit stabilem
+  exklusiven Job-ID-Cursor. Nach geschützter Abschlusszustellung prüft der Startdienst maximal 4096
+  Kandidaten in Seiten bis 100; verbleibende Arbeit wird ausdrücklich gemeldet.
+  Exklusive Aufnahmesperre, unveränderter Versuch, Pending-Ziel und fehlende kanonische MP3 sind
+  Voraussetzung. Aktive Sitzungen, offene WAV-Abschlüsse und vorhandene geschützte MP3-Aufträge
+  werden zurückgestellt. Auch geänderte Versuche und nachträglich auftauchende Aufträge haben Vorrang.
+  Die atomare Failed/Interrupted-Bestätigung wird selbst geschützt abgelegt. Versuch-ID, Zähler,
+  Artefakt-IDs und Format bleiben erhalten; WAV und unbekannte Teildateien bleiben unverändert.
+  Kein automatischer Encoderaufruf. Ein ausdrücklich erneut eingereihter Versuch erhält eine neue
+  Versuch-ID und verwendet dieselben kanonischen Artefakte. Verständliche Warnung im Log-Fenster;
+  Abbruch/Host-Stop werden beobachtet. Schema und Migrationen 1–12 unverändert.
+  21 neue Prüfungen: lokale/fremde und laufende/beendete Gespräche, stabile exklusive Seiten,
+  aktive Besitzer, WAV-/MP3-Aufträge, späte Aufträge und geänderte Versuche, vorhandene Ziele,
+  erhaltene Teildateien, Abbruch, unsichere Antworten, expliziter neuer Versuch sowie Startreihenfolge,
+  Stop/Freigabe und deutsche Log-Warnung. Pro und FinOffice: je 161 vollständige Datenbank-,
+  381 vollständige Console-, 133 gezielte Aufnahme-/MP3-Utilities- und fünf App-Host-/Logprüfungen
+  bestanden (680 je Edition). Beide Solution-Editionen Debug/Any CPU in regulären Ausgaben
+  rekompiliert: null Fehler und je 26 bekannte Warnungen aus dem externen CSCore-Projekt.
+  Kandidatenabfrage und gemeinsamer Wiederherstellungs-/Wiederholungsablauf auf SQLite, SQL Server,
+  PostgreSQL, MySQL und MariaDB bestanden; ausschließlich isolierte Testdaten und synthetische Dateien.
+  Abschließende reguläre Startausgabe FinOffice. Nachweise
+  `.mp3-interrupted-{build,database,console,utilities,host,providers}-{pro,fin}.log`.
+  Grenze: neue Dienste und gespeicherte Zustände simulieren Besitzerverlust; kein tatsächlicher
+  OS-Prozessabbruch/Stromausfall. Vorhandene unbestätigte Ziele, unbekannte Dateien, vollständiger
+  Dateiabgleich, Warteschlange und Bedienung bleiben offen. Rollback in der Architektur beschrieben.
 - [ ] Unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
   automatisches Einreihen und eine Kodierungswarteschlange an die expliziten Sitzungen anschließen.
-  Prozessverlust während der Kodierung oder vor dauerhafter Vorbereitung sicher behandeln.
+  Tatsächlichen Prozessabbruch während Kodierung, Vorbereitung und Veröffentlichung isoliert nachweisen.
   Weitere Migrationen ab Version 13 ergänzen; bestehende
   Migrationen 1–12 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

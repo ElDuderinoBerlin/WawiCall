@@ -1201,8 +1201,8 @@ an der endgültigen MP3 geprüft. Die finale Datei bleibt während DB-Zustellung
 und endgültige Datei gleichzeitig vorhanden, bleibt die Kollision ungeklärt; keine Datei wird überschrieben
 oder gelöscht. `OpenAsync` und die gewöhnliche Abschlussablage veröffentlichen keine temporären Dateien.
 
-Grenzen: Prozessverlust während der Kodierung oder vor dauerhafter Vorbereitung, unbekannte temporäre Dateien,
-vollständiger Verzeichnisabgleich, automatische Warteschlange und Bedienung bleiben offen. Die Prüfungen
+Der folgende Dienst ergänzt den Statusabgleich verwaister Versuche vor dauerhafter Vorbereitung.
+Unbekannte temporäre Dateien, vollständiger Verzeichnisabgleich, automatische Warteschlange und Bedienung bleiben offen. Die Prüfungen
 verwenden erhaltene Dateien und neue Dienstinstanzen unmittelbar vor/nach der Umbenennung; dies ist kein
 Nachweis eines tatsächlichen Betriebssystem-Prozessabbruchs oder Stromausfalls. Native Encoder-/Decoderprüfung
 nutzt ausschließlich synthetische Audiodaten ohne Geräte. Schema und Migrationen 1–12 bleiben unverändert.
@@ -1210,6 +1210,51 @@ nutzt ausschließlich synthetische Audiodaten ohne Geräte. Schema und Migration
 Rollback: Beobachteranschluss, vorbereitete Ablage und Wiederaufnahme gemeinsam zurücknehmen. Vorhandene
 Version-2-Aufträge und zugehörige Dateien erhalten und mit einer kompatiblen Version kontrolliert zustellen;
 eine ältere Version kann diese Aufträge nicht bearbeiten. Keine laufenden Aufträge pauschal zurücksetzen.
+
+### Verwaiste MP3-Versuche vor geschützter Vorbereitung (17.11.2026)
+
+Nach der geschützten Abschlusszustellung führt `RecordingConversionRecoveryStartup` genau einen
+beobachteten `IInterruptedMp3Recovery`-Durchlauf aus. Die SQL-Abfrage
+`DapperInterruptedRecordingConversionQuery` liefert ausschließlich Running-Versuche beendeter oder
+fehlgeschlagener Gespräche des vorhandenen lokalen Arbeitsplatzes. Ein exklusiver Job-ID-Cursor
+verhindert ausgelassene Einträge, wenn bereits bearbeitete Versuche aus der Ergebnismenge verschwinden.
+Je Durchlauf werden höchstens 4096 Kandidaten in Seiten von maximal 100 geprüft; `HasMore` meldet
+verbleibende Arbeit. Kein neuer Arbeitsplatz wird für eine Wiederherstellung erzeugt.
+
+Der Dienst erwirbt die bestehende exklusive Aufnahmesperre. Damit haben auch noch nicht gestartete
+oder gerade freigegebene Live-Sitzungen Vorrang; eine neue Dienstinstanz allein belegt keinen Besitzerverlust.
+Offene WAV-Abschlüsse und jeder geschützte MP3-Abschluss sperren die Unterbrechungsmarkierung.
+Beschädigte Auftragsverzeichnisse werden nicht als leer betrachtet. Nach Erwerb der Sperre müssen
+der gespeicherte Versuch unverändert, das Ziel Pending und das zugehörige Gespräch lokal und beendet sein.
+Das kanonische MP3-Ziel muss nach der vorhandenen Pfad-/Linkprüfung fehlen. Bereits vorhandene,
+unbestätigte Zieldateien bleiben für einen späteren Dateiabgleich ungeklärt erhalten.
+
+Nur dann werden MP3-Artefakt und Versuch zusammen als Failed/Interrupted über das geschützte Journal
+bestätigt. Versuch-ID, Versuchszähler, Quellen-/Ziel-IDs und Format bleiben erhalten; Änderungszeiten
+gehen gegenüber den aktuellen Ständen nicht zurück. Dauerhafte Ablage und atomare DB-Zustellung
+schützen auch die Unterbrechungsbestätigung. Ein währenddessen auftauchender geschützter Abschluss
+wird durch die exklusive Auftragssperre und den exakten Paarvergleich erhalten. Unsichere Antworten
+erzeugen weder einen neuen Versuch noch eine automatische Kodierung.
+
+Der Durchlauf öffnet keinen Encoder und liest oder löscht keine unbekannte temporäre Datei. Die WAV
+bleibt unverändert. Nach erfolgreicher Markierung ist ein ausdrücklich eingereihter weiterer Versuch
+mit neuer Versuch-ID möglich; er verwendet dieselben kanonischen Artefakte. Die deutsche Warnung
+`RecordingConversionInterrupted` erscheint im vorhandenen Log-Fenster ohne Pfade oder native Fehlerdetails.
+Zurückgestellte/fehlgeschlagene Kandidaten und eine erreichte Durchlaufgrenze melden weiterhin
+`RecordingConversionRecoveryIncomplete`. Host-Stop bricht ab und wartet auf die beobachteten Aufgaben.
+
+Nachweise prüfen gespeicherte Running-Stände mit neuen Diensten, aktive Besitzer, lokale/fremde und
+laufende/beendete Gespräche, geschützte Version-1-/Version-2-Aufträge, geänderte Versuche, späte Aufträge,
+vorhandene Ziele, erhaltene Teildateien, unsichere Antworten, Abbruch und explizites erneutes Einreihen.
+Die Abfrage und der Wiederherstellungs-/Wiederholungsablauf laufen auf allen fünf Engines; konkrete
+Laufergebnisse stehen im Plan. Dies ist kein tatsächlicher Betriebssystem-Prozessabbruch- oder
+Stromausfallnachweis. Unbekannte Dateien, vollständiger Verzeichnisabgleich, Warteschlange und Bedienung
+bleiben offen. Schema und Migrationen 1–12 bleiben unverändert.
+
+Rollback: zusätzliche Kandidatenabfrage, Dienst, Startanschluss und Ereignisabbildung gemeinsam
+zurücknehmen. Bereits bestätigte Failed/Interrupted-Stände sind reguläre Schema-12-Daten und bleiben
+erhalten. Vorhandene Abschlussaufträge mit einer kompatiblen Version zustellen; Dateien und Versuche
+nicht pauschal löschen, zurücksetzen oder erneut kodieren.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 

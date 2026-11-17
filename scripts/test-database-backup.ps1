@@ -61,6 +61,9 @@ foreach(var item in configurations)
     await PersistedMp3Acceptance.RunAsync(target);
     await RecordingConversionRecoveryAcceptance.RunAsync(target);
     await PreparedMp3PublicationAcceptance.RunAsync(target);
+    await InterruptedRecordingConversionQueryAcceptance.RunAsync(target);
+    await InterruptedMp3RecoveryAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": interrupted MP3 owner recovery, retained partial files and explicit fresh retry passed.");
     Console.WriteLine(item.Engine + ": protected prepared MP3 publication before/after rename, frozen original pair and recovery without re-encoding passed.");
     Console.WriteLine(item.Engine + ": protected MP3 success/failure recovery before/after DB acknowledgement, original-file verification, retained receipts and no re-encoding passed.");
     Console.WriteLine(item.Engine + ": owned MP3 attempt, source/output locks, exact completion retry before/after uncertain DB acknowledgement and retained WAV passed.");

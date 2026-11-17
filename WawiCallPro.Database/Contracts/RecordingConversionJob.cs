@@ -58,7 +58,8 @@ public sealed record RecordingConversionWrite
 public sealed record StoredRecordingConversion(RecordingConversionJob Job, long Version, DateTimeOffset CreatedAtUtc, DateTimeOffset UpdatedAtUtc);
 
 /// <summary>Metadata only, with CAS and exact replay. A running attempt must be explicitly failed as Interrupted
-/// before requeueing after a proven owner shutdown; reading or starting a host never resets another worker's job.</summary>
+/// before requeueing after a proven owner shutdown. Recovery must acquire the recording lease and defer
+/// protected completions; reading alone never resets another worker's job.</summary>
 public interface IRecordingConversionRepository
 {
     Task<StoredRecordingConversion?> GetAsync(Guid jobId, CancellationToken cancellationToken = default);

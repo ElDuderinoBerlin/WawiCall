@@ -11,6 +11,7 @@ public sealed class RecordingArtifactLogTests
     [DataRow(OperationEvent.RecordingArtifactUnavailable, "WAV-Aufnahme")]
     [DataRow(OperationEvent.RecordingArtifactAuditIncomplete, "Abgleich")]
     [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "MP3")]
+    [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene MP3")]
     public void AuditWarningsAreUnderstandableInTheExistingLogWindow(OperationEvent operation, string expected)
     {
         var logs = new LogWindowService(); using var provider = new UiLogProvider(logs);
