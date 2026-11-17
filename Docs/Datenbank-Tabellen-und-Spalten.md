@@ -361,13 +361,41 @@ Ein ausstehendes Artefakt kann verfügbar oder fehlgeschlagen werden. Ein fehlge
 unter derselben ID wieder ausstehend werden. Verfügbare und fehlende Artefakte wechseln ausschließlich
 zwischen diesen beiden Zuständen und behalten Größe/Prüfsumme. Dies ist keine Konvertierungsjobverwaltung.
 
+## recordingconversions – Dauerhafte MP3-Konvertierungsaufträge
+
+Optionale Tabelle ab Migration 12; keine automatische Anlage für Bestandsaufnahmen. Ein Auftrag
+verbindet das kanonische WAV mit dem kanonischen MP3 derselben abgeschlossenen Aufnahme. Beide
+Artefakte müssen bereits registriert sein. Das Repository prüft Metadaten, keine Dateien oder Encoder.
+Je Quelle und Ziel höchstens ein Auftrag; Wiederholungen verwenden dieselbe Auftrags-/Artefaktidentität.
+
+| Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
+|---|---|---|---|
+| `id` | Kanonische GUID (32) | Nein | Stabile Auftrags-ID; bei Neustart und erneutem Konvertierungsversuch erhalten. |
+| `sourceartifactid` | Kanonische GUID (32) | Nein | Eindeutiger Fremdschlüssel auf das bestätigte WAV-Artefakt in `recordingartifacts`; bei Anlage und Start verfügbar. |
+| `targetartifactid` | Kanonische GUID (32) | Nein | Eindeutiger Fremdschlüssel auf das bereits registrierte MP3-Ziel derselben Aufnahme; unveränderlich und verschieden von der Quelle. |
+| `samplerate` | Ganzzahl 32 Bit | Nein | Gewünschte Abtastrate in Hz: 8000, 16000, 32000, 44100 oder 48000; muss dem abgeschlossenen Capture entsprechen. |
+| `channels` | Ganzzahl 32 Bit | Nein | Gewünschte Kanalzahl 1 oder 2; muss dem abgeschlossenen Capture entsprechen. |
+| `bitrate` | Ganzzahl 32 Bit | Nein | Gewünschte MP3-Bitrate in Bit/s, 8000–320000 und durch 1000 teilbar. Die tatsächliche Encoderunterstützung ist vor Ausführung zusätzlich zu prüfen. |
+| `state` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = laufender Versuch, 2 = abgeschlossen, 3 = fehlgeschlagener/unterbrochener Versuch. Abschluss verlangt bereits bestätigtes verfügbares MP3. |
+| `attempts` | Ganzzahl 32 Bit | Nein | Anzahl gestarteter Versuche ab 0; steigt ausschließlich beim Übergang ausstehend → laufend um 1. Beim erneuten Einreihen erhalten. |
+| `attemptid` | Kanonische GUID (32) | Ja | Vom Aufrufer neu erzeugte Versuchs-ID bei laufend, abgeschlossen oder fehlgeschlagen; beim ausstehenden Auftrag NULL. Ergebnis und Fehler gehören zu diesem Versuch. |
+| `failure` | Ganzzahl 32 Bit | Ja | Nur bei Status 3 gesetzt: 1 Encoder fehlt, 2 Format nicht unterstützt, 3 WAV ungültig, 4 Quelle nicht verfügbar, 5 Ziel nicht verfügbar, 6 Kodierung fehlgeschlagen, 7 Bereinigung fehlgeschlagen, 8 abgebrochen, 9 unterbrochen. Aktueller Fehlercode ohne native Meldungen oder Pfade; beim erneuten Einreihen gelöscht. |
+| `writeversion` | Ganzzahl 64 Bit | Nein | Optimistische Schreibversion ab 1; schützt konkurrierende Starts und verspätete Ergebnisse alter Versuche. |
+| `createdatutc` | UTC-Ticks | Nein | Unveränderlicher Zeitpunkt der erstmaligen Auftragsspeicherung, nicht vor Registrierung beider Artefakte. |
+| `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt des zuletzt bestätigten Auftragsstands; nicht rückwärts gegenüber vorherigem Stand oder Erstellungszeit. |
+
+Erlaubt sind ausstehend → laufend → abgeschlossen/fehlgeschlagen sowie fehlgeschlagen → ausstehend.
+Ein Neustart allein beendet keinen laufenden Versuch. Erst nach nachgewiesenem Ende seines Besitzers
+darf er ausdrücklich mit passender Schreibversion als unterbrochen markiert werden. Das Einreihen,
+die Encoder-Ausführung und die gemeinsame MP3-Artefaktzustellung werden im folgenden Arbeitsschritt angebunden.
+
 ## versioninfo – Technische Migrationsverwaltung
 
 Wird ausschließlich von FluentMigrator verwaltet. Die Einträge belegen die angewendeten Schemaänderungen, nicht den Versionsstand der externen Lexware-Installation.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
-| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–11. Kein Fachrepository schreibt diese Spalte. |
+| `version` | Ganzzahl 64 Bit | Nein | Vom FluentMigrator-Runner erfolgreich angewendete Migrationsnummer; eindeutig, derzeit Versionen 1–12. Kein Fachrepository schreibt diese Spalte. |
 | `appliedon` | Datum/Zeit UTC | Ja | Nativer UTC-Datum/Zeit-Wert des Runners für die Anwendung der Migration; anders als Fachzeiten keine .NET-Tickspalte. Darf bei alten Metadaten NULL sein. |
 | `description` | Unicode-Text (1024) | Ja | Beschreibung der angewendeten Migration aus dem Migrationsattribut; kein Platz für fachliche Gesprächs- oder Kundendaten. |
 
@@ -384,6 +412,8 @@ Aufnahmeverweise haben eigene Schreibversionen; sie verändern nicht den fachlic
 Ein fehlender Verlauf alter Aufnahmen bleibt unbekannt; unbekannte Medienendzeiten werden nicht ergänzt.
 `recordingartifacts` ergänzt optionale Dateimetadaten je Aufnahme und Format, ohne den alten Aufnahmeverweis
 umzudeuten. Fingerprints und Pfadidentität bleiben nach ihrer Bestätigung erhalten.
+`recordingconversions` verbindet optional das WAV mit dem MP3 derselben abgeschlossenen Aufnahme;
+Fremdschlüssel verhindern das Löschen referenzierter Artefakte. Ein Auftrag ist keine Audiodatei.
 
 Die beiden Quellherkunftsspalten an `parties` und die drei an `partyaddresses` werden jeweils vollständig
 gespeichert oder gemeinsam als unbekannt behandelt. Ländertext und Länderkennung bleiben getrennt.
@@ -392,7 +422,7 @@ Die Adresse `orderAddress` eines Lieferanten sowie Telefonnummern aus verschiede
 
 ## Abgleich mit dem tatsächlichen Schema
 
-Die Spaltenliste wird gegen eine durch die echten Migrationen 1–11 angelegte SQLite-Datenbank abgeglichen;
+Die Spaltenliste wird gegen eine durch die echten Migrationen 1–12 angelegte SQLite-Datenbank abgeglichen;
 die nur für MySQL/MariaDB berechnete Auswahlspalte ist zusätzlich aufgeführt. Der Abgleich verlangt zu
 jeder tatsächlichen Spalte genau eine Beschreibungszeile. Der native Providerlauf prüft unabhängig davon
 Neuaufbau, gefülltes Upgrade, Constraints und Repositoryzugriffe auf allen fünf Engines.

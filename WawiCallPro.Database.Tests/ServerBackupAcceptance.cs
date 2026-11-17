@@ -10,7 +10,7 @@ namespace WawiCallPro.Database.Tests;
 /// <summary>Explicit native acceptance on disposable local instances only; never invoked by the ordinary test run.</summary>
 public static class ServerBackupAcceptance
 {
-    private static readonly string[] Tables = ["companies", "parties", "partyaddresses", "partyphones", "phonecalls", "callparties", "calllookups", "callnotes", "callevents", "recordings", "recordingcaptures", "recordingartifacts", "numberparselogs", "phonematchsettings", "phonenumberblockrules", "versioninfo", "wawicallpro_metadata"];
+    private static readonly string[] Tables = ["companies", "parties", "partyaddresses", "partyphones", "phonecalls", "callparties", "calllookups", "callnotes", "callevents", "recordings", "recordingcaptures", "recordingartifacts", "recordingconversions", "numberparselogs", "phonematchsettings", "phonenumberblockrules", "versioninfo", "wawicallpro_metadata"];
 
     public static async Task RunAsync(DatabaseTarget source, string artifactDirectory, string mysqlBin, string postgresBin)
     {

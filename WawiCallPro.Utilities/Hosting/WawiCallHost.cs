@@ -87,6 +87,7 @@ public static class WawiCallHost
                 services.AddSingleton<IRecordingRepository, DapperRecordingRepository>();
                 services.AddSingleton<IRecordingCaptureRepository, DapperRecordingCaptureRepository>();
                 services.AddSingleton<IRecordingArtifactRepository, DapperRecordingArtifactRepository>();
+                services.AddSingleton<IRecordingConversionRepository, DapperRecordingConversionRepository>();
                 services.AddSingleton<IRecordingArtifactAuditQuery, DapperRecordingArtifactAuditQuery>();
                 services.AddSingleton<IRecordingArtifactFileInspector, RecordingArtifactFileInspector>();
                 services.AddSingleton<IRecordingArtifactReconciliation, RecordingArtifactReconciliation>();

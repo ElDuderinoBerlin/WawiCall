@@ -566,8 +566,10 @@ relative Dateireferenzen mit Call-ID/Aufnahme-ID. Ausstehende Repositories und H
 Die Recording-Struktur enthält Pfad, Format, Dauer und Verfügbarkeit. Migration 10 ergänzt optional
 Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Capturevorgangs. Die automatische Übergabe aus
 dem Aufnahmedienst ergänzt der Journal-/Dienstanschluss unten. Migration 11 ergänzt optionale,
-getrennte WAV-/MP3-Dateimetadaten. Ihr Anschluss an die Dateidienste und dauerhafte Konvertierungsjobs
-bleiben auszuarbeiten; weitere Migrationen beginnen ab Version 12. Bestehende Migrationen und Daten bleiben erhalten.
+getrennte WAV-/MP3-Dateimetadaten. Migration 12 ergänzt dauerhafte Konvertierungsaufträge mit
+Schreibversionen und Versuchsbesitz. WAV-Zustellung und Hintergrundabgleich sind unten implementiert;
+automatischer MP3-Worker und vollständiger Dateiabgleich bleiben offen. Weitere Migrationen beginnen
+ab Version 13; bestehende Migrationen und Daten bleiben erhalten.
 Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den Metadaten abgleichen.
 Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
 
@@ -940,6 +942,61 @@ erforderlich. Nicht registrierte/verwaiste Dateien werden weder entdeckt noch ü
 Abgleich, Konvertierungsjobs und neue Inhaltsgenerationen bleiben offen. Rollback: den zusätzlichen Hosted
 Worker und Trigger abmelden; Abschluss- und Aufnahmerecovery bleiben erhalten. Katalogstatus kann später
 erneut geprüft werden. Keine pauschale Rücksetzung von Fingerprints, Versionen oder Dateien.
+
+### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
+
+Migration 12 ergänzt ausschließlich die optionale Tabelle `recordingconversions`. Migrationen 1–11,
+Aufnahmeverweise, Captureverläufe und vorhandene Artefakte bleiben unverändert. Bestandsaufnahmen
+erhalten keine automatisch erzeugten Aufträge. Alle Spalten stehen einzeln in der
+[Datenbankdokumentation](Datenbank-Tabellen-und-Spalten.md#recordingconversions--dauerhafte-mp3-konvertierungsaufträge).
+
+`IRecordingConversionRepository` ist in beiden Hosts als zustandsloser Singleton mit injiziertem
+`DatabaseRepositoryContext` registriert. Jede Operation verwendet dessen frische, serialisierbare
+Dapper-Transaktion. Keine Dateien, Geräte, Encoder oder Hintergrundarbeiten beim Auflösen des Dienstes.
+Ein Auftrag enthält eine stabile ID, Quell-/Zielartefakt-ID, exaktes MP3-Format, Zustand, Versuchszähler,
+Versuchs-ID und festen Fehlercode. Keine absoluten Pfade, Audiodaten oder nativen Fehlermeldungen.
+
+Beide kanonischen Artefakte sind vor Auftragserstellung ausdrücklich zu registrieren: bestätigtes
+verfügbares WAV und ausstehendes MP3 derselben abgeschlossenen Aufnahme. Eine eindeutige Quelle und
+ein eindeutiges Ziel verhindern doppelte Aufträge auch bei anderen Auftrags-IDs. Der Capture muss
+abgeschlossen sein; Rate und Kanäle müssen passen. Diese erste Jobversion führt keine abweichende
+Zielrate ein; der eigenständig nutzbare Konverter behält seine Resampling-Fähigkeit. Die Metadatengrenzen
+für die Bitrate ersetzen keine Abfrage des tatsächlich installierten Encoders.
+
+Zustandsfolge: `Pending → Running → Completed/Failed`, Wiederholung `Failed → Pending → Running`.
+Der Start erhöht den Versuchszähler genau um eins und enthält eine vom Aufrufer neu erzeugte
+Versuchs-GUID. Ergebnis/Fehler müssen dieselbe GUID behalten. Auftrags-ID, Quell-/Zielidentität und
+Format bleiben unveränderlich. Optimistische Schreibversionen verhindern konkurrierende Starts und
+verspätete Ergebnisse; unmittelbar identische Schreibwiederholungen liefern den bestätigten Stand.
+Zeitstempel dürfen nicht rückwärts laufen. `Completed` verlangt ein bereits bestätigtes verfügbares
+MP3 und darf zeitlich nicht vor dessen Bestätigung liegen. Fehler und Versuchszähler beschreiben den
+aktuellen Stand, keine vollständige Historientabelle; erneutes Einreihen löscht den aktuellen Fehlercode.
+
+Neue Repository-/Hostinstanzen lesen gespeicherte laufende Versuche unverändert. Ein Neustart ist
+kein Beweis, dass ein anderer Prozess seinen Versuch beendet hat. Nach nachgewiesenem Besitzerende
+kann ein Aufrufer gezielt `Failed/Interrupted` mit passender Schreibversion und Versuchs-ID bestätigen
+und denselben Auftrag erneut einreihen. Kein automatisches Zurücksetzen fremder/laufender Aufträge.
+Die Arbeitsplatzabfrage nutzt die ursprüngliche Gesprächsherkunft und stabile GUID-Schlüsselseiten;
+kein Zugriff auf fremde Arbeitsplatzaufträge über diese Abfrage, keine automatische globale Recovery.
+
+Grenzen dieses Teilpunkts: nur Metadaten und explizite Aufrufe. Automatisches Einreihen, besitzender
+Encoder-Worker, sichere Wiederaufnahme nach tatsächlichem Prozessabbruch und die gemeinsame MP3-
+Artefaktzustellung sind noch anzuschließen. Insbesondere müssen die Fenster zwischen Artefaktanlage
+und Auftrag, Dateiveröffentlichung und Artefaktbestätigung sowie Artefaktbestätigung und Jobabschluss
+im Folgeschritt abgesichert werden. Dieser Vertrag allein garantiert keine atomare Dateisystem-/DB-
+Transaktion oder bereits ausführbare automatische Konvertierung. Bestätigte Inhalte werden weder
+überschrieben noch durch eine neue Generation ersetzt; WAVs und vorhandene MP3s bleiben erhalten.
+
+Prüfungen: synthetische Metadaten mit neuen Repositoryinstanzen, exklusiver Start, explizite
+Unterbrechung/Wiederholung ohne zweite Artefakte oder Jobs, verspätete Ergebnisse, Fehlend-Sperre,
+Format-/Eigentümerkonflikte, Schreibabbruch, Zeitfolge, Versionserschöpfung, Arbeitsplatz-Paging,
+Fremdschlüssel und eindeutige Schlüssel sowie gefülltes Upgrade von Version 11. Derselbe Ablauf ist
+im nativen Provider-Einstieg enthalten; konkrete Ergebnisse stehen in
+[Phase 9](Neuaufbau-Plan.md#phase-9--audio-aufzeichnung-und-ansagen-). Kein echter Prozessabbruch- oder Gerätenachweis.
+
+Rollback: Dienstregistrierung, Repository, Verträge und Tests gemeinsam zurücknehmen. Eine bereits
+angewendete Vorwärtsmigration nicht aus einer produktiven Datenbank entfernen oder manuell herabstufen;
+vorherige Version nur mit passend wiederhergestelltem Backup verwenden. Keine Audiodateien löschen.
 
 ### Begrenzte RTP-Paketordnung vor der Dekodierung (15.11.2026)
 
