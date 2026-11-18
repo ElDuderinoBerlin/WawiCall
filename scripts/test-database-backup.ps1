@@ -76,6 +76,8 @@ foreach(var item in configurations)
     await RecordingArtifactAuditQueryAcceptance.RunAsync(target);
     await RecordingArtifactAuditAcceptance.RunAsync(target);
     await RecordingConversionQueueAcceptance.RunAsync(target);
+    await RecordingConversionRequestAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": verified WAV request, atomic MP3 enqueue, repeat without duplicates, released locks and worker completion passed.");
     Console.WriteLine(item.Engine + ": local Pending MP3 worker, session completion, repeated pass without re-encoding and foreign workstation exclusion passed.");
     Console.WriteLine(item.Engine + ": local WAV/MP3 audit query, missing/original-file restoration, stable fingerprints and preserved conversion metadata passed.");
     Console.WriteLine(item.Engine + ": protected WAV delivery, locked fingerprint publication, retained MP3 metadata and uncertain artifact acknowledgement replay passed.");

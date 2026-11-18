@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 18.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: besessener Hintergrund-Worker für gespeicherte lokale Pending-MP3-Aufträge. Serieller
+Zuletzt ergänzt: idempotenter Dienst zum Einreihen einer MP3-Konvertierung aus einer bestätigten lokalen
+WAV. Originalprüfung, atomare Ziel-/Jobanlage, Schutz vor fremden Dateien und Workeranforderung erst nach
+Freigabe der Sperren; vorhandene Jobs werden erhalten. Automatische Auslösung bleibt offen (Phase 9).
+Zuvor ergänzt: besessener Hintergrund-Worker für gespeicherte lokale Pending-MP3-Aufträge. Serieller
 Sitzungsablauf mit geschützter Freigabe, begrenzten Anforderungen und Start erst nach vollständig bestätigter
 Recovery. Kein automatisches erneutes Einreihen fehlgeschlagener Aufträge (Phase 9).
 Zuvor ergänzt: Hintergrundabgleich bestätigter MP3-Artefakte neben WAV. Fehlende/veränderte Originaldateien
@@ -469,7 +472,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; automatisches Einreihen neuer Jobs, serverbasierte Prozessabbruch-/Stromausfallabnahme, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; automatische Auslösung neuer Jobs, serverbasierte Prozessabbruch-/Stromausfallabnahme, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -3153,6 +3156,27 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Dateien, erhaltenem Abschluss und erneutem Durchlauf ohne zweite Kodierung auf allen fünf Engines.
   Logs `.mp3-queue-{build,utilities,console,app}-{pro,fin}.log` und `.mp3-queue-providers-fin.log`.
   Kein neuer nativer Encoder-, Prozessabbruch-, Stromausfall- oder Gesprächsnachweis. Keine GUI-Bedienung.
+- [x] ✅ Idempotenten Einreihungsdienst für neue MP3-Ziel-/Auftragspaare ergänzen (18.11.2026).
+  Aufnahme-ID und Format explizit übergeben; lokale Herkunft, Gesprächsende, abgeschlossenen Capture,
+  bestätigten WAV-Originalhash und PCM-Format prüfen. Gemeinsame Recording-Lease, Quell-Lesesperre,
+  Schutz vor WAV-/MP3-Abschlussaufträgen und unbekannten Zielen erhalten. Neue Paare ausschließlich
+  mit dem bestehenden atomaren Journal speichern. Vorhandene Jobs über den Quellschlüssel zurückgeben;
+  Formatkonflikte ablehnen, Running/Completed/Failed nicht zurücksetzen. Pending erneut prüfen.
+  Worker erst nach Freigabe aller Sperren anfordern; Wiederholung nach unsicherer Antwort liest zuerst
+  den tatsächlichen DB-Stand. Gleichzeitige Anfragen erzeugen kein zweites Paar. Unbekannte Dateien
+  und MP3-Einträge ohne Job werden nicht übernommen oder verändert. Kein eigener Encoderaufruf.
+  DI-Anschluss in beiden Hosts; 22 neue isolierte Fälle einschließlich konkurrierender Anfrage,
+  Commitfehler vor/nach Speicherung, fehlender/geänderter/gesperrter WAV, belegtem Ziel, falschem Format,
+  Fremdbesitz, laufendem Gespräch, Abbruch, geschützten Abschlüssen und Wiederholung terminaler Jobs.
+  Vorhandener Worker schließt ein neu eingereihtes Paar ab; wiederholte Abrufe kodieren es nicht erneut.
+  Schema 14 und SQL unverändert; Architektur und Rücknahme ergänzt. Automatische Auslösung und UI offen.
+  Nachweis: je Edition 108 gezielte Utilities-, 386 vollständige Console- und sechs Host-/Logprüfungen
+  bestanden (500 je Edition). Beide regulären Solution-Builds Debug/Any CPU: null Fehler, je 26 bekannte
+  externe CSCore-Warnungen. FinOffice zuletzt gebaut. Die erweiterte Providerabnahme enthält Einreihung,
+  identische Wiederholung, Formatkonflikt, nachweislich freigegebene Datei-/Aufnahmesperren und den
+  anschließenden Worker-Abschluss ohne zweite Kodierung mit synthetischen Dateien auf allen fünf Engines.
+  Logs `.mp3-request-{build,utilities,console,app}-{pro,fin}.log` und `.mp3-request-providers-fin.log`.
+  Keine neue native Encoder-, Prozessabbruch-, Stromausfall- oder Gesprächsabnahme; keine GUI-Bedienung.
 - [ ] Unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
   automatisches Einreihen neuer Konvertierungsaufträge und die Bedienung an den vorhandenen Worker anschließen.
   Prozessabbruchnachweise für serverbasierte Datenbanken gezielt ergänzen; Stromausfall getrennt prüfen.

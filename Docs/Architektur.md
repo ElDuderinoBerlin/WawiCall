@@ -1611,6 +1611,32 @@ und Datenbanktests prüfen Paging, Lebensdauer, Abbruch, Wiederholung und Arbeit
 nativen Encoder-/Prozessabbruchprüfungen bleiben getrennte Nachweise. Rollback: Workerregistrierung und
 Anforderung am Ende der Recovery entfernen; Aufträge, Dateien und bestehende Recovery erhalten.
 
+### Sichere Einreihung einer MP3-Konvertierung (18.11.2026)
+
+`IRecordingConversionRequests.EnqueueAsync` erhält eine Aufnahme-ID und das gewünschte MP3-Format.
+Der injizierte Dienst erwirbt zuerst die gemeinsame Recording-Lease und lehnt offene WAV-Abschlüsse ab.
+Er verlangt einen bestätigten kanonischen WAV-Eintrag, einen abgeschlossenen Capture mit passendem
+PCM-Format sowie ein beendetes Gespräch des vorhandenen lokalen Arbeitsplatzes. Er erzeugt keine
+Arbeitsplatzidentität. Für einen neuen Auftrag werden PCM-WAV-Header, Dateigröße und Originalhash unter
+gehaltener Lesesperre geprüft. Ein vorhandener MP3-Artefakteintrag ohne passenden Job oder eine beliebige
+Datei am vorgesehenen Ziel wird nicht übernommen, überschrieben oder gelöscht.
+
+Das Ziel erhält denselben relativen Basisnamen mit `.mp3`. Neue Ziel-/Auftrags-IDs werden ausschließlich
+über das bestehende geschützte, atomare Konvertierungsjournal gemeinsam gespeichert. Vorhandene Jobs
+werden über ihren WAV-Quellschlüssel gelesen und nur bei identischem Format und passendem Ziel zurückgegeben.
+Pending wird vor erneuter Signalisierung gegen Originaldatei und unbelegtes Ziel geprüft. Running,
+Completed und Failed werden nicht zurückgesetzt; abgeschlossene/fehlgeschlagene Aufträge signalisieren
+keine neue Arbeit. Geschützte MP3-Abschlüsse haben Vorrang. Eine unsichere Commit-Antwort wird nicht als
+neue Erstellung interpretiert: der nächste Aufruf liest zuerst das gegebenenfalls bereits gespeicherte Paar.
+
+Erst nach Freigabe der Datei- und Recording-Sperren fordert der Dienst den Worker an. Andernfalls könnte
+der Worker sofort an der noch vom Aufrufer gehaltenen Sperre scheitern. Der Dienst kodiert selbst nicht.
+Ein Abbruch vor der Anlage lässt den Katalog unverändert; eine bereits bestätigte Anlage bleibt für einen
+späteren Durchlauf erhalten. Konkurrierende Anfragen werden durch dieselbe Recording-Lease abgegrenzt.
+Das sind explizite Dienstaufrufe: automatische Auslösung nach Aufnahmen, Einstellungen und Bedienung
+bleiben offen. Schema 14 und SQL bleiben unverändert. Rollback: Registrierung des Einreihungsdienstes
+entfernen; vorhandene Aufträge, Dateien, Worker und geschützte Abschlusszustellung erhalten.
+
 ### Tatsächliche Prozessabbrüche bei der MP3-Verarbeitung (17.11.2026)
 
 `Mp3ProcessCrashTests` startet je Prüfpunkt einen eigenen unsichtbaren `dotnet`-Testprozess mit
