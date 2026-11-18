@@ -8,7 +8,7 @@ namespace WawiCallPro.App.Tests;
 public sealed class RecordingArtifactLogTests
 {
     [TestMethod]
-    [DataRow(OperationEvent.RecordingArtifactUnavailable, "WAV-Aufnahme")]
+    [DataRow(OperationEvent.RecordingArtifactUnavailable, "WAV-/MP3-Aufnahme")]
     [DataRow(OperationEvent.RecordingArtifactAuditIncomplete, "Abgleich")]
     [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "MP3")]
     [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene MP3")]

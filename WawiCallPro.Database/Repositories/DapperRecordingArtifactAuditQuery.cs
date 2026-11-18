@@ -16,11 +16,11 @@ public sealed class DapperRecordingArtifactAuditQuery(DatabaseRepositoryContext 
         {
             var select = $"SELECT a.*, r.callid FROM {db.T("recordingartifacts")} a JOIN {db.T("recordings")} r ON r.id=a.recordingid " +
                 $"JOIN {db.T("phonecalls")} p ON p.id=r.callid WHERE p.workstationid=@workstation AND p.state IN (@ended,@failed) " +
-                "AND a.format=@wave AND a.availability IN (@available,@missing) AND a.id>@after";
+                "AND a.format IN (@wave,@mp3) AND a.availability IN (@available,@missing) AND a.id>@after";
             var rows = await db.RowsAsync(db.PageSql(select, "a.id ASC", page), new
             {
                 workstation, after, ended = (int)CallState.Ended, failed = (int)CallState.Failed, wave = (int)RecordingArtifactFormat.Wave,
-                available = (int)RecordingAvailability.Available, missing = (int)RecordingAvailability.Missing
+                mp3 = (int)RecordingArtifactFormat.Mp3, available = (int)RecordingAvailability.Available, missing = (int)RecordingAvailability.Missing
             }).ConfigureAwait(false);
             return new Page<StoredRecordingArtifact>([.. rows.Take(limit).Select(DapperRecordingArtifactRepository.Read)], rows.Count > limit);
         }, cancellationToken);

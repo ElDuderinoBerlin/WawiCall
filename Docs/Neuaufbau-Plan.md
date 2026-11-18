@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 18.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt umgesetzt: vollständige Lexware-Kontaktwege für Pro und FinOffice einschließlich zweiter Mailfelder,
+Zuletzt ergänzt: Hintergrundabgleich bestätigter MP3-Artefakte neben WAV. Fehlende/veränderte Originaldateien
+werden ohne Änderung ihrer Fingerprints als nicht verfügbar geführt; nur identische Originalbytes stellen
+die Verfügbarkeit wieder her. Aktive Aufnahmesperren und geschützte MP3-Abschlüsse haben Vorrang (Phase 9).
+Zuvor umgesetzt: vollständige Lexware-Kontaktwege für Pro und FinOffice einschließlich zweiter Mailfelder,
 aller belegten Telefonarten und ausdrücklicher Kontaktbesitzer. Migration 14 persistiert die zusätzlichen
 Mailquellen. Der Ablauf Rufnummer → Besitzer/Kontakt → vollständiger Mailadresssatz → Nachrichten ist an
 die Anrufansicht angeschlossen. Aktueller Quellstand, kenntlicher Cachefallback, Gruppenrevisionen,
@@ -463,7 +466,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -3106,6 +3109,28 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   und `.artifacts/mp3-process-crash/FinOffice`. Text-/Konsistenz- und Diffprüfung bestanden.
   Grenze: Windows/SQLite; keine serverbasierte Prozessabbruch-, Stromausfall- oder Gesprächsabnahme.
   Produktivcode, Schema und Migrationen 1–12 unverändert; Rücknahme betrifft nur Tests und Dokumentation.
+- [x] ✅ Hintergrundabgleich bestätigter MP3-Artefakte ergänzen (18.11.2026).
+  Die bestehende, lokal und auf beendete Gespräche begrenzte Artefaktabfrage liefert WAV und MP3;
+  Pending-/Failed-Artefakte sowie fremde und laufende Gespräche bleiben ausgeschlossen. Nur die
+  Verfügbarkeit bereits bestätigter Originalbytes darf wechseln. Dateigröße, SHA-256 und Format bleiben
+  erhalten; identisch zurückgelegte MP3-Dateien werden wieder verfügbar. Für WAV bleibt die zusätzliche
+  PCM-Headerprüfung erhalten. Der MP3-Abgleich benötigt keinen Encoder/Decoder und bestätigt keine
+  neue Audioqualität; die Fingerprintfälle verwenden synthetische Dateien.
+  Gemeinsame exklusive Recording-Lease und gehaltene Dateilesesperre schützen Beobachtung und Bestätigung.
+  Der injizierte Konvertierungsausgang wird unter der Lease erneut geprüft; ein offener geschützter
+  Abschluss hat auch nach DB-Bestätigung vor Quittierung Vorrang. Ohne Auftragsschutz wird MP3
+  zurückgestellt. Jobs, Versuche, Aufnahme-/Capturemetadaten, Aufträge und Dateien bleiben unverändert.
+  Die Warnung im vorhandenen Log-Fenster nennt WAV und MP3; keine Layoutänderung oder GUI-Bedienung.
+  Schema 14 und sämtliche Migrationen unverändert. Rücknahme und Grenzen in der Architektur ergänzt.
+  Sechs neue Fälle sowie erweiterte Query-/Rundlaufabnahme. Pro und FinOffice: je 91 gezielte
+  Aufnahme-/MP3-Utilities-, 162 vollständige Datenbank-, 386 vollständige Console- und vier
+  Logprüfungen bestanden (643 je Edition). Beide regulären Solution-Builds Debug/Any CPU:
+  null Fehler, je 26 bekannte externe CSCore-Warnungen. FinOffice ist die zuletzt gebaute Startausgabe.
+  Die Datenbankprovider-Prüfung führt den erweiterten Query- und MP3-Rundlauf auf SQLite,
+  SQL Server, PostgreSQL, MySQL und MariaDB aus; ausschließlich isolierte Instanzen und Dateien.
+  Nachweise `.mp3-audit-{build,utilities,console,app,providers}-{pro,fin}.log`,
+  zusätzliche SQLite-Pro-Prüfung `.mp3-audit-database-pro.log`. Keine echte Gesprächs-/Audioabnahme,
+  kein neuer Prozessabbruch- oder Stromausfallnachweis. Warteschlange und unbekannte Dateien bleiben offen.
 - [ ] Unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
   automatisches Einreihen und eine Kodierungswarteschlange an die expliziten Sitzungen anschließen.
   Prozessabbruchnachweise für serverbasierte Datenbanken gezielt ergänzen; Stromausfall getrennt prüfen.

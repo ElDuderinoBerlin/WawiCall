@@ -37,18 +37,21 @@ public static class RecordingArtifactAuditQueryAcceptance
         await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available);
         await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending);
         await Add(context, workstation, CallState.Ended, RecordingAvailability.Failed);
-        await Add(context, workstation, CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3);
+        eligible.Add(await Add(context, workstation, CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3));
+        await Add(context, workstation, CallState.Connected, RecordingAvailability.Available, RecordingArtifactFormat.Mp3);
+        await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending, RecordingArtifactFormat.Mp3);
+        await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3);
         var query = new DapperRecordingArtifactAuditQuery(context);
         var sorted = eligible.OrderBy(value => DatabaseId.Encode(value.Artifact.Id), StringComparer.Ordinal).ToArray();
         Guid? after = null;
         for (var index = 0; index < sorted.Length; index++)
         {
             var page = await query.GetPageAsync(workstation, after, 1);
-            Assert.AreEqual(index < 2, page.HasMore); Assert.AreEqual(sorted[index], page.Items.Single()); after = page.Items[0].Artifact.Id;
+            Assert.AreEqual(index < sorted.Length - 1, page.HasMore); Assert.AreEqual(sorted[index], page.Items.Single()); after = page.Items[0].Artifact.Id;
         }
         Assert.IsTrue((await query.GetPageAsync(workstation, after, 1)).Items.IsEmpty);
         Assert.IsTrue((await query.GetPageAsync(Guid.NewGuid())).Items.IsEmpty);
-        Assert.AreEqual(3, (await new DapperRecordingArtifactAuditQuery(new(target, new())).GetPageAsync(workstation)).Items.Length);
+        Assert.AreEqual(4, (await new DapperRecordingArtifactAuditQuery(new(target, new())).GetPageAsync(workstation)).Items.Length);
         await Assert.ThrowsAsync<OperationCanceledException>(() => query.GetPageAsync(workstation, cancellationToken: new CancellationToken(true)));
         foreach (var limit in new[] { 0, 501 }) Assert.Throws<ArgumentException>(() => query.GetPageAsync(workstation, limit: limit));
         Assert.Throws<ArgumentException>(() => query.GetPageAsync(Guid.Empty)); Assert.Throws<ArgumentException>(() => query.GetPageAsync(workstation, Guid.Empty));

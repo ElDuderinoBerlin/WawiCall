@@ -20,14 +20,14 @@ public interface IRecordingArtifactFileInspector
     Task<IRecordingArtifactObservation> InspectAsync(RecordingArtifact artifact, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Reads only an explicitly registered WAV, retaining its expected fingerprint. Never modifies audio files.</summary>
+/// <summary>Checks registered WAV/MP3 original bytes under a read lock. WAVs also require a valid PCM header; no decoder is needed for MP3 identity.</summary>
 public sealed class RecordingArtifactFileInspector(ApplicationPaths paths, IRecordingFileProbe probe) : IRecordingArtifactFileInspector
 {
     public async Task<IRecordingArtifactObservation> InspectAsync(RecordingArtifact artifact, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(artifact); cancellationToken.ThrowIfCancellationRequested();
-        if (artifact.Format != RecordingArtifactFormat.Wave || artifact.Availability is not (RecordingAvailability.Available or RecordingAvailability.Missing))
-            throw new ArgumentException("Only confirmed WAV artifacts can be inspected.");
+        if (artifact.Format is not (RecordingArtifactFormat.Wave or RecordingArtifactFormat.Mp3) || artifact.Availability is not (RecordingAvailability.Available or RecordingAvailability.Missing))
+            throw new ArgumentException("Only confirmed WAV/MP3 artifacts can be inspected.");
         if (probe.IsAbsent(artifact.RelativePath)) return new Observation(RecordingArtifactFileState.Missing, null);
         FileStream? stream = null;
         try
@@ -40,10 +40,10 @@ public sealed class RecordingArtifactFileInspector(ApplicationPaths paths, IReco
             }
             if (probe.IsAbsent(artifact.RelativePath)) throw new RecordingOutboxException();
             var state = RecordingArtifactFileState.Changed;
-            if (stream.Length is >= 44 and <= int.MaxValue && stream.Length == artifact.ByteLength)
+            if (stream.Length is > 0 and <= int.MaxValue && stream.Length == artifact.ByteLength)
             {
                 var valid = true;
-                try { _ = PcmWaveHeader.Read(stream, cancellationToken); }
+                try { if (artifact.Format == RecordingArtifactFormat.Wave) _ = PcmWaveHeader.Read(stream, cancellationToken); }
                 catch (Mp3ConversionException) { valid = false; }
                 if (valid)
                 {

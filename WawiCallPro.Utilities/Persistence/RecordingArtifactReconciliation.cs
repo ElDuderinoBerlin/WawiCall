@@ -7,17 +7,25 @@ using WawiCallPro.Utilities.Operations;
 namespace WawiCallPro.Utilities.Persistence;
 
 public sealed record RecordingArtifactReconciliationResult(int MarkedMissing, int Restored, int Unchanged, int Deferred, int Failed);
-/// <summary>Audits registered local WAVs without adopting files. Per-entry failures retain metadata and are reported in the result.</summary>
+/// <summary>Audits registered local WAV/MP3 originals without adopting files. Per-entry failures retain metadata.</summary>
 public interface IRecordingArtifactReconciliation
 {
     Task<RecordingArtifactReconciliationResult> ReconcileAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>Reconciles only local terminal-call WAVs already confirmed in the catalog. No discovery or adoption of other files.</summary>
+/// <summary>Reconciles only confirmed local terminal-call artifacts. No discovery or adoption of other files.</summary>
 public sealed class RecordingArtifactReconciliation(IRecordingArtifactAuditQuery candidates, IRecordingArtifactRepository artifacts,
     IRecordingJournalOutbox pending, IRecordingArtifactFileInspector files, IWorkstationIdentity workstation,
     TimeProvider clock, ILogger<RecordingArtifactReconciliation> log) : IRecordingArtifactReconciliation
 {
+    private readonly IRecordingConversionOutbox? _conversions;
+    private readonly IRecordingConversionRepository? _jobs;
+    public RecordingArtifactReconciliation(IRecordingArtifactAuditQuery candidates, IRecordingArtifactRepository artifacts,
+        IRecordingJournalOutbox pending, IRecordingArtifactFileInspector files, IWorkstationIdentity workstation,
+        TimeProvider clock, ILogger<RecordingArtifactReconciliation> log, IRecordingConversionOutbox conversions,
+        IRecordingConversionRepository jobs) : this(candidates, artifacts, pending, files, workstation, clock, log)
+    { _conversions = conversions; _jobs = jobs; }
+
     public async Task<RecordingArtifactReconciliationResult> ReconcileAsync(CancellationToken cancellationToken = default)
     {
         var missing = 0; var restored = 0; var unchanged = 0; var deferred = 0; var failed = 0; var unavailable = false;
@@ -38,6 +46,17 @@ public sealed class RecordingArtifactReconciliation(IRecordingArtifactAuditQuery
                         if (protectedIds.Contains(item.RecordingId)) { deferred++; continue; }
                         await using var lease = pending.AcquireInspection(item.RecordingId);
                         if (lease.HasPending) { deferred++; continue; }
+                        if (item.Format == RecordingArtifactFormat.Mp3)
+                        {
+                            if (_conversions is null || _jobs is null) { deferred++; continue; }
+                            var protectedCompletion = false;
+                            foreach (var id in _conversions.GetPending())
+                            {
+                                var job = await _jobs.GetAsync(id, cancellationToken).ConfigureAwait(false);
+                                if (job is null || job.Job.TargetArtifactId == item.Id) { protectedCompletion = true; break; }
+                            }
+                            if (protectedCompletion) { deferred++; continue; }
+                        }
                         await using var observed = await files.InspectAsync(item, cancellationToken).ConfigureAwait(false);
                         var availability = observed.State switch
                         {

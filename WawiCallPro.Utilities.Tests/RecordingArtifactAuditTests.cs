@@ -197,12 +197,13 @@ public static class RecordingArtifactAuditAcceptance
         Assert.AreEqual(4L, restored.Version); Assert.AreEqual(before.Artifact, restored.Artifact);
         Assert.AreEqual(parent, await fixture.Parent.GetAsync(fixture.Id)); Assert.AreEqual(capture, await fixture.Captures.GetAsync(fixture.Id));
         Assert.AreEqual(preserved, await fixture.Artifacts.GetAsync(mp3.Id));
+        await RecordingMp3ArtifactAuditTests.VerifyRoundtripAsync(target);
     }
     internal static RecordingArtifactReconciliation Service(WaveArtifactFixture fixture, Guid? workstation,
         IRecordingArtifactFileInspector? inspector = null, IRecordingArtifactRepository? repository = null, ILogger<RecordingArtifactReconciliation>? log = null) =>
         new(new DapperRecordingArtifactAuditQuery(new(fixture.Target, new())), repository ?? fixture.Artifacts, fixture.Outbox,
             inspector ?? new RecordingArtifactFileInspector(fixture.Paths, new LocalRecordingFileProbe(fixture.Paths)), new Identity(workstation), TimeProvider.System,
-            log ?? NullLogger<RecordingArtifactReconciliation>.Instance);
+            log ?? NullLogger<RecordingArtifactReconciliation>.Instance, fixture.ConversionOutbox(), new DapperRecordingConversionRepository(new(fixture.Target, new())));
     internal static async Task<Guid> EndAsync(WaveArtifactFixture fixture)
     {
         var calls = new DapperCallRepository(new(fixture.Target, new())); var stored = (await calls.GetAsync(fixture.CompletedRecording.Recording.CallId))!;

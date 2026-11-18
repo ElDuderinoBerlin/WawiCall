@@ -1217,8 +1217,8 @@ angefordert. Die Prüfung darf nach Freigabe der SIP-Kontolease weiterlaufen; ih
 sind unveränderlicher Gesprächsbesitz/-abschluss, Recording-Lease und optimistische Artefaktversion.
 
 `DapperRecordingArtifactAuditQuery` liefert begrenzte, exklusiv über die Artefakt-ID fortgesetzte Seiten:
-nur WAV, Available/Missing, beendete/fehlgeschlagene Gespräche und gespeicherte lokale Workstation-ID.
-Ohne vorhandene Identität wird nichts verändert. Pending-/Failed-Artefakte, MP3, fremde/laufende Gespräche
+nur WAV/MP3, Available/Missing, beendete/fehlgeschlagene Gespräche und gespeicherte lokale Workstation-ID.
+Ohne vorhandene Identität wird nichts verändert. Pending-/Failed-Artefakte und fremde/laufende Gespräche
 und alte Verweise ohne Artefakt werden nicht geprüft. Alle Zugriffe verwenden den vorhandenen Dapper-
 Context; Schema 11 bleibt unverändert. Der Abgleich verändert ausschließlich Artefaktverfügbarkeit/-version.
 Aufnahmeverweis, Captureverlauf, Gesprächsdaten und Audioinhalte werden nicht umgeschrieben.
@@ -1231,9 +1231,11 @@ verhindert gleichzeitig eine neue Abschlusszustellung bis zum Ende der Artefaktb
 
 `RecordingArtifactFileInspector` liest ausschließlich den registrierten relativen Pfad. Bekannte
 Reparsepunkte, falsche Verzeichniskomponenten und Zugriffsfehler werden abgewiesen. Ein nur lesend geteiltes
-Datei-Handle bleibt bis zur DB-Bestätigung offen. PCM-WAV-Header, Dateigröße und SHA-256 müssen zum
+Datei-Handle bleibt bis zur DB-Bestätigung offen. Dateigröße und SHA-256 müssen zum
 bestätigten Fingerprint passen. Fehlende oder veränderte Originalbytes führen zu Missing; Größe und
-Originalhash bleiben erhalten. Eine identisch zurückgelegte gültige WAV darf wieder Available werden.
+Originalhash bleiben erhalten. WAV erfordert zusätzlich einen gültigen PCM-Header. Eine identisch
+zurückgelegte Originaldatei darf wieder Available werden. Für MP3 wird die Identität bereits bestätigter
+Bytes geprüft; der Abgleich dekodiert nicht und benötigt keinen verfügbaren MP3-Encoder oder Decoder.
 Es werden keine neuen Inhalte als Ersatzfingerprint übernommen. Verzeichnisse am Dateiziel und Dateisperren
 werden als ungeklärter Zugriff behandelt und nicht als Dateiabwesenheit behauptet.
 
@@ -1253,10 +1255,19 @@ MariaDB-Instanzen beider Editionen. Konkrete Build-/Editionsnachweise stehen in 
 
 Eine fehlende Datei lässt sich nicht sperren. Externe Änderungen zwischen Beobachtung und Statusbestätigung
 oder danach sind deshalb kein atomar ausgeschlossener Zustand; Folgelauf und spätere Nutzungsprüfung bleiben
-erforderlich. Nicht registrierte/verwaiste Dateien werden weder entdeckt noch übernommen/gelöscht. MP3-
-Abgleich, Konvertierungsjobs und neue Inhaltsgenerationen bleiben offen. Rollback: den zusätzlichen Hosted
+erforderlich. Nicht registrierte/verwaiste Dateien werden weder entdeckt noch übernommen/gelöscht.
+Automatische Konvertierungsjobs und neue Inhaltsgenerationen bleiben offen. Rollback: den zusätzlichen Hosted
 Worker und Trigger abmelden; Abschluss- und Aufnahmerecovery bleiben erhalten. Katalogstatus kann später
 erneut geprüft werden. Keine pauschale Rücksetzung von Fingerprints, Versionen oder Dateien.
+
+Erweiterung 18.11.2026: Der bestehende Abgleich berücksichtigt auch bestätigte MP3-Artefakte. Der reguläre
+DI-Aufbau bindet den geschützten Konvertierungsausgang und das Job-Repository ein. Unter der gemeinsamen
+Recording-Lease werden offene MP3-Abschlussaufträge erneut auf den aktuellen Zielartefakt-Schlüssel geprüft;
+auch ein bereits bestätigter DB-Abschluss ohne Quittierung wird zurückgestellt. Ein nicht mehr auflösbarer
+Auftrag blockiert vorsichtshalber die MP3-Prüfung. Aktive Konvertierungen besitzen dieselbe Recording-Lease.
+Konvertierungsstatus, Versuche und Abschlussaufträge werden vom Abgleich nicht verändert. Die Warnung im
+Log-Fenster nennt WAV und MP3. Schema 14 und sämtliche Migrationen bleiben unverändert. Rollback nur dieser
+Erweiterung: Kandidaten wieder auf WAV begrenzen; vorhandene MP3-Fingerprints und Dateien erhalten.
 
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 
