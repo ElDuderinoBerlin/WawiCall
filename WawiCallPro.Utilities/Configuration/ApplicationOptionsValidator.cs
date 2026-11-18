@@ -30,6 +30,9 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("user.activePluginId", "Die Plugin-Kennung ist ungültig."));
         ValidateErp(options.Erp, issues);
         ValidateDevices(options.Devices, issues);
+        if (options.AutomaticMp3 is null || options.AutomaticMp3.Enabled && options.AutomaticMp3.SinceUtc is null ||
+            options.AutomaticMp3?.SinceUtc is { } since && since.Offset != TimeSpan.Zero)
+            issues.Add(new("automaticMp3", "Automatische MP3-Konvertierung benötigt einen gültigen Aktivierungszeitpunkt in UTC."));
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
         ValidateMail(options.MailAccounts, issues);

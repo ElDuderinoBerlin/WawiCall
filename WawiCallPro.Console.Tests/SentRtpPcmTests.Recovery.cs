@@ -49,9 +49,14 @@ public sealed partial class SentRtpPcmTests
             new RecordingRecoverySipPersistence(new SipCallPersistence(calls, new Origin(origin), TimeProvider.System), recovered),
             Interrupted(files, outbox, origin.WorkstationId));
         var requested = false;
-        var callRecovery = new ReconciledRecordingSipPersistence(recoveredCalls, new AuditRequest(() => { Assert.AreEqual(0, outbox.GetPending().Count); requested = true; }));
+        var conversionsRequested = 0;
+        var callRecovery = new ReconciledRecordingSipPersistence(recoveredCalls, new AuditRequest(() => { Assert.AreEqual(0, outbox.GetPending().Count); requested = true; }),
+            new ConversionRequest(() => { Assert.IsTrue(requested); Assert.AreEqual(0, outbox.GetPending().Count); conversionsRequested++; }));
         await callRecovery.RecoverAsync();
         Assert.IsTrue(requested);
+        Assert.AreEqual(1, conversionsRequested);
+        await callRecovery.SaveAsync((await calls.GetAsync(call.Id))!.History.Call);
+        Assert.AreEqual(2, conversionsRequested);
         Assert.AreEqual(CallState.Failed, (await calls.GetAsync(call.Id))!.History.Call.State);
         Assert.AreEqual(CallEndReason.Interrupted, (await calls.GetAsync(call.Id))!.History.Call.EndReason);
         Assert.AreEqual(PcmRecordingState.Completed, (await files.Capture())!.Capture.State);
@@ -136,6 +141,7 @@ public sealed partial class SentRtpPcmTests
         new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity, log ?? NullLogger<RecordingJournalRecovery>.Instance, Publisher(files));
     private static RecordingWaveArtifactPublisher Publisher(PersistedFiles files) => new(new DapperRecordingArtifactRepository(new(files.Target, new())));
     private sealed class AuditRequest(Action request) : IRecordingArtifactAuditScheduler { public void Request() => request(); }
+    private sealed class ConversionRequest(Action request) : IRecordingConversionQueue { public void Request() => request(); }
     private sealed class SwitchTarget(DatabaseTarget target) : IDatabaseTargetSource
     { internal DatabaseTarget Current = target; public DatabaseTarget GetTarget() => Current; }
     private sealed class Identity(Guid? id) : IWorkstationIdentity

@@ -33,8 +33,10 @@ public static class AudioConversionServices
         services.AddHostedService<WawiCallPro.Utilities.Persistence.RecordingConversionRecoveryStartup>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionBatch, WawiCallPro.Utilities.Persistence.RecordingConversionBatch>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionRequests, WawiCallPro.Utilities.Persistence.RecordingConversionRequests>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IAutomaticRecordingConversions, WawiCallPro.Utilities.Persistence.AutomaticRecordingConversions>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.RecordingConversionSignals>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>();
-        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionQueue>(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>());
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionQueue>(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionSignals>());
         services.AddHostedService(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>());
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();

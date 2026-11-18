@@ -18,6 +18,13 @@ public sealed record UserSettings
     public override string ToString() => nameof(UserSettings);
 }
 
+/// <summary>Local opt-in boundary; portable preferences do not grant automatic file processing.</summary>
+public sealed record AutomaticMp3Settings
+{
+    public bool Enabled { get; init; }
+    public DateTimeOffset? SinceUtc { get; init; }
+}
+
 /// <summary>Local CSCore/MMDevice endpoint IDs, never enumeration indexes. Null selects the system default later.</summary>
 public sealed record AudioDeviceSettings
 {

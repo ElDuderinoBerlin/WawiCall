@@ -16,15 +16,19 @@ public interface IRecordingConversionBatch
 public sealed class RecordingConversionBatch(IRecordingConversionRepository jobs, IWorkstationIdentity workstation,
     IPersistedMp3ConversionFactory sessions) : IRecordingConversionBatch
 {
+    private readonly IAutomaticRecordingConversions? _automatic;
+    public RecordingConversionBatch(IRecordingConversionRepository jobs, IWorkstationIdentity workstation,
+        IPersistedMp3ConversionFactory sessions, IAutomaticRecordingConversions automatic) : this(jobs, workstation, sessions) => _automatic = automatic;
     private readonly SemaphoreSlim _gate = new(1);
     public async Task<RecordingConversionBatchResult> RunAsync(CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            var deferredAutomatic = _automatic is null ? 0 : await _automatic.PrepareAsync(cancellationToken).ConfigureAwait(false);
             var local = await workstation.GetAsync(cancellationToken).ConfigureAwait(false);
             if (local is null) return new(0, 0, 1);
-            var completed = 0; var failed = 0; var deferred = 0; Guid? after = null;
+            var completed = 0; var failed = 0; var deferred = deferredAutomatic; Guid? after = null;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -66,10 +70,20 @@ public interface IRecordingConversionQueue
     void Request();
 }
 
+/// <summary>Shared bounded wake-up channel; has no dependency on the worker or the enqueue service.</summary>
+public sealed class RecordingConversionSignals : IRecordingConversionQueue
+{
+    internal Channel<byte> Requests { get; } = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
+        { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
+    public void Request() => Requests.Writer.TryWrite(0);
+}
+
 /// <summary>One owned encoder pass and at most one pending request; starting the worker alone performs no conversion.</summary>
 public sealed class RecordingConversionQueue(IRecordingConversionBatch batch, ILogger<RecordingConversionQueue> log)
     : BackgroundService, IRecordingConversionQueue, IAsyncDisposable
 {
+    public RecordingConversionQueue(IRecordingConversionBatch batch, ILogger<RecordingConversionQueue> log,
+        RecordingConversionSignals signals) : this(batch, log) => _requests = signals.Requests;
     private readonly Channel<byte> _requests = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
         { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
     private int _disposed;

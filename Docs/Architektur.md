@@ -1604,8 +1604,8 @@ Die Anfrage blockiert den Hoststart nicht. `StopAsync` und asynchrone Freigabe b
 und warten auf die besessene Sitzung samt ihrer geschützten Bestätigung. Rohfehler und Dateipfade gelangen
 nicht ins Log; `RecordingConversionQueueIncomplete` wird im vorhandenen Log-Fenster verständlich angezeigt.
 
-Das automatische Anlegen neuer Jobs nach Aufnahmen, Auswahl des Zielformats, UI-Bedienung und zeitgesteuerte
-Wiederholungen bleiben offen. Bestehende Failed-Aufträge werden niemals automatisch auf Pending gesetzt.
+Die unten beschriebene Option ergänzt das Anlegen neuer Jobs nach Aufnahmen. Freie Formatauswahl,
+Aufnahmebedienung und zeitgesteuerte Wiederholungen bleiben offen. Bestehende Failed-Aufträge werden niemals automatisch auf Pending gesetzt.
 Schema 14 und SQL bleiben unverändert; genutzt wird die vorhandene Dapper-Jobabfrage. Synthetische Sitzungs-
 und Datenbanktests prüfen Paging, Lebensdauer, Abbruch, Wiederholung und Arbeitsplatzbindung. Die vorhandenen
 nativen Encoder-/Prozessabbruchprüfungen bleiben getrennte Nachweise. Rollback: Workerregistrierung und
@@ -1633,9 +1633,41 @@ Erst nach Freigabe der Datei- und Recording-Sperren fordert der Dienst den Worke
 der Worker sofort an der noch vom Aufrufer gehaltenen Sperre scheitern. Der Dienst kodiert selbst nicht.
 Ein Abbruch vor der Anlage lässt den Katalog unverändert; eine bereits bestätigte Anlage bleibt für einen
 späteren Durchlauf erhalten. Konkurrierende Anfragen werden durch dieselbe Recording-Lease abgegrenzt.
-Das sind explizite Dienstaufrufe: automatische Auslösung nach Aufnahmen, Einstellungen und Bedienung
-bleiben offen. Schema 14 und SQL bleiben unverändert. Rollback: Registrierung des Einreihungsdienstes
+Die folgende opt-in-gebundene Vorbereitung nutzt diese Dienstaufrufe. Aufnahmebedienung und freie
+Formatauswahl bleiben offen. Schema 14 und SQL bleiben unverändert. Rollback: Registrierung des Einreihungsdienstes
 entfernen; vorhandene Aufträge, Dateien, Worker und geschützte Abschlusszustellung erhalten.
+
+### Automatische MP3-Aufträge nach ausdrücklicher Aktivierung (18.11.2026)
+
+Unter **Einstellungen → Audio → Lautstärken und MP3** kann die automatische Konvertierung neuer WAVs
+aktiviert werden. Vorgabe ist aus. `AutomaticMp3Settings` hält Enabled und den UTC-Aktivierungszeitpunkt;
+die Oberfläche setzt ihn bei einer neuen Aktivierung, erhält ihn bei unverändertem Speichern und löscht
+ihn beim Ausschalten. Einstellungsformat 11 liest ältere Formate weiterhin ohne automatische Freigabe.
+Die lokale Freigabe wird über den portablen JSON-Export/-Import nicht auf einen anderen Rechner übertragen.
+
+`AutomaticRecordingConversions` prüft bei einer Workeranforderung nur bestätigte lokale WAV-Artefakte
+beendeter Gespräche, deren erste Kataloganlage nach dieser Aktivierung liegt. Ältere Katalogeinträge,
+MP3s, fehlende Dateien und fremde/laufende Gespräche erhalten keine automatischen Aufträge. Alle bereits
+existierenden Jobzustände werden übersprungen; Failed wird nicht automatisch erneut eingereiht.
+Vor jeder neuen Anfrage werden die gespeicherte Freigabe und das Datenbankziel erneut geprüft.
+Ein bereits begonnener Einreihungsvorgang darf seine geschützte Anlage abschließen. Format: 128 kbit/s,
+Abtastrate und Kanäle aus dem Capture; nicht unterstützte Quellformate bleiben mit unveränderter WAV
+und einer zusammengefassten Warnung zur Prüfung erhalten. Der bestehende Einreihungsdienst prüft Original,
+Zieldatei, Aufnahmebesitz und Abschlussaufträge erneut. Die WAV wird weder gelöscht noch ersetzt.
+
+WAV-Journalzustellung signalisiert erst nach Quittierung und Freigabe der Datei-/Recording-Lease.
+Die SIP-Persistenz signalisiert nach Speicherung eines terminalen Gesprächs sowie nach der Wiederherstellung.
+Damit werden beide Reihenfolgen erfasst: zuerst Gesprächsende oder zuerst WAV-Abschluss. Der bestehende
+Startanschluss bleibt erhalten. `RecordingConversionSignals` enthält den begrenzten Anforderungskanal
+unabhängig vom Hosted Worker; dadurch bleiben Vorbereitung, Einreihungsdienst und Worker ohne DI-Zyklus.
+Der Batch bereitet freigegebene neue Aufträge vor und verarbeitet anschließend vorhandene Pending-Jobs.
+Beim Ausschalten entstehen keine weiteren automatischen Aufträge; bereits gespeicherte Aufträge werden
+weiter verarbeitet. Wiederanlauf verwendet denselben gespeicherten Aktivierungszeitpunkt und erzeugt keine
+Doppeljobs. Schema 14 und SQL unverändert. Keine sichtbaren GUI-Tests oder produktiven Aufnahmen verwendet.
+
+Rollback: Option deaktivieren und automatische Vorbereitung sowie die zusätzlichen Signalschnittstellen
+zurücknehmen; vorhandene Jobs und Abschlussaufträge mit kompatiblen Diensten zustellen. Einstellungen
+im Format 11 vor Verwendung einer älteren Programmversion sichern; alte Versionen kennen die neue Freigabe nicht.
 
 ### Tatsächliche Prozessabbrüche bei der MP3-Verarbeitung (17.11.2026)
 
