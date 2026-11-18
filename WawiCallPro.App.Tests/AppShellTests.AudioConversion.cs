@@ -54,6 +54,10 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.ProtectedRecordingConversionOutbox>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionOutbox>());
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingConversionRecovery>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionRecovery>());
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory>());
+            Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingConversionBatch>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionBatch>());
+            var conversionQueue = host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionQueue>();
+            Assert.AreSame(conversionQueue, host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>());
+            Assert.IsTrue(host.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().Any(service => ReferenceEquals(service, conversionQueue)));
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingWaveArtifactPublisher>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingCompletionPublisher>());
             var persisted = host.Services.GetRequiredService<IPersistedDuplexPcmRecordingFactory>();
             Assert.IsInstanceOfType<PersistedDuplexPcmRecordingFactory>(persisted);

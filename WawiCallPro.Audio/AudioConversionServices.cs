@@ -31,6 +31,10 @@ public static class AudioConversionServices
     {
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory, WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>();
         services.AddHostedService<WawiCallPro.Utilities.Persistence.RecordingConversionRecoveryStartup>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionBatch, WawiCallPro.Utilities.Persistence.RecordingConversionBatch>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionQueue>(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>());
+        services.AddHostedService(provider => provider.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionQueue>());
         services.TryAddSingleton<IPersistedDuplexPcmRecordingFactory, PersistedDuplexPcmRecordingFactory>();
         services.TryAddSingleton<IRecordingJournalRecovery, RecordingJournalRecovery>();
         services.TryAddSingleton<IInterruptedRecordingRecovery, InterruptedRecordingRecovery>();

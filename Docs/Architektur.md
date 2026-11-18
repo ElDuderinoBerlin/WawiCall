@@ -883,7 +883,8 @@ Beginn, bekanntes Ende, PCM-Format und Ergebnis eines Capturevorgangs. Die autom
 dem Aufnahmedienst ergänzt der Journal-/Dienstanschluss unten. Migration 11 ergänzt optionale,
 getrennte WAV-/MP3-Dateimetadaten. Migration 12 ergänzt dauerhafte Konvertierungsaufträge mit
 Schreibversionen und Versuchsbesitz. WAV-Zustellung und Hintergrundabgleich sind unten implementiert;
-automatischer MP3-Worker und vollständiger Dateiabgleich bleiben offen. Weitere Migrationen beginnen
+Ein Worker für gespeicherte Pending-MP3-Aufträge ist unten angeschlossen; automatisches Einreihen und
+vollständiger Dateiabgleich bleiben offen. Weitere Migrationen beginnen
 ab Version 13; bestehende Migrationen und Daten bleiben erhalten.
 Wiederanlauf muss abgebrochene Jobs und verwaiste/fehlende Dateien mit den Metadaten abgleichen.
 Dateierzeugung und DB-Commit sind keine gemeinsame atomare Transaktion.
@@ -1581,6 +1582,34 @@ Rollback: zusätzliche Kandidatenabfrage, Dienst, Startanschluss und Ereignisabb
 zurücknehmen. Bereits bestätigte Failed/Interrupted-Stände sind reguläre Schema-12-Daten und bleiben
 erhalten. Vorhandene Abschlussaufträge mit einer kompatiblen Version zustellen; Dateien und Versuche
 nicht pauschal löschen, zurücksetzen oder erneut kodieren.
+
+### Hintergrund-Worker für gespeicherte MP3-Aufträge (18.11.2026)
+
+`RecordingConversionBatch` liest die vorhandenen Aufträge der gespeicherten lokalen Arbeitsplatzidentität
+in exklusiv fortgesetzten Seiten zu 100. Fehlende Identität erzeugt keinen neuen Arbeitsplatz. Nur Pending
+wird verarbeitet; Running, Completed und Failed bleiben unverändert. Die bestehende Sitzungsfactory prüft
+erneut Gesprächsende, lokalen Besitz, WAV-Fingerprint, Codec, Aufnahmesperre und geschützte Abschlüsse,
+bevor sie einen Versuch beansprucht. Der Worker startet keine eigene Dateiveröffentlichung und kein neues
+Persistenzverfahren. Jede Sitzung wird einschließlich Bestätigung und Freigabe abgewartet; erst danach
+darf die nächste starten. Unsichere Freigabe zählt nicht als erfolgreicher Abschluss. Blockierte Aufträge
+bleiben für eine spätere ausdrückliche Anforderung erhalten; Fehler führen nicht zu einer Wiederholungsschleife.
+Seiten müssen strikt fortschreiten und werden vor dem Start ihrer Aufträge validiert.
+
+`RecordingConversionQueue` ist ein Singleton und zugleich ein besessener Hosted Service beider Desktop-
+und Console-Hosts. Ein begrenzter Kanal hält höchstens eine zusätzliche Anforderung neben dem laufenden
+Durchlauf. Start allein bewirkt keinen Datenzugriff. `RecordingConversionRecoveryStartup` fordert den
+ersten Durchlauf erst nach vollständig bestätigter Abschlusszustellung und Unterbrechungsrecovery an;
+zurückgestellte/fehlgeschlagene Wiederherstellungen oder `HasMore` verhindern diesen automatischen Start.
+Die Anfrage blockiert den Hoststart nicht. `StopAsync` und asynchrone Freigabe brechen den Durchlauf ab
+und warten auf die besessene Sitzung samt ihrer geschützten Bestätigung. Rohfehler und Dateipfade gelangen
+nicht ins Log; `RecordingConversionQueueIncomplete` wird im vorhandenen Log-Fenster verständlich angezeigt.
+
+Das automatische Anlegen neuer Jobs nach Aufnahmen, Auswahl des Zielformats, UI-Bedienung und zeitgesteuerte
+Wiederholungen bleiben offen. Bestehende Failed-Aufträge werden niemals automatisch auf Pending gesetzt.
+Schema 14 und SQL bleiben unverändert; genutzt wird die vorhandene Dapper-Jobabfrage. Synthetische Sitzungs-
+und Datenbanktests prüfen Paging, Lebensdauer, Abbruch, Wiederholung und Arbeitsplatzbindung. Die vorhandenen
+nativen Encoder-/Prozessabbruchprüfungen bleiben getrennte Nachweise. Rollback: Workerregistrierung und
+Anforderung am Ende der Recovery entfernen; Aufträge, Dateien und bestehende Recovery erhalten.
 
 ### Tatsächliche Prozessabbrüche bei der MP3-Verarbeitung (17.11.2026)
 

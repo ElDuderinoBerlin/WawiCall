@@ -51,6 +51,21 @@ public sealed class RecordingConversionRecoveryStartupTests
         await worker.StartAsync(CancellationToken.None); await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.AreEqual(1, log.Warnings);
     }
+    [TestMethod]
+    [DataRow("ready")][DataRow("delivery-failed")][DataRow("delivery-deferred")]
+    [DataRow("recovery-failed")][DataRow("recovery-deferred")][DataRow("more")]
+    public async Task QueueIsRequestedOnlyAfterBothRecoveryPassesAreFullyConfirmed(string state)
+    {
+        var stage = 0; var queue = new Queue(() => Assert.AreEqual(2, stage));
+        await using var worker = new RecordingConversionRecoveryStartup(new Recovery(_ =>
+        { stage = 1; return Task.FromResult(new RecordingConversionRecoveryResult(0, state == "delivery-deferred" ? 1 : 0, state == "delivery-failed" ? 1 : 0)); }),
+            new StartupLog(), new Interrupted(_ =>
+            { Assert.AreEqual(1, stage); stage = 2; return Task.FromResult(new InterruptedMp3RecoveryResult(0, state == "recovery-deferred" ? 1 : 0, state == "recovery-failed" ? 1 : 0, state == "more")); }), queue);
+        await worker.StartAsync(default); await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreEqual(state == "ready" ? 1 : 0, queue.Requests);
+    }
+    private sealed class Queue(Action requested) : IRecordingConversionQueue
+    { internal int Requests; public void Request() { requested(); Requests++; } }
     private sealed class Interrupted(Func<CancellationToken, Task<InterruptedMp3RecoveryResult>> recover) : IInterruptedMp3Recovery
     { public Task<InterruptedMp3RecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
     private sealed class Recovery(Func<CancellationToken, Task<RecordingConversionRecoveryResult>> recover) : IRecordingConversionRecovery
