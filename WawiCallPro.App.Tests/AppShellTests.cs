@@ -2844,7 +2844,7 @@ public sealed partial class AppShellTests
                 foreach (XtraTabPage tab in tabs.TabPages)
                 {
                     // Mail has provider-dependent visibility and its own focused audit with a transparent native host.
-                    if (tab.Text == "E-Mail") continue;
+                    if (tab.Text == "Office / Mail") continue;
                     tabs.SelectedTabPage = tab;
                     CreateHandles(form);
                     form.PerformLayout();

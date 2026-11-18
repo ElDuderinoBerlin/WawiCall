@@ -856,7 +856,7 @@ partial class SettingsPage
         loadCompaniesButton.Click += LoadCompanies_Click;
         cacheTab.Text = "Telefon-Cache";
         tabs.TabPages.Add(cacheTab);
-        mailTab.Text = "E-Mail";
+        mailTab.Text = "Office / Mail";
         mailSettingsPage.Dock = System.Windows.Forms.DockStyle.Fill;
         mailTab.Controls.Add(mailSettingsPage);
         tabs.TabPages.Add(mailTab);

@@ -61,6 +61,18 @@ public partial class MailPage : XtraUserControl
     }
     internal void ConfigureMailActions(WawiCallPro.Office.MailApplication application, bool allowImport)
     { _application = application; _allowImport = allowImport; }
+    internal async Task CancelPendingLoadsAsync()
+    {
+        if (_disposed) return;
+        searchTimer.Stop();
+        _catalogCancellation?.Cancel(); _listCancellation?.Cancel(); _previewCancellation?.Cancel();
+        await Task.WhenAll(_pending.ToArray());
+        if (!_stopping && !_disposed)
+        {
+            reloadButton.Enabled = foldersAccordion.Enabled = messagesGrid.Enabled = true;
+            statusLabel.Text = "Mailabruf abgebrochen."; searchTimer.Start();
+        }
+    }
     private async Task LoadCatalogAsync(CancellationToken token)
     {
         reloadButton.Enabled = false; foldersAccordion.Enabled = messagesGrid.Enabled = false; statusLabel.Text = "Postfachordner werden geladen …";

@@ -4,9 +4,14 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 17.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 18.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: lesende Anbindungen für Outlook Desktop, Microsoft 365 und Gmail samt zentraler
+Zuletzt ergänzt: optionaler lokaler SQLite-Mailcache mit konfigurierbarer Aufbewahrung, geschützten
+Anhangs-BLOBs und sicherem Neuaufbau. Checkbox und Cachezeitraum stehen unter **Office / Mail**;
+Abruf, Kontoeinrichtung, Neuaufbau und Abbruch im Ribbon **Mails**. Start-Ribbon neu gruppiert und
+eigene Aktionssymbole neutral mit Skinpalette dargestellt. Cachekern mit 666 Prüfungen je Edition;
+Bedienung und aktualisierte Regressionen separat nachgewiesen (Phase 11, 18.11.2026).
+Zuvor ergänzt: lesende Anbindungen für Outlook Desktop, Microsoft 365 und Gmail samt zentraler
 Kontoeinrichtung, geschütztem Import, wiederaufnehmbarer Synchronisierung und Kundenmails bei Anrufen.
 Die vorhandene Microsoft-App-Anmeldung ist lokal übernommen und erfolgreich authentifiziert;
 nach der Nutzerfreigabe von Leserechten sind echter Ordnerzugriff und ein begrenzter Nachrichten-
@@ -455,7 +460,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ Mailansicht und Kundenmails bei Anrufen. Cachebedienung/Ribbon folgen; weitere native Kontoabnahmen und Kontakte/Termine offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ Mailansicht und Kundenmails bei Anrufen. ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole; weitere native Kontoabnahmen und Kontakte/Termine offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -3146,10 +3151,33 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Pro/FinOffice: je 42 Office-, 162 Datenbank-, 47 Konfigurations-/Transfer-, 29 App- und 386 Console-
   Prüfungen bestanden (666 je Edition). Beide Solution-Builds Debug/Any CPU regulär erstellt: null Fehler,
   je 26 bekannte externe CSCore-Warnungen. Nachweise `.mail-cache-core-{build,office,database,config,app,console}-{pro,fin}.log`.
-  FinOffice ist die reguläre Startausgabe. Bedienelemente für die Cachepräferenzen, Ribbonaktion und
-  ruhigere Ribbon-Gruppierung folgen als eigener UI-Schritt im selben Auftrag. Der IDE-Refaktorierungs-
+  FinOffice ist die reguläre Startausgabe. Die Cachebedienung und Ribbon-Gruppierung stehen im folgenden
+  UI-Punkt. Der IDE-Refaktorierungs-
   dienst antwortete auf den Vorschauaufruf nicht; die einzelne Konstruktortypänderung wurde nach
   Abbruch des wartenden Vorschauaufrufs gezielt vorgenommen und mit dem tatsächlichen DI-Aufbau geprüft.
+
+- [x] ✅ Cachebedienung und ruhigere Ribbon-Gruppierung umgesetzt (18.11.2026): unter **Office / Mail**
+  globale Checkbox **Mailcache verwenden** und **Cachezeitraum (Tage)**, unabhängig von der Kontenauswahl;
+  Eingaben für die Tage und der kontobezogene Cacheimport sind bei ausgeschaltetem Cache deaktiviert.
+  Zentrales Speichern und JSON-Transfer übernehmen die Präferenzen. Office-/Mail-Aktionen bewahren
+  ungespeicherte Entwürfe anderer Tabs und die bestehende Konflikterkennung.
+  Neuer Ribbon-Tab **Mails** mit **Postfach** (Nachrichten abrufen, Konten und Cache) und **Lokaler Cache**
+  (Cache neu erstellen, Vorgang abbrechen). Neuaufbau ist nur bei aktiviertem Cache verfügbar;
+  parallele Ribbon-Mailvorgänge sind gesperrt. Abbruch und Anwendungsschluss berücksichtigen auch
+  das anschließende direkte Laden der Mailansicht und warten auf nicht kooperative Quellen.
+  Startaktionen in **Ansichten**, **Telefonie** und **Fenster** getrennt, Fensteraktionen kompakter;
+  eigene SVG-Aktionssymbole neutral mit Skinpalette, einschließlich zuvor direkt eingefärbter Glyphen.
+  Produktlogo und farbige Skinvorschauen erhalten. Gezielte transparente Renderprüfungen der geänderten
+  Ribbon-Tabs und Office-/Mail-Einstellungen mit leeren und gefüllten Zuständen, hellem/dunklem Skin,
+  10/16-Punkt-Schrift, kleineren Fenstern und 150-%-Skalierung. Dabei zu schmale Checkbox/Zahleneingabe
+  korrigiert; keine sichtbare Bedienung und kein Zugriff auf reale Postfächer oder lokale Nutzereinstellungen.
+  Pro/FinOffice: je 42 Office-, 47 Konfigurations-/Transfer-, 37 gezielte App- und 386 vollständige
+  Console-Prüfungen bestanden (512 je Edition). Nach letzter Anpassung der Skinpalette zusätzlich alle
+  fünf Cache-/Ribbon-Prüfungen in Pro erneut bestanden; FinOffice-Gesamtlauf enthält den finalen Stand.
+  Beide regulären Solution-Builds Debug/Any CPU: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Nachweise `.mail-cache-ui-{build,office,config,app,console}-{pro,fin}.log` und `.mail-cache-ui-final-pro.log`;
+  Renderbilder unter `.artifacts/app-shell/settings-ui/{mail-settings,mail-cache-ribbon}`.
+  FinOffice bleibt die reguläre Startausgabe; native Anbieterabnahmen werden hierdurch nicht ersetzt.
 
 - [x] ✅ Microsoft-365-Lesezugriff nach der vom Benutzer erteilten Freigabe erneut nativ geprüft
   (17.11.2026). Ausschließlich die bereits geschützte lokale FinOffice-Konfiguration verwendet,

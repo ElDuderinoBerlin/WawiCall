@@ -624,13 +624,30 @@ und verwendet weder automatische OAuth-Browseranmeldungen noch echte Postfächer
 
 ### Postfach einrichten
 
-Unter **Einstellungen → E-Mail** ein Postfach hinzufügen oder **Aus LxPrintStudio übernehmen** wählen.
-Eine vorhandene Kommunikationsdatenbank muss zuvor über den Datenbank-Assistenten auf Schema 13
-gebracht werden; die Anwendung führt keinen stillen Rückbau oder Ersatz bestehender Datenbanken aus.
+Unter **Einstellungen → Office / Mail** ein Postfach hinzufügen oder **Aus LxPrintStudio übernehmen** wählen.
+Für den Mailcache ist keine Einrichtung der Kommunikationsdatenbank erforderlich; die eigene SQLite-Datei
+wird vom Cachedienst angelegt. Eine bestehende Kommunikationsdatenbank bleibt unverändert.
 Die Übernahme liest dessen lokale `appsettings.json` und schützt ein vorhandenes Microsoft-App-Secret
 für WawiCallPro neu. Sie übernimmt keine SMTP-Kennwörter, ändert die Quelldatei nicht und liest keine Mails.
+
+**Mailcache verwenden** schaltet die lokale Ablage ein oder aus. **Cachezeitraum (Tage)** legt die
+Aufbewahrung nach Empfangsdatum fest (Vorgabe 30 Tage). Die normalen Speichern-/Import-/Exportaktionen
+übernehmen diese beiden Präferenzen; Verbindung und Import übernehmen sie ebenfalls zusammen mit dem
+Kontostand, ohne ungespeicherte Änderungen anderer Einstellungstabs zu verwerfen.
+
+Im Ribbon **Mails → Postfach** stehen **Nachrichten abrufen** und **Konten und Cache** bereit;
+die zweite Aktion öffnet unmittelbar den Tab **Office / Mail**. Unter **Lokaler Cache** liegt
+**Cache neu erstellen**, bei ausgeschaltetem Cache deaktiviert. **Vorgang abbrechen** beendet den
+laufenden Abruf oder Neuaufbau geordnet. Gleichzeitige Ribbon-Mailvorgänge werden verhindert;
+das Schließen der Anwendung bricht den Vorgang ab und wartet auf seinen Abschluss.
+Nach erfolgreichem Abruf/Neuaufbau öffnet sich die aktualisierte Mailansicht.
+
+Der Start-Ribbon trennt **Ansichten**, **Telefonie** und **Fenster**. Fensteraktionen sind kompakt
+gruppiert. Eigene Aktionssymbole werden einheitlich neutral und mit der Skinpalette dargestellt;
+Produktlogo und die Farbvorschauen der Skin-/Palettenauswahl behalten ihre Bedeutung.
+
 Clientdaten werden zunächst als deaktivierter Entwurf angezeigt. **Verbinden** speichert nur die
-Postfachdaten, prüft Anmeldung und Ordner-Leserechte und aktiviert das Konto nach erfolgreicher Prüfung.
+Office-/Mail-Einstellungen, prüft Anmeldung und Ordner-Leserechte und aktiviert das Konto nach erfolgreicher Prüfung.
 Ungespeicherte allgemeine Einstellungen in anderen Tabs bleiben als Entwurf erhalten.
 
 Für eine neue Microsoft-Desktop-Registrierung Client-ID und Entra-Mandant eintragen und die öffentliche

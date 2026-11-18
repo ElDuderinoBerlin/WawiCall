@@ -133,6 +133,7 @@ public partial class SettingsPage : XtraUserControl
     }
     internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
+    internal void SelectMailTab() => tabs.SelectedTabPage = mailTab;
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => tabs;
     private async Task ActivatePluginAsync(string id, CancellationToken token)
     {
@@ -182,6 +183,7 @@ public partial class SettingsPage : XtraUserControl
     internal void Apply(ConfigurationSnapshot snapshot)
     {
         mailSettingsPage.Apply(snapshot.Options.MailAccounts, snapshot.Options.Companies);
+        mailSettingsPage.ApplyCache(snapshot.Options.MailCache);
         _snapshot = snapshot;
         var options = snapshot.Options;
         ApplyCallerLine(options);
@@ -238,7 +240,8 @@ public partial class SettingsPage : XtraUserControl
 
             Companies = ReadCompanySettings(old),
             CallerLineAssignment = _lineDraft,
-            MailAccounts = mailSettingsPage.ReadAccounts()
+            MailAccounts = mailSettingsPage.ReadAccounts(),
+            MailCache = mailSettingsPage.ReadCache()
         };
     }
 
@@ -283,15 +286,16 @@ public partial class SettingsPage : XtraUserControl
     {
         var next = await _workspace!.Settings.LoadAsync(token);
         // Refresh mail state without silently accepting concurrent edits to the other open settings tabs.
-        var previousGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(_snapshot!.Options with { MailAccounts = [] });
-        var nextGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(next.Options with { MailAccounts = [] });
+        var previousGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(_snapshot!.Options with { MailAccounts = [], MailCache = new() });
+        var nextGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(next.Options with { MailAccounts = [], MailCache = new() });
         if (!previousGeneral.AsSpan().SequenceEqual(nextGeneral)) throw new WawiCallPro.Interfaces.Office.MailException(WawiCallPro.Interfaces.Office.MailFailure.Conflict);
         _snapshot = next;
         mailSettingsPage.Apply(_snapshot.Options.MailAccounts, _snapshot.Options.Companies);
+        mailSettingsPage.ApplyCache(_snapshot.Options.MailCache);
     }
     private async Task SaveMailSettingsAsync(CancellationToken token)
     {
-        var options = _snapshot!.Options with { MailAccounts = mailSettingsPage.ReadAccounts() };
+        var options = _snapshot!.Options with { MailAccounts = mailSettingsPage.ReadAccounts(), MailCache = mailSettingsPage.ReadCache() };
         await _workspace!.Settings.SaveAsync(options, _snapshot, token);
         await ReloadMailSettingsAsync(token);
     }

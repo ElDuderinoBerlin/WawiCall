@@ -72,7 +72,11 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
-    public Task MailSettingsRenderEmptyOutlookMicrosoftAndGoogleAtSmallBoundsAndLargeFonts() => WithWorkspace(async (workspace, _, _) =>
+    [DataRow(0)]
+    [DataRow(1)]
+    [DataRow(2)]
+    [DataRow(3)]
+    public Task MailSettingsRenderEmptyOutlookMicrosoftAndGoogleAtSmallBoundsAndLargeFonts(int provider) => WithWorkspace(async (workspace, _, _) =>
     {
         AppUiStartup.Apply();
         var originalFont = WindowsFormsSettings.DefaultFont; var originalAppearance = AppearanceObject.DefaultFont;
@@ -81,8 +85,7 @@ public sealed partial class AppShellTests
         var output = Path.Combine(RenderOutput(), "mail-settings"); Directory.CreateDirectory(output);
         try
         {
-            foreach (var provider in new[] { 0, 1, 2, 3 })
-            foreach (var variant in new[] { (Width: 1100, Font: 10F, Scale: 1F, Skin: "Basic"), (Width: 900, Font: 16F, Scale: 1F, Skin: "Office 2019 Black"), (Width: 1100, Font: 10F, Scale: 1.5F, Skin: "Basic") })
+            foreach (var variant in new[] { (Width: 1100, Font: 10F, Scale: 1F, Skin: "Office 2019 Colorful"), (Width: 900, Font: 16F, Scale: 1F, Skin: "Office 2019 Black"), (Width: 1100, Font: 10F, Scale: 1.5F, Skin: "Office 2019 Colorful") })
             {
                 if (variant.Skin == "Basic") DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(variant.Skin, "Blue Dark"); else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(variant.Skin);
                 using var font = new Font("Segoe UI", variant.Font); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
@@ -100,6 +103,9 @@ public sealed partial class AppShellTests
                 CreateHandles(form); form.PerformLayout();
                 if (variant.Scale != 1F) form.Scale(new SizeF(variant.Scale, variant.Scale));
                 form.PerformLayout(); CheckVisibleMailBounds(form);
+                var cacheControls = Field<MailSettingsPage>(page, "mailSettingsPage");
+                var cacheEditor = Field<SpinEdit>(cacheControls, "cacheDaysEdit");
+                Assert.IsTrue(cacheEditor.Width >= 100, $"Cache duration clipped: {cacheEditor.Bounds}, parent {cacheEditor.Parent!.Bounds}");
                 using var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form); image.Save(Path.Combine(output, $"mail-settings-{provider}-{variant.Width}-{variant.Font:0}-{variant.Scale:0.0}.png"), ImageFormat.Png);
                 if (provider != 0)
                 {

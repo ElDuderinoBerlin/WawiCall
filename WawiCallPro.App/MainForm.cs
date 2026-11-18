@@ -187,6 +187,7 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
+        await StopMailOperationAsync();
         var stopNotes = _callPages.Values.Select(call => call.Page.Notes.StopAsync()).Concat(
             _documents.Values.Select(document => document.Control).OfType<Panel>()
                 .SelectMany(host => host.Controls.OfType<HistoryPage>()).Select(history => history.StopAsync())).ToArray();
@@ -295,6 +296,7 @@ public partial class MainForm : RibbonForm
     {
         var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync);
         settings.ConfigureLayoutPersistence(_state);
+        settings.FormClosed += MailSettingsClosed;
         if (_audioDevices is not null) settings.ConfigureAudioDevices(_audioDevices);
         if (plugins) settings.SelectPluginsTab();
         return settings;
@@ -352,11 +354,14 @@ public partial class MainForm : RibbonForm
     {
         foreach (var (item, file) in new[] { (navigateBackItem,"NavigateBack"), (navigateForwardItem,"NavigateForward"), (homeItem,"Home"), (historyItem,"History"), (mailItem,"Mail"), (partiesItem,"Caller"), (callerItem,"Caller"), (dialItem,"Dial"), (closeItem,"Close"), (trayItem,"Tray"), (exitItem,"Close"), (databaseStatusItem,"DatabaseCheck"), (databaseSetupItem,"Database"), (databaseBackupItem,"Export"), (databaseRestoreItem,"Import"), (settingsItem,"Settings"), (resetItem,"Reset"), (fontItem,"Font"), (helpItem,"Help"), (aboutItem,"About"), (navigationItem,"Home"), (outputItem,"History"), (trayShowItem,"Tray"), (trayHistoryItem,"History"), (traySettingsItem,"Settings"), (trayExitItem,"Close") })
         {
-            using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("WawiCallPro.App.Icons." + file + ".svg");
-            if (stream is not null) item.ImageOptions.SvgImage = DevExpress.Utils.Svg.SvgImage.FromStream(stream);
+            item.ImageOptions.SvgImage = RibbonIconHelper.Load(file);
         }
+        mailRefreshItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Refresh");
+        mailSettingsItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Settings");
+        mailCacheRebuildItem.ImageOptions.SvgImage = RibbonIconHelper.Load("MailCacheRebuild");
+        mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
     }
-    private void DisposePage() { DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
+    private void DisposePage() { DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {
@@ -366,6 +371,8 @@ public partial class MainForm : RibbonForm
             foreach (DevExpress.XtraBars.Docking2010.Views.Tabbed.DocumentGroup group in tabbedView.DocumentGroups)
                 if (group.Items.Contains(tab)) group.SetSelected(tab);
         _lastDocument = document;
+        if (GetActiveDocumentView() is MailPage) ribbon.SelectedPage = mailRibbon;
+        else if (ribbon.SelectedPage == mailRibbon) ribbon.SelectedPage = startRibbon;
         UpdateViewNavigation();
     }
 }

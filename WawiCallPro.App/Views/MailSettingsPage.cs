@@ -47,10 +47,19 @@ public partial class MailSettingsPage : XtraUserControl
         BindAccounts(_selected);
     }
     internal ImmutableArray<MailAccountSettings> ReadAccounts() { SaveDraft(); return [.. _accounts]; }
+    internal void ApplyCache(MailCacheSettings policy)
+    { cacheEnabledEdit.Checked = policy.Enabled; cacheDaysEdit.Value = policy.Days; CacheEnabled_Changed(this, EventArgs.Empty); }
+    internal MailCacheSettings ReadCache() => new() { Enabled = cacheEnabledEdit.Checked, Days = (int)cacheDaysEdit.Value };
+    private void CacheEnabled_Changed(object? sender, EventArgs e)
+    {
+        cacheDaysEdit.Enabled = cacheEnabledEdit.Checked;
+        syncButton.Enabled = cacheEnabledEdit.Checked && _selected is not null && _request is null && !_stopping;
+    }
     internal int GetRequiredHeight()
     {
         var width = Math.Max(1, Width - layout.Padding.Horizontal);
         return header.GetPreferredSize(new(width, 0)).Height + header.Margin.Vertical + Font.Height * 15
+            + cacheLayout.GetPreferredSize(new(width, 0)).Height + cacheLayout.Margin.Vertical
             + actions.GetPreferredSize(new(width, 0)).Height + actions.Margin.Vertical
             + statusLabel.GetPreferredSize(new(width, 0)).Height + statusLabel.Margin.Vertical + layout.Padding.Vertical;
     }
@@ -100,6 +109,7 @@ public partial class MailSettingsPage : XtraUserControl
         foldersGrid.DataSource = folders.Select(item => new FolderRow(item.Key.Id, item.Name)).ToArray(); foldersView.ClearSelection();
         for (var index = 0; index < foldersView.DataRowCount; index++) if (foldersView.GetRow(index) is FolderRow row && account.FolderIds.Contains(row.Id)) foldersView.SelectRow(index);
         ShowProvider();
+        CacheEnabled_Changed(this, EventArgs.Empty);
     }
     private void Accounts_Changed(object? sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
     {
@@ -161,6 +171,7 @@ public partial class MailSettingsPage : XtraUserControl
     private void Sync_Click(object? sender, EventArgs e) => Start(async token =>
     {
         var id = _selected!.Value; await _save!(token);
+        if (!await _workspace!.Mail.Cache.IsEnabledAsync(token)) { statusLabel.Text = "Mailcache ist ausgeschaltet. Nachrichten werden in der Mailansicht direkt geladen."; return; }
         var progress = new Progress<WawiCallPro.Office.MailSyncProgress>(value => { if (!_stopping && !IsDisposed) statusLabel.Text = value.FoldersCompleted + "/" + value.FoldersTotal + " Ordner · " + value.MessagesConfirmed + " Nachrichten bestätigt"; });
         await _workspace!.Mail.Synchronization.SynchronizeAsync(id, progress, token); statusLabel.Text = "Import abgeschlossen. In der Mailansicht Aktualisieren wählen.";
     });
@@ -213,6 +224,8 @@ public partial class MailSettingsPage : XtraUserControl
         accountsGrid.Enabled = newButton.Enabled = lxImportButton.Enabled = !busy;
         detailsTabs.Enabled = removeButton.Enabled = !busy && _selected is not null;
         connectButton.Enabled = disconnectButton.Enabled = syncButton.Enabled = loadFoldersButton.Enabled = !busy && _selected is not null;
+        syncButton.Enabled = syncButton.Enabled && cacheEnabledEdit.Checked;
+        cacheLayout.Enabled = !busy;
         cancelButton.Enabled = busy;
     }
     private void Cancel_Click(object? sender, EventArgs e) => _request?.Cancel();
@@ -225,6 +238,7 @@ public partial class MailSettingsPage : XtraUserControl
         _arranging = true;
         try
         {
+            cacheDaysEdit.MinimumSize = new(cacheDaysEdit.LogicalToDeviceUnits(110), 0);
             UiButtonSizing.Apply(newButton, removeButton);
             UiButtonSizing.Apply(lxImportButton); UiButtonSizing.Apply(googleButton); UiButtonSizing.Apply(storesButton); UiButtonSizing.Apply(companiesButton); UiButtonSizing.Apply(loadFoldersButton);
             UiButtonSizing.Apply(connectButton, syncButton);

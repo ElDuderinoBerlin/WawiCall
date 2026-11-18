@@ -110,7 +110,7 @@ public sealed class ConfiguredMailViewSource(MailAccounts accounts, IMailConnect
             catch (MailException) { failures++; }
         }
         if (failures > 0 && folders.Count == 0) throw new MailException(MailFailure.SignInRequired);
-        return new([.. folders], configured.Length == 0 ? "Kein Postfach eingerichtet. Unter Einstellungen → E-Mail ein Postfach hinzufügen." :
+        return new([.. folders], configured.Length == 0 ? "Kein Postfach eingerichtet. Unter Einstellungen → Office / Mail ein Postfach hinzufügen." :
             failures > 0 ? "Einige Postfächer konnten nicht geladen werden. Bitte die E-Mail-Einstellungen prüfen." : configured.Length + " Postfächer verbunden.");
     }
     public async Task<ImmutableArray<MailListItem>> GetMessagesAsync(MailFolderKey folder, string search, CancellationToken cancellationToken = default)

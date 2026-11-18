@@ -139,8 +139,8 @@ public sealed class ImportedMailViewSource(MailAccounts accounts, IMailImportRep
             folders.Add(new(root, null, account.DisplayName));
             folders.AddRange(account.FolderIds.Select(id => new MailFolder(new(provider, account.Id.ToString("N"), id), root, account.FolderNames.GetValueOrDefault(id, "Importierter Ordner"))));
         }
-        return new([.. folders], folders.Count == 0 ? "Kein importiertes Postfach freigegeben. Unter Einstellungen → E-Mail einrichten und Ordner auswählen." :
-            party is null ? "Lokal importierte Nachrichten. Neue Nachrichten unter Einstellungen → E-Mail synchronisieren." : "Importierte Nachrichten zu den genauen E-Mail-Adressen dieses Geschäftspartners.");
+        return new([.. folders], folders.Count == 0 ? "Kein importiertes Postfach freigegeben. Unter Einstellungen → Office / Mail einrichten und Ordner auswählen." :
+            party is null ? "Lokal importierte Nachrichten. Neue Nachrichten unter Einstellungen → Office / Mail synchronisieren." : "Importierte Nachrichten zu den genauen E-Mail-Adressen dieses Geschäftspartners.");
     }
     public Task<ImmutableArray<MailListItem>> GetMessagesAsync(MailFolderKey folder, string search, CancellationToken cancellationToken = default) => Messages(folder, search, null, cancellationToken);
     private async Task<ImmutableArray<MailListItem>> Messages(MailFolderKey folder, string search, Party? party, CancellationToken token)
