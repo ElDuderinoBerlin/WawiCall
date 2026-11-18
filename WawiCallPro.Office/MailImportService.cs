@@ -44,10 +44,9 @@ public sealed class MailImportService(MailAccounts accounts, IMailConnectorFacto
                 do
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var current = await accounts.GetAsync(account.Id, cancellationToken);
-                    if (!current.Enabled || Binding(current) != binding || !current.FolderIds.SequenceEqual(account.FolderIds) || current.ImportDays != account.ImportDays || current.MaximumMessages != account.MaximumMessages)
-                        throw new MailException(MailFailure.Conflict);
+                    await MailAccountScope.VerifyAsync(accounts, account, cancellationToken);
                     var changes = await connector.GetChangesAsync(folder, checkpoint, page, cancellationToken);
+                    await MailAccountScope.VerifyAsync(accounts, account, cancellationToken);
                     if (changes.Reset)
                     {
                         if (++resets > 1) throw new MailException(MailFailure.InvalidResponse);
@@ -88,6 +87,7 @@ public sealed class MailImportService(MailAccounts accounts, IMailConnectorFacto
                         checkpointNext is null ? null : encryption.Protect(checkpointNext, purpose + ":checkpoint"),
                         changes.NextPage is null ? null : encryption.Protect(JsonSerializer.Serialize(new Continuation(changes.NextPage, count), Json), purpose + ":page"),
                         pageHash, snapshot && changes.NextPage is null, [.. records.Values], [.. changes.RemovedIds.Select(MailIdentity.Hash).Distinct()], DateTimeOffset.UtcNow);
+                    await MailAccountScope.VerifyAsync(accounts, account, cancellationToken);
                     state = await repository.ApplyAsync(write, cancellationToken); page = changes.NextPage; checkpoint = checkpointNext;
                     confirmed += records.Count; progress?.Report(new(completed, account.FolderIds.Length, confirmed));
                 } while (page is not null || resets > 0 && checkpoint is null);

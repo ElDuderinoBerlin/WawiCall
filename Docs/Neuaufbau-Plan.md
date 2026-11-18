@@ -3140,6 +3140,16 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 ### Phase 11 – Office-Kommunikation 🟨
 
+- [x] ✅ Laufende Mailoperationen gegen geänderte Freigaben abgesichert (18.11.2026): Konto, Besitzer-
+  und Ordnerbezug, Lesebegrenzungen und Cachepräferenzen vor/nach Anbieterabrufen erneut vergleichen.
+  Ein Neuaufbau veröffentlicht keine Datei mit inzwischen geänderter aktiver Kontenauswahl; alte Datei
+  bleibt erhalten. Nach Widerruf geladene Anhangsbytes werden verworfen und genullt. Auch direkte
+  Listen-/Vorschauabrufe geben verspätete Ergebnisse nicht frei. Anzeigenamen dürfen sich ohne
+  Berechtigungsänderung ändern. 16 neue Fälle, davon 13 vor der Korrektur reproduzierbar fehlgeschlagen;
+  alle 58 Office-Tests je Edition bestanden. Beide regulären Solution-Builds Debug/Any CPU erfolgreich,
+  je 26 bekannte externe CSCore-Warnungen; keine UI-/SQL-/Schemaänderung in diesem Teilpunkt.
+  Nachweise `.mail-scope-{build,tests}-{pro,fin}.log`, FinOffice als reguläre Startausgabe.
+
 - [x] ✅ Optionalen SQLite-Mailcache als eigenen Dienst ergänzt (18.11.2026): lokale Cachedatei pro
   Benutzer/Edition, formatversionierte Einstellungen (aktiv/30 Tage), unveränderte Konten und portable
   Cachepräferenzen. Direkter Anbieterzugriff bei ausgeschaltetem Cache, unveränderte Mandanten-/Adress-

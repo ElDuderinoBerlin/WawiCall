@@ -33,11 +33,13 @@ public sealed class DirectMailViewSource(MailAccounts accounts, IMailConnectorFa
         if (!account.FolderIds.Contains(folder.Id)) throw new MailException(MailFailure.AccessDenied);
         if (party is not null && Addresses(party).Count == 0) return [];
         var connector = connectors.Create(account); var messages = await connector.GetMessagesAsync(folder.Id, search, token);
+        await MailAccountScope.VerifyAsync(accounts, account, token);
         if (party is null) return messages;
         var result = new List<MailListItem>();
         foreach (var message in messages)
         {
             var full = await connector.GetMessageAsync(message.Key.Id, token);
+            await MailAccountScope.VerifyAsync(accounts, account, token);
             if (full is not null && Matches(full, party) && full.FolderIds.Contains(folder.Id)) result.Add(message);
         }
         return [.. result];
@@ -48,6 +50,7 @@ public sealed class DirectMailViewSource(MailAccounts accounts, IMailConnectorFa
         var account = await Resolve(key.Provider, key.Account, party, token);
         if (party is not null && Addresses(party).Count == 0) return null;
         var message = await connectors.Create(account).GetMessageAsync(key.Id, token);
+        await MailAccountScope.VerifyAsync(accounts, account, token);
         return message is null || message.Content.Key != key || !message.FolderIds.Intersect(account.FolderIds).Any() ||
             account.ImportDays != 0 && message.Content.Date < DateTimeOffset.UtcNow.AddDays(-account.ImportDays) || party is not null && !Matches(message, party) ? null : message.Content;
     }

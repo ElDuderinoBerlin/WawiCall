@@ -56,10 +56,12 @@ public sealed class MailCacheService(ConfigurationStore settings, ApplicationPat
         if (!await IsEnabledAsync(cancellationToken)) return;
         await WithStore(async (store, policy) =>
         {
+            var account = await accounts.GetAsync(accountId, cancellationToken);
             var importer = new MailImportService(accounts, new RetentionConnectors(connectors, policy.Days), new RetentionRepository(store.Messages, policy.Days), encryption);
             await importer.SynchronizeAsync(accountId, progress, cancellationToken);
             await store.PruneAsync(Cutoff(policy), cancellationToken);
-            await FillAttachments(store, await accounts.GetAsync(accountId, cancellationToken), cancellationToken);
+            await FillAttachments(store, account, policy, cancellationToken);
+            await VerifyCacheScopeAsync(policy, account, cancellationToken);
             return true;
         }, cancellationToken);
     }
@@ -69,21 +71,23 @@ public sealed class MailCacheService(ConfigurationStore settings, ApplicationPat
         string? stage = null;
         try
         {
-            var policy = (await settings.LoadAsync(cancellationToken)).Options.MailCache;
-            if (!policy.Enabled) throw new MailException(MailFailure.Configuration);
             using var lease = await Lease(cancellationToken);
+            var options = (await settings.LoadAsync(cancellationToken)).Options;
+            var policy = options.MailCache;
+            if (!policy.Enabled) throw new MailException(MailFailure.Configuration);
+            var selected = options.MailAccounts.Where(item => item.Enabled && !item.FolderIds.IsEmpty).ToArray();
             if (File.Exists(FilePath)) _ = await SqliteMailCacheStore.OpenAsync(FilePath, false, cancellationToken);
             stage = StagePath(); var store = await SqliteMailCacheStore.OpenAsync(stage, true, cancellationToken);
             await store.SetPolicyAsync(policy.Days, cancellationToken);
-            foreach (var account in (await accounts.GetAsync(cancellationToken)).Where(item => item.Enabled && !item.FolderIds.IsEmpty))
+            foreach (var account in selected)
             {
+                await VerifyRebuildScopeAsync(policy, selected, cancellationToken);
                 var importer = new MailImportService(accounts, new RetentionConnectors(connectors, policy.Days), new RetentionRepository(store.Messages, policy.Days), encryption);
                 await importer.SynchronizeAsync(account.Id, progress, cancellationToken);
                 await store.PruneAsync(Cutoff(policy), cancellationToken);
-                await FillAttachments(store, account, cancellationToken);
+                await FillAttachments(store, account, policy, cancellationToken);
             }
-            var current = (await settings.LoadAsync(cancellationToken)).Options.MailCache;
-            if (current != policy) throw new MailException(MailFailure.Conflict);
+            await VerifyRebuildScopeAsync(policy, selected, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested(); CheckPath(FilePath);
             if (File.Exists(FilePath)) File.Replace(stage, FilePath, null); else File.Move(stage, FilePath);
             stage = null;
@@ -113,29 +117,50 @@ public sealed class MailCacheService(ConfigurationStore settings, ApplicationPat
     {
         if (await direct.GetMessageAsync(key, token) is not { } message || !message.Attachments.Any(item => item.Id == attachment)) throw new MailException(MailFailure.AccessDenied);
         var account = await accounts.GetAsync(Guid.ParseExact(key.Account, "N"), token);
-        return await connectors.Create(account).GetAttachmentAsync(key.Id, attachment, token);
+        var bytes = await connectors.Create(account).GetAttachmentAsync(key.Id, attachment, token);
+        try { await MailAccountScope.VerifyAsync(accounts, account, token); return bytes; }
+        catch { CryptographicOperations.ZeroMemory(bytes); throw; }
     }
-    private async Task FillAttachments(SqliteMailCacheStore store, MailAccountSettings account, CancellationToken token)
+    private async Task FillAttachments(SqliteMailCacheStore store, MailAccountSettings account, MailCacheSettings policy, CancellationToken token)
     {
         string? after = null;
         do
         {
+            await VerifyCacheScopeAsync(policy, account, token);
             var page = await store.Messages.GetPageAsync(new(account.Id, [.. account.FolderIds.Select(MailIdentity.Hash)], AfterId: after), token);
             foreach (var record in page.Items)
             {
                 var envelope = MailImportService.Decode(record, account, encryption);
                 foreach (var attachment in envelope.Content.Attachments)
                 {
+                    await VerifyCacheScopeAsync(policy, account, token);
                     if (attachment.Id is not { } attachmentId) throw new MailException(MailFailure.NotSupported);
                     var hash = MailIdentity.Hash(attachmentId);
                     if (await store.ReadBlobAsync(record.Id, hash, record.RevisionHash, token) is not null) continue;
                     var bytes = await connectors.Create(account).GetAttachmentAsync(envelope.Content.Key.Id, attachmentId, token);
-                    try { await store.WriteBlobAsync(record.Id, hash, record.RevisionHash, blobs.Protect(bytes, BlobPurpose(record, hash)), token); }
+                    try
+                    {
+                        await VerifyCacheScopeAsync(policy, account, token);
+                        await store.WriteBlobAsync(record.Id, hash, record.RevisionHash, blobs.Protect(bytes, BlobPurpose(record, hash)), token);
+                    }
                     finally { CryptographicOperations.ZeroMemory(bytes); }
                 }
             }
             if (!page.HasMore) break; after = page.Items[^1].Id;
         } while (true);
+    }
+    private async Task VerifyCacheScopeAsync(MailCacheSettings policy, MailAccountSettings account, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested(); var options = (await settings.LoadAsync(token)).Options;
+        if (options.MailCache != policy) throw new MailException(MailFailure.Conflict);
+        MailAccountScope.Verify(account, options.MailAccounts);
+    }
+    private async Task VerifyRebuildScopeAsync(MailCacheSettings policy, MailAccountSettings[] selected, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested(); var options = (await settings.LoadAsync(token)).Options;
+        var current = options.MailAccounts.Where(item => item.Enabled && !item.FolderIds.IsEmpty).OrderBy(item => item.Id).Select(MailAccountScope.Key);
+        if (options.MailCache != policy || !selected.OrderBy(item => item.Id).Select(MailAccountScope.Key).SequenceEqual(current))
+            throw new MailException(MailFailure.Conflict);
     }
     private async Task<T> WithStore<T>(Func<SqliteMailCacheStore, MailCacheSettings, Task<T>> action, CancellationToken token)
     {
