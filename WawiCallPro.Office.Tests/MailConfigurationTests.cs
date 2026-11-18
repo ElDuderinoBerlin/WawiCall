@@ -20,12 +20,12 @@ public sealed class MailConfigurationTests
             var account = MailConnectorTests.GraphAccount() with { ApplicationAuthentication = true, Tenant = Guid.NewGuid().ToString(), Mailbox = "owner@example.test",
                 MicrosoftClientSecret = secrets.Protect("synthetic-m365-secret", MailAccountSettings.MicrosoftSecretPurpose), FolderIds = ["inbox"] };
             await store.SaveAsync(new() { MailAccounts = [account] }); var snapshot = await store.LoadAsync();
-            Assert.AreEqual(9, snapshot.FormatVersion); Assert.AreEqual(account.Id, snapshot.Options.MailAccounts.Single().Id);
+            Assert.AreEqual(ConfigurationFormat.CurrentVersion, snapshot.FormatVersion); Assert.AreEqual(account.Id, snapshot.Options.MailAccounts.Single().Id);
             using var value = secrets.Unprotect(snapshot.Options.MailAccounts.Single().MicrosoftClientSecret!, MailAccountSettings.MicrosoftSecretPurpose); Assert.AreEqual("synthetic-m365-secret", value.Reveal());
             var portable = Path.Combine(root, "portable.json"); await store.ExportPortableAsync(portable);
             var text = await File.ReadAllTextAsync(portable); Assert.DoesNotContain("mailAccounts", text); Assert.DoesNotContain("synthetic-m365-secret", text); Assert.DoesNotContain(account.ClientId!, text);
             var restored = await store.ImportPortableAsync(portable, snapshot); Assert.AreEqual(account.Id, restored.Options.MailAccounts.Single().Id);
-            var original = await File.ReadAllTextAsync(location.FilePath); await File.WriteAllTextAsync(location.FilePath, original.Replace("\"formatVersion\": 9", "\"formatVersion\": 8"));
+            var original = await File.ReadAllTextAsync(location.FilePath); await File.WriteAllTextAsync(location.FilePath, original.Replace("\"formatVersion\": " + ConfigurationFormat.CurrentVersion, "\"formatVersion\": 8"));
             Assert.IsTrue((await store.LoadAsync()).RequiresUpgrade);
         }
         finally { Directory.Delete(root, true); }

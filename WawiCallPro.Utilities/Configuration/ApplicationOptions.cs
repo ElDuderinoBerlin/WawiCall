@@ -23,6 +23,7 @@ public sealed record ApplicationOptions
     public ImmutableArray<CompanySettings> Companies { get; init; } = [];
     public CallerLineAssignment? CallerLineAssignment { get; init; }
     public ImmutableArray<MailAccountSettings> MailAccounts { get; init; } = [];
+    public MailCacheSettings MailCache { get; init; } = new();
 
     public CompanySettings? FindCompanySettings(CompanyKey company)
     {

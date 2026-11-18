@@ -81,6 +81,7 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
     public async Task<MailChangePage> GetChangesAsync(string folderId, string? checkpoint, string? nextPage, CancellationToken cancellationToken = default)
     {
         var initial = "mailFolders/" + MailJson.Encode(folderId) + "/messages/delta?$top=100&$select=id";
+        if (account.ImportDays > 0) initial += "&$filter=" + MailJson.Encode("receivedDateTime ge " + DateTimeOffset.UtcNow.AddDays(-account.ImportDays).ToString("O", System.Globalization.CultureInfo.InvariantCulture));
         var route = nextPage ?? checkpoint ?? initial; JsonElement data;
         try { data = (await Get(route, cancellationToken, cursor: checkpoint is not null || nextPage is not null))!.Value; }
         catch (MailCursorExpiredException) { return new([], [], null, null, true); }
@@ -100,7 +101,7 @@ public sealed class GraphMailConnector(MailAccountSettings account, MailHttp htt
         var file = (await Get("messages/" + MailJson.Encode(messageId) + "/attachments/" + MailJson.Encode(attachmentId), cancellationToken))!.Value;
         if (!file.TryGetProperty("contentBytes", out var content) || content.ValueKind != JsonValueKind.String) throw new MailException(MailFailure.NotSupported);
         var bytes = Convert.FromBase64String(content.GetString()!);
-        if (bytes.Length > 5 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded);
+        if (bytes.Length > MailLimits.AttachmentBytes) throw new MailException(MailFailure.LimitExceeded);
         return bytes;
     }
     private static string Display(JsonElement address) => address.Text("name") is { Length: > 0 } name ? name + " <" + address.Text("address") + ">" : address.Text("address");

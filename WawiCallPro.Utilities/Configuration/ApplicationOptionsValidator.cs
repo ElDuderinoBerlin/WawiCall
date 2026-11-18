@@ -33,6 +33,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
         ValidateMail(options.MailAccounts, issues);
+        if (options.MailCache is null || options.MailCache.Days is < 1 or > 36500)
+            issues.Add(new("mailCache.days", "Für den Mailcache 1 bis 36500 Tage auswählen."));
         if (options.CallerLineAssignment is { } mapping && (mapping.Company is null || mapping.Line is null
             || !SafeLineText(mapping.DisplayName) || !SafeLineText(mapping.Line.TelephonySystemId) || !SafeLineText(mapping.Line.LineId)
             || mapping.Line.DefaultRegion is not null && !IsValidRegion(mapping.Line.DefaultRegion)

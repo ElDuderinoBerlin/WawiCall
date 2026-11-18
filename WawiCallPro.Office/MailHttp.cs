@@ -37,11 +37,12 @@ public sealed class MailHttp(HttpClient client, IMailAuthentication authenticati
                 if (missing && response.StatusCode == HttpStatusCode.NotFound) return null;
                 if (!response.IsSuccessStatusCode) throw new MailException(response.StatusCode switch
                 { HttpStatusCode.Unauthorized => MailFailure.SignInRequired, HttpStatusCode.Forbidden => MailFailure.AccessDenied, _ => MailFailure.ProviderUnavailable });
-                if (response.Content.Headers.ContentLength > 8 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded);
+                var maximum = uri.AbsolutePath.Contains("/attachments/", StringComparison.Ordinal) ? MailLimits.AttachmentResponseBytes : 8 * 1024 * 1024;
+                if (response.Content.Headers.ContentLength > maximum) throw new MailException(MailFailure.LimitExceeded);
                 await using var input = await response.Content.ReadAsStreamAsync(token);
                 using var output = new MemoryStream(); var buffer = new byte[65536]; int read;
                 while ((read = await input.ReadAsync(buffer, token)) != 0)
-                { if (output.Length + read > 8 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded); await output.WriteAsync(buffer.AsMemory(0, read), token); }
+                { if (output.Length + read > maximum) throw new MailException(MailFailure.LimitExceeded); await output.WriteAsync(buffer.AsMemory(0, read), token); }
                 using var document = JsonDocument.Parse(output.ToArray(), new JsonDocumentOptions { MaxDepth = 64, AllowDuplicateProperties = false });
                 return document.RootElement.Clone();
             }

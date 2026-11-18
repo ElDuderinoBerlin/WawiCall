@@ -22,7 +22,7 @@ internal static class PortableSettingsFormat
     internal static byte[] Encode(ApplicationOptions options) => JsonSerializer.SerializeToUtf8Bytes(new Document(1, "WawiCallPro",
         new(options.User.LogLevel, options.User.LogDirectory, options.User.ShowCallNotifications, options.User.StartMinimized,
             options.User.UseDirectXRendering, options.User.ShowWindowHotkey, options.User.DialHotkey),
-        new(options.Devices.PlaybackVolumePercent, options.Devices.RingVolumePercent, options.Devices.MicrophoneMuted)), JsonOptions);
+        new(options.Devices.PlaybackVolumePercent, options.Devices.RingVolumePercent, options.Devices.MicrophoneMuted)) { MailCache = options.MailCache }, JsonOptions);
 
     internal static ApplicationOptions Decode(ReadOnlyMemory<byte> bytes, ApplicationOptions local)
     {
@@ -35,6 +35,7 @@ internal static class PortableSettingsFormat
             var user = document.User; var audio = document.Audio;
             return local with
             {
+                MailCache = document.MailCache ?? local.MailCache,
                 User = local.User with { LogLevel = user.LogLevel, LogDirectory = user.LogDirectory,
                     ShowCallNotifications = user.ShowCallNotifications, StartMinimized = user.StartMinimized,
                     UseDirectXRendering = user.UseDirectXRendering, ShowWindowHotkey = user.ShowWindowHotkey, DialHotkey = user.DialHotkey },
@@ -45,7 +46,8 @@ internal static class PortableSettingsFormat
         { throw ConfigurationException.FileError("Dies ist keine gültige WawiCallPro-Einstellungsdatei für Import/Export (Version 1)."); }
     }
 
-    private sealed record Document(int FormatVersion, string Application, UserPreferences User, AudioPreferences Audio);
+    private sealed record Document(int FormatVersion, string Application, UserPreferences User, AudioPreferences Audio)
+    { public MailCacheSettings? MailCache { get; init; } }
     private sealed record UserPreferences(LogLevel LogLevel, string? LogDirectory, bool ShowCallNotifications,
         bool StartMinimized, bool UseDirectXRendering, string? ShowWindowHotkey, string? DialHotkey);
     private sealed record AudioPreferences(int PlaybackVolumePercent, int RingVolumePercent, bool MicrophoneMuted);

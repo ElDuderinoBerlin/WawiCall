@@ -568,7 +568,7 @@ Nur Alle/Ungelesen wird lokal auf die gelieferten Daten angewendet; Lesen verän
 RichEdit zeigt Text/HTML schreibgeschützt mit dem aktiven Skin und der UI-Schrift. Ein eigener Ersatz des
 `IUriStreamService` verhindert Datei-/Netzwerk-Fallbacks für Ressourcen. Hyperlinks starten keine externen
 Programme. Öffnen, Neuanlegen und Speichern fremder Dokumente sind im Reader deaktiviert.
-Die Anhangszeile zeigt Metadaten. Ein gezielter Abruf über den Anbieter speichert Anhänge bis 5 MiB
+Die Anhangszeile zeigt Metadaten. Ein gezielter Abruf über den Anbieter speichert Anhänge bis 32 MiB
 nach Auswahl in einem besitzenden DevExpress-Speicherdialog. Die Ausgabe wird erst nach vollständigem
 Download atomar ersetzt, bei Abbruch bleiben vorhandene Dateien erhalten. Keine Datei wird automatisch
 geöffnet. RichEdit bleibt unabhängig davon schreibgeschützt; Mailversand gehört nicht zum Leseumfang.
@@ -582,6 +582,45 @@ Produkt-/Installations-/Mandantenschlüssel und exakte kanonisierte E-Mail-Adres
 Fehlende Adressen liefern keine Nachrichten. Der Mail-Tab eines Anrufs behält seinen angenommenen
 Geschäftspartnerkontext; er verändert weder den globalen Mandanten noch vorhandene Fach-Tabs.
 Build-/Bildnachweise und die verbleibende Abnahme stehen in Phase 11 des [Neuaufbau-Plans](Neuaufbau-Plan.md).
+
+### Optionaler lokaler SQLite-Mailcache (18.11.2026)
+
+`MailCacheService` ersetzt die Kommunikationsdatenbank als reguläre Mailquelle des App-Hosts.
+Pro Windows-Benutzer und Edition liegt eine eigenständige `mail-cache-v1.db` neben der lokalen
+Konfiguration. Die bestehende Kommunikationsdatenbank und ihre Migrationen 1–13 bleiben unverändert.
+Die Cachedatei verwendet deren bewährtes Dapper-/FluentMigrator-Mailmodell; nicht benötigte
+Fachtabellen sind in dieser Datei leer. Eine separate Cachemigration mit eigener Versionstabelle
+ergänzt Eigentumskennung, Aufbewahrungszeitraum und echte SQLite-Anhangs-BLOBs.
+Auf ausdrücklichen Nutzerwunsch ist diese zusätzliche Ablage ausschließlich SQLite; sie ist keine
+neue Servermigration. Spalten und Nachweise stehen in der Datenbankdokumentation.
+
+Einstellungsformat 10 ergänzt `MailCache.Enabled` und `MailCache.Days` (Vorgabe aktiv, 30 Tage;
+erlaubt 1–36500). Ältere lokale Einstellungen erhalten diese Vorgaben, ohne Konten oder Credentials
+zu verändern. Die beiden allgemeinen Cachepräferenzen sind portabel; Konto- und Tokenwerte bleiben lokal.
+Der Cache enthält Nachrichten nach **Empfangsdatum** innerhalb dieses Zeitraums und der engeren
+kontobezogenen Importgrenze. Beim Zugriff werden ältere oder ausgeblendete Nachrichten samt
+Adress-/Ordnerindizes und BLOBs entfernt. Eine Vergrößerung des Zeitraums setzt Delta-Cursor zurück,
+damit ältere Nachrichten erneut erreichbar sind. Graph erhält den dokumentierten
+[`receivedDateTime`-Deltafilter](https://learn.microsoft.com/en-us/graph/api/message-delta?view=graph-rest-1.0#odata-query-parameters).
+
+Text/HTML, Betreff, Absender und sämtliche Empfänger einschließlich Bcc, Empfangszeit,
+Gelesen-Status, Vorschau, Internet-/Anbieter-IDs, Revisionen, Ordner und Anhangsmetadaten sind im
+geschützten Nachrichtenumschlag enthalten. Anhangsbytes werden beim Abruf ebenfalls geladen und als
+benutzergebundene DPAPI-BLOBs gespeichert. Die Verschlüsselungsbindung umfasst Konto, stabile
+Nachrichtenidentität, Revision und Anhangs-ID. Bis 32 MiB je Anhang; Überschreitungen erzeugen einen
+Fehler und werden nicht abgeschnitten. Metadaten und verschlüsselte BLOBs ermöglichen anschließend
+das Lesen und Speichern ohne erreichbaren Anbieter. Fehlende BLOBs nach einem abgebrochenen
+normalen Abruf werden beim nächsten Abruf nachgeholt.
+
+Bei deaktiviertem Cache lesen `DirectMailViewSource` und die Anhangsaktion unmittelbar vom Anbieter;
+es wird keine Cachedatei angelegt oder verwendet. Produkt-/Mandanten-/Konto-/Ordner- und genaue
+Adressgrenzen gelten in beiden Modi. Bereits vorhandene Cachedateien bleiben beim Ausschalten erhalten.
+
+Ein Neuaufbau erstellt eine eigene Datei im selben Verzeichnis, lädt nur freigegebene Konten/Ordner,
+bestätigt Daten und BLOBs und ersetzt erst danach atomar den bisherigen Cache. Fehler und Abbruch
+erhalten den alten Cache. Prozesslokale und dateibasierte Sperren verhindern konkurrierende Zugriffe;
+SQLite-Pooling ist ausgeschaltet, Dateilinks werden zurückgewiesen. Der Aufbau verändert keine Mails
+und verwendet weder automatische OAuth-Browseranmeldungen noch echte Postfächer in den Prüfungen.
 
 ### Postfach einrichten
 

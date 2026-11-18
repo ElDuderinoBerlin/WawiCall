@@ -123,7 +123,16 @@ public sealed class GmailConnector(MailAccountSettings account, MailHttp http) :
         return Decode(attachment.Text("data"));
     }
     private static byte[] Decode(string encoded)
-    { if (encoded.Length > 7 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded); try { return Convert.FromBase64String(encoded.Replace('-', '+').Replace('_', '/').PadRight((encoded.Length + 3) / 4 * 4, '=')); } catch (FormatException) { throw new MailException(MailFailure.InvalidResponse); } }
+    {
+        if (encoded.Length > MailLimits.AttachmentResponseBytes) throw new MailException(MailFailure.LimitExceeded);
+        try
+        {
+            var bytes = Convert.FromBase64String(encoded.Replace('-', '+').Replace('_', '/').PadRight((encoded.Length + 3) / 4 * 4, '='));
+            if (bytes.Length > MailLimits.AttachmentBytes) throw new MailException(MailFailure.LimitExceeded);
+            return bytes;
+        }
+        catch (FormatException) { throw new MailException(MailFailure.InvalidResponse); }
+    }
     private static IEnumerable<MailRecipient> ParseAddresses(string text, string kind)
     {
         var addresses = new System.Net.Mail.MailAddressCollection();

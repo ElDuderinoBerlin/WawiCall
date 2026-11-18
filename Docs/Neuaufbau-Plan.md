@@ -455,7 +455,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ atomarer Import und Synchronisierung; ✅ Outlook-artige Mailansicht mit Anhangsspeicherung und Kundenmails bei Anrufen. Native Kontoabnahme, Kontakte/Termine und bedarfsabhängiges LDAP offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ Mailansicht und Kundenmails bei Anrufen. Cachebedienung/Ribbon folgen; weitere native Kontoabnahmen und Kontakte/Termine offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -3130,6 +3130,26 @@ Abnahme: Jede zugesagte Ansicht zeigt nachgewiesene echte Daten, keine Demo-Pers
 Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten visuell abgenommen und Debug gebaut.
 
 ### Phase 11 – Office-Kommunikation 🟨
+
+- [x] ✅ Optionalen SQLite-Mailcache als eigenen Dienst ergänzt (18.11.2026): lokale Cachedatei pro
+  Benutzer/Edition, formatversionierte Einstellungen (aktiv/30 Tage), unveränderte Konten und portable
+  Cachepräferenzen. Direkter Anbieterzugriff bei ausgeschaltetem Cache, unveränderte Mandanten-/Adress-
+  und Ordnergrenzen. Nachrichtenumschläge mit allen bisherigen Mailinformationen und geschützte echte
+  Anhangs-BLOBs bis 32 MiB; Offlinezugriff, revisionsgebundene Bytes und Nachholen fehlender BLOBs.
+  Empfangsdatumbasierte Aufbewahrung, Entfernen veralteter Daten/Indizes/BLOBs und erneuter Vollabgleich
+  nach Zeitraumvergrößerung. Neuaufbau in eigener Stagingdatei; Veröffentlichung erst nach vollständigem
+  Erfolg. Fehlgeschlagene und tatsächlich im Anbieterabruf abgebrochene Builds erhalten den alten Cache.
+  Ausschließlich die vom Nutzer gewünschte lokale SQLite-Ablage wurde erweitert; die Kommunikations-
+  datenbank und deren Migrationen 1–13 erhalten keine neue Version. Alle SQL-Befehle über Dapper und
+  die Cache-Erweiterung über FluentMigrator mit eigener Versionstabelle. Deutsche Spaltenliste gegen
+  die echte SQLite-Datei geprüft. Keine realen Postfächer oder Produktionsdatenbanken verwendet.
+  Pro/FinOffice: je 42 Office-, 162 Datenbank-, 47 Konfigurations-/Transfer-, 29 App- und 386 Console-
+  Prüfungen bestanden (666 je Edition). Beide Solution-Builds Debug/Any CPU regulär erstellt: null Fehler,
+  je 26 bekannte externe CSCore-Warnungen. Nachweise `.mail-cache-core-{build,office,database,config,app,console}-{pro,fin}.log`.
+  FinOffice ist die reguläre Startausgabe. Bedienelemente für die Cachepräferenzen, Ribbonaktion und
+  ruhigere Ribbon-Gruppierung folgen als eigener UI-Schritt im selben Auftrag. Der IDE-Refaktorierungs-
+  dienst antwortete auf den Vorschauaufruf nicht; die einzelne Konstruktortypänderung wurde nach
+  Abbruch des wartenden Vorschauaufrufs gezielt vorgenommen und mit dem tatsächlichen DI-Aufbau geprüft.
 
 - [x] ✅ Microsoft-365-Lesezugriff nach der vom Benutzer erteilten Freigabe erneut nativ geprüft
   (17.11.2026). Ausschließlich die bereits geschützte lokale FinOffice-Konfiguration verwendet,

@@ -169,7 +169,7 @@ public sealed partial class AppShellTests
         try
         {
             await host.Services.GetRequiredService<WawiCallPro.Utilities.Configuration.ApplicationConfigurationService>().StartAsync(default);
-            Assert.IsInstanceOfType<WawiCallPro.Office.ImportedMailViewSource>(host.Services.GetRequiredService<IMailViewSource>());
+            Assert.IsInstanceOfType<WawiCallPro.Office.MailCacheService>(host.Services.GetRequiredService<IMailViewSource>());
             using var form = ActivatorUtilities.CreateInstance<MainForm>(host.Services); form.PrepareForBackgroundRun();
             form.Show(); form.Navigate("mail");
             var page = (MailPage)form.GetActiveDocumentView()!; await page.ReloadAsync();

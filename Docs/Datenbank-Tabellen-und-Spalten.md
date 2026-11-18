@@ -475,6 +475,34 @@ Wird ausschließlich von FluentMigrator verwaltet. Die Einträge belegen die ang
 | `writeversion` | Ganzzahl 64 Bit | Nein | Optimistische Schreibversion ab 1. |
 | `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt der letzten gemeinsam mit Nachrichten bestätigten Seite. |
 
+## mailcacheinfo – Aufbewahrung des lokalen SQLite-Mailcaches
+
+Diese und die folgenden zwei Tabellen existieren ausschließlich in der lokalen `mail-cache-v1.db`.
+Die Cachedatei verwendet das vorhandene Kommunikationsschema als Infrastruktur; seine Fachtabellen
+bleiben hier leer. Die reguläre Kommunikationsdatenbank erhält keine neue Migration oder BLOB-Tabelle.
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `id` | Text | Nein | Eigentumskennung `WawiCallPro.MailCache.v1`, verhindert Übernahme fremder Dateien. |
+| `retentiondays` | Ganzzahl | Nein | Zuletzt angewendeter Cachezeitraum nach Empfangsdatum; Vergrößerung setzt Delta-Cursor zurück. |
+
+## mailattachmentblobs – Geschützte Anhangsdaten im lokalen SQLite-Mailcache
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `messageid` | Text | Nein | Fremdschlüssel auf die lokale Nachricht in `mailmessages`. |
+| `attachmenthash` | Hex 64 | Nein | Hash der vollständigen opaken Anhangs-ID; zusammen mit der Nachricht eindeutig. |
+| `revisionhash` | Hex 64 | Nein | Nachrichtenrevision, zu der die gespeicherten Bytes gehören. |
+| `payload` | BLOB | Nein | DPAPI-geschützte Originalbytes, an Windows-Benutzer, Konto, Nachricht, Revision und Anhang gebunden. Original maximal 32 MiB. Name, Größe und Quell-ID stehen im geschützten Nachrichtenumschlag. |
+
+## mailcacheversioninfo – Eigenständige FluentMigrator-Version der Cache-Erweiterung
+
+| Spalte | Typ | NULL | Bedeutung |
+|---|---|---|---|
+| `version` | Ganzzahl 64 Bit | Nein | Version der ausschließlich lokalen Cache-Erweiterung; derzeit 1. |
+| `appliedon` | Datum/Uhrzeit | Ja | Vom FluentMigrator-Runner gesetzter Anwendungszeitpunkt. |
+| `description` | Text | Ja | Beschreibung des angewendeten Cache-Migrationsschritts. |
+
 ## Beziehungen und Lebensdauer
 
 `companies` ist die lokale Wurzel für Quellfirmen. `parties` besitzt Anschriften und Rufnummern;

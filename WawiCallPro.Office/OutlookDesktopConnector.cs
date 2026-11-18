@@ -118,9 +118,9 @@ public sealed class OutlookDesktopConnector(MailAccountSettings account) : IMail
         {
             item = session.GetItemFromID(id.Entry, id.Store); attachments = ((dynamic)item).Attachments; attachment = ((dynamic)attachments).Item(index);
             var size = (long)((dynamic)attachment).Size; var name = (string)((dynamic)attachment).FileName;
-            if (size is < 0 or > 5 * 1024 * 1024 || attachmentId != AttachmentId(index, name, size)) throw new MailException(MailFailure.Conflict);
+            if (size is < 0 or > MailLimits.AttachmentBytes || attachmentId != AttachmentId(index, name, size)) throw new MailException(MailFailure.Conflict);
             ((dynamic)attachment).SaveAsFile(file); cancellationToken.ThrowIfCancellationRequested();
-            if (new FileInfo(file).Length > 5 * 1024 * 1024) throw new MailException(MailFailure.LimitExceeded);
+            if (new FileInfo(file).Length > MailLimits.AttachmentBytes) throw new MailException(MailFailure.LimitExceeded);
             return File.ReadAllBytes(file);
         }
         finally { Release(attachment); Release(attachments); Release(item); if (File.Exists(file)) File.Delete(file); Directory.Delete(directory); }

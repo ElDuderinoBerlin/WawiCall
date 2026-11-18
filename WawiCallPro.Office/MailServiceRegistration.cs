@@ -13,9 +13,12 @@ public static class MailServiceRegistration
         services.AddSingleton(provider => new MailHttp(provider.GetRequiredService<MailProviderHttpClient>(), provider.GetRequiredService<IMailAuthentication>()));
         services.AddSingleton<IMailConnectorFactory, MailConnectorFactory>();
         services.AddSingleton<LxPrintStudioMailImport>(); services.AddSingleton<MailAccounts>();
-        services.AddSingleton<IMailSynchronization, MailImportService>();
-        services.AddSingleton<ImportedMailViewSource>();
-        services.AddSingleton<IMailViewSource>(provider => provider.GetRequiredService<ImportedMailViewSource>());
+        services.AddSingleton<DirectMailViewSource>();
+        services.AddSingleton<IMailBlobProtector, ProtectedMailBlob>();
+        services.AddSingleton<MailCacheService>();
+        services.AddSingleton<IMailSynchronization>(provider => provider.GetRequiredService<MailCacheService>());
+        services.AddSingleton<IMailViewSource>(provider => provider.GetRequiredService<MailCacheService>());
+        services.AddSingleton<IMailCacheMaintenance>(provider => provider.GetRequiredService<MailCacheService>());
         services.AddSingleton<MailApplication>();
         return services;
     }
