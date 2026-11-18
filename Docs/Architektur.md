@@ -583,6 +583,93 @@ Fehlende Adressen liefern keine Nachrichten. Der Mail-Tab eines Anrufs behält s
 Geschäftspartnerkontext; er verändert weder den globalen Mandanten noch vorhandene Fach-Tabs.
 Build-/Bildnachweise und die verbleibende Abnahme stehen in Phase 11 des [Neuaufbau-Plans](Neuaufbau-Plan.md).
 
+### Gemeinsame Lexware-Zuordnung für Telefon und Mail (Analyse 18.11.2026)
+
+**Verbindliches Ziel:** Ein eingehender Anruf ermittelt den Kunden-/Lieferantenbesitzer und gegebenenfalls
+die konkrete Kontaktperson. Die Mailansicht verwendet danach sämtliche zu diesem Besitzer gehörenden
+Mailadressen aus Stammdaten, Anschriften und verknüpften Kontaktpersonen. Ein Treffer auf eine Kontaktperson
+darf die Mailansicht nicht auf deren erste Mailadresse einschränken. Diese vollständige Zusammenführung
+ist noch nicht implementiert; die bisherige Mailfilterung deckt nur die bereits übertragenen Adressen ab.
+
+#### Verifizierte lokale Quellen und Feldumfang
+
+Geprüft wurden die vorhandenen Quantarix-Modelle, das Pro-GraphQL-Schema `graphql-schema-07062026.json`,
+das PCFK-DDL `Scripts/musterfirma-naked.sql` und die aktuellen WawiCallPro-Adapter. Das ist eine
+Quellcode-/Schemaanalyse, keine vollständige Abnahme sämtlicher installierter Lexware-Versionen.
+Der vom Benutzer gezeigte FinOffice-Kontaktdialog bestätigt den Kundenbezug und auswählbare Telefonarten.
+Die Anzahl sichtbarer Kommunikationszeilen begrenzt nicht den zu lesenden Datenumfang.
+
+Die zusätzlichen FinOffice-Screenshots zeigen `fk_kontaktperson` mit beiden Mailfeldern und allen
+vier Telefonarten sowie die separate Zuordnungstabelle. Im geprüften DDL verbindet
+`fk_kunde2kontaktperson.lIdKontaktperson` den Kontakt mit `fk_kunde2kontaktperson.lIdKunde`;
+dieser Wert bezeichnet die native Besitzer-ID und ist nicht ungeprüft die sichtbare Kundennummer.
+`fk_kontaktperson2zuordnung.lIdZuordnung` verweist dagegen auf die frei benannte Zugehörigkeit
+`fk_zuordnung.szValue`. Die Repository-Abfragen unterscheiden beide Beziehungen ausdrücklich.
+Die Zuordnungen sind daher nicht austauschbar. Eine fehlende **Anschriften-Zuordnung** im Kontaktdialog
+hebt die Kunden-/Lieferantenbindung ebenfalls nicht auf. Dasselbe gilt für optionale Pro-Kontaktanschriften.
+
+| Produkt / Quelle | Mailfelder | Telefonfelder / Besonderheit |
+|---|---|---|
+| Pro: Kunde, Rechnungs-/Lieferanschrift | Je `email`, `email2` | Je `telephone`, `telephone2`, `telephone3`, `cellphone`, `fax` |
+| Pro: Kunden-Zusatzanschrift (`AddressData`) | `email`, `email2` | `telephone`, `telephone2`, `telephone3`, `cellphone`, `fax`; native Anschrift und Besitzer erhalten |
+| Pro: Lieferant, Bestell-/Rechnungs- und Lieferanschrift | Im geprüften Typ jeweils `email`; kein pauschales `email2` anfordern | `telephone`, `telephone2`, `telephone3`, `fax`; Alias `invoiceAddress`/`orderAddress` nicht als zwei unabhängige Quellen zählen |
+| Pro: `CustomerContactPersonDataType` und `SupplierContactPersonDataType` | `email1`, `email2` | `phone1`, `phone2`, `mobil`, `fax`; über `customer.contactPersons` beziehungsweise `supplier.contactPersons` zum Besitzer |
+| FinOffice: `fk_kd_view` für Kunde/Lieferant | `szEMail` | `szTel1`, `szTel2`, `szFax`, zusätzlich `szLieferTel`; weitere Hauptstamm-Mobil-/Liefermailfelder im geprüften Schema nicht belegt |
+| FinOffice: `fk_kontaktperson` | `szEmail1`, `szEmail2` | `szTel1`, `szTel2`, `szMobil`, `szFax`; Besitzer über `fk_kunde2kontaktperson` und dessen Kunden-/Lieferantenrolle |
+| Zusätzliche fachliche Mailfelder | Pro-Lieferant `electronicInvoiceRecipientEmail`; FinOffice `szElectronicInvoiceRecipientEmail` einschließlich RFC-Variante im Basis-DDL | Nutzungskennzeichen und Fachbedeutung berücksichtigen; gemeinsam verwendete Rechnungsadressen beweisen keine eindeutige Identität |
+
+Pro-Referenzen: [Adressmodell](../../Quantarix.Lexware.APIService/Quantarix.Lexware.APIService/Models/Address/AddressModels.cs),
+[Kontaktmodell](../../Quantarix.Lexware.APIService/Quantarix.Lexware.APIService/Models/ContactPerson/ContactModels.cs),
+[Schema](../../Quantarix.Lexware.APIService/LexwareApiTokenClient.Console/Schemas/graphql-schema-07062026.json).
+FinOffice-Referenzen: [Kontaktmodell](../../Quantarix.Pcfk.DataAccess/Entities/PcfkKontaktperson.cs),
+[Schema](../../Quantarix.Pcfk.DataAccess/Scripts/musterfirma-naked.sql).
+Adress-/Kontaktbezüge und die tatsächliche Verfügbarkeit optionaler Felder sind je Quelltyp zu prüfen;
+keine nicht belegten Felder für sämtliche Adresstypen voraussetzen. Historische Kommunikationsvermerke
+und Mailabsender der eigenen Firma sind nicht automatisch aktuelle Kontaktadressen eines Geschäftspartners.
+
+#### Schlüssel und logischer Ablauf
+
+Die Kunden-/Lieferantennummer ist die sichtbare Fachnummer. Intern bleibt der bestehende vollständige
+Schlüssel maßgeblich: **Produktlinie + Installation + Mandant + Kunden-/Lieferantenrolle + native Datensatz-ID**.
+Kontaktpersonen behalten zusätzlich ihre native Kontakt-ID und den eindeutigen Besitzerbezug. Anzeigename,
+Fachnummer oder eine alleinstehende Kontakt-ID sind keine mandantenübergreifenden Schlüssel.
+Eine Firmenbezeichnung ist dabei der Name eines Geschäftspartners; sie ersetzt weder den Besitzerbezug
+noch den Mandanten. Bei mehreren ausdrücklichen Besitzerverknüpfungen jede Beziehung getrennt erhalten.
+
+1. Alle belegten Telefon- und Mailfelder der Besitzer, Anschriften und ausdrücklich verknüpften Kontakte
+   lesen. Originalwert, Quellfeld, Quell-ID, Besitzer, Rolle und gegebenenfalls Kontaktperson erhalten.
+2. Telefonnummern im vorhandenen Rufnummernindex normalisieren und auf Besitzer **und** Kontakt beziehen.
+   Mailadressen in einem entsprechenden Kontaktwegeindex exakt kanonisieren; mehrere Werte pro Feld
+   fachgerecht parsen, ungültige Werte melden. Keine Domain-, Teilstring- oder geratenen Gmail-Alias-Treffer.
+3. Bei einem Anruf den Besitzer bestimmen. Mehrere Kontakte derselben Firma bedeuten nicht automatisch
+   einen bestimmten Ansprechpartner. Mehrere Besitzer, Rollen oder Mandanten bleiben Mehrfachtreffer und
+   benötigen eine fachlich abgesicherte Auswahl.
+4. Für den angenommenen Besitzer sämtliche zugehörigen Mailadressen auflösen, einschließlich beider
+   Mailfelder aller verknüpften Kontakte. Ein Ansprechpartnerfilter kann die Ansicht zusätzlich eingrenzen;
+   die allgemeine Kunden-/Lieferantenansicht verwendet die vollständige Besitzergruppe.
+5. Nachrichten über Absender und verfügbare Empfänger mit diesem Adresssatz verknüpfen. Konto-, Ordner-,
+   Produktlinien- und Mandantenfreigaben gelten weiterhin. Eine Nachricht kann mehreren berechtigten
+   Besitzern zugeordnet sein; der Mailcache speichert ihren Inhalt nur einmal je Quellnachricht.
+
+Damit lautet die Verbindung **Rufnummer → Besitzer/Kontakt → vollständiger Mailadresssatz → Nachrichten**.
+Eine direkte Verknüpfung von Telefonnummer und Mailadresse ist nicht erforderlich. Änderungen oder
+Entfernungen in Lexware müssen beide Zuordnungen revisionsgebunden aktualisieren; veraltete Mailbezüge
+dürfen nicht allein wegen einer einmal gespeicherten Fachnummer erhalten bleiben.
+
+#### Abweichung des bisherigen Stands
+
+Der Telefoncache liest bereits Besitzer-, Anschrift- und Kontakttelefonnummern und erhält die Kontaktbesitzer.
+Pro fragt jedoch bei Kundenanschriften nur `email` und bei Kontakten nur `email1` ab. FinOffice übernimmt
+ebenfalls nur `EMail1` der Kontakte. `Party.Email` und `PartyAddress.Email` tragen jeweils nur einen Wert;
+eine vollständige Liste mit Mailquellen fehlt. Die aktuelle Mailquelle sammelt die Adressen des einzelnen
+übergebenen `Party`-Objekts, nicht die aller zugehörigen Kontaktpersonen. Der Anruf-Tab übergibt genau
+diesen ausgewählten Datensatz. Deshalb ist die vollständige besitzerbezogene Zuordnung ausdrücklich offen.
+
+Abnahmefälle: Treffer ausschließlich über zweite Kunden-/Kontaktmailadresse; Anruf auf zweiter oder
+mobiler Kontaktnummer; Mails anderer Kontakte desselben Besitzers; Kunde und Lieferant mit gleicher
+Fachnummer; gemeinsam verwendete Nummern/Mailadressen; mehrere Mandanten/Installationen;
+entfernte oder neu zugeordnete Kontakte; ungültige/leere Felder; gleicher Ablauf mit und ohne Mailcache.
+
 ### Optionaler lokaler SQLite-Mailcache (18.11.2026)
 
 `MailCacheService` ersetzt die Kommunikationsdatenbank als reguläre Mailquelle des App-Hosts.
