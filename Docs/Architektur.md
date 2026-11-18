@@ -656,6 +656,20 @@ Eine direkte Verknüpfung von Telefonnummer und Mailadresse ist nicht erforderli
 Entfernungen in Lexware müssen beide Zuordnungen revisionsgebunden aktualisieren; veraltete Mailbezüge
 dürfen nicht allein wegen einer einmal gespeicherten Fachnummer erhalten bleiben.
 
+`CompanyContactIndex` stellt diesen unveränderlichen Kontaktwegeindex für einen vollständigen
+Mandantensnapshot bereit. Exakte Mail-/E.164-Treffer behalten Besitzer, Quell-Geschäftspartner und
+SourceField; gleiche Werte können mehrere Treffer liefern. Kontaktgruppen werden nach vollständigem
+Besitzerschlüssel gebildet und erhalten eine Inhaltsversion aus Mitgliedern und freigegebenem Mailadresssatz.
+Ein entfernter Kontakt oder geänderter Adresssatz ändert diese Version. Inaktive Besitzer/Kontakte und
+deaktivierte Rechnungs-Mailfelder geben keine Treffer frei. Verwaiste Besitzer und fremde Mandanten
+werden abgewiesen. Die bestehende Rufnummernerkennung mit Durchwahlen und Mehrfachtrefferentscheidung
+bleibt erhalten; der neue Index ersetzt keine ihrer fachlichen Regeln.
+
+`MailAddressFields` zerlegt komma-/semikolongetrennte Werte unter Beachtung zitierter Anzeigenamen,
+kanonisiert Adressen und internationale Domainnamen und bewahrt ungültige Originalwerte zur Diagnose.
+Punkte und Plus-Tags werden nicht als angebliche Anbieter-Aliase entfernt. Historische einzelne
+Mailwerte bleiben lesbar, gelten aber weiterhin als unvollständiger Quellstand.
+
 #### Abweichung des bisherigen Stands
 
 Der Telefoncache liest Besitzer-, Anschrift- und Kontakttelefonnummern und erhält die Kontaktbesitzer.

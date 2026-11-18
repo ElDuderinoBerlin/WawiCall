@@ -3382,10 +3382,22 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   bekannte externe CSCore-Warnungen. Nachweise `.contact-fields-{build,pro,fin,db,office,console}-{pro,fin}.log`
   und `.contact-fields-providers-final.log`; FinOffice ist die reguläre Startausgabe. Die folgende
   Besitzergruppenauflösung ist ein eigenständiger nächster Schritt dieses Auftrags.
-- [ ] Gemeinsamen, revisionsgebundenen Kontaktwegeindex für Besitzer, Anschriften und Kontaktpersonen
+- [x] ✅ Gemeinsamen, revisionsgebundenen Kontaktwegeindex für Besitzer, Anschriften und Kontaktpersonen
   bereitstellen: Telefon/E-Mail → vollständiger Besitzer-Schlüssel und optional Kontakt-Schlüssel.
   Kunden-/Lieferantennummer anzeigen; intern Produktlinie, Installation, Mandant, Rolle und native ID nutzen.
   Bereits gelesene Telefonfelder und Besitzerbindungen erhalten und gegen die vollständige Matrix prüfen.
+  Umsetzung 18.11.2026: `CompanyContactIndex` erhält für jeden exakten Mail-/E.164-Treffer Besitzer,
+  Kontakt/Quellpartei und Quellfeld. Besitzergruppen umfassen sämtliche aktiven Kontakte und werden
+  über Mitglieder und normalisierten Mailadresssatz versioniert. Fehlende Besitzer und fremde Mandanten
+  werden zurückgewiesen; gleiche Nummern/Adressen bleiben Mehrfachtreffer. `MailAddressFields` liest
+  beide Mailfelder, Mehrfachwerte und zitierte Anzeigenamen, behandelt internationale Domainnamen und
+  meldet ungültige Teile ohne gültige Teiladressen zu verlieren. Keine geratenen Gmail-/Domain-Aliase.
+  Zehn neue Fälle; alle 299 Core-Tests je Edition bestanden. Eine veraltete feste Versionsannahme für
+  das bereits separat aktualisierte Telefonnummernpaket wurde an die vom Parser gemeldete Version
+  gebunden; die fremde Paketaktualisierung bleibt unverändert und ungestagt. Beide regulären
+  Solution-Builds Debug/Any CPU: null Fehler, je 26 bekannte externe CSCore-Warnungen.
+  Nachweise `.contact-index-{build,tests}-{pro,fin}.log`; die Anbindung der Besitzergruppe an die
+  Mailquelle folgt im nächsten Punkt dieses Auftrags.
 - [ ] Anruf-Mailkontext über den erkannten Besitzer auflösen: bei Kontaktanruf den Ansprechpartner erhalten,
   für Kunden-/Lieferantenmails jedoch sämtliche zugehörigen Adressen und Kontakte berücksichtigen.
   Eingehende/ausgehende Mails, doppelte Adressen, gemeinsame Rufnummern, mehrere Rollen/Mandanten und

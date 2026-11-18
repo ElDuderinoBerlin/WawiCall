@@ -61,7 +61,8 @@ public sealed class PhoneNumberParserTests
         Assert.AreEqual("0236618300", result.NationalNumber);
         Assert.AreEqual("+390236618300", result.E164);
         Assert.IsFalse(result.ToString().Contains(original, StringComparison.Ordinal));
-        StringAssert.StartsWith(result.ParserVersion, "libphonenumber-csharp/9.0.42");
+        StringAssert.StartsWith(result.ParserVersion, "libphonenumber-csharp/");
+        Assert.AreEqual(_parser.Version, result.ParserVersion);
         StringAssert.EndsWith(result.ParserVersion, ";normalization/2");
     }
 
