@@ -9,7 +9,11 @@ namespace WawiCallPro.Core.Parties;
 
 /// <summary>A contact way always retains its owner, its source party and its original source field.</summary>
 public sealed record PartyContactMatch(PartyKey Owner, PartyKey SourceParty, SourceField Source, string OriginalValue);
-public sealed record PartyMailGroup(Party Owner, string Version, ImmutableArray<PartyKey> Members);
+public sealed record PartyMailGroup(Party Owner, string Version, ImmutableArray<PartyKey> Members)
+{
+    public bool IsFromCache { get; init; }
+    public int InvalidMailFieldCount { get; init; }
+}
 
 /// <summary>Immutable exact contact-way index for one complete company snapshot; shared values never imply uniqueness.</summary>
 public sealed class CompanyContactIndex
@@ -57,7 +61,8 @@ public sealed class CompanyContactIndex
         var fields = members.SelectMany(party => MailAddressFields.OriginalFields(party)).Distinct().ToImmutableArray();
         var combined = owner with { Emails = fields, Email = null, Addresses = [], ContactFieldsVersion = IsComplete ? Party.CurrentContactFieldsVersion : 0 };
         var bytes = JsonSerializer.SerializeToUtf8Bytes(new { Owner = key, Members = keys, Emails = MailAddressFields.Normalized(combined).Order(StringComparer.Ordinal).ToArray() });
-        try { return new(combined, Convert.ToHexString(SHA256.HashData(bytes)), keys); }
+        try { return new(combined, Convert.ToHexString(SHA256.HashData(bytes)), keys)
+            { InvalidMailFieldCount = fields.Count(field => field.UseForMatching && MailAddressFields.Parse(field.OriginalValue).HasInvalidValues) }; }
         finally { CryptographicOperations.ZeroMemory(bytes); }
     }
 

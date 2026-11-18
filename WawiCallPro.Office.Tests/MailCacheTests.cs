@@ -12,7 +12,7 @@ using WawiCallPro.Utilities.Security;
 namespace WawiCallPro.Office.Tests;
 
 [TestClass]
-public sealed class MailCacheTests
+public sealed partial class MailCacheTests
 {
     [TestMethod]
     public async Task SqliteCacheIncludesProtectedAttachmentBlobsAndWorksWithoutTheProvider()
@@ -223,6 +223,8 @@ public sealed class MailCacheTests
         internal ConfigurationStore Settings { get; private set; } = null!;
         internal MailCacheService Cache { get; private set; } = null!;
         internal FakeConnector Provider { get; private set; } = null!;
+        internal IMailConnectorFactory Factory { get; private set; } = null!;
+        internal MailAccounts AccountService { get; private set; } = null!;
         internal MailAccountSettings Account { get; } = new() { Id = Guid.NewGuid(), Provider = MailProviderKind.OutlookDesktop, DisplayName = "Synthetic", ImportDays = 0, FolderIds = ["inbox"], FolderNames = ImmutableDictionary<string, string>.Empty.Add("inbox", "Posteingang"), Company = new(LexwareProductLine.Pro, "test", "company") };
         internal MailFolderKey Folder => new("outlook", Account.Id.ToString("N"), "inbox");
         internal MailEnvelope Message { get; private set; } = null!;
@@ -230,11 +232,12 @@ public sealed class MailCacheTests
         {
             var fixture = new Fixture(); Directory.CreateDirectory(fixture.Root);
             fixture.Message = new(new(new("outlook", fixture.Account.Id.ToString("N"), "message"), "Synthetic", "customer@example.test", "owner@example.test", "", DateTimeOffset.UtcNow, "private body", null, [new("file.pdf", 4) { Id = "file" }]), null, "customer@example.test", [], ["inbox"], "revision1");
-            fixture.Provider = new(fixture.Account.Id, fixture.Message); var factory = new FakeFactory(fixture.Provider);
+            fixture.Provider = new(fixture.Account.Id, fixture.Message); var factory = new FakeFactory(fixture.Provider); fixture.Factory = factory;
             var secrets = new WindowsUserSecretProtector(); var validator = new ApplicationOptionsValidator(secrets); var location = new ConfigurationLocation(fixture.Root);
             fixture.Settings = new(location, validator); await fixture.Settings.SaveAsync(new() { MailAccounts = [fixture.Account], MailCache = new() { Enabled = enabled } }, await fixture.Settings.LoadAsync());
             var auth = new NoAuthentication(); var http = new MailHttp(new HttpClient(new NoNetwork()), auth);
             var accounts = new MailAccounts(fixture.Settings, validator, secrets, auth, factory, new(secrets), http);
+            fixture.AccountService = accounts;
             fixture.Cache = new(fixture.Settings, new(location), accounts, factory, new(secrets), new ProtectedMailBlob(), new(accounts, factory)); return fixture;
         }
         internal async Task Policy(bool enabled, int days)
@@ -267,6 +270,7 @@ public sealed class MailCacheTests
         internal MailEnvelope Message = message; internal bool Offline; internal int ChangeCalls; internal List<string?> Checkpoints = [];
         internal Func<CancellationToken, Task>? BeforeChange, BeforeAttachment, BeforeList, BeforeRead;
         internal int AttachmentCalls;
+        internal byte[]? LastAttachment;
         internal bool AttachmentUnavailable, EmptyChanges;
         public Guid AccountId => id; public string Provider => "outlook";
         private void Online() { if (Offline) throw new MailException(MailFailure.ProviderUnavailable); }
@@ -277,7 +281,7 @@ public sealed class MailCacheTests
         public async Task<MailChangePage> GetChangesAsync(string folderId, string? checkpoint, string? nextPage, CancellationToken cancellationToken = default)
         { Online(); if (BeforeChange is not null) await BeforeChange(cancellationToken); ChangeCalls++; Checkpoints.Add(checkpoint); return new(EmptyChanges ? [] : [Message], [], null, "checkpoint") { FullSnapshot = checkpoint is null }; }
         public async Task<byte[]> GetAttachmentAsync(string messageId, string attachmentId, CancellationToken cancellationToken = default)
-        { Online(); AttachmentCalls++; if (BeforeAttachment is not null) await BeforeAttachment(cancellationToken); if (AttachmentUnavailable) throw new MailException(MailFailure.ProviderUnavailable); return [1, 2, 3, 4]; }
+        { Online(); AttachmentCalls++; if (BeforeAttachment is not null) await BeforeAttachment(cancellationToken); if (AttachmentUnavailable) throw new MailException(MailFailure.ProviderUnavailable); return LastAttachment = [1, 2, 3, 4]; }
     }
     private sealed class NoAuthentication : IMailAuthentication
     {

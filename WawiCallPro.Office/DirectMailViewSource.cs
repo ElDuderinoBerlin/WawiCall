@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Office;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Core.Parties;
 
 namespace WawiCallPro.Office;
 
@@ -54,10 +55,9 @@ public sealed class DirectMailViewSource(MailAccounts accounts, IMailConnectorFa
         return message is null || message.Content.Key != key || !message.FolderIds.Intersect(account.FolderIds).Any() ||
             account.ImportDays != 0 && message.Content.Date < DateTimeOffset.UtcNow.AddDays(-account.ImportDays) || party is not null && !Matches(message, party) ? null : message.Content;
     }
-    private static HashSet<string> Addresses(Party party) => party.Addresses.Select(item => item.Email).Append(party.Email)
-        .Select(MailImportService.CanonicalAddress).Where(item => item is not null).Select(item => item!).ToHashSet(StringComparer.Ordinal);
+    private static HashSet<string> Addresses(Party party) => MailAddressFields.Normalized(party).ToHashSet(StringComparer.Ordinal);
     private static bool Matches(MailEnvelope message, Party party) => message.Recipients.Select(item => item.Address).Append(message.SenderAddress)
-        .Select(MailImportService.CanonicalAddress).Any(item => item is not null && Addresses(party).Contains(item));
+        .Select(MailAddressFields.CanonicalSingle).Any(item => item is not null && Addresses(party).Contains(item));
     private sealed class Scoped(DirectMailViewSource source, Party party) : IMailViewSource
     {
         public Task<MailFolderCatalog> GetFoldersAsync(CancellationToken cancellationToken = default) => source.Folders(party, cancellationToken);

@@ -20,6 +20,7 @@ public static class MailServiceRegistration
         services.AddSingleton<IMailViewSource>(provider => provider.GetRequiredService<MailCacheService>());
         services.AddSingleton<IMailCacheMaintenance>(provider => provider.GetRequiredService<MailCacheService>());
         services.AddSingleton<MailApplication>();
+        services.AddSingleton<PartyMailScopeResolver>();
         return services;
     }
 }

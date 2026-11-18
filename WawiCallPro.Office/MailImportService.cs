@@ -6,6 +6,7 @@ using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Office;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Core.Parties;
 
 namespace WawiCallPro.Office;
 
@@ -149,20 +150,27 @@ public sealed class ImportedMailViewSource(MailAccounts accounts, IMailImportRep
         if (folder.Id.StartsWith("account:", StringComparison.Ordinal)) return [];
         if (!account.FolderIds.Contains(folder.Id)) throw new MailException(MailFailure.AccessDenied);
         await repository.GetStateAsync(MailImportService.Binding(account), MailIdentity.Hash(folder.Id), token);
-        var addresses = Addresses(party); var result = new List<MailListItem>(); string? after = null; var loaded = 0;
-        do
+        var addresses = Addresses(party); var result = new List<MailListItem>(); var seen = new HashSet<string>(StringComparer.Ordinal);
+        IEnumerable<ImmutableArray<string>?> filters = addresses is null ? [null] : addresses.Value.Chunk(500).Select(chunk => (ImmutableArray<string>?)chunk.ToImmutableArray());
+        foreach (var filter in filters)
         {
-            var page = await repository.GetPageAsync(new(account.Id, [.. account.FolderIds.Select(MailIdentity.Hash)], MailIdentity.Hash(folder.Id), addresses, after), token);
-            foreach (var record in page.Items)
+            string? after = null;
+            do
             {
-                if (++loaded > account.MaximumMessages) throw new MailException(MailFailure.LimitExceeded);
-                var envelope = MailImportService.Decode(record, account, encryption); var content = envelope.Content;
-                if (account.ImportDays != 0 && content.Date < DateTimeOffset.UtcNow.AddDays(-account.ImportDays)) continue;
-                if (search.Length > 0 && !string.Join("\n", content.Subject, content.From, content.To, content.Cc, content.Text, content.Html).Contains(search, StringComparison.CurrentCultureIgnoreCase)) continue;
-                result.Add(new(content.Key, folder, content.From, content.Subject, content.Date, envelope.Preview, envelope.IsRead, content.Attachments.Length));
-            }
-            if (!page.HasMore) break; after = page.Items[^1].Id;
-        } while (true);
+                var page = await repository.GetPageAsync(new(account.Id, [.. account.FolderIds.Select(MailIdentity.Hash)], MailIdentity.Hash(folder.Id), filter, after), token);
+                foreach (var record in page.Items)
+                {
+                    if (!seen.Add(record.Id)) continue;
+                    if (seen.Count > account.MaximumMessages) throw new MailException(MailFailure.LimitExceeded);
+                    var envelope = MailImportService.Decode(record, account, encryption); var content = envelope.Content;
+                    if (account.ImportDays != 0 && content.Date < DateTimeOffset.UtcNow.AddDays(-account.ImportDays)) continue;
+                    if (search.Length > 0 && !string.Join("\n", content.Subject, content.From, content.To, content.Cc, content.Text, content.Html).Contains(search, StringComparison.CurrentCultureIgnoreCase)) continue;
+                    result.Add(new(content.Key, folder, content.From, content.Subject, content.Date, envelope.Preview, envelope.IsRead, content.Attachments.Length));
+                }
+                if (!page.HasMore) break; after = page.Items[^1].Id;
+            } while (true);
+        }
+        await MailAccountScope.VerifyAsync(accounts, account, token);
         return [.. result.OrderByDescending(item => item.Date)];
     }
     public Task<MailContent?> GetMessageAsync(MailMessageKey message, CancellationToken cancellationToken = default) => Content(message, null, cancellationToken);
@@ -179,6 +187,7 @@ public sealed class ImportedMailViewSource(MailAccounts accounts, IMailImportRep
             if (!envelope.Recipients.Select(item => item.Address).Append(envelope.SenderAddress).Select(MailImportService.CanonicalAddress).Where(item => item is not null).Select(item => MailIdentity.Hash(item!)).Intersect(allowed).Any()) return null;
         }
         await repository.GetStateAsync(MailImportService.Binding(account), MailIdentity.Hash(envelope.FolderIds.Intersect(account.FolderIds).First()), token);
+        await MailAccountScope.VerifyAsync(accounts, account, token);
         return envelope.Content;
     }
     private async Task<ImmutableArray<MailAccountSettings>> Allowed(Party? party, CancellationToken token) =>
@@ -187,7 +196,12 @@ public sealed class ImportedMailViewSource(MailAccounts accounts, IMailImportRep
         (await Allowed(party, token)).SingleOrDefault(account => account.Id.ToString("N") == identity && Provider(account) == provider) ?? throw new MailException(MailFailure.AccessDenied);
     private static string Provider(MailAccountSettings account) => account.Provider switch { MailProviderKind.Microsoft365 => "graph", MailProviderKind.Gmail => "gmail", _ => "outlook" };
     private static ImmutableArray<string>? Addresses(Party? party) => party is null ? null :
-        [.. party.Addresses.Select(item => item.Email).Append(party.Email).Select(MailImportService.CanonicalAddress).Where(item => item is not null).Select(item => MailIdentity.Hash(item!)).Distinct()];
+        [.. MailAddressFields.Normalized(party).Order(StringComparer.Ordinal).SelectMany(value =>
+        {
+            var position = value.LastIndexOf('@'); var host = value[(position + 1)..];
+            var unicode = host.StartsWith('[') ? host : new System.Globalization.IdnMapping().GetUnicode(host);
+            return new[] { value, value[..(position + 1)] + unicode.ToLowerInvariant() };
+        }).Select(MailIdentity.Hash).Distinct()];
     private sealed class PartySource(ImportedMailViewSource owner, Party party) : IMailViewSource
     {
         public Task<MailFolderCatalog> GetFoldersAsync(CancellationToken cancellationToken = default) => owner.Folders(party, cancellationToken);

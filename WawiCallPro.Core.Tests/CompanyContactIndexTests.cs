@@ -25,6 +25,7 @@ public sealed class CompanyContactIndexTests
     [DataRow("\"Example; Corporation, Sales\" <First@Example.test>; second@example.test", "first@example.test|second@example.test", false)]
     [DataRow("bad-value; valid@example.test; also-bad", "valid@example.test", true)]
     [DataRow("User@bücher.example", "user@xn--bcher-kva.example", false)]
+    [DataRow("\"quoted user\"@example.test", "\"quoted user\"@example.test", false)]
     [DataRow("User.Name+tag@gmail.com, UserName@gmail.com", "user.name+tag@gmail.com|username@gmail.com", false)]
     [DataRow("", "", false)]
     public void OriginalMailFieldsAreParsedWithoutGuessingAliases(string raw, string expected, bool invalid)

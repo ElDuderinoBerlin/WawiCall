@@ -6,10 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 18.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt analysiert: vollständige Lexware-Kontaktwege für Pro und FinOffice. Die Telefonzuordnung erhält
-bereits Anschriften/Kontakte und Besitzer; zweite Mailfelder und der vollständige Mailadresssatz aller
-Kontakte eines Kunden/Lieferanten fehlen noch. Der gemeinsame Ablauf Rufnummer → Besitzer/Kontakt →
-Mailadressen → Nachrichten ist in Phase 11 ausdrücklich als offen präzisiert (18.11.2026).
+Zuletzt umgesetzt: vollständige Lexware-Kontaktwege für Pro und FinOffice einschließlich zweiter Mailfelder,
+aller belegten Telefonarten und ausdrücklicher Kontaktbesitzer. Migration 14 persistiert die zusätzlichen
+Mailquellen. Der Ablauf Rufnummer → Besitzer/Kontakt → vollständiger Mailadresssatz → Nachrichten ist an
+die Anrufansicht angeschlossen. Aktueller Quellstand, kenntlicher Cachefallback, Gruppenrevisionen,
+Anhangsfreigabe und Mehrfachtreffer sind berücksichtigt (Phase 11, 18.11.2026).
 Zuvor ergänzt: optionaler lokaler SQLite-Mailcache mit konfigurierbarer Aufbewahrung, geschützten
 Anhangs-BLOBs und sicherem Neuaufbau. Checkbox und Cachezeitraum stehen unter **Office / Mail**;
 Abruf, Kontoeinrichtung, Neuaufbau und Abbruch im Ribbon **Mails**. Start-Ribbon neu gruppiert und
@@ -464,7 +465,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; Hintergrundabgleich bekannter WAV-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; automatische Kodierungswarteschlange, serverbasierte Prozessabbruch-/Stromausfallabnahme, MP3-Abgleich, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ Mailansicht und Kundenmails bei Anrufen. ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole; vollständiger Mailadresssatz aus Stammdaten und Kunden-/Lieferantenkontakten, native Kontoabnahmen und Kontakte/Termine noch offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -3356,9 +3357,9 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Besitzerverknüpfung `fk_kunde2kontaktperson` von den Zugehörigkeiten `fk_kontaktperson2zuordnung`/
   `fk_zuordnung`. Optionale Anschriftenzuordnung ersetzt keine Besitzerbindung. Die Analyse enthält
   keine vollständige native Feldabnahme und keine kopierten personenbezogenen Beispieldaten.
-- [x] ✅ Mailfilterung für bereits gelesene Adressen eines einzelnen Geschäftspartner-Snapshots umgesetzt;
-  exakte Adressen und Produkt-/Installations-/Mandantenbezug durchgesetzt. Dies ist noch keine vollständige
-  Zuordnung aller Mailfelder und aller Kontaktpersonen eines Kunden/Lieferanten.
+- [x] ✅ Mailfilterung zunächst für bereits gelesene Adressen eines einzelnen Geschäftspartner-Snapshots umgesetzt;
+  exakte Adressen und Produkt-/Installations-/Mandantenbezug durchgesetzt. Die nachfolgenden Punkte erweitern
+  diese Grundlage auf alle Mailfelder und alle Kontaktpersonen eines Kunden/Lieferanten.
 - [x] ✅ Vollständige Feldmatrix aus [Architektur – gemeinsame Lexware-Zuordnung](Architektur.md#gemeinsame-lexware-zuordnung-für-telefon-und-mail-analyse-18112026)
   in beiden Adaptern umsetzen. Pro: Kunden-Rechnungs-/Liefer-/Zusatzanschriften mit `email`/`email2`,
   **Kontakte sowohl der Kunden als auch der Lieferanten** über deren `contactPersons` mit `email1`/`email2`;
@@ -3398,14 +3399,43 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Solution-Builds Debug/Any CPU: null Fehler, je 26 bekannte externe CSCore-Warnungen.
   Nachweise `.contact-index-{build,tests}-{pro,fin}.log`; die Anbindung der Besitzergruppe an die
   Mailquelle folgt im nächsten Punkt dieses Auftrags.
-- [ ] Anruf-Mailkontext über den erkannten Besitzer auflösen: bei Kontaktanruf den Ansprechpartner erhalten,
+- [x] ✅ Anruf-Mailkontext über den erkannten Besitzer auflösen: bei Kontaktanruf den Ansprechpartner erhalten,
   für Kunden-/Lieferantenmails jedoch sämtliche zugehörigen Adressen und Kontakte berücksichtigen.
   Eingehende/ausgehende Mails, doppelte Adressen, gemeinsame Rufnummern, mehrere Rollen/Mandanten und
   geänderte Kontaktbindungen behandeln. Nachrichten nicht je Kunde duplizieren und Mehrfachtreffer nicht
   ungeprüft als eindeutige Zuordnung ausgeben. Direkter Anbieterzugriff und SQLite-Cache müssen gleich filtern.
-- [ ] Die beschriebenen Zweitfeld-, Kontaktbesitzer-, Mehrfachtreffer- und Änderungsfälle für beide Produktlinien
-  isoliert prüfen; konkrete Lexware-Feldabnahme getrennt von synthetischen Adapter-/Repositorytests nachweisen.
-- [ ] Kontakte und benötigte Termine kundenbezogen zuordnen; nicht Teil des aktuellen Mail-Leseauftrags.
+  Umsetzung 18.11.2026: injizierter `PartyMailScopeResolver` mit vollständigen revisionsstabilen Cache-
+  Snapshots und aktuellem Lexware-Quellabruf beim Öffnen/Aktualisieren; vollständiger Telefoncache als
+  kenntlicher Offlinefallback. Unvollständige Altstände erfordern den Quellabruf. Konto-, Ordner-,
+  Produktlinien-, Mandanten-, Plugin- und Datenbankzielgrenzen bleiben wirksam. `OwnedPartyMailSource`
+  prüft die Gruppe vor/nach Abrufen; geöffnete Ordner mischen keine unterschiedlichen Gruppenstände.
+  Neue Telefoncachegenerationen werden während eines Abrufs nicht durch ältere Live-Ergebnisse ersetzt.
+  Anhänge werden gegen die gebundene Mailquelle vor/nach Download freigegeben; verworfene Bytes genullt.
+  Große Adressgruppen in Blöcken zu 500 Hashes lesen; Nachrichten und Nachrichtenlimit über Blockgrenzen
+  deduplizieren. Ein Test mit 1.100 Kontakten und über 2.048 Adressen bestätigt den vollständigen Abruf.
+  Ungültige Feldteile werden ohne private Werte im Status gezählt; gültige Teiladressen bleiben nutzbar.
+  Die Mailansicht zeigt Rolle, Kunden-/Lieferantennummer und Besitzername für die aufgelöste Gruppe.
+  Der adaptive Lesebereich berücksichtigt nun auch die Kopfzeilenhöhe bei großen Schriften im Anruf-Tab.
+- [x] ✅ Die beschriebenen Zweitfeld-, Kontaktbesitzer-, Mehrfachtreffer- und Änderungsfälle für beide Produktlinien
+  isoliert geprüft: Pro/FinOffice sowie Kunde/Lieferant jeweils mit und ohne Mailcache; Ein-/Ausgang samt
+  To/Cc/Bcc, Kontakt-Neuzuordnung, veralteter Cache, verspätete Vorschau, widerrufener Anhang, große Gruppen
+  und tatsächlicher Anruf-Tab mit Rufnummerntreffer auf Kontakt und Mailtreffer auf dessen zweitem Feld.
+  Die reguläre DI-Auflösung liefert die neue besitzergebundene Quelle. Transparente Hintergrundbilder
+  der gefüllten Mailansicht bei 10/16 pt, kleinerem Fenster, hellem/dunklem Skin und 150-%-Skalierung sowie
+  der geänderten Mailfläche mit Leer-/Fehlerzuständen geprüft; abgeschnittene Kopfzeilen dabei korrigiert.
+  Endnachweis 18.11.2026: je Edition 300 Core-, 78 Office-, 386 Console- und 23 gezielte App-Prüfungen
+  bestanden (787 je Edition), einschließlich der expliziten Sperre bei falscher Produktlinie. Das zuvor
+  fest auf Pro gesetzte Ansichts-Testplugin meldet für diese Abnahme die tatsächlich geprüfte Edition.
+  Reguläre Solution-Builds Debug/Any CPU für Pro und FinOffice: null Fehler, je 26 bekannte externe
+  CSCore-Warnungen. Nachweise `.owner-mail-{build,core,office,console,app}-{pro,fin}.log`;
+  gezielte Renderbilder `.artifacts/app-shell/settings-ui/owner-mail/`. FinOffice zuletzt regulär gebaut.
+  Bestehende Installationen: Kommunikationsdatenbank über den Assistenten auf Schema 14 aktualisieren
+  und Telefoncache neu aus Lexware laden; der gesonderte Mailcache erhält seine Basismigration automatisch.
+- [ ] Konkrete native Feldabnahme weiterer installierter Pro-/FinOffice-Versionen getrennt von den
+  synthetischen Adapter-/Repositorytests nachweisen. Die gelieferten Screenshots und lokalen Schemas
+  sind analysiert; es wurden im Implementierungstest keine echten Kundenbestände oder Postfächer gelesen.
+- [ ] Office-Adressbuchkontakte und benötigte Termine kundenbezogen zuordnen; nicht Teil des aktuellen
+  Mail-Leseauftrags. Die Lexware-Kontaktpersonen sind in der oben abgeschlossenen Mailzuordnung enthalten.
 - [x] ✅ Inkrementelle Synchronisierung, eindeutige Quell-IDs, Dubletten, Zeiträume und gezielte Anhangsabrufe behandelt.
 - [x] ✅ Migration 13 für Office-Tabellen und Repository-Tests auf allen fünf tatsächlichen Engines ergänzt.
 - [x] ✅ Native Microsoft-Verbindungsprüfung nach Freigabe: Clientanmeldung, Ordnerzugriff und begrenzter

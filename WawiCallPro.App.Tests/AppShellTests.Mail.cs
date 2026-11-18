@@ -170,6 +170,9 @@ public sealed partial class AppShellTests
         {
             await host.Services.GetRequiredService<WawiCallPro.Utilities.Configuration.ApplicationConfigurationService>().StartAsync(default);
             Assert.IsInstanceOfType<WawiCallPro.Office.MailCacheService>(host.Services.GetRequiredService<IMailViewSource>());
+            var mail = host.Services.GetRequiredService<WawiCallPro.Office.MailApplication>();
+            var party = new WawiCallPro.Interfaces.Parties.Party { Key = new(new(Enum.Parse<WawiCallPro.Interfaces.Companies.LexwareProductLine>(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine), "synthetic", "company"), WawiCallPro.Interfaces.Parties.PartyKind.Customer, "1"), DisplayName = "Synthetic" };
+            Assert.AreEqual("OwnedPartyMailSource", mail.ForParty(party).GetType().Name);
             using var form = ActivatorUtilities.CreateInstance<MainForm>(host.Services); form.PrepareForBackgroundRun();
             form.Show(); form.Navigate("mail");
             var page = (MailPage)form.GetActiveDocumentView()!; await page.ReloadAsync();

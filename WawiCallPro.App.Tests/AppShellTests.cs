@@ -3741,7 +3741,7 @@ public sealed partial class AppShellTests
         internal readonly List<PartyKey> CreatedParties = [];
         public string Name => "Isoliertes Ansichtsplugin";
         public Version Version { get; } = new(1, 0);
-        public LexwareProductLine ProductLine => LexwareProductLine.Pro;
+        public LexwareProductLine ProductLine { get; set; } = LexwareProductLine.Pro;
         public IBusinessDirectory Directory => throw new NotSupportedException();
         public void Initialize(Quantarix.Plugin.Abstractions.IPluginHost host) { }
         public void Configure(IWawiCallHostServices services) { }

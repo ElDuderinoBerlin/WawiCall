@@ -33,7 +33,8 @@ public static class MailAddressFields
             try
             {
                 var host = address.Host.StartsWith('[') ? address.Host : new IdnMapping().GetAscii(address.Host);
-                addresses.Add((address.User + "@" + host).ToLowerInvariant());
+                var separator = address.Address.LastIndexOf('@');
+                addresses.Add((address.Address[..separator] + "@" + host).ToLowerInvariant());
             }
             catch (ArgumentException) { invalid = true; }
         }

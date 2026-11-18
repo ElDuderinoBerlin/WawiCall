@@ -184,7 +184,7 @@ public partial class MailPage : XtraUserControl
             readerEmpty.Visible = false;
             if (string.IsNullOrWhiteSpace(message.Html)) body.Text = message.Text;
             else body.HtmlText = message.Html;
-            ApplyReaderAppearance();
+            Appearance_Changed(this, EventArgs.Empty);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception) { if (!token.IsCancellationRequested) { ClearPreview("Nachricht konnte nicht geladen werden."); statusLabel.Text = PageOperation.Describe(exception); } }
@@ -275,7 +275,7 @@ public partial class MailPage : XtraUserControl
             owner.UseWaitCursor = true; owner.Cursor = Cursors.WaitCursor;
             using var dialog = new XtraSaveFileDialog { Title = "E-Mail-Anhang speichern", FileName = Path.GetFileName(attachment.Name), OverwritePrompt = true, RestoreDirectory = true, Filter = "Alle Dateien (*.*)|*.*" };
             if (dialog.ShowDialog(owner) != DialogResult.OK) return;
-            var bytes = await _application.DownloadAsync(message.Key, id, _lifetime.Token);
+            var bytes = await _application.DownloadForSourceAsync(_source!, message.Key, id, _lifetime.Token);
             var destination = Path.GetFullPath(dialog.FileName);
             temporary = Path.Combine(Path.GetDirectoryName(destination)!, ".wawi-mail-" + Guid.NewGuid().ToString("N") + ".tmp");
             await using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true))
@@ -390,9 +390,14 @@ public partial class MailPage : XtraUserControl
             filterTabs.MinimumSize = new Size(0, TextRenderer.MeasureText("Ungelesen", Font).Height + LogicalToDeviceUnits(16));
             var folderWidth = _folderElements.Values.Select(element => TextRenderer.MeasureText(element.Text, Font).Width).DefaultIfEmpty(unit * 8).Max() + unit * 3;
             foldersSplit.SplitterPosition = Math.Min(Math.Max(unit * 11, folderWidth), Math.Max(unit * 6, Width * 35 / 100));
-            var horizontal = !_preferBottom && Width >= unit * 62;
+            var readerHeight = RequiredReaderHeight(contentSplit.Width);
+            var splitter = contentSplit.Horizontal ? contentSplit.Panel2.Left - contentSplit.Panel1.Right : contentSplit.Panel2.Top - contentSplit.Panel1.Bottom;
+            var availableHeight = Math.Max(0, contentSplit.ClientSize.Height - Math.Max(0, splitter));
+            var listHeight = filterTabs.GetPreferredSize(new(contentSplit.Width, 0)).Height + folderLabel.GetPreferredSize(new(contentSplit.Width, 0)).Height + unit * 3;
+            var horizontal = !_preferBottom && (Width >= unit * 62 || availableHeight < readerHeight + listHeight);
             contentSplit.Horizontal = horizontal;
-            contentSplit.SplitterPosition = horizontal ? Math.Min(unit * 23, Math.Max(unit * 15, contentSplit.Width * 42 / 100)) : Math.Max(unit * 7, contentSplit.Height * 40 / 100);
+            contentSplit.SplitterPosition = horizontal ? Math.Min(unit * 23, Math.Max(unit * 8, contentSplit.Width * 42 / 100))
+                : Math.Min(Math.Max(unit * 4, availableHeight * 40 / 100), Math.Max(unit * 3, availableHeight - readerHeight));
             messagesView.OptionsTiles.ItemPadding = new Padding(LogicalToDeviceUnits(12), LogicalToDeviceUnits(8), LogicalToDeviceUnits(12), LogicalToDeviceUnits(8));
             messagesView.OptionsTiles.ItemSize = new Size(Math.Max(unit * 12, messagesGrid.Width), Font.Height * 4 + messagesView.OptionsTiles.ItemPadding.Vertical);
             messagesView.TileColumns[1].Length.Value = TextRenderer.MeasureText("00.00.", Font).Width + LogicalToDeviceUnits(6);
@@ -401,6 +406,17 @@ public partial class MailPage : XtraUserControl
             ApplyReaderAppearance();
         }
         finally { _arranging = false; }
+    }
+    private int RequiredReaderHeight(int width)
+    {
+        var available = Math.Max(1, width - readerLayout.Padding.Horizontal);
+        var height = readerLayout.Padding.Vertical + Math.Max(Font.Height, LogicalToDeviceUnits(16)) * 3;
+        if (_message is null) return height;
+        foreach (var label in new[] { subjectLabel, senderLabel, recipientsLabel, dateLabel, attachmentsLabel })
+            if (!string.IsNullOrEmpty(label.Text)) height += label.GetPreferredSize(new(Math.Max(1, available - label.Margin.Horizontal), 0)).Height + label.Margin.Vertical;
+        if (_application is not null && _message.Attachments.Any(attachment => attachment.Id is not null))
+            height += attachmentActions.GetPreferredSize(new(available, 0)).Height + attachmentActions.Margin.Vertical;
+        return height;
     }
     private void ApplyReaderAppearance()
     {

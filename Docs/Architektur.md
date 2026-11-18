@@ -589,7 +589,7 @@ Build-/Bildnachweise und die verbleibende Abnahme stehen in Phase 11 des [Neuauf
 die konkrete Kontaktperson. Die Mailansicht verwendet danach sämtliche zu diesem Besitzer gehörenden
 Mailadressen aus Stammdaten, Anschriften und verknüpften Kontaktpersonen. Ein Treffer auf eine Kontaktperson
 darf die Mailansicht nicht auf deren erste Mailadresse einschränken. Diese vollständige Zusammenführung
-ist noch nicht implementiert; die bisherige Mailfilterung deckt nur die bereits übertragenen Adressen ab.
+ist seit 18.11.2026 über den Kontaktindex und die besitzergebundene Mailquelle implementiert.
 
 #### Verifizierte lokale Quellen und Feldumfang
 
@@ -670,7 +670,7 @@ kanonisiert Adressen und internationale Domainnamen und bewahrt ungültige Origi
 Punkte und Plus-Tags werden nicht als angebliche Anbieter-Aliase entfernt. Historische einzelne
 Mailwerte bleiben lesbar, gelten aber weiterhin als unvollständiger Quellstand.
 
-#### Abweichung des bisherigen Stands
+#### Umsetzung und Behandlung älterer Cachebestände
 
 Der Telefoncache liest Besitzer-, Anschrift- und Kontakttelefonnummern und erhält die Kontaktbesitzer.
 Die Adapter wurden am 18.11.2026 auf die vollständige Feldmatrix erweitert: `Party.Emails` hält alle
@@ -682,9 +682,43 @@ aktuell vollständig gelesene Datensätze Version 1. Das markiert keine alten Da
 Eine ausschließlich als eigener Cache identifizierte SQLite-Maildatei kann ihre regulären Basistabellen
 von Schema 13 auf 14 aktualisieren; Nachrichten/BLOBs bleiben erhalten. Die Kommunikationsdatenbank
 wird weiterhin über den vorhandenen Datenbank-Assistenten aktualisiert.
-Die aktuelle Mailquelle sammelt vor der folgenden Besitzergruppen-Erweiterung noch die Adressen des einzelnen
-übergebenen `Party`-Objekts, nicht die aller zugehörigen Kontaktpersonen. Der Anruf-Tab übergibt genau
-diesen ausgewählten Datensatz. Deshalb ist die vollständige besitzerbezogene Zuordnung ausdrücklich offen.
+`PartyMailScopeResolver` bindet den bestehenden Telefon-/Geschäftspartnercache und das aktive Lexware-
+Verzeichnis per DI an den Kontaktindex. Nur vollständige, revisionsstabile Snapshots dürfen als
+Cachegrundlage dienen. Beim Öffnen/Aktualisieren eines Mail-Tabs wird ein aktueller Lexware-Snapshot
+bevorzugt; ein vollständiger Telefoncache kann bei vorübergehend nicht erreichbarer Quelle dienen und
+wird im Mailstatus ausdrücklich als Cachequelle bezeichnet. Unvollständige Altbestände erfordern einen
+erneuten Quellabruf. Zwischenzeitlich geänderte Cachegenerationen werden erneut geladen; Live-Snapshots
+werden höchstens 30 Sekunden zwischen Quellenabrufen wiederverwendet. Der Speicher ist auf 32 Mandanten
+und 100.000 Quellzeilen je Snapshot begrenzt. Fremde Mandanten, fehlende Besitzer und unvollständige
+Quellantworten ergeben keine globale oder geraten zugeordnete Mailansicht.
+
+Der reguläre DI-Aufbau von `MailApplication.ForParty` liefert eine `OwnedPartyMailSource`. Sie löst
+auch einen gewählten Kontakt auf dessen Besitzer und die vollständige aktive Kontaktgruppe auf.
+Der ursprüngliche Ansprechpartner bleibt im Anrufkontext und in den Fachansichten erhalten.
+Der Mailstatus nennt Rolle, Kunden-/Lieferantennummer und Besitzername der aufgelösten Gruppe.
+Listen-/Vorschauabrufe prüfen die Gruppenversion vor und nach dem Await; ein offener Ordner mischt
+keine unterschiedlichen Gruppenstände. Änderungen des Datenbankziels ohne Neustart, gesperrte Lexware-
+Funktionen und falsche Produktlinien werden zusätzlich gesperrt. Die Gruppenauflösung verändert weder
+Mailinhalte noch Lexware-Datensätze.
+
+Cache- und Direktmodus verwenden denselben vollständigen Mailadresssatz. Adressfilter werden in Blöcken
+zu 500 Hashes abgefragt, sodass auch Besitzer mit mehr als 2.048 Adressen vollständig erreichbar bleiben.
+Nachrichten werden über ihre gespeicherte Identität dedupliziert; ein Treffer über mehrere Kontakte
+zählt nur einmal gegen die Nachrichtenbegrenzung. Internationale Domainnamen berücksichtigen auch
+die bisher gespeicherte Unicodeform. Ungültige Feldteile werden ohne ihre Originalinhalte im Status
+gezählt; gültige Teiladressen bleiben nutzbar. Direkte und gespeicherte Ergebnisse prüfen die aktuelle
+Kontofreigabe zusätzlich nach dem Abruf.
+
+`DownloadForSourceAsync` prüft die konkrete Mailquelle vor und nach dem Anhangsabruf. Die Mailansicht
+nutzt diese Aktion auch im kundenbezogenen Anruf-Tab. Bei inzwischen entzogener Zuordnung werden
+die Bytes verworfen und genullt; die globale Postfachansicht behält ihre ausdrücklich freigegebenen Rechte.
+Die Aufteilung des Lesebereichs berücksichtigt den benötigten Raum für Betreff, Absender, Empfänger,
+Datum und Anhänge. Bei kleiner Höhe kann die automatische Ansicht nach rechts wechseln; eine ausdrücklich
+gewählte untere Ansicht erhält vorrangig Platz für die Nachrichteninformationen.
+
+Für bestehende Installationen die Kommunikationsdatenbank mit dem vorhandenen Assistenten auf Schema 14
+aktualisieren und den Telefoncache erneut aus Lexware laden. Der zusätzliche SQLite-Mailcache aktualisiert
+seine eigenen Basistabellen nach Eigentumsprüfung selbst; ein Mailneuaufbau ist dafür nicht erforderlich.
 
 Abnahmefälle: Treffer ausschließlich über zweite Kunden-/Kontaktmailadresse; Anruf auf zweiter oder
 mobiler Kontaktnummer; Mails anderer Kontakte desselben Besitzers; Kunde und Lieferant mit gleicher
