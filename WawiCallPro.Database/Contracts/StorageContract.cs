@@ -60,6 +60,12 @@ internal static class StorageContract
         Text(party.DisplayName, 512, nameof(party.DisplayName), required: true);
         Text(party.Number, 128, nameof(party.Number));
         Text(party.Email, 320, nameof(party.Email));
+        if (party.ContactFieldsVersion is < 0 or > WawiCallPro.Interfaces.Parties.Party.CurrentContactFieldsVersion) throw new ArgumentOutOfRangeException(nameof(party.ContactFieldsVersion));
+        Array(party.Emails);
+        foreach (var email in party.Emails)
+        {
+            ArgumentNullException.ThrowIfNull(email); Text(email.OriginalValue, 2048, nameof(email.OriginalValue), required: true); Source(email.Source);
+        }
         if (party.Source is { } partySource)
         {
             Text(partySource.RecordType, 128, nameof(partySource.RecordType), required: true);

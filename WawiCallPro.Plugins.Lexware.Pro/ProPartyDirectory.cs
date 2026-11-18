@@ -83,7 +83,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
                 Key = new PartyKey(company, kind, id), Number = owner.Number,
                 Source = new SourceRecord(sourceType, id),
                 DisplayName = DisplayName(address?.Company, address?.FirstName, address?.LastName, owner.Matchcode, owner.Number, id),
-                Email = address?.Email, IsInactive = inactive,
+                Email = address?.Email, Emails = ProPartyAddresses.Emails(owner, kind), ContactFieldsVersion = Party.CurrentContactFieldsVersion, IsInactive = inactive,
                 Addresses = addresses,
                 // The source has no declared timezone for unspecified/local timestamps.
                 SourceUpdatedAtUtc = owner.ModifiedDate is { Kind: DateTimeKind.Utc } utc ? new DateTimeOffset(utc) : null
@@ -99,7 +99,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
                 Key = new PartyKey(company, kind == PartyKind.Customer ? PartyKind.CustomerContact : PartyKind.SupplierContact, contactId, id),
                 Source = new SourceRecord("fk_kontaktperson", contactId),
                 DisplayName = DisplayName(null, contact.FirstName, contact.LastName, contact.Email1, null, contactId),
-                Email = contact.Email1, IsInactive = inactive,
+                Email = contact.Email1, Emails = ContactEmails(contact, contactId), ContactFieldsVersion = Party.CurrentContactFieldsVersion, IsInactive = inactive,
                 Phones = ContactPhones(contact, contactId),
                 Addresses = ContactAddresses(contact, addresses)
             });
@@ -122,6 +122,11 @@ public sealed class ProPartyDirectory(IProApiSession session)
         return new[] { company, person, matchcode, number, id }.First(value => !string.IsNullOrWhiteSpace(value))!;
     }
     private static ProAdapterException InvalidResponse() => new(ProFailure.InvalidResponse);
+
+    private static ImmutableArray<PartyEmail> ContactEmails(ContactPerson contact, string id) =>
+        new[] { (contact.Email1, "email1"), (contact.Email2, "email2") }
+            .Where(value => !string.IsNullOrWhiteSpace(value.Item1))
+            .Select(value => new PartyEmail(value.Item1!, new SourceField("fk_kontaktperson", id, value.Item2))).ToImmutableArray();
 
     private static ImmutableArray<PartyPhone> ContactPhones(ContactPerson contact, string id)
     {
@@ -161,6 +166,8 @@ public sealed class ProPartyDirectory(IProApiSession session)
         [JsonPropertyName("matchcode")] public string? Matchcode { get; set; }
         [JsonPropertyName("inactive")] public int? Inactive { get; set; }
         [JsonPropertyName("modifiedDate")] public DateTime? ModifiedDate { get; set; }
+        [JsonPropertyName("electronicInvoiceRecipientEmail")] public string? ElectronicInvoiceRecipientEmail { get; set; }
+        [JsonPropertyName("useElectronicInvoiceRecipientEmail")] public int? UseElectronicInvoiceRecipientEmail { get; set; }
         [JsonRequired, JsonPropertyName("invoiceAddress")] public PartyName? InvoiceAddress { get; set; }
         [JsonRequired, JsonPropertyName("shippingAddress")] public PartyName? ShippingAddress { get; set; }
         [JsonPropertyName("orderAddress")] public PartyName? OrderAddress { get => _orderAddress; set { _orderAddress = value; HasOrderAddress = true; } }
@@ -176,6 +183,7 @@ public sealed class ProPartyDirectory(IProApiSession session)
         [JsonPropertyName("firstName")] public string? FirstName { get; set; }
         [JsonPropertyName("lastName")] public string? LastName { get; set; }
         [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("email2")] public string? Email2 { get; set; }
         [JsonPropertyName("street")] public string? Street { get; set; }
         [JsonPropertyName("houseNumber")] public string? HouseNumber { get; set; }
         [JsonPropertyName("extension")] public string? Extension { get; set; }

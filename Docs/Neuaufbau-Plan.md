@@ -3359,13 +3359,29 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 - [x] ✅ Mailfilterung für bereits gelesene Adressen eines einzelnen Geschäftspartner-Snapshots umgesetzt;
   exakte Adressen und Produkt-/Installations-/Mandantenbezug durchgesetzt. Dies ist noch keine vollständige
   Zuordnung aller Mailfelder und aller Kontaktpersonen eines Kunden/Lieferanten.
-- [ ] Vollständige Feldmatrix aus [Architektur – gemeinsame Lexware-Zuordnung](Architektur.md#gemeinsame-lexware-zuordnung-für-telefon-und-mail-analyse-18112026)
+- [x] ✅ Vollständige Feldmatrix aus [Architektur – gemeinsame Lexware-Zuordnung](Architektur.md#gemeinsame-lexware-zuordnung-für-telefon-und-mail-analyse-18112026)
   in beiden Adaptern umsetzen. Pro: Kunden-Rechnungs-/Liefer-/Zusatzanschriften mit `email`/`email2`,
   **Kontakte sowohl der Kunden als auch der Lieferanten** über deren `contactPersons` mit `email1`/`email2`;
   unterschiedliche Lieferanten-Adresstypen und optional belegte Rechnungs-Empfängerfelder beachten.
   FinOffice: `szEMail`, beide Kontaktmailfelder `szEmail1`/`szEmail2` sowie die fachlich passenden,
   tatsächlich belegten zusätzlichen Mailfelder. Quelle und Besitzer je Wert erhalten; keine Daten allein
   wegen der derzeit sichtbaren Kommunikationszeilen des FinOffice-Dialogs auslassen.
+  Umsetzung 18.11.2026: `Party.Emails` ergänzt Originalwerte, exakte Quelle und Nutzungskennzeichen;
+  alle bereits gelesenen Telefonarten und Besitzer-/Rollenbindungen bleiben erhalten. Pro-Lieferanten-
+  Rechnungs-/Bestellalias wird für Mailfelder dedupliziert; nicht vorhandene Versandanschriften werden
+  weiterhin ausgelassen. Deaktivierte Rechnungsempfänger bleiben im Snapshot, sind aber nicht für die
+  Zuordnung freigegeben. Migration 14 ergänzt `partyemails` und die Kontaktfeld-Vollständigkeitsversion;
+  Transaktionen ersetzen Mail-/Telefon-/Anschriftwerte gemeinsam. Altzeilen bleiben Version 0 bis zum
+  erneuten Lexware-Abruf; aktuelle Adapter liefern Version 1. Deutsche Spaltenliste ergänzt.
+  SQLite-Mailcache aus Schema 13 aktualisiert nur nach Eigentumsprüfung seine Basistabellen; Körper
+  und geschützte Anhangs-BLOBs bleiben offline lesbar. Kommunikationsdatenbank weiterhin explizit migrieren.
+  Neuaufbau, gefüllte Upgrades aus Schema 7 und 13 sowie Mailfeld-Rundlauf auf SQLite, SQL Server,
+  PostgreSQL, MySQL und MariaDB nativ geprüft. Nur isolierte Instanzen und synthetische Quellen verwendet.
+  Pro/FinOffice: je 70 Pro-Adapter-, 46 FinOffice-Adapter-, 162 Datenbank-, 59 Office- und 386 vollständige
+  Console-Prüfungen bestanden. Beide Solution-Builds Debug/Any CPU regulär erstellt: null Fehler, je 26
+  bekannte externe CSCore-Warnungen. Nachweise `.contact-fields-{build,pro,fin,db,office,console}-{pro,fin}.log`
+  und `.contact-fields-providers-final.log`; FinOffice ist die reguläre Startausgabe. Die folgende
+  Besitzergruppenauflösung ist ein eigenständiger nächster Schritt dieses Auftrags.
 - [ ] Gemeinsamen, revisionsgebundenen Kontaktwegeindex für Besitzer, Anschriften und Kontaktpersonen
   bereitstellen: Telefon/E-Mail → vollständiger Besitzer-Schlüssel und optional Kontakt-Schlüssel.
   Kunden-/Lieferantennummer anzeigen; intern Produktlinie, Installation, Mandant, Rolle und native ID nutzen.

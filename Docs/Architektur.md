@@ -658,10 +658,17 @@ dürfen nicht allein wegen einer einmal gespeicherten Fachnummer erhalten bleibe
 
 #### Abweichung des bisherigen Stands
 
-Der Telefoncache liest bereits Besitzer-, Anschrift- und Kontakttelefonnummern und erhält die Kontaktbesitzer.
-Pro fragt jedoch bei Kundenanschriften nur `email` und bei Kontakten nur `email1` ab. FinOffice übernimmt
-ebenfalls nur `EMail1` der Kontakte. `Party.Email` und `PartyAddress.Email` tragen jeweils nur einen Wert;
-eine vollständige Liste mit Mailquellen fehlt. Die aktuelle Mailquelle sammelt die Adressen des einzelnen
+Der Telefoncache liest Besitzer-, Anschrift- und Kontakttelefonnummern und erhält die Kontaktbesitzer.
+Die Adapter wurden am 18.11.2026 auf die vollständige Feldmatrix erweitert: `Party.Emails` hält alle
+Mailfelder einschließlich der zweiten Adress-/Kontaktmailwerte und ihrer SourceField-Herkunft.
+Deaktivierte alternative Rechnungsempfänger bleiben mit `UseForMatching=false` erhalten.
+`Party.Email` und `PartyAddress.Email` bleiben als einzelne Anzeigewerte kompatibel.
+Migration 14 persistiert die Mailfelder und `Party.ContactFieldsVersion`; Altbestände tragen Version 0,
+aktuell vollständig gelesene Datensätze Version 1. Das markiert keine alten Daten ungeprüft als vollständig.
+Eine ausschließlich als eigener Cache identifizierte SQLite-Maildatei kann ihre regulären Basistabellen
+von Schema 13 auf 14 aktualisieren; Nachrichten/BLOBs bleiben erhalten. Die Kommunikationsdatenbank
+wird weiterhin über den vorhandenen Datenbank-Assistenten aktualisiert.
+Die aktuelle Mailquelle sammelt vor der folgenden Besitzergruppen-Erweiterung noch die Adressen des einzelnen
 übergebenen `Party`-Objekts, nicht die aller zugehörigen Kontaktpersonen. Der Anruf-Tab übergibt genau
 diesen ausgewählten Datensatz. Deshalb ist die vollständige besitzerbezogene Zuordnung ausdrücklich offen.
 

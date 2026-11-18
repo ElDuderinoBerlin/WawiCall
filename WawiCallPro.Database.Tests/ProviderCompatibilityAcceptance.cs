@@ -36,8 +36,9 @@ public static class ProviderCompatibilityAcceptance
             await VerifyActiveRolesAsync(isolatedSource);
             Console.WriteLine("MySQL/MariaDB: direct read permission, inactive role rejection and active role DDL permission passed.");
         }
-        foreach (var upgrade in new[] { false, true })
+        foreach (var upgradeFrom in new[] { 0, 7, 13 })
         {
+            var upgrade = upgradeFrom != 0;
             var target = NewTarget(isolatedSource);
             var receipt = await new DatabaseProvisioner(factory).CreateAsync(target);
             var company = new CompanyKey(LexwareProductLine.Pro, "Source Ä 电话", Guid.NewGuid().ToString("N"));
@@ -47,7 +48,7 @@ public static class ProviderCompatibilityAcceptance
             var addressId = DatabaseId.Encode(Guid.NewGuid());
             if (upgrade)
             {
-                for (long version = 1; version <= 7; version++)
+                for (long version = 1; version <= upgradeFrom; version++)
                 {
                     engine.MigrateUp(target, version);
                     var state = await new DatabaseStatusService(factory, engine.Catalog).GetStatusAsync(target);
@@ -98,6 +99,7 @@ public static class ProviderCompatibilityAcceptance
             if (upgrade)
             {
                 var legacy = (await cache.GetAsync(key))!;
+                Assert.AreEqual(0, legacy.ContactFieldsVersion); Assert.IsTrue(legacy.Emails.IsEmpty);
                 Assert.AreEqual("Legacy Ä 电话", legacy.DisplayName);
                 Assert.IsNull(legacy.Source);
                 Assert.IsNull(legacy.Addresses.Single().Source);

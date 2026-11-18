@@ -32,9 +32,19 @@ public sealed class SqliteMailCacheStore
             await new DatabaseMigrator(new(), new FluentMigratorEngine(DatabaseType.Sqlite)).MigrateAsync(target, cancellationToken: token);
             await Task.Run(() => AddBlobSchema(target), token);
         }
-        await using var db = new DatabaseFactory().CreateConnection(target, readOnly: true); await db.OpenAsync(token);
-        var owner = await db.QuerySingleOrDefaultAsync<string>(new CommandDefinition("SELECT id FROM mailcacheinfo", cancellationToken: token));
-        if (owner != "WawiCallPro.MailCache.v1") throw new DatabaseOperationException(DatabaseErrorCode.ForeignDatabase);
+        await using (var db = new DatabaseFactory().CreateConnection(target, readOnly: true))
+        {
+            await db.OpenAsync(token);
+            var owner = await db.QuerySingleOrDefaultAsync<string>(new CommandDefinition("SELECT id FROM mailcacheinfo", cancellationToken: token));
+            if (owner != "WawiCallPro.MailCache.v1") throw new DatabaseOperationException(DatabaseErrorCode.ForeignDatabase);
+        }
+        if (!create)
+        {
+            var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
+            var status = await new DatabaseStatusService(new(), engine.Catalog).GetStatusAsync(target, token);
+            if (status.State == DatabaseSchemaState.MigrationRequired)
+                await new DatabaseMigrator(new(), engine).MigrateAsync(target, cancellationToken: token);
+        }
         return new(target);
     }
     public Task<int> ReadPolicyAsync(CancellationToken token) => _context.RunAsync(false,

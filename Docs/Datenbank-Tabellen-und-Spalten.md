@@ -1,6 +1,11 @@
 # Datenbank: Tabellen und Spalten
 
-Stand: 16.11.2026, vollständiges Produktschema nach Migration 10.
+Stand: 18.11.2026, vollständiges Produktschema nach Migration 14.
+
+Migration 14 ergänzt `partyemails` und die Kontaktfeld-Vollständigkeitsversion des Geschäftspartnercaches.
+Alle ursprünglichen Mailwerte behalten ihre Quelle und Besitzerbindung. Bestehende Zeilen bleiben als
+unvollständig gekennzeichnet, bis die belegten Kontaktfelder erneut aus Lexware eingelesen wurden.
+Migrationen 1–13 und gespeicherte Kommunikationsdaten bleiben erhalten.
 
 Migration 10 ergänzt `recordingcaptures` für Beginn, bekanntes Ende, PCM-Format und Ergebnis einer
 Aufnahme. Bereits gespeicherte Aufnahmen und Migrationen 1–9 bleiben unverändert; fehlende historische
@@ -105,6 +110,31 @@ Enthält gelesene Kunden, Lieferanten und ausdrücklich zugeordnete Ansprechpart
 | `searchnumber` | Unicode-Text (256) | Ja | Entsprechend vorbereitete fachliche Nummer; NULL, wenn keine Nummer vorhanden ist. |
 | `sourcerecordtype` | Unicode-Text (128) | Ja | Ursprünglicher technischer Quell-Entitätstyp, beispielsweise `fk_kunde` oder `fk_kd_view`; seit Migration 8 optional. |
 | `sourcerecordid` | Unicode-Text (256) | Ja | Original-ID innerhalb dieses Quelltyps. Wird zusammen mit dem Quelltyp gespeichert; bei Altzeilen ohne Herkunft NULL. |
+
+Zusätzlich seit Migration 14:
+
+| Spalte | Typ | NULL erlaubt | Bedeutung |
+|---|---|---|---|
+| `contactfieldsversion` | Ganzzahl | Nein | Vollständigkeitsversion der Kontaktfelder. 0 kennzeichnet einen alten/unvollständigen Snapshot; 1 die vollständige Übernahme der belegten Mail-/Telefonfelder. Alte Datensätze werden nicht ohne erneuten Quellabruf als vollständig erklärt. |
+
+## partyemails – Sämtliche ursprünglichen Mailfelder
+
+Migration 14 erhält alle belegten Mailfelder von Kunden, Lieferanten, deren Anschriften und Kontaktpersonen
+mit exakter Quellherkunft. Der Fremdschlüssel gehört stets zum besitzenden `parties`-Datensatz; Kontaktzeilen
+behalten darüber ihre eigene Kontakt-/Besitzerbindung. Die Tabelle enthält Quellwerte, keine Mailnachrichten.
+Sie wird zusammen mit dem Telefon-/Anschriften-Snapshot atomar ersetzt. E-Mail-Mehrfachwerte bleiben im
+Original erhalten und werden erst für die Suche fachgerecht zerlegt und kanonisiert.
+
+| Spalte | Typ | NULL erlaubt | Bedeutung |
+|---|---|---|---|
+| `id` | Hex-ID (32) | Nein | Interner Primärschlüssel dieses Mailfeldvorkommens. |
+| `partyid` | Hex-ID (32) | Nein | Fremdschlüssel zum Kunden, Lieferanten oder zur besitzergebundenen Kontaktperson. |
+| `position` | Ganzzahl | Nein | Reihenfolge der Mailfelder innerhalb des Snapshots; je Geschäftspartner eindeutig. |
+| `originalvalue` | Unicode-Text (2048) | Nein | Unveränderter ursprünglicher Feldinhalt einschließlich möglicher Anzeigenamen oder mehrerer Adressen. |
+| `useformatching` | Ganzzahl 0/1 | Nein | Ob der Wert zur Zuordnung verwendet werden darf; deaktivierte alternative Rechnungsempfänger bleiben erhalten, werden aber nicht als Kontaktweg genutzt. |
+| `sourcerecordtype` | Unicode-Text (64) | Nein | Ursprungstabelle beziehungsweise fachlicher Quelltyp, etwa `fk_kontaktperson`. |
+| `sourcerecordid` | Unicode-Text (256) | Nein | Native ID des Datensatzes, aus dem der Mailwert stammt. |
+| `sourcefieldname` | Unicode-Text (128) | Nein | Genaues ursprüngliches Mailfeld, beispielsweise `invoiceAddress.email2` oder `szEmail2`. |
 
 ## partyaddresses – Anschriften des Geschäftspartnercaches
 

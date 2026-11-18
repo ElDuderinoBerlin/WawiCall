@@ -159,6 +159,8 @@ public static class RepositoryAcceptance
         var party = new Party
         {
             Key = new(key, PartyKind.Customer, "0001 "), DisplayName = "Ä 电话 ' %_[x]", Number = "00_42", Email = "mail@example.invalid", SourceUpdatedAtUtc = Time,
+            ContactFieldsVersion = Party.CurrentContactFieldsVersion,
+            Emails = [new("Mail Ä <first@example.test>; second@example.test", new("customer", "0001 ", "email2")), new("inactive@example.test", new("customer", "0001 ", "invoiceEmail"), false)],
             Phones = [new("030 12345-0", PhoneKind.Telephone, new("customer", "0001 ", "phone"), "+4930123450", "00")],
             Addresses = [new() { ExternalId = " 001", Kind = AddressKind.Shipping, Street = "Straße ' 电话", HouseNumber = "02a", City = "München", CountryCode = "DE", Phones = [new("030123450", PhoneKind.Fax, new("address", " 001", "fax"), "+4930123450")] }]
         };
@@ -166,6 +168,7 @@ public static class RepositoryAcceptance
         var state = await cache.ReplaceAsync(new(key, 0, [party, duplicateNumber], Time, "parser1", "DE/rules1"));
         Assert.AreEqual(1L, state.Revision); Assert.AreEqual("DE/rules1", (await cache.GetStateAsync(key)).ContextVersion);
         var stored = (await cache.GetAsync(party.Key))!;
+        Assert.AreEqual(Party.CurrentContactFieldsVersion, stored.ContactFieldsVersion); CollectionAssert.AreEqual(party.Emails.ToArray(), stored.Emails.ToArray());
         Assert.AreEqual(party.DisplayName, stored.DisplayName); Assert.AreEqual(party.Addresses[0], stored.Addresses[0] with { Phones = party.Addresses[0].Phones });
         Assert.AreEqual("00", stored.Phones[0].Extension); Assert.AreEqual(Time, stored.SourceUpdatedAtUtc);
         Assert.IsNull(await cache.GetAsync(new(key, PartyKind.Customer, "0001")));

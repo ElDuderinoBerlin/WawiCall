@@ -11,12 +11,36 @@ internal static class ProPartyAddresses
     internal static string Fields(PartyKind kind)
     {
         var fields = "id number matchcode inactive modifiedDate "
-            + "invoiceAddress { " + AddressFields + (kind == PartyKind.Customer ? " cellphone" : "") + " } "
-            + "shippingAddress { " + AddressFields + (kind == PartyKind.Customer ? " cellphone" : " exists") + " } "
-            + "contactPersons { id firstName lastName email1 phone1 phone2 mobil fax additionalAddressId contactPersonAddressType } ";
+            + "invoiceAddress { " + AddressFields + (kind == PartyKind.Customer ? " email2 cellphone" : "") + " } "
+            + "shippingAddress { " + AddressFields + (kind == PartyKind.Customer ? " email2 cellphone" : " exists") + " } "
+            + "contactPersons { id firstName lastName email1 email2 phone1 phone2 mobil fax additionalAddressId contactPersonAddressType } ";
         return fields + (kind == PartyKind.Customer
-            ? "additionalAddresses { id businessPartnerId " + AddressFields + " cellphone }"
-            : "orderAddress { " + AddressFields + " }");
+            ? "additionalAddresses { id businessPartnerId " + AddressFields + " email2 cellphone }"
+            : "orderAddress { " + AddressFields + " } electronicInvoiceRecipientEmail useElectronicInvoiceRecipientEmail");
+    }
+
+    internal static ImmutableArray<PartyEmail> Emails(ProPartyDirectory.PartyRecord owner, PartyKind kind)
+    {
+        var id = owner.Id.ToString(CultureInfo.InvariantCulture);
+        var type = kind == PartyKind.Customer ? "fk_kunde" : "fk_lieferant";
+        var emails = new List<PartyEmail>();
+        Add(owner.InvoiceAddress, type, id, kind == PartyKind.Customer ? "invoiceAddress." : "orderAddress.");
+        if (owner.ShippingAddress?.Exists != false) Add(owner.ShippingAddress, type, id, "shippingAddress.");
+        if (kind == PartyKind.Customer)
+            foreach (var address in owner.AdditionalAddresses!) Add(address, "fk_anschrift", address.Id!.Value.ToString(CultureInfo.InvariantCulture), "");
+        else
+        {
+            Add(owner.OrderAddress, type, id, "orderAddress.");
+            if (!string.IsNullOrWhiteSpace(owner.ElectronicInvoiceRecipientEmail))
+                emails.Add(new(owner.ElectronicInvoiceRecipientEmail, new(type, id, "electronicInvoiceRecipientEmail"), owner.UseElectronicInvoiceRecipientEmail is not null and not 0));
+        }
+        return emails.Distinct().ToImmutableArray();
+
+        void Add(ProPartyDirectory.PartyName? address, string sourceType, string sourceId, string prefix)
+        {
+            if (!string.IsNullOrWhiteSpace(address?.Email)) emails.Add(new(address.Email, new(sourceType, sourceId, prefix + "email")));
+            if (kind == PartyKind.Customer && !string.IsNullOrWhiteSpace(address?.Email2)) emails.Add(new(address.Email2, new(sourceType, sourceId, prefix + "email2")));
+        }
     }
 
     internal static ImmutableArray<PartyAddress> Map(ProPartyDirectory.PartyRecord owner, PartyKind kind)

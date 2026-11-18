@@ -79,7 +79,10 @@ public sealed class FinOfficePartyDirectory(IFinOfficeCompanySession sessions)
             {
                 Key = key, Source = new SourceRecord("fk_kontaktperson", Id(contact.Id)),
                 DisplayName = Name(null, contact.Vorname, contact.Name, contact.EMail1, null, Id(contact.Id)),
-                Email = Clean(contact.EMail1), IsInactive = owner.IsInactive,
+                Email = Clean(contact.EMail1), IsInactive = owner.IsInactive, ContactFieldsVersion = Party.CurrentContactFieldsVersion,
+                Emails = new[] { (contact.EMail1, "szEmail1"), (contact.EMail2, "szEmail2") }
+                    .Where(value => !string.IsNullOrWhiteSpace(Clean(value.Item1)))
+                    .Select(value => new PartyEmail(Clean(value.Item1)!, new SourceField("fk_kontaktperson", Id(contact.Id), value.Item2))).ToImmutableArray(),
                 Phones = FinOfficePartyAddresses.ContactPhones(Id(contact.Id),
                     (contact.Telefon1, PhoneKind.Telephone, "szTel1"), (contact.Telefon2, PhoneKind.Telephone, "szTel2"),
                     (contact.Mobil, PhoneKind.Mobile, "szMobil"), (contact.Fax, PhoneKind.Fax, "szFax"))

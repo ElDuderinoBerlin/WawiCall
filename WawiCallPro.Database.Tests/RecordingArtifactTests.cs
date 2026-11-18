@@ -135,7 +135,7 @@ public static class RecordingArtifactAcceptance
         var legacy = new WawiCallPro.Interfaces.History.Recording(Guid.NewGuid(), initial.Recording.Recording.CallId, "legacy.mp3", "mp3", TimeSpan.FromSeconds(3), RecordingAvailability.Available);
         var oldLegacy = await new DapperRecordingRepository(context).WriteAsync(new(legacy, null, Time));
         var current = new FluentMigratorEngine(target.Type);
-        var status = await new DatabaseMigrator(factory, current).MigrateAsync(target); Assert.AreEqual(13L, status.AppliedVersions.Last());
+        var status = await new DatabaseMigrator(factory, current).MigrateAsync(target); Assert.AreEqual(14L, status.AppliedVersions.Last());
         var upgraded = new DatabaseRepositoryContext(target, factory);
         Assert.AreEqual(initial.Recording, await new DapperRecordingRepository(upgraded).GetAsync(initial.Recording.Recording.Id));
         Assert.AreEqual(initial.Capture, await new DapperRecordingCaptureRepository(upgraded).GetAsync(initial.Recording.Recording.Id));

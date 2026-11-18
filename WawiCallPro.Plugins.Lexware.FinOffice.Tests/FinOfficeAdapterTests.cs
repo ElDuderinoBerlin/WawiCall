@@ -551,8 +551,8 @@ public sealed class FinOfficeAdapterTests
             using var connection = await Open(_manager.CompanyPath(nr), false);
             await connection.ExecuteAsync("""
                 CREATE TABLE fk_kd_view (lNr INTEGER, iKennung INTEGER, szKundenNr TEXT, szFirma TEXT,
-                  szVorName TEXT, szName TEXT, szMatchcode TEXT, szEMail TEXT, fGeloescht INTEGER, datGeaendert INTEGER, szStrasse TEXT, szZusatz TEXT, szPLZ TEXT, szOrt TEXT, szLand TEXT, szLandBez TEXT, szTel1 TEXT, szTel2 TEXT, szFax TEXT, szLieferStrasse TEXT, szLieferZusatz TEXT, szLieferPLZ TEXT, szLieferOrt TEXT, szLieferLand TEXT, szLandBezLiefer TEXT, szLieferTel TEXT);
-                CREATE TABLE fk_kontaktperson (lID INTEGER, szVorname TEXT, szName TEXT, szEmail1 TEXT, szTel1 TEXT, szTel2 TEXT, szMobil TEXT, szFax TEXT);
+                  szVorName TEXT, szName TEXT, szMatchcode TEXT, szEMail TEXT, fGeloescht INTEGER, datGeaendert INTEGER, szStrasse TEXT, szZusatz TEXT, szPLZ TEXT, szOrt TEXT, szLand TEXT, szLandBez TEXT, szTel1 TEXT, szTel2 TEXT, szFax TEXT, szLieferStrasse TEXT, szLieferZusatz TEXT, szLieferPLZ TEXT, szLieferOrt TEXT, szLieferLand TEXT, szLandBezLiefer TEXT, szLieferTel TEXT, szElectronicInvoiceRecipientEmail TEXT, fUseElectronicInvoiceRecipientEmail INTEGER);
+                CREATE TABLE fk_kontaktperson (lID INTEGER, szVorname TEXT, szName TEXT, szEmail1 TEXT, szEmail2 TEXT, szTel1 TEXT, szTel2 TEXT, szMobil TEXT, szFax TEXT);
                 CREATE TABLE fk_kunde2kontaktperson (lID INTEGER, lIdKunde INTEGER, lIdKontaktperson INTEGER);
                 -- General assignment codes are deliberately unrelated to the customer owner ID.
                 CREATE TABLE fk_kontaktperson2zuordnung (lId INTEGER, lIdKontaktperson INTEGER, lIdZuordnung INTEGER);
@@ -569,6 +569,32 @@ public sealed class FinOfficeAdapterTests
                 INSERT INTO fk_kontaktperson2zuordnung VALUES (1, 99, 11);
                 """, new { number = PcfkDbString.Ansi("00042", 20), name = PcfkDbString.Ansi("Kunde Ä", 60), modified = PcfkDateTimeConverter.ToLxDate(new DateOnly(2026, 11, 6)) });
         }
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    public async Task BothContactMailsAndMainDeliveryOverrideRemainBoundToCustomersAndSuppliers(int enabled)
+    {
+        await SeedPartiesAsync();
+        using (var db = await Open(_manager.CompanyPath(1), false))
+        {
+            await db.ExecuteAsync("UPDATE fk_kd_view SET szElectronicInvoiceRecipientEmail='billing@example.test', fUseElectronicInvoiceRecipientEmail=@enabled WHERE lNr=12", new { enabled });
+            await db.ExecuteAsync("UPDATE fk_kontaktperson SET szEmail2='second@example.test',szTel1='1',szTel2='2',szMobil='3',szFax='4' WHERE lID=77");
+        }
+        await using var provider = Build(); var directory = provider.GetRequiredService<IBusinessDirectory>();
+        var company = new CompanyKey(LexwareProductLine.FinOffice, "isolated-fin", "1");
+        var page = await directory.GetPartiesAsync(new(company, new()));
+        var contacts = page.Page.Items.Where(item => item.Key.ExternalId == "77" && item.Key.OwnerExternalId is not null).ToArray();
+        Assert.HasCount(2, contacts);
+        foreach (var contact in contacts)
+        {
+            Assert.HasCount(2, contact.Emails); Assert.HasCount(4, contact.Phones); Assert.AreEqual(Party.CurrentContactFieldsVersion, contact.ContactFieldsVersion);
+            Assert.AreEqual(new SourceField("fk_kontaktperson", "77", "szEmail2"), contact.Emails[1].Source);
+        }
+        var supplier = page.Page.Items.Single(item => item.Key.Kind == PartyKind.Supplier);
+        Assert.AreEqual(enabled != 0, supplier.Emails.Single(item => item.Source.FieldName == "szElectronicInvoiceRecipientEmail").UseForMatching);
+        Assert.IsFalse(page.Page.Items.Any(item => item.Key.ExternalId == "99"));
     }
 
     private void AssertConnectionsDisposed()

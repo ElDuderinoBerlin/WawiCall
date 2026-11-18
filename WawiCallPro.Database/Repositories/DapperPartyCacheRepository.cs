@@ -79,6 +79,7 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
                     if (row.Text("companyid") != company.Text("id") || RepositoryData.PartyKey(row, replacement.Company) != incoming[row.Text("sourcehash")].Key) RepositoryData.Collision();
             }
             await CheckAddressHashesAsync(db, replacement.Parties, replacement.Company).ConfigureAwait(false);
+            await db.ExecuteAsync($"DELETE FROM {db.T("partyemails")} WHERE partyid IN (SELECT id FROM {db.T("parties")} WHERE companyid=@id)", new { id = company.Text("id") }).ConfigureAwait(false);
             await db.ExecuteAsync($"DELETE FROM {db.T("partyphones")} WHERE partyid IN (SELECT id FROM {db.T("parties")} WHERE companyid=@id)", new { id = company.Text("id") }).ConfigureAwait(false);
             await db.ExecuteAsync($"DELETE FROM {db.T("partyaddresses")} WHERE partyid IN (SELECT id FROM {db.T("parties")} WHERE companyid=@id)", new { id = company.Text("id") }).ConfigureAwait(false);
             await db.ExecuteAsync($"DELETE FROM {db.T("parties")} WHERE companyid=@id", new { id = company.Text("id") }).ConfigureAwait(false);
@@ -89,11 +90,21 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
                 {
                     ["id"] = id, ["companyid"] = company.Text("id"), ["sourcehash"] = hash, ["kind"] = (int)party.Key.Kind,
                     ["externalid"] = party.Key.ExternalId, ["ownerexternalid"] = party.Key.OwnerExternalId, ["displayname"] = party.DisplayName,
-                    ["number"] = party.Number, ["email"] = party.Email, ["isinactive"] = party.IsInactive,
+                    ["number"] = party.Number, ["email"] = party.Email, ["isinactive"] = party.IsInactive, ["contactfieldsversion"] = party.ContactFieldsVersion,
                     ["sourcerecordtype"] = party.Source?.RecordType, ["sourcerecordid"] = party.Source?.RecordId,
                     ["sourceupdatedatutc"] = party.SourceUpdatedAtUtc is { } changed ? DatabaseUtc.Encode(changed) : null,
                     ["refreshedatutc"] = DatabaseUtc.Encode(replacement.RefreshedAtUtc), ["searchname"] = party.DisplayName.ToUpperInvariant(), ["searchnumber"] = party.Number?.ToUpperInvariant()
                 }).ConfigureAwait(false);
+                for (var emailPosition = 0; emailPosition < party.Emails.Length; emailPosition++)
+                {
+                    var email = party.Emails[emailPosition];
+                    await db.InsertAsync("partyemails", new()
+                    {
+                        ["id"] = DatabaseId.Encode(Guid.NewGuid()), ["partyid"] = id, ["position"] = emailPosition,
+                        ["originalvalue"] = email.OriginalValue, ["useformatching"] = email.UseForMatching,
+                        ["sourcerecordtype"] = email.Source.RecordType, ["sourcerecordid"] = email.Source.RecordId, ["sourcefieldname"] = email.Source.FieldName
+                    }).ConfigureAwait(false);
+                }
                 var position = 0;
                 foreach (var phone in party.Phones) await InsertPhoneAsync(db, id, null, position++, phone).ConfigureAwait(false);
                 for (var index = 0; index < party.Addresses.Length; index++)
@@ -153,6 +164,7 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
         var ids = rows.Select(row => row.Text("id")).ToArray();
         var addresses = await db.RowsAsync($"SELECT * FROM {db.T("partyaddresses")} WHERE {db.In("partyid", "@ids")} ORDER BY partyid,{db.Q("position")}", new { ids }).ConfigureAwait(false);
         var phones = await db.RowsAsync($"SELECT * FROM {db.T("partyphones")} WHERE {db.In("partyid", "@ids")} ORDER BY partyid,{db.Q("position")}", new { ids }).ConfigureAwait(false);
+        var emails = await db.RowsAsync($"SELECT * FROM {db.T("partyemails")} WHERE {db.In("partyid", "@ids")} ORDER BY partyid,{db.Q("position")}", new { ids }).ConfigureAwait(false);
         PartyPhone Phone(RepositoryRow row) => new(row.Text("originalvalue"), (PhoneKind)checked((int)row.Long("kind")),
             new(row.Text("sourcerecordtype"), row.Text("sourcerecordid"), row.Text("sourcefieldname")), row.OptionalText("e164"), row.OptionalText("extension"));
         var result = new List<Party>();
@@ -166,6 +178,9 @@ public sealed class DapperPartyCacheRepository(DatabaseRepositoryContext context
             var party = new Party
             {
                 Key = key, DisplayName = row.Text("displayname"), Number = row.OptionalText("number"), Email = row.OptionalText("email"), IsInactive = row.Bool("isinactive"), SourceUpdatedAtUtc = row.OptionalUtc("sourceupdatedatutc"),
+                ContactFieldsVersion = checked((int)row.Long("contactfieldsversion")),
+                Emails = emails.Where(email => email.Text("partyid") == row.Text("id")).Select(email => new PartyEmail(email.Text("originalvalue"),
+                    new(email.Text("sourcerecordtype"), email.Text("sourcerecordid"), email.Text("sourcefieldname")), email.Bool("useformatching"))).ToImmutableArray(),
                 Source = row.OptionalText("sourcerecordtype") is null && row.OptionalText("sourcerecordid") is null
                     ? null : new SourceRecord(row.Text("sourcerecordtype"), row.Text("sourcerecordid")),
                 Phones = ownedPhones.Where(phone => phone.Value("addressid") is null).Select(Phone).ToImmutableArray(),

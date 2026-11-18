@@ -27,7 +27,7 @@ public sealed class MailCacheTests
         var binary = await db.QuerySingleAsync<byte[]>("SELECT payload FROM mailattachmentblobs"); Assert.IsFalse(binary.SequenceEqual(new byte[] { 1, 2, 3, 4 }));
         Assert.DoesNotContain("private body", await db.QuerySingleAsync<string>("SELECT payload FROM mailmessages"));
         Assert.AreEqual(1, await db.QuerySingleAsync<int>("SELECT COUNT(*) FROM mailcacheversioninfo"));
-        Assert.AreEqual(13, await db.QuerySingleAsync<int>("SELECT MAX(version) FROM versioninfo"));
+        Assert.AreEqual(14, await db.QuerySingleAsync<int>("SELECT MAX(version) FROM versioninfo"));
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Docs", "Datenbank-Tabellen-und-Spalten.md"))) directory = directory.Parent;
         Assert.IsNotNull(directory);
@@ -39,6 +39,21 @@ public sealed class MailCacheTests
                 .Select(line => System.Text.RegularExpressions.Regex.Match(line, @"^\|\s*`([^`]+)`\s*\|")).Where(match => match.Success).Select(match => match.Groups[1].Value).ToArray();
             CollectionAssert.AreEquivalent(columns, described);
         }
+    }
+    [TestMethod]
+    public async Task ExistingVersionThirteenCacheUpgradesContactSchemaWithoutReplacingMailOrBlobs()
+    {
+        await using var fixture = await Fixture.Create(); await fixture.Cache.SynchronizeAsync(fixture.Account.Id);
+        await using (var db = new SqliteConnection("Data Source=" + fixture.CachePath + ";Pooling=False"))
+        {
+            await db.OpenAsync();
+            await db.ExecuteAsync("DROP TABLE partyemails; ALTER TABLE parties DROP COLUMN contactfieldsversion; DELETE FROM versioninfo WHERE version=14;");
+        }
+        fixture.Provider.Offline = true;
+        Assert.AreEqual("private body", (await fixture.Cache.GetMessageAsync(fixture.Message.Content.Key))!.Text);
+        CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4 }, await fixture.Cache.GetAttachmentAsync(fixture.Message.Content.Key, "file", default));
+        await using var upgraded = new SqliteConnection("Data Source=" + fixture.CachePath + ";Pooling=False"); await upgraded.OpenAsync();
+        Assert.AreEqual(14, await upgraded.QuerySingleAsync<int>("SELECT MAX(version) FROM versioninfo"));
     }
     [TestMethod]
     public async Task DisabledCacheUsesLiveReadsAndCreatesNoSqliteFile()

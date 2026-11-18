@@ -34,6 +34,9 @@ public sealed record PartyPhone(
     string? E164 = null,
     string? Extension = null);
 
+/// <summary>One original mail field, including its exact source. Disabled delivery overrides are retained but never matched.</summary>
+public sealed record PartyEmail(string OriginalValue, SourceField Source, bool UseForMatching = true);
+
 /// <summary>An address belonging to the enclosing party; its source ID is not globally unique.</summary>
 public sealed record PartyAddress
 {
@@ -61,11 +64,15 @@ public sealed record PartyAddress
 /// </summary>
 public sealed record Party
 {
+    public const int CurrentContactFieldsVersion = 1;
     public required PartyKey Key { get; init; }
     public required string DisplayName { get; init; }
     public string? Number { get; init; }
     public SourceRecord? Source { get; init; }
     public string? Email { get; init; }
+    public ImmutableArray<PartyEmail> Emails { get; init; } = [];
+    /// <summary>Zero denotes a legacy/incomplete snapshot and must not prove that no additional contact fields exist.</summary>
+    public int ContactFieldsVersion { get; init; }
     public bool IsInactive { get; init; }
     public DateTimeOffset? SourceUpdatedAtUtc { get; init; }
     public ImmutableArray<PartyAddress> Addresses { get; init; } = [];

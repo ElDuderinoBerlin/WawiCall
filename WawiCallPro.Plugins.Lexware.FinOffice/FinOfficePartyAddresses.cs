@@ -13,6 +13,7 @@ internal static class FinOfficePartyAddresses
             SELECT lNr AS OwnerId, szFirma AS Company, szVorName AS FirstName, szName AS LastName,
               szStrasse AS Street, szZusatz AS Extension, szPLZ AS Postalcode, szOrt AS City,
               szLand AS CountryCode, szLandBez AS Country, szEMail AS Email,
+              szElectronicInvoiceRecipientEmail AS InvoiceEmail, fUseElectronicInvoiceRecipientEmail AS UseInvoiceEmail,
               szTel1 AS Telephone, szTel2 AS Telephone2, szFax AS Fax,
               szLieferStrasse AS ShippingStreet, szLieferZusatz AS ShippingExtension,
               szLieferPLZ AS ShippingPostalcode, szLieferOrt AS ShippingCity, szLieferLand AS ShippingCountryCode,
@@ -50,7 +51,10 @@ internal static class FinOfficePartyAddresses
                     CountryCode = Code(row.ShippingCountryCode), Country = Country(row.ShippingCountry, row.ShippingCountryCode),
                     Phones = Phones(id, (row.ShippingTelephone, PhoneKind.Telephone, "szLieferTel"))
                 });
-            parties[index] = owner with { Addresses = addresses.ToImmutable() };
+            var emails = ImmutableArray.CreateBuilder<PartyEmail>();
+            if (!string.IsNullOrWhiteSpace(Clean(row.Email))) emails.Add(new(Clean(row.Email)!, new("fk_kd_view", id, "szEMail")));
+            if (!string.IsNullOrWhiteSpace(Clean(row.InvoiceEmail))) emails.Add(new(Clean(row.InvoiceEmail)!, new("fk_kd_view", id, "szElectronicInvoiceRecipientEmail"), row.UseInvoiceEmail is not null and not 0));
+            parties[index] = owner with { Addresses = addresses.ToImmutable(), Emails = emails.ToImmutable(), ContactFieldsVersion = Party.CurrentContactFieldsVersion };
         }
     }
 
@@ -75,6 +79,7 @@ internal static class FinOfficePartyAddresses
         public string? Street { get; set; } public string? Extension { get; set; } public string? Postalcode { get; set; }
         public string? City { get; set; } public string? CountryCode { get; set; } public string? Country { get; set; }
         public string? Email { get; set; } public string? Telephone { get; set; } public string? Telephone2 { get; set; } public string? Fax { get; set; }
+        public string? InvoiceEmail { get; set; } public int? UseInvoiceEmail { get; set; }
         public string? ShippingStreet { get; set; } public string? ShippingExtension { get; set; } public string? ShippingPostalcode { get; set; }
         public string? ShippingCity { get; set; } public string? ShippingCountryCode { get; set; } public string? ShippingCountry { get; set; }
         public string? ShippingTelephone { get; set; }

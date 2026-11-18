@@ -26,6 +26,48 @@ public sealed class ProAdapterTests
     };
 
     [TestMethod]
+    public async Task AllCustomerMailFieldsAndContactSecondMailKeepTheirExactOwnersAndSources()
+    {
+        const string record = """
+            {"id":1,"number":"00042","invoiceAddress":{"email":"main@example.test","email2":"second@example.test","telephone":"1","telephone2":"2","telephone3":"3","cellphone":"4","fax":"5"},
+             "shippingAddress":{"email":"ship@example.test","email2":"ship2@example.test"},
+             "additionalAddresses":[{"id":101,"businessPartnerId":1,"email":"extra@example.test","email2":"extra2@example.test"}],
+             "contactPersons":[{"id":7,"email1":"contact@example.test","email2":"contact2@example.test","phone1":"6","phone2":"7","mobil":"8","fax":"9"}]}
+            """;
+        var handler = AddressHandler(record); await using var provider = Build(handler);
+        var company = new CompanyKey(LexwareProductLine.Pro, "isolated-installation", "1");
+        var directory = provider.GetRequiredService<IBusinessDirectory>(); var page = await directory.GetPartiesAsync(new(company, new(), Kind: PartyKind.Customer));
+        var owner = page.Page.Items.Single(item => item.Key.Kind == PartyKind.Customer);
+        var contact = (await directory.GetPartyAsync(new(company, PartyKind.CustomerContact, "7", "1")))!;
+        Assert.AreEqual(Party.CurrentContactFieldsVersion, owner.ContactFieldsVersion); Assert.HasCount(6, owner.Emails);
+        Assert.IsTrue(owner.Emails.Any(item => item.Source == new SourceField("fk_anschrift", "101", "email2") && item.OriginalValue == "extra2@example.test"));
+        Assert.HasCount(2, contact.Emails); Assert.AreEqual("1", contact.Key.OwnerExternalId);
+        Assert.AreEqual(new SourceField("fk_kontaktperson", "7", "email2"), contact.Emails[1].Source);
+        Assert.HasCount(5, owner.Addresses.Single(item => item.Kind == AddressKind.Billing).Phones); Assert.HasCount(4, contact.Phones);
+        var reloaded = await directory.GetPartyAsync(contact.Key); CollectionAssert.AreEqual(contact.Emails.ToArray(), reloaded!.Emails.ToArray());
+        StringAssert.Contains(handler.Requests.Last().Query, "email1 email2");
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    public async Task SupplierContactsAlsoExposeBothMailsAndInvoiceOverrideRetainsItsEnableFlag(int enabled)
+    {
+        var record = """
+            {"id":1,"number":"00042","invoiceAddress":{"email":"owner@example.test"},"shippingAddress":{"exists":true,"email":"shipping@example.test"},
+             "orderAddress":{"email":"owner@example.test"},"electronicInvoiceRecipientEmail":"billing@example.test","useElectronicInvoiceRecipientEmail":ENABLED,
+             "contactPersons":[{"id":7,"email1":"first@example.test","email2":"second@example.test","phone1":"1","phone2":"2","mobil":"3","fax":"4"}]}
+            """.Replace("ENABLED", enabled.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+        var handler = AddressHandler(record); await using var provider = Build(handler);
+        var page = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new(new(LexwareProductLine.Pro,"isolated-installation","1"), new(), Kind: PartyKind.SupplierContact));
+        var contact = page.Page.Items.Single(); Assert.HasCount(2, contact.Emails); Assert.HasCount(4, contact.Phones); Assert.AreEqual("1", contact.Key.OwnerExternalId);
+        var owner = await provider.GetRequiredService<IBusinessDirectory>().GetPartyAsync(new(contact.Key.Company, PartyKind.Supplier, "1"));
+        Assert.HasCount(3, owner!.Emails); Assert.AreEqual(enabled != 0, owner.Emails.Single(item => item.Source.FieldName == "electronicInvoiceRecipientEmail").UseForMatching);
+        var query = handler.Requests.Last().Query;
+        Assert.IsFalse(query.Contains("orderAddress { email2", StringComparison.Ordinal)); StringAssert.Contains(query, "email1 email2");
+    }
+
+    [TestMethod]
     public async Task CapabilitiesCheckAuthorizedCompanyAndKeepRoleLimits()
     {
         var handler = new ScriptedHandler((request, _) => Task.FromResult(IsLogin(request)
