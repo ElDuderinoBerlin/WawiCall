@@ -1,6 +1,7 @@
 param(
     [switch]$FullAcceptance,
     [switch]$ProviderCompatibility,
+    [switch]$Mp3ProcessCrashes,
     [string]$MariaDbBin,
     [ValidateSet('SQL Server','MySQL','PostgreSQL','MariaDB')][string[]]$Engine,
     [ValidateSet('Pro','FinOffice')][string]$LexwareProductLine = 'Pro'
@@ -21,6 +22,12 @@ New-Item -ItemType Directory -Path $runner | Out-Null
   </ItemGroup>
 </Project>
 '@ | Set-Content -LiteralPath (Join-Path $runner 'Runner.csproj') -Encoding utf8
+if ($Mp3ProcessCrashes) {
+    $projectFile = Join-Path $runner 'Runner.csproj'
+    $projectText = [IO.File]::ReadAllText($projectFile).Replace('<TargetFramework>net11.0</TargetFramework>', '<TargetFramework>net11.0-windows10.0.19041.0</TargetFramework><DefineConstants>MP3_CRASH_AUDIT</DefineConstants>')
+    $projectText = $projectText.Replace('</ItemGroup>', '<ProjectReference Include="../../../WawiCallPro.Console.Tests/WawiCallPro.Console.Tests.csproj" /></ItemGroup>')
+    [IO.File]::WriteAllText($projectFile, $projectText)
+}
 @'
 using System.Text.Json;
 using WawiCallPro.Database;
@@ -51,6 +58,14 @@ foreach(var item in configurations)
         var status = await new DatabaseMigrator(factory, engine).MigrateAsync(target, creation: receipt);
         if(status.State != DatabaseSchemaState.Current) throw new Exception("Schema creation failed");
     }
+#if MP3_CRASH_AUDIT
+    if(args[4] == "crashes")
+    {
+        await WawiCallPro.Console.Tests.Mp3ProcessCrashTests.RunServerAsync(target, receipt, item.Engine);
+        Console.WriteLine(item.Engine + ": five actual MP3 process terminations, original output recovery, native decoding and exact versions passed.");
+        continue;
+    }
+#endif
     await RepositoryAcceptance.CompaniesAndCacheAsync(target);
     await MailImportAcceptance.RunAsync(target);
     Console.WriteLine(item.Engine + ": encrypted mail page/cursor transactions, snapshot completion, moves, scope filters and rollback passed.");
@@ -183,7 +198,7 @@ try {
     if ($Engine) { $targets = @($targets | Where-Object { $_.Engine -in $Engine }) }
     if ($targets.Count -eq 0) { throw 'Keine passenden nativen Prüffälle ausgewählt.' }
     ConvertTo-Json -InputObject @($targets) | Set-Content -LiteralPath $config -Encoding utf8
-    $mode = if ($ProviderCompatibility) { 'providers' } elseif ($FullAcceptance) { 'full' } else { 'backup' }
+    $mode = if ($Mp3ProcessCrashes) { 'crashes' } elseif ($ProviderCompatibility) { 'providers' } elseif ($FullAcceptance) { 'full' } else { 'backup' }
     & dotnet run --project (Join-Path $runner 'Runner.csproj') -c Debug '-p:Platform=Any CPU' "-p:LexwareProductLine=$LexwareProductLine" -- $config $audit $mysqlBin $pgBin $mode
     if ($LASTEXITCODE -ne 0) { throw 'Server schema audit failed' }
 } finally {

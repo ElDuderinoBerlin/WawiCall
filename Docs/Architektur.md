@@ -1699,15 +1699,28 @@ Quellartefakt, Aufnahme/Capture und eine fremde synthetische Datei bleiben unver
 wird genau einmal gestartet; erfolgreich wiederhergestellte MP3s werden mit dem echten Decoder
 auf Stereo, Abtastrate, Dauer und vorhandenes Audiosignal geprüft.
 
-Die Läufe erzeugen unter `.artifacts/mp3-process-crash/<Edition>` JSON-Nachweise mit Prüfpunkt,
+Die Läufe erzeugen unter `.artifacts/mp3-process-crash/<Edition>/<Engine>` JSON-Nachweise mit Prüfpunkt,
 Zeit, Eltern-/Kind-PID, Exitcode, tatsächlichen Assemblypfaden, Framework, Hashes und resultierenden
 Versionen. Temporäre Fixture-Verzeichnisse werden erst nach Ende des eigenen Kindes entfernt;
 der berechnete absolute Pfad muss unter dem temporären Verzeichnis liegen und dem Fixture-Namensschema
 entsprechen. Konkrete Editionsergebnisse und Logs stehen im Plan.
 
-Grenzen: Windows und SQLite; die bisherigen fünf Engine-Prüfungen der Dienste bleiben getrennte
-Nachweise. Diese Tests ersetzen keine serverbasierte Prozessabbruch-, Stromausfall-, Geräte- oder
-echte Gesprächsabnahme. Produktivcode, Datenbankschema und Migrationen 1–12 bleiben unverändert.
+Erweiterung 19.11.2026: Derselbe Ablauf kann nach ausdrücklicher Neuanlage durch den Provider-Harness
+auch SQL Server, PostgreSQL, MySQL und MariaDB verwenden. Einstieg:
+`scripts/test-database-backup.ps1 -ProviderCompatibility -Mp3ProcessCrashes -LexwareProductLine FinOffice`.
+Der separate Modus migriert die frische Testdatenbank und führt pro Engine fünf echte Kindprozessabbrüche
+aus; die übrigen Provider-/Backup-Abnahmen bleiben getrennte Läufe. `-Engine` begrenzt bei Bedarf die Engines.
+Die Datenbank muss den GUID-Namen des Harness tragen und auf Loopback beziehungsweise dessen zugehöriger
+LocalDB-Instanz liegen. Vorhandene oder entfernte Ziele werden vor dem Öffnen einer Verbindung abgewiesen.
+Der Elternprozess übergibt dem Kind ausschließlich den temporären Root und den Prüfpunkt. Die Serververbindung
+wird mit DPAPI im isolierten Einstellungsordner gespeichert; weder Kommandozeile noch Nachweis-JSON enthalten
+Zugangsdaten. Das Kind legt auf Servern keine weitere Datenbank an und erhält keine Schemafreigabe.
+Ein aus dem Harness aufgerufener Test startet die reguläre Console-Testassembly der tatsächlichen
+Buildkonfiguration und Edition; Dateihash und tatsächliche Assemblypfade müssen zum geladenen Stand passen.
+
+Grenzen: Windows; die bisherigen Providerprüfungen ohne Prozessabbruch bleiben getrennte Nachweise.
+Ein beendeter Kindprozess simuliert keinen Stromausfall und keinen Verlust des Datenbankservers. Geräte-
+und echte Gesprächsabnahme bleiben offen. Produktivcode, Schema 14 und sämtliche Migrationen unverändert.
 Rollback: ausschließlich Testfälle/Fixture und zugehörige Dokumentation zurücknehmen; gespeicherte
 Produktivdateien oder Auftragsstände werden dadurch nicht verändert.
 

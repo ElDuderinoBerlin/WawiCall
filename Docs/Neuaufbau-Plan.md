@@ -4,9 +4,12 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 18.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 19.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: automatische MP3-Einreihung nach ausdrücklicher Aktivierung unter Einstellungen → Audio.
+Zuletzt ergänzt: tatsächliche MP3-Kindprozessabbrüche auf isolierten Server-Datenbanken neben SQLite;
+fünf Grenzen mit unveränderten Originalbytes, geschützter Wiederherstellung und Versionsnachweis.
+Stromausfall und Ausfall des Datenbankservers bleiben getrennte offene Abnahmen (Phase 9).
+Zuvor ergänzt: automatische MP3-Einreihung nach ausdrücklicher Aktivierung unter Einstellungen → Audio.
 Nur danach bestätigte lokale WAV-Aufnahmen abgeschlossener Gespräche; Aktivierungszeitpunkt bleibt beim
 Wiederanlauf erhalten. Vorgabe aus, WAVs und bestehende Jobzustände bleiben erhalten (Phase 9).
 Zuvor ergänzt: idempotenter Dienst zum Einreihen einer MP3-Konvertierung aus einer bestätigten lokalen
@@ -475,7 +478,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
-| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, serverbasierte Prozessabbruch-/Stromausfallabnahme, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; Stromausfall-/Serverausfallabnahme, unbestätigte/verwaiste Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -3201,9 +3204,30 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   fünf Engines. Logs `.mp3-auto-{build,utilities,console,app}-{pro,fin}.log` und
   `.mp3-auto-providers-fin.log`; Bilder `.artifacts/app-shell/settings-ui/automatic-mp3/`.
   Keine produktiven Aufnahmen, Audiogeräte oder sichtbaren Fenster; kein neuer Stromausfallnachweis.
+- [x] ✅ Tatsächliche MP3-Prozessabbrüche auf Server-Datenbanken ergänzen (19.11.2026).
+  Die vorhandenen fünf Grenzen über denselben Testablauf auf SQL Server, PostgreSQL, MySQL und MariaDB
+  ausführen: Kodierung, vor/nach geschützter Vorbereitung, nach Veröffentlichung und nach DB-Bestätigung
+  vor Quittierung. Nur neu angelegte lokale GUID-Datenbanken des Provider-Harness zulassen. Serverkonfiguration
+  DPAPI-geschützt im temporären Fixture-Ordner ablegen; keine Zugangsdaten in Kommandozeile oder Nachweis.
+  Regulären Teststand anhand Dateihash und tatsächlichen Assemblypfaden prüfen. Elternprozess beendet
+  ausschließlich sein eigenes blockiertes Kind und wartet dessen Ende ab. Wiederherstellung mit neuen
+  Diensten ohne zweite Kodierung; Frozen-Zeitpunkte, Originalhash, Versuch und Versionen Job 3/Ziel 2 erhalten.
+  WAV, Capture, Quellartefakt und fremde synthetische Datei bleiben unverändert. Erfolgreiche MP3 nativ dekodieren.
+  Neuer expliziter Harness-Schalter `-Mp3ProcessCrashes`; regulärer Provider-/Backupmodus bleibt erhalten.
+  JSON-Nachweise nach Edition und Engine trennen. Produktivcode, Schema 14 und Migrationen unverändert.
+  Pro und FinOffice: je 389 vollständige Console-Prüfungen bestanden, darunter fünf echte SQLite-
+  Prozessabbrüche und drei neue Negativfälle für bestehende/entfernte Serverziele. Zusätzlich je 20 echte
+  Prozessabbrüche auf den vier Server-Engines; alle fünf Prüfpunkte je Engine. Wiederhergestellte Originale
+  mit nativem Encoder/Decoder geprüft. Die ausgewerteten Nachweise zeigen Exitcode -1, Jobversion 3 und
+  Zielversion 2 in allen Fällen. Beide regulären Solution-Builds Debug/Any CPU: null Fehler, je 26 bekannte
+  externe CSCore-Warnungen; FinOffice zuletzt gebaut. Keine sichtbaren Fenster oder Audiogeräte verwendet.
+  Logs `.mp3-server-crash-{build,console,providers}-{pro,fin}.log`, zusätzliche SQL-Server-Vorprüfung
+  `.mp3-server-crash-sql-pro.log`; JSON unter `.artifacts/mp3-process-crash/<Edition>/<Engine>/`.
+  Beispielaufruf: `scripts/test-database-backup.ps1 -ProviderCompatibility -Mp3ProcessCrashes -LexwareProductLine FinOffice`.
+  Stromausfall, Verlust der DB-Verbindung/des DB-Servers und echte Gesprächsabnahme bleiben offen.
 - [ ] Unbestätigte WAVs und verwaiste Dateien nach Neustart vollständig abgleichen;
   Aufnahmebedienung und freie Konvertierungs-/Formatwahl an die vorhandenen Dienste anschließen.
-  Prozessabbruchnachweise für serverbasierte Datenbanken gezielt ergänzen; Stromausfall getrennt prüfen.
+  Stromausfall und Verlust der Datenbankverbindung beziehungsweise des Servers getrennt prüfen.
   Weitere Migrationen ab Version 13 ergänzen; bestehende
   Migrationen 1–12 unverändert lassen. Neustart und erneute Konvertierung
   ohne doppelte Jobs/Artefakte prüfen. Detaillierter Ablauf: [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).

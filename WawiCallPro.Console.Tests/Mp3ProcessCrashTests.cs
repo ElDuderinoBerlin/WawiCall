@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using CSCore.MediaFoundation;
 using WawiCallPro.Database.Contracts;
+using WawiCallPro.Database;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Utilities.Persistence;
 using WawiCallPro.Utilities.Security;
@@ -30,11 +31,26 @@ public sealed class Mp3ProcessCrashTests
             Assert.Fail("The child must remain at the checkpoint until its parent terminates it.");
         }
 
+        await RunIsolatedAsync(point, null, "SQLite");
+    }
+
+    public static async Task RunServerAsync(DatabaseTarget target, DatabaseCreation creation, string engine)
+    {
+        if (!creation.WasCreated || creation.Type != target.Type || engine is not ("SQL Server" or "MySQL" or "MariaDB" or "PostgreSQL"))
+            throw new AssertFailedException("A newly created disposable database and explicit engine are required.");
+        Mp3CrashFixture.ValidateServerTarget(target);
+        foreach (var point in new[] { "encoding", "before-preparation", "prepared", "published", "db-confirmed" })
+            await RunIsolatedAsync(point, target, engine);
+    }
+
+    private static async Task RunIsolatedAsync(string point, DatabaseTarget? target, string engine)
+    {
         var root = Path.Combine(Path.GetTempPath(), "wcp-mp3-process-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         Process? process = null;
         try
         {
-            var assembly = typeof(Mp3ProcessCrashTests).Assembly.Location;
+            if (target is not null) await Mp3CrashFixture.ConfigureServerAsync(root, target, engine);
+            var assembly = ResolveTestAssembly();
             var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             start.ArgumentList.Add(assembly); start.ArgumentList.Add("--filter");
             start.ArgumentList.Add("FullyQualifiedName~Mp3ProcessCrashTests.ActualProcessTerminationPreservesTheOriginalAndRecoversExactlyOnce");
@@ -50,9 +66,10 @@ public sealed class Mp3ProcessCrashTests
             }
             var signal = JsonSerializer.Deserialize<Mp3CrashSignal>(await File.ReadAllTextAsync(readyFile, deadline.Token))!;
             Assert.AreEqual(point, signal.Point); Assert.AreEqual(process.Id, signal.ProcessId); Assert.AreNotEqual(Environment.ProcessId, signal.ProcessId);
+            Assert.AreEqual(engine, signal.Engine);
             Assert.IsFalse(process.HasExited);
             Assert.AreEqual(Path.GetFullPath(assembly), Path.GetFullPath(signal.AssemblyPath));
-            Assert.AreEqual(Path.GetFullPath(typeof(WawiCallPro.Audio.WavToMp3Converter).Assembly.Location), Path.GetFullPath(signal.AudioAssemblyPath));
+            Assert.AreEqual(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assembly)!, "WawiCallPro.Audio.dll")), Path.GetFullPath(signal.AudioAssemblyPath));
             var before = await Mp3CrashFixture.OpenAsync(root);
             Assert.IsTrue(signal.Length > 0);
             Assert.AreEqual(point != "encoding", File.Exists(Path.Combine(root, "encoder-returned")));
@@ -139,6 +156,28 @@ public sealed class Mp3ProcessCrashTests
         var payload = JsonNode.Parse(plain.Reveal())!; Assert.AreEqual(2, payload["Version"]!.GetValue<int>());
         return payload["Target"]!["ChangedAtUtc"]!.GetValue<DateTimeOffset>();
     }
+    private static string ResolveTestAssembly()
+    {
+        var loaded = typeof(Mp3ProcessCrashTests).Assembly;
+        if (File.Exists(Path.ChangeExtension(loaded.Location, ".runtimeconfig.json"))) return loaded.Location;
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
+        Assert.IsNotNull(repository);
+        var configuration = loaded.GetCustomAttributes(typeof(System.Reflection.AssemblyConfigurationAttribute), false)
+            .Cast<System.Reflection.AssemblyConfigurationAttribute>().Single().Configuration;
+        var original = Path.Combine(repository.FullName, "WawiCallPro.Console.Tests", "bin", configuration, Mp3CrashFixture.ProductLine,
+            "net11.0-windows10.0.19041.0", "WawiCallPro.Console.Tests.dll");
+        Assert.IsTrue(File.Exists(original)); Assert.AreEqual(Digest(loaded.Location), Digest(original));
+        Assert.IsTrue(File.Exists(Path.ChangeExtension(original, ".runtimeconfig.json")));
+        return original;
+    }
+
+    [TestMethod]
+    [DataRow(DatabaseType.MySql, "Server=127.0.0.1;Database=existing;User ID=test")]
+    [DataRow(DatabaseType.PostgreSql, "Host=remote.example.test;Database=wcp_schema_0123456789abcdef0123456789abcdef;Username=test")]
+    [DataRow(DatabaseType.SqlServer, "Server=(localdb)\\MSSQLLocalDB;Database=wcp_schema_0123456789abcdef0123456789abcdef;Integrated Security=True")]
+    public void ExistingOrRemoteTargetsAreRejectedBeforeOpeningAConnection(DatabaseType type, string connection) =>
+        Assert.ThrowsExactly<AssertFailedException>(() => Mp3CrashFixture.ValidateServerTarget(DatabaseTarget.Server(type, connection)));
     private static string Digest(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
     private static void VerifyDecodedAudio(string path)
     {
@@ -153,10 +192,10 @@ public sealed class Mp3ProcessCrashTests
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
         Assert.IsNotNull(repository);
-        var directory = Path.Combine(repository.FullName, ".artifacts", "mp3-process-crash", Mp3CrashFixture.ProductLine); Directory.CreateDirectory(directory);
+        var directory = Path.Combine(repository.FullName, ".artifacts", "mp3-process-crash", Mp3CrashFixture.ProductLine, signal.Engine.Replace(' ', '-')); Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fffffff") + "-" + signal.Point + ".json"), JsonSerializer.Serialize(new
         {
-            Utc = DateTimeOffset.UtcNow, signal.Point, signal.ProcessId, ParentProcessId = Environment.ProcessId, ExitCode = exitCode,
+            Utc = DateTimeOffset.UtcNow, signal.Point, signal.Engine, signal.ProcessId, ParentProcessId = Environment.ProcessId, ExitCode = exitCode,
             signal.AssemblyPath, signal.AudioAssemblyPath, Framework = RuntimeInformation.FrameworkDescription, ProductLine = Mp3CrashFixture.ProductLine,
             signal.Sha256, signal.Length, WaveSha256 = signal.Seed.WaveSha256, FrozenChangedAtUtc = frozenChanged,
             JobState = job.Job.State.ToString(), Failure = job.Job.Failure?.ToString(), job.Job.AttemptId, job.Job.Attempts,

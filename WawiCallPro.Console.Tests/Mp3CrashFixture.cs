@@ -19,7 +19,8 @@ namespace WawiCallPro.Console.Tests;
 
 internal sealed record Mp3CrashSeed(Guid JobId, Guid SourceId, Guid TargetId, Guid RecordingId, Guid WorkstationId, string WaveSha256);
 internal sealed record Mp3CrashSignal(string Point, int ProcessId, string AssemblyPath, string AudioAssemblyPath,
-    Mp3CrashSeed Seed, string RelativePath, long Length, string Sha256);
+    Mp3CrashSeed Seed, string RelativePath, long Length, string Sha256)
+{ public string Engine { get; init; } = "SQLite"; }
 
 /// <summary>Owns only synthetic temporary files. It deliberately has no product-host startup or audio devices.</summary>
 internal sealed class Mp3CrashFixture
@@ -38,13 +39,18 @@ internal sealed class Mp3CrashFixture
     internal DapperCallRepository Calls { get; }
     internal IRecordingJournalOutbox RecordingLeases { get; }
     internal IRecordingConversionOutbox Conversions { get; }
+    internal string Engine { get; }
     private readonly DatabaseRepositoryContext _context;
     internal string Wave => Paths.ResolveRecordingPath("process.wav");
     internal string Output => Paths.ResolveRecordingPath("process.mp3");
     private Mp3CrashFixture(string root, ApplicationConfigurationService configuration)
     {
         Paths = new(new ConfigurationLocation(root));
-        _context = new(DatabaseTarget.Sqlite(Path.Combine(root, "crash.db")), new());
+        var target = new ConfiguredDatabaseTarget(configuration, Paths, new WindowsUserSecretProtector()).GetTarget();
+        if (target.Type != DatabaseType.Sqlite) ValidateServerTarget(target);
+        _context = new(target, new());
+        Engine = File.Exists(Path.Combine(root, "engine.txt")) ? File.ReadAllText(Path.Combine(root, "engine.txt")) : "SQLite";
+        if (Engine is not ("SQLite" or "SQL Server" or "MySQL" or "MariaDB" or "PostgreSQL")) throw new AssertFailedException("Invalid fixture engine.");
         Jobs = new(_context); Journal = new(_context); Artifacts = new(_context); Recordings = new(_context); Captures = new(_context); Calls = new(_context);
         var secrets = new WindowsUserSecretProtector(); var application = new ApplicationDescriptor("WawiCallPro", ProductLine);
         RecordingLeases = new ProtectedRecordingJournalOutbox(Paths, secrets, configuration, application);
@@ -73,11 +79,14 @@ internal sealed class Mp3CrashFixture
 
     internal static async Task RunChildAsync(string root, string point)
     {
-        var target = DatabaseTarget.Sqlite(Path.Combine(root, "crash.db"));
-        var creation = await new DatabaseProvisioner(new()).CreateAsync(target);
-        await new DatabaseMigrator(new(), new FluentMigratorEngine(target.Type)).MigrateAsync(target, creation: creation);
-        var secrets = new WindowsUserSecretProtector();
-        await new ConfigurationStore(new(root), new ApplicationOptionsValidator(secrets), null).SaveAsync(new() { Database = new() { SqliteFileName = "crash.db" } });
+        if (!File.Exists(new ConfigurationLocation(root).FilePath))
+        {
+            var target = DatabaseTarget.Sqlite(Path.Combine(root, "crash.db"));
+            var creation = await new DatabaseProvisioner(new()).CreateAsync(target);
+            await new DatabaseMigrator(new(), new FluentMigratorEngine(target.Type)).MigrateAsync(target, creation: creation);
+            var secrets = new WindowsUserSecretProtector();
+            await new ConfigurationStore(new(root), new ApplicationOptionsValidator(secrets), null).SaveAsync(new() { Database = new() { SqliteFileName = "crash.db" } });
+        }
         var fixture = await OpenAsync(root); Directory.CreateDirectory(fixture.Paths.RecordingsDirectory);
         using (var writer = new BinaryWriter(File.Create(fixture.Wave)))
         {
@@ -115,6 +124,28 @@ internal sealed class Mp3CrashFixture
         await using var owner = await factory.StartAsync(job.Id);
         await owner.RunAsync();
     }
+    internal static void ValidateServerTarget(DatabaseTarget target)
+    {
+        using var connection = new DatabaseFactory().CreateConnection(target);
+        var name = connection.Database;
+        if (!name.StartsWith("wcp_schema_", StringComparison.Ordinal) || !Guid.TryParseExact(name[11..], "N", out _))
+            throw new AssertFailedException("Only a disposable provider-harness database is allowed.");
+        var local = target.Type == DatabaseType.SqlServer
+            ? string.Equals(connection.DataSource, "(localdb)\\WcpSchema" + name[11..], StringComparison.OrdinalIgnoreCase)
+            : connection.DataSource == "127.0.0.1" || connection.DataSource.StartsWith("tcp://127.0.0.1:", StringComparison.Ordinal);
+        if (!local) throw new AssertFailedException("Only local disposable provider instances are allowed.");
+    }
+    internal static async Task ConfigureServerAsync(string root, DatabaseTarget target, string engine)
+    {
+        ValidateRoot(root); ValidateServerTarget(target);
+        using var connection = new DatabaseFactory().CreateConnection(target); var secrets = new WindowsUserSecretProtector();
+        var provider = target.Type switch { DatabaseType.SqlServer => CommunicationDatabaseProvider.SqlServer,
+            DatabaseType.MySql => CommunicationDatabaseProvider.MySql, DatabaseType.PostgreSql => CommunicationDatabaseProvider.PostgreSql,
+            _ => throw new AssertFailedException() };
+        await new ConfigurationStore(new(root), new ApplicationOptionsValidator(secrets)).SaveAsync(new() { Database = new()
+            { Provider = provider, ConnectionString = secrets.Protect(connection.ConnectionString, CommunicationDatabaseSettings.ConnectionStringPurpose) } });
+        await File.WriteAllTextAsync(Path.Combine(root, "engine.txt"), engine);
+    }
     private sealed class Identity(Guid local) : IWorkstationIdentity
     { public Task<Guid?> GetAsync(CancellationToken token = default) => Task.FromResult<Guid?>(local); public Task<Guid> InitializeAsync(CancellationToken token = default) => throw new AssertFailedException("Recovery must not initialize an identity."); }
 
@@ -128,7 +159,7 @@ internal sealed class Mp3CrashFixture
             var position = output.Position; output.Position = 0;
             var hash = Convert.ToHexString(SHA256.HashData(output)).ToLowerInvariant(); output.Position = position;
             var signal = new Mp3CrashSignal(point, Environment.ProcessId, typeof(Mp3ProcessCrashTests).Assembly.Location, typeof(WavToMp3Converter).Assembly.Location,
-                seed, Path.GetRelativePath(fixture.Paths.RecordingsDirectory, output.Name).Replace('\\', '/'), output.Length, hash);
+                seed, Path.GetRelativePath(fixture.Paths.RecordingsDirectory, output.Name).Replace('\\', '/'), output.Length, hash) { Engine = fixture.Engine };
             var temporary = Path.Combine(Root, "ready.json.tmp");
             using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             { JsonSerializer.Serialize(file, signal); file.Flush(true); }
