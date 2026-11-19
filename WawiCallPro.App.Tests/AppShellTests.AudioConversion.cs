@@ -56,6 +56,7 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory>());
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingConversionBatch>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionBatch>());
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingDirectoryInventory>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingDirectoryInventory>());
+            Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingExport>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingExport>());
             Assert.IsInstanceOfType<WawiCallPro.Utilities.Persistence.RecordingConversionRequests>(host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionRequests>());
             var conversionQueue = host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.IRecordingConversionQueue>();
             Assert.AreSame(conversionQueue, host.Services.GetRequiredService<WawiCallPro.Utilities.Persistence.RecordingConversionSignals>());

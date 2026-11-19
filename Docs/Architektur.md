@@ -1359,6 +1359,40 @@ erhalten. SQL-Abfragen und Schema ändern sich nicht. Die Desktop-Prüfoberfläc
 Rollback: Befehlszweige, Hilfeeintrag und CLI-Adapter entfernen; Inventurdienst und Hintergrundabgleich erhalten.
 Build- und Testnachweise stehen in Phase 9 des Neuaufbauplans.
 
+### Export bestätigter lokaler Originaldateien (19.11.2026)
+
+`IRecordingExport.ExportAsync` kopiert ein ausdrücklich gewähltes Artefakt als neue Datei. Der gemeinsame
+Composition Root registriert `RecordingExport`; eine Bedienaktion ist noch nicht angeschlossen. Der Dienst
+konvertiert keine Audiodaten und verändert weder Aufnahmeverweise noch Capture-, Artefakt- oder Jobmetadaten.
+Nur verfügbare WAV-/MP3-Artefakte lokaler beendeter/fehlgeschlagener Gespräche sind zulässig. Ohne bestehende
+Arbeitsplatzkennung wird kein Export freigegeben. Unter der gemeinsamen Recording-Lease haben offene
+WAV-Abschlüsse Vorrang. Bei MP3 blockieren passende geschützte Konvertierungsabschlüsse; nicht mehr
+auflösbare ausstehende Aufträge blockieren vorsichtshalber ebenfalls.
+
+Der vorhandene Dateiprüfer bestätigt Größe, SHA-256 und bei WAV den PCM-Header. Seine Lesesperre bleibt
+bis zum Exportende erhalten. Die Kopie entsteht exklusiv in einer eigenen zufälligen temporären Datei im
+Zielordner. Nach Flush werden auch ihre Länge und SHA-256 geprüft. Anschließend werden gespeicherte
+Artefaktversion, lokaler Gesprächsbesitz, Arbeitsplatz und ausstehende Abschlüsse erneut geprüft. Erst dann
+veröffentlicht eine Umbenennung ohne Überschreiben die neue Datei. Ein später Abbruch nimmt einen bereits
+veröffentlichten Erfolg nicht zurück. Vorherige Fehler/Abbrüche versuchen die eigene temporäre Datei zu
+entfernen; Zugriffssperren oder Prozess-/Stromausfall können deren Bereinigung verhindern.
+
+Das Ziel muss absolut sein und die zum Original passende Endung besitzen. Der vorhandene Elternordner
+wird geprüft; der Dienst legt keine Ordner an. Vorhandene Ziele, alternative Datenströme sowie bekannte
+Reparsepunkte in Zielverzeichnissen werden abgewiesen. Ein normalisierter Pfad unter dem Anwendungsstamm
+ist unzulässig. Diese Pfadprüfung ist lexikalisch: externe Pfad-/Verzeichnisaustausche, Dateisystemaliase und
+Änderungen nach der letzten Metadatenprüfung werden nicht atomar ausgeschlossen. Der Dienst ist kein
+Dateisystem-Sandboxersatz. Bereits vorhandene Dateien werden nicht überschrieben. Es gibt keine Garantie
+gegen Stromausfall und keine automatische Aufnahme verwaister Exportdateien in den Katalog.
+
+16 isolierte Exportfälle prüfen bestätigte WAV-/MP3-Bytes, unveränderte Metadaten, Besitz und Zustände,
+fehlende/veränderte/gesperrte Quellen, vorhandene und unzulässige Ziele, offenen WAV-Abschluss, späte
+Artefaktänderung, Zielanlage und Abbruch. Die MP3-Prüfung verwendet synthetische bestätigte Bytes und
+belegt keine Encoder-/Decoderfähigkeit. Bestehende Dapper-Abfragen und Schema 14 bleiben unverändert.
+Keine Pfade oder Originalbytes werden vom Dienst geloggt; spätere Bedienadapter müssen IO-Fehler bereinigen.
+Exportbuttons/-Befehl und Wiedergabe bleiben offen. Rollback: DI-Registrierung und Exporttypen entfernen;
+Originaldateien, Metadaten und bereits ausdrücklich exportierte Kopien erhalten. Nachweise stehen in Phase 9.
+
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 
 Migration 12 ergänzt ausschließlich die optionale Tabelle `recordingconversions`. Migrationen 1–11,

@@ -100,6 +100,7 @@ public static class WawiCallHost
                 services.AddSingleton<IRecordingDirectoryEntries, LocalRecordingDirectoryEntries>();
                 services.AddSingleton<IRecordingDirectoryInventory, RecordingDirectoryInventory>();
                 services.AddSingleton<IRecordingArtifactFileInspector, RecordingArtifactFileInspector>();
+                services.AddSingleton<IRecordingExport, RecordingExport>();
                 services.AddSingleton<IRecordingArtifactReconciliation, RecordingArtifactReconciliation>();
                 services.AddSingleton<IRecordingCompletionPublisher, RecordingWaveArtifactPublisher>();
                 services.AddSingleton<IInterruptedRecordingQuery, DapperInterruptedRecordingQuery>();
