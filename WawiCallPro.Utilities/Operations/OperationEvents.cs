@@ -23,7 +23,9 @@ public enum OperationEvent
     RecordingArtifactAuditIncomplete,
     RecordingConversionRecoveryIncomplete,
     RecordingConversionInterrupted,
-    RecordingConversionQueueIncomplete
+    RecordingConversionQueueIncomplete,
+    RecordingDirectoryReviewRequired,
+    RecordingDirectoryInventoryIncomplete
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -33,7 +35,8 @@ public static class OperationEvents
     {
         if (!Enum.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
         var level = operation is OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
-            or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete ? LogLevel.Warning
+            or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
+            or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete ? LogLevel.Warning
             : exception is null ? LogLevel.Information : LogLevel.Error;
         logger.Log(level, new EventId((int)operation), new SafeOperationRecord(operation), exception, static (record, _) => record.Event.ToString());
     }

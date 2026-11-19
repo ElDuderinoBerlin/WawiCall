@@ -15,6 +15,10 @@ public interface IRecordingArtifactAuditScheduler
 public sealed class RecordingArtifactAuditScheduler(IRecordingArtifactReconciliation audit, ILogger<RecordingArtifactAuditScheduler> log)
     : BackgroundService, IRecordingArtifactAuditScheduler, IAsyncDisposable
 {
+    private readonly IRecordingDirectoryInventory? _inventory;
+    public RecordingArtifactAuditScheduler(IRecordingArtifactReconciliation audit, ILogger<RecordingArtifactAuditScheduler> log,
+        IRecordingDirectoryInventory inventory) : this(audit, log) => _inventory = inventory;
+
     private readonly Channel<byte> _requests = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
         { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
     private int _disposed;
@@ -26,12 +30,28 @@ public sealed class RecordingArtifactAuditScheduler(IRecordingArtifactReconcilia
             await foreach (var request in _requests.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
             {
                 if (stoppingToken.IsCancellationRequested) break;
-                try { await audit.ReconcileAsync(stoppingToken).ConfigureAwait(false); }
+                try
+                {
+                    await audit.ReconcileAsync(stoppingToken).ConfigureAwait(false);
+                    if (_inventory is not null) await InspectDirectoryAsync(stoppingToken).ConfigureAwait(false);
+                }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
                 catch (Exception) { OperationEvents.Write(log, OperationEvent.RecordingArtifactAuditIncomplete); }
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+    }
+    private async Task InspectDirectoryAsync(CancellationToken token)
+    {
+        try
+        {
+            var result = await _inventory!.ReadAsync(token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            if (result.WithoutLocalReference > 0 || result.TemporaryWithoutLocalReference > 0 || result.LinksSkipped > 0)
+                OperationEvents.Write(log, OperationEvent.RecordingDirectoryReviewRequired);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+        catch (Exception) { OperationEvents.Write(log, OperationEvent.RecordingDirectoryInventoryIncomplete); }
     }
     public override async Task StopAsync(CancellationToken cancellationToken)
     {

@@ -1298,8 +1298,10 @@ Zwischen Kataloglesen und Dateierfassung können Aufnahmen oder Umbenennungen st
 können aktiv sein. Referenzen fremder Arbeitsplätze werden nicht geladen. Auch ein Austausch von Pfaden/Links
 durch externe Prozesse ist nicht atomar ausgeschlossen. Vor jeder späteren Übernahme oder Dateiveränderung
 sind deshalb eigene Besitz-, Abschluss- und Inhaltsnachweise nötig. Das ist hier noch nicht implementiert.
-Der Dienst ist über den gemeinsamen Composition Root verfügbar; automatische Auslösung und Prüfoberfläche
-bleiben offen. Es gibt keine neue Migration; Schema 14 bleibt erhalten. Rollback: die drei zusätzlichen
+Der Dienst ist über den gemeinsamen Composition Root verfügbar; der nachfolgende Abschnitt beschreibt
+den Anschluss an den Hintergrundabgleich. Die Prüfoberfläche bleibt offen. Es gibt keine neue Migration;
+Schema 14 bleibt erhalten. Rollback der Inventurgrundlage: zuerst den folgenden Hintergrundanschluss lösen,
+dann die drei zusätzlichen
 DI-Registrierungen und ihre ungenutzten Inventurtypen entfernen, Dateien und vorhandenen Katalog erhalten.
 
 Die isolierten Prüfungen erfassen laufende und vorgemerkte Aufnahmen, Altverweise, Cursor-Paging, Pfadvergleich,
@@ -1307,6 +1309,32 @@ eine exklusiv gesperrte unbekannte Datei, unveränderte Metadaten/Bytes bei Wied
 und echte Verzeichnis-Junctions. Der Provider-Harness führt denselben Katalog-/Inventurrundlauf zusätzlich
 auf den getrennten SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Testdatenbanken aus. Konkrete Build- und
 Testergebnisse stehen in Phase 9 des Neuaufbauplans.
+
+### Hintergrundinventur nach Aufnahmerecovery (19.11.2026)
+
+Der bestehende `RecordingArtifactAuditScheduler` erhält zusätzlich `IRecordingDirectoryInventory` über DI.
+Seine bisherige Registrierung als gemeinsamer Singleton und Hosted Service bleibt erhalten. Der Hoststart
+allein liest keine Dateien oder Datenbankeinträge. `ReconciledRecordingSipPersistence` fordert wie bisher
+erst nach erfolgreich abgeschlossener Gesprächs-/Aufnahmerecovery einen Hintergrunddurchlauf an. Ohne
+diese Anforderung findet keine Inventur statt; eine SIP-Verbindung wird dadurch nicht aufgebaut.
+
+Im besessenen Worker folgt die Inventur auf die zurückgekehrte Artefaktprüfung. Beide Schritte laufen
+seriell; der begrenzte Anforderungskanal und die abgewartete Abbruchbereinigung gelten auch für die Inventur.
+Ein Inventurfehler wird ohne rohe Exception als eigenes geschlossenes Warnereignis gemeldet. Er verhindert
+keine spätere Anforderung. Beim regulären Hostabbruch entsteht keine zusätzliche Inventurwarnung.
+
+`RecordingDirectoryReviewRequired` meldet zusammengefasst Dateien ohne lokale Referenz, unbekannte `.tmp`-
+Dateien oder übersprungene Links. `RecordingDirectoryInventoryIncomplete` meldet einen unvollständigen Lauf.
+Beide erscheinen als verständliche deutsche Warnung im vorhandenen Log-Fenster. Keine Dateipfade, Prüflisten,
+Dateiinhalte oder Fehlerdetails gelangen in die Ereignisse. Ein sauberer Bestand erzeugt keine Warnung.
+Die Meldung erklärt ausdrücklich möglichen Bezug zu aktiven Aufnahmen oder anderen Arbeitsplätzen.
+Die oben beschriebenen Grenzen des beobachteten Zustands bleiben bestehen; keine Übernahme oder Löschung.
+
+Sieben isolierte Workerfälle prüfen Start, Reihenfolge, unbekannte/temporäre Dateien, Links, sauberen Bestand,
+Fehlerwiederholung und Hostabbruch mit verzögerter Bereinigung. Zwei zusätzliche fensterlose Logfälle prüfen
+die deutschen Warntexte. Query und Schema sind unverändert; keine zusätzliche Provider-/GUI-Prüfung nötig.
+Rollback dieses Anschlusses: zusätzlichen Inventurkonstruktor und Aufruf im Scheduler entfernen;
+Artefaktprüfung, Inventurdienst und alle Dateien/Metadaten erhalten. Konkrete Nachweise stehen in Phase 9.
 
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 

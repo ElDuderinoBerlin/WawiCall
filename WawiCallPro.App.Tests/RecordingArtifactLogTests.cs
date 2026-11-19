@@ -10,6 +10,8 @@ public sealed class RecordingArtifactLogTests
     [TestMethod]
     [DataRow(OperationEvent.RecordingArtifactUnavailable, "WAV-/MP3-Aufnahme")]
     [DataRow(OperationEvent.RecordingArtifactAuditIncomplete, "Abgleich")]
+    [DataRow(OperationEvent.RecordingDirectoryReviewRequired, "ohne Zuordnung")]
+    [DataRow(OperationEvent.RecordingDirectoryInventoryIncomplete, "nicht vollständig")]
     [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "MP3")]
     [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene MP3")]
     [DataRow(OperationEvent.RecordingConversionQueueIncomplete, "MP3-Warteschlange")]
