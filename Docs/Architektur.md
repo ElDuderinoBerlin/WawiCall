@@ -1336,6 +1336,29 @@ die deutschen Warntexte. Query und Schema sind unverändert; keine zusätzliche 
 Rollback dieses Anschlusses: zusätzlichen Inventurkonstruktor und Aufruf im Scheduler entfernen;
 Artefaktprüfung, Inventurdienst und alle Dateien/Metadaten erhalten. Konkrete Nachweise stehen in Phase 9.
 
+### Explizite Aufnahmeinventur in der Diagnosekonsole (19.11.2026)
+
+`WawiCallPro.Console.<Produktlinie>.exe --recordings-inventory` ruft den gemeinsamen Inventurdienst auf,
+ohne Warenwirtschaftsplugin zu laden oder SIP zu verbinden. Der Befehl benötigt eine vorhandene aktuelle
+Kommunikationsdatenbank und die bereits gespeicherte Arbeitsplatzkennung. Er initialisiert oder migriert
+nichts und verändert weder Aufnahmeinhalte noch deren Metadaten.
+
+Standardmäßig erscheinen nur die Anzahlen der vier Inventurkategorien und die Einordnung des beobachteten
+Bestands. Erst `--recordings-inventory --details` gibt zusätzlich die nach relativem Pfad sortierte Prüfliste
+mit dem jeweiligen Prüfgrund aus. Absolute Pfade und rohe Ausnahmeinhalte werden nicht ausgegeben;
+Dateipfade werden nicht automatisch protokolliert. Bewusst umgeleitete Detailausgaben enthalten relative
+Dateinamen und sind entsprechend als lokale Diagnosedaten zu behandeln. Eine leere Prüfliste ist ausdrücklich
+gekennzeichnet. Die Ausgabe behauptet keine Verwaisung und löst keine Übernahme oder Löschung aus.
+
+Der bestehende Konsolenpager übernimmt N/P/G/Q-Navigation, Umbruch und die vollständige Ausgabe ohne
+Tastaturabfrage bei Umleitung. Fehler ergeben Exitcode 1 mit bereinigter Meldung, ohne einen erfolgreichen
+Teilbericht auszugeben. Angeforderter Abbruch bleibt erhalten. Parser, Datenfreigabe und Fehlerpfad sind
+isoliert geprüft. Der echte reguläre Konsolenhost beider Editionen prüft zusätzlich fehlende Einrichtung
+und einen lokalen SQLite-Testbestand mit 105 synthetischen Dateien; DB, Kennung und Dateibytes bleiben
+erhalten. SQL-Abfragen und Schema ändern sich nicht. Die Desktop-Prüfoberfläche bleibt offen.
+Rollback: Befehlszweige, Hilfeeintrag und CLI-Adapter entfernen; Inventurdienst und Hintergrundabgleich erhalten.
+Build- und Testnachweise stehen in Phase 9 des Neuaufbauplans.
+
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 
 Migration 12 ergänzt ausschließlich die optionale Tabelle `recordingconversions`. Migrationen 1–11,

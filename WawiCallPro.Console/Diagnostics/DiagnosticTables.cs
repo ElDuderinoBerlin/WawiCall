@@ -46,6 +46,7 @@ internal static class DiagnosticTables
     [
         new("--status (Vorgabe)", "Geprüfter Einrichtungsstatus; keine Netzwerkverbindung"),
         new("--paths", "Betriebspfade des aktuellen Benutzers und der Produktlinie"),
+        new("--recordings-inventory [--details]", "Aufnahmeordner lesend prüfen; Anzahlen, mit --details auch relative Prüfpfade. Keine Übernahme oder Löschung; bestehende Datenbank und Arbeitsplatzkennung erforderlich."),
         new("--logs", "Snapshot aller abgeschlossenen JSONL-Einträge; offene Dateiende(n) werden gezählt"),
         new("--diagnostics", "Ein JSON-Dokument nach erfolgreichem Host-Stop; keine Zugangsdaten"),
         new("--help", "Diese Hilfe"),

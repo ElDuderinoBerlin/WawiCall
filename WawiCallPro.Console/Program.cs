@@ -13,7 +13,7 @@ try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
     var command = ConsoleCommand.Parse(args);
-    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && command.Name is not ("--workstation-init" or "--erp-configure"));
+    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && !command.UsesRecordingInventory && command.Name is not ("--workstation-init" or "--erp-configure"));
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {
@@ -37,6 +37,8 @@ try
                     Enum.Parse<WawiCallPro.Interfaces.Companies.LexwareProductLine>(host.Services.GetRequiredService<ApplicationDescriptor>().ProductLine),
                     host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.ICompanyPhoneMatchingService>(),
                     host.Services.GetRequiredService<WawiCallPro.Interfaces.PhoneNumbers.IPhoneNumberInterpreter>(), stoppingToken);
+            else if (command.UsesRecordingInventory)
+                table = await RecordingInventoryCommands.ExecuteAsync(command, host.Services.GetRequiredService<IRecordingDirectoryInventory>(), stoppingToken);
             else if (command.UsesDatabase)
                 table = await DatabaseCommands.ExecuteAsync(command, host.Services.GetRequiredService<ICommunicationDatabase>(), stoppingToken);
             else if (command.Name == "--erp-configure")
