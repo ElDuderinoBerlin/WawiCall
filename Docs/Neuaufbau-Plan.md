@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 19.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: ausdrücklicher Konsolenexport über `--recording-export <Artefakt-GUID> <absoluter Pfad>`.
+Zuletzt ergänzt: Phase 8 gegen Quellen und vorhandene Prüfeinstiege abgeglichen; die sechs offenen
+Sammelpunkte durch eine konkrete Restliste für selbstständige technische Arbeiten und gemeinsame
+Benutzerabnahmen ersetzt. Die Gesamtphase bleibt offen; keine neuen Laufzeitprüfungen (19.11.2026).
+Zuvor ergänzt: ausdrücklicher Konsolenexport über `--recording-export <Artefakt-GUID> <absoluter Pfad>`.
 Der gemeinsame geprüfte Exportdienst führt den Vorgang aus; Meldungen enthalten keine Pfade oder rohen
 Fehlerdetails. Desktop-Auswahl und Wiedergabe bleiben offen (Phase 9).
 Zuvor ergänzt: expliziter Exportdienst für bestätigte lokale WAV-/MP3-Originale. Aufnahmesperre,
@@ -493,7 +496,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; Kernprodukt noch unvollständig | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2270,15 +2273,89 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   Die zusätzliche Deployment-Prüfung schlug damals wegen vorhandener doppelter Core-DLLs fehl;
   der folgende Phase-14-Teilpunkt behebt diesen Befund. Reale Quell-/Lastabnahme und vollständige
   Kernproduktabnahme bleiben offen.
-- [ ] Kernprodukt um Verbindungsstatus, Kunden-/Lieferantensuche, Wähldialog und vollständige Historie ergänzen.
-  Mandanten für den Telefon-Cache ausschließlich in den Einstellungen auswählen; kein Mandantenfeld im Hauptfenster.
-  Der Host bindet die Wawi-Views des erweiterten Katalogs aus dem aktiven Plugin ein und stellt Navigation/Kontext bereit.
-  Keine konkreten Wawi-Oberflächen im App-Projekt nachbauen; Plugin-Views unterliegen denselben UI-Prüfregeln.
-- [ ] Anruferfenster mit Treffern, Nummer, Mandant, Gesprächsstatus und Notizen anbinden.
-- [ ] Einstellungen für SIP, Geräte, Datenbank, Hotkeys, Autostart und Benachrichtigungen bereitstellen.
-- [ ] Tray und globale Tastenkürzel integrieren; Fokus, Mehrfachfenster und Beenden mit aktivem Gespräch definieren.
-- [ ] Alle Forms/Controls als `.cs`/`.Designer.cs`/`.resx` und mit designerfähigem parameterlosem Konstruktor aufbauen.
-- [ ] DevExpress-Eingaben in TableLayoutPanel-Layouts verwenden; UI-Schrift, Skin und DPI gemeinsam berücksichtigen.
+- [x] ✅ Quellen- und Nachweisabgleich der sechs bisherigen Phase-8-Sammelpunkte dokumentiert (19.11.2026).
+  Die folgende Bestandsaufnahme ersetzt deren pauschale offenen Formulierungen. Sie bestätigt vorhandene
+  Implementierungsanschlüsse und benennt die verbleibenden Arbeiten; sie ist keine neue Laufzeit-, Designer-
+  oder Benutzerabnahme. Detaillierte frühere Teilnachweise oberhalb bleiben erhalten. Phase 8 bleibt 🟨.
+
+#### Phase-8-Abgleich: vorhandene Umsetzung
+
+| Bisheriger Sammelpunkt | Feststellung am aktuellen Quellstand | Nachweise / verbleibender Abschluss |
+|---|---|---|
+| Verbindungsstatus, Suche, Wählen, Historie | `MainForm.Telephony.cs` bindet Registrierung und Gespräche; `FrmDial` ist dienstgebunden. `MainForm.Parties.cs` öffnet die plugin-eigene Geschäftspartnersuche. `HistoryPage` lädt intern alle 500er-Abfrageseiten des Zeitraums, ohne Pagingbuttons. | Anschlüsse vorhanden. `AppShellTests`, `AppShellTests.Navigation.cs` und die bisherigen Teilpunkte prüfen Einzelabläufe; zusammenhängender Neustartnachweis A1, Historiengrenzen A2 und Benutzerabnahmen G1/G2 offen. |
+| Anruferfenster und Notizen | `MainForm.Calls.cs`, `FrmCallerLookup`, `CallerLookupPage`, `CallDetailsPage` und `CallNotesSession` verbinden Ruf, Treffer, Auswahl, Notizen und unabhängige Gesprächskontexte. Benachrichtigungen sind einstellbar; ausstehende UI-Arbeit wird beim Schließen beendet. | Vorhandene Tests u. a. `CallNotesPersistAfterCallEndAndPopupCloseWithoutBusinessAccessOrCrossCallDrafts`, `CallerLookupGroupsRealCachesAndPreservesManualChoiceWithoutSwitchingViews` und `LateCallDetailsCannotPublishAfterSelectionChangeOrCallEnd`. Keine fehlende Grundanbindung belegt; A1/A3 sowie G1–G3 offen. |
+| Einstellungen | `FrmSettings`/`SettingsPage` mit SIP, Geräten, Datenbankassistent, Hotkeys, Autostart und Benachrichtigungen; JSON-Transfer, Logoptionen und DirectX sind vorhanden. Cache-Mandanten bleiben ausschließlich dort. | `AppShellTests.Settings*.cs`, `AppShellTests.cs`, `AutoStartTests` und `AppHotkeyTests` enthalten Teilnachweise. A4 sowie gemeinsame Bedien-/Systemprüfung G4/G5 offen; aktive Medienumschaltung gehört zu Phase 9. |
+| Tray, Hotkeys, Fokus und Schließschutz | `MainForm.Tray.cs`, `MainForm.Hotkeys.cs`, `AppHotkeys`, `MainForm.Calls.cs`, `StartupFocusHandoff` und `StartupSplash.CompleteAsync` sind angebunden. Splash-Reihenfolge: Vordergrund erfassen → bei eigenem Vordergrund aktivieren → Splash schließen. | `ApplicationLifetimeTests`, `StartupSplashTests`, `AppHotkeyTests` und `NativeTrayAudit` vorhanden. Diese Prüfeinstiege ersetzen keine neue sichtbare Abnahme; G3/G4 sowie Schließfälle G1/G2 bleiben offen. |
+| Designer-Aufteilung | Statische Bestandsprüfung fand 27 direkt von Form-/Control-Basistypen abgeleitete Oberflächen in App und `WawiCallPro.Plugin.Windows`: jeweils `partial`, gleichnamige `.Designer.cs`/`.resx` und öffentlicher parameterloser Konstruktor vorhanden. In den beiden Editionsplugins wurden keine eigenen Form-/Control-Ableitungen gefunden; sie liefern die gemeinsame Suchansicht über ihre Factory. | Kein fehlendes Dateitripel in diesem Suchumfang. Regex-/Dateiprüfung bestätigt weder Designer-Serialisierbarkeit noch dienstfreie Ausführung oder gültigen Ressourceninhalt; vollständiger Nachweis A4 offen. |
+| Layout, Schrift, Skin, DPI | TableLayoutPanel-Layouts und `UiButtonSizing` sind vorhanden; bestehende gezielte Rendernachweise decken zahlreiche leere/gefüllte Zustände ab. Fenster-/Gridzustand liegt in `AppUiState`. | Vorhandene Quellen/Bilder sind kein neuer Gesamtpass. A4 erstellt die konkrete Abdeckung und behebt belegte Lücken; tatsächliche Monitor-/DPI- und Bedienprüfung G5 bleibt gemeinsam. |
+
+Die Bestandsaufnahme begründet keinen erneuten vollständigen Neubau dieser Funktionen. In A1–A4 zunächst
+vorhandene Nachweise zuordnen; nur nicht abgedeckte Fälle ergänzen oder tatsächlich gefundene Fehler beheben.
+Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein Implementierungsfehler.
+
+#### Phase-8-Restliste: selbstständig durch den Agenten
+
+- [ ] **A1 – Zusammenhängenden isolierten Kernproduktnachweis ergänzen.** Vorhandene Einzeltests zu einer
+  nachvollziehbaren Ablaufabdeckung verbinden: Einstellungen/Cache-Testmandant → Suche → synthetisches
+  eingehendes Gespräch → bewusste Zuordnung → Bedienung → Notiz speichern → Dienste/Host schließen →
+  frischen Dienst-/Hoststand mit derselben isolierten DB öffnen → Gespräch, Zuordnung, Endgrund und Notiz
+  wiederfinden. Ausgehendes und verpasstes Gespräch ergänzen; keine Dubletten, keine verlorenen Notizen.
+  Im Quellenabgleich ist kein einzelner vollständiger UI-/Persistenzlauf dieser Kette einschließlich Neustart
+  belegt; vorhandene Persistenz- und Oberflächentests nicht als diesen Gesamtnachweis ausgeben. Beide Editionen,
+  Test-Doubles für Telefonie und isolierte Konfiguration/DB verwenden. Keine echte FRITZ!Box erforderlich.
+- [ ] **A2 – Historiengrenzen und Bedienzustände gezielt nachweisen.** Mehr als 500 Gespräche über mehrere
+  interne Abrufseiten, Datum „bis“ einschließlich letztem lokalen Tag, Sommer-/Winterzeitgrenze, leere Daten,
+  fehlende Nummer/alte Zuordnung und Suche in späteren Abrufseiten prüfen. Notizentwürfe, Auswahl, Abbruch und
+  verspätete Antworten erhalten. `HistoryPage.LoadCallsAsync` lädt vollständig: keine sichtbaren Vor-/Zurück-
+  Pagingbuttons wieder einführen. Vorhandene Entwurfs-/Kontexttests anrechnen; nur fehlende Grenzfälle ergänzen.
+- [ ] **A3 – Plugin-/Mandantengrenzen für den Kernablauf abschließen.** Vorhandene realen Plugin-Factory- und
+  Quellen-Testbestände je Edition mit der Kernabdeckung verknüpfen. Zwei Testmandanten mit gleicher Rufnummer,
+  Kunde/Lieferant/Kontakt und manueller Auswahl; während einer Suche Plugin-/Kontextwechsel oder Quellfehler
+  auslösen. Keine späten fremden Ergebnisse, keine zweite aktive Pluginsitzung, keine Änderung des Hauptkontexts
+  durch Anrufkontext. Fehlende Lexware-Installation/Prüffehler sperren Wawi-Aktionen; lokale Historie und
+  zulässige Gesprächsbedienung bleiben erreichbar. Abweichungen selbst korrigieren. Keine Produktivquellen.
+- [ ] **A4 – Designer-/Layoutnachweise pro betroffener Oberfläche vervollständigen.** Die 27 gefundenen Typen
+  samt gegebenenfalls weiteren indirekt abgeleiteten Oberflächen in einem vollständigen Abdeckungsverzeichnis
+  erfassen. Gültige Ressourcen, parameterlosen dienstfreien Aufbau, serialisierbaren Designer-Code, Trennung
+  von Laufzeitbindung, TableLayoutPanel-/DevExpress-Konventionen, Buttonpadding sowie Fenster-/Gridpersistierung
+  mit isolierter oder unterdrückter Registry prüfen. Vorhandene Renderfälle zuordnen; nur Lücken/geänderte
+  Ansichten mit leeren/gefüllten Daten, kleiner Größe, großer Schrift und den relevanten Skin-/DPI-Zuständen
+  ergänzen und visuell auswerten. Ein Quellscan allein schließt A4 nicht ab. Sichtbare Designer-/Desktopbedienung
+  erst gemeinsam abstimmen; Hintergrundprüfungen ohne Fokuswechsel kann der Agent selbst ausführen.
+
+Bei Codeänderungen passende Prüfungen und reguläre Builds beider betroffener Editionen in der aktiven
+IDE-Konfiguration ausführen. Jeder abgeschlossene A-Punkt erhält seinen eigenen Commit mit Planaktualisierung.
+Dieser Dokumentationsauftrag führt A1–A4 noch nicht aus und behauptet keine neuen Testerfolge.
+
+#### Phase-8-Restliste: gemeinsame Abnahme mit dem Benutzer
+
+Alle folgenden Punkte bleiben offen, bis wir den konkreten Lauf gemeinsam durchgeführt und ausgewertet haben.
+Der Agent nennt vorab EXE/Edition/Build, Oberfläche, Schritte und erwartetes Ergebnis, begleitet den Lauf,
+wertet bereinigte Logs aus und korrigiert Befunde. Der Benutzer bedient die reale Umgebung, bestätigt sichtbares
+Verhalten und bestimmt den Testzeitpunkt. Keine sichtbaren Starts, Windows-Anmeldung, echten Anrufe oder
+Änderungen an der tatsächlichen Umgebung ohne vorherige Absprache. Nur vereinbarte Testkonten/-mandanten;
+keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
+
+| Offen | Gemeinsamer Ablauf | Erwartetes Ergebnis / Abgrenzung |
+|---|---|---|
+| [ ] **G1 – Eingehender Kernablauf** | Nach Phase-7-Grundabnahme: Cache-Testmandanten auswählen, Daten laden, von zweitem Endpunkt anrufen, Treffer bewusst zuordnen, annehmen, Notiz speichern und Gespräch beenden; App neu starten und Historie öffnen. Je Pro/FinOffice mit vereinbarten Testdaten. | Rufnummer, Kontakt/Besitzer und Mandant stimmen; Status, Notiz und historische Zuordnung bleiben nach Neustart erhalten. Hauptansicht/-eingaben werden nicht unbeabsichtigt ersetzt. Gleiche Nummer in zwei Testmandanten ergibt bewusste Auswahl, keine willkürliche Zuordnung. |
+| [ ] **G2 – Ausgehend, verpasst und Schließschutz** | Aus Testtreffer über Wähldialog anrufen; getrennt einen Ruf verpassen/abweisen. Bei aktivem Gespräch und ungespeicherter Notiz Schließen, Pluginwechsel und Neustartanforderung versuchen; nach Gesprächsende bzw. Speichern erneut versuchen. | Richtige Zielnummer und Richtung; Endgrund und Dauer passen zum tatsächlichen Ablauf. Kein unbeabsichtigter Gesprächsabbruch/Notizverlust; Sperren lassen sich nach erfüllten Bedingungen lösen. |
+| [ ] **G3 – Vordergrund und Zweitstart** | Explorer-Erststart mit Splash ohne Programmwechsel; separater Lauf mit bewusstem Wechsel in ein anderes Programm. Zweitstart im Hintergrund, minimiert, zuvor maximiert, im Tray, mit modalem Dialog und während Initialisierung. Benachrichtigungen an/aus bei eingehendem Ruf vergleichen. | Erststart respektiert Fremdfokus. Ausdrücklicher Zweitstart zeigt die vorhandene bedienbare Instanz ohne zweite Hauptinstanz; Zustand bleibt erhalten. Benachrichtigungsoption wirkt; keine doppelten Anruferfenster. `TrayNative` ist ein vorhandener sichtbarer Prüfeinstieg, kein bereits jetzt ausgeführter Nachweis. |
+| [ ] **G4 – Tray und globale Hotkeys** | Reale Tastenkombinationen aus einem anderen Programm testen, absichtlich bereits belegte Kombination konfigurieren, ändern und freigeben; Traymenü/-Doppelklick sowie wiederholtes Anzeigen/Verbergen nutzen. | Nur gültige eigene Tastenkürzel wirken; Wähldialog öffnet ohne automatischen Anruf. Konflikt ist verständlich protokolliert, andere Aktionen bleiben nutzbar; keine fremde Registrierung löschen. |
+| [ ] **G5 – Einstellungen und echte Desktopumgebung** | Einstellungen ändern/speichern, X/Abbrechen, ungültige Eingaben, JSON-Transfer ohne Secrets und DB-Assistent mit isoliertem Ziel gemeinsam bedienen. Neustartwirkung von SIP-/DB-/Log-/DirectX-Einstellungen prüfen; tatsächliche Geräteauswahl, Fenster-/Gridzustand und Monitor-/DPI-Wechsel soweit verfügbar kontrollieren. | Kein Doppelklick zum Schließen nötig; Entwürfe und gespeicherte Werte verhalten sich eindeutig. Kleine Fenster/große Schrift/Skin zeigen keine Überlappungen; Position bleibt nach Monitorwechsel erreichbar. Eine echte Windows-Anmeldung für Autostart separat in Phase 14 planen. Live-Gerätewechsel und Tonqualität bleiben Phase 9. |
+| [ ] **G6 – Reale Quellen und Belastung** | Mit vereinbarten Pro-/FinOffice-Testbeständen mehrere Mandanten, leeren Bestand, Quellenfehler und repräsentativ große Datenmengen durchspielen; Wechsel während laufender Suche und wiederholte Anrufe bedienen. | Kein falscher Geschäftspartner, kein verlorener Entwurf, keine blockierte Bedienung durch dauerhaft laufende Quelle. Laufzeit/Mengen protokollieren und Zielwerte anhand des vereinbarten Bestands beurteilen; keine unbelegte pauschale Lastfreigabe. |
+
+**Reihenfolge:** A1 → A2/A3 → A4; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
+Audio) gemeinsam durchführen, anschließend G1/G2 und G3–G6. Bereits passende frühere Nachweise zuordnen,
+nicht wahllos alle Oberflächen erneut testen. Bei Befunden: Agent korrigiert und prüft isoliert, dann betroffenen
+gemeinsamen Fall wiederholen. Nicht vorhandene Hardware-/Netzprofile als nicht geprüft festhalten, nicht grün
+abhaken. Phase 9/10/11/14-Ausbaupunkte bleiben in ihren Phasen; sie sind keine stillen Phase-8-Neuaufträge.
+
+**Nachweis dieses Abgleichs:** ausschließlich Quellen-, Bestands-, Text- und Pfadprüfung am 19.11.2026;
+keine Builds, Testläufe, Gerätezugriffe oder sichtbaren GUI-Läufe. Historische Testzahlen/Bilder oberhalb
+werden nicht als aktuelle Läufe ausgegeben. Phase 8 erst nach erfüllter technischer Restliste und gemeinsam
+bestätigter Kernproduktabnahme abschließen.
+
 - [x] ✅ Auf die betroffenen Views begrenzte Renderprüfung entsprechend `LX_UI_AUDIT_SURFACES` eingerichtet;
   vorhandene Implementierung und Nachweise am 14.11.2026 abgeglichen.
   `Program` übernimmt `--ui-audit <Ausgabeordner>`; `AppApplicationContext` startet den Renderer im
