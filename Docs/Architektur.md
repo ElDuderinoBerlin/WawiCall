@@ -1362,7 +1362,7 @@ Build- und Testnachweise stehen in Phase 9 des Neuaufbauplans.
 ### Export bestätigter lokaler Originaldateien (19.11.2026)
 
 `IRecordingExport.ExportAsync` kopiert ein ausdrücklich gewähltes Artefakt als neue Datei. Der gemeinsame
-Composition Root registriert `RecordingExport`; eine Bedienaktion ist noch nicht angeschlossen. Der Dienst
+Composition Root registriert `RecordingExport`; der folgende Abschnitt beschreibt den Konsolenanschluss. Der Dienst
 konvertiert keine Audiodaten und verändert weder Aufnahmeverweise noch Capture-, Artefakt- oder Jobmetadaten.
 Nur verfügbare WAV-/MP3-Artefakte lokaler beendeter/fehlgeschlagener Gespräche sind zulässig. Ohne bestehende
 Arbeitsplatzkennung wird kein Export freigegeben. Unter der gemeinsamen Recording-Lease haben offene
@@ -1390,8 +1390,34 @@ fehlende/veränderte/gesperrte Quellen, vorhandene und unzulässige Ziele, offen
 Artefaktänderung, Zielanlage und Abbruch. Die MP3-Prüfung verwendet synthetische bestätigte Bytes und
 belegt keine Encoder-/Decoderfähigkeit. Bestehende Dapper-Abfragen und Schema 14 bleiben unverändert.
 Keine Pfade oder Originalbytes werden vom Dienst geloggt; spätere Bedienadapter müssen IO-Fehler bereinigen.
-Exportbuttons/-Befehl und Wiedergabe bleiben offen. Rollback: DI-Registrierung und Exporttypen entfernen;
+Exportbuttons und Wiedergabe bleiben offen. Rollback: zuerst den folgenden Konsolenanschluss lösen,
+dann DI-Registrierung und Exporttypen entfernen;
 Originaldateien, Metadaten und bereits ausdrücklich exportierte Kopien erhalten. Nachweise stehen in Phase 9.
+
+### Ausdrücklicher Konsolenexport eines Aufnahmeoriginals (19.11.2026)
+
+`--recording-export <Artefakt-GUID> <absoluter Zielpfad>` delegiert an `IRecordingExport`. Die Artefakt-ID
+muss als nicht leere GUID im D-Format vorliegen. Sie bezeichnet genau das kanonische WAV- oder MP3-Artefakt,
+nicht dessen Gespräch oder Aufnahme. Die Aufnahmeinventur gibt keine solchen IDs aus; eine interaktive
+Artefaktauswahl fehlt weiterhin. Nur bekannte Katalog-IDs verwenden, keine Dateinamen als Ersatz übergeben.
+
+Der Befehl lädt kein Warenwirtschaftsplugin und baut keine SIP-Verbindung auf. Der gemeinsame Dienst
+behält seine Schutzbedingungen; bestehende Ziele werden nicht überschrieben und kein Format wird
+konvertiert. Es gibt keinen Überschreibschalter. Der Zielpfad muss ausdrücklich mitgegeben werden;
+für spätere interaktive Auswahl gilt weiterhin die DevExpress-Browse-Vorgabe.
+
+Die Konsole meldet Erfolg erst nach Rückkehr des Exportdienstes. Der Adapter bewahrt diesen Erfolg,
+wenn danach ein Abbruch eingeht. Angeforderter Abbruch während des Dienstaufrufs wird weitergereicht.
+Dienstfehler werden als bereinigte deutsche Meldung mit Exitcode 1 ausgegeben; keine Dateipfade,
+Artefakt-IDs oder rohe Ausnahmeinhalte in Erfolgs-/Fehlermeldungen. Aufrufargumente bleiben natürlich
+dem lokalen Aufrufer beziehungsweise dessen Shell bekannt.
+
+Vier neue isolierte Fälle prüfen Parser/Hilfe, Dienstübergabe, Erfolg, Fehlerbereinigung und Abbruch.
+Der echte reguläre Konsolenhost beider Editionen prüft zusätzlich den Fehlerpfad einer unbekannten ID
+auf isoliertem SQLite-Bestand ohne Zielanlage und ohne DB-/Kennungsänderung. Erfolgreiche Dateiübertragung
+ist separat im Exportdienst geprüft; kein zusätzlicher nativer CLI-Erfolgsnachweis. SQL und Schema bleiben
+unverändert. Rollback: Befehlszweig, Hilfe und CLI-Adapter entfernen; den Exportdienst und Originale erhalten.
+Konkrete Build-/Testnachweise stehen in Phase 9. Desktop-Auswahl, Wiedergabe und Formatwahl bleiben offen.
 
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 

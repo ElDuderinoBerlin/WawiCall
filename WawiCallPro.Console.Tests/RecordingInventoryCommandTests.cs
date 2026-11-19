@@ -59,6 +59,10 @@ public sealed class RecordingInventoryCommandTests
             Assert.AreEqual(0, (await Run(root, "--db-init")).Exit);
             var identity = File.ReadAllBytes(Path.Combine(root, "workstation.local.json"));
             var database = Directory.EnumerateFiles(root, "*.db").Single(); var before = File.ReadAllBytes(database);
+            var absentExport = Path.Combine(root, "unknown-export.wav");
+            var rejectedExport = await Run(root, "--recording-export", Guid.NewGuid().ToString("D"), absentExport);
+            Assert.AreEqual(1, rejectedExport.Exit); Assert.Contains("nicht exportiert", rejectedExport.Error);
+            Assert.DoesNotContain(root, rejectedExport.Error); Assert.IsFalse(File.Exists(absentExport));
             var recordings = Path.Combine(root, "recordings"); Directory.CreateDirectory(recordings);
             for (var index = 0; index < 105; index++) File.WriteAllBytes(Path.Combine(recordings, $"synthetic-{index:000}.wav"), [1, 2, 3]);
             var summary = await Run(root, "--recordings-inventory"); Assert.AreEqual(0, summary.Exit, summary.Error); Assert.DoesNotContain("synthetic-", summary.Output);

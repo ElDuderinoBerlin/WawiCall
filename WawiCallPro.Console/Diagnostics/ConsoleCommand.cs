@@ -10,6 +10,8 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
     internal string? PhoneSearchNumber { get; init; }
     internal bool ShowRecordingPaths { get; init; }
     internal bool UsesRecordingInventory => Name == "--recordings-inventory";
+    internal Guid? RecordingArtifactId { get; init; }
+    internal bool UsesRecordingExport => Name == "--recording-export";
     internal bool UsesPhoneMatching => Name is "--phone-rule" or "--phone-match";
     internal bool UsesDatabase => Name.StartsWith("--db-", StringComparison.Ordinal) || UsesPhoneMatching;
     internal static ConsoleCommand Parse(string[] arguments) => arguments switch
@@ -17,6 +19,9 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
         [] => new("--status"),
         ["--recordings-inventory"] => new(arguments[0]),
         ["--recordings-inventory", "--details"] => new(arguments[0]) { ShowRecordingPaths = true },
+        ["--recording-export", var identifier, var destination]
+            when Guid.TryParseExact(identifier, "D", out var artifactId) && artifactId != Guid.Empty && Path.IsPathFullyQualified(destination)
+            => new(arguments[0], destination) { RecordingArtifactId = artifactId },
         ["--status" or "--paths" or "--logs" or "--diagnostics" or "--help" or "--workstation-init" or "--erp-configure" or "--db-status" or "--db-init" or "--db-migrate" or "--db-approve-empty"] => new(arguments[0]),
         ["--db-backup" or "--db-restore", var file] when Path.IsPathFullyQualified(file) => new(arguments[0], file),
         ["--phone-rule", var installation, var company] => new(arguments[0]) { PhoneRule = new(installation, company) },
