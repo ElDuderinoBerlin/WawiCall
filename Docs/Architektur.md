@@ -1270,6 +1270,44 @@ Konvertierungsstatus, Versuche und Abschlussaufträge werden vom Abgleich nicht 
 Log-Fenster nennt WAV und MP3. Schema 14 und sämtliche Migrationen bleiben unverändert. Rollback nur dieser
 Erweiterung: Kandidaten wieder auf WAV begrenzen; vorhandene MP3-Fingerprints und Dateien erhalten.
 
+### Lesende Bestandsaufnahme des Aufnahmeordners (19.11.2026)
+
+`IRecordingDirectoryInventory` ergänzt den Abgleich bekannter Originale um eine ausdrücklich lesende
+Bestandsaufnahme. `DapperRecordingFileCatalogQuery` lädt für die bereits gespeicherte lokale Workstation-ID
+alle Aufnahmeverweise und Artefaktpfade, unabhängig von Gesprächs- und Verfügbarkeitszustand. Dadurch bleiben
+auch laufende Aufnahmen, Pending-/Failed-Artefakte und alte Aufnahmen ohne Capture-/Artefaktmetadaten bekannt.
+Cursor-Seiten werden zuerst nach Aufnahme-ID begrenzt; eine zweite parametrisierte Dapper-Abfrage lädt die
+zugehörigen Artefakte. Die ID-Liste nutzt den bestehenden Dialektadapter (`ANY` für PostgreSQL,
+`IN` für die anderen Provider). Mehrere Pfade einer Aufnahme gehen dadurch an Seitengrenzen nicht verloren.
+
+`LocalRecordingDirectoryEntries` liest ausschließlich Verzeichniseinträge und Dateiattribute unter dem
+Aufnahmeordner. Bekannte Reparsepunkte werden als übersprungene Links erfasst und nicht verfolgt; eine
+verlinkte Ordnerwurzel wird abgewiesen. Inhalte werden weder geöffnet noch gehasht. Der Inventurdienst
+vergleicht relative Pfade ohne Beachtung der Groß-/Kleinschreibung und vereinheitlicht Pfadtrenner.
+Er liefert Anzahlen registrierter Dateien, Dateien ohne lokale Referenz, unbekannter temporärer `.tmp`-Dateien
+und Links sowie relative Prüfpfade. Pfade werden nicht protokolliert. Dateidaten, Metadaten, Jobs und
+Abschlussaufträge bleiben unverändert; insbesondere keine automatische Übernahme, Konvertierung oder Löschung.
+
+Zunächst wird der gesamte lokale Katalog gelesen. Fehlende Arbeitsplatzidentität, Katalogfehler, unzulässige
+Pfade, Zugriffsfehler oder überschrittene Mengen-/Tiefengrenzen brechen den Aufruf ab und liefern keinen
+vermeintlich vollständigen Bericht. Grenzen: 100.000 Aufnahmen, 100.000 Verzeichniseinträge und 32 Ebenen unter
+der Aufnahmeordnerwurzel. Ein nicht vorhandener Aufnahmeordner ergibt eine leere Dateiliste.
+
+Der Bericht beschreibt beobachtete Zustände, keinen atomaren Snapshot und keinen Verwaisungsnachweis.
+Zwischen Kataloglesen und Dateierfassung können Aufnahmen oder Umbenennungen stattfinden; temporäre Dateien
+können aktiv sein. Referenzen fremder Arbeitsplätze werden nicht geladen. Auch ein Austausch von Pfaden/Links
+durch externe Prozesse ist nicht atomar ausgeschlossen. Vor jeder späteren Übernahme oder Dateiveränderung
+sind deshalb eigene Besitz-, Abschluss- und Inhaltsnachweise nötig. Das ist hier noch nicht implementiert.
+Der Dienst ist über den gemeinsamen Composition Root verfügbar; automatische Auslösung und Prüfoberfläche
+bleiben offen. Es gibt keine neue Migration; Schema 14 bleibt erhalten. Rollback: die drei zusätzlichen
+DI-Registrierungen und ihre ungenutzten Inventurtypen entfernen, Dateien und vorhandenen Katalog erhalten.
+
+Die isolierten Prüfungen erfassen laufende und vorgemerkte Aufnahmen, Altverweise, Cursor-Paging, Pfadvergleich,
+eine exklusiv gesperrte unbekannte Datei, unveränderte Metadaten/Bytes bei Wiederholung, Fehler-/Abbruchfälle
+und echte Verzeichnis-Junctions. Der Provider-Harness führt denselben Katalog-/Inventurrundlauf zusätzlich
+auf den getrennten SQL-Server-, PostgreSQL-, MySQL- und MariaDB-Testdatenbanken aus. Konkrete Build- und
+Testergebnisse stehen in Phase 9 des Neuaufbauplans.
+
 ### Dauerhafte Datenbankgrundlage für MP3-Konvertierungsaufträge (17.11.2026)
 
 Migration 12 ergänzt ausschließlich die optionale Tabelle `recordingconversions`. Migrationen 1–11,

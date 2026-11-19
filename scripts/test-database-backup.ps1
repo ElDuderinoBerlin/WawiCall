@@ -90,6 +90,8 @@ foreach(var item in configurations)
     await RecordingWaveArtifactAcceptance.RunAsync(target);
     await RecordingArtifactAuditQueryAcceptance.RunAsync(target);
     await RecordingArtifactAuditAcceptance.RunAsync(target);
+    await RecordingDirectoryInventoryAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": all-state local recording catalog, pending paths, read-only unassigned-file inventory and unchanged metadata passed.");
     await RecordingConversionQueueAcceptance.RunAsync(target);
     await RecordingConversionRequestAcceptance.RunAsync(target);
     await AutomaticRecordingConversionAcceptance.RunAsync(target);
