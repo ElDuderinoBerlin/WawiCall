@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Phase 8/A1 mit zusammenhängendem isoliertem App-/Persistenzablauf und frischem Host
+Zuletzt ergänzt: Phase 8/A2 mit Historien-Grenzprüfungen abgeschlossen: 1.003 Gespräche über drei interne
+Abrufseiten, Find Panel mit spätem Treffer, Tagesgrenzen auf SQLite einschließlich 23-/25-Stunden-Tagen,
+leere/alte Daten sowie Erhalt von Auswahl und Entwürfen bei Abbruch und verspäteten Antworten (20.11.2026).
+Zuvor ergänzt: Phase 8/A1 mit zusammenhängendem isoliertem App-/Persistenzablauf und frischem Host
 auf derselben SQLite-Datei abgeschlossen. Suche, manuelle Zuordnung, Bedienung und Notizen für eingehende,
 ausgehende und verpasste Gespräche; nach Neustart keine Dubletten oder verlorenen Notizen (20.11.2026).
 Zuvor ergänzt: Phase 8 gegen Quellen und vorhandene Prüfeinstiege abgeglichen; die sechs offenen
@@ -499,7 +502,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; A2–A4/G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; A3/A4/G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2285,7 +2288,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 | Bisheriger Sammelpunkt | Feststellung am aktuellen Quellstand | Nachweise / verbleibender Abschluss |
 |---|---|---|
-| Verbindungsstatus, Suche, Wählen, Historie | `MainForm.Telephony.cs` bindet Registrierung und Gespräche; `FrmDial` ist dienstgebunden. `MainForm.Parties.cs` öffnet die plugin-eigene Geschäftspartnersuche. `HistoryPage` lädt intern alle 500er-Abfrageseiten des Zeitraums, ohne Pagingbuttons. | Anschlüsse vorhanden. `AppShellTests`, `AppShellTests.Navigation.cs` und die bisherigen Teilpunkte prüfen Einzelabläufe; Neustartnachweis A1 seit 20.11.2026 ✅; Historiengrenzen A2 und Benutzerabnahmen G1/G2 offen. |
+| Verbindungsstatus, Suche, Wählen, Historie | `MainForm.Telephony.cs` bindet Registrierung und Gespräche; `FrmDial` ist dienstgebunden. `MainForm.Parties.cs` öffnet die plugin-eigene Geschäftspartnersuche. `HistoryPage` lädt intern alle 500er-Abfrageseiten des Zeitraums, ohne Pagingbuttons. | Anschlüsse vorhanden. `AppShellTests`, `AppShellTests.Navigation.cs` und die bisherigen Teilpunkte prüfen Einzelabläufe; Neustartnachweis A1 seit 20.11.2026 ✅; Historiengrenzen A2 seit 20.11.2026 ✅; Benutzerabnahmen G1/G2 offen. |
 | Anruferfenster und Notizen | `MainForm.Calls.cs`, `FrmCallerLookup`, `CallerLookupPage`, `CallDetailsPage` und `CallNotesSession` verbinden Ruf, Treffer, Auswahl, Notizen und unabhängige Gesprächskontexte. Benachrichtigungen sind einstellbar; ausstehende UI-Arbeit wird beim Schließen beendet. | Vorhandene Tests u. a. `CallNotesPersistAfterCallEndAndPopupCloseWithoutBusinessAccessOrCrossCallDrafts`, `CallerLookupGroupsRealCachesAndPreservesManualChoiceWithoutSwitchingViews` und `LateCallDetailsCannotPublishAfterSelectionChangeOrCallEnd`. Keine fehlende Grundanbindung belegt; A1 seit 20.11.2026 ✅; A3 sowie G1–G3 offen. |
 | Einstellungen | `FrmSettings`/`SettingsPage` mit SIP, Geräten, Datenbankassistent, Hotkeys, Autostart und Benachrichtigungen; JSON-Transfer, Logoptionen und DirectX sind vorhanden. Cache-Mandanten bleiben ausschließlich dort. | `AppShellTests.Settings*.cs`, `AppShellTests.cs`, `AutoStartTests` und `AppHotkeyTests` enthalten Teilnachweise. A4 sowie gemeinsame Bedien-/Systemprüfung G4/G5 offen; aktive Medienumschaltung gehört zu Phase 9. |
 | Tray, Hotkeys, Fokus und Schließschutz | `MainForm.Tray.cs`, `MainForm.Hotkeys.cs`, `AppHotkeys`, `MainForm.Calls.cs`, `StartupFocusHandoff` und `StartupSplash.CompleteAsync` sind angebunden. Splash-Reihenfolge: Vordergrund erfassen → bei eigenem Vordergrund aktivieren → Splash schließen. | `ApplicationLifetimeTests`, `StartupSplashTests`, `AppHotkeyTests` und `NativeTrayAudit` vorhanden. Diese Prüfeinstiege ersetzen keine neue sichtbare Abnahme; G3/G4 sowie Schließfälle G1/G2 bleiben offen. |
@@ -2327,11 +2330,34 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   Benutzerabnahme bleibt G1/G2 bzw. Phase 7. Produktivcode, Layout, SQL und Schema bleiben unverändert;
   deshalb keine zusätzliche Provider-/Renderabnahme. Rollback: neuen Test und diese Planfortschreibung
   zurücknehmen; keine produktiven Daten oder Einstellungen wurden verändert.
-- [ ] **A2 – Historiengrenzen und Bedienzustände gezielt nachweisen.** Mehr als 500 Gespräche über mehrere
-  interne Abrufseiten, Datum „bis“ einschließlich letztem lokalen Tag, Sommer-/Winterzeitgrenze, leere Daten,
-  fehlende Nummer/alte Zuordnung und Suche in späteren Abrufseiten prüfen. Notizentwürfe, Auswahl, Abbruch und
-  verspätete Antworten erhalten. `HistoryPage.LoadCallsAsync` lädt vollständig: keine sichtbaren Vor-/Zurück-
-  Pagingbuttons wieder einführen. Vorhandene Entwurfs-/Kontexttests anrechnen; nur fehlende Grenzfälle ergänzen.
+- [x] ✅ **A2 – Historiengrenzen und Bedienzustände gezielt nachweisen.** Abgeschlossen am 20.11.2026.
+  `AppShellTests.HistoryBounds.cs` ergänzt sieben Fälle in der echten HistoryPage, ohne sichtbare Fenster:
+  1.003 synthetische Gespräche liefern interne Offsets 0/500/1.000 und werden vollständig gebunden. Das
+  eingebaute Find Panel findet den eindeutigen Treffer aus dem letzten Abruf. Nach erneutem Laden bleiben
+  dessen Auswahl und Notizentwurf erhalten; keine sichtbaren Pagingbuttons wurden eingeführt.
+  Zwei isolierte SQLite-Läufe prüfen den 29.03.2026 und 25.10.2026 als jeweils einschließlich gewählten
+  lokalen Tag: Gespräche unmittelbar vor Beginn und am folgenden Tagesbeginn bleiben draußen; Beginn
+  und letzter Tick des Tages werden angezeigt. Laufumgebung `W. Europe Standard Time`: UTC-Zeitfenster
+  haben 23 bzw. 25 Stunden. Andere lokale Zeitzonen verwenden ihre eigenen UTC-Grenzen; der zusätzliche
+  23-/25-Stunden-Assert gilt ausdrücklich für diese europäische Windows-Zone. Keine Systemzeitzone geändert.
+  Ungültige Zeiträume starten keinen Abruf und erhalten die alte Anzeige. Leerer Bestand leert Details
+  und deaktiviert Notizspeicherung. Unbekannte Nummer und fehlende gespeicherte Zuordnung/Herkunft werden
+  ausdrücklich angezeigt, nicht durch erfundene Werte ersetzt. Ein nicht kooperierender zweiter Abruf wird
+  beim Stoppen abgebrochen und seine Freigabe abgewartet; danach bleiben alte Zeile und Entwurf sichtbar,
+  ein unvollständiger neuer Bestand wird nicht veröffentlicht. Ein verspäteter Detailabruf ersetzt nicht
+  das inzwischen fokussierte Gespräch.
+  14 vorhandene Fälle gezielt erneut geprüft: getrennte Notizentwürfe, Zeitraum-/Fokuswechsel, verlorene
+  Speicherbestätigung mit stabiler ID, verspätetes Speichern, Abbruch bei Lesen/Speichern, historische
+  Zuordnung und Textauswahl, sechs Endgründe mit unterdrückter Nummer/altem Mandanten, gespeicherte Namen
+  ohne Lexware-Zugriff sowie Abweisung ungültiger Details ohne Verlust des vorherigen Kontexts.
+  Pro und FinOffice: je 21 Tests bestanden. Beide regulären Solution-Builds Debug/Any CPU ohne Fehler,
+  je 26 bekannte externe CSCore-Warnungen; FinOffice zuletzt gebaut. Nachweise
+  `.phase8-a2-{build,tests}-{pro,fin}.log` und `.phase8-a2-timezone.log`.
+  Keine Produktivcode-, Layout-, SQL- oder Schemaänderung erforderlich; keine zusätzliche Provider-/
+  Renderabnahme. Große Mengen, Abbruch und späte Antworten verwenden kontrollierte Dienst-Doubles;
+  Tagesgrenzen verwenden reale isolierte SQLite-Persistenz. Kein Nachweis für parallele Datenänderungen
+  während aller Abrufseiten und keine reale Last-/Benutzerabnahme; diese bleiben bei A3/G6 bzw. G1/G2.
+  Rollback: neue Grenztests und diese Planfortschreibung zurücknehmen; Produktivdaten bleiben unberührt.
 - [ ] **A3 – Plugin-/Mandantengrenzen für den Kernablauf abschließen.** Vorhandene realen Plugin-Factory- und
   Quellen-Testbestände je Edition mit der Kernabdeckung verknüpfen. Zwei Testmandanten mit gleicher Rufnummer,
   Kunde/Lieferant/Kontakt und manueller Auswahl; während einer Suche Plugin-/Kontextwechsel oder Quellfehler
@@ -2349,8 +2375,8 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
 
 Bei Codeänderungen passende Prüfungen und reguläre Builds beider betroffener Editionen in der aktiven
 IDE-Konfiguration ausführen. Jeder abgeschlossene A-Punkt erhält seinen eigenen Commit mit Planaktualisierung.
-Der reine Abgleich vom 19.11.2026 führte A1–A4 noch nicht aus. A1 ist seit 20.11.2026 wie oben nachgewiesen;
-A2–A4 sind weiterhin offen und werden dadurch nicht als geprüft ausgegeben.
+Der reine Abgleich vom 19.11.2026 führte A1–A4 noch nicht aus. A1 und A2 sind seit 20.11.2026 wie oben
+nachgewiesen; A3/A4 sind weiterhin offen und werden dadurch nicht als geprüft ausgegeben.
 
 #### Phase-8-Restliste: gemeinsame Abnahme mit dem Benutzer
 
@@ -2370,7 +2396,7 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 | [ ] **G5 – Einstellungen und echte Desktopumgebung** | Einstellungen ändern/speichern, X/Abbrechen, ungültige Eingaben, JSON-Transfer ohne Secrets und DB-Assistent mit isoliertem Ziel gemeinsam bedienen. Neustartwirkung von SIP-/DB-/Log-/DirectX-Einstellungen prüfen; tatsächliche Geräteauswahl, Fenster-/Gridzustand und Monitor-/DPI-Wechsel soweit verfügbar kontrollieren. | Kein Doppelklick zum Schließen nötig; Entwürfe und gespeicherte Werte verhalten sich eindeutig. Kleine Fenster/große Schrift/Skin zeigen keine Überlappungen; Position bleibt nach Monitorwechsel erreichbar. Eine echte Windows-Anmeldung für Autostart separat in Phase 14 planen. Live-Gerätewechsel und Tonqualität bleiben Phase 9. |
 | [ ] **G6 – Reale Quellen und Belastung** | Mit vereinbarten Pro-/FinOffice-Testbeständen mehrere Mandanten, leeren Bestand, Quellenfehler und repräsentativ große Datenmengen durchspielen; Wechsel während laufender Suche und wiederholte Anrufe bedienen. | Kein falscher Geschäftspartner, kein verlorener Entwurf, keine blockierte Bedienung durch dauerhaft laufende Quelle. Laufzeit/Mengen protokollieren und Zielwerte anhand des vereinbarten Bestands beurteilen; keine unbelegte pauschale Lastfreigabe. |
 
-**Reihenfolge:** A1 ✅ → A2/A3 → A4; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
+**Reihenfolge:** A1 ✅ → A2 ✅ → A3 → A4; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
 Audio) gemeinsam durchführen, anschließend G1/G2 und G3–G6. Bereits passende frühere Nachweise zuordnen,
 nicht wahllos alle Oberflächen erneut testen. Bei Befunden: Agent korrigiert und prüft isoliert, dann betroffenen
 gemeinsamen Fall wiederholen. Nicht vorhandene Hardware-/Netzprofile als nicht geprüft festhalten, nicht grün
