@@ -6,9 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: G1 mit Pro 0.1.222 und demselben Profil am 20.11.2026 17:53 Uhr lokal wieder aufgenommen.
-EXE/Fingerabdruck unverändert geprüft; Schritt 1 wartet auf die gemeinsame Bestätigung von aktivem
-Pro-Plugin und Lexware-Verfügbarkeit. Datenbank-, SIP-/Audio- und Anrufprüfungen bleiben offen.
+Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
+Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
+Der Datenzugriff ist damit noch nicht geprüft. Kosmetischer Befund zu mehrfachen äußeren Rahmen aufgenommen;
+Korrektur vorbereitet, regulärer Build nach Schließen der laufenden Pro-Instanz noch offen.
+Datenbank-, SIP-/Audio- und Anrufprüfungen bleiben offen; G1 insgesamt weiterhin offen.
 Zuvor ergänzt: ✅ Zentrale RAII-Wartecursor für potenziell langsame Dialog-/Browse-Vorbereitung und
 asynchrone UI-Operationen angeschlossen; verschachtelte/überlappende Vorgänge stellen den ursprünglichen
 Cursor nach der letzten Freigabe wieder her. Je Edition 21 gezielte Tests bestanden; Pro 0.1.222 bereitgestellt.
@@ -2633,8 +2635,16 @@ lokale Metadaten `g1-restart-ui-consistency.json`. Sichtbare Benutzerbestätigun
 Fortsetzung auf Benutzerauftrag am 20.11.2026 17:53 Uhr lokal: vorher keine Pro-/FinOffice-Instanz aktiv,
 unveränderten Pro-Build 0.1.222 mit demselben Profil gestartet, PID bei Start `36508`.
 Neuer lokaler Startnachweis `g1-resume-20261120-175304.json`; Prozess reagiert und besitzt ein Hauptfenster.
-Rückmeldung zu Einstellungen → Plugins angefordert, noch kein positives Plugin-/Lexware-Ergebnis angenommen.
-**Schritt 1 noch offen:** Pro-Plugin, Lexware-Verfügbarkeit und sichtbare Korrektur gemeinsam bestätigen.
+**Schritt 1 ✅:** Benutzer-Screenshot vom 20.11.2026 18:07 Uhr zeigt Lexware Pro mit grünem Status „Aktiv“.
+Dieser Status wird nur für ein aktives und nach dem Installationsgate verfügbares Plugin ausgegeben;
+bei gesperrter Verfügbarkeit zeigt die Karte stattdessen „Lexware nicht verfügbar“. In der gezeigten
+Pluginübersicht ist kein Start-/Installationsfehler sichtbar. Bestätigt ist der UI-/Pluginstart, nicht
+die Vollständigkeit der Lexware-Installation oder der tatsächliche Zugriff auf deren Datensätze.
+Benutzerbefund G1-UI3: zu viele verschachtelte Rahmen um die Pluginliste. Entfernen der äußeren Tab-/Grid-
+Rahmen vorbereitet; Kartenkontur bleibt erhalten. Designer-Syntaxprüfung aller 27 Oberflächen bestanden.
+Regulärer Rebuild und gezielte Render-/Pluginprüfungen für diese noch unbestätigte Korrektur stehen aus,
+solange Pro (PID bei Prüfung `36508`) die Ausgabedateien sperrt. Benutzer um reguläres Beenden gebeten.
+Danach G1 mit Schritt 2 (eigene SQLite-Testdatenbank) fortsetzen.
 Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
 **Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE
@@ -2710,7 +2720,7 @@ Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung 
 |---|---|---|
 | Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Pro und Test jetzt bestätigt; Voraussetzungen als bereit gemeldet, konkrete A/B-Identitäten in Schritt 4 offen |
 | Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ G1-20261120-01, zuletzt am 20.11.2026 17:53 lokal mit unverändertem 0.1.222 fortgesetzt; sichtbare Pluginbestätigung offen |
-| Start ohne Ausnahme, Pro-Plugin aktiv und Lexware verfügbar | Offen | Rückmeldung zu Schritt 1 angefordert; offen |
+| Start ohne Ausnahme, Pro-Plugin aktiv und Lexware verfügbar | Offen | ✅ UI-/Pluginstart bestätigt, Benutzer-Screenshot 20.11.2026 18:07; tatsächlicher Wawi-Datenzugriff offen |
 | Neues Profil/eigene SQLite bestätigt | Offen | Offen |
 | Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
 | Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
