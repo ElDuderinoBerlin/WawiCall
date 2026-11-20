@@ -8,6 +8,7 @@ namespace WawiCallPro.App.Hosting;
 internal static class ToolbarButtonLayoutHelper
 {
     private const int MinimumHeight = 32;
+    private const int DialogMinimumHeight = 40;
     private const int HorizontalPadding = 24;
     private const int VerticalPadding = 14;
     private static readonly ConditionalWeakTable<SimpleButton, ButtonBinding> Buttons = new();
@@ -67,9 +68,10 @@ internal static class ToolbarButtonLayoutHelper
     {
         var text = TextRenderer.MeasureText(button.Text, button.Font);
         var best = button.CalcBestSize();
+        var minimumHeight = button.FindForm() is { } form && form is not MainForm ? DialogMinimumHeight : MinimumHeight;
         return new Size(
             Math.Max(best.Width, text.Width + (int)Math.Ceiling(HorizontalPadding * button.DeviceDpi / 96F)),
-            Math.Max(MinimumHeight, Math.Max(best.Height, text.Height + button.LogicalToDeviceUnits(VerticalPadding))));
+            Math.Max(button.LogicalToDeviceUnits(minimumHeight), Math.Max(best.Height, text.Height + button.LogicalToDeviceUnits(VerticalPadding))));
     }
 
     private sealed class ButtonBinding
@@ -91,8 +93,11 @@ internal static class ToolbarButtonLayoutHelper
                 {
                     button.AutoSize = false;
                     button.MinimumSize = Size.Empty;
-                    button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6),
-                        button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
+                    // LxTranslate distinguishes compact toolbars from dialog actions. Native skin metrics
+                    // already include Padding, so give toolbar buttons smaller vertical insets.
+                    var verticalInset = button.FindForm() is { } form && form is not MainForm ? 6 : 2;
+                    button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(verticalInset),
+                        button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(verticalInset));
                     if ((button.Anchor & (AnchorStyles.Left | AnchorStyles.Right)) == (AnchorStyles.Left | AnchorStyles.Right))
                         button.Anchor &= ~AnchorStyles.Right;
                 }

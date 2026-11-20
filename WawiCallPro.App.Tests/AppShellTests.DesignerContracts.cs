@@ -157,6 +157,8 @@ public sealed partial class AppShellTests
         }
         using var first = new SimpleButton { Text = "Einstellungen speichern", AutoSize = true };
         using var second = new SimpleButton { Text = "Abbrechen" };
+        using var dialog = new XtraForm();
+        dialog.Controls.Add(first); dialog.Controls.Add(second);
         UiButtonSizing.Apply(first, second);
         foreach (var button in new[] { first, second })
         {
