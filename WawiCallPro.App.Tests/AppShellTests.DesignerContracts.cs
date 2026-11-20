@@ -126,7 +126,7 @@ public sealed partial class AppShellTests
                 Assert.AreEqual("Name", tiles.ColumnSet.GroupColumn?.FieldName);
                 Assert.IsFalse(tiles.OptionsLayout.StoreDataSettings);
             }
-            using var windows = Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows");
+            using var windows = Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\v2");
             Assert.IsNotNull(windows);
             Assert.AreEqual(5, windows.SubKeyCount);
             using var suppressedGrid = Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Grids\SuppressedGrid");

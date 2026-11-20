@@ -13,6 +13,11 @@ namespace WawiCallPro.App.Hosting;
 /// <summary>Versioned per-user appearance/layout preferences. Diagnostics and render runs never persist them.</summary>
 public sealed class AppUiState(ApplicationDescriptor application, StartupExecutionMode mode)
 {
+    private readonly IWindowDisplayEnvironment _displays = new WindowDisplayEnvironment();
+
+    internal AppUiState(ApplicationDescriptor application, StartupExecutionMode mode, IWindowDisplayEnvironment displays)
+        : this(application, mode) => _displays = displays;
+
     private string KeyPath => @"Software\WawiCallPro\" + application.ProductLine + @"\App\v1";
     private bool Enabled => !mode.SuppressNetwork;
 
@@ -24,10 +29,12 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         {
             using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
             ApplyAppearance(form, key);
-            if (key?.GetValue("Width") is int width && key.GetValue("Height") is int height)
-                form.Size = new Size(Math.Clamp(width, 760, 2400), Math.Clamp(height, 520, 1600));
-            if (key?.GetValue("Maximized") is int maximized && maximized == 1) form.WindowState = FormWindowState.Maximized;
-            RestoreWindow(form, "MainForm");
+            var placement = ReadWindow("MainForm");
+            if (placement is null && key?.GetValue("Width") is int width && key.GetValue("Height") is int height
+                && width > 0 && height > 0 && width <= 1000000 && height <= 1000000)
+                placement = new WindowPlacement(new Rectangle(form.Location, new Size(width, height)), 0,
+                    Rectangle.Empty, "", key.GetValue("Maximized") is int maximized && maximized == 1);
+            if (placement is { } saved) ApplyWindow(form, saved);
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
     }
@@ -89,18 +96,7 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         if (!Enabled) return;
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(KeyPath + @"\Windows\" + name);
-            if (key?.GetValue("Left") is not int left || key.GetValue("Top") is not int top
-                || key.GetValue("Width") is not int width || key.GetValue("Height") is not int height) return;
-            var area = Screen.FromRectangle(new Rectangle(left, top, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
-            var sizable = form.FormBorderStyle is FormBorderStyle.Sizable or FormBorderStyle.SizableToolWindow;
-            form.MinimumSize = WindowWorkArea.LimitMinimum(form.MinimumSize, area);
-            var fitted = WindowWorkArea.Fit(new Rectangle(left, top, sizable ? width : form.Width, sizable ? height : form.Height), form.MinimumSize, area);
-            form.StartPosition = FormStartPosition.Manual;
-            form.WindowState = FormWindowState.Normal;
-            form.Bounds = fitted;
-            if (sizable && key.GetValue("Maximized") is int maximized && maximized == 1)
-                form.WindowState = FormWindowState.Maximized;
+            if (ReadWindow(name) is { } placement) ApplyWindow(form, placement);
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { }
     }
@@ -111,12 +107,61 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         try
         {
             var bounds = form.WindowState == FormWindowState.Normal ? form.Bounds : form.RestoreBounds;
-            using var key = Registry.CurrentUser.CreateSubKey(KeyPath + @"\Windows\" + name);
+            if (bounds.Width <= 0 || bounds.Height <= 0) bounds = form.Bounds;
+            var monitor = _displays.GetCurrent(form);
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath + @"\Windows\v2\" + name);
+            key.SetValue("Version", 2);
             key.SetValue("Left", bounds.Left); key.SetValue("Top", bounds.Top);
             key.SetValue("Width", bounds.Width); key.SetValue("Height", bounds.Height);
             key.SetValue("Maximized", form.WindowState == FormWindowState.Maximized ? 1 : 0);
+            key.SetValue("Dpi", _displays.GetDpi(form));
+            key.SetValue("Monitor", monitor.Name);
+            key.SetValue("WorkLeft", monitor.WorkingArea.Left); key.SetValue("WorkTop", monitor.WorkingArea.Top);
+            key.SetValue("WorkWidth", monitor.WorkingArea.Width); key.SetValue("WorkHeight", monitor.WorkingArea.Height);
         }
         catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or ArgumentException) { }
+    }
+
+    private WindowPlacement? ReadWindow(string name)
+    {
+        using var current = Registry.CurrentUser.OpenSubKey(KeyPath + @"\Windows\v2\" + name);
+        if (ReadPlacement(current, true) is { } placement) return placement;
+        using var legacy = Registry.CurrentUser.OpenSubKey(KeyPath + @"\Windows\" + name);
+        return ReadPlacement(legacy, false);
+    }
+
+    private static WindowPlacement? ReadPlacement(RegistryKey? key, bool versioned)
+    {
+        if (key?.GetValue("Left") is not int left || key.GetValue("Top") is not int top
+            || key.GetValue("Width") is not int width || key.GetValue("Height") is not int height
+            || width <= 0 || height <= 0 || width > 1000000 || height > 1000000
+            || left is < -1000000 or > 1000000 || top is < -1000000 or > 1000000) return null;
+        var maximized = key.GetValue("Maximized") is int value && value == 1;
+        var bounds = new Rectangle(left, top, width, height);
+        if (!versioned) return new WindowPlacement(bounds, 0, Rectangle.Empty, "", maximized);
+        if (key.GetValue("Version") is not int version || version != 2
+            || key.GetValue("Dpi") is not int dpi || dpi is < 48 or > 768
+            || key.GetValue("Monitor") is not string monitor
+            || key.GetValue("WorkLeft") is not int workLeft || key.GetValue("WorkTop") is not int workTop
+            || key.GetValue("WorkWidth") is not int workWidth || key.GetValue("WorkHeight") is not int workHeight
+            || workWidth <= 0 || workHeight <= 0 || workWidth > 1000000 || workHeight > 1000000
+            || workLeft is < -1000000 or > 1000000 || workTop is < -1000000 or > 1000000) return null;
+        return new WindowPlacement(bounds, dpi, new Rectangle(workLeft, workTop, workWidth, workHeight), monitor, maximized);
+    }
+
+    private void ApplyWindow(Form form, WindowPlacement placement)
+    {
+        var monitor = _displays.Select(placement.Monitor, placement.Bounds);
+        var area = monitor.WorkingArea;
+        var sizable = form.FormBorderStyle is FormBorderStyle.Sizable or FormBorderStyle.SizableToolWindow;
+        form.StartPosition = FormStartPosition.Manual;
+        form.WindowState = FormWindowState.Normal;
+        var dpi = _displays.PrepareRestore(form, monitor);
+        var bounds = placement.GetBounds(dpi, area);
+        if (!sizable) bounds.Size = form.Size;
+        form.MinimumSize = WindowWorkArea.LimitMinimum(form.MinimumSize, area);
+        form.Bounds = WindowWorkArea.Fit(bounds, form.MinimumSize, area);
+        if (sizable && placement.Maximized) form.WindowState = FormWindowState.Maximized;
     }
 
     internal void Restore(GridView view, string name)

@@ -6,10 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: DPI-R2 behoben: Fenster und Mindestgrößen bleiben im Arbeitsbereich; lange Einstellungsseiten
-scrollen bei sichtbarer Aktionszeile. Kleine Fenster bis 800 × 600 mit 24 pt isoliert geprüft.
-DPI-R3 ebenfalls behoben: Umbruchschwellen von Startseite und Ribbon berücksichtigen den Monitor-DPI-Faktor.
-Der Befund DPI-R4 zur Fensterpersistenz bleibt offen (20.11.2026).
+Zuletzt ergänzt: ✅ DPI-R2–R4 behoben und isoliert geprüft: Fenster und Mindestgrößen bleiben im Arbeitsbereich,
+lange Einstellungsseiten scrollen bei sichtbarer Aktionszeile, Umbruchschwellen berücksichtigen DPI und Schrift.
+Fensterdaten speichern Bezugs-DPI und Monitorbezug versioniert; Neustarts rechnen die normalen Maße für den
+Zielmonitor um. Kleine Fenster bis 800 × 600 mit 24 pt geprüft; echte Monitorwechsel bleiben gemeinsame G5-Abnahme
+(20.11.2026).
 Zuvor ergänzt: DPI-Code-Review der gesamten WinForms-App mit drei offenen Befunden zu Dialoggrenzen,
 Umbruchschwellen und Fensterpersistierung; gemeldete Toolbar-Buttonhöhe zentral nach LxTranslate
 korrigiert. Toolbar- und Dialogaktionen erhalten getrennte DPI-bezogene Maße (20.11.2026).
@@ -520,7 +521,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 vollständige Designer-/Layoutmatrix mit 27 Oberflächen, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 vollständige Designer-/Layoutmatrix mit 27 Oberflächen, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2581,11 +2582,11 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 Vorbereiteter FinOffice-Kandidat: reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.FinOffice.exe`,
-Anwendungsversion `0.1.214` (Dateiversion `0.1.0.214`), Dateistand 20.11.2026 09:21 Uhr lokal.
+Anwendungsversion `0.1.217` (Dateiversion `0.1.0.217`), Dateistand 20.11.2026 10:21 Uhr lokal.
 Der vor dem zugehörigen Fix-Commit gebaute Arbeitsstand enthält die unten dokumentierte zentrale
-DPI-Buttonkorrektur; die Versionsnummer allein ist kein Commitnachweis. Der frühere A4-Kandidat wurde
+DPI-Buttonkorrektur und die Korrekturen R2–R4; die Versionsnummer allein ist kein Commitnachweis. Der frühere A4-Kandidat wurde
 damit ersetzt. SHA-256 der zugehörigen `WawiCallPro.App.FinOffice.dll`:
-`90F5F4AB784F53B246D387EBD73721CC67E92A6FF2AF16A280DE339EF2E5EAAA`.
+`F72329D47BB0F3CC03158D48913EEC1AFF4F39A819548C4698F32FFC4285264B`.
 Die Ausgabe bleibt bei reiner Dokumentationsarbeit unverändert. Vor dem tatsächlichen Start Pfad,
 Edition und Fingerabdruck erneut vergleichen. Pro erst nach Benutzerwahl regulär in der aktiven
 Konfiguration bereitstellen und seinen eigenen Buildstand erfassen; der gemeinsame Ausgabeordner
@@ -2689,7 +2690,7 @@ Kein pauschaler vollständiger GUI-Lauf und keine Änderung der Windows-Anzeiges
 |---|---|---|
 | DPI-R2 / P2 | Die frühere Mindesthöhe und die Wiederherstellung konnten Fenster über den verfügbaren Arbeitsbereich hinaus vergrößern. | ✅ Behoben am 20.11.2026. `WindowWorkArea` begrenzt Fenster und Mindestgrößen zentral, auch bei Größen-/Positions-/DPI-Änderungen. Einstellungen bemessen eine bedienbare Mindestansicht statt der gesamten Inhaltslänge; lange Tabseiten scrollen, die Aktionszeile bleibt sichtbar. Aktionsgruppen umbrechen und ihre Abstände werden einmal in DPI-Einheiten bemessen. |
 | DPI-R3 / P2 | Startseiten-Spalten und Ribbonhöhe verwendeten Gerätemaße mit unskalierten Umbruchschwellen. | ✅ Behoben am 20.11.2026. `DpiLayoutMetrics` rechnet die logischen Schwellen genau einmal mit dem Monitor-DPI-Faktor um; die Startseite berücksichtigt zusätzlich die Schriftpunktgröße. Schrift- und DPI-Ereignisse aktualisieren das vorhandene Layout ohne neue Controls. |
-| DPI-R4 / P2 | `AppUiState.SaveWindow` schreibt rohe Pixel für Left/Top/Width/Height ohne Bezugs-DPI; `RestoreWindow` übernimmt sie ohne DPI-Umrechnung. Bei geänderter Skalierung zwischen Sitzungen bleiben die logischen Fenstermaße daher nicht erhalten; Mindestgrößenkorrektur ersetzt keine proportionale Wiederherstellung. | Offen. Bezugs-DPI beziehungsweise logische Größen versioniert speichern und beim Wiederherstellen für den Zielmonitor umrechnen; vorhandene Werte und RestoreBounds erhalten. Realer Monitorwechsel-/Neustartnachweis gehört weiter zu G5. |
+| DPI-R4 / P2 | Fenstergeometrie wurde ohne Bezugs-DPI gespeichert und nach geänderter Skalierung unverändert als Geräte-Pixel wiederhergestellt. | ✅ Behoben am 20.11.2026. Eigenes `Windows/v2/<Fenster>` mit Formatversion, Bezugs-DPI, Monitor und Arbeitsbereich; Maße und monitorrelative Abstände werden für den Zielmonitor umgerechnet und begrenzt. Normale `RestoreBounds` und Maximierung bleiben erhalten. Alte Fenster-/Hauptfensterwerte bleiben unverändert lesbar; ungültige neue Datensätze fallen darauf zurück. Reale Monitorwechsel-/Neustartabnahme bleibt G5. |
 | DPI-R1 / P2 | Die A4-Änderung an `ToolbarButtonLayoutHelper.ButtonGroup.Resize` hat den Dialog-Innenabstand 12/6 auf sämtliche Buttons angewendet und damit auch die in `HistoryPage.Designer.cs` bewusst kompakte Toolbar überschrieben. `CalcBestSize()` berücksichtigt dieses Padding bereits. Gemessen bei 96 DPI: 9 pt liefert nativ 22, mit 12/6 Padding 34 Pixel; bei 16 pt nativ 35 und mit Padding 47 Pixel. Die gewünschte LxTranslate-Toolbarbemessung ergibt 32 beziehungsweise 44 Pixel. | ✅ Korrigiert: gemeinsame Hilfe unterscheidet Toolbar von Dialog anhand des Formularhosts. Toolbar mindestens 32 logische Pixel, Innenabstand 12/2; Dialog mindestens 40, Innenabstand 12/6. Mindesthöhe und Abstände werden über `LogicalToDeviceUnits` einmal umgerechnet; Skin-/Textgrößen per Maximum einbezogen. Gruppen bleiben einheitlich, Handler für Schrift, Skin und DPI bleiben erhalten. |
 
 Implementierungsvergleich: tatsächliche `LxTranslate.App/Infrastructure/ToolbarButtonLayoutHelper.cs`
@@ -2741,7 +2742,7 @@ Beide regulären Builds Debug/Any CPU fehlerfrei, je 26 bekannte externe CSCore-
 Nachweise `.dpi-r2-build-{pro,fin}.log`, `.dpi-r2-tests-{pro,fin}.log`, `.dpi-r2-designer.log` und
 visuell ausgewertete Bilder unter `.artifacts/app-shell/settings-ui/dpi-r2-work-area`.
 Die kleinen Arbeitsbereiche sind injizierte Prüfvorgaben; keine Änderung der Windows-Auflösung oder sichtbare GUI.
-Keine Daten-/Schemaänderung und kein echter Anruf. DPI-Skalierung gespeicherter Geometrie ist weiterhin R4.
+Keine Daten-/Schemaänderung und kein echter Anruf. Die anschließende DPI-Skalierung gespeicherter Geometrie ist unter R4 dokumentiert.
 
 **Abschluss DPI-R3 (20.11.2026):** Je Pro/FinOffice sieben gezielte Prüfungen bestanden. Die numerischen
 Umbruchentscheidungen bleiben bei gleicher logischer Fläche unter 96/120/144/192 DPI gleich, einschließlich
@@ -2754,8 +2755,38 @@ Nachweise: `.dpi-r3-build-{pro,fin}.log`, `.dpi-r3-tests-{pro,fin}.log`, `.dpi-r
 `.artifacts/layout-reference` und die vorhandenen Ribbon-Navigationsbilder. Die mathematischen DPI-Fälle
 und Layoutsimulationen bestätigen keinen nativen Monitorwechsel.
 
-Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. R4 bleibt
-konkrete Folgearbeit; echte 100/150/200-%-Monitorwechsel, erreichbare Dialogaktionen am Zielbildschirm
+**Abschluss DPI-R4 (20.11.2026):** `AppUiState` speichert Fensterdaten unter dem neuen Unterpfad
+`Software/WawiCallPro/<Produktlinie>/App/v1/Windows/v2/<Fenster>`. Erscheinungsbild, Grid-/Dockdaten und
+bisherige Fensterwerte bleiben erhalten. Ein gültiger neuer Datensatz hat Vorrang; alte Fensterdaten sowie
+die frühere Hauptfenstergröße bleiben als Rückfall lesbar und werden beim Lesen nicht verändert.
+Neue Datensätze enthalten normale Bounds, Maximierung, Bezugs-DPI, Monitorname und Quellarbeitsbereich.
+Positionen werden relativ zum Arbeitsbereich umgerechnet, auch bei negativen Monitorkoordinaten.
+Fehlt der Monitor, wählt der Adapter einen verfügbaren Bildschirm und begrenzt die Geometrie dort.
+Der über DI registrierte Displayadapter verschiebt das noch unsichtbare Fenster zuerst auf den Zielmonitor
+und liest anschließend dessen `DeviceDpi`; die abschließende Größenumrechnung erfolgt einmal.
+Dabei wird kein sichtbares Hilfsfenster erzeugt und die Windows-Anzeigeskalierung nicht verändert.
+Das Vorgehen vermeidet `GetDpiForMonitor`, das laut [Microsoft-Dokumentation](https://learn.microsoft.com/en-us/windows/win32/api/shellscalingapi/nf-shellscalingapi-getdpiformonitor)
+für einen pro Monitor DPI-bewussten Thread ungeeignet ist. Unbekannte Legacy-DPI werden nicht geraten;
+diese Werte bleiben Geräte-Pixel bis zum nächsten regulären Speichern.
+
+Je Pro/FinOffice 21 gezielte Prüfungen bestanden: unabhängige Wiederherstellung bei 96/144/192 DPI mit
+Rückkehr zur Ausgangs-DPI, gleicher DPI und wiederholtem Restore ohne doppelte Skalierung; geänderte und
+negative Arbeitsbereiche; maximierte Fenster mit skalierten normalen Bounds; Vorrang neuer Werte,
+Legacy- und Hauptfensterrückfall, ungültige DPI/Formatversion sowie vollständig unterdrückte Auditpersistenz.
+Die bisherigen fünf echten Formulartypen behalten ihre isolierten Fenster-/Gridverträge. Wiederhergestellte
+Einstellungen bei 9/16 pt, heller/dunkler Darstellung sowie allgemeinem/Mail-Tab wurden unsichtbar gerendert
+und visuell ausgewertet. Die R2-Regression mit kleinen Arbeitsbereichen bis 800 × 600 bei 24 pt besteht weiterhin.
+Beide regulären Solution-Rebuilds Debug/Any CPU fehlerfrei, je 26 bekannte externe CSCore-Warnungen;
+FinOffice zuletzt. Alle 27 Designer-Quellprüfungen bestanden. Nachweise `.dpi-r4-build-{pro,fin}.log`,
+`.dpi-r4-tests-{pro,fin}.log`, `.dpi-r4-designer.log`, Bilder unter
+`.artifacts/app-shell/settings-ui/dpi-r4-restored-settings` und `dpi-r2-work-area`.
+Der zusätzliche Regressionstest mit entferntem Monitornamen und echtem Windows-Adapter besteht für beide
+Editionen (`.dpi-r4-native-{pro,fin}.log`); dafür wurden die regulären Builds abschließend erneut erstellt.
+Die unterschiedlichen DPI und Monitoranordnungen sind injizierte Prüfdaten; dies ist kein nativer
+Mehrmonitor-Neustartnachweis. G1-Kandidat/Fingerabdruck auf den regulären FinOffice-Ausgabestand aktualisiert.
+
+Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. Die drei offenen Codebefunde
+R2–R4 sind geschlossen; echte 100/150/200-%-Monitorwechsel, erreichbare Dialogaktionen am Zielbildschirm
 und Fensterwiederherstellung müssen nach den Korrekturen gemeinsam unter G5 geprüft werden. Die vorhandenen
 125/150-%-Renderfälle sind Layoutsimulationen, keine nativen Monitorwechsel. G1 und die übrigen G-Punkte
 bleiben unverändert offen; wegen des neuen Builds vor einem Live-Lauf den vorbereiteten Buildstand erneut prüfen.

@@ -2501,16 +2501,17 @@ public sealed partial class AppShellTests
             form.WindowState = FormWindowState.Normal;
             state.RestoreWindow(form, "Settings");
             Assert.AreEqual(FormWindowState.Maximized, form.WindowState);
-            using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\Settings", true)!)
+            using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\v2\Settings", true)!)
             {
                 key.SetValue("Maximized", 0); key.SetValue("Left", 50000); key.SetValue("Top", 50000);
                 key.SetValue("Width", 50000); key.SetValue("Height", 50000);
+                key.SetValue("Monitor", "Removed-DPI-test-monitor");
             }
             state.RestoreWindow(form, "Settings");
             Assert.IsTrue(Screen.FromRectangle(form.Bounds).WorkingArea.Contains(form.Bounds));
             var audit = new AppUiState(descriptor, new(true));
             audit.SaveWindow(form, "Audit");
-            using var auditKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\Audit");
+            using var auditKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(root + @"\App\v1\Windows\v2\Audit");
             Assert.IsNull(auditKey);
         }
         finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(root, false); }
