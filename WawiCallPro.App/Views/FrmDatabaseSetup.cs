@@ -71,6 +71,7 @@ public partial class FrmDatabaseSetup : XtraForm
     }
     private async Task ExecuteAsync(Func<CancellationToken, Task> action)
     {
+        using var waiting = new UiWaitCursor(this);
         try { await action(_lifetime.Token); }
         catch (OperationCanceledException) { if (!IsDisposed) setupMessage.Text = "Vorgang abgebrochen. Bereits abgeschlossene Schemaänderungen bleiben erhalten."; }
         catch (Exception exception)

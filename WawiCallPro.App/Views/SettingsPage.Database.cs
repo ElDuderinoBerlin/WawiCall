@@ -40,6 +40,7 @@ public partial class SettingsPage
         databaseSetupButton.Enabled = false;
         try
         {
+            using var waiting = new Hosting.UiWaitCursor(this);
             using var dialog = new FrmDatabaseSetup(_workspace.DatabaseSetup, _state);
             _databaseDialog = dialog;
             if (await showDialog(dialog) != DialogResult.OK)

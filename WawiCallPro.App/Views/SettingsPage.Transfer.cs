@@ -1,4 +1,5 @@
 using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 
 namespace WawiCallPro.App.Views;
 
@@ -37,7 +38,7 @@ public partial class SettingsPage
         await Task.Yield(); token.ThrowIfCancellationRequested();
         var owner = (Control?)FindForm() ?? this;
         string path;
-        using (new SettingsWaitCursor(owner))
+        using (new UiWaitCursor(owner))
         {
             using FileDialogBase dialog = import ? new XtraOpenFileDialog { Multiselect = false, CheckFileExists = true }
                 : new XtraSaveFileDialog { FileName = "WawiCallPro-Einstellungen-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json", OverwritePrompt = true };
@@ -54,7 +55,7 @@ public partial class SettingsPage
             "Zugangsdaten, Datenbank-/ERP-/SIP-Verbindungen, Geräte-IDs und Mandanten-/Leitungszuordnungen bleiben lokal erhalten.\n\nFortfahren?",
             "Einstellungen importieren", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
         { statusLabel.Text = "Import abgebrochen."; return; }
-        using (new SettingsWaitCursor(owner))
+        using (new UiWaitCursor(owner))
         {
             if (import) await ImportSettingsCoreAsync(path, token);
             else await ExportSettingsCoreAsync(path, token);
@@ -77,22 +78,5 @@ public partial class SettingsPage
         Apply(await _workspace!.Settings.ImportPortableAsync(path, _snapshot!, token));
         LoadAutoStart();
         statusLabel.Text = "Einstellungen importiert und gespeichert. Lokale Verbindungen und Zuordnungen bleiben erhalten. Bitte WawiCallPro neu starten.";
-    }
-
-    private sealed class SettingsWaitCursor : IDisposable
-    {
-        private readonly Control _owner;
-        private readonly bool _wait;
-        private readonly Cursor? _cursor;
-        internal SettingsWaitCursor(Control owner)
-        {
-            _owner = owner; _wait = owner.UseWaitCursor; _cursor = owner.Cursor;
-            owner.UseWaitCursor = true; owner.Cursor = Cursors.WaitCursor;
-        }
-        public void Dispose()
-        {
-            if (_owner.IsDisposed) return;
-            _owner.UseWaitCursor = _wait; _owner.Cursor = _cursor;
-        }
     }
 }

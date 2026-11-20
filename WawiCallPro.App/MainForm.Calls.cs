@@ -64,6 +64,7 @@ public partial class MainForm
             if (!incoming) { _callNotificationsHandled.Add(page.Call.Id); existing.Show(); if (!_backgroundRun) existing.Activate(); }
             return;
         }
+        using var waiting = new UiWaitCursor(this);
         var lookup = CreateCallerDialog();
         lookup.BindCall(page.Call, page.AcceptAsync);
         lookup.BindNotes(page.Notes);

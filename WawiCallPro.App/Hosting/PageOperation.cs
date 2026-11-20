@@ -23,6 +23,7 @@ internal sealed class PageOperation(Control owner, LabelControl status) : IDispo
 
     private async Task RunCoreAsync(Func<CancellationToken, Task> operation)
     {
+        using var waiting = new UiWaitCursor(owner);
         status.Text = "Bitte warten …";
         try { await operation(_stopping.Token); }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }

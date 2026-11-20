@@ -6,10 +6,13 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: ✅ G1-UI-Nachkorrektur: Textbuttons in Ansichten, Dialogen und Browse-Zeilen einheitlich
+Zuletzt ergänzt: ✅ Zentrale RAII-Wartecursor für potenziell langsame Dialog-/Browse-Vorbereitung und
+asynchrone UI-Operationen angeschlossen; verschachtelte/überlappende Vorgänge stellen den ursprünglichen
+Cursor nach der letzten Freigabe wieder her. Je Edition 21 gezielte Tests bestanden; Pro 0.1.222 bereitgestellt.
+Zuvor ergänzt: ✅ G1-UI-Nachkorrektur: Textbuttons in Ansichten, Dialogen und Browse-Zeilen einheitlich
 nach nativen Skinmaßen bemessen; „Neu laden“ aus dem Einstellungsfooter entfernt (20.11.2026).
 Bei Tahoma 8 pt/144 DPI sind Ansichtsaktion, vier Footeraktionen und Browse-Button jeweils 32 Pixel hoch.
-Gezielte Dialog-/Layoutprüfungen und native Messungen beider Editionen bestanden; Wartecursor-Anschluss folgt separat.
+Gezielte Dialog-/Layoutprüfungen und native Messungen beider Editionen bestanden; Wartecursor-Anschluss unten dokumentiert.
 Zuvor ergänzt: G1-Livebefund zur weiterhin zu hohen Toolbar korrigiert (20.11.2026): Tahoma 8 pt bei
 nativen 144 DPI ergab 48 Pixel Buttonhöhe neben 26 Pixel hohen Datumsfeldern. Die zentrale Hilfe verwendet
 jetzt native vertikale Skinmaße ohne zusätzliche Toolbar-Mindesthöhe; derselbe Fall ergibt 32 Pixel.
@@ -2597,12 +2600,12 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
-Anwendungsversion `0.1.221` (Dateiversion `0.1.0.221`), Dateistand 20.11.2026 12:03 Uhr lokal.
+Anwendungsversion `0.1.222` (Dateiversion `0.1.0.222`), Dateistand 20.11.2026 12:16 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
 als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
-`86FA9B3F56C98F754587C41B783C31F9F2504382A0ADC417A9C4C3298D11F9D0`.
-Der vor dem zugehörigen Button-Fix-Commit gebaute Arbeitsstand basiert auf `ae7f0bd` mit der einheitlichen
-Buttonbemessung und den bereits vorhandenen lokalen Änderungen;
+`4E7F73D5D06ACA94FBE0879B60DE9317F74D00BAE5B02FF45A4A37BEC4D580C6`.
+Der vor dem zugehörigen Cursor-Fix-Commit gebaute Arbeitsstand basiert auf `bd0a4b4` mit dem RAII-
+Cursoranschluss und den bereits vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
 
@@ -2621,6 +2624,9 @@ Wiederaufnahme am 20.11.2026 um 11:47 Uhr lokal mit Pro 0.1.220, PID bei Start `
 Fingerprint unmittelbar vorher geprüft. Startmetadaten unter `g1-restart-toolbar.json` im bestehenden
 Testprofil, ursprüngliche Startmetadaten erhalten. Prozess reagiert und besitzt ein Hauptfenster;
 Benutzerbestätigung der neuen Toolbarhöhe angefordert. Keine automatische SIP-Anmeldung eingerichtet.
+Nach der einheitlichen Button-/RAII-Korrektur erneut am 20.11.2026 12:18 Uhr lokal mit Pro 0.1.222
+und demselben Profil gestartet, PID bei Start `62264`. Fingerabdruck unmittelbar vorher geprüft;
+lokale Metadaten `g1-restart-ui-consistency.json`. Sichtbare Benutzerbestätigung weiterhin offen.
 **Schritt 1 noch offen:** Pro-Plugin, Lexware-Verfügbarkeit und sichtbare Korrektur gemeinsam bestätigen.
 Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
@@ -2696,7 +2702,7 @@ Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung 
 | Nachweis | FinOffice | Pro |
 |---|---|---|
 | Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Pro und Test jetzt bestätigt; Voraussetzungen als bereit gemeldet, konkrete A/B-Identitäten in Schritt 4 offen |
-| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ Erststart 0.1.218, G1-20261120-01 am 20.11.2026 11:23 lokal; nach Toolbar-Fix am selben Tag 11:47 lokal mit 0.1.220 wieder geöffnet; sichtbare Bestätigung offen |
+| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ Erststart 0.1.218, G1-20261120-01 am 20.11.2026 11:23 lokal; letzter Korrekturstart am selben Tag 12:18 lokal mit 0.1.222; sichtbare Bestätigung offen |
 | Neues Profil/eigene SQLite bestätigt | Offen | Offen |
 | Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
 | Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
@@ -2828,6 +2834,33 @@ Nachweise `.uniform-buttons-build-{pro,fin}.log`, `.uniform-buttons-tests-{pro,f
 native Bilder/Messwerte unter `.artifacts/uniform-native-{pro,fin}`, zusätzliche Render unter
 `.artifacts/app-shell/settings-ui/uniform-buttons`. Keine Daten-/Schemaänderung und kein echter Anruf.
 G1 bleibt für die gemeinsame Bedien-/Plugin-/Datenbank-/SIP-Prüfung offen.
+
+**G1-Nachkorrektur RAII-Wartecursor (20.11.2026):** Die zentrale `UiWaitCursor`-Hilfe ersetzt die doppelten
+Settings-/Mail-Scopes und manuellen Cursor-Sicherungen. `using` umfasst Vorbereitung/Erzeugung, Dialogaufruf,
+Laden und gegebenenfalls Datenübernahme. Die Hilfe ermittelt das aufrufende Formular, zählt aktive Scopes
+pro Owner und stellt den ursprünglichen Cursor erst nach der letzten Freigabe wieder her. Mehrfaches Dispose,
+bereits entsorgte Owner, abweichende Abschlussreihenfolge und ein fehlgeschlagener Scope-Konstruktor werden
+kontrolliert behandelt; die Hilfe ist für Aufrufe auf dem UI-Thread ausgelegt.
+
+Anschlüsse: Einstellungen einschließlich Office/Mail, Schriftwahl, Datenbankassistent über Ribbon und
+Einstellungen, Wähl-/Anruferfenster, Dialogladen, JSON-/Logordner-/Google-/LxPrintStudio-Browse, Mailanhänge,
+SQLite-Auswahl sowie vorhandene Backup-/Restore-Browsepfade. Gemeinsame `PageOperation`-Abläufe und die
+eigenen Mail-/Datenbankassistent-Runner halten den Wartecursor bis zum tatsächlichen Abschluss. Interaktive
+Dialoge erhalten ihre eigenen Lade-Scopes; nach Abschluss ist ihr Cursor wieder normal. Die Vorgabe ist in
+`AGENTS.md` festgehalten. Zwei private Cursorhilfen und zwei unbenutzte Felder mit Rider entfernt.
+Die direkte `Control.Cursor`-Zuweisung nutzt die unmittelbare native Cursoraktualisierung der
+[WinForms-Implementierung](https://github.com/dotnet/winforms/blob/main/src/System.Windows.Forms/System/Windows/Forms/Control.cs);
+keine globale Cursor- oder Fokusmanipulation ergänzt.
+
+Je Pro/FinOffice 21 gezielte Fälle bestanden: sieben neue Scope-/Owner-/Konstruktor-/Fehler-/Abbruchtests,
+bestehender Browse-Cursorscope, echte Datenbankdialog-/Wizard-Schritte, Datenbankabbruch, JSON-Import/Export
+einschließlich ungültigem Import, Mailkonto/-kontext/-anhang, Wähldialog, Geräte-Neuladen und zwei
+Settings-Schließpfade. Ausschließlich isolierte Testdaten und unsichtbare Fenster; keine echten Anrufe,
+Kontoanmeldungen oder interaktiven Browse-Klickfolgen als automatisiert bestanden ausgewiesen.
+Beide regulären Solution-Rebuilds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen;
+Pro zuletzt. Nachweise `.wait-cursor-build-{pro,fin}.log`, `.wait-cursor-tests-{pro,fin}.log`.
+Die Button-/Designer-/nativen Layoutnachweise aus dem vorherigen Commit bleiben gültig; dieser Block
+ändert den Cursor-Lebenszyklus und keine Layoutmaße. G1/G5 bleiben gemeinsame Benutzerprüfungen.
 
 **Abschluss DPI-R2 (20.11.2026):** `FrmSettings`, statische Einstellungsseiten und Mailkonfiguration
 behalten ihre Designer-Aufteilung und Eingaben. Wie in LxTranslate liegen lange Inhalte in scrollbar

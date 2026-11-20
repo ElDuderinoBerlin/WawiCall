@@ -367,12 +367,9 @@ public partial class SettingsPage : XtraUserControl
     private void LogDirectoryBrowse_Click(object? sender, EventArgs e)
     {
         var owner = (Control?)FindForm() ?? this;
-        var previousWaitCursor = owner.UseWaitCursor;
-        var previousCursor = owner.Cursor;
+        using var waiting = new UiWaitCursor(owner);
         try
         {
-            owner.UseWaitCursor = true;
-            owner.Cursor = Cursors.WaitCursor;
             using var dialog = new XtraFolderBrowserDialog
             {
                 Title = "Log-Verzeichnis auswählen",
@@ -382,7 +379,6 @@ public partial class SettingsPage : XtraUserControl
             if (dialog.ShowDialog(owner) == DialogResult.OK) logDirectoryEdit.Text = dialog.SelectedPath;
         }
         catch (Exception exception) { statusLabel.Text = PageOperation.Describe(exception); }
-        finally { owner.UseWaitCursor = previousWaitCursor; owner.Cursor = previousCursor; }
     }
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {

@@ -95,6 +95,7 @@ public partial class MainForm
     }
     private async void MailSettings_Click(object sender, ItemClickEventArgs e)
     {
+        using var waiting = new UiWaitCursor(this);
         using var settings = CreateSettingsDialog(); settings.SelectMailTab();
         settings.ShowDialog(this);
         if (settings.RestartRequested) { RestartRequested = true; Close(); return; }

@@ -68,7 +68,11 @@ public partial class FrmSettings : XtraForm
     }
     private void Settings_CloseRequested(object? sender, EventArgs e) { DialogResult = DialogResult.Cancel; Close(); }
     private void Settings_SaveCompleted(object? sender, EventArgs e) { DialogResult = DialogResult.OK; Close(); }
-    private async void Settings_Load(object? sender, EventArgs e) { await settingsPage.ReloadAsync(); ContentSize_Changed(this, EventArgs.Empty); }
+    private async void Settings_Load(object? sender, EventArgs e)
+    {
+        using var waiting = new UiWaitCursor(this);
+        await settingsPage.ReloadAsync(); ContentSize_Changed(this, EventArgs.Empty);
+    }
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (_canClose) return;

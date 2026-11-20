@@ -305,6 +305,10 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
   bereit, zusätzliches seitliches Padding beträgt 12 logische Pixel. Diese projektspezifische Vorgabe ersetzt
   für WawiCallPro die frühere abweichende Dialogbemessung (40 Pixel Mindesthöhe, zusätzliches Padding 12/6).
   Zusammengehörige Aktionen erhalten weiterhin gemeinsame Größen. „Neu laden“ im Einstellungsfooter entfällt.
+- Potenziell langsame Dialog- und Browse-Vorgänge einschließlich Vorbereitung, Laden und Datenübernahme
+  mit einem `using`-/`IDisposable`-Wartecursor begleiten. Die zentrale RAII-Hilfe `UiWaitCursor` verwenden;
+  keine eigenen manuellen Cursor-Sicherungen pro Dialog nachbauen. Bestätigung, Abbruch, Fehler und
+  überlappende asynchrone Vorgänge müssen den vorherigen Cursorzustand nach der letzten Freigabe wiederherstellen.
 
 - Globale Einstellungen im zentralen `FrmSettings` mit Tabs nach
   `D:\Application-Development\LxTranslate\LxTranslate.App\Views\FrmSettings` bündeln.

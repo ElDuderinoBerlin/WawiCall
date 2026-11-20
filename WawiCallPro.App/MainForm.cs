@@ -267,6 +267,7 @@ public partial class MainForm : RibbonForm
             if (existing.WindowState == FormWindowState.Minimized) existing.WindowState = FormWindowState.Normal;
             existing.Show(); if (!_backgroundRun) existing.Activate(); return;
         }
+        using var waiting = new UiWaitCursor(this);
         var form = CreateCallerDialog();
         if (_backgroundRun) form.PrepareForBackgroundRun();
         form.Show(this);
@@ -313,6 +314,7 @@ public partial class MainForm : RibbonForm
     }
     private void OpenSettings(bool plugins = false)
     {
+        using var waiting = new UiWaitCursor(this);
         using var settings = CreateSettingsDialog(plugins);
         settings.ShowDialog(this);
         if (settings.RestartRequested) { RestartRequested = true; Close(); return; }
@@ -339,6 +341,7 @@ public partial class MainForm : RibbonForm
     private void Tray_DoubleClick(object? sender, EventArgs e) => RestoreFromTray();
     private void Font_Click(object sender, ItemClickEventArgs e)
     {
+        using var waiting = new UiWaitCursor(this);
         using var dialog = new FontDialog { Font = WindowsFormsSettings.DefaultFont, MinSize = 8, MaxSize = 24 };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         WindowsFormsSettings.DefaultFont = DevExpress.Utils.AppearanceObject.DefaultFont = dialog.Font; Font = dialog.Font; PerformLayout();

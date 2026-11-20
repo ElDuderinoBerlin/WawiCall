@@ -268,11 +268,11 @@ public partial class MailPage : XtraUserControl
     {
         if (_application is null || _message is not { } message || attachmentEdit.EditValue is not string id || _stopping) return;
         var attachment = message.Attachments.Single(item => item.Id == id); var owner = (Control?)FindForm() ?? this;
-        var waiting = owner.UseWaitCursor; var cursor = owner.Cursor; saveAttachmentButton.Enabled = false;
+        using var waiting = new UiWaitCursor(owner);
+        saveAttachmentButton.Enabled = false;
         string? temporary = null;
         try
         {
-            owner.UseWaitCursor = true; owner.Cursor = Cursors.WaitCursor;
             using var dialog = new XtraSaveFileDialog { Title = "E-Mail-Anhang speichern", FileName = Path.GetFileName(attachment.Name), OverwritePrompt = true, RestoreDirectory = true, Filter = "Alle Dateien (*.*)|*.*" };
             if (dialog.ShowDialog(owner) != DialogResult.OK) return;
             var bytes = await _application.DownloadForSourceAsync(_source!, message.Key, id, _lifetime.Token);
@@ -288,7 +288,7 @@ public partial class MailPage : XtraUserControl
         finally
         {
             if (temporary is not null) { try { File.Delete(temporary); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
-            if (!owner.IsDisposed) { owner.UseWaitCursor = waiting; owner.Cursor = cursor; } if (!_stopping) saveAttachmentButton.Enabled = true;
+            if (!_stopping) saveAttachmentButton.Enabled = true;
         }
     }
     private async void Folder_SelectedElementChanged(object sender, SelectedElementChangedEventArgs e)

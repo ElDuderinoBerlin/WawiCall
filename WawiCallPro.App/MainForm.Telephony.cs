@@ -18,6 +18,7 @@ public partial class MainForm
         if (_workspace?.CanUseBusinessDirectory != true) { UpdateBusinessActions(); return; }
         if (OwnedForms.OfType<FrmDial>().FirstOrDefault(dialog => !dialog.IsDisposed) is { } existing)
         { existing.Show(); if (!_backgroundRun) existing.Activate(); return; }
+        using var waiting = new Hosting.UiWaitCursor(this);
         var dial = CreateDialDialog();
         if (_backgroundRun) dial.PrepareForBackgroundRun();
         dial.Show(this);

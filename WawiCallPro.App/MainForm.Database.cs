@@ -62,6 +62,7 @@ public partial class MainForm
     private void DatabaseSetup_Click(object sender, ItemClickEventArgs e)
     {
         if (_workspace is null || _closing || _databaseBusy || _operation?.IsRunning == true) return;
+        using var waiting = new UiWaitCursor(this);
         using var dialog = CreateDatabaseSetupDialog();
         if (_backgroundRun) dialog.PrepareForBackgroundRun();
         if (dialog.ShowDialog(this) == DialogResult.OK)

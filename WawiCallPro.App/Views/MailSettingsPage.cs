@@ -194,7 +194,7 @@ public partial class MailSettingsPage : XtraUserControl
     private void Browse(bool google) => Start(async token =>
     {
         await Task.Yield(); var owner = (Control?)FindForm() ?? this;
-        using var waiting = new WaitCursor(owner);
+        using var waiting = new UiWaitCursor(owner);
         using var dialog = new XtraOpenFileDialog { Title = google ? "Google Desktop-Client importieren" : "Microsoft-365-Profil aus LxPrintStudio übernehmen", Filter = "JSON-Dateien (*.json)|*.json", Multiselect = false, CheckFileExists = true, RestoreDirectory = true };
         if (!google) dialog.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LxPrintStudio", "appsettings.json");
         if (dialog.ShowDialog(owner) != DialogResult.OK) { statusLabel.Text = "Import abgebrochen."; return; }
@@ -212,6 +212,7 @@ public partial class MailSettingsPage : XtraUserControl
     { if (_workspace is not null && !_stopping && _running.IsCompleted) _running = Run(operation); }
     private async Task Run(Func<CancellationToken, Task> operation)
     {
+        using var waiting = new UiWaitCursor(this);
         using var request = new CancellationTokenSource(); _request = request;
         SetBusy(true); statusLabel.Text = "Bitte warten …";
         try { await Task.Yield(); await operation(request.Token); }
@@ -284,12 +285,4 @@ public partial class MailSettingsPage : XtraUserControl
     private sealed record AccountRow(Guid Id, string Name, string Status);
     private sealed record FolderRow(string Id, string Name);
     private sealed record CompanyRow(CompanyKey Key, string Name);
-    private sealed class WaitCursor(Control owner) : IDisposable
-    {
-        private readonly Cursor? _cursor = owner.Cursor;
-        private readonly bool _waiting = owner.UseWaitCursor;
-        private readonly Control _owner = Set(owner);
-        private static Control Set(Control control) { control.UseWaitCursor = true; control.Cursor = Cursors.WaitCursor; return control; }
-        public void Dispose() { if (!_owner.IsDisposed) { _owner.UseWaitCursor = _waiting; _owner.Cursor = _cursor; } }
-    }
 }
