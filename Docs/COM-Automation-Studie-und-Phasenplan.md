@@ -430,7 +430,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 0 | ✅ | Quellenstudie, Variantenentscheidung und dokumentierter Plan | Agent; Quellen- und Dokumentkonsistenzprüfung |
 | 1 | ✅ | Isolierter Prototyp: je 57 Prüfungen Pro/FinOffice, x86/x64, parallele Aktivierung, Dispatcher und Lebensdauer | Agent; eigene HKCU-CLSIDs entfernt, keine echten Anrufe |
 | 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
-| 3 | ⬜ | COM- und normaler Start im einzigen App-Host | Agent; isolierte Start-/Instanztests |
+| 3 | ⬜ | Begonnen: Startargumente abgesichert; gemeinsamer COM-/App-Host noch offen | Agent; isolierte Start-/Instanztests |
 | 4 | ⬜ | Gemeinsamer Zugang zu allen verfügbaren Wawi-Ansichten | Agent; gezielte Layout-/UI-Nachweise; sichtbare Bedienung gemeinsam |
 | 5 | ⬜ | Wähldialog, SIP-Verbindung, Wählen und Gesprächsstatus | Agent mit Test-Doubles; reale SIP-Prüfung gemeinsam |
 | 6 | ⬜ | Mehrclientbetrieb, Idle-Shutdown und Fehler-/Sicherheitsgrenzen | Agent; gezielte konkurrierende und negative Tests |
@@ -573,6 +573,7 @@ noch nicht; Rücknahme dieses Phasencommits entfernt die Ergänzung ohne Produkt
 
 ### Phase 3 – ⬜ Startmodus und einzige Instanz
 
+- [x] ✅ Vorarbeit: vollständige Argumentprüfung vor Konfiguration/UI. Optionen ohne Beachtung der Groß-/Kleinschreibung auswerten, widersprüchliche und unbekannte Kombinationen mit Exitcode 2 ablehnen; bestehende Diagnose-/Audit-/Aktivierungspfade erhalten. `-Embedding` fällt nicht mehr in den sichtbaren Normalstart durch.
 - [ ] Modi in `Program` trennen; normale Starts und Installer-/Diagnosepfade erhalten.
 - [ ] `AppApplicationContext` ohne `MainForm` lauffähig machen; UI erst bei explizitem Auftrag erzeugen.
 - [ ] Lizenz-/Konfigurationsfehler ohne Dialoge melden; keine Diagnose-Abkürzung für produktives COM verwenden.
@@ -580,6 +581,17 @@ noch nicht; Rücknahme dieses Phasencommits entfernt die Ergänzung ohne Produkt
 - [ ] Explorer-Zweitstart einer versteckten COM-App zeigt dieselbe Instanz; COM-Zweitaktivierung bleibt unsichtbar.
 
 Abnahme: Normaler Start verhält sich wie zuvor; reines COM-Erzeugen zeigt keine Oberfläche.
+
+Zwischenstand am 20.11.2026: `AppStartArguments` und frühe Program-Verzweigung implementiert.
+Bis zum vollständigen Hostanschluss beendet `-Embedding` die App ausdrücklich mit Exitcode 3;
+es veröffentlicht noch keine Klassenfabrik. Dies ist keine abgeschlossene COM-Aktivierung.
+Je drei gezielte Argumenttests für Pro/FinOffice bestanden; reguläre Solution-Builds Debug/Any CPU
+für beide Editionen mit null Fehlern und Warnungen. Die reguläre Pro-EXE beendet `-Embedding`
+mit 3 und `-Embedding --diagnostics` mit 2, ohne Konfigurations-/UI-Initialisierung.
+Buildprotokolle: `.com-start-arguments-build-{fin,pro}.log`. Ein anfänglicher Testaufruf mit nicht
+unterstütztem `--filter-class` führte keine Tests aus; mit `--filter` erfolgreich wiederholt.
+Offen bleiben Host-/Klassenfabrikanschluss, bedarfsweise Formularerzeugung, dialogfreie Lizenz-/
+Konfigurationszustände und native gemeinsame Instanztests. Die Phase bleibt ausdrücklich offen.
 
 ### Phase 4 – ⬜ Ansichten und Fensterführung
 

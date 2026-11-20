@@ -14,6 +14,9 @@ nachgewiesen, eigene HKCU-Registrierungen entfernt. ✅ COM-Phase 2: V1-Verträg
 70 native COM-Prüfungen und erneut 57 Prototypprüfungen bestanden. Nur HKCU, keine TLB-/Interface-
 Registrierung; IDL/TLB ohne Registrierung geprüft. App-Anbindung und echte Ansichten/Telefonie folgen
 in COM-Phasen 3–8. Die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
+COM-Phase 3 begonnen: Startargumente vor UI/Konfiguration validiert und COM-Durchfall in den
+sichtbaren Normalstart verhindert (je drei Tests und reguläre Builds für beide Editionen).
+COM-Hostanschluss und Start-/Instanzabnahme bleiben offen; Phase 3 ist noch nicht abgeschlossen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

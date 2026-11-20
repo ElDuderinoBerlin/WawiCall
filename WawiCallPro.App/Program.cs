@@ -33,6 +33,20 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int RunAfterInstaller(string[] args)
     {
+        AppStartArguments start;
+        try { start = AppStartArguments.Parse(args); }
+        catch (ArgumentException)
+        {
+            Console.Error.WriteLine("WawiCallPro: Ungültige oder widersprüchliche Startargumente.");
+            return 2;
+        }
+        // Do not fall through to interactive startup until the COM host is connected.
+        if (start.Kind == AppStartKind.Com)
+        {
+            Console.Error.WriteLine("WawiCallPro: Der COM-Anwendungsstart ist noch nicht angeschlossen.");
+            return 3;
+        }
+        args = start.ToInteractiveArguments();
         if (args.Length > 0 && args[0] == "--activate-existing")
             return ActivateExisting(args);
         var result = RunApplication(args);
