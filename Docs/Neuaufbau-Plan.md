@@ -6,9 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: ✅ G1-Edition Pro vom Benutzer gewählt und regulärer Debug-/Any-CPU-Build 0.1.218 mit
-Pro-Plugin bereitgestellt (20.11.2026). Fingerabdruck unten erfasst; Testzeitpunkt und Laufzeitvoraussetzungen
-noch offen. Noch kein Testprofil angelegt und keine reale Prüfung durchgeführt.
+Zuletzt ergänzt: G1-Pro-Lauf nach ausdrücklicher Benutzerfreigabe am 20.11.2026 begonnen.
+✅ Pro 0.1.218 regulär gebaut und mit eigenem Profil `G1-20261120-01` gestartet; Prozess reagiert und hat
+ein Hauptfenster. Sichtbare Edition, Pro-Plugin und Lexware-Verfügbarkeit werden jetzt gemeinsam geprüft.
+Noch keine bestätigte Bedien-, SIP-/Audio- oder Gesprächsabnahme; G1 bleibt offen.
 Zuvor ergänzt: ✅ DPI-R2–R4 behoben und isoliert geprüft: Fenster und Mindestgrößen bleiben im Arbeitsbereich,
 lange Einstellungsseiten scrollen bei sichtbarer Aktionszeile, Umbruchschwellen berücksichtigen DPI und Schrift.
 Fensterdaten speichern Bezugs-DPI und Monitorbezug versioniert; Neustarts rechnen die normalen Maße für den
@@ -2583,9 +2584,10 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
   Debug/Any CPU erfolgreich, Pro-Plugin im Ausgabeordner, keine fremden Editionsreste der App-EXE;
   0 Fehler und 26 bekannte externe CSCore-Warnungen. Nachweis `.phase8-g1-pro-build.log`.
   Nur Build-/Dateiprüfung, kein Start oder Gerätezugriff. G1 bleibt offen.
-- [ ] Weitere Laufzeitvoraussetzungen gemeinsam bestätigen: Testzeitpunkt, FRITZ!Box-Testkonto,
-  zweiter erreichbarer Testanschluss, Mikrofon/Wiedergabe sowie freigegebene Lexware-Testmandanten.
-  Falls die reale SIP-Grundprüfung noch nicht dokumentiert ist, zuerst Schritt 3 durchführen.
+- [x] ✅ Benutzer bestätigt am 20.11.2026 „Jetzt vollständig testen – alles bereit“: Zeitpunkt jetzt,
+  FRITZ!Box-Testzugang, zweiter Anschluss, Audio und freigegebener Lexware-Testbestand als vorhanden gemeldet.
+  Die konkrete Testidentität A/B wird bei Schritt 4 festgehalten. Das bestätigt Bereitschaft, keinen Funktionstest.
+  Die reale SIP-Grundprüfung für diesen Lauf ist noch offen und wird in Schritt 3 durchgeführt.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
@@ -2595,8 +2597,17 @@ als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`
 `1B06E3921D4071EF63CFE577C86FCABAD82A236D900F94F8AD5B559C686F218F`.
 Der gebaute Arbeitsstand basiert auf `078c53a` mit den bereits vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
-wurden weder verändert noch in den Dokumentationscommit übernommen. Lauf-ID, Testzeitpunkt und Testbestand
-stehen noch aus; das Testprofil wurde nicht angelegt. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
+wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
+
+**Begonnener Pro-Lauf:** `G1-20261120-01`, Start am 20.11.2026 um 11:23 Uhr lokal,
+EXE/Fingerabdruck wie oben, PID bei Start `34392`. Neues Profil
+`.artifacts/phase8-g1/Pro/G1-20261120-01`; lokale Startmetadaten unter `g1-run.json`.
+Nach der ausdrücklichen Freigabe des vollständigen Tests durch den Benutzer hat der Agent die reguläre EXE
+sichtbar mit `ProcessStartInfo` gestartet. `WAWICALLPRO_CONFIG_DIR` wurde ausschließlich in der Umgebung
+dieses Kindprozesses gesetzt. Keine dauerhafte Umgebungsvariable und keine Produktionskonfiguration geändert.
+Lesende Prüfung: derselbe EXE-Pfad, Prozess reagiert und besitzt ein Hauptfenster.
+**Schritt 1 noch offen:** Benutzerbestätigung für sichtbare Edition, aktives Pro-Plugin, Lexware-Verfügbarkeit
+und Start ohne Ausnahme angefordert. Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
 **Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.FinOffice.exe`,
@@ -2625,8 +2636,9 @@ Fenster-/Spaltenlayouts nicht zurücksetzen. Kein Audit-/Diagnosemodus und kein 
 
 Vorbereiteter Startbefehl für den Benutzer, **erst nach Vereinbarung von Edition/Lauf-ID ausführen**.
 Die gleichen Variablenwerte bei Schritt 6 und 8 erneut verwenden. Der Befehl liest keine Zugangsdaten
-und verändert keine dauerhafte Umgebungsvariable; die sichtbare Anwendung wird hier ausdrücklich vom
-Benutzer gestartet. Bei einem neuen Lauf eine neue Lauf-ID wählen, beim Neustart keine neue erzeugen.
+und verändert keine dauerhafte Umgebungsvariable. Der Benutzer kann damit Start und Neustart durchführen;
+ein Start durch den Agenten erfolgt nur nach ausdrücklicher Absprache wie beim oben protokollierten Pro-Lauf.
+Bei einem neuen Lauf eine neue Lauf-ID wählen, beim Neustart keine neue erzeugen.
 
 ```powershell
 $g1Repository = 'D:\Application-Development\WawiCallPro'
@@ -2668,8 +2680,8 @@ Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung 
 
 | Nachweis | FinOffice | Pro |
 |---|---|---|
-| Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Edition Pro am 20.11.2026 bestätigt; Zeitpunkt/Anschluss/Testbestand offen |
-| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | 0.1.218 und Fingerabdruck oben vorbereitet; Start/Lauf-ID offen |
+| Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Pro und Test jetzt bestätigt; Voraussetzungen als bereit gemeldet, konkrete A/B-Identitäten in Schritt 4 offen |
+| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ 0.1.218, Fingerabdruck oben; G1-20261120-01 am 20.11.2026 11:23 lokal gestartet; sichtbare Startbestätigung ausstehend |
 | Neues Profil/eigene SQLite bestätigt | Offen | Offen |
 | Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
 | Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
