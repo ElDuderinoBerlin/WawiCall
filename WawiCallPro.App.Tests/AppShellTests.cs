@@ -2754,6 +2754,7 @@ public sealed partial class AppShellTests
                 form.MinimumSize = Size.Empty;
                 form.ClientSize = small ? new Size(1000, 800) : new Size(1500, 1000);
                 CreateHandles(form); form.PerformLayout();
+                Application.DoEvents();
                 var dashboard = (HomeDashboard)form.GetActiveDocumentView()!;
                 Assert.AreEqual("Plugin geladen", Field<LabelControl>(dashboard, "pluginValue").Text);
                 Assert.AreEqual("Nicht konfiguriert", Field<LabelControl>(dashboard, "sipValue").Text);
@@ -2765,6 +2766,14 @@ public sealed partial class AppShellTests
                 Assert.IsTrue(buttons.All(button => button.Width >= button.GetPreferredSize(Size.Empty).Width));
                 Assert.IsTrue(buttons[0].Width < dashboard.Width / 3, "Toolbar buttons must keep a compact width.");
                 CheckTableBounds(dashboard);
+                var dashboardLayout = Field<TableLayoutPanel>(dashboard, "layout");
+                var dashboardHeader = Field<TableLayoutPanel>(dashboard, "header");
+                Assert.IsTrue(dashboardHeader.Right <= dashboardLayout.ClientSize.Width,
+                    $"Dashboard header escapes viewport: {dashboardHeader.Bounds} in {dashboardLayout.ClientSize}");
+                var dashboardBody = Field<TableLayoutPanel>(dashboard, "body");
+                var dashboardScroll = Field<XtraScrollableControl>(dashboard, "scroll");
+                Assert.IsTrue(dashboardBody.Right <= dashboardScroll.ClientSize.Width,
+                    $"Dashboard cards escape viewport: {dashboardBody.Bounds} in {dashboardScroll.ClientSize}");
                 var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "layout-reference");
                 Directory.CreateDirectory(output);
                 using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);

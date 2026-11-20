@@ -91,9 +91,8 @@ internal static class ToolbarButtonLayoutHelper
                 {
                     button.AutoSize = false;
                     button.MinimumSize = Size.Empty;
-                    // Insets are included in the measured size, as in LxTranslate. Control.Padding
-                    // would be counted again by GetPreferredSize when a table arranges the button.
-                    button.Padding = Padding.Empty;
+                    button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6),
+                        button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(6));
                     if ((button.Anchor & (AnchorStyles.Left | AnchorStyles.Right)) == (AnchorStyles.Left | AnchorStyles.Right))
                         button.Anchor &= ~AnchorStyles.Right;
                 }

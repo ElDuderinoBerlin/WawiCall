@@ -22,6 +22,8 @@ public partial class HomeDashboard : XtraUserControl
         logo.SvgImageColorizationMode = DevExpress.Utils.SvgImageColorizationMode.None;
         SizeChanged += Dashboard_SizeChanged;
         FontChanged += Dashboard_SizeChanged;
+        layout.Layout += Dashboard_Layout;
+        scroll.ClientSizeChanged += Dashboard_SizeChanged;
         body.SizeChanged += Body_SizeChanged;
         var appearance = LookAndFeel;
         appearance.StyleChanged += Dashboard_SizeChanged;
@@ -62,6 +64,7 @@ public partial class HomeDashboard : XtraUserControl
     }
 
     private void Dashboard_SizeChanged(object? sender, EventArgs e) => ArrangeDashboard();
+    private void Dashboard_Layout(object? sender, LayoutEventArgs e) => ArrangeDashboard();
     private void Body_SizeChanged(object? sender, EventArgs e) => scroll.AutoScrollMinSize = new Size(0, body.Height);
     private void ArrangeDashboard()
     {
@@ -69,6 +72,9 @@ public partial class HomeDashboard : XtraUserControl
         _arranging = true;
         try
         {
+            // Auto-sized percent tables can otherwise grow to an unwrapped label's preferred width.
+            header.MaximumSize = new Size(Math.Max(1, layout.ClientSize.Width - header.Margin.Horizontal), 0);
+            body.MaximumSize = new Size(Math.Max(1, scroll.ClientSize.Width - body.Margin.Horizontal), 0);
             var narrow = Width < 1000 * Font.Size / 10F;
             body.SuspendLayout(); toolbar.SuspendLayout();
             body.ColumnStyles[0].Width = narrow ? 100 : 67;

@@ -110,6 +110,12 @@ public sealed partial class AppShellTests
                 if (provider != 0)
                 {
                     var mail = Field<MailSettingsPage>(page, "mailSettingsPage");
+                    foreach (var name in new[] { "applicationEdit", "startupEdit" })
+                    {
+                        var check = Field<CheckEdit>(mail, name);
+                        if (check.Visible) Assert.IsTrue(TextRenderer.MeasureText(check.Text, check.Font).Width + check.LogicalToDeviceUnits(22) <= check.Width,
+                            $"Clipped mail checkbox {name}: {check.Text} in {check.Width}");
+                    }
                     var scroll = Field<XtraScrollableControl>(mail, "connectionScroll"); var contents = Field<TableLayoutPanel>(mail, "connectionLayout");
                     Assert.IsTrue(scroll.AutoScrollMinSize.Height >= contents.Height);
                     if (variant.Font == 16F)

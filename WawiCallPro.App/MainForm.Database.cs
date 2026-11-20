@@ -1,5 +1,6 @@
 using DevExpress.XtraBars;
 using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 using WawiCallPro.Database;
 using WawiCallPro.Utilities.Configuration;
 
@@ -73,7 +74,8 @@ public partial class MainForm
     private async void DatabaseBackup_Click(object sender, ItemClickEventArgs e)
     {
         if (!databaseBackupItem.Enabled) return;
-        using var dialog = new SaveFileDialog
+        using var waiting = new UiWaitCursor(this);
+        using var dialog = new XtraSaveFileDialog
         {
             Filter = "SQLite-Sicherung (*.db)|*.db",
             FileName = "WawiCallPro-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".db",
@@ -90,7 +92,8 @@ public partial class MainForm
     private async void DatabaseRestore_Click(object sender, ItemClickEventArgs e)
     {
         if (!databaseRestoreItem.Enabled) return;
-        using var dialog = new OpenFileDialog { Filter = "SQLite-Sicherung (*.db)|*.db|Alle Dateien (*.*)|*.*", CheckFileExists = true };
+        using var waiting = new UiWaitCursor(this);
+        using var dialog = new XtraOpenFileDialog { Filter = "SQLite-Sicherung (*.db)|*.db|Alle Dateien (*.*)|*.*", CheckFileExists = true };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
         await RunDatabaseAsync(async token =>
         {

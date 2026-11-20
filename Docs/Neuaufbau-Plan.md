@@ -6,7 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Phase 8/A3 mit Plugin-/Mandantengrenzprüfungen abgeschlossen: manuelle Zuordnung bei
+Zuletzt ergänzt: Phase 8/A4 mit vollständiger Matrix für 27 eigene Oberflächen, Designer-/Ressourcen-/
+Konstruktorprüfung, isolierter Fenster-/Gridpersistierung und ausgewerteten Layoutnachweisen abgeschlossen.
+Buttonpadding, Startseitenbreite, Logsuchrand, Mail-Checkboxbeschriftungen und DevExpress-Browse/Wartecursor
+korrigiert (20.11.2026).
+Die technischen Punkte A1–A4 sind erledigt; gemeinsame Abnahmen G1–G6 bleiben offen.
+Zuvor ergänzt: Phase 8/A3 mit Plugin-/Mandantengrenzprüfungen abgeschlossen: manuelle Zuordnung bei
 gleichen Nummern, abgewarteter Suchabbruch beim Pluginwechsel, Sperre von Wawi-Aktionen bei weiterhin
 erreichbarer Historie/Gesprächsbedienung sowie tatsächliche Pro-/FinOffice-Plugin-Factory geprüft (20.11.2026).
 Zuvor ergänzt: Phase 8/A2 mit Historien-Grenzprüfungen abgeschlossen: 1.003 Gespräche über drei interne
@@ -505,7 +510,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; A4/G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 vollständige Designer-/Layoutmatrix mit 27 Oberflächen, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2293,10 +2298,10 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 |---|---|---|
 | Verbindungsstatus, Suche, Wählen, Historie | `MainForm.Telephony.cs` bindet Registrierung und Gespräche; `FrmDial` ist dienstgebunden. `MainForm.Parties.cs` öffnet die plugin-eigene Geschäftspartnersuche. `HistoryPage` lädt intern alle 500er-Abfrageseiten des Zeitraums, ohne Pagingbuttons. | Anschlüsse vorhanden. `AppShellTests`, `AppShellTests.Navigation.cs` und die bisherigen Teilpunkte prüfen Einzelabläufe; Neustartnachweis A1 seit 20.11.2026 ✅; Historiengrenzen A2 seit 20.11.2026 ✅; Benutzerabnahmen G1/G2 offen. |
 | Anruferfenster und Notizen | `MainForm.Calls.cs`, `FrmCallerLookup`, `CallerLookupPage`, `CallDetailsPage` und `CallNotesSession` verbinden Ruf, Treffer, Auswahl, Notizen und unabhängige Gesprächskontexte. Benachrichtigungen sind einstellbar; ausstehende UI-Arbeit wird beim Schließen beendet. | Vorhandene Tests u. a. `CallNotesPersistAfterCallEndAndPopupCloseWithoutBusinessAccessOrCrossCallDrafts`, `CallerLookupGroupsRealCachesAndPreservesManualChoiceWithoutSwitchingViews` und `LateCallDetailsCannotPublishAfterSelectionChangeOrCallEnd`. Keine fehlende Grundanbindung belegt; A1 und A3 seit 20.11.2026 ✅; G1–G3 offen. |
-| Einstellungen | `FrmSettings`/`SettingsPage` mit SIP, Geräten, Datenbankassistent, Hotkeys, Autostart und Benachrichtigungen; JSON-Transfer, Logoptionen und DirectX sind vorhanden. Cache-Mandanten bleiben ausschließlich dort. | `AppShellTests.Settings*.cs`, `AppShellTests.cs`, `AutoStartTests` und `AppHotkeyTests` enthalten Teilnachweise. A4 sowie gemeinsame Bedien-/Systemprüfung G4/G5 offen; aktive Medienumschaltung gehört zu Phase 9. |
+| Einstellungen | `FrmSettings`/`SettingsPage` mit SIP, Geräten, Datenbankassistent, Hotkeys, Autostart und Benachrichtigungen; JSON-Transfer, Logoptionen und DirectX sind vorhanden. Cache-Mandanten bleiben ausschließlich dort. | `AppShellTests.Settings*.cs`, `AppShellTests.cs`, `AutoStartTests` und `AppHotkeyTests` enthalten Teilnachweise. ✅ Technische Designer-/Layoutabdeckung in A4 ergänzt; gemeinsame Bedien-/Systemprüfung G4/G5 offen, aktive Medienumschaltung gehört zu Phase 9. |
 | Tray, Hotkeys, Fokus und Schließschutz | `MainForm.Tray.cs`, `MainForm.Hotkeys.cs`, `AppHotkeys`, `MainForm.Calls.cs`, `StartupFocusHandoff` und `StartupSplash.CompleteAsync` sind angebunden. Splash-Reihenfolge: Vordergrund erfassen → bei eigenem Vordergrund aktivieren → Splash schließen. | `ApplicationLifetimeTests`, `StartupSplashTests`, `AppHotkeyTests` und `NativeTrayAudit` vorhanden. Diese Prüfeinstiege ersetzen keine neue sichtbare Abnahme; G3/G4 sowie Schließfälle G1/G2 bleiben offen. |
-| Designer-Aufteilung | Statische Bestandsprüfung fand 27 direkt von Form-/Control-Basistypen abgeleitete Oberflächen in App und `WawiCallPro.Plugin.Windows`: jeweils `partial`, gleichnamige `.Designer.cs`/`.resx` und öffentlicher parameterloser Konstruktor vorhanden. In den beiden Editionsplugins wurden keine eigenen Form-/Control-Ableitungen gefunden; sie liefern die gemeinsame Suchansicht über ihre Factory. | Kein fehlendes Dateitripel in diesem Suchumfang. Regex-/Dateiprüfung bestätigt weder Designer-Serialisierbarkeit noch dienstfreie Ausführung oder gültigen Ressourceninhalt; vollständiger Nachweis A4 offen. |
-| Layout, Schrift, Skin, DPI | TableLayoutPanel-Layouts und `UiButtonSizing` sind vorhanden; bestehende gezielte Rendernachweise decken zahlreiche leere/gefüllte Zustände ab. Fenster-/Gridzustand liegt in `AppUiState`. | Vorhandene Quellen/Bilder sind kein neuer Gesamtpass. A4 erstellt die konkrete Abdeckung und behebt belegte Lücken; tatsächliche Monitor-/DPI- und Bedienprüfung G5 bleibt gemeinsam. |
+| Designer-Aufteilung | 27 eigene Oberflächen in App und `WawiCallPro.Plugin.Windows`; die erneute Ableitungskettenprüfung fand keine weiteren eigenen Typen. In den beiden Editionsplugins keine eigenen Form-/Control-Ableitungen; sie liefern die gemeinsame Suchansicht über ihre Factory. | ✅ A4: Dateitripel, Ressourcen-XML, Roslyn-Designerprüfung, tatsächlicher dienstfreier Aufbau ohne Handles, eingebettete Ressourcen und explizite Designer-Properties geprüft. Kein behaupteter interaktiver Designer-Roundtrip. |
+| Layout, Schrift, Skin, DPI | TableLayoutPanel-Layouts und `UiButtonSizing`; A4 ordnet jedem Typ die konkreten Renderfälle und Fenster-/Gridpersistierung zu und ergänzt die belegten Lücken. | ✅ A4 mit neuen und erneut geprüften betroffenen Layoutfällen sowie Bildauswertung. Tatsächliche Monitor-/DPI- und Bedienprüfung G5 bleibt gemeinsam. |
 
 Die Bestandsaufnahme begründet keinen erneuten vollständigen Neubau dieser Funktionen. In A1–A4 zunächst
 vorhandene Nachweise zuordnen; nur nicht abgedeckte Fälle ergänzen oder tatsächlich gefundene Fehler beheben.
@@ -2393,10 +2398,11 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   Builds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen; FinOffice zuletzt gebaut.
   Nachweise `.phase8-a3-{build,app,runtime,adapter}-{pro,fin}.log`. Nur isolierte SQLite-/Quell-Fixtures,
   kontrollierte Doubles und unsichtbare Fenster ohne Aktivierung; keine echten Konten oder Audiogeräte.
-  Produktivcode, Layout, SQL und Schema unverändert; keine zusätzliche Provider-/Renderabnahme. A4 und
-  gemeinsame G-Prüfungen, tatsächliche Quell-/Lastabnahme sowie reale SIP-Anrufe bleiben offen.
+  Produktivcode, Layout, SQL und Schema in A3 unverändert; keine zusätzliche Provider-/Renderabnahme.
+  A4 ist nachfolgend separat nachgewiesen; gemeinsame G-Prüfungen, tatsächliche Quell-/Lastabnahme sowie
+  reale SIP-Anrufe bleiben offen.
   Rollback: neue Shell-Grenztests und Factory-Probe zurücknehmen; keine Produktivdaten wurden verändert.
-- [ ] **A4 – Designer-/Layoutnachweise pro betroffener Oberfläche vervollständigen.** Die 27 gefundenen Typen
+- [x] ✅ **A4 – Designer-/Layoutnachweise pro betroffener Oberfläche vervollständigen (20.11.2026).** Die 27 gefundenen Typen
   samt gegebenenfalls weiteren indirekt abgeleiteten Oberflächen in einem vollständigen Abdeckungsverzeichnis
   erfassen. Gültige Ressourcen, parameterlosen dienstfreien Aufbau, serialisierbaren Designer-Code, Trennung
   von Laufzeitbindung, TableLayoutPanel-/DevExpress-Konventionen, Buttonpadding sowie Fenster-/Gridpersistierung
@@ -2405,10 +2411,136 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   ergänzen und visuell auswerten. Ein Quellscan allein schließt A4 nicht ab. Sichtbare Designer-/Desktopbedienung
   erst gemeinsam abstimmen; Hintergrundprüfungen ohne Fokuswechsel kann der Agent selbst ausführen.
 
+  **A4-Abdeckungsverzeichnis (20.11.2026).** `scripts/test-ui-designer.ps1` erfasst die eigenen Klassen
+  in App, gemeinsamem Windows-Plugin sowie Pro-/FinOffice-Plugin einschließlich der Ableitungskette.
+  Ergebnis: weiterhin 27 Typen, keine zusätzliche indirekte eigene Oberfläche. Zu jedem Typ erzeugt der
+  Prüflauf die konkreten Quell-, Designer- und Ressourcenpfade in
+  `.artifacts/phase8-a4/designer-sources.json`. Roslyn prüft die Syntaxbäume von `InitializeComponent()`
+  statt bloßer Textmuster: expliziter Aufbau, keine Bedingungen, Schleifen, Lambdas, lokalen Funktionen,
+  Abfragen, Await-/Collection-/Null-/Interpolationsausdrücke oder impliziten Instanziierungen. Ressourcen-XML,
+  Dateitripel, `partial` und öffentlicher parameterloser Aufbau werden ebenfalls geprüft; Designeraufbau
+  außerhalb der Designer-Datei und Standard-Browse-Dialoge werden abgewiesen.
+  `AllOwnDesignerSurfacesConstructWithoutRuntimeServicesAndExposeOnlyExplicitDesignerProperties`
+  ergänzt dies am kompilierten Produkt: alle 27 Konstruktoren ohne DI/DB/Host, kein erzeugtes Fensterhandle,
+  ladbare eingebettete Ressourcen sowie explizite Serialisierungsattribute und auswertbare Designer-Properties.
+  Laufzeitbindung und Vorgänge bleiben in den `.cs`-Dateien. Fremde DevExpress-/Quantarix-Typen wie der
+  Lizenzdialog und der Fortschrittsbalken sind eingebundene Bibliotheksoberflächen, keine weiteren eigenen Typen.
+
+  Alle folgenden Zeilen haben diesen gemeinsamen Struktur-/Ressourcen-/Konstruktornachweis. Die R-Kürzel
+  verweisen auf die darunter benannten tatsächlichen Renderfälle, nicht auf zusätzlich behauptete Testläufe.
+  „Host“ bei Persistierung bedeutet: Größe/Position gehören zum umgebenden Fenster, kein eigener Registryzustand.
+
+  | Eigene Oberfläche | Einbettung und Layout-/Datenzustände | Persistierung |
+  |---|---|---|
+  | `MainForm` | R1: Ribbon, Docks und Dashboard; normal/klein, 10/16 pt, heller/dunkler Skin, Skalierung | `MainForm`, Docking über `AppUiState` |
+  | `HomeDashboard` | R1: Statuskarten mit/ohne gebundene Konfiguration, schmale Kartenanordnung, große Schrift | Host |
+  | `StartPage` | R2: neu ergänzte leere/gefüllte Fallbackansicht, langer Umbruchtext, klein, 10/16 pt, beide Skins, 150 % | Host |
+  | `LogPanel` | R3: normale Meldung/Warnung/Fehler, leerer Bestand, Suche verborgen/leer/Treffer | Dock/Host; Meldungen und Suchtext bleiben sitzungsbezogen |
+  | `LogListBoxSearchController` | R3: eingebettet im Log, Strg+F/Escape/Schließen, kleine Breite, große Schrift und Skalierung | Kein eigener Fenster-/Spaltenzustand |
+  | `FrmSettings` | R4: alle vorhandenen Tabs leer/gefüllt, kleiner Dialog, Footerumbruch und Skin/Schrift/Skalierung | `FrmSettings` |
+  | `SettingsPage` | R4: allgemeine Werte, SIP/Expertenmodus, Hotkeys, Geräte, Cachequellen/Nummernregeln und DB-Zusammenfassung | `CacheSources`; enthaltene Unterseiten separat |
+  | `PluginPage` | R5: installierte/leere Katalogkarten, Plugin-Details und Fähigkeiten, kleine Breite/große Schrift, beide Skins | `PluginCapabilities`; HTML-Katalogkarten haben keine anpassbaren Tabellenspalten |
+  | `MailSettingsPage` | R6: leer, Outlook, Microsoft 365 und Google, kleines Fenster, lange Werte, große Schrift/Skalierung | `MailAccounts-v1`, `MailImportFolders-v1` |
+  | `PhoneNumberDiagnosticsPage` | R7: vorhandene/leere Diagnosezeilen und Quellen im Einstellungsdialog, klein, Schrift/Skin/Skalierung | `PhoneNumberDiagnostics-v1` |
+  | `FrmDatabaseSetup` | R8: Providerwahl, Verbindungen, Fortschritt und Ergebnis; klein, beide Skins, 10/16 pt/150 % | `FrmDatabaseSetup` |
+  | `UcDbStep1DbType` | R8: alle vier Providerbeschreibungen im echten Assistenten | Host |
+  | `UcDbStep2Connection` | R8: Providerwechsel, leere/gefüllte Verbindung, maskierte kopierbare Vorschau | Host |
+  | `UcConSqlite` | R8: leerer/gefüllter Pfad, kompakter Browse-Button, kleine Breite/große Schrift/Skalierung | Host |
+  | `UcConSqlServer` | R8: Server, Port, SQL-/Windows-Anmeldung, Verschlüsselungsoptionen und geschütztes Kennwort | Host |
+  | `UcConMyPg` | R8: MySQL/MariaDB und PostgreSQL, Ports/SSL, leer/gefüllt, klein und skaliert | Host |
+  | `UcDbStep3Migration` | R8 sowie R9: Fortschritt, Erfolg und neu ergänzte lange Fehlerdiagnose, klein, Schrift/Skin/150 % | Host; mehrzeilige Diagnose bleibt kopierbarer schreibgeschützter Editor |
+  | `FrmDial` | R10: leer/gefüllt, fehlende/unterbrochene Telefonie, Mandantenauswahl, klein/Schrift/Skalierung | `FrmDial`, Anbindung in `MainForm.Telephony` |
+  | `FrmCallerLookup` | R11/R12: Anruferfenster mit eingebetteter Suche, Gesprächsbedienung und Notizen | `FrmCallerLookup` |
+  | `CallerLookupPage` | R11: leere/gefüllte Suche, Treffer-/Firmen-/Detailtabs und Leitungskonflikt | `CallerLookup-v1` |
+  | `CallControlPanel` | R12: klingelnd, gehalten, beendet; kompakte Gruppen und Zustände bei kleiner Breite/großer Schrift | Host |
+  | `CallDetailsPage` | R13: leer, geladene Zuordnung und Plugin-Fachtabs, kleiner Kontext und große Schrift | Host; Fachansichten behalten ihren Gesprächskontext |
+  | `CallNotesPanel` | R14: leer/gefüllt, Entwurf/Fehler/gespeichert in Anrufer- und Detailfenster | Host; Notizpersistierung fachlich in A1/A2 nachgewiesen |
+  | `HistoryPage` | R15: leer/501 Zeilen, Find Panel optional, Datumsfilter/Toolbar und Historiennotizen, klein/Schrift/Skin/Skalierung | `CallHistory` |
+  | `MailPage` | R16: gefülltes/fehlendes/fehlerhaftes Postfach, Ordner, HTML, Anhänge und Lesebereich; kleine Breite/große Schrift/Skalierung | `MailTiles_v2`; Kachelspaltenzuordnung ohne Daten-/Suchzustand |
+  | `PartySearchPage` | R17: gefüllt/leer/Fehler/Stammdaten, echtes gemeinsames Plugin-Control mit Testquelle, klein/Schrift/Skin/Skalierung | `PartySearch_v1` über injizierte `PartySearchPresentation` |
+  | `FrmStartupSplashScreen` | R18: leerer/langer Status, kompakt/normal, 10/16 pt, beide Skins und Skalierung | Bewusst flüchtiges rahmenloses Startfenster, kein Benutzerdialog |
+
+  **Zuordnung der Renderfälle:** R1 `ReferenceDashboardAndDockLayoutRenderWithoutVisibleWindows`;
+  R2 `StartPageLayoutGapRendersEmptyAndWrappedContentWithoutVisibleWindows`;
+  R3 `LogListMatchesLxFormattingSearchAndPlainTextWithoutVisibleWindows`.
+  R4 `SettingsDialogRendersEveryPageWithEmptyAndPopulatedDataWithoutVisibleWindows` sowie die gezielten
+  `SettingsGeneralAndFooterRenderLikeReferenceWithoutVisibleWindows`, `SettingsDatabaseTabRendersCompactSetupAtDifferentSizesFontsAndSkins`,
+  `AudioDeviceSettingsRenderAvailableMissingEmptyFailedAndSuppressedCatalogs`, `GlobalHotkeySettingsRenderAtSmallWidthsLargeFontsAndSkins`,
+  `MatchingRulesAreCompanyBoundVersionedAndRenderInSettingsWithoutVisibleWindows`,
+  `SipStandardAndExpertSettingsRenderWithoutVisibleWindows` und `AutomaticMp3OptInRoundtripsAndRendersWithoutVisibleWindows`.
+  R5 `PluginCardsRenderInSettingsWithEmptyCatalogBothSkinsAndLargeFonts`;
+  R6 `MailSettingsRenderEmptyOutlookMicrosoftAndGoogleAtSmallBoundsAndLargeFonts`;
+  R7 `NumberDiagnosticsRendersInSettingsWithSourcesEmptyRowsSmallWindowsAndBothSkins`;
+  R8 `DatabaseSetupControlsRenderAllProvidersAndKeepQuotedPasswordsOutOfPreviews`;
+  R9 `MigrationFailureLayoutGapRendersLongDiagnosticsWithoutVisibleWindows`;
+  R10 `DialDialogRendersEmptyAndFilledAtSmallWidthLargeFontAndScaledLayouts`;
+  R11 `CallerLookupRendersOnlyItsChangedSurfaceWithEmptyFilledAndLineConflictStates`;
+  R12 `CallControlsRenderRingingHeldAndEndedWithSmallWindowsFontsDpiAndSkins`;
+  R13 `CallDetailsRenderEmptyLoadedAndPluginContextsWithoutVisibleWindows`;
+  R14 `CallNotesRenderInBothWindowsEmptyFilledSmallLargeFontAndScaledWithoutVisibleWindows`;
+  R15 `HistoryLoadsEntireDateRangeAndKeepsActionsCompact` sowie `HistoryNotesRenderEmptyDraftFailureAndSavedStatesWithoutVisibleWindows`;
+  R16 `MailViewRendersRepresentativeContentAndEmptyStatesWithoutVisibleWindows` und
+  `MailAttachmentActionsRenderAndRemainExplicitAtLargeFonts`;
+  R17 `PartyWorkspaceRendersFilledEmptyErrorAndDetailsWithoutVisibleWindows`;
+  R18 `StartupSplashTests.SplashMatchesReferenceAtSmallBoundsLargeFontsAndBothSkinsWithoutVisibleWindows`.
+  Einstiege in [AppShellTests](../WawiCallPro.App.Tests/AppShellTests.cs), dessen Teilklassen
+  [Designer-Verträge](../WawiCallPro.App.Tests/AppShellTests.DesignerContracts.cs),
+  [Settings](../WawiCallPro.App.Tests/AppShellTests.Settings.cs),
+  [Datenbank](../WawiCallPro.App.Tests/AppShellTests.Settings.Database.cs),
+  [Mail](../WawiCallPro.App.Tests/AppShellTests.Mail.cs),
+  [Mail-Einstellungen](../WawiCallPro.App.Tests/AppShellTests.MailSettings.cs),
+  [MP3-Option](../WawiCallPro.App.Tests/AppShellTests.AutomaticMp3.cs),
+  [Geschäftspartner](../WawiCallPro.App.Tests/AppShellTests.PartyWorkspace.cs) und
+  [Splash](../WawiCallPro.App.Tests/StartupSplashTests.cs).
+
+  **Befunde und Grenzen:** Die gemeinsame Buttonhilfe erhält nun tatsächlich DPI-bezogenes `Padding`
+  von mindestens 12/6 logischen Pixeln und einheitliche Textmaße. Deshalb wurden die betroffenen vorhandenen
+  Buttonoberflächen gezielt erneut gerendert. Die Startseite begrenzt ihre automatisch bemessenen Tabellen
+  auf die verfügbare Breite; der Renderfall wartet nach dem Größenwechsel auch die Dockanordnung ab und
+  prüft Header-/Kartenränder. SQLite-Browse sowie Sicherung/Wiederherstellung verwenden DevExpress-Dialoge
+  mit Owner und garantiert wiederhergestelltem Wartecursor einschließlich Vorbereitung und Datenvorgang.
+  `ButtonInsetsAndBrowseCursorSurviveAppearanceChangesCancellationAndErrors` und der vorhandene
+  `ToolbarButtonGroupsReactToTextFontDpiAndDynamicControls` prüfen Abstände, Gruppen und Cursorzustände.
+  Die Log-Suchzeile erhält auch rechts einen Innenabstand, damit der Treffertext nicht am Fensterrand endet.
+  Zwei Mail-Checkboxen verwenden kompakte Beschriftungen, die im schmalen Verbindungsbereich vollständig
+  passen; die Erklärung zur App-Anmeldung bleibt als Tooltip erhalten. R6 prüft ihre tatsächliche Textbreite.
+  `DesignerWindowAndGridPersistenceUsesIsolatedKeysAndExcludesSessionFilters` prüft die fünf tatsächlichen
+  größenveränderbaren Fenstertypen, Grid-Spaltenbreite/-reihenfolge sowie Kachel-Gruppenspaltenzuordnung
+  unter einem frischen GUID-HKCU-Pfad. Such-/Filterwerte werden nicht wiederhergestellt; unterdrückte
+  Fenster-/Grid-/Kachelspeicherung legt keine Schlüssel an. Der isolierte Pfad wird anschließend gelöscht.
+  Der vorhandene Fensterzustandstest ergänzt Maximierung/RestoreBounds und fehlende Monitorbereiche.
+  Alle Laufzeit-/Renderprüfungen verwenden ungebundene Controls oder isolierte Fixtures und unsichtbare
+  Hosts ohne Aktivierung. Keine sichtbare IDE-/Desktopbedienung; ein interaktiver Rider-/Visual-Studio-
+  Designer-Roundtrip wurde damit nicht behauptet. 125/150 % sind Layoutsimulationen, keine echten
+  Monitor-/DPI-Wechsel. Diese sowie die gemeinsame Bedienabnahme bleiben G5; A4 ersetzt sie nicht.
+
+  **Prüfergebnis A4:** 36 unterschiedliche gezielte App-Prüffälle für Pro erfolgreich, einschließlich
+  der abschließenden sechs Designer-/Persistierungs-/Dashboardprüfungen sowie gesonderter Migrationsfehler-
+  und Logprüfung. Der erste kombinierte Layoutlauf bestand 34 von 35 Fällen; die zu weit gefasste
+  Kachel-Caption-Erwartung wurde auf die tatsächlich gespeicherte Kachel-Gruppenspalte korrigiert und
+  anschließend erfolgreich geprüft (`.phase8-a4-contracts-pro.log`, sechs bestanden). Die übrigen
+  unveränderten und erfolgreichen Renderfälle wurden nicht allein für ein neues grünes Gesamtlog wiederholt.
+  FinOffice: acht gezielte Designer-/Persistierungs-/Dashboard-/Fallback-/Splashfälle, zwei ergänzende
+  Migrationsfehler-/Logfälle sowie vier Mailfälle (leer und drei Anbieter) bestanden, insgesamt 14.
+  Neue Struktur-/Konstruktor-/Persistenzprüfungen gelten
+  in beiden Editionen; identische übrige Oberflächen wurden anhand des Pro-Renderlaufs beurteilt.
+  Beide regulären Solution-Builds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen;
+  FinOffice zuletzt gebaut. Nachweise `.phase8-a4-sources.log`, `.phase8-a4-build-{pro,fin}.log`,
+  `.phase8-a4-layout-pro.log`, `.phase8-a4-contracts-{pro,fin}.log`, `.phase8-a4-migration-pro.log`,
+  `.phase8-a4-log-pro.log`, `.phase8-a4-final-fin.log` und `.phase8-a4-mail-{pro,fin}.log`.
+  Renderbilder unter `.artifacts/app-shell/settings-ui` (einschließlich neuer `phase8-a4-start` und
+  `phase8-a4-migration`), `.artifacts/layout-reference`, `.artifacts/plugin-cards`,
+  `.artifacts/lx-startup-log` sowie den jeweiligen Testausgaben unter
+  `WawiCallPro.App.Tests/bin/Debug/<Edition>/net11.0-windows10.0.19041.0/.artifacts`.
+  Repräsentative leere/gefüllte, kleine, großschriftige, helle/dunkle und skalierte Bilder visuell ausgewertet;
+  der Vorher-/Nachhervergleich bestätigte die korrigierten Umbrüche und Abstände. Kein SQL/Schema geändert,
+  deshalb keine erneute Datenbankprovider-Abnahme. Rollback: Designerprüfungen und die genannten UI-Korrekturen
+  zurücknehmen; keine Produktivdaten oder Benutzer-Registryeinstellungen wurden geändert.
+
 Bei Codeänderungen passende Prüfungen und reguläre Builds beider betroffener Editionen in der aktiven
 IDE-Konfiguration ausführen. Jeder abgeschlossene A-Punkt erhält seinen eigenen Commit mit Planaktualisierung.
-Der reine Abgleich vom 19.11.2026 führte A1–A4 noch nicht aus. A1, A2 und A3 sind seit 20.11.2026 wie oben
-nachgewiesen; A4 ist weiterhin offen und wird dadurch nicht als geprüft ausgegeben.
+Der reine Abgleich vom 19.11.2026 führte A1–A4 noch nicht aus. A1, A2, A3 und A4 sind seit 20.11.2026
+wie oben nachgewiesen; die gemeinsame Abnahme G1–G6 ist weiterhin offen.
 
 #### Phase-8-Restliste: gemeinsame Abnahme mit dem Benutzer
 
@@ -2428,7 +2560,7 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 | [ ] **G5 – Einstellungen und echte Desktopumgebung** | Einstellungen ändern/speichern, X/Abbrechen, ungültige Eingaben, JSON-Transfer ohne Secrets und DB-Assistent mit isoliertem Ziel gemeinsam bedienen. Neustartwirkung von SIP-/DB-/Log-/DirectX-Einstellungen prüfen; tatsächliche Geräteauswahl, Fenster-/Gridzustand und Monitor-/DPI-Wechsel soweit verfügbar kontrollieren. | Kein Doppelklick zum Schließen nötig; Entwürfe und gespeicherte Werte verhalten sich eindeutig. Kleine Fenster/große Schrift/Skin zeigen keine Überlappungen; Position bleibt nach Monitorwechsel erreichbar. Eine echte Windows-Anmeldung für Autostart separat in Phase 14 planen. Live-Gerätewechsel und Tonqualität bleiben Phase 9. |
 | [ ] **G6 – Reale Quellen und Belastung** | Mit vereinbarten Pro-/FinOffice-Testbeständen mehrere Mandanten, leeren Bestand, Quellenfehler und repräsentativ große Datenmengen durchspielen; Wechsel während laufender Suche und wiederholte Anrufe bedienen. | Kein falscher Geschäftspartner, kein verlorener Entwurf, keine blockierte Bedienung durch dauerhaft laufende Quelle. Laufzeit/Mengen protokollieren und Zielwerte anhand des vereinbarten Bestands beurteilen; keine unbelegte pauschale Lastfreigabe. |
 
-**Reihenfolge:** A1 ✅ → A2 ✅ → A3 ✅ → A4; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
+**Reihenfolge:** A1 ✅ → A2 ✅ → A3 ✅ → A4 ✅; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
 Audio) gemeinsam durchführen, anschließend G1/G2 und G3–G6. Bereits passende frühere Nachweise zuordnen,
 nicht wahllos alle Oberflächen erneut testen. Bei Befunden: Agent korrigiert und prüft isoliert, dann betroffenen
 gemeinsamen Fall wiederholen. Nicht vorhandene Hardware-/Netzprofile als nicht geprüft festhalten, nicht grün

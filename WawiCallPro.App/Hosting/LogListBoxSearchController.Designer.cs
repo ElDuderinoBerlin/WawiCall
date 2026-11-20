@@ -62,7 +62,7 @@ partial class LogListBoxSearchController
         AutoSize = true;
         AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         Dock = System.Windows.Forms.DockStyle.Bottom;
-        Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
+        Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
         Visible = false;
         Controls.Add(searchLayout);
         ((System.ComponentModel.ISupportInitialize)_txtSearch.Properties).EndInit();

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 
 namespace WawiCallPro.App.Views.DbConnection;
 
@@ -19,6 +20,7 @@ public partial class UcConSqlite : XtraUserControl
     private void InputChanged(object? sender, EventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
     private void BtnSqliteBrowse_Click(object? sender, EventArgs e)
     {
+        using var waiting = new UiWaitCursor(this);
         using var dialog = new XtraSaveFileDialog
         {
             Title = "SQLite-Datenbankdatei wählen", Filter = "SQLite-Datenbank (*.db)|*.db|Alle Dateien (*.*)|*.*",
