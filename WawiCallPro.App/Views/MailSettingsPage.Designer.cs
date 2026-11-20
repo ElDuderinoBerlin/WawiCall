@@ -345,8 +345,12 @@ partial class MailSettingsPage
         maximumLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         enabledEdit.Text = "Postfach aktivieren";
         applicationEdit.Text = "App-Anmeldung verwenden";
+        applicationEdit.Properties.AutoHeight = true;
+        applicationEdit.Properties.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
         applicationEdit.ToolTip = "Vorhandene App-Anmeldung mit Client-Secret verwenden.";
         startupEdit.Text = "Beim Start importieren";
+        startupEdit.Properties.AutoHeight = true;
+        startupEdit.Properties.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
         connectionLayout.Controls.Add(nameLabel, 0, 0);
         connectionLayout.Controls.Add(nameEdit, 1, 0);
         nameEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;

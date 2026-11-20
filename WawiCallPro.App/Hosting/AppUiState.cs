@@ -19,6 +19,7 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
     internal void Restore(Form form)
     {
         if (!Enabled) return;
+        WindowWorkArea.Attach(form);
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(KeyPath);
@@ -78,6 +79,7 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
     internal void AttachWindow(Form form, string name)
     {
         if (!Enabled) return;
+        WindowWorkArea.Attach(form);
         form.Load += (_, _) => RestoreWindow(form, name);
         form.FormClosed += (_, _) => SaveWindow(form, name);
     }
@@ -92,12 +94,11 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
                 || key.GetValue("Width") is not int width || key.GetValue("Height") is not int height) return;
             var area = Screen.FromRectangle(new Rectangle(left, top, Math.Max(1, width), Math.Max(1, height))).WorkingArea;
             var sizable = form.FormBorderStyle is FormBorderStyle.Sizable or FormBorderStyle.SizableToolWindow;
-            var restoredWidth = sizable ? Math.Clamp(width, Math.Max(1, form.MinimumSize.Width), Math.Max(form.MinimumSize.Width, area.Width)) : form.Width;
-            var restoredHeight = sizable ? Math.Clamp(height, Math.Max(1, form.MinimumSize.Height), Math.Max(form.MinimumSize.Height, area.Height)) : form.Height;
+            form.MinimumSize = WindowWorkArea.LimitMinimum(form.MinimumSize, area);
+            var fitted = WindowWorkArea.Fit(new Rectangle(left, top, sizable ? width : form.Width, sizable ? height : form.Height), form.MinimumSize, area);
             form.StartPosition = FormStartPosition.Manual;
             form.WindowState = FormWindowState.Normal;
-            form.Bounds = new Rectangle(Math.Clamp(left, area.Left, Math.Max(area.Left, area.Right - restoredWidth)),
-                Math.Clamp(top, area.Top, Math.Max(area.Top, area.Bottom - restoredHeight)), restoredWidth, restoredHeight);
+            form.Bounds = fitted;
             if (sizable && key.GetValue("Maximized") is int maximized && maximized == 1)
                 form.WindowState = FormWindowState.Maximized;
         }

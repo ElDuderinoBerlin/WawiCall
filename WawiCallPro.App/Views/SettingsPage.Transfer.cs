@@ -6,6 +6,19 @@ public partial class SettingsPage
 {
     private void ArrangeTransferActions()
     {
+        var available = Math.Max(1, footer.ClientSize.Width - footer.Padding.Horizontal);
+        foreach (var (table, buttons) in new[] { (transferActions, new[] { importButton, exportButton, reloadButton }), (dialogActions, new[] { saveButton, cancelButton }) })
+        {
+            table.SuspendLayout();
+            var cell = buttons.Max(button => button.Width + button.Margin.Horizontal);
+            var columns = Math.Clamp(available / Math.Max(1, cell), 1, buttons.Length);
+            table.ColumnCount = columns; table.RowCount = (buttons.Length + columns - 1) / columns;
+            table.ColumnStyles.Clear(); table.RowStyles.Clear();
+            for (var column = 0; column < columns; column++) table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            for (var row = 0; row < table.RowCount; row++) table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            for (var index = 0; index < buttons.Length; index++) table.SetCellPosition(buttons[index], new(index % columns, index / columns));
+            table.ResumeLayout(true);
+        }
         var wrap = transferActions.GetPreferredSize(Size.Empty).Width + dialogActions.GetPreferredSize(Size.Empty).Width
             > footer.ClientSize.Width - footer.Padding.Horizontal;
         footer.SetColumnSpan(transferActions, wrap ? 2 : 1);

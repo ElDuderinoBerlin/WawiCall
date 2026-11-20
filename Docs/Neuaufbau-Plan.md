@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: DPI-Code-Review der gesamten WinForms-App mit drei offenen Befunden zu Dialoggrenzen,
+Zuletzt ergänzt: DPI-R2 behoben: Fenster und Mindestgrößen bleiben im Arbeitsbereich; lange Einstellungsseiten
+scrollen bei sichtbarer Aktionszeile. Kleine Fenster bis 800 × 600 mit 24 pt isoliert geprüft.
+Die Befunde DPI-R3 und DPI-R4 bleiben offen (20.11.2026).
+Zuvor ergänzt: DPI-Code-Review der gesamten WinForms-App mit drei offenen Befunden zu Dialoggrenzen,
 Umbruchschwellen und Fensterpersistierung; gemeldete Toolbar-Buttonhöhe zentral nach LxTranslate
 korrigiert. Toolbar- und Dialogaktionen erhalten getrennte DPI-bezogene Maße (20.11.2026).
 Zuvor ergänzt: gemeinsame Phase-8-Prüfung G1 vorbereitet: verifizierter FinOffice-Build,
@@ -2683,7 +2686,7 @@ Kein pauschaler vollständiger GUI-Lauf und keine Änderung der Windows-Anzeiges
 
 | ID / Priorität | Stelle und konkretes Problem | Status / nächster Schritt |
 |---|---|---|
-| DPI-R2 / P2 | `FrmSettings.ContentSize_Changed` setzt die aus sämtlichen relevanten Inhalten berechnete Mindesthöhe ohne Begrenzung auf den Bildschirmarbeitsbereich. `AppUiState.RestoreWindow` verwendet bei der Obergrenze wiederum `Math.Max(MinimumSize.Height, area.Height)`. Ist die Mindesthöhe bei großer Schrift oder hoher DPI größer als der Arbeitsbereich, lässt auch die Wiederherstellung ein zu hohes Fenster zu; der Footer kann außerhalb des Bildschirms liegen. | Offen. Inhaltsanordnung und Mindestgröße am verfügbaren Arbeitsbereich ausrichten, bei umfangreichen Einstellungen einen passenden Inhalts-Scrollbereich mit erreichbarem Footer vorsehen. Eine bloße Positionskorrektur reicht nicht. |
+| DPI-R2 / P2 | Die frühere Mindesthöhe und die Wiederherstellung konnten Fenster über den verfügbaren Arbeitsbereich hinaus vergrößern. | ✅ Behoben am 20.11.2026. `WindowWorkArea` begrenzt Fenster und Mindestgrößen zentral, auch bei Größen-/Positions-/DPI-Änderungen. Einstellungen bemessen eine bedienbare Mindestansicht statt der gesamten Inhaltslänge; lange Tabseiten scrollen, die Aktionszeile bleibt sichtbar. Aktionsgruppen umbrechen und ihre Abstände werden einmal in DPI-Einheiten bemessen. |
 | DPI-R3 / P2 | `HomeDashboard.ArrangeDashboard` vergleicht Geräte-Pixelbreiten mit `1000 * Font.Size / 10F` beziehungsweise `800 * Font.Size / 10F`. Die Schriftpunktgröße bildet den Monitor-DPI-Faktor nicht ab. Bei gleicher logischer Fensterbreite fällt die Spaltenentscheidung nach DPI-Wechsel unterschiedlich aus. Auch `MainForm_SizeChanged` nutzt für die Ribbonentscheidung die unskalierte Höhenschwelle 900. | Offen. Umbruchgrenzen aus bevorzugten Inhalten oder einheitlichen logischen Einheiten ableiten; DPI- und Schriftänderung zusammen berücksichtigen. Beispiel: 1200 Geräte-Pixel bei 150 % entsprechen 800 logischen Pixeln, werden derzeit aber gegen 1000 statt 1500 Geräte-Pixel geprüft. |
 | DPI-R4 / P2 | `AppUiState.SaveWindow` schreibt rohe Pixel für Left/Top/Width/Height ohne Bezugs-DPI; `RestoreWindow` übernimmt sie ohne DPI-Umrechnung. Bei geänderter Skalierung zwischen Sitzungen bleiben die logischen Fenstermaße daher nicht erhalten; Mindestgrößenkorrektur ersetzt keine proportionale Wiederherstellung. | Offen. Bezugs-DPI beziehungsweise logische Größen versioniert speichern und beim Wiederherstellen für den Zielmonitor umrechnen; vorhandene Werte und RestoreBounds erhalten. Realer Monitorwechsel-/Neustartnachweis gehört weiter zu G5. |
 | DPI-R1 / P2 | Die A4-Änderung an `ToolbarButtonLayoutHelper.ButtonGroup.Resize` hat den Dialog-Innenabstand 12/6 auf sämtliche Buttons angewendet und damit auch die in `HistoryPage.Designer.cs` bewusst kompakte Toolbar überschrieben. `CalcBestSize()` berücksichtigt dieses Padding bereits. Gemessen bei 96 DPI: 9 pt liefert nativ 22, mit 12/6 Padding 34 Pixel; bei 16 pt nativ 35 und mit Padding 47 Pixel. Die gewünschte LxTranslate-Toolbarbemessung ergibt 32 beziehungsweise 44 Pixel. | ✅ Korrigiert: gemeinsame Hilfe unterscheidet Toolbar von Dialog anhand des Formularhosts. Toolbar mindestens 32 logische Pixel, Innenabstand 12/2; Dialog mindestens 40, Innenabstand 12/6. Mindesthöhe und Abstände werden über `LogicalToDeviceUnits` einmal umgerechnet; Skin-/Textgrößen per Maximum einbezogen. Gruppen bleiben einheitlich, Handler für Schrift, Skin und DPI bleiben erhalten. |
@@ -2722,7 +2725,24 @@ im erforderlichen Umfang ausgewertet. Quellinventar unter `.artifacts/phase8-dpi
 Keine Quell-/Konfigurationsänderung außerhalb des Buttonhelfers und seiner Prüfungen, keine Migration,
 keine echten Konten/Anrufe. Bekannte fremde Paket-/Telefonieänderungen nicht übernommen.
 
-Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. Die offenen R2–R4 bleiben
+**Abschluss DPI-R2 (20.11.2026):** `FrmSettings`, statische Einstellungsseiten und Mailkonfiguration
+behalten ihre Designer-Aufteilung und Eingaben. Wie in LxTranslate liegen lange Inhalte in scrollbar
+ausgeführten Tabseiten; Footer und Status bleiben außerhalb. Geräte-/Hotkey-/Datenbank-/Zuordnungsseiten
+verwenden inhaltsabhängige Tabellenhöhen. Mailaktionen und Cacheoptionen passen ihre Zeilen an die Breite an;
+lange Checkboxtexte umbrechen. Das zentrale `WindowWorkArea` ist über eine austauschbare Arbeitsbereichsfunktion
+prüfbar und wird für die regulär persistierten Fenster angebunden; Registrypfade und vorhandene Werte bleiben erhalten.
+Je Pro/FinOffice 14 gezielte Prüfungen bestanden: 1280 × 720 bei 9/24 pt, 1024 × 600 bei 16 pt und
+800 × 600 bei 24 pt, jeweils heller/dunkler Skin, alle globalen Dialogaktionen im sichtbaren Bereich,
+erreichbares Inhaltsende, erhaltene Eingaben, leere/gefüllte Mailansichten sowie Audio-/Datenbankregressionen.
+Negative Monitorkoordinaten, übergroße Mindestwerte, bisherige Fensterzustandsregression und dienstfreie
+Konstruktoren geprüft. Alle 27 Designer-Dateitripel/Ressourcen/Syntaxprüfungen bestanden.
+Beide regulären Builds Debug/Any CPU fehlerfrei, je 26 bekannte externe CSCore-Warnungen; FinOffice zuletzt.
+Nachweise `.dpi-r2-build-{pro,fin}.log`, `.dpi-r2-tests-{pro,fin}.log`, `.dpi-r2-designer.log` und
+visuell ausgewertete Bilder unter `.artifacts/app-shell/settings-ui/dpi-r2-work-area`.
+Die kleinen Arbeitsbereiche sind injizierte Prüfvorgaben; keine Änderung der Windows-Auflösung oder sichtbare GUI.
+Keine Daten-/Schemaänderung und kein echter Anruf. DPI-Skalierung gespeicherter Geometrie ist weiterhin R4.
+
+Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. Die offenen R3–R4 bleiben
 konkrete Folgearbeiten; echte 100/150/200-%-Monitorwechsel, erreichbare Dialogaktionen am Zielbildschirm
 und Fensterwiederherstellung müssen nach den Korrekturen gemeinsam unter G5 geprüft werden. Die vorhandenen
 125/150-%-Renderfälle sind Layoutsimulationen, keine nativen Monitorwechsel. G1 und die übrigen G-Punkte

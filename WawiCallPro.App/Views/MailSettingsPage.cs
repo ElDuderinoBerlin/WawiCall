@@ -243,21 +243,40 @@ public partial class MailSettingsPage : XtraUserControl
             UiButtonSizing.Apply(lxImportButton); UiButtonSizing.Apply(googleButton); UiButtonSizing.Apply(storesButton); UiButtonSizing.Apply(companiesButton); UiButtonSizing.Apply(loadFoldersButton);
             UiButtonSizing.Apply(connectButton, syncButton);
             UiButtonSizing.Apply(disconnectButton, cancelButton);
-            var buttons = new[] { connectButton, disconnectButton, syncButton, cancelButton };
             var available = Math.Max(1, ClientSize.Width - layout.Padding.Horizontal);
-            var columns = buttons.Sum(button => button.Width + button.Margin.Horizontal) <= available ? 4 :
-                buttons.Take(2).Sum(button => button.Width + button.Margin.Horizontal) <= available && buttons.Skip(2).Sum(button => button.Width + button.Margin.Horizontal) <= available ? 2 : 1;
-            actions.SuspendLayout(); actions.ColumnCount = columns; actions.RowCount = (4 + columns - 1) / columns;
-            actions.ColumnStyles.Clear(); actions.RowStyles.Clear();
-            for (var i = 0; i < columns; i++) actions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            for (var i = 0; i < actions.RowCount; i++) actions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            for (var i = 0; i < buttons.Length; i++) actions.SetCellPosition(buttons[i], new(i % columns, i / columns));
-            actions.ResumeLayout(true);
+            foreach (var (table, buttons) in new[] { (header, new[] { newButton, removeButton, lxImportButton }), (actions, new[] { connectButton, disconnectButton, syncButton, cancelButton }) })
+            {
+                foreach (var button in buttons) button.Margin = new Padding(LogicalToDeviceUnits(4));
+                var columns = buttons.Length;
+                while (columns > 1 && Enumerable.Range(0, columns).Sum(column => buttons.Where((_, index) => index % columns == column)
+                    .Max(button => button.Width + button.Margin.Horizontal)) > available) columns--;
+                table.SuspendLayout(); table.ColumnCount = columns; table.RowCount = (buttons.Length + columns - 1) / columns;
+                table.ColumnStyles.Clear(); table.RowStyles.Clear();
+                for (var i = 0; i < columns; i++) table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+                for (var i = 0; i < table.RowCount; i++) table.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                for (var i = 0; i < buttons.Length; i++) table.SetCellPosition(buttons[i], new(i % columns, i / columns));
+                table.ResumeLayout(true);
+            }
+            var cacheWidth = cacheEnabledEdit.PreferredSize.Width + cacheEnabledEdit.Margin.Horizontal
+                + cacheDaysLabel.PreferredSize.Width + cacheDaysLabel.Margin.Horizontal + cacheDaysEdit.MinimumSize.Width + cacheDaysEdit.Margin.Horizontal;
+            var wrapCache = cacheWidth > available;
+            cacheLayout.SuspendLayout(); cacheLayout.ColumnCount = wrapCache ? 2 : 3; cacheLayout.RowCount = wrapCache ? 2 : 1;
+            cacheLayout.ColumnStyles.Clear(); cacheLayout.RowStyles.Clear();
+            cacheLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            cacheLayout.ColumnStyles.Add(new ColumnStyle(wrapCache ? SizeType.Percent : SizeType.AutoSize, wrapCache ? 100F : 0F));
+            if (!wrapCache) cacheLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            cacheLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            if (wrapCache) cacheLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            cacheLayout.SetColumnSpan(cacheEnabledEdit, wrapCache ? 2 : 1);
+            cacheLayout.SetCellPosition(cacheDaysLabel, wrapCache ? new(0, 1) : new(1, 0));
+            cacheLayout.SetCellPosition(cacheDaysEdit, wrapCache ? new(1, 1) : new(2, 0));
+            cacheLayout.ResumeLayout(true);
             var hintWidth = Math.Max(1, connectionLayout.ClientSize.Width - connectionLayout.Padding.Horizontal - hintLabel.Margin.Horizontal);
             var hintHeight = hintLabel.GetPreferredSize(new(hintWidth, 0)).Height;
             if (hintLabel.MinimumSize.Height != hintHeight) hintLabel.MinimumSize = new(0, hintHeight);
             var scrollSize = new Size(0, connectionLayout.Height + connectionLayout.Margin.Vertical);
             if (connectionScroll.AutoScrollMinSize != scrollSize) connectionScroll.AutoScrollMinSize = scrollSize;
+            MinimumSize = new Size(0, GetRequiredHeight());
         }
         finally { _arranging = false; }
     }

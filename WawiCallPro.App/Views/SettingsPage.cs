@@ -24,6 +24,13 @@ public partial class SettingsPage : XtraUserControl
     internal event EventHandler? SaveCompleted;
     internal event EventHandler? CloseRequested;
     internal event EventHandler? ContentSizeChanged;
+    internal int GetMinimumWindowHeight()
+    {
+        var width = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal);
+        var statusHeight = statusLabel.GetPreferredSize(new(Math.Max(1, width - statusLabel.Margin.Horizontal), 0)).Height;
+        return layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left + Font.Height * 4
+            + footer.GetPreferredSize(new(width, 0)).Height + footer.Margin.Vertical + statusHeight + statusLabel.Margin.Vertical;
+    }
     internal int GetRequiredGeneralHeight()
     {
         var width = Math.Max(1, tabs.ClientSize.Width);
@@ -69,6 +76,9 @@ public partial class SettingsPage : XtraUserControl
         try
         {
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
+            var actionMargin = new Padding(LogicalToDeviceUnits(6));
+            foreach (var button in new[] { saveButton, reloadButton, cancelButton, importButton, exportButton }) button.Margin = actionMargin;
+            footer.Padding = new Padding(LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), 0);
             UiButtonSizing.Apply(saveButton, reloadButton, cancelButton, importButton, exportButton);
             ArrangeTransferActions();
             UiButtonSizing.Apply(logDirectoryBrowseButton);

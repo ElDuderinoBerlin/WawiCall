@@ -28,10 +28,11 @@ public partial class FrmSettings : XtraForm
     public FrmSettings()
     {
         InitializeComponent(); UiButtonSizing.Attach(this);
+        WindowWorkArea.Attach(this);
         settingsPage.CloseRequested += Settings_CloseRequested;
         settingsPage.SaveCompleted += Settings_SaveCompleted;
         settingsPage.RestartRequested += Settings_RestartRequested; settingsPage.ContentSizeChanged += ContentSize_Changed;
-        SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; Load += Settings_Load;
+        SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; DpiChanged += ContentSize_DpiChanged; Load += Settings_Load;
     }
     private void ContentSize_Changed(object? sender, EventArgs e)
     {
@@ -39,13 +40,16 @@ public partial class FrmSettings : XtraForm
         _sizingMinimum = true;
         try
         {
-            var height = settingsPage.GetRequiredGeneralHeight() + layout.Padding.Vertical + settingsPage.Margin.Vertical
+            var height = Math.Min(settingsPage.GetRequiredGeneralHeight(), settingsPage.GetMinimumWindowHeight()) + layout.Padding.Vertical + settingsPage.Margin.Vertical
                 + Height - ClientSize.Height;
-            MinimumSize = new(MinimumSize.Width, height);
+            var area = WindowWorkArea.GetArea(this);
+            MinimumSize = WindowWorkArea.LimitMinimum(new Size(LogicalToDeviceUnits(680), height), area);
+            WindowWorkArea.Constrain(this, area);
         }
         finally { _sizingMinimum = false; }
     }
     internal bool RestartRequested { get; private set; }
+    private void ContentSize_DpiChanged(object? sender, DpiChangedEventArgs e) => ContentSize_Changed(sender, e);
     private void Settings_RestartRequested(object? sender, EventArgs e) { RestartRequested = true; Close(); }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
     {
