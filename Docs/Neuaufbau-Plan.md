@@ -12,11 +12,12 @@ bestandenen Pro-/FinOffice-Prüfungen; x86/x64-Aktivierung, paralleler Start, Di
 nachgewiesen, eigene HKCU-Registrierungen entfernt. ✅ COM-Phase 2: V1-Verträge und DI-Adapter mit
 `ShowCustomer`/`ShowSupplier` nach Mandant, Rolle und exakter Nummer; je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und erneut 57 Prototypprüfungen bestanden. Nur HKCU, keine TLB-/Interface-
-Registrierung; IDL/TLB ohne Registrierung geprüft. App-Anbindung und echte Ansichten/Telefonie folgen
-in COM-Phasen 3–8. Die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
-COM-Phase 3 begonnen: Startargumente vor UI/Konfiguration validiert und COM-Durchfall in den
-sichtbaren Normalstart verhindert (je drei Tests und reguläre Builds für beide Editionen).
-COM-Hostanschluss und Start-/Instanzabnahme bleiben offen; Phase 3 ist noch nicht abgeschlossen.
+Registrierung; IDL/TLB ohne Registrierung geprüft. ✅ COM-Phase 3: gemeinsamer App-/COM-Host mit
+fensterlosem Start, frühem Status, bedarfsweisem Hauptfenster, dialogfreier Fehleranzeige und
+geprüfter Explorer-/COM-Instanzübergabe. Je Edition 37 gezielte App-Tests, 15 Vertrags-/Adaptertests
+und 23 native Prüfungen der regulären App bestanden; reguläre Builds Debug/Any CPU erfolgreich.
+Weitere Fachansichten, Telefonie und Auslieferung folgen in COM-Phasen 4–8. Die bestehende G1-Abnahme
+wird dadurch nicht als erledigt markiert.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

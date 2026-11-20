@@ -9,6 +9,20 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppInstanceTests
 {
     [TestMethod]
+    public void ComReadinessWaitDoesNotRequestWindowActivation()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-com-ready-" + Guid.NewGuid().ToString("N"));
+        using var owner = Create(directory, "Pro"); Assert.IsTrue(owner.TryAcquire());
+        RunOnOtherThread(() =>
+        {
+            using var second = Create(directory, "Pro"); Assert.IsFalse(second.TryAcquire());
+            Assert.IsFalse(second.WaitForAutomation(TimeSpan.Zero));
+            owner.PublishAutomation();
+            Assert.IsTrue(second.WaitForAutomation(TimeSpan.FromSeconds(1)));
+        });
+        Assert.IsFalse(owner.TryConsumeActivation());
+    }
+    [TestMethod]
     public void ActivationOnlyRequiresAnExistingOwnerAndNeverCreatesAProfile()
     {
         var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-activation-only-" + Guid.NewGuid().ToString("N"));

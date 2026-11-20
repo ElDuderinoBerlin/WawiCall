@@ -32,7 +32,7 @@ internal sealed class AppHotkeyFactory(IAppHotkeyBackend backend, StartupExecuti
     public AppHotkeySession Create(IntPtr window, UserSettings settings, Action<AppHotkeyAction> execute)
     {
         var session = new AppHotkeySession(window, backend, execute, logger);
-        if (mode.SuppressNetwork) return session;
+        if (mode.SuppressNetwork || mode.IsolatedProfile) return session;
         session.Register(NextId(), settings.ShowWindowHotkey, AppHotkeyAction.ShowWindow);
         session.Register(NextId(), settings.DialHotkey, AppHotkeyAction.OpenDial);
         return session;

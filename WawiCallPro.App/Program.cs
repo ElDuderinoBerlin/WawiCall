@@ -40,15 +40,8 @@ internal static class Program
             Console.Error.WriteLine("WawiCallPro: Ungültige oder widersprüchliche Startargumente.");
             return 2;
         }
-        // Do not fall through to interactive startup until the COM host is connected.
-        if (start.Kind == AppStartKind.Com)
-        {
-            Console.Error.WriteLine("WawiCallPro: Der COM-Anwendungsstart ist noch nicht angeschlossen.");
-            return 3;
-        }
-        args = start.ToInteractiveArguments();
-        if (args.Length > 0 && args[0] == "--activate-existing")
-            return ActivateExisting(args);
+        if (start.Kind == AppStartKind.ActivateExisting)
+            return ActivateExisting(start.ToInteractiveArguments());
         var result = RunApplication(args);
         if (result != AppRestartLauncher.RestartRequestedExitCode) return result;
         try { AppRestartLauncher.Start(); return 0; }
@@ -84,28 +77,35 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int RunApplication(string[] args)
     {
-        var diagnostics = args is ["--diagnostics"];
+        var start = AppStartArguments.Parse(args);
+        var diagnostics = start.Kind == AppStartKind.Diagnostics;
         ServiceProvider? bootstrap = null;
         AppExceptionBoundary? exceptions = null;
         try
         {
+            var descriptor = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
+            var identity = AppComIdentity.Resolve(start, descriptor);
             bootstrap = AppBootstrap.Create();
             exceptions = bootstrap.GetRequiredService<AppExceptionBoundary>();
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
             exceptions.Install();
             Console.OutputEncoding = new UTF8Encoding(false);
             ApplicationConfiguration.Initialize();
+            Application.OleRequired();
             using var uiContext = new WindowsFormsSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(uiContext);
-            var auditDirectory = args is ["--ui-audit", var directory] ? directory : null;
-            var mode = new StartupExecutionMode(diagnostics || auditDirectory is not null);
+            var auditDirectory = start.Kind == AppStartKind.UiAudit ? start.Path : null;
+            var mode = new StartupExecutionMode(diagnostics || auditDirectory is not null)
+            { ComActivated = start.Kind == AppStartKind.Com, IsolatedProfile = start.FixtureDirectory is not null };
             var instance = bootstrap.GetRequiredService<IAppInstanceGuard>();
             if (!mode.SuppressNetwork && !instance.TryAcquire())
             {
+                if (mode.ComActivated)
+                    return instance is IComInstancePublication publication && publication.WaitForAutomation(TimeSpan.FromSeconds(45)) ? 0 : 3;
                 instance.RequestExistingInstanceActivation();
                 return 0;
             }
-            var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance);
+            var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance, identity);
             using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();
@@ -117,7 +117,7 @@ internal static class Program
             exceptions?.Report(exception, CrashOrigin.Startup);
             var message = StartupFailureMessage.Format(exception);
             Console.Error.WriteLine(message);
-            if (!diagnostics && args is not ["--ui-audit", _])
+            if (!diagnostics && start.Kind is not (AppStartKind.UiAudit or AppStartKind.Com))
                 XtraMessageBox.Show(message, "WawiCallPro",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;

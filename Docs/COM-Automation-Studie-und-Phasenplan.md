@@ -9,16 +9,18 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1 und 2 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–3 abgeschlossen. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
-⬜ App-Anbindung und reale UI-/Telefonieabnahme noch offen.
-Die Prüfungen verwenden ausschließlich einen separaten Host, eigene Profile und synthetische Zustände;
-sie führen keine echten Anrufe aus und ändern weder die Produktregistrierung noch den Start der App.
+✅ Gemeinsamer App-/COM-Host mit fensterlosem Start, Status, bedarfsweisem Hauptfenster und
+Instanzübergabe: je Edition 37 gezielte App-Tests, 15 COM-Vertragstests und 23 native App-Prüfungen.
+⬜ Weitere Fachansichten, COM-Telefonie, Auslieferung und gemeinsame Produktabnahme bleiben offen.
+Phasen 1/2 verwenden einen separaten Host; Phase 3 prüft die reguläre App mit eigenen Profilen und
+synthetischen Daten. Keine echten Anrufe und keine persistente Produktregistrierung für die Tests.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
 
-## 1. Was die vorhandenen Projekte tatsächlich leisten
+## 1. Quellenbefund vor Beginn der Umsetzung
 
 | Fundstelle | Festgestellter Stand | Bedeutung für WawiCallPro |
 |---|---|---|
@@ -35,7 +37,8 @@ Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
 | [MainForm.cs](../WawiCallPro.App/MainForm.cs), [MainForm.Telephony.cs](../WawiCallPro.App/MainForm.Telephony.cs) und [MainForm.Calls.cs](../WawiCallPro.App/MainForm.Calls.cs) | Routing, Dialogfabriken und Anrufdarstellung vorhanden; etliche Reaktionen sind noch an das Hauptformular gebunden | Ansichten über einen Präsentationsadapter öffnen; Gesprächsverarbeitung darf nicht von einem bereits erzeugten Formular abhängen. |
 | [ITelephonyService.cs](../WawiCallPro.Interfaces/Telephony/ITelephonyService.cs) und [FrmDial.cs](../WawiCallPro.App/Views/FrmDial.cs) | `DialAsync(CompanyKey, destination)`, Gesprächs-IDs und Statusereignisse; UI prüft Mandant, Registrierung und bestehende Gespräche | COM delegiert an dieselben Dienste. Bedienregeln zusätzlich im gemeinsamen Anwendungsdienst durchsetzen. |
 
-Die Untersuchung ist ein Quellenbefund, kein Nachweis einer bereits funktionierenden Wawi-COM-Aktivierung.
+Die Tabelle beschreibt den Ausgangsstand. Die implementierte Wawi-COM-Aktivierung und ihre Nachweise
+sind unten bei den abgeschlossenen Phasen dokumentiert.
 
 ## 2. Variantenvergleich und Entscheidung
 
@@ -55,8 +58,8 @@ Ein eigener Server würde auch als `WinExe` gebaut, wenn kein Konsolenfenster ge
 
 Die Fassade ist vom Hauptformular getrennt: `WawiCallPro.Automation.Contracts` enthält die
 stabilen Verträge, `WawiCallPro.Automation` die DI-Adapter und Auftragsverwaltung. Beide Projekte
-sind angelegt und im isolierten Prüfhost eingebunden. Die App bleibt der vorgesehene einzige
-produktive UI-/Telefoniehost; ihr Anschluss folgt ab Phase 3. Die vorhandene `WawiCallPro.Console`
+sind angelegt, im isolierten Prüfhost und seit Phase 3 auch im gemeinsamen App-Host eingebunden.
+Die vorhandene `WawiCallPro.Console`
 bleibt ein eigener CLI-Host.
 
 ```mermaid
@@ -138,7 +141,8 @@ Start konfigurierte Hintergrundaufgaben höchstens einmal starten; keine doppelt
 ## 4. Implementierter Automation-Vertrag V1
 
 Die folgenden Verträge und Adapter sind implementiert. Nativ verfügbar sind sie in Phase 2 im
-isolierten Prüfhost; die Produkt-App veröffentlicht sie noch nicht. COM-sichtbar sind nur die
+isolierten Prüfhost und seit Phase 3 auch im App-Host. Die App stellt aktuell Status und Hauptfenster
+bereit; Fachansichten und Telefonie folgen in Phasen 4/5. COM-sichtbar sind nur die
 ausdrücklichen Automation-Verträge; keine Forms, Controls, ServiceProvider, Tasks oder Pluginobjekte.
 
 Versionsgebundene ProgIDs: `WawiCallPro.Pro.Application.1` und
@@ -430,7 +434,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 0 | ✅ | Quellenstudie, Variantenentscheidung und dokumentierter Plan | Agent; Quellen- und Dokumentkonsistenzprüfung |
 | 1 | ✅ | Isolierter Prototyp: je 57 Prüfungen Pro/FinOffice, x86/x64, parallele Aktivierung, Dispatcher und Lebensdauer | Agent; eigene HKCU-CLSIDs entfernt, keine echten Anrufe |
 | 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
-| 3 | ⬜ | Begonnen: Startargumente abgesichert; gemeinsamer COM-/App-Host noch offen | Agent; isolierte Start-/Instanztests |
+| 3 | ✅ | Gemeinsamer App-/COM-Host, fensterloser Start und bedarfsweises Hauptfenster; je Edition 37 App-Tests, 15 Vertragstests, 23 native Prüfungen | Agent; eigene Profile/HKCU-Identitäten, Fenster-/Instanznachweise ohne reale Anrufe |
 | 4 | ⬜ | Gemeinsamer Zugang zu allen verfügbaren Wawi-Ansichten | Agent; gezielte Layout-/UI-Nachweise; sichtbare Bedienung gemeinsam |
 | 5 | ⬜ | Wähldialog, SIP-Verbindung, Wählen und Gesprächsstatus | Agent mit Test-Doubles; reale SIP-Prüfung gemeinsam |
 | 6 | ⬜ | Mehrclientbetrieb, Idle-Shutdown und Fehler-/Sicherheitsgrenzen | Agent; gezielte konkurrierende und negative Tests |
@@ -568,30 +572,97 @@ unterbrochen und nicht als bestanden gezählt; die vier genannten Läufe sind vo
 Der Prüfhost verwendet zufällige eigene CLSIDs/ProgIDs und hält sich für die Vertragsprüfung explizit
 selbst am Leben. Produktive COM-/Unterobjekt-Lebensdauer bleibt Phase 3/6, echte Views Phase 4,
 SIP/Audio Phase 5 und gemeinsame native Abnahme Phase 8. Keine Forms, Layouts oder Designer geändert;
-kein GUI-Renderlauf erforderlich. Die unveränderte Produkt-App referenziert die neuen Bibliotheken
-noch nicht; Rücknahme dieses Phasencommits entfernt die Ergänzung ohne Produktdatenmigration.
+kein GUI-Renderlauf erforderlich. Zum Abschluss von Phase 2 referenzierte die Produkt-App die neuen
+Bibliotheken noch nicht; seit Phase 3 ist der App-Host angeschlossen.
 
-### Phase 3 – ⬜ Startmodus und einzige Instanz
+### Phase 3 – ✅ Startmodus und einzige Instanz
 
 - [x] ✅ Vorarbeit: vollständige Argumentprüfung vor Konfiguration/UI. Optionen ohne Beachtung der Groß-/Kleinschreibung auswerten, widersprüchliche und unbekannte Kombinationen mit Exitcode 2 ablehnen; bestehende Diagnose-/Audit-/Aktivierungspfade erhalten. `-Embedding` fällt nicht mehr in den sichtbaren Normalstart durch.
-- [ ] Modi in `Program` trennen; normale Starts und Installer-/Diagnosepfade erhalten.
-- [ ] `AppApplicationContext` ohne `MainForm` lauffähig machen; UI erst bei explizitem Auftrag erzeugen.
-- [ ] Lizenz-/Konfigurationsfehler ohne Dialoge melden; keine Diagnose-Abkürzung für produktives COM verwenden.
-- [ ] COM-Klassen auch beim normalen Start registrieren; Profil-/Sitzungs-/Editionsgrenzen und frühe Aktivierungen prüfen.
-- [ ] Explorer-Zweitstart einer versteckten COM-App zeigt dieselbe Instanz; COM-Zweitaktivierung bleibt unsichtbar.
+- [x] ✅ Modi in `Program` getrennt; normale Starts und Installer-/Diagnosepfade erhalten und gezielt geprüft.
+- [x] ✅ `AppApplicationContext` ohne `MainForm` lauffähig; UI erst bei explizitem Auftrag erzeugt.
+- [x] ✅ Lizenz-/Konfigurationsfehler ohne Dialoge gemeldet; keine Diagnose-Abkürzung für produktives COM. Beide Lexware-Installationsprüfungen bereits im COM-Grundanlauf ausgeführt.
+- [x] ✅ COM-Klassenfabrik auch beim normalen Start veröffentlicht; Profil-/Sitzungs-/Editionsgrenzen und frühe Aktivierungen geprüft.
+- [x] ✅ Explorer-Zweitstart einer versteckten COM-App zeigt dieselbe Instanz; COM-Zweitaktivierung erzeugt keine zusätzliche Oberfläche.
 
-Abnahme: Normaler Start verhält sich wie zuvor; reines COM-Erzeugen zeigt keine Oberfläche.
+Abnahme am 20.11.2026: Normaler Start und COM-Beitritt erfolgreich; reines COM-Erzeugen zeigt keine Oberfläche.
 
-Zwischenstand am 20.11.2026: `AppStartArguments` und frühe Program-Verzweigung implementiert.
-Bis zum vollständigen Hostanschluss beendet `-Embedding` die App ausdrücklich mit Exitcode 3;
-es veröffentlicht noch keine Klassenfabrik. Dies ist keine abgeschlossene COM-Aktivierung.
-Je drei gezielte Argumenttests für Pro/FinOffice bestanden; reguläre Solution-Builds Debug/Any CPU
-für beide Editionen mit null Fehlern und Warnungen. Die reguläre Pro-EXE beendet `-Embedding`
-mit 3 und `-Embedding --diagnostics` mit 2, ohne Konfigurations-/UI-Initialisierung.
-Buildprotokolle: `.com-start-arguments-build-{fin,pro}.log`. Ein anfänglicher Testaufruf mit nicht
-unterstütztem `--filter-class` führte keine Tests aus; mit `--filter` erfolgreich wiederholt.
-Offen bleiben Host-/Klassenfabrikanschluss, bedarfsweise Formularerzeugung, dialogfreie Lizenz-/
-Konfigurationszustände und native gemeinsame Instanztests. Die Phase bleibt ausdrücklich offen.
+#### Phase-3-Implementierung
+
+`Program` wertet `-Embedding` nach den unveränderten Velopack-Hooks aus und betreibt weiterhin eine
+STA-/WinForms-Nachrichtenschleife. [AppApplicationContext](../WawiCallPro.App/Hosting/AppApplicationContext.cs)
+veröffentlicht die injizierte Klassenfabrik vor dem Diensteanlauf, sowohl beim normalen als auch beim
+COM-Start. `GetStatus()` bleibt während der Initialisierung erreichbar. Der gemeinsame Instanzguard
+signalisiert die veröffentlichte Klassenfabrik; ein konkurrierender COM-Start wartet höchstens 45 Sekunden
+ohne Fensteraktivierung. Ein normaler Zweitstart übermittelt dagegen weiterhin den Benutzerauftrag;
+ein früher Auftrag bleibt bis zur UI-Bereitschaft vorgemerkt.
+
+[AppStartupPipeline](../WawiCallPro.App/Hosting/AppStartupPipeline.cs) verwendet die bereits im Host
+registrierten Dienste mit ihren DI-Lebensdauern. COM prüft zunächst beide Lexware-Installationsmerkmale,
+lädt Konfiguration, initialisiert Darstellung und prüft die tatsächliche Lizenzregel. `SuppressNetwork`
+wird dafür nicht eingeschaltet. Hauptformular, Splash, Trayicon, SIP-Anmeldung, Mailimport und weitere
+Hintergrunddienste werden dabei nicht gestartet. Ungültige Konfiguration oder fehlende erforderliche
+Lizenz bleiben als `ConfigurationRequired`/`LicenseRequired` abfragbar; Aktivierungsdialoge bleiben zu.
+
+Erst `Show()`, `ShowView("home", "")` oder ein normaler Zweitstart gibt den Benutzerbetrieb frei.
+Vor den zurückgestellten Diensten wird die Lizenz erneut geprüft. Dienste starten unter einem
+gemeinsamen Semaphore genau einmal; bei erforderlicher Aktivierung darf jetzt der vorhandene Dialog
+erscheinen. Danach wird genau ein vorhandenes `MainForm` erzeugt oder wiederhergestellt. Konfiguration
+und Host werden nicht pro COM-Objekt dupliziert. Die Klassenfabrik wird vor dem Stoppen der Dienste
+zurückgenommen; die Nachrichtenschleife bleibt bis zum asynchronen Freigeben des Containers verfügbar.
+
+[AppComIdentity](../WawiCallPro.App/Hosting/AppComIdentity.cs) begrenzt Produkt-CLSIDs auf das reguläre
+Profil. Ein normales abweichendes Konfigurationsprofil veröffentlicht keine Produktklasse; COM mit
+abweichendem Profil benötigt eine eigene Fixture-Identität. `--com-fixture <absoluter Pfad>` akzeptiert
+nur eine zufällige eigene CLSID mit passender `WCP.p<GUID>`-ProgID und lehnt die Produkt-CLSIDs ab.
+Der explizite Testmodus unterdrückt UI-Persistierung und globale Hotkeys, ändert aber keine Lizenzregel.
+Fixture-Steuerdateien und Zustandsnachweise werden ausschließlich in diesem eigenen Profil verwendet.
+
+Die Grundbindung hält den Host bei COM-Fassaden, Serverlocks, laufenden Aufträgen oder sichtbarem
+Benutzerbetrieb am Leben. Ohne Haltegrund gilt eine Idlefrist von 30 Sekunden; die CCW-Freigabe hängt
+weiterhin vom CLR-Finalizer ab. Vollständige Unterobjekt-, Skriptabsturz-, Gesprächs- und Shutdownrennen
+bleiben Phase 6. Keine periodische Test-GC oder pauschale `IObjectSafety`-Freigabe im App-Host.
+
+#### Phase-3-Abnahme
+
+Einstieg nach dem regulären Editionsbuild, sichtbare Tests nur nach Absprache:
+
+```powershell
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine FinOffice -AllowVisibleWindows
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine Pro -AllowVisibleWindows
+```
+
+Die nativen Prüfungen verwenden die reguläre App-EXE mit eigenen Profilen und zufälligen HKCU-
+Klassen-/ProgID-Einträgen. Der erhöhte Werkzeugprozess startet den Prüflauf über den normalen Desktop;
+keine HKLM-, TLB- oder Interface-Registrierung. Alle temporären Registrierungen werden entfernt.
+Synthetische Konfiguration und Dummy-Plugin, keine echten SIP-Zugänge, Anrufe oder Lexware-Datensätze.
+Die gemeinsame G1- und Produktabnahme wird dadurch nicht ersetzt.
+
+Geprüft: x86-/x64-JScript und paralleler COM-Kaltstart, `Starting` während des Anlaufs, null konstruierte
+Forms beim reinen Aktivieren, genau ein App-Prozess, explizites `Show`, normaler Start mit COM-Beitritt,
+Explorer-Zweitstart sowie Wiederherstellung von minimiert, zuvor maximiert und im Tray verborgen.
+Für den Vordergrundnachweis wird das eigene Hauptfenster einmal ausdrücklich über den vorhandenen
+UI-Automation-Ansatz fokussiert; die danach geprüften Übergänge werden nicht nachträglich korrigiert.
+Der Start aus einem beliebigen Hintergrundskript allein beweist keine Windows-Vordergrundberechtigung.
+Ungültige Konfiguration bleibt ohne Dialog erreichbar; jeder Lauf belegt anschließend Dienste-Stopp,
+asynchrone DI-Freigabe, Klassenwiderruf und Prozessende ohne Ausnahme.
+
+Nachweise: je 23 native App-Prüfungen unter `artifacts/com-app/{fin,pro}-acceptance/results.json`,
+zusätzliche Ergebniskopien `.com-phase3-native-{fin,pro}-evidence.log`. Dazu je 37 gezielte App-Tests
+für Start, Pipeline, Lizenz, Profil-/Instanzgrenzen, Installer, Splash, Autostart und Hotkeys sowie je
+15 unveränderte COM-Vertrags-/Adaptertests. Protokolle: `.com-phase3-unit-{fin,pro}.log`,
+`.com-phase3-contract-{fin,pro}.log`, `.com-phase3-build-{fin,pro}.log`.
+Reguläre Solution-Rebuilds Debug/Any CPU für beide Editionen: null Fehler, 26 bekannte externe
+CSCore-Nullablewarnungen. Pro bleibt zuletzt im regulären Ausgabeordner. Keine Layoutänderungen;
+native Fenster-/Fokusprüfungen und die begrenzten vorhandenen Splash-Regressionen wurden verwendet.
+Frühere unvollständige Harnessläufe (Interop-/Fokusvorbereitung beziehungsweise fehlender früher
+Timer-Nachweis) gelten nicht als bestanden und werden durch die vollständigen Abnahmen ersetzt.
+
+**Noch offen:** Produktinstallation/Benutzerregistrierungsbefehle folgen Phase 7; der App-Start
+schreibt keine persistente COM-Registrierung. Aktuell sind Hauptfenster und Status angeschlossen.
+Andere Ansichten sowie Kunden/Lieferanten und Firmenkatalog erhalten ihre produktiven Adapter in
+Phase 4, COM-Telefoniebefehle in Phase 5; bis dahin liefern sie ausdrücklich `NotSupported`/`NotReady`.
+Echte Lizenz-/Server- und SIP-/Audioabnahme bleibt Phase 8. Rücknahme dieses Phasencommits entfernt
+den App-Anschluss und stellt den vorherigen Startpfad wieder her; keine Produktdatenmigration.
 
 ### Phase 4 – ⬜ Ansichten und Fensterführung
 
@@ -656,6 +727,6 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 3**: den fensterlosen COM-Start und die gemeinsame Klassenfabrik in
-den einzigen App-Host integrieren. Phasen 1/2 bestätigen Machbarkeit, V1-Verträge und DI-Adapter;
-sie stellen noch keine produktiv aktivierbare Wawi-App mit realen Ansichten oder Telefonie bereit.
+Als Nächstes folgt **Phase 4**: den Viewkatalog, Kunden-/Lieferantenaufrufe und weitere Ansichten
+an die vorhandenen Routing-/Dialogfabriken anbinden. Der gemeinsame COM-/App-Host sowie Status und
+Hauptfenster sind geprüft; produktive Registrierung und echte Telefonieabnahme bleiben späteren Phasen vorbehalten.

@@ -17,7 +17,10 @@ namespace WawiCallPro.App.Hosting;
 internal static class AppCompositionRoot
 {
     internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
-        StartupExecutionMode mode, IAppInstanceGuard instance) =>
+        StartupExecutionMode mode, IAppInstanceGuard instance) => Build(uiContext, exceptions, mode, instance, null);
+
+    internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
+        StartupExecutionMode mode, IAppInstanceGuard instance, AppComIdentity? identity) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
@@ -55,6 +58,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
                 services.AddSingleton<IUiDispatcher>(_ => new SynchronizationContextUiDispatcher(uiContext));
                 services.AddSingleton<IHostLifetime, AppHostLifetime>();
+                services.AddAppAutomation(mode, identity);
             })
             .Build();
 }

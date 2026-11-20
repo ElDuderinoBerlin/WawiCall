@@ -18,6 +18,7 @@ public sealed class AutomationOperations : IAsyncDisposable
     private readonly CancellationTokenSource _stopping = new();
     private readonly Task _worker;
     private bool _closed;
+    public bool HasPendingOperations { get { lock (_gate) return _entries.Values.Any(entry => entry.CompletedAt is null); } }
 
     internal AutomationOperations(AutomationOptions options, TimeProvider clock, AutomationRouter router)
     {

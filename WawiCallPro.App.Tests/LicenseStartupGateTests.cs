@@ -12,6 +12,15 @@ namespace WawiCallPro.App.Tests;
 public sealed class LicenseStartupGateTests
 {
     [TestMethod]
+    public async Task ComStartupValidatesRequiredLicenseWithoutOpeningActivationDialog()
+    {
+        var licenses = new LicenseProbe();
+        var gate = new LicenseStartupGate(licenses, Product, new StartupSettings { LicenseServerUrl = new Uri("https://isolated.invalid") },
+            new StartupExecutionMode { ComActivated = true }, new Prompt());
+        var error = await Assert.ThrowsExactlyAsync<LicenseAccessException>(() => gate.StartAsync(CancellationToken.None));
+        Assert.AreEqual(LicenseStatus.Missing, error.Status); Assert.AreEqual(1, licenses.Calls);
+    }
+    [TestMethod]
     public async Task MissingLicenseStopsHostBeforeBusinessWorkersStart()
     {
         var worker = new ProbeWorker();

@@ -32,6 +32,7 @@ internal sealed class AppLicensePrompt(IUiDispatcher dispatcher, StartupSplash s
 internal sealed class LicenseStartupGate(IProductLicenseService licenses, LicenseProductIdentity product, StartupSettings settings,
     StartupExecutionMode mode, IAppLicensePrompt prompt) : IHostedService
 {
+    internal AppAutomationState? AutomationState { get; set; }
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (mode.SuppressNetwork || !product.Required) return;
@@ -43,6 +44,7 @@ internal sealed class LicenseStartupGate(IProductLicenseService licenses, Licens
         }
         if (snapshot.Status != LicenseStatus.Valid)
         {
+            if (mode.ComActivated && AutomationState?.UserMode != true) throw new LicenseAccessException(snapshot.Status);
             if (settings.LicenseServerUrl is null) throw new LicenseAccessException(snapshot.Status);
             var machineId = await Task.Run(licenses.GetMachineId, cancellationToken);
             var key = await prompt.RequestKeyAsync(machineId, cancellationToken);

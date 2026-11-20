@@ -6,6 +6,15 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppStartArgumentsTests
 {
     [TestMethod]
+    public void IsolatedComIdentityUsesAnExplicitAbsoluteFixturePath()
+    {
+        var com = AppStartArguments.Parse(["--COM-FIXTURE", @"D:\test profile", "-EMBEDDING"]);
+        Assert.AreEqual(AppStartKind.Com, com.Kind); Assert.AreEqual(@"D:\test profile", com.FixtureDirectory);
+        Assert.AreEqual(AppStartKind.Interactive, AppStartArguments.Parse(["--com-fixture", @"D:\test profile"]).Kind);
+        Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(["--com-fixture", "relative", "-Embedding"]));
+        Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(["--com-fixture", @"D:\test", "--diagnostics"]));
+    }
+    [TestMethod]
     public void InteractiveAndDiagnosticArgumentsRetainTheirMeaning()
     {
         Assert.AreEqual(AppStartKind.Interactive, AppStartArguments.Parse([]).Kind);

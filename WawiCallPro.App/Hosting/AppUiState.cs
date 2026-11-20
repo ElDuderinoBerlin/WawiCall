@@ -19,7 +19,7 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         : this(application, mode) => _displays = displays;
 
     private string KeyPath => @"Software\WawiCallPro\" + application.ProductLine + @"\App\v1";
-    private bool Enabled => !mode.SuppressNetwork;
+    private bool Enabled => !mode.SuppressNetwork && !mode.IsolatedProfile;
 
     internal void Restore(Form form)
     {

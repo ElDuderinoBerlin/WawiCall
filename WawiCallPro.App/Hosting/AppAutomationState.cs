@@ -1,0 +1,82 @@
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using WawiCallPro.Automation;
+using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Licensing;
+using WawiCallPro.Utilities.Configuration;
+
+namespace WawiCallPro.App.Hosting;
+
+/// <summary>Early, detached COM status. No form or business service is constructed by a status read.</summary>
+internal sealed class AppAutomationState(ApplicationDescriptor application, TimeProvider clock) : IAutomationEnvironment
+{
+    private readonly object _gate = new();
+    private readonly ConditionalWeakTable<AutomationApplication, Lease> _leases = new();
+    private int _clients, _locks;
+    private DateTimeOffset _changed = clock.GetUtcNow();
+    private string _state = "Starting";
+    private bool _visible, _owned, _stopping, _userMode;
+    internal bool UserMode { get { lock (_gate) return _userMode; } }
+    internal Func<CancellationToken, Task>? ShowRequested { get; set; }
+    internal WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; set; }
+    public AutomationStatus GetStatus()
+    {
+        lock (_gate) return new(application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice,
+            _state, _visible, Telephony?.Registration.State.ToString() ?? "Stopped", _state is "Failed" or "ConfigurationRequired" ? "ProviderUnavailable" : "");
+    }
+    internal void Ready() { lock (_gate) { _state = "Ready"; _changed = clock.GetUtcNow(); } }
+    internal void Failed(Exception failure)
+    {
+        lock (_gate) { _state = failure is LicenseAccessException ? "LicenseRequired" : failure is ConfigurationException ? "ConfigurationRequired" : "Failed"; _changed = clock.GetUtcNow(); }
+    }
+    internal void EnterUserMode() { lock (_gate) { if (_stopping) throw new AutomationFault(AutomationFailure.Stopping); _userMode = true; } }
+    internal void Visible() { lock (_gate) { _visible = true; _owned = true; } }
+    internal void UpdateVisibility(bool visible) { lock (_gate) _visible = visible; }
+    internal void Stopping() { lock (_gate) { _stopping = true; _state = "Stopping"; } }
+    internal void Track(AutomationApplication instance)
+    {
+        lock (_gate)
+        {
+            if (_stopping) throw new AutomationFault(AutomationFailure.Stopping);
+            _clients++; _changed = clock.GetUtcNow(); _leases.Add(instance, new Lease(this));
+        }
+    }
+    internal void ServerLock(bool acquire)
+    {
+        lock (_gate)
+        {
+            if (_stopping || !acquire && _locks == 0) throw new AutomationFault(AutomationFailure.Stopping);
+            _locks += acquire ? 1 : -1; _changed = clock.GetUtcNow();
+        }
+    }
+    internal bool TryIdleShutdown(bool hasWork)
+    {
+        lock (_gate)
+        {
+            if (_stopping || _state == "Starting" || _owned || _clients != 0 || _locks != 0 || hasWork || clock.GetUtcNow() - _changed < TimeSpan.FromSeconds(30)) return false;
+            _stopping = true; _state = "Stopping"; return true;
+        }
+    }
+    private sealed class Lease(AppAutomationState owner)
+    {
+        ~Lease() { lock (owner._gate) { owner._clients--; owner._changed = owner.clockNow(); } }
+    }
+    private DateTimeOffset clockNow() => clock.GetUtcNow();
+    public ImmutableArray<Company> GetCompanies() => [];
+    public ImmutableArray<AutomationView> GetViews() => [new("home", "Hauptfenster")];
+    public void RequireAccess(AutomationAccess access, CompanyKey? company = null)
+    {
+        lock (_gate)
+        {
+            if (_stopping) throw new AutomationFault(AutomationFailure.Stopping);
+            if (access != AutomationAccess.Presentation) throw new AutomationFault(_state == "Ready" ? AutomationFailure.NotSupported : AutomationFailure.NotReady);
+            if (_state == "Starting") throw new AutomationFault(AutomationFailure.NotReady);
+        }
+    }
+}
+
+internal sealed class AppAutomationFactory(IAutomationApplicationFactory inner, AppAutomationState state) : IAutomationApplicationFactory
+{
+    public AutomationApplication Create() { var instance = inner.Create(); state.Track(instance); return instance; }
+}

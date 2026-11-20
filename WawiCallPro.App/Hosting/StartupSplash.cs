@@ -127,7 +127,7 @@ internal sealed class StartupSplashHost(StartupSplash splash, AppUiState state, 
         await dispatcher.InvokeAsync(() =>
         {
             state.RestoreAppearance();
-            if (!mode.SuppressNetwork && !window.Hidden && !configuration.Current.Options.User.StartMinimized)
+            if (!mode.SuppressNetwork && !mode.ComActivated && !window.Hidden && !configuration.Current.Options.User.StartMinimized)
                 showing = splash.ShowAsync(cancellationToken);
         }, cancellationToken);
         await showing;

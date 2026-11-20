@@ -5,7 +5,11 @@ using WawiCallPro.Utilities.Licensing;
 
 namespace WawiCallPro.Utilities.Diagnostics;
 
-public sealed record StartupExecutionMode(bool SuppressNetwork = false);
+public sealed record StartupExecutionMode(bool SuppressNetwork = false)
+{
+    public bool ComActivated { get; init; }
+    public bool IsolatedProfile { get; init; }
+}
 
 /// <summary>Uploads only the sanitized persisted payload, with product-bound activation authentication.</summary>
 public sealed class CrashReportUploader(CrashReportQueue queue, IProductLicenseService licenses, StartupSettings settings,

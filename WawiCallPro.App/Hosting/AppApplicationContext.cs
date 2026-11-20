@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Automation;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -26,6 +27,12 @@ internal sealed class AppApplicationContext : ApplicationContext
     private readonly CancellationTokenSource _activationStopping = new();
     private readonly CancellationToken _activationToken;
     private readonly StartupSplash? _splash;
+    private readonly AppAutomationState _automation;
+    private readonly StartupExecutionMode _mode;
+    private readonly AutomationOperations _operations;
+    private AutomationClassRegistration? _registration;
+    private readonly System.Windows.Forms.Timer _idleTimer = new() { Interval = 1000 };
+    private readonly string? _fixtureDirectory;
 
     internal AppApplicationContext(IHost host, bool diagnostics, string? auditDirectory)
     {
@@ -39,6 +46,20 @@ internal sealed class AppApplicationContext : ApplicationContext
         _activationToken = _activationStopping.Token;
         _dispatcher = host.Services.GetRequiredService<IUiDispatcher>();
         _splash = host.Services.GetService<StartupSplash>();
+        _automation = host.Services.GetRequiredService<AppAutomationState>();
+        _mode = host.Services.GetRequiredService<StartupExecutionMode>();
+        _operations = host.Services.GetRequiredService<AutomationOperations>();
+        _automation.ShowRequested = ShowAutomationAsync;
+        if (!_mode.ComActivated) _automation.EnterUserMode();
+        var identity = host.Services.GetRequiredService<AppComIdentity>();
+        _fixtureDirectory = identity.FixtureDirectory;
+        if (!_mode.SuppressNetwork && identity.Enabled)
+        {
+            _registration = new(identity.ClassId, host.Services.GetRequiredService<AppAutomationFactory>(), _automation.ServerLock);
+            if (_instance is IComInstancePublication publication) publication.PublishAutomation();
+            _idleTimer.Tick += CheckIdle;
+            _idleTimer.Start();
+        }
         _instance.ActivationRequested += OnActivationRequested;
         Application.Idle += StartOnIdle;
     }
@@ -54,6 +75,15 @@ internal sealed class AppApplicationContext : ApplicationContext
             HostDiagnosticSnapshot? diagnostic = null;
             await HostExecution.RunAsync(_host, async stoppingToken =>
             {
+                if (_mode.ComActivated)
+                {
+                    _windowReady = true;
+                    OnActivationRequested(this, EventArgs.Empty);
+                    using var stopping = stoppingToken.Register(() => _closeRequested.TrySetResult());
+                    await _closeRequested.Task;
+                    RevokeAutomation();
+                    return;
+                }
                 if (_auditDirectory is not null)
                 {
                     if (NativeTrayAudit.IsRequested)
@@ -90,6 +120,9 @@ internal sealed class AppApplicationContext : ApplicationContext
                     await _splash.CompleteAsync(_form);
                 }
                 _windowReady = true;
+                _automation.Ready();
+                _automation.Visible();
+                _automation.Telephony = _host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>();
                 OnActivationRequested(this, EventArgs.Empty);
                 if (_diagnostics)
                 {
@@ -98,6 +131,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                     _form.Close();
                 }
                 await _closeRequested.Task;
+                RevokeAutomation();
             });
             // Emit success only after StopAsync and asynchronous container disposal have succeeded.
             if (_diagnostics) Console.WriteLine(JsonSerializer.Serialize(diagnostic));
@@ -110,6 +144,9 @@ internal sealed class AppApplicationContext : ApplicationContext
         }
         finally
         {
+            RevokeAutomation();
+            _idleTimer.Dispose();
+            _automation.ShowRequested = null;
             _instance.ActivationRequested -= OnActivationRequested;
             await _activationStopping.CancelAsync();
             try
@@ -129,27 +166,107 @@ internal sealed class AppApplicationContext : ApplicationContext
             {
                 Failure = Failure is null ? exception : new AggregateException(Failure, exception);
             }
-            finally { _activationStopping.Dispose(); ExitThread(); }
+            finally
+            {
+                try
+                {
+                    if (_fixtureDirectory is { } directory)
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "com-stopped.json"),
+                            JsonSerializer.Serialize(new { Success = Failure is null, Revoked = _registration is null }));
+                }
+                finally { _activationStopping.Dispose(); ExitThread(); }
+            }
         }
     }
 
     private MainForm CreateMainForm()
     {
         var form = ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
+        form.VisibleChanged += OnMainFormVisibilityChanged;
         if (_host.Services.GetService<IAppHotkeyFactory>() is { } hotkeys)
             form.ConfigureHotkeys(hotkeys, _host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User);
         return form;
+    }
+
+    private void OnMainFormVisibilityChanged(object? sender, EventArgs args)
+    {
+        if (sender is MainForm form) _automation.UpdateVisibility(form.Visible);
+    }
+
+    private void RevokeAutomation()
+    {
+        _automation.Stopping();
+        _idleTimer.Stop();
+        _registration?.Dispose();
+        _registration = null;
+    }
+
+    private void CheckIdle(object? sender, EventArgs args)
+    {
+        if (_fixtureDirectory is { } directory)
+        {
+            System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "com-runtime.json"), JsonSerializer.Serialize(new
+            {
+                Pid = Environment.ProcessId, Forms = Application.OpenForms.Count, FormCreated = _form is not null,
+                WindowHandle = _form is { IsHandleCreated: true } ? _form.Handle.ToInt64() : 0,
+                Visible = _form?.Visible == true, State = _automation.GetStatus().State, SipState = _automation.GetStatus().SipState
+            }));
+            var stop = System.IO.Path.Combine(directory, "stop.request");
+            if (System.IO.File.Exists(stop))
+            {
+                System.IO.File.Delete(stop);
+                if (_form is not null) _form.Close(); else _closeRequested.TrySetResult();
+            }
+            var launch = System.IO.Path.Combine(directory, "launch.request");
+            if (_form is not null && System.IO.File.Exists(launch))
+            {
+                var action = System.IO.File.ReadAllText(launch).Trim();
+                System.IO.File.Delete(launch);
+                if (action == "maximized") _form.WindowState = FormWindowState.Maximized;
+                if (action is "minimized" or "maximized") _form.WindowState = FormWindowState.Minimized;
+                if (action == "hidden") _form.MoveToTray();
+                // Fixture only: match the existing native tray audit's Explorer launch from an explicitly focused owner.
+                dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application")!)!;
+                try { shell.ShellExecute(Environment.ProcessPath!, "--com-fixture \"" + directory + "\"", AppContext.BaseDirectory, "open", 1); }
+                finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); }
+            }
+        }
+        if (_automation.TryIdleShutdown(_operations.HasPendingOperations)) _closeRequested.TrySetResult();
+    }
+
+    private async Task ShowAutomationAsync(CancellationToken token)
+    {
+        if (!_windowReady) throw new AutomationFault(AutomationFailure.NotReady);
+        _automation.EnterUserMode();
+        if (_mode.ComActivated) await _host.Services.GetRequiredService<AppStartupPipeline>().ResumeAsync(token);
+        _automation.Telephony = _host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>();
+        token.ThrowIfCancellationRequested();
+        if (_form is null)
+        {
+            _form = CreateMainForm();
+            _form.FormClosing += MainFormClosing;
+            _form.ShowAfterStartup(false);
+        }
+        else _form.RestoreFromTray();
+        _automation.Visible();
+    }
+
+    private async Task ActivateRequestedAsync()
+    {
+        if (!_windowReady || !_instance.TryConsumeActivation()) return;
+        await ShowAutomationAsync(_activationToken);
     }
 
     private async void OnActivationRequested(object? sender, EventArgs args)
     {
         try
         {
+            Task work = Task.CompletedTask;
             await _dispatcher.InvokeAsync(() =>
             {
-                if (!_windowReady || _form is not { IsDisposed: false } || !_instance.TryConsumeActivation()) return;
-                _form.RestoreFromTray();
+                work = ActivateRequestedAsync();
             }, _activationToken);
+            await work;
         }
         catch (OperationCanceledException) when (_activationToken.IsCancellationRequested) { }
         catch (Exception exception) { _exceptions.Report(exception, CrashOrigin.UiThread); }

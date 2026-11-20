@@ -18,10 +18,11 @@ internal interface IAppInstanceGuard : IDisposable
 }
 
 /// <summary>One interactive process per user/product/profile. Named signals also survive startup before a window exists.</summary>
-internal sealed class AppInstanceGuard(ApplicationDescriptor application, ApplicationPaths paths) : IAppInstanceGuard
+internal sealed class AppInstanceGuard(ApplicationDescriptor application, ApplicationPaths paths) : IAppInstanceGuard, IComInstancePublication
 {
     private Mutex? _mutex;
     private EventWaitHandle? _signal;
+    private EventWaitHandle? _automationReady;
     private MemoryMappedFile? _owner;
     private RegisteredWaitHandle? _listener;
     private bool _owned;
@@ -41,9 +42,11 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
         try { _owned = _mutex.WaitOne(0); }
         catch (AbandonedMutexException) { _owned = true; }
         _signal = new EventWaitHandle(false, EventResetMode.AutoReset, name + ".Activate");
+        _automationReady = new EventWaitHandle(false, EventResetMode.ManualReset, name + ".AutomationReady");
         _owner = MemoryMappedFile.CreateOrOpen(name + ".Owner", sizeof(int));
         if (_owned)
         {
+            _automationReady.Reset();
             using var owner = _owner.CreateViewAccessor();
             owner.Write(0, Environment.ProcessId);
             owner.Flush();
@@ -60,6 +63,8 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
     }
 
     public bool TryConsumeActivation() => Interlocked.Exchange(ref _activationPending, 0) != 0;
+    public void PublishAutomation() { if (!_owned) throw new InvalidOperationException("Only the owner may publish automation readiness."); _automationReady!.Set(); }
+    public bool WaitForAutomation(TimeSpan timeout) => _automationReady?.WaitOne(timeout) == true;
 
     public void RequestExistingInstanceActivation()
     {
@@ -79,8 +84,16 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
         _disposed = true;
         _listener?.Unregister(null);
         _signal?.Dispose();
+        if (_owned) _automationReady?.Reset();
+        _automationReady?.Dispose();
         _owner?.Dispose();
         if (_owned) _mutex!.ReleaseMutex();
         _mutex?.Dispose();
     }
+}
+
+internal interface IComInstancePublication
+{
+    void PublishAutomation();
+    bool WaitForAutomation(TimeSpan timeout);
 }

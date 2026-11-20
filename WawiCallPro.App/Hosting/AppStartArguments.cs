@@ -7,8 +7,17 @@ internal enum AppStartKind { Interactive, Diagnostics, UiAudit, ActivateExisting
 /// <summary>Validates the complete command line before loading configuration or creating controls.</summary>
 internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
 {
+    internal string? FixtureDirectory { get; init; }
     internal static AppStartArguments Parse(string[] arguments)
     {
+        if (arguments.Length is 2 or 3 && EqualsOption(arguments[0], "--com-fixture")
+            && System.IO.Path.IsPathFullyQualified(arguments[1]))
+        {
+            var kind = arguments.Length == 2 ? AppStartKind.Interactive
+                : EqualsOption(arguments[2], "-Embedding") ? AppStartKind.Com
+                : throw new ArgumentException("Invalid COM fixture mode.");
+            return new(kind) { FixtureDirectory = arguments[1] };
+        }
         if (arguments.Length == 0) return new(AppStartKind.Interactive);
         if (arguments.Length == 1)
         {
