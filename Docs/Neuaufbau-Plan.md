@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: Phase 8/A4 mit vollständiger Matrix für 27 eigene Oberflächen, Designer-/Ressourcen-/
+Zuletzt ergänzt: gemeinsame Phase-8-Prüfung G1 vorbereitet: verifizierter FinOffice-Build,
+Testprofilgrenzen, SIP-Grundprüfung, eindeutiger/mehrdeutiger Anruf und Neustartnachweis mit
+Soll-Ergebnissen und Ergebnisraster dokumentiert. Noch kein gemeinsamer Live-Lauf; G1 bleibt offen (20.11.2026).
+Zuvor ergänzt: Phase 8/A4 mit vollständiger Matrix für 27 eigene Oberflächen, Designer-/Ressourcen-/
 Konstruktorprüfung, isolierter Fenster-/Gridpersistierung und ausgewerteten Layoutnachweisen abgeschlossen.
 Buttonpadding, Startseitenbreite, Logsuchrand, Mail-Checkboxbeschriftungen und DevExpress-Browse/Wartecursor
 korrigiert (20.11.2026).
@@ -2559,6 +2562,100 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 | [ ] **G4 – Tray und globale Hotkeys** | Reale Tastenkombinationen aus einem anderen Programm testen, absichtlich bereits belegte Kombination konfigurieren, ändern und freigeben; Traymenü/-Doppelklick sowie wiederholtes Anzeigen/Verbergen nutzen. | Nur gültige eigene Tastenkürzel wirken; Wähldialog öffnet ohne automatischen Anruf. Konflikt ist verständlich protokolliert, andere Aktionen bleiben nutzbar; keine fremde Registrierung löschen. |
 | [ ] **G5 – Einstellungen und echte Desktopumgebung** | Einstellungen ändern/speichern, X/Abbrechen, ungültige Eingaben, JSON-Transfer ohne Secrets und DB-Assistent mit isoliertem Ziel gemeinsam bedienen. Neustartwirkung von SIP-/DB-/Log-/DirectX-Einstellungen prüfen; tatsächliche Geräteauswahl, Fenster-/Gridzustand und Monitor-/DPI-Wechsel soweit verfügbar kontrollieren. | Kein Doppelklick zum Schließen nötig; Entwürfe und gespeicherte Werte verhalten sich eindeutig. Kleine Fenster/große Schrift/Skin zeigen keine Überlappungen; Position bleibt nach Monitorwechsel erreichbar. Eine echte Windows-Anmeldung für Autostart separat in Phase 14 planen. Live-Gerätewechsel und Tonqualität bleiben Phase 9. |
 | [ ] **G6 – Reale Quellen und Belastung** | Mit vereinbarten Pro-/FinOffice-Testbeständen mehrere Mandanten, leeren Bestand, Quellenfehler und repräsentativ große Datenmengen durchspielen; Wechsel während laufender Suche und wiederholte Anrufe bedienen. | Kein falscher Geschäftspartner, kein verlorener Entwurf, keine blockierte Bedienung durch dauerhaft laufende Quelle. Laufzeit/Mengen protokollieren und Zielwerte anhand des vereinbarten Bestands beurteilen; keine unbelegte pauschale Lastfreigabe. |
+
+**G1 – vorbereiteter gemeinsamer Prüflauf (20.11.2026)**
+
+- [x] ✅ Vorbereitung: tatsächliche Bedienpfade und lokale Builddateien geprüft; folgende Schritte und
+  Ergebnisraster erstellt. Ausschließlich Quellen-/Datei-/Versionsprüfung, kein Start, keine SIP-Anmeldung,
+  kein Gerätezugriff und kein Gespräch durchgeführt. Das bestätigt die Vorbereitung, nicht G1.
+- [ ] Laufzeitvoraussetzungen gemeinsam bestätigen: Edition, Testzeitpunkt, FRITZ!Box-Testkonto,
+  zweiter erreichbarer Testanschluss, Mikrofon/Wiedergabe sowie freigegebene Lexware-Testmandanten.
+  Falls die reale SIP-Grundprüfung noch nicht dokumentiert ist, zuerst Schritt 3 durchführen.
+
+Vorbereiteter FinOffice-Kandidat: reguläre EXE
+`WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.FinOffice.exe`,
+Anwendungsversion `0.1.212` (Dateiversion `0.1.0.212`), Dateistand 20.11.2026 05:59 Uhr lokal.
+Der vor dem A4-Commit `09b0a2b` gebaute Arbeitsstand enthält dessen Codeänderungen; die Versionsnummer
+allein ist kein Commitnachweis. SHA-256 der zugehörigen `WawiCallPro.App.FinOffice.dll`:
+`3D59AED8BCFAB66C679EAEAA9F4A221A6F98A785BED7E700F33A44E7449671D2`.
+Die Ausgabe bleibt bei reiner Dokumentationsarbeit unverändert. Vor dem tatsächlichen Start Pfad,
+Edition und Fingerabdruck erneut vergleichen. Pro erst nach Benutzerwahl regulär in der aktiven
+Konfiguration bereitstellen und seinen eigenen Buildstand erfassen; der gemeinsame Ausgabeordner
+enthält jeweils nur die zuletzt gebaute Edition. Während einer laufenden Abnahme keinen Editionswechsel bauen.
+
+**Testprofil und Daten:** Pro Edition ein neues absolutes Profil unter
+`.artifacts/phase8-g1/<Edition>/<Lauf-ID>` verwenden. `WAWICALLPRO_CONFIG_DIR` ausschließlich für den
+gestarteten Testprozess setzen, beim späteren Neustart genau denselben Pfad wieder verwenden;
+keine globale Benutzer-/Maschinenvariable ändern. Das Profil wird erst nach Vereinbarung angelegt.
+Konfiguration `connection.local.json`, Standard-SQLite-Ziel `communications.db`, Cache und lokale Logs
+gehören damit zum Testlauf. Im Datenbankassistenten den tatsächlichen absoluten SQLite-Zielpfad kontrollieren;
+keine vorhandene Datenbank wählen und kein vollständiges Produktionsprofil kopieren/importieren.
+SIP-Zugang ausschließlich lokal im Dialog eingeben. Für G1 keine Mailkonten, keinen Autostart und keine
+automatische SIP-Anmeldung einrichten. Die Lexware-Quelle bleibt der vereinbarte Testbestand.
+Der Profilpfad isoliert weder SIP-Konto/Ports/Audiogeräte noch die editionsbezogene UI-Registry
+`HKCU\Software\WawiCallPro\<Edition>\App\v1`. Keine zweite Instanz mit demselben SIP-Konto parallel betreiben;
+Fenster-/Spaltenlayouts nicht zurücksetzen. Kein Audit-/Diagnosemodus und kein Dummy-Plugin für den Live-Nachweis.
+
+Vorbereiteter Startbefehl für den Benutzer, **erst nach Vereinbarung von Edition/Lauf-ID ausführen**.
+Die gleichen Variablenwerte bei Schritt 6 und 8 erneut verwenden. Der Befehl liest keine Zugangsdaten
+und verändert keine dauerhafte Umgebungsvariable; die sichtbare Anwendung wird hier ausdrücklich vom
+Benutzer gestartet. Bei einem neuen Lauf eine neue Lauf-ID wählen, beim Neustart keine neue erzeugen.
+
+```powershell
+$g1Repository = 'D:\Application-Development\WawiCallPro'
+$g1Edition = 'FinOffice'
+$g1RunId = 'G1-20261120-01'
+$g1Profile = Join-Path $g1Repository ".artifacts\phase8-g1\$g1Edition\$g1RunId"
+$g1Exe = Join-Path $g1Repository "WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.App.$g1Edition.exe"
+if (!(Test-Path -LiteralPath $g1Exe -PathType Leaf)) { throw 'Die vereinbarte Edition ist nicht gebaut.' }
+$g1PreviousProfile = [Environment]::GetEnvironmentVariable('WAWICALLPRO_CONFIG_DIR', 'Process')
+try {
+    [Environment]::SetEnvironmentVariable('WAWICALLPRO_CONFIG_DIR', $g1Profile, 'Process')
+    Start-Process -FilePath $g1Exe -WorkingDirectory (Split-Path -Parent $g1Exe) -WindowStyle Normal
+}
+finally {
+    [Environment]::SetEnvironmentVariable('WAWICALLPRO_CONFIG_DIR', $g1PreviousProfile, 'Process')
+}
+```
+
+Der Benutzer bedient die Anwendung und den zweiten Anschluss. Der Agent nennt jeweils nur den nächsten
+Schritt, fragt dessen beobachtetes Ergebnis ab und protokolliert es vor dem Fortfahren. Bei einem Fehler
+Zeitpunkt und betroffenen Schritt festhalten, den Fehler klären und diesen Schritt wiederholen; keine
+nachfolgenden Ergebnisse annehmen. Kennwörter, Tokens und echte Kundeninhalte nicht in Chat/Plan übernehmen.
+Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung notieren.
+
+| Schritt | Gemeinsame Bedienung | Soll-Ergebnis / Rückmeldung vor dem nächsten Schritt |
+|---|---|---|
+| 0 – Umfang festlegen | Edition und Testzeitpunkt bestätigen; zweiten Anschluss sowie freigegebene Testmandanten A/B benennen. Bereits erfolgte SIP-Grundprüfung dem konkreten Profil/Build zuordnen. | Keine ungeklärte Produktlinie oder fremder Testbestand; bei fehlendem Anschluss zunächst nur Einrichtung vorbereiten. |
+| 1 – Teststart | Vereinbarten regulären Build mit neuem Testprofil starten. Einstellungen öffnen, Plugin und Lexware-Verfügbarkeit prüfen. | Richtige Edition, erwartetes Plugin; keine unbehandelte Ausnahme. Vorhandene Produktivkonfiguration bleibt erhalten. Startfehler oder gesperrte Lexware-Funktionen zuerst klären. |
+| 2 – Eigene Datenbank | Einstellungen → Datenbank → Datenbank einrichten: SQLite im Testprofil wählen, testen, einrichten und übernehmen. Falls Neustart verlangt wird, mit demselben Profil erneut öffnen. | Schema bereit; angezeigter Pfad gehört zum vereinbarten Lauf. Keine vorhandene fremde DB verändert. |
+| 3 – SIP-Grundprüfung | Einstellungen → Audio: Testmikrofon/Wiedergabe auswählen. Unter SIP-Konto die lokalen Testzugänge eintragen, Startautomatik aus lassen und ausdrücklich Anmelden klicken. Vom zweiten Anschluss einen angekündigten Prüfanruf durchführen, annehmen, auf beiden Seiten einen kurzen Satz sprechen und auflegen. | Status Angemeldet → Klingeln → Verbunden → Beendet; Ton auf beiden Seiten verständlich. Nur diese reale Grundprüfung bestätigt die G1-Voraussetzung für dieses Geräte-/Netzprofil; TLS/NAT/IPv6-Sonderfälle und übrige Phase-7-Abnahme bleiben getrennt. |
+| 4 – Testzuordnungen und Cache | Zwei vorhandene freigegebene Testmandanten A/B mit derselben tatsächlich übermittelten Testnummer bestimmen. In A einen bekannten Kontakt mit Kundenbesitzer, in B einen bekannten zweiten Datensatz mit anderem Besitzer/Rolle verwenden. Keine Stammdaten außerhalb des Testbestands verändern. Unter Telefon-Cache Mandanten laden, zunächst nur A wählen, Cache aktualisieren und vollständigen aktuellen Stand bestätigen. | Benutzer kennt pro Testtreffer Mandant, Datensatzart, Kunden-/Lieferantennummer und gegebenenfalls Kontaktbesitzer. Bei unterdrückter Rufnummer oder fehlendem/fehlerhaftem Cache noch keinen positiven Zuordnungstest durchführen. |
+| 5 – E1: eindeutiger eingehender Anruf | Vorher eine Geschäftspartnersuche mit merkbarer Auswahl offen lassen. Zweiten Anschluss anrufen lassen. Im Anruferfenster Rufnummer, A-Kontakt und Besitzer prüfen; Treffer bewusst markieren und Übernehmen betätigen. Annehmen, Gesprächsnotizen öffnen, ausschließlich `G1-<Edition>-<Lauf-ID>-E1` eingeben und Notiz speichern. Kurz sprechen und über Auflegen beenden. | Rufnummer und vollständige Identität passen. Zuordnung für diesen Anruf gespeichert; Gespräch verbunden und danach beendet. Notiz wird als gespeichert angezeigt. Vorheriger Arbeitsbereich und Auswahl werden nicht unbeabsichtigt ersetzt; ein zusätzlicher Gesprächstab ist erwartet. |
+| 6 – E1: Neustart und Historie | Regulär beenden, Prozessende abwarten und denselben Build mit demselben Profil starten. Gesprächshistorie mit passendem Datumsbereich laden und E1 anhand Startzeit/Notizmarker öffnen. | Genau ein E1-Eintrag, Richtung eingehend, angenommener/beendeter Zustand, gespeicherte Zeitwerte und derselbe A-Kontakt/Besitzer/Mandant. Marker genau einmal vorhanden, kein verlorener Text. Ein vorheriger SIP-Grundprüfanruf zählt separat. |
+| 7 – E2: Mehrdeutigkeit | A und B für Telefon-Cache auswählen und beide aktuell/vollständig laden. Falls nach Neustart abgemeldet, wieder ausdrücklich anmelden. Denselben Testanschluss anrufen lassen. Beide Mandantengruppen prüfen, bewusst den B-Treffer übernehmen; annehmen, Marker `G1-<Edition>-<Lauf-ID>-E2` speichern und beenden. | Die gleiche Nummer ergibt Treffer beider Mandanten; keine willkürlich übernommene Identität. B ist erst durch die ausdrückliche Auswahl zugeordnet, einschließlich richtigem Kontaktbesitzer und Rolle. Hauptsuche behält ihre bisherige Auswahl; A wird nicht global durch B ersetzt. |
+| 8 – E2: Neustart und Vergleich | Wieder regulär beenden und mit demselben Profil starten. E1 und E2 in Historie/Details vergleichen. | Genau ein Eintrag je Prüfanruf. E1 gehört weiterhin zu A, E2 zu B; ihre Marker und historischen Besitzer-/Mandantenzuordnungen sind getrennt und unverändert. Keine Dubletten oder Notizverluste. |
+| 9 – Auswerten und wiederholen | Beobachtungen mit bereinigtem Logzeitfenster abgleichen. Abmelden, Testlauf regulär beenden. Danach die andere Edition mit eigenem Profil/Testbestand und dokumentiertem Build durch dieselben Schritte führen. | Nur tatsächlich bestandene Schritte bestätigen. G1 erst abhaken, wenn beide Editionen einschließlich Mehrdeutigkeit und Neustart erfolgreich ausgewertet sind. Profil/DB bis zur Auswertung erhalten; keine automatische Löschung oder Rückübernahme in Produktivdaten. |
+
+**Ergebnisraster – noch kein Live-Ergebnis:**
+
+| Nachweis | FinOffice | Pro |
+|---|---|---|
+| Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Offen |
+| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Kandidat oben vorbereitet; Start offen | Offen |
+| Neues Profil/eigene SQLite bestätigt | Offen | Offen |
+| Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
+| Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
+| E1: Rufnummer/Kontakt/Besitzer/A bewusst zugeordnet | Offen | Offen |
+| E1: angenommen, Notiz gespeichert, beendet; Hauptansicht erhalten | Offen | Offen |
+| E1: Neustart mit Historie/Zeiten/Zuordnung/Notiz ohne Dublette | Offen | Offen |
+| E2: gleiche Nummer über A/B, bewusste Wahl B, Hauptauswahl erhalten | Offen | Offen |
+| E2: angenommen, eigene Notiz gespeichert und beendet | Offen | Offen |
+| E2: Neustart, E1=A/E2=B und beide Notizen unverändert | Offen | Offen |
+| Bereinigte Logs ausgewertet, Befunde geschlossen, G1 für Edition bestanden | Offen | Offen |
+
+Für jeden durchgeführten Schritt Datum/Uhrzeit, Testalias, Soll-/Ist-Ergebnis und gegebenenfalls Befund
+ergänzen. Nicht verfügbare Voraussetzungen bleiben offen; ein vorbereiteter Prüflauf zählt nicht als bestanden.
 
 **Reihenfolge:** A1 ✅ → A2 ✅ → A3 ✅ → A4 ✅; danach Phase-7-Grundabnahme (FRITZ!Box, zwei Endpunkte und tatsächliches
 Audio) gemeinsam durchführen, anschließend G1/G2 und G3–G6. Bereits passende frühere Nachweise zuordnen,
