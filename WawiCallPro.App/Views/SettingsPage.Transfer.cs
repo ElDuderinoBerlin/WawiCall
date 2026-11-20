@@ -7,7 +7,7 @@ public partial class SettingsPage
     private void ArrangeTransferActions()
     {
         var available = Math.Max(1, footer.ClientSize.Width - footer.Padding.Horizontal);
-        foreach (var (table, buttons) in new[] { (transferActions, new[] { importButton, exportButton, reloadButton }), (dialogActions, new[] { saveButton, cancelButton }) })
+        foreach (var (table, buttons) in new[] { (transferActions, new[] { importButton, exportButton }), (dialogActions, new[] { saveButton, cancelButton }) })
         {
             table.SuspendLayout();
             var cell = buttons.Max(button => button.Width + button.Margin.Horizontal);

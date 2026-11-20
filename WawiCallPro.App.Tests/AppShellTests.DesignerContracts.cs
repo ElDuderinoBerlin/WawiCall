@@ -163,7 +163,7 @@ public sealed partial class AppShellTests
         foreach (var button in new[] { first, second })
         {
             Assert.IsTrue(button.Padding.Left >= button.LogicalToDeviceUnits(12));
-            Assert.IsTrue(button.Padding.Top >= button.LogicalToDeviceUnits(6));
+            Assert.IsTrue(button.Height >= button.CalcBestSize().Height);
             Assert.IsTrue(button.Width >= button.GetPreferredSize(Size.Empty).Width);
         }
         Assert.AreEqual(first.Size, second.Size);

@@ -43,7 +43,7 @@ public sealed partial class AppShellTests
                     dialog.PerformLayout(); Application.DoEvents();
                     Assert.IsTrue(area.Contains(dialog.Bounds), $"{tabName}: window {dialog.Bounds} escapes {area}");
                     Assert.IsTrue(dialog.MinimumSize.Width <= width && dialog.MinimumSize.Height <= height);
-                    foreach (var name in new[] { "saveButton", "cancelButton", "reloadButton", "importButton", "exportButton" })
+                    foreach (var name in new[] { "saveButton", "cancelButton", "importButton", "exportButton" })
                     {
                         var button = Field<SimpleButton>(page, name);
                         var bounds = dialog.RectangleToClient(button.RectangleToScreen(button.ClientRectangle));

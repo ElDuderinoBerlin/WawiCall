@@ -299,6 +299,13 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ### Zentraler Einstellungsdialog
 
+- Nutzerauftrag vom 20.11.2026: Textbuttons in Ansichten, Dialogen und Browse-Zeilen einheitlich kompakt
+  über die zentrale Größenhilfe bemessen. Keine zusätzliche Mindesthöhe oder vertikale Padding-Vergrößerung
+  allein wegen eines Dialoghosts verwenden. Die native Skinhöhe stellt den sichtbaren vertikalen Textabstand
+  bereit, zusätzliches seitliches Padding beträgt 12 logische Pixel. Diese projektspezifische Vorgabe ersetzt
+  für WawiCallPro die frühere abweichende Dialogbemessung (40 Pixel Mindesthöhe, zusätzliches Padding 12/6).
+  Zusammengehörige Aktionen erhalten weiterhin gemeinsame Größen. „Neu laden“ im Einstellungsfooter entfällt.
+
 - Globale Einstellungen im zentralen `FrmSettings` mit Tabs nach
   `D:\Application-Development\LxTranslate\LxTranslate.App\Views\FrmSettings` bündeln.
   Pluginliste, Pluginwechsel, Pluginverwaltung und deren Konfiguration gehören in diesen Dialog;

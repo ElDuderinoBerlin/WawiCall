@@ -2561,7 +2561,7 @@ public sealed partial class AppShellTests
                 {
                     await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
                     Assert.IsFalse(Field<SimpleButton>(page, "saveButton").Enabled);
-                    Assert.IsFalse(Field<SimpleButton>(page, "reloadButton").Enabled);
+                    Assert.IsFalse(Field<SimpleButton>(page, "importButton").Enabled);
                     Assert.IsFalse(Field<SimpleButton>(management, "refreshButton").Enabled);
                     Assert.IsTrue(Field<DevExpress.XtraWaitForm.ProgressPanel>(management, "switchProgress").Visible);
                     Assert.Contains("Vorgänge", Field<LabelControl>(management, "statusLabel").Text);
@@ -2849,7 +2849,7 @@ public sealed partial class AppShellTests
                 form.MinimumSize = Size.Empty;
                 form.ClientSize = small ? new Size(720, 650) : new Size(980, 760);
                 var tabs = Field<XtraTabControl>(page, "tabs");
-                Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(page, "reloadButton").Size);
+                Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(page, "importButton").Size);
                 Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Size, Field<SimpleButton>(page, "cancelButton").Size);
                 foreach (XtraTabPage tab in tabs.TabPages)
                 {

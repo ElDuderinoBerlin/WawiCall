@@ -6,7 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: G1-Livebefund zur weiterhin zu hohen Toolbar korrigiert (20.11.2026): Tahoma 8 pt bei
+Zuletzt ergänzt: ✅ G1-UI-Nachkorrektur: Textbuttons in Ansichten, Dialogen und Browse-Zeilen einheitlich
+nach nativen Skinmaßen bemessen; „Neu laden“ aus dem Einstellungsfooter entfernt (20.11.2026).
+Bei Tahoma 8 pt/144 DPI sind Ansichtsaktion, vier Footeraktionen und Browse-Button jeweils 32 Pixel hoch.
+Gezielte Dialog-/Layoutprüfungen und native Messungen beider Editionen bestanden; Wartecursor-Anschluss folgt separat.
+Zuvor ergänzt: G1-Livebefund zur weiterhin zu hohen Toolbar korrigiert (20.11.2026): Tahoma 8 pt bei
 nativen 144 DPI ergab 48 Pixel Buttonhöhe neben 26 Pixel hohen Datumsfeldern. Die zentrale Hilfe verwendet
 jetzt native vertikale Skinmaße ohne zusätzliche Toolbar-Mindesthöhe; derselbe Fall ergibt 32 Pixel.
 Pro-Kandidat 0.1.220 bereitgestellt, Prüfbelege unten. G1 bleibt bis zur gemeinsamen Fortsetzung offen.
@@ -2593,12 +2597,12 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
-Anwendungsversion `0.1.220` (Dateiversion `0.1.0.220`), Dateistand 20.11.2026 11:42 Uhr lokal.
+Anwendungsversion `0.1.221` (Dateiversion `0.1.0.221`), Dateistand 20.11.2026 12:03 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
 als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
-`C47A1E0DC2E9E8D4FE703BAA54CC21582032B2214ADA55131F9D7E6DBD2A189A`.
-Der vor dem zugehörigen Toolbar-Fix-Commit gebaute Arbeitsstand basiert auf `6210a12` mit der Toolbar-
-Korrektur und den bereits vorhandenen lokalen Änderungen;
+`86FA9B3F56C98F754587C41B783C31F9F2504382A0ADC417A9C4C3298D11F9D0`.
+Der vor dem zugehörigen Button-Fix-Commit gebaute Arbeitsstand basiert auf `ae7f0bd` mit der einheitlichen
+Buttonbemessung und den bereits vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
 
@@ -2799,6 +2803,31 @@ Nachweise `.toolbar-height-build-{pro,fin}.log`, `.toolbar-height-tests-{pro,fin
 `.artifacts/toolbar-native-{pro,fin}`, weitere Bilder unter `.artifacts/app-shell/settings-ui/history-toolbar-compact`
 und den jeweiligen bestehenden zielgerichteten Renderordnern. Keine Änderung der Windows-Skalierung,
 keine echten Konten oder Anrufe, kein behaupteter 200-%-/Mehrmonitorwechsel. G1/G5 bleiben gemeinsam offen.
+
+**G1-Nachkorrektur einheitlicher Dialogbuttons (20.11.2026):** Der Benutzerbefund zeigt die verbleibende
+Inkonsistenz zwischen kompakten Ansichtsbuttons und größeren Dialog-/Browse-Aktionen. Auf ausdrücklichen
+Auftrag jetzt dieselben nativen Maße für alle Textbuttons verwenden; die projektspezifische Vorgabe steht
+außerhalb des gemeinsamen Blocks in `AGENTS.md`. Frühere Aussagen zu Dialogminimum 40 und zusätzlichem
+Padding 12/6 sind damit für den aktuellen Stand abgelöst. Seitliches Padding und native sichtbare Textabstände
+bleiben erhalten. Gruppenbreiten und Layoutreaktionen auf Schrift, Skin und DPI bleiben in der zentralen Hilfe.
+„Neu laden“ einschließlich Feld, Ereignisverdrahtung und Handler aus den Einstellungen entfernt; Import/Export
+links sowie Speichern/Abbrechen rechts bleiben erhalten. Internes Laden und die fachlichen Aktualisieren-
+Aktionen anderer Views bleiben erhalten. Rider hat fünf danach unbenutzte Deklarationen sicher entfernt.
+
+Pro: 22 gezielte Tests bestanden. FinOffice: 21 der 22 Fälle zunächst bestanden; die verbleibende historische
+Drei-Button-Erwartung auf zwei Transferaktionen korrigiert und gezielt erfolgreich nachgeprüft. Neue Fälle
+prüfen Ansichts-/Footer-/Browsehöhe, vier Footeraktionen, fehlenden Reload-Einstieg, kleine Fenster,
+Schrift/Skin, Pluginwechsel und bestehende Dialoge. Alle 27 Designer-Quellprüfungen bestanden.
+Je Edition sechs native FrmSettings-Fälle mit 8/10/16 pt und 900/1240 Breite bei 144 DPI bestanden;
+Tahoma 8 pt: Referenzaktion, Importieren, Exportieren, Speichern, Abbrechen und Browse jeweils 32 Pixel.
+Alle Einstellungen-Tabs ohne sichtbare Fenster gerendert; repräsentative Bilder visuell geprüft.
+Der native Audit verwendet eindeutige Footer-Suchbereiche und gültige Dateinamen auch für „Office / Mail“.
+Beide regulären Rebuilds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen; Pro zuletzt.
+Nachweise `.uniform-buttons-build-{pro,fin}.log`, `.uniform-buttons-tests-{pro,fin}.log`,
+`.uniform-buttons-followup-fin.log`, `.uniform-buttons-native-{pro,fin}.log`, `.uniform-buttons-designer.log`;
+native Bilder/Messwerte unter `.artifacts/uniform-native-{pro,fin}`, zusätzliche Render unter
+`.artifacts/app-shell/settings-ui/uniform-buttons`. Keine Daten-/Schemaänderung und kein echter Anruf.
+G1 bleibt für die gemeinsame Bedien-/Plugin-/Datenbank-/SIP-Prüfung offen.
 
 **Abschluss DPI-R2 (20.11.2026):** `FrmSettings`, statische Einstellungsseiten und Mailkonfiguration
 behalten ihre Designer-Aufteilung und Eingaben. Wie in LxTranslate liegen lange Inhalte in scrollbar

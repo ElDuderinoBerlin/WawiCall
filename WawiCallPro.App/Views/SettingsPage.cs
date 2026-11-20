@@ -77,9 +77,9 @@ public partial class SettingsPage : XtraUserControl
         {
             footer.SuspendLayout(); cacheActions.SuspendLayout(); matchingButtons.SuspendLayout();
             var actionMargin = new Padding(LogicalToDeviceUnits(6));
-            foreach (var button in new[] { saveButton, reloadButton, cancelButton, importButton, exportButton }) button.Margin = actionMargin;
+            foreach (var button in new[] { saveButton, cancelButton, importButton, exportButton }) button.Margin = actionMargin;
             footer.Padding = new Padding(LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), 0);
-            UiButtonSizing.Apply(saveButton, reloadButton, cancelButton, importButton, exportButton);
+            UiButtonSizing.Apply(saveButton, cancelButton, importButton, exportButton);
             ArrangeTransferActions();
             UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(databaseSetupButton);
@@ -148,7 +148,7 @@ public partial class SettingsPage : XtraUserControl
     private async Task ActivatePluginAsync(string id, CancellationToken token)
     {
         if (_workspace?.Plugins is not WawiCallPro.Interfaces.Plugins.IProductPluginSelection selection) return;
-        saveButton.Enabled = reloadButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
+        saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
         try
         {
@@ -167,7 +167,7 @@ public partial class SettingsPage : XtraUserControl
         {
             _operation?.Dispose(); _operation = new PageOperation(this, statusLabel);
             _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
-            saveButton.Enabled = reloadButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
+            saveButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
             cacheTab.PageEnabled = _workspace.CanUseBusinessDirectory;
         }
@@ -396,10 +396,6 @@ public partial class SettingsPage : XtraUserControl
     }
     private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>
         first.UseDirectXRendering != second.UseDirectXRendering || first.ShowWindowHotkey != second.ShowWindowHotkey || first.DialHotkey != second.DialHotkey;
-    private async void Reload_Click(object? sender, EventArgs e)
-    {
-        await ReloadAsync();
-    }
 
     private async void RefreshCache_Click(object? sender, EventArgs e)
     {
@@ -443,7 +439,7 @@ public partial class SettingsPage : XtraUserControl
 
     private void SetCacheBusy(bool busy)
     {
-        refreshCacheButton.Enabled = loadCompaniesButton.Enabled = saveButton.Enabled = reloadButton.Enabled = cacheGrid.Enabled = !busy;
+        refreshCacheButton.Enabled = loadCompaniesButton.Enabled = saveButton.Enabled = cacheGrid.Enabled = !busy;
         cancelCacheButton.Enabled = busy;
         matchingLayout.Enabled = !busy;
     }

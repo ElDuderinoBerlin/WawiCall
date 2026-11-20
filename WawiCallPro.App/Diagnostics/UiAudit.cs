@@ -20,7 +20,7 @@ internal static class UiAudit
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
         foreach (var (surface, page) in surfaces)
-        foreach (var fontSize in surface == "HistoryPage" ? new[] { 8F, 10F, 16F } : new[] { 10F, 16F })
+        foreach (var fontSize in surface is "HistoryPage" or "FrmSettings" ? new[] { 8F, 10F, 16F } : new[] { 10F, 16F })
         {
             foreach (var size in new[] { new Size(1240, 780), new Size(900, 700) })
             {
@@ -83,8 +83,26 @@ internal static class UiAudit
                             CreateHandles(settings);
                             settings.PerformLayout();
                             using var shot = Capture(settings);
-                            shot.Save(Path.Combine(outputDirectory, $"FrmSettings-{tab.Text}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
+                            var tabFileName = string.Concat(tab.Text.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
+                            shot.Save(Path.Combine(outputDirectory, $"FrmSettings-{tabFileName}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
                         }
+                        using var reference = new SimpleButton { Text = "Aktualisieren", Font = font };
+                        form.Controls.Add(reference); CreateHandles(reference);
+                        Hosting.UiButtonSizing.Apply(reference);
+                        var names = new[] { "importButton", "exportButton", "saveButton", "cancelButton", "logDirectoryBrowseButton" };
+                        var footer = settings.Controls.Find("footer", true).Single();
+                        var actions = names
+                            .Select(name => (name == "logDirectoryBrowseButton" ? (Control)settings : footer)
+                                .Controls.Find(name, true).OfType<SimpleButton>().Single()).ToArray();
+                        var measurements = new
+                        {
+                            reference.DeviceDpi, Font = font.ToString(), ReferenceHeight = reference.Height,
+                            Buttons = actions.Select(button => new { button.Name, button.Height, NativeHeight = button.CalcBestSize().Height }).ToArray()
+                        };
+                        File.WriteAllText(Path.Combine(outputDirectory, $"FrmSettings-{size.Width}-{fontSize:0}-metrics.json"),
+                            System.Text.Json.JsonSerializer.Serialize(measurements, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                        if (actions.Any(button => button.Height != reference.Height) || footer.Controls.Find("reloadButton", true).Length != 0)
+                            throw new InvalidOperationException("Settings buttons must match view actions and have no reload action.");
                         continue;
                     }
                     if (surface == "FrmDial")

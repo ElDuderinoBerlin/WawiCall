@@ -60,7 +60,6 @@ partial class SettingsPage
         pluginPage = new WawiCallPro.App.Views.PluginPage();
         statusLabel = new DevExpress.XtraEditors.LabelControl();
         saveButton = new DevExpress.XtraEditors.SimpleButton();
-        reloadButton = new DevExpress.XtraEditors.SimpleButton();
         footer = new System.Windows.Forms.TableLayoutPanel();
         transferActions = new System.Windows.Forms.TableLayoutPanel();
         dialogActions = new System.Windows.Forms.TableLayoutPanel();
@@ -860,13 +859,6 @@ partial class SettingsPage
         saveButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         saveButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         saveButton.Click += Save_Click;
-        reloadButton.Name = "reloadButton";
-        reloadButton.Text = "Neu laden";
-        reloadButton.ToolTip = "Gespeicherte Einstellungen neu laden und ungespeicherte Eingaben ersetzen.";
-        reloadButton.AutoSize = true;
-        reloadButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        reloadButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-        reloadButton.Click += Reload_Click;
         statusLabel.Name = "statusLabel";
         statusLabel.Text = "Einstellungen noch nicht geladen.";
         statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
@@ -1078,6 +1070,7 @@ partial class SettingsPage
         Size = new System.Drawing.Size(720, 580);
         layout.Padding = new System.Windows.Forms.Padding(0);
         tabs.Margin = new System.Windows.Forms.Padding(0);
+        footer.Name = "footer";
         footer.Padding = new System.Windows.Forms.Padding(6, 6, 6, 0);
         footer.Margin = new System.Windows.Forms.Padding(0);
         footer.ColumnCount = 2;
@@ -1089,9 +1082,8 @@ partial class SettingsPage
         transferActions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         transferActions.Anchor = System.Windows.Forms.AnchorStyles.Left;
         transferActions.Margin = new System.Windows.Forms.Padding(0);
-        transferActions.ColumnCount = 3;
+        transferActions.ColumnCount = 2;
         transferActions.RowCount = 1;
-        transferActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         transferActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         transferActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         transferActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -1119,7 +1111,6 @@ partial class SettingsPage
         exportButton.Click += ExportSettings_Click;
         transferActions.Controls.Add(importButton, 0, 0);
         transferActions.Controls.Add(exportButton, 1, 0);
-        transferActions.Controls.Add(reloadButton, 2, 0);
         dialogActions.Controls.Add(saveButton, 0, 0);
         dialogActions.Controls.Add(cancelButton, 1, 0);
         footer.Controls.Add(transferActions, 0, 0);
@@ -1132,7 +1123,6 @@ partial class SettingsPage
         cancelButton.Margin = new System.Windows.Forms.Padding(6);
         cancelButton.Click += Cancel_Click;
         saveButton.Margin = new System.Windows.Forms.Padding(6);
-        reloadButton.Margin = new System.Windows.Forms.Padding(6);
         cacheLayout.Padding = new System.Windows.Forms.Padding(6);
         cacheHint.Text = "Mandanten für den Telefon-Cache auswählen.";
         cacheView.OptionsBehavior.AutoPopulateColumns = false;
@@ -1168,7 +1158,6 @@ partial class SettingsPage
     private WawiCallPro.App.Views.PluginPage pluginPage;
     private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.SimpleButton saveButton;
-    private DevExpress.XtraEditors.SimpleButton reloadButton;
     private System.Windows.Forms.TableLayoutPanel footer;
     private System.Windows.Forms.TableLayoutPanel transferActions;
     private System.Windows.Forms.TableLayoutPanel dialogActions;

@@ -70,11 +70,10 @@ public sealed partial class AppShellTests
             using var dialog = new XtraForm();
             dialog.Controls.Add(button);
             UiButtonSizing.Apply(button);
-            Assert.IsTrue(button.Padding.Top >= button.LogicalToDeviceUnits(6));
-            Assert.IsTrue(button.Height >= button.LogicalToDeviceUnits(40));
+            Assert.AreEqual(first, button.Size, "A dialog host must use the same compact metrics as a view.");
             dialog.Controls.Remove(button);
             UiButtonSizing.Apply(button);
-            Assert.AreEqual(first, button.Size, "Moving between dialog and toolbar must restore the compact metrics.");
+            Assert.AreEqual(first, button.Size, "Changing the host must preserve the shared metrics.");
         }
         finally { UserLookAndFeel.Default.SetSkinStyle(oldSkin, oldPalette); }
         return Task.CompletedTask;

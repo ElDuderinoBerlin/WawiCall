@@ -41,7 +41,7 @@ public sealed partial class AppShellTests
                     if (mail) dialog.SelectMailTab();
                     Application.DoEvents(); CheckTableBounds(page);
                     Assert.IsTrue(Screen.FromControl(dialog).WorkingArea.Contains(dialog.Bounds));
-                    foreach (var name in new[] { "saveButton", "cancelButton", "reloadButton", "importButton", "exportButton" })
+                    foreach (var name in new[] { "saveButton", "cancelButton", "importButton", "exportButton" })
                     {
                         var button = Field<SimpleButton>(page, name);
                         Assert.IsTrue(dialog.ClientRectangle.Contains(dialog.RectangleToClient(button.RectangleToScreen(button.ClientRectangle))), name);
