@@ -8,7 +8,8 @@ Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implemen
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Zuletzt ergänzt: DPI-R2 behoben: Fenster und Mindestgrößen bleiben im Arbeitsbereich; lange Einstellungsseiten
 scrollen bei sichtbarer Aktionszeile. Kleine Fenster bis 800 × 600 mit 24 pt isoliert geprüft.
-Die Befunde DPI-R3 und DPI-R4 bleiben offen (20.11.2026).
+DPI-R3 ebenfalls behoben: Umbruchschwellen von Startseite und Ribbon berücksichtigen den Monitor-DPI-Faktor.
+Der Befund DPI-R4 zur Fensterpersistenz bleibt offen (20.11.2026).
 Zuvor ergänzt: DPI-Code-Review der gesamten WinForms-App mit drei offenen Befunden zu Dialoggrenzen,
 Umbruchschwellen und Fensterpersistierung; gemeldete Toolbar-Buttonhöhe zentral nach LxTranslate
 korrigiert. Toolbar- und Dialogaktionen erhalten getrennte DPI-bezogene Maße (20.11.2026).
@@ -2687,7 +2688,7 @@ Kein pauschaler vollständiger GUI-Lauf und keine Änderung der Windows-Anzeiges
 | ID / Priorität | Stelle und konkretes Problem | Status / nächster Schritt |
 |---|---|---|
 | DPI-R2 / P2 | Die frühere Mindesthöhe und die Wiederherstellung konnten Fenster über den verfügbaren Arbeitsbereich hinaus vergrößern. | ✅ Behoben am 20.11.2026. `WindowWorkArea` begrenzt Fenster und Mindestgrößen zentral, auch bei Größen-/Positions-/DPI-Änderungen. Einstellungen bemessen eine bedienbare Mindestansicht statt der gesamten Inhaltslänge; lange Tabseiten scrollen, die Aktionszeile bleibt sichtbar. Aktionsgruppen umbrechen und ihre Abstände werden einmal in DPI-Einheiten bemessen. |
-| DPI-R3 / P2 | `HomeDashboard.ArrangeDashboard` vergleicht Geräte-Pixelbreiten mit `1000 * Font.Size / 10F` beziehungsweise `800 * Font.Size / 10F`. Die Schriftpunktgröße bildet den Monitor-DPI-Faktor nicht ab. Bei gleicher logischer Fensterbreite fällt die Spaltenentscheidung nach DPI-Wechsel unterschiedlich aus. Auch `MainForm_SizeChanged` nutzt für die Ribbonentscheidung die unskalierte Höhenschwelle 900. | Offen. Umbruchgrenzen aus bevorzugten Inhalten oder einheitlichen logischen Einheiten ableiten; DPI- und Schriftänderung zusammen berücksichtigen. Beispiel: 1200 Geräte-Pixel bei 150 % entsprechen 800 logischen Pixeln, werden derzeit aber gegen 1000 statt 1500 Geräte-Pixel geprüft. |
+| DPI-R3 / P2 | Startseiten-Spalten und Ribbonhöhe verwendeten Gerätemaße mit unskalierten Umbruchschwellen. | ✅ Behoben am 20.11.2026. `DpiLayoutMetrics` rechnet die logischen Schwellen genau einmal mit dem Monitor-DPI-Faktor um; die Startseite berücksichtigt zusätzlich die Schriftpunktgröße. Schrift- und DPI-Ereignisse aktualisieren das vorhandene Layout ohne neue Controls. |
 | DPI-R4 / P2 | `AppUiState.SaveWindow` schreibt rohe Pixel für Left/Top/Width/Height ohne Bezugs-DPI; `RestoreWindow` übernimmt sie ohne DPI-Umrechnung. Bei geänderter Skalierung zwischen Sitzungen bleiben die logischen Fenstermaße daher nicht erhalten; Mindestgrößenkorrektur ersetzt keine proportionale Wiederherstellung. | Offen. Bezugs-DPI beziehungsweise logische Größen versioniert speichern und beim Wiederherstellen für den Zielmonitor umrechnen; vorhandene Werte und RestoreBounds erhalten. Realer Monitorwechsel-/Neustartnachweis gehört weiter zu G5. |
 | DPI-R1 / P2 | Die A4-Änderung an `ToolbarButtonLayoutHelper.ButtonGroup.Resize` hat den Dialog-Innenabstand 12/6 auf sämtliche Buttons angewendet und damit auch die in `HistoryPage.Designer.cs` bewusst kompakte Toolbar überschrieben. `CalcBestSize()` berücksichtigt dieses Padding bereits. Gemessen bei 96 DPI: 9 pt liefert nativ 22, mit 12/6 Padding 34 Pixel; bei 16 pt nativ 35 und mit Padding 47 Pixel. Die gewünschte LxTranslate-Toolbarbemessung ergibt 32 beziehungsweise 44 Pixel. | ✅ Korrigiert: gemeinsame Hilfe unterscheidet Toolbar von Dialog anhand des Formularhosts. Toolbar mindestens 32 logische Pixel, Innenabstand 12/2; Dialog mindestens 40, Innenabstand 12/6. Mindesthöhe und Abstände werden über `LogicalToDeviceUnits` einmal umgerechnet; Skin-/Textgrößen per Maximum einbezogen. Gruppen bleiben einheitlich, Handler für Schrift, Skin und DPI bleiben erhalten. |
 
@@ -2742,8 +2743,19 @@ visuell ausgewertete Bilder unter `.artifacts/app-shell/settings-ui/dpi-r2-work-
 Die kleinen Arbeitsbereiche sind injizierte Prüfvorgaben; keine Änderung der Windows-Auflösung oder sichtbare GUI.
 Keine Daten-/Schemaänderung und kein echter Anruf. DPI-Skalierung gespeicherter Geometrie ist weiterhin R4.
 
-Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. Die offenen R3–R4 bleiben
-konkrete Folgearbeiten; echte 100/150/200-%-Monitorwechsel, erreichbare Dialogaktionen am Zielbildschirm
+**Abschluss DPI-R3 (20.11.2026):** Je Pro/FinOffice sieben gezielte Prüfungen bestanden. Die numerischen
+Umbruchentscheidungen bleiben bei gleicher logischer Fläche unter 96/120/144/192 DPI gleich, einschließlich
+Schriftgrößen 9/10/16/24 pt und der Ribbon-Höhengrenze. Ein Schriftwechsel ordnet die vorhandenen
+Startseitenkarten neu und erhält Statuswerte. Startseite und Ribbon wurden unsichtbar mit leeren/gefüllten
+Zuständen, kleiner/großer Fläche, heller/dunkler Darstellung und 150-%-Layoutsimulation gerendert;
+die betroffenen Bilder wurden visuell ausgewertet. Alle 27 Designer-Quellprüfungen bestanden.
+Beide regulären Builds Debug/Any CPU fehlerfrei, je 26 bekannte externe CSCore-Warnungen; FinOffice zuletzt.
+Nachweise: `.dpi-r3-build-{pro,fin}.log`, `.dpi-r3-tests-{pro,fin}.log`, `.dpi-r3-designer.log`,
+`.artifacts/layout-reference` und die vorhandenen Ribbon-Navigationsbilder. Die mathematischen DPI-Fälle
+und Layoutsimulationen bestätigen keinen nativen Monitorwechsel.
+
+Der Review bestätigt ausdrücklich keine vollständig DPI-fehlerfreie App. R4 bleibt
+konkrete Folgearbeit; echte 100/150/200-%-Monitorwechsel, erreichbare Dialogaktionen am Zielbildschirm
 und Fensterwiederherstellung müssen nach den Korrekturen gemeinsam unter G5 geprüft werden. Die vorhandenen
 125/150-%-Renderfälle sind Layoutsimulationen, keine nativen Monitorwechsel. G1 und die übrigen G-Punkte
 bleiben unverändert offen; wegen des neuen Builds vor einem Live-Lauf den vorbereiteten Buildstand erneut prüfen.

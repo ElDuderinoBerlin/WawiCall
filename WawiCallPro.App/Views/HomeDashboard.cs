@@ -22,6 +22,7 @@ public partial class HomeDashboard : XtraUserControl
         logo.SvgImageColorizationMode = DevExpress.Utils.SvgImageColorizationMode.None;
         SizeChanged += Dashboard_SizeChanged;
         FontChanged += Dashboard_SizeChanged;
+        DpiChangedAfterParent += Dashboard_SizeChanged;
         layout.Layout += Dashboard_Layout;
         scroll.ClientSizeChanged += Dashboard_SizeChanged;
         body.SizeChanged += Body_SizeChanged;
@@ -75,13 +76,13 @@ public partial class HomeDashboard : XtraUserControl
             // Auto-sized percent tables can otherwise grow to an unwrapped label's preferred width.
             header.MaximumSize = new Size(Math.Max(1, layout.ClientSize.Width - header.Margin.Horizontal), 0);
             body.MaximumSize = new Size(Math.Max(1, scroll.ClientSize.Width - body.Margin.Horizontal), 0);
-            var narrow = Width < 1000 * Font.Size / 10F;
+            var narrow = Width < DpiLayoutMetrics.FontThreshold(1000, Font.Size, DeviceDpi);
             body.SuspendLayout(); toolbar.SuspendLayout();
             body.ColumnStyles[0].Width = narrow ? 100 : 67;
             body.ColumnStyles[1].Width = narrow ? 0 : 33;
             body.SetCellPosition(steps, narrow ? new TableLayoutPanelCellPosition(0, 1) : new TableLayoutPanelCellPosition(1, 0));
             body.RowCount = narrow ? 2 : 1;
-            var singleCardColumn = Width < 800 * Font.Size / 10F;
+            var singleCardColumn = Width < DpiLayoutMetrics.FontThreshold(800, Font.Size, DeviceDpi);
             var cardControls = new[] { databaseCard, sipCard, pluginCard, journalCard, cacheCard, editionCard };
             var cardColumns = singleCardColumn ? 1 : 2;
             cards.SuspendLayout();

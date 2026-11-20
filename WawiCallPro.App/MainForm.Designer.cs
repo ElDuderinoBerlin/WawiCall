@@ -357,6 +357,8 @@ partial class MainForm
         Load += MainForm_Load;
         Load += MailState_Load;
         SizeChanged += MainForm_SizeChanged;
+        FontChanged += MainForm_SizeChanged;
+        DpiChanged += MainForm_DpiChanged;
         ((System.ComponentModel.ISupportInitialize)dockManager).BeginInit();
         ((System.ComponentModel.ISupportInitialize)documentManager).BeginInit();
         ((System.ComponentModel.ISupportInitialize)tabbedView).BeginInit();
