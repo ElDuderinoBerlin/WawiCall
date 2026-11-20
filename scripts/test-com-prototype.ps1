@@ -2,7 +2,8 @@ param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
     [ValidateSet('Pro', 'FinOffice')][string]$LexwareProductLine = 'Pro',
     [string]$OutputDirectory,
-    [switch]$FromDesktop
+    [switch]$FromDesktop,
+    [switch]$ContractsOnly
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -18,6 +19,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     if ($FromDesktop) { throw 'The desktop launcher did not provide a normal user context.' }
     $powerShell = Join-Path $PSHOME 'pwsh.exe'
     $arguments = '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -File "{0}" -Configuration {1} -LexwareProductLine {2} -OutputDirectory "{3}" -FromDesktop' -f $PSCommandPath, $Configuration, $LexwareProductLine, $output
+    if ($ContractsOnly) { $arguments += ' -ContractsOnly' }
     $shell = New-Object -ComObject Shell.Application
     $windows = $shell.Windows()
     $desktopHandle = 0
@@ -39,7 +41,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
         }
         $result = Get-Content -LiteralPath (Join-Path $output 'results.json') -Raw | ConvertFrom-Json
         if ($null -ne $child.ExitCode -and $child.ExitCode -ne 0) { throw "Unelevated fixture run failed: $($result.Error). Inspect $output" }
-        if (-not $result.Completed) { throw 'Unelevated fixture run incomplete.' }
+        if (-not $result.Completed) { throw "Unelevated fixture run incomplete: $($result.Error). Inspect $output" }
         Write-Output "Passed $($result.Checks.Count) checks in the normal user context. Results: $output"
     } finally { $child.Dispose() }
     return
@@ -59,6 +61,26 @@ function Assert-Case([bool]$Condition, [string]$Name) {
     $passed.Add([pscustomobject]@{ Name = $Name; Passed = $true })
     Write-Host "PASS $Name"
 }
+function Assert-NoContractRegistration([string]$Stage) {
+    # Read-only proof: IDispatch works without registering the TLB or interface marshaling metadata.
+    $keys = @('TypeLib\{7155BD3A-6580-4A46-A034-1E4F55CFA047}',
+        'Interface\{710E28F8-6286-4F6E-8898-C88A3F872FC1}',
+        'Interface\{9A897EBA-795D-4FDD-9417-97B156287D22}',
+        'Interface\{643E9245-55FF-466E-A7E7-57B18E9D3FC6}',
+        'Interface\{68DA705A-6F68-49F7-8C6A-B6CC3F29A4FE}')
+    foreach ($hive in @([Microsoft.Win32.RegistryHive]::CurrentUser, [Microsoft.Win32.RegistryHive]::LocalMachine)) {
+        foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+            $root = [Microsoft.Win32.RegistryKey]::OpenBaseKey($hive, $view)
+            try {
+                foreach ($key in $keys) {
+                    $entry = $root.OpenSubKey("Software\Classes\$key")
+                    if ($entry) { $entry.Dispose(); throw "Contract metadata is registered: $hive/$view/$key" }
+                }
+                Assert-Case $true "$Stage $hive/$view has no contract TLB or Interface registration"
+            } finally { $root.Dispose() }
+        }
+    }
+}
 function Start-FixtureProcess([string]$FileName, [string[]]$Arguments) {
     $start = [Diagnostics.ProcessStartInfo]::new($FileName)
     $start.UseShellExecute = $false
@@ -75,12 +97,12 @@ function Wait-File([string]$Path) {
         Start-Sleep -Milliseconds 50
     }
 }
-function New-Fixture([string]$Name, [int]$Delay = 0, [bool]$Legacy = $false) {
+function New-Fixture([string]$Name, [int]$Delay = 0, [bool]$Legacy = $false, [bool]$Contract = $false) {
     $classId = [Guid]::NewGuid()
     $profile = Join-Path $output $Name
     [IO.Directory]::CreateDirectory($profile) | Out-Null
-    $fixture = [pscustomobject]@{ Profile = $profile; ClassId = $classId; ProgId = "WCP.p$($classId.ToString('N'))"; StartupDelayMs = $Delay; Legacy = $Legacy; RegisteredViews = [Collections.Generic.List[object]]::new() }
-    $fixture | Select-Object Profile,ClassId,ProgId,StartupDelayMs,Legacy | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'fixture.json')
+    $fixture = [pscustomobject]@{ Profile = $profile; ClassId = $classId; ProgId = "WCP.p$($classId.ToString('N'))"; StartupDelayMs = $Delay; Legacy = $Legacy; Contract = $Contract; RegisteredViews = [Collections.Generic.List[object]]::new() }
+    $fixture | Select-Object Profile,ClassId,ProgId,StartupDelayMs,Legacy,Contract | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'fixture.json')
     $fixtures.Add($fixture)
     foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
         $root = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $view)
@@ -116,7 +138,8 @@ function New-Fixture([string]$Name, [int]$Delay = 0, [bool]$Legacy = $false) {
 function Start-Client($Fixture, [string]$Name, [string]$Bitness = 'x64', [string]$Mode = 'inspect', [int]$Hold = 0, [string]$Barrier = '') {
     $client = if ($Bitness -eq 'x86') { Join-Path $env:WINDIR 'SysWOW64/cscript.exe' } else { Join-Path $env:WINDIR 'System32/cscript.exe' }
     $result = Join-Path $Fixture.Profile "$Name.json"
-    $arguments = @('//nologo', '//E:JScript', $scriptFile, $Fixture.ProgId, $Mode, $result, [string]$Hold)
+    $clientScript = if ($Fixture.Contract) { Join-Path $PSScriptRoot 'ComPrototype/contracts.js' } else { $scriptFile }
+    $arguments = @('//nologo', '//E:JScript', $clientScript, $Fixture.ProgId, $Mode, $result, [string]$Hold)
     if ($Barrier) { $arguments += $Barrier }
     return [pscustomobject]@{ Process = (Start-FixtureProcess $client $arguments); Result = $result }
 }
@@ -155,6 +178,7 @@ function Assert-HostAlive($Fixture, [int]$ProcessId, [string]$Reason) {
 }
 
 try {
+    if (-not $ContractsOnly) {
     $checks = Join-Path $output 'lifetime-checks.json'
     $unit = Start-FixtureProcess $executable @('--self-test', $checks)
     if (-not $unit.WaitForExit(10000) -or $unit.ExitCode -ne 0) { throw 'Lifetime checks failed.' }
@@ -227,6 +251,23 @@ try {
         $result = Read-Client $client; Wait-Client $client
         Assert-Case ($result.DependencyId -eq 'legacy') "Unmodified Quantarix LocalServer/ClassFactory/ComBase works from $bits JScript"
         Wait-HostExit $fixture
+    }
+    }
+    if ($ContractsOnly) {
+        Assert-NoContractRegistration 'Before activation'
+        foreach ($bits in @('x64', 'x86')) {
+            $fixture = New-Fixture "contracts-$bits" 0 $false $true
+            $client = Start-Client $fixture 'client' $bits
+            Wait-File $client.Result
+            $result = Get-Content -LiteralPath $client.Result -Raw | ConvertFrom-Json
+            if ($result.PSObject.Properties.Name -contains 'Failure') { throw ($result | ConvertTo-Json -Compress) }
+            foreach ($check in $result.Checks) { Assert-Case $true "$bits $check" }
+            Assert-Case ($result.ProductLine -eq $LexwareProductLine) 'COM class matches selected edition'
+            Wait-Client $client
+            [IO.File]::WriteAllText((Join-Path $fixture.Profile 'user-off.request'), '')
+            Wait-HostExit $fixture
+        }
+        Assert-NoContractRegistration 'After activation'
     }
     $completed = $true
 } catch {

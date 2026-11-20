@@ -9,9 +9,11 @@ die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise u
 Zusätzlicher Auftrag vom 20.11.2026: ✅ [COM-Automation-Studie mit eigenem Phasenplan](COM-Automation-Studie-und-Phasenplan.md)
 abgeschlossen (dort Phase 0). ✅ Phase 1: isolierter COM-Prototyp nach LxTranslate.Server mit je 57
 bestandenen Pro-/FinOffice-Prüfungen; x86/x64-Aktivierung, paralleler Start, Dispatcher und Lebensdauer
-nachgewiesen, eigene HKCU-Registrierungen entfernt. Produktive Verträge/App-Anbindung und reale Abnahme
-bleiben offen. Kunden-/Lieferantenaufrufe nach Mandant und Nummer in den Phasen 2/4 ergänzt;
-die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
+nachgewiesen, eigene HKCU-Registrierungen entfernt. ✅ COM-Phase 2: V1-Verträge und DI-Adapter mit
+`ShowCustomer`/`ShowSupplier` nach Mandant, Rolle und exakter Nummer; je Edition 15 Vertrags-/Adaptertests,
+70 native COM-Prüfungen und erneut 57 Prototypprüfungen bestanden. Nur HKCU, keine TLB-/Interface-
+Registrierung; IDL/TLB ohne Registrierung geprüft. App-Anbindung und echte Ansichten/Telefonie folgen
+in COM-Phasen 3–8. Die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

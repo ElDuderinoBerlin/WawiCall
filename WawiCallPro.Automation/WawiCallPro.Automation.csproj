@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net11.0-windows10.0.19041.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../WawiCallPro.Automation.Contracts/WawiCallPro.Automation.Contracts.csproj" />
+    <ProjectReference Include="../WawiCallPro.Interfaces/WawiCallPro.Interfaces.csproj" />
+    <ProjectReference Include="../../Quantarix.Interop/Quantarix.Interop.csproj" />
+  </ItemGroup>
+</Project>

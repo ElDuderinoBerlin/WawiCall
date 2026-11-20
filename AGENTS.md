@@ -274,6 +274,15 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Die Referenz ersetzt keine aktuellen Repository-Regeln. Insbesondere bei der Splash-Fokusübergabe
   die im gemeinsamen Block benannte korrigierte LxPrintStudio-Implementierung verwenden.
 
+### COM-Automation
+
+- COM-Server ausschließlich benutzerbezogen unter `HKCU\Software\Classes` registrieren.
+  Nur eigene CLSID-/ProgID-/LocalServer32-Einträge verwenden; keine Maschinenvariante und kein
+  Ausweichen auf HKLM. Keine TLB oder zusätzlichen Interface-/Automation-Proxy-Metadaten registrieren,
+  entsprechend dem Benutzerregistrierungspfad von `LxTranslate.Server`.
+- IDL-/TLB-Dateien dürfen gebaut, ausgeliefert und für Vertragsprüfungen mit `REGKIND_NONE` geladen
+  werden. `RegisterTypeLib`, `RegisterTypeLibForUser`, Regasm und Regsvr32 sind dafür nicht vorgesehen.
+
 ### Dependency Injection
 
 - Neue und überarbeitete Funktionalität möglichst konsequent über Dependency Injection aufbauen.

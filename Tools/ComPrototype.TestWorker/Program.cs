@@ -4,11 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Quantarix.Interop.COM;
 using Quantarix.Interop.Dispatcher;
 using Quantarix.Interop.Interfaces;
+using WawiCallPro.Automation;
 
 namespace WawiCallPro.ComPrototype;
 
 internal sealed record PrototypeOptions(string Profile, Guid ClassId, string ProgId, int StartupDelayMs, bool Legacy)
 {
+    public bool Contract { get; init; }
     internal static PrototypeOptions Read(string profile)
     {
         if (!Path.IsPathFullyQualified(profile)) throw new ArgumentException("Absolute fixture profile required.");
@@ -63,14 +65,26 @@ internal static class Program
                 services.AddSingleton(TimeProvider.System);
                 services.AddSingleton(provider => new ServerLifetime(provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(2)));
                 services.AddSingleton<ProbeDependency>();
+                if (options.Contract)
+                {
+                    services.AddSingleton<ContractFixture>();
+                    services.AddSingleton<IAutomationEnvironment>(service => service.GetRequiredService<ContractFixture>());
+                    services.AddSingleton<WawiCallPro.Interfaces.Directory.IPartySearch>(service => service.GetRequiredService<ContractFixture>());
+                    services.AddSingleton<IAutomationViewHost>(service => service.GetRequiredService<ContractFixture>());
+                    services.AddSingleton<IAutomationTelephony>(service => service.GetRequiredService<ContractFixture>());
+                    services.AddSingleton<WawiCallPro.Interfaces.Hosting.IUiDispatcher, ContractDispatcher>();
+                    services.AddSingleton<IAutomationPresentation, DispatchedAutomationPresentation>();
+                    services.AddWawiAutomation();
+                }
                 services.AddTransient<PrototypeAutomation>(provider => new PrototypeAutomation(
                     provider.GetRequiredService<ProbeDependency>(), provider.GetRequiredService<ServerLifetime>(), provider.GetRequiredService<IUiDispatcher>()));
                 using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
                 // Only the composition root resolves services. The factory itself receives a typed delegate.
                 var lifetime = provider.GetRequiredService<ServerLifetime>();
                 if (args.Length == 3 && args[2] == "--normal") lifetime.SetUserOwned(true);
-                using var context = new PrototypeContext(options, lifetime, provider.GetRequiredService<ProbeDependency>(),
-                    () => provider.GetRequiredService<PrototypeAutomation>());
+                using ApplicationContext context = options.Contract ? ActivatorUtilities.CreateInstance<ContractFixtureContext>(provider)
+                    : new PrototypeContext(options, lifetime, provider.GetRequiredService<ProbeDependency>(), () => provider.GetRequiredService<PrototypeAutomation>());
+                if (context is ContractFixtureContext contract) contract.ConfigureShutdown(provider.DisposeAsync);
                 Application.Run(context);
                 context.Dispose();
                 provider.Dispose();

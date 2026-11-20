@@ -1,0 +1,9 @@
+<Project Sdk="MSTest.Sdk">
+  <PropertyGroup><TargetFramework>net11.0-windows10.0.19041.0</TargetFramework><TestingExtensionsProfile>None</TestingExtensionsProfile></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../WawiCallPro.Automation/WawiCallPro.Automation.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+    <PackageReference Update="MSTest.TestAdapter" Version="4.5.3" />
+    <PackageReference Update="MSTest.TestFramework" Version="4.5.3" />
+  </ItemGroup>
+</Project>

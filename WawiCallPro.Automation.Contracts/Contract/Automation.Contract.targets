@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <AutomationMsBuild Condition="'$(AutomationMsBuild)' == ''">C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe</AutomationMsBuild>
+    <AutomationContractProject>$(MSBuildThisFileDirectory)Automation.Contract.vcxproj</AutomationContractProject>
+    <AutomationTlbDirectory>$(MSBuildThisFileDirectory)bin\$(LexwareProductLine)</AutomationTlbDirectory>
+  </PropertyGroup>
+  <Target Name="BuildAutomationTypeLibraries" BeforeTargets="BeforeBuild" Inputs="$(MSBuildThisFileDirectory)Automation.idl;$(AutomationContractProject)" Outputs="$(AutomationTlbDirectory)\x64\$(Configuration)\WawiCallPro.Automation.v1.tlb;$(AutomationTlbDirectory)\Win32\$(Configuration)\WawiCallPro.Automation.v1.tlb">
+    <Error Condition="!Exists('$(AutomationMsBuild)')" Text="Visual Studio MSBuild mit MIDL fehlt. AutomationMsBuild auf den installierten MSBuild-Pfad setzen." />
+    <Exec Command="&quot;$(AutomationMsBuild)&quot; &quot;$(AutomationContractProject)&quot; /nologo /v:minimal /p:Configuration=$(Configuration) /p:Platform=x64 /p:LexwareProductLine=$(LexwareProductLine)" />
+    <Exec Command="&quot;$(AutomationMsBuild)&quot; &quot;$(AutomationContractProject)&quot; /nologo /v:minimal /p:Configuration=$(Configuration) /p:Platform=Win32 /p:LexwareProductLine=$(LexwareProductLine)" />
+  </Target>
+  <ItemGroup>
+    <None Include="$(AutomationTlbDirectory)\x64\$(Configuration)\WawiCallPro.Automation.v1.tlb" Link="x64/WawiCallPro.Automation.v1.tlb" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(AutomationTlbDirectory)\Win32\$(Configuration)\WawiCallPro.Automation.v1.tlb" Link="x86/WawiCallPro.Automation.v1.tlb" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

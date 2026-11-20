@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../Quantarix.Interop/Quantarix.Interop.csproj" />
+    <ProjectReference Include="../../WawiCallPro.Automation/WawiCallPro.Automation.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
   </ItemGroup>
 </Project>

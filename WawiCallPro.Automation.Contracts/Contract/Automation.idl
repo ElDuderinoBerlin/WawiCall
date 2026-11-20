@@ -1,0 +1,62 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[uuid(7155BD3A-6580-4A46-A034-1E4F55CFA047), version(1.0)]
+library WawiCallProAutomation
+{
+    importlib("stdole2.tlb");
+    [uuid(9A897EBA-795D-4FDD-9417-97B156287D22)]
+    dispinterface IStatusV1
+    {
+        properties:
+        methods:
+        [id(1), propget] BSTR ApiVersion();
+        [id(2), propget] BSTR ProductLine();
+        [id(3), propget] BSTR State();
+        [id(4), propget] VARIANT_BOOL IsVisible();
+        [id(5), propget] BSTR SipState();
+        [id(6), propget] BSTR ErrorCode();
+    };
+    [uuid(643E9245-55FF-466E-A7E7-57B18E9D3FC6)]
+    dispinterface IOperationV1
+    {
+        properties:
+        methods:
+        [id(1), propget] BSTR Id();
+        [id(2), propget] BSTR State();
+        [id(3), propget] BSTR ErrorCode();
+        [id(4), propget] BSTR Message();
+        [id(5), propget] BSTR CallId();
+    };
+    [uuid(68DA705A-6F68-49F7-8C6A-B6CC3F29A4FE)]
+    dispinterface ICallV1
+    {
+        properties:
+        methods:
+        [id(1), propget] BSTR Id();
+        [id(2), propget] BSTR State();
+    };
+    [uuid(710E28F8-6286-4F6E-8898-C88A3F872FC1)]
+    dispinterface IApplicationV1
+    {
+        properties:
+        methods:
+        [id(1)] IDispatch* GetStatus();
+        [id(2)] BSTR Show();
+        [id(3)] BSTR ShowView([in] BSTR viewId, [in] BSTR contextJson);
+        [id(4)] BSTR ShowDial([in] BSTR number, [in] BSTR companyKey);
+        [id(5)] BSTR ShowCustomer([in] BSTR companyKey, [in] BSTR customerNumber);
+        [id(6)] BSTR ShowSupplier([in] BSTR companyKey, [in] BSTR supplierNumber);
+        [id(7)] BSTR ConnectTelephony();
+        [id(8)] BSTR Dial([in] BSTR number, [in] BSTR companyKey, [in] BSTR requestId);
+        [id(9)] IDispatch* GetOperation([in] BSTR operationId);
+        [id(10)] IDispatch* GetCall([in] BSTR callId);
+        [id(11)] BSTR HangUp([in] BSTR callId);
+        [id(12)] BSTR GetCompaniesJson();
+        [id(13)] BSTR GetViewsJson();
+    };
+    [uuid(B24140A1-859F-4A8F-97F6-962668F0D20D)]
+    coclass ProApplication { [default] dispinterface IApplicationV1; };
+    [uuid(F078BC10-F918-49FF-99C7-C5A2B44CFD5E)]
+    coclass FinOfficeApplication { [default] dispinterface IApplicationV1; };
+};

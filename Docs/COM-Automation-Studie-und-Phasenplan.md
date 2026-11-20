@@ -9,9 +9,11 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse und Phase 1 abgeschlossen: isolierter COM-Prototyp mit je 57
-bestandenen Prüfungen für Pro und FinOffice. Temporäre Benutzerregistrierungen wurden entfernt.
-⬜ Produktive Automation-Verträge, App-Anbindung und reale UI-/Telefonieabnahme noch offen.
+**Status:** ✅ Quellenanalyse sowie Phasen 1 und 2 abgeschlossen. Versionierte COM-Verträge,
+DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
+70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
+Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
+⬜ App-Anbindung und reale UI-/Telefonieabnahme noch offen.
 Die Prüfungen verwenden ausschließlich einen separaten Host, eigene Profile und synthetische Zustände;
 sie führen keine echten Anrufe aus und ändern weder die Produktregistrierung noch den Start der App.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
@@ -51,10 +53,11 @@ COM unterscheidet nicht zwischen einer Konsolen- und einer GUI-EXE als Architekt
 Entscheidend sind Klassenfabrik, Registrierung, Nachrichtenverarbeitung und Lebensdauer.
 Ein eigener Server würde auch als `WinExe` gebaut, wenn kein Konsolenfenster gewünscht ist.
 
-Die Fassade wird vom Hauptformular getrennt: vorgeschlagen sind `WawiCallPro.Automation.Contracts`
-für die stabilen Verträge und `WawiCallPro.Automation` für Adapter und Auftragsverwaltung.
-Die App bleibt der einzige ausführbare UI-/Telefoniehost. Diese Projektnamen sind Entwürfe;
-sie wurden nicht angelegt. Die vorhandene `WawiCallPro.Console` bleibt ein eigener CLI-Host.
+Die Fassade ist vom Hauptformular getrennt: `WawiCallPro.Automation.Contracts` enthält die
+stabilen Verträge, `WawiCallPro.Automation` die DI-Adapter und Auftragsverwaltung. Beide Projekte
+sind angelegt und im isolierten Prüfhost eingebunden. Die App bleibt der vorgesehene einzige
+produktive UI-/Telefoniehost; ihr Anschluss folgt ab Phase 3. Die vorhandene `WawiCallPro.Console`
+bleibt ein eigener CLI-Host.
 
 ```mermaid
 flowchart LR
@@ -88,7 +91,6 @@ Vorgesehene Modi:
 | Normaler EXE-/Explorer-Start | Bisheriger sichtbarer Ablauf einschließlich Splash und bestehender Startoptionen. Eigene COM-Klassenfabrik ebenfalls veröffentlichen. |
 | `-Embedding` | Bootstrap, STA-Schleife und COM-Fassade starten; kein Splash, Hauptformular, Trayicon, Anruferfenster oder Lizenzdialog. |
 | `/regserver /user` bzw. `/unregserver /user` | Nur Registrierung bearbeiten und mit Exitcode enden; keine Dienste, UI, SIP-Anmeldung oder Datenbankmigration starten. |
-| Explizite Maschinenregistrierung | Separater Installationsfall mit passenden Rechten; kein stilles Ausweichen von fehlgeschlagener Benutzerregistrierung. |
 
 Alle Argumente vollständig und ohne Beachtung der Groß-/Kleinschreibung auswerten. Unbekannte
 oder widersprüchliche Kombinationen ablehnen. Die vorhandenen Velopack-Hooks und Diagnoseschalter
@@ -133,21 +135,22 @@ COM-Erzeugen allein löst weder einen Anruf noch eine neue SIP-Anmeldung oder ei
 `ConnectTelephony()` verwendet nur lokal gespeicherte SIP-Einstellungen. Beim späteren sichtbaren
 Start konfigurierte Hintergrundaufgaben höchstens einmal starten; keine doppelte Registrierung erzeugen.
 
-## 4. Automation-Vertrag als Entwurf
+## 4. Implementierter Automation-Vertrag V1
 
-Alle folgenden Namen sind Vorschläge und noch keine verfügbare API. COM sichtbar werden nur die
+Die folgenden Verträge und Adapter sind implementiert. Nativ verfügbar sind sie in Phase 2 im
+isolierten Prüfhost; die Produkt-App veröffentlicht sie noch nicht. COM-sichtbar sind nur die
 ausdrücklichen Automation-Verträge; keine Forms, Controls, ServiceProvider, Tasks oder Pluginobjekte.
 
-Vorgeschlagene versionsgebundene ProgIDs: `WawiCallPro.Pro.Application.1` und
-`WawiCallPro.FinOffice.Application.1`, mit eigenen CLSIDs. Versionsunabhängige Produktlinien-Aliase
-können auf die jeweils kompatible Version zeigen. Keine gemeinsame Alias-Registrierung, die Pro und
-FinOffice beim Build oder Update gegenseitig überschreibt. Der gegenwärtige gemeinsame Buildausgabeordner
+Versionsgebundene ProgIDs: `WawiCallPro.Pro.Application.1` und
+`WawiCallPro.FinOffice.Application.1`, mit eigenen CLSIDs. Versionsunabhängige Aliase sind derzeit
+nicht vorgesehen. Keine gemeinsame Alias-Registrierung, die Pro und FinOffice beim Build oder
+Update gegenseitig überschreibt. Der gegenwärtige gemeinsame Buildausgabeordner
 belegt keine gleichzeitige Installation beider Editionen; Installation und Registrierung getrennt planen.
 
 | Aufruf/Eigenschaft | Vorgesehener Vertrag |
 |---|---|
 | `GetStatus()` | Kleiner schreibgeschützter Status: API-Version, Produktlinie, Bereitschaft, Sichtbarkeit, SIP-Status und sicherer Fehlercode. Keine Secrets oder vollständigen Konfigurationen. |
-| `Show()` | Vorhandenes Hauptfenster anzeigen oder einmalig erzeugen; als Benutzerbetrieb behalten. Kurzer Auftrag, keine Wartezeit auf einen später geschlossenen Dialog. |
+| `Show()` | Auftrag zum Anzeigen des vorhandenen oder einmalig erzeugten Hauptfensters; Auftrags-ID zurückgeben, als Benutzerbetrieb behalten. Keine Wartezeit auf einen später geschlossenen Dialog. |
 | `ShowView(viewId, contextJson)` | Geprüften Präsentationsauftrag annehmen; Auftrags-ID zurückgeben. Unbekannte Ansicht oder ungültigen Kontext ausdrücklich melden. |
 | `ShowDial(number, companyKey)` | Wähldialog vorbefüllen; **kein Anruf**. Auswahl und Bestätigung bleiben beim Benutzer. |
 | `ShowCustomer(companyKey, customerNumber)` | Kunden anhand ihrer Kundennummer im eindeutig angegebenen Mandanten auflösen und vorhandene Kundenansicht öffnen; Auftrags-ID zurückgeben. |
@@ -167,7 +170,77 @@ mit neuen IIDs versionieren. IDL und C# gemeinsam prüfen; TLB mit MIDL erstelle
 Bibliothekspfad allein macht aus einer EXE keinen LocalServer und erzeugt keine TLB aus C#.
 [Microsoft: moderne .NET-COM-Bereitstellung](https://learn.microsoft.com/en-us/dotnet/core/native-interop/expose-components-to-com).
 
-### 4.1 Asynchrone Telefonie und eindeutige Rückmeldungen
+Verbindliche V1-Identitäten aus [AutomationContracts.cs](../WawiCallPro.Automation.Contracts/AutomationContracts.cs)
+und [Automation.idl](../WawiCallPro.Automation.Contracts/Contract/Automation.idl):
+
+| Identität | GUID |
+|---|---|
+| Bibliothek, Version 1.0 | `7155BD3A-6580-4A46-A034-1E4F55CFA047` |
+| `IApplicationV1` | `710E28F8-6286-4F6E-8898-C88A3F872FC1` |
+| `IStatusV1` | `9A897EBA-795D-4FDD-9417-97B156287D22` |
+| `IOperationV1` | `643E9245-55FF-466E-A7E7-57B18E9D3FC6` |
+| `ICallV1` | `68DA705A-6F68-49F7-8C6A-B6CC3F29A4FE` |
+| Pro-Klasse | `B24140A1-859F-4A8F-97F6-962668F0D20D` |
+| FinOffice-Klasse | `F078BC10-F918-49FF-99C7-C5A2B44CFD5E` |
+
+`IApplicationV1` verwendet die festen Dispatch-IDs 1–13 in dieser Reihenfolge:
+`GetStatus`, `Show`, `ShowView`, `ShowDial`, `ShowCustomer`, `ShowSupplier`, `ConnectTelephony`,
+`Dial`, `GetOperation`, `GetCall`, `HangUp`, `GetCompaniesJson`, `GetViewsJson`.
+`IStatusV1` hat die schreibgeschützten Eigenschaften 1–6: `ApiVersion`, `ProductLine`, `State`,
+`IsVisible`, `SipState`, `ErrorCode`. `IOperationV1` hat 1–5: `Id`, `State`, `ErrorCode`, `Message`,
+`CallId`; `ICallV1` hat 1–2: `Id`, `State`. Die Objekte sind unveränderliche Momentaufnahmen;
+für Aktualisierungen erneut abfragen. `IsVisible` ist `VARIANT_BOOL`, alle übrigen Werte sind `BSTR`.
+Die Objekt-Rückgaben sind ausdrücklich `IDispatch`. Neue inkompatible Verträge bekommen neue IIDs,
+CLSID/ProgID-Hauptversionen; V1-Mitglieder, Reihenfolge, Typen und Dispatch-IDs bleiben erhalten.
+Die beiden MIDL-TLBs werden mit `REGKIND_NONE` geladen und gegen die C#-Verträge geprüft, nie registriert.
+
+### 4.1 DI-Adapter und Eingabegrenzen
+
+`AddWawiAutomation()` registriert eine gemeinsame Auftragsverwaltung, den rollenbezogenen
+`NumberedPartyResolver`, Router und eine typisierte Fassadenfabrik. Der Host injiziert
+`IAutomationEnvironment`, `IPartySearch`, `IAutomationPresentation` und `IAutomationTelephony`.
+`DispatchedAutomationPresentation` übergibt ausschließlich die Präsentation an den injizierten
+UI-Dispatcher; weder COM-Aufruf noch UI-Thread warten synchron auf asynchrone Facharbeit.
+Kataloge und Status müssen bereits geladene, vom Host freigegebene Momentaufnahmen liefern.
+Zugriffsgates werden vor Annahme und bei Ausführung erneut geprüft, bei Präsentation nochmals
+auf dem UI-Thread. Die tatsächlichen Lizenz-, Installations- und SIP-Regeln liefert später der App-Adapter.
+
+`GetCompaniesJson()` und `GetViewsJson()` liefern `SchemaVersion: 1` und `Items`.
+Firmen haben `Key`/`Name`, Ansichten `Id`/`Caption`. Den vollständigen `Key` unverändert zurückgeben:
+Er codiert Produktlinie, Installation und externe Mandanten-ID und wird ausschließlich gegen den
+freigegebenen Katalog aufgelöst. Er ist kein Berechtigungsnachweis. Namen oder Nummern nicht als
+Ersatz verwenden. `ShowCustomer`/`ShowSupplier` suchen im angegebenen Mandanten und in der richtigen
+Rolle, vergleichen die Nummer exakt als String und verlangen genau einen Treffer. Fremde Mandanten,
+Rollen, doppelte Schlüssel oder inkonsistente Quellantworten werden abgewiesen.
+
+Standardgrenzen: maximal 128 laufende oder aufbewahrte Aufträge, zehn Minuten Aufbewahrung ab Abschluss,
+30 Sekunden kooperative Bearbeitungsfrist. Alle Fassaden teilen diese Grenzen. Ein voller Speicher
+meldet `Busy`; gültige Deduplizierungsnachweise werden nicht vorzeitig verdrängt. Nach Fristablauf oder
+Prozessende entfällt die In-Memory-Deduplizierung. Request-, Auftrags- und Gesprächs-IDs sind nichtleere
+GUID-Strings im Format `D`. Nummern: maximal 200 Zeichen, View-ID 128, Firmenschlüssel 2048;
+leere Werte und Steuerzeichen werden abgewiesen. `contextJson` darf leer sein oder ein Objekt mit
+den Stringfeldern `companyKey`/`callId` enthalten, maximal 8192 Zeichen, keine doppelten oder unbekannten
+Felder. Kataloge enthalten höchstens 1000 Firmen bzw. 256 Ansichten und 262144 JSON-Zeichen.
+Firmenname/Ansichtsbeschriftung sind auf 256 Zeichen begrenzt.
+
+Fehler vor Annahme werden als sichere COM-Ausnahme gemeldet; nach Annahme stehen dieselben Codes
+im Auftrag. Rohmeldungen aus Providern werden durch feste Texte ersetzt.
+
+| Fehlercode | HRESULT |
+|---|---|
+| `InvalidArgument` | `0x80070057` |
+| `AccessDenied` | `0x80070005` |
+| `NotFound` | `0x8004A101` |
+| `Ambiguous` | `0x8004A102` |
+| `NotReady` | `0x8004A104` |
+| `NotSupported` | `0x8004A105` |
+| `Conflict` | `0x8004A106` |
+| `Busy` | `0x8004A107` |
+| `ProviderUnavailable` | `0x8004A108` |
+| `Timeout` | `0x8004A109` |
+| `Stopping` | `0x8004A10A` |
+
+### 4.2 Asynchrone Telefonie und eindeutige Rückmeldungen
 
 Die COM-Aufrufe nehmen kurze, begrenzte Aufträge an. UI und Fachabläufe arbeiten danach asynchron;
 der Client kann abfragen. Keine `.Wait()`-/`.Result`-Brücke auf dem STA und keine langen Telefonie-
@@ -189,14 +262,14 @@ HRESULTs mit sicherem `IErrorInfo` melden, spätere Fehler im Auftrag. Keine sti
 und keine gemeinsame veränderliche `LastError`-Eigenschaft für mehrere Clients. Ereignisse über
 Connection Points sind später möglich, für den ersten JScript-Vertrag genügt Polling.
 
-### 4.2 Gedachtes JavaScript-Verhalten
+### 4.3 JavaScript-Verhalten nach Anschluss der Produkt-App
 
 Ein COM-fähiger JScript-Host kann Objekte mit `ActiveXObject` erzeugen, etwa Windows Script Host.
 Die konkrete Skriptumgebung und ihre Richtlinien werden gemeinsam geprüft; normale Browserseiten
 sind nicht das hier geplante Ziel. [Microsoft: COM im Windows Script Host](https://learn.microsoft.com/en-us/windows/win32/com/using-com-objects-in-windows-script-host).
 
 ```javascript
-// ENTWURF: Erst nach Umsetzung und Registrierung verfügbar.
+// Produkt-App erst nach Host-Anschluss und HKCU-Registrierung verfügbar.
 var app = new ActiveXObject("WawiCallPro.Pro.Application.1");
 // Bis hierhin erscheint kein WawiCallPro-Fenster.
 app.Show();
@@ -204,7 +277,7 @@ var viewRequest = app.ShowView("history", "");
 ```
 
 ```javascript
-// ENTWURF für einen bewusst gestarteten Wähltest im Windows Script Host.
+// Beispiel für die spätere Abnahme eines bewusst gestarteten Wähltests.
 // Argumente: freigegebene Testnummer, Firmen-Schlüssel aus dem Katalog, neue Request-GUID.
 // Voraussetzungen: Status Ready und explizit erfolgreich angemeldete Telefonie.
 var app = new ActiveXObject("WawiCallPro.Pro.Application.1");
@@ -323,16 +396,19 @@ Ergebnis und Laufzeit genügen; keine vollständigen Nummern, Mails oder Anmelde
 
 ## 7. Registrierung, Bitness und Auslieferung
 
-V1 nutzt pro Benutzer registrierte LocalServer-CLSIDs; maschinenweite Registrierung bleibt ein
-ausdrücklicher Installationsfall. `RegistryTools` verarbeitet bereits beide Registry-Ansichten.
-Trotzdem Auflösung, Typbibliothek und alle verwendeten Interface-Marshaler mit beiden Client-Bitnessen prüfen.
+Verbindlicher Benutzerauftrag: ausschließlich `HKCU\Software\Classes` mit eigenen
+CLSID-/ProgID-/LocalServer32-Einträgen verwenden, entsprechend LxTranslate.Server.
+Keine Maschinenregistrierung, keine TLB-Registrierung und keine zusätzlichen Interface-/Proxy-Einträge;
+auch bei Fehlern nicht nach HKLM ausweichen. `RegistryTools` verarbeitet beide Registry-Ansichten.
+Auflösung und tatsächliche `IDispatch`-Objektrückgaben mit beiden Client-Bitnessen prüfen.
 Ein 32-Bit-Client kann grundsätzlich mit einem 64-Bit-LocalServer sprechen; das ersetzt den
 Marshallingnachweis nicht. [Microsoft: Prozessinteroperabilität](https://learn.microsoft.com/en-us/windows/win32/winprog64/process-interoperability).
 
 EXE-Befehl mit Leerzeichen korrekt quotieren; `ServerExecutable`, falls verwendet, separat als reinen
-Pfad behandeln. TLB/Interface-Metadaten für den gewählten Vertrag berücksichtigen. Der aktuelle
-LxTranslate-Benutzerregistrierungspfad registriert laut README nur Klasse/ProgID/LocalServer32;
-das beweist noch keine vollständige Wawi-Registrierung eines erweiterten Vertrags.
+Pfad behandeln. TLB-Dateien werden für Werkzeuge und Vertragsprüfungen gebaut und mit ausgeliefert,
+aber nicht registriert. Kein `RegisterTypeLib`, `RegisterTypeLibForUser`, Regasm oder Regsvr32.
+Phase 2 prüft echte Aufrufe einschließlich Status-/Auftrags-/Gesprächsobjekten ohne registrierte TLB
+oder Interface-Metadaten; die Abwesenheit wird unter HKCU und HKLM in beiden Ansichten kontrolliert.
 
 Bei Installation, Update, Rücknahme und Deinstallation ausschließlich eigene Einträge bearbeiten.
 Ein alter Uninstaller darf keine Registrierung löschen, die inzwischen auf eine neue Installation zeigt.
@@ -353,7 +429,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 |---|---|---|---|
 | 0 | ✅ | Quellenstudie, Variantenentscheidung und dokumentierter Plan | Agent; Quellen- und Dokumentkonsistenzprüfung |
 | 1 | ✅ | Isolierter Prototyp: je 57 Prüfungen Pro/FinOffice, x86/x64, parallele Aktivierung, Dispatcher und Lebensdauer | Agent; eigene HKCU-CLSIDs entfernt, keine echten Anrufe |
-| 2 | ⬜ | Versionierter Automation-Vertrag und DI-Adapter | Agent; Vertrags-/Marshallingprüfungen |
+| 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
 | 3 | ⬜ | COM- und normaler Start im einzigen App-Host | Agent; isolierte Start-/Instanztests |
 | 4 | ⬜ | Gemeinsamer Zugang zu allen verfügbaren Wawi-Ansichten | Agent; gezielte Layout-/UI-Nachweise; sichtbare Bedienung gemeinsam |
 | 5 | ⬜ | Wähldialog, SIP-Verbindung, Wählen und Gesprächsstatus | Agent mit Test-Doubles; reale SIP-Prüfung gemeinsam |
@@ -423,7 +499,8 @@ kooperative Testsitzung frei, ohne die Benutzer-/Gesprächsbindung zu löschen. 
 CCW ohne `Close` wird mit einer ausdrücklichen einmaligen Test-GC synchronisiert; daraus folgt
 keine garantierte Freigabelatenz beim Absturz eines produktiven Skripthosts. Dieser Fall bleibt
 Phase 6. Es gibt im neuen Host keinen periodischen erzwungenen GC. Die produktive UI-/Telefonie-
-Anbindung, Typbibliothek und Kunden-/Lieferantenaufrufe bleiben Phase 2–8.
+Anbindung bleibt den folgenden Phasen vorbehalten; Typbibliothek und Kunden-/Lieferantenverträge
+sind inzwischen in Phase 2 ergänzt. Ihre Verbindung mit echten Ansichten folgt in Phase 4.
 
 Nachweise: `.com-prototype-build-{fin,pro}.log` (Solution-Rebuilds Debug/Any CPU, je 0 Fehler und
 26 bekannte externe CSCore-Nullablewarnungen), `.com-prototype-{fin,pro}.log` und
@@ -437,15 +514,62 @@ keine Freigabe für nicht vertrauenswürdiges Scripting. `RegistryCleanupConfirm
 `Elevated=false` sind für beide vollständigen Läufe festgehalten. Keine neuen Forms/UserControls,
 keine Layoutänderung; daher kein Render-/Designer-Lauf für diese Phase erforderlich.
 
-### Phase 2 – ⬜ Verträge und Adapter
+### Phase 2 – ✅ Verträge und Adapter
 
-- [ ] Eigene ProgIDs/CLSIDs/IIDs, feste Dispatch-IDs und IDL/TLB mit dokumentierter Versionsstrategie.
-- [ ] Injizierte Fassade, Präsentationsschnittstelle, Firmen-/Viewkatalog und Auftragsverwaltung implementieren.
-- [ ] `ShowCustomer` und `ShowSupplier` mit Mandantenschlüssel und rollenbezogener Nummer als String vertraglich festlegen.
-- [ ] Status-/Fehlerobjekte, Limits, Auftragsaufbewahrung und Request-Deduplizierung definieren und prüfen.
-- [ ] Keine UI-/Diensteobjekte oder Tasks durch COM; Unicode, leere Werte, falsche IDs und Bitness prüfen.
+- [x] ✅ Eigene ProgIDs/CLSIDs/IIDs, feste Dispatch-IDs und IDL/TLB mit dokumentierter Versionsstrategie.
+- [x] ✅ Injizierte Fassade, Präsentationsschnittstelle, Firmen-/Viewkatalog und begrenzte asynchrone Auftragsverwaltung implementiert.
+- [x] ✅ `ShowCustomer`/`ShowSupplier` mit Mandant und rollenbezogener Nummer als String implementiert; exakter Einzelmatch liefert `PartyKey`, führende Nullen und Unicode bleiben erhalten.
+- [x] ✅ Unveränderliche Status-/Fehlerobjekte, Limits, Aufbewahrung, Busy, Timeout, geordneter Abbruch und Request-Deduplizierung geprüft; 100 parallele Clients lösen einen simulierten Wählvorgang aus.
+- [x] ✅ Keine UI-/Diensteobjekte oder Tasks durch COM; Unicode, leere Werte, falsche IDs, Mandanten-/Rollengrenzen und beide Client-Bitnessen geprüft.
+- [x] ✅ Nur HKCU-Klassen-/ProgID-Registrierung im Prüfhost; tatsächliche `IDispatch`-Aufrufe einschließlich Objekt-Rückgaben funktionieren ohne TLB-/Interface-Einträge. HKCU/HKLM vor und nach dem Lauf in beiden Registry-Ansichten lesend geprüft.
 
-Abnahme: Aktivieren, Status lesen und einen simulierten Auftrag aus JScript auswerten.
+Abnahme am 20.11.2026: Aktivieren, Status lesen und simulierte Kunden-/Lieferanten-, View- und
+Telefonieaufträge aus x86-/x64-JScript erfolgreich ausgewertet. Kein Zugriff auf echte Daten oder SIP.
+
+#### Implementierung und Nachweise zu Phase 2
+
+- [Verträge und MIDL-Einstieg](../WawiCallPro.Automation.Contracts/WawiCallPro.Automation.Contracts.csproj):
+  vier `IDispatch`-Interfaces, zwei Editionsklassen, x86-/x64-TLB Version 1.0.
+- [Automation-Adapter](../WawiCallPro.Automation/WawiCallPro.Automation.csproj): injizierte Fassadenfabrik,
+  Quantarix-Klassenregistrierungsadapter ohne Registry-Zugriffe, gemeinsamer Worker und UI-Dispatcheradapter.
+- [Vertrags-/Adaptertests](../WawiCallPro.Automation.Tests/WawiCallPro.Automation.Tests.csproj): je Edition
+  15 bestandene Tests. Beide TLBs über `LoadTypeLibEx(REGKIND_NONE)` geladen; GUIDs, Version, Bitness,
+  Dispatch-IDs, Namen, Parameter-/Rückgabetypen und Coclass-Verträge mit C# abgeglichen.
+- [Native JScript-Prüfung](../scripts/ComPrototype/contracts.js) über den erweiterten Prototyp:
+  je Edition 70 bestandene Prüfungen, darunter beide Client-Bitnessen, Status-/Auftrags-/Gesprächsobjekte,
+  Nummern-/Rollen-/Mandantenzuordnung, Fehlerredaktion, Request-Konflikt und UI-Thread-Übergabe.
+- Zusätzlich je Edition alle 57 bisherigen Prototypprüfungen bestanden. Die neue Fixture gibt den
+  asynchronen DI-Container frei, solange die UI-Nachrichtenschleife noch läuft; danach geordneter Exit.
+- Reguläre Solution-Rebuilds in der aktiven Konfiguration Debug/Any CPU für FinOffice und zuletzt Pro:
+  je 0 Fehler, nur 26 bekannte Nullablewarnungen der externen CSCore-Bibliothek. Beide App- und
+  Konsolenhosts sind im regulären Ausgabeordner aktualisiert; kein Produktstart für diese Phase.
+
+Wiederholbarer Einstieg nach dem regulären Editionsbuild:
+
+```powershell
+dotnet test --project WawiCallPro.Automation.Tests/WawiCallPro.Automation.Tests.csproj -c Debug '-p:Platform=Any CPU' -p:LexwareProductLine=Pro --no-build
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine Pro -ContractsOnly
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine Pro
+# Für FinOffice jeweils LexwareProductLine=FinOffice verwenden.
+```
+
+Aktuelle vollständige native Nachweise:
+`artifacts/com-automation-phase2/{fin,pro}-{native,regression}-final/results.json`.
+Alle vier Läufe melden `Completed=true`, `RegistryCleanupConfirmed=true`, `Elevated=false`.
+Die geprüften Worker-DLLs sind je Edition zwischen Vertrags- und Lebensdauerlauf identisch:
+FinOffice `6D79B73A19907B86D9805429B7005012AF257436B39141CCAF3506EDB8F4448A`,
+Pro `2E21289C8F399AAB7B88221A2AD91596C6781869B80A9085CED8CF26459205E5`.
+Zusätzliche Ergebniskopien liegen in `.com-contract-{native,regression}-{fin,pro}-evidence.log`;
+Build-/Unit-Protokolle in `.com-contract-build-{fin,pro}.log` und `.com-contract-unit-{fin,pro}.log`.
+Ein vorheriger Pro-Regressionslauf wurde durch fehlende temporäre Nachweisdateien unter `.artifacts`
+unterbrochen und nicht als bestanden gezählt; die vier genannten Läufe sind vollständig wiederholt.
+
+**Phasengrenze:** Die Produkt-ProgIDs sind festgelegt, aber weiterhin nicht produktiv registriert.
+Der Prüfhost verwendet zufällige eigene CLSIDs/ProgIDs und hält sich für die Vertragsprüfung explizit
+selbst am Leben. Produktive COM-/Unterobjekt-Lebensdauer bleibt Phase 3/6, echte Views Phase 4,
+SIP/Audio Phase 5 und gemeinsame native Abnahme Phase 8. Keine Forms, Layouts oder Designer geändert;
+kein GUI-Renderlauf erforderlich. Die unveränderte Produkt-App referenziert die neuen Bibliotheken
+noch nicht; Rücknahme dieses Phasencommits entfernt die Ergänzung ohne Produktdatenmigration.
 
 ### Phase 3 – ⬜ Startmodus und einzige Instanz
 
@@ -491,8 +615,8 @@ Abnahme: Keine Gesprächsabbrüche durch Objektfreigabe und kein erzwungenes Pro
 
 ### Phase 7 – ⬜ Auslieferung
 
-- [ ] Schnelle, idempotente Benutzerregistrierung/-entfernung und explizite Maschinenvariante umsetzen.
-- [ ] Beide Client-Bitnessen, Pfade mit Leerzeichen, TLB/Interface-Metadaten und Editionsbindung prüfen.
+- [ ] Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
+- [ ] Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
 - [ ] Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
 - [ ] Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
 - [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
@@ -520,6 +644,6 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 2**: den produktiven, versionierten Automation-Vertrag und seine DI-Adapter
-auf dem geprüften Prototyp aufbauen, einschließlich `ShowCustomer` und `ShowSupplier`.
-Phase 1 bestätigt die technische Machbarkeit; sie stellt noch keine produktive Wawi-COM-API bereit.
+Als Nächstes folgt **Phase 3**: den fensterlosen COM-Start und die gemeinsame Klassenfabrik in
+den einzigen App-Host integrieren. Phasen 1/2 bestätigen Machbarkeit, V1-Verträge und DI-Adapter;
+sie stellen noch keine produktiv aktivierbare Wawi-App mit realen Ansichten oder Telefonie bereit.
