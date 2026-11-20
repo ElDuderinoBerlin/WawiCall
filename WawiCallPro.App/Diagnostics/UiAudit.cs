@@ -15,12 +15,12 @@ internal static class UiAudit
     internal static void Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
-        var surfaces = new[] { ("MainForm", "home"), ("PartySearchPage", "parties"), ("FrmSettings", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("MailPage", "mail"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
+        var surfaces = new[] { ("MainForm", "home"), ("PartySearchPage", "parties"), ("FrmSettings", "settings"), ("PluginPage", "plugins"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("MailPage", "mail"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
         foreach (var (surface, page) in surfaces)
-        foreach (var fontSize in surface is "HistoryPage" or "FrmSettings" ? new[] { 8F, 10F, 16F } : new[] { 10F, 16F })
+        foreach (var fontSize in surface is "HistoryPage" or "FrmSettings" or "PluginPage" ? new[] { 8F, 10F, 16F } : new[] { 10F, 16F })
         {
             foreach (var size in new[] { new Size(1240, 780), new Size(900, 700) })
             {
@@ -69,6 +69,17 @@ internal static class UiAudit
                         CreateHandles(lookup); lookup.PerformLayout();
                         using var shot = Capture(lookup);
                         shot.Save(Path.Combine(outputDirectory, $"CallerLookupPage-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
+                        continue;
+                    }
+                    if (surface == "PluginPage")
+                    {
+                        using var settings = form.CreateSettingsDialog(true);
+                        settings.PrepareForBackgroundRun(); settings.Font = font;
+                        settings.MinimumSize = Size.Empty; settings.ClientSize = size;
+                        settings.Show(); Application.DoEvents();
+                        CreateHandles(settings); settings.PerformLayout();
+                        using var shot = Capture(settings);
+                        shot.Save(Path.Combine(outputDirectory, $"PluginPage-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
                         continue;
                     }
                     if (surface == "FrmSettings")

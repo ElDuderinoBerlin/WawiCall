@@ -8,8 +8,8 @@ Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implemen
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
-Der Datenzugriff ist damit noch nicht geprüft. Kosmetischer Befund zu mehrfachen äußeren Rahmen aufgenommen;
-Korrektur vorbereitet, regulärer Build nach Schließen der laufenden Pro-Instanz noch offen.
+Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
+reduziert; reguläre Builds, vier gezielte Tests je Edition und begrenzte Hintergrundaufnahmen bestanden.
 Datenbank-, SIP-/Audio- und Anrufprüfungen bleiben offen; G1 insgesamt weiterhin offen.
 Zuvor ergänzt: ✅ Zentrale RAII-Wartecursor für potenziell langsame Dialog-/Browse-Vorbereitung und
 asynchrone UI-Operationen angeschlossen; verschachtelte/überlappende Vorgänge stellen den ursprünglichen
@@ -2605,12 +2605,12 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
-Anwendungsversion `0.1.222` (Dateiversion `0.1.0.222`), Dateistand 20.11.2026 12:16 Uhr lokal.
+Anwendungsversion `0.1.225` (Dateiversion `0.1.0.225`), Dateistand 20.11.2026 18:18 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
 als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
-`4E7F73D5D06ACA94FBE0879B60DE9317F74D00BAE5B02FF45A4A37BEC4D580C6`.
-Der vor dem zugehörigen Cursor-Fix-Commit gebaute Arbeitsstand basiert auf `bd0a4b4` mit dem RAII-
-Cursoranschluss und den bereits vorhandenen lokalen Änderungen;
+`82782429E062192B37FD256959B0812BFA00C4C3C6571BCAB43D276B63937F98`.
+Der vor dem zugehörigen Rahmen-Fix-Commit gebaute Arbeitsstand basiert auf `6518c32` mit der
+Rahmenkorrektur, dem begrenzten Plugin-Renderpfad und den bereits vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
 
@@ -2640,11 +2640,24 @@ Dieser Status wird nur für ein aktives und nach dem Installationsgate verfügba
 bei gesperrter Verfügbarkeit zeigt die Karte stattdessen „Lexware nicht verfügbar“. In der gezeigten
 Pluginübersicht ist kein Start-/Installationsfehler sichtbar. Bestätigt ist der UI-/Pluginstart, nicht
 die Vollständigkeit der Lexware-Installation oder der tatsächliche Zugriff auf deren Datensätze.
-Benutzerbefund G1-UI3: zu viele verschachtelte Rahmen um die Pluginliste. Entfernen der äußeren Tab-/Grid-
-Rahmen vorbereitet; Kartenkontur bleibt erhalten. Designer-Syntaxprüfung aller 27 Oberflächen bestanden.
-Regulärer Rebuild und gezielte Render-/Pluginprüfungen für diese noch unbestätigte Korrektur stehen aus,
-solange Pro (PID bei Prüfung `36508`) die Ausgabedateien sperrt. Benutzer um reguläres Beenden gebeten.
-Danach G1 mit Schritt 2 (eigene SQLite-Testdatenbank) fortsetzen.
+**G1-UI3 ✅:** verschachtelte Rahmen um die Pluginliste reduziert. Innere Tab-/Seitenrahmen und
+Katalog-View auf `NoBorder` gesetzt; die wiederholten eng benachbarten Außenlinien entfallen.
+Der Skin zeigt weiterhin eine einzelne äußere Kontur; die dünnen abgerundeten Kartenkonturen bleiben.
+Benutzer hat Pro regulär beendet. Beide Solution-Rebuilds Debug/Any CPU bestanden, Pro zuletzt;
+jeweils 0 Fehler und 26 bekannte externe CSCore-Nullablewarnungen. Je Edition vier gezielte Tests bestanden:
+Pluginkarten mit leerem/gefülltem Katalog, beiden Skins, kleiner/größerer Fläche und großer Schrift;
+Details/Zurück, einfacher Aktivierungsdurchlauf mit Abbruch beim Schließen, sichtbarer Wechselstatus und
+Designer-Konstruktorverträge. Designer-Syntax-/Ressourcenprüfung aller 27 Oberflächen ebenfalls bestanden.
+`LX_UI_AUDIT_SURFACES=PluginPage` rendert ausschließlich diesen Tab; je Edition sechs native
+Hintergrundaufnahmen bei Tahoma 8 sowie 10/16 pt und zwei Größen. Repräsentative Aufnahmen visuell geprüft:
+Rahmen reduziert, Footer erreichbar, große Kataloginhalte scrollbar. Dummy-Prüfprofile sind vom G1-Profil getrennt.
+Nachweise: `.plugin-border-build-{fin,pro}.log`, `.plugin-border-tests-{fin,pro}.log`,
+`.plugin-border-designer.log`, `.artifacts/plugin-cards` und `.artifacts/plugin-border-native-{fin,pro}`.
+Jetzt G1 mit Schritt 2 (eigene SQLite-Testdatenbank) fortsetzen.
+Wiederaufnahme am 20.11.2026 um 18:21 Uhr lokal mit Pro 0.1.225 und demselben G1-Profil,
+PID bei Start `13248`. Fingerabdruck vor dem Start geprüft; lokaler Nachweis
+`g1-restart-plugin-borders.json`. Prozess reagiert und besitzt das Pro-Hauptfenster.
+Schritt 2 weiterhin offen; noch keine gespeicherte Testverbindung vorhanden.
 Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
 **Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE

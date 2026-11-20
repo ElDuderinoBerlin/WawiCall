@@ -60,6 +60,8 @@ partial class PluginPage
         detailsLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         detailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 2);
         pluginTabs.Dock = System.Windows.Forms.DockStyle.Fill;
+        pluginTabs.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+        pluginTabs.BorderStylePage = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
         pluginTabs.ShowTabHeader = DevExpress.Utils.DefaultBoolean.False;
         pluginTabs.TabPages.AddRange(new DevExpress.XtraTab.XtraTabPage[] { installedTab, detailsTab, capabilitiesTab });
         installedTab.Text = "Installierte Plugins";
@@ -124,6 +126,7 @@ partial class PluginPage
         capabilitiesBackButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
         capabilitiesBackButton.Click += CatalogBack_Click;
         catalogGrid.Dock = System.Windows.Forms.DockStyle.Fill;
+        catalogView.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
         catalogGrid.MainView = catalogView;
         catalogGrid.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] { catalogView });
         catalogView.GridControl = catalogGrid;
