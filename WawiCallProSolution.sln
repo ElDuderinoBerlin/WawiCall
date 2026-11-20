@@ -5,6 +5,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 	ProjectSection(SolutionItems) = preProject
 		AGENTS.md = AGENTS.md
 		Docs\Neuaufbau-Plan.md = Docs\Neuaufbau-Plan.md
+		Docs\COM-Automation-Studie-und-Phasenplan.md = Docs\COM-Automation-Studie-und-Phasenplan.md
 		Docs\Quantarix-Zuordnung.md = Docs\Quantarix-Zuordnung.md
 		Docs\Build.md = Docs\Build.md
 		Docs\Codex-Uebergabe.md = Docs\Codex-Uebergabe.md

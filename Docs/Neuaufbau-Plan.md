@@ -6,6 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+Zusätzlicher Auftrag vom 20.11.2026: ✅ [COM-Automation-Studie mit eigenem Phasenplan](COM-Automation-Studie-und-Phasenplan.md)
+abgeschlossen (dort Phase 0). Empfohlen ist die Haupt-App als LocalServer mit fensterlosem COM-Start
+und einer getrennten Automation-Fassade. Implementierung und native Abnahme sind noch offen;
+die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
@@ -316,8 +320,11 @@ Zusätzlich existieren `Solution Files`, `Docs`, `Scripts` und `Tools` sowie eig
 Es wird kein zusätzliches physisches `src`-Verzeichnis für alle WawiCallPro-Projekte erzwungen.
 
 Zentrale Dateien sind `Solution.props`, `Directory.Build.props`, `Directory.Build.targets`, `global.json`,
-`deps.json` und `bootstrap.ps1`. Nur die benötigten Mechanismen werden übernommen; Übersetzungs-, Druckformular-
-und COM-Server-Funktionen von LxTranslate gehören nicht zum WawiCallPro-Auftrag.
+`deps.json` und `bootstrap.ps1`. Nur die benötigten Mechanismen werden übernommen; Übersetzungs- und
+Druckformularfunktionen von LxTranslate gehören nicht zum WawiCallPro-Auftrag. COM-Automation war
+ursprünglich ebenfalls ausgeschlossen. Der zusätzliche Benutzerauftrag vom 20.11.2026 untersucht
+jetzt ausdrücklich die vorhandene COM-Infrastruktur als Referenz für WawiCallPro; Entscheidung,
+Grenzen und noch offene Umsetzung stehen in der [COM-Studie](COM-Automation-Studie-und-Phasenplan.md).
 
 ### 3.2 Lexware Pro und Financial Office
 
