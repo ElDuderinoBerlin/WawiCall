@@ -20,11 +20,11 @@ internal static class UiAudit
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");
         Directory.CreateDirectory(outputDirectory);
         foreach (var (surface, page) in surfaces)
-        foreach (var fontSize in new[] { 10F, 16F })
+        foreach (var fontSize in surface == "HistoryPage" ? new[] { 8F, 10F, 16F } : new[] { 10F, 16F })
         {
             foreach (var size in new[] { new Size(1240, 780), new Size(900, 700) })
             {
-                using var font = new Font(SystemFonts.MessageBoxFont!.FontFamily, fontSize);
+                using var font = new Font(fontSize == 8F ? "Tahoma" : SystemFonts.MessageBoxFont!.FontFamily.Name, fontSize);
                 var originalFont = WindowsFormsSettings.DefaultFont;
                 try
                 {
@@ -113,6 +113,25 @@ internal static class UiAudit
                         using var scaledMailBitmap = CaptureMail(mail);
                         scaledMailBitmap.Save(Path.Combine(outputDirectory, $"MailPage-{size.Width}-{fontSize:0}-scale150.png"), ImageFormat.Png);
                         continue;
+                    }
+                    if (surface == "HistoryPage" && form.GetActiveDocumentView() is WawiCallPro.App.Views.HistoryPage history)
+                    {
+                        var action = history.Controls.Find("refreshButton", true).OfType<DevExpress.XtraEditors.SimpleButton>().Single();
+                        var from = history.Controls.Find("fromEdit", true).OfType<DevExpress.XtraEditors.DateEdit>().Single();
+                        var to = history.Controls.Find("toEdit", true).OfType<DevExpress.XtraEditors.DateEdit>().Single();
+                        var measurements = new
+                        {
+                            action.DeviceDpi, Font = action.Font.ToString(), Host = action.FindForm()?.GetType().FullName,
+                            ButtonHeight = action.Height, FromHeight = from.Height, ToHeight = to.Height,
+                            NativeHeight = action.CalcBestSize().Height, TextHeight = TextRenderer.MeasureText(action.Text, action.Font).Height,
+                            Insets = action.Padding.Vertical, AppearanceFont = action.Appearance.Font.ToString(),
+                            AppearanceFontEnabled = action.Appearance.Options.UseFont,
+                            AllowedHeight = Math.Max(from.Height, to.Height) + action.LogicalToDeviceUnits(4)
+                        };
+                        File.WriteAllText(Path.Combine(outputDirectory, $"HistoryPage-{size.Width}-{fontSize:0}-metrics.json"),
+                            System.Text.Json.JsonSerializer.Serialize(measurements, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                        if (measurements.ButtonHeight > measurements.AllowedHeight)
+                            throw new InvalidOperationException("History toolbar action is too tall beside its date editors.");
                     }
                     using var bitmap = Capture(form);
                     bitmap.Save(Path.Combine(outputDirectory, $"{surface}-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);

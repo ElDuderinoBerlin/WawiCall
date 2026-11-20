@@ -112,9 +112,11 @@ partial class HistoryPage
         toLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         toLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         toLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        fromEdit.Name = "fromEdit";
         fromEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
         fromEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         fromEdit.Properties.AllowNullInput = DevExpress.Utils.DefaultBoolean.False;
+        toEdit.Name = "toEdit";
         toEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
         toEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         toEdit.Properties.AllowNullInput = DevExpress.Utils.DefaultBoolean.False;

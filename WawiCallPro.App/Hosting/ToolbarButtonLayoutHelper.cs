@@ -4,10 +4,10 @@ using DevExpress.XtraEditors;
 
 namespace WawiCallPro.App.Hosting;
 
-/// <summary>Sizes application button groups using the LxTranslate toolbar metrics and lifecycle hooks.</summary>
+/// <summary>Sizes button groups from native skin/text metrics with compact toolbar and padded dialog actions.</summary>
 internal static class ToolbarButtonLayoutHelper
 {
-    private const int MinimumHeight = 32;
+    private const int MinimumHeight = 0;
     private const int DialogMinimumHeight = 40;
     private const int HorizontalPadding = 24;
     private const int VerticalPadding = 14;
@@ -68,10 +68,14 @@ internal static class ToolbarButtonLayoutHelper
     {
         var text = TextRenderer.MeasureText(button.Text, button.Font);
         var best = button.CalcBestSize();
-        var minimumHeight = button.FindForm() is { } form && form is not MainForm ? DialogMinimumHeight : MinimumHeight;
+        var dialog = button.FindForm() is { } form && form is not MainForm;
+        var minimumHeight = dialog ? DialogMinimumHeight : MinimumHeight;
+        // Toolbar insets are already device pixels. A second logical text allowance inflated
+        // Tahoma 8pt at 144 DPI to 48px beside 26px date editors.
+        var verticalPadding = dialog ? button.LogicalToDeviceUnits(VerticalPadding) : button.Padding.Vertical;
         return new Size(
             Math.Max(best.Width, text.Width + (int)Math.Ceiling(HorizontalPadding * button.DeviceDpi / 96F)),
-            Math.Max(button.LogicalToDeviceUnits(minimumHeight), Math.Max(best.Height, text.Height + button.LogicalToDeviceUnits(VerticalPadding))));
+            Math.Max(button.LogicalToDeviceUnits(minimumHeight), Math.Max(best.Height, text.Height + verticalPadding)));
     }
 
     private sealed class ButtonBinding
@@ -93,9 +97,9 @@ internal static class ToolbarButtonLayoutHelper
                 {
                     button.AutoSize = false;
                     button.MinimumSize = Size.Empty;
-                    // LxTranslate distinguishes compact toolbars from dialog actions. Native skin metrics
-                    // already include Padding, so give toolbar buttons smaller vertical insets.
-                    var verticalInset = button.FindForm() is { } form && form is not MainForm ? 6 : 2;
+                    // The skin already provides vertical text insets for compact toolbar actions.
+                    // Additional vertical Padding makes them taller than adjacent editors at high DPI.
+                    var verticalInset = button.FindForm() is { } form && form is not MainForm ? 6 : 0;
                     button.Padding = new Padding(button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(verticalInset),
                         button.LogicalToDeviceUnits(12), button.LogicalToDeviceUnits(verticalInset));
                     if ((button.Anchor & (AnchorStyles.Left | AnchorStyles.Right)) == (AnchorStyles.Left | AnchorStyles.Right))

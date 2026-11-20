@@ -66,7 +66,7 @@ public sealed partial class AppShellTests
             for (var i = 0; i < 10; i++) UiButtonSizing.Apply(button);
             Assert.AreEqual(first, button.Size, "Repeated layout must not accumulate insets or scaling.");
             Assert.IsTrue(button.Padding.Left >= button.LogicalToDeviceUnits(12));
-            Assert.IsTrue(button.Padding.Top >= button.LogicalToDeviceUnits(2));
+            Assert.IsTrue(button.Height - text.Height >= button.LogicalToDeviceUnits(4), "The native skin must retain visible vertical text insets.");
             using var dialog = new XtraForm();
             dialog.Controls.Add(button);
             UiButtonSizing.Apply(button);

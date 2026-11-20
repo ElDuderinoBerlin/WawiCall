@@ -6,10 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: G1-Pro-Lauf nach ausdrücklicher Benutzerfreigabe am 20.11.2026 begonnen.
-✅ Pro 0.1.218 regulär gebaut und mit eigenem Profil `G1-20261120-01` gestartet; Prozess reagiert und hat
-ein Hauptfenster. Sichtbare Edition, Pro-Plugin und Lexware-Verfügbarkeit werden jetzt gemeinsam geprüft.
-Noch keine bestätigte Bedien-, SIP-/Audio- oder Gesprächsabnahme; G1 bleibt offen.
+Zuletzt ergänzt: G1-Livebefund zur weiterhin zu hohen Toolbar korrigiert (20.11.2026): Tahoma 8 pt bei
+nativen 144 DPI ergab 48 Pixel Buttonhöhe neben 26 Pixel hohen Datumsfeldern. Die zentrale Hilfe verwendet
+jetzt native vertikale Skinmaße ohne zusätzliche Toolbar-Mindesthöhe; derselbe Fall ergibt 32 Pixel.
+Pro-Kandidat 0.1.220 bereitgestellt, Prüfbelege unten. G1 bleibt bis zur gemeinsamen Fortsetzung offen.
+Zuvor ergänzt: Pro 0.1.218 nach ausdrücklicher Benutzerfreigabe mit dem eigenen Profil `G1-20261120-01`
+gestartet. Noch keine bestätigte Plugin-/SIP-/Audio- oder Gesprächsabnahme.
 Zuvor ergänzt: ✅ DPI-R2–R4 behoben und isoliert geprüft: Fenster und Mindestgrößen bleiben im Arbeitsbereich,
 lange Einstellungsseiten scrollen bei sichtbarer Aktionszeile, Umbruchschwellen berücksichtigen DPI und Schrift.
 Fensterdaten speichern Bezugs-DPI und Monitorbezug versioniert; Neustarts rechnen die normalen Maße für den
@@ -2591,23 +2593,32 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
-Anwendungsversion `0.1.218` (Dateiversion `0.1.0.218`), Dateistand 20.11.2026 11:20 Uhr lokal.
+Anwendungsversion `0.1.220` (Dateiversion `0.1.0.220`), Dateistand 20.11.2026 11:42 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
 als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
-`1B06E3921D4071EF63CFE577C86FCABAD82A236D900F94F8AD5B559C686F218F`.
-Der gebaute Arbeitsstand basiert auf `078c53a` mit den bereits vorhandenen lokalen Änderungen;
+`C47A1E0DC2E9E8D4FE703BAA54CC21582032B2214ADA55131F9D7E6DBD2A189A`.
+Der vor dem zugehörigen Toolbar-Fix-Commit gebaute Arbeitsstand basiert auf `6210a12` mit der Toolbar-
+Korrektur und den bereits vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
 
 **Begonnener Pro-Lauf:** `G1-20261120-01`, Start am 20.11.2026 um 11:23 Uhr lokal,
-EXE/Fingerabdruck wie oben, PID bei Start `34392`. Neues Profil
+Erststand Pro 0.1.218, PID bei Start `34392`, damaliger DLL-Fingerabdruck
+`1B06E3921D4071EF63CFE577C86FCABAD82A236D900F94F8AD5B559C686F218F`. Neues Profil
 `.artifacts/phase8-g1/Pro/G1-20261120-01`; lokale Startmetadaten unter `g1-run.json`.
 Nach der ausdrücklichen Freigabe des vollständigen Tests durch den Benutzer hat der Agent die reguläre EXE
 sichtbar mit `ProcessStartInfo` gestartet. `WAWICALLPRO_CONFIG_DIR` wurde ausschließlich in der Umgebung
 dieses Kindprozesses gesetzt. Keine dauerhafte Umgebungsvariable und keine Produktionskonfiguration geändert.
 Lesende Prüfung: derselbe EXE-Pfad, Prozess reagiert und besitzt ein Hauptfenster.
-**Schritt 1 noch offen:** Benutzerbestätigung für sichtbare Edition, aktives Pro-Plugin, Lexware-Verfügbarkeit
-und Start ohne Ausnahme angefordert. Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
+Der Benutzer meldet mit dem Pro-Screenshot vom 20.11.2026 11:29 Uhr weiterhin zu hohe Buttons.
+Der Erstprozess ist vor den Reparaturbuilds bereits beendet. Kein Prozess wurde durch den Agenten beendet.
+Für die Wiederaufnahme denselben Profilpfad und den oben erfassten korrigierten Pro-Kandidaten verwenden.
+Wiederaufnahme am 20.11.2026 um 11:47 Uhr lokal mit Pro 0.1.220, PID bei Start `13752`;
+Fingerprint unmittelbar vorher geprüft. Startmetadaten unter `g1-restart-toolbar.json` im bestehenden
+Testprofil, ursprüngliche Startmetadaten erhalten. Prozess reagiert und besitzt ein Hauptfenster;
+Benutzerbestätigung der neuen Toolbarhöhe angefordert. Keine automatische SIP-Anmeldung eingerichtet.
+**Schritt 1 noch offen:** Pro-Plugin, Lexware-Verfügbarkeit und sichtbare Korrektur gemeinsam bestätigen.
+Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
 **Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.FinOffice.exe`,
@@ -2681,7 +2692,7 @@ Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung 
 | Nachweis | FinOffice | Pro |
 |---|---|---|
 | Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Pro und Test jetzt bestätigt; Voraussetzungen als bereit gemeldet, konkrete A/B-Identitäten in Schritt 4 offen |
-| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ 0.1.218, Fingerabdruck oben; G1-20261120-01 am 20.11.2026 11:23 lokal gestartet; sichtbare Startbestätigung ausstehend |
+| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | ✅ Erststart 0.1.218, G1-20261120-01 am 20.11.2026 11:23 lokal; nach Toolbar-Fix am selben Tag 11:47 lokal mit 0.1.220 wieder geöffnet; sichtbare Bestätigung offen |
 | Neues Profil/eigene SQLite bestätigt | Offen | Offen |
 | Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
 | Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
@@ -2721,14 +2732,15 @@ Kein pauschaler vollständiger GUI-Lauf und keine Änderung der Windows-Anzeiges
 | DPI-R2 / P2 | Die frühere Mindesthöhe und die Wiederherstellung konnten Fenster über den verfügbaren Arbeitsbereich hinaus vergrößern. | ✅ Behoben am 20.11.2026. `WindowWorkArea` begrenzt Fenster und Mindestgrößen zentral, auch bei Größen-/Positions-/DPI-Änderungen. Einstellungen bemessen eine bedienbare Mindestansicht statt der gesamten Inhaltslänge; lange Tabseiten scrollen, die Aktionszeile bleibt sichtbar. Aktionsgruppen umbrechen und ihre Abstände werden einmal in DPI-Einheiten bemessen. |
 | DPI-R3 / P2 | Startseiten-Spalten und Ribbonhöhe verwendeten Gerätemaße mit unskalierten Umbruchschwellen. | ✅ Behoben am 20.11.2026. `DpiLayoutMetrics` rechnet die logischen Schwellen genau einmal mit dem Monitor-DPI-Faktor um; die Startseite berücksichtigt zusätzlich die Schriftpunktgröße. Schrift- und DPI-Ereignisse aktualisieren das vorhandene Layout ohne neue Controls. |
 | DPI-R4 / P2 | Fenstergeometrie wurde ohne Bezugs-DPI gespeichert und nach geänderter Skalierung unverändert als Geräte-Pixel wiederhergestellt. | ✅ Behoben am 20.11.2026. Eigenes `Windows/v2/<Fenster>` mit Formatversion, Bezugs-DPI, Monitor und Arbeitsbereich; Maße und monitorrelative Abstände werden für den Zielmonitor umgerechnet und begrenzt. Normale `RestoreBounds` und Maximierung bleiben erhalten. Alte Fenster-/Hauptfensterwerte bleiben unverändert lesbar; ungültige neue Datensätze fallen darauf zurück. Reale Monitorwechsel-/Neustartabnahme bleibt G5. |
-| DPI-R1 / P2 | Die A4-Änderung an `ToolbarButtonLayoutHelper.ButtonGroup.Resize` hat den Dialog-Innenabstand 12/6 auf sämtliche Buttons angewendet und damit auch die in `HistoryPage.Designer.cs` bewusst kompakte Toolbar überschrieben. `CalcBestSize()` berücksichtigt dieses Padding bereits. Gemessen bei 96 DPI: 9 pt liefert nativ 22, mit 12/6 Padding 34 Pixel; bei 16 pt nativ 35 und mit Padding 47 Pixel. Die gewünschte LxTranslate-Toolbarbemessung ergibt 32 beziehungsweise 44 Pixel. | ✅ Korrigiert: gemeinsame Hilfe unterscheidet Toolbar von Dialog anhand des Formularhosts. Toolbar mindestens 32 logische Pixel, Innenabstand 12/2; Dialog mindestens 40, Innenabstand 12/6. Mindesthöhe und Abstände werden über `LogicalToDeviceUnits` einmal umgerechnet; Skin-/Textgrößen per Maximum einbezogen. Gruppen bleiben einheitlich, Handler für Schrift, Skin und DPI bleiben erhalten. |
+| DPI-R1 / P2 | Zu großzügige gemeinsame Toolbar-Bemessung: die erste Korrektur trennte Dialoge und Toolbar, behielt aber 32 logische Pixel Mindesthöhe und zusätzlichen vertikalen Abstand. Der G1-Screenshot zeigte den verbleibenden Fehler bei nativen 144 DPI. | ✅ Erneut korrigiert und nativ geprüft: Toolbar ohne pauschale Mindesthöhe oder zusätzlichen vertikalen Padding-Aufschlag; native Skin-/Textmaße bestimmen die Höhe. Seitliches Padding bleibt 12 logische Pixel. Dialoge behalten mindestens 40 logische Pixel und Padding 12/6. Gruppen und Schrift-/Skin-/DPI-Handler bleiben erhalten. Tahoma 8 pt/144 DPI: 32 statt 48 Pixel, Datumsfelder weiterhin 26 Pixel. |
 
 Implementierungsvergleich: tatsächliche `LxTranslate.App/Infrastructure/ToolbarButtonLayoutHelper.cs`
 mit `Apply` (Toolbarminimum 32), `ApplyDialog` (Dialogminimum 40), `GetPreferredSize` und den
 Schrift-/Text-/Handle-/DPI-/Skin-Handlern gelesen. WawiCallPro behält seine zentrale Gruppen- und
-Lebensdauerverwaltung; keine Sonderhöhe allein für den Historienbutton. Der DPI-Faktor wird zusätzlich
-auch auf die logischen Mindesthöhen angewendet. Native DevExpress-Skinmaße werden nicht nochmals als
-separater Aufschlag auf Text-/Paddingmaße addiert.
+Lebensdauerverwaltung; keine Sonderhöhe allein für den Historienbutton. Die erste Korrektur übernahm
+die Referenz-Mindesthöhe und den großzügigen Textaufschlag. Der unten dokumentierte reale G1-Befund
+zeigt deren Grenze; die aktuelle Toolbarhöhe folgt stattdessen den nativen Skinmaßen. Dialogminimum und
+explizite Abstände werden weiterhin einmal in DPI-Einheiten umgerechnet.
 
 `ToolbarButtonsCountInsetsOnceAndStayCompactAcrossRepeatedLayouts` prüft beide Skins bei 9/16 pt,
 zehn wiederholte Bemessungen ohne Anwachsen und den Wechsel Toolbar → Dialog → Toolbar. Der bestehende
@@ -2756,6 +2768,37 @@ leeren/gefüllten Daten, kleinen Fenstern, großer Schrift sowie den vorhandenen
 im erforderlichen Umfang ausgewertet. Quellinventar unter `.artifacts/phase8-dpi-review`.
 Keine Quell-/Konfigurationsänderung außerhalb des Buttonhelfers und seiner Prüfungen, keine Migration,
 keine echten Konten/Anrufe. Bekannte fremde Paket-/Telefonieänderungen nicht übernommen.
+
+**G1-Nachkorrektur DPI-R1 (20.11.2026):** Der konkrete Benutzerbefund wurde vor der Korrektur im
+regulären PerMonitorV2-Prozess mit isoliertem Dummy-Profil exakt nachgestellt: Tahoma 8 pt, 144 DPI,
+Button 48 Pixel, beide DateEdit-Felder 26 Pixel. Der native Audit bricht bei zu hoher Toolbar kontrolliert
+ab; die Vorher-Messung steht unter `.artifacts/toolbar-native-before` und `.toolbar-height-baseline.log`.
+Die bisherigen Einzelbuttonprüfungen übernahmen die zu großzügige Obergrenze und liefen bei 96 DPI;
+die 150-%-Layoutsimulation ersetzte keinen nativen DPI-Prozess.
+
+`ToolbarButtonLayoutHelper` verwendet für Toolbars jetzt die bevorzugte Skinhöhe ohne pauschale
+32-Pixel-Mindesthöhe und ohne zusätzlichen vertikalen Text-/Padding-Aufschlag. Native Skin-Innenabstände
+bleiben sichtbar; Dialogaktionen behalten ihre bisherigen Mindestmaße und Padding 12/6.
+`HistoryToolbarHeightStaysCloseToItsEditorsInTheActualDocumentHost` prüft die tatsächliche DevExpress-
+Dokumenteinbettung mit Tahoma 8 pt/Segoe UI 9/16 pt, hellem/dunklem Skin, stabilen Größen nach wiederholter
+Bemessung und erhaltenem Datum. Die Action darf höchstens vier logische Pixel höher als ihre DateEdit-
+Nachbarn sein und muss mindestens die native bevorzugte Höhe besitzen.
+Der auf `LX_UI_AUDIT_SURFACES=HistoryPage` begrenzte echte Anwendungsprozess schreibt zusätzlich
+Schrift-/DPI-/Button-/Editor-Messwerte. Alle sechs nativen Fälle je Edition (8/10/16 pt, 900/1240 Breite)
+bestehen bei 144 DPI; derselbe gemeldete Fall ergibt jetzt 32 Pixel Buttonhöhe neben 26 Pixel hohen Editoren.
+Die DateEdit-Namen sind im Designer explizit gesetzt; keine Designer-Skalierungsbasis geändert.
+
+Je Pro/FinOffice 24 gezielte Prüfungen bestanden: neue Historien-Messfälle und bestehende Buttongruppen-,
+Dialogpadding-, Historien-/Such-, Startseiten-, Mail-, Gesprächsbedienungs-, Detail-, Anrufer- und kleine
+Einstellungsfensterfälle. Leere/gefüllte Zustände, große Schrift, heller/dunkler Skin und vorhandene
+Skalierungssimulationen abgedeckt. Repräsentative native und sonstige Renderbilder visuell ausgewertet.
+Beide regulären Solution-Rebuilds Debug/Any CPU fehlerfrei, je 26 bekannte externe CSCore-Warnungen;
+Pro entsprechend der Benutzerwahl zuletzt bereitgestellt. Alle 27 Designer-Quellprüfungen bestanden.
+Nachweise `.toolbar-height-build-{pro,fin}.log`, `.toolbar-height-tests-{pro,fin}.log`,
+`.toolbar-height-native-{pro,fin}.log`, `.toolbar-height-designer.log`, native Bilder/Messwerte unter
+`.artifacts/toolbar-native-{pro,fin}`, weitere Bilder unter `.artifacts/app-shell/settings-ui/history-toolbar-compact`
+und den jeweiligen bestehenden zielgerichteten Renderordnern. Keine Änderung der Windows-Skalierung,
+keine echten Konten oder Anrufe, kein behaupteter 200-%-/Mehrmonitorwechsel. G1/G5 bleiben gemeinsam offen.
 
 **Abschluss DPI-R2 (20.11.2026):** `FrmSettings`, statische Einstellungsseiten und Mailkonfiguration
 behalten ihre Designer-Aufteilung und Eingaben. Wie in LxTranslate liegen lange Inhalte in scrollbar
