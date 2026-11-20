@@ -39,7 +39,6 @@ public sealed class MailAccounts(
     ISecretProtector secrets,
     IMailAuthentication authentication,
     IMailConnectorFactory connectors,
-    LxPrintStudioMailImport lxImport,
     MailHttp http)
 {
     public async Task<ImmutableArray<MailAccountSettings>> GetAsync(CancellationToken token = default) => (await settings.LoadAsync(token)).Options.MailAccounts;
@@ -87,7 +86,6 @@ public sealed class MailAccounts(
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception) { throw new MailException(MailFailure.Configuration); }
     }
-    public Task<IReadOnlyList<MailAccountSettings>> ReadLxPrintStudioAsync(string path, CancellationToken token = default) => lxImport.ReadAsync(path, token);
 }
 
 /// <summary>Live configured providers behind the existing browser contract; no demonstration or implicit login.</summary>

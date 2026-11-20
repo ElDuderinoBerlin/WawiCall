@@ -236,7 +236,7 @@ public sealed partial class MailCacheTests
             var secrets = new WindowsUserSecretProtector(); var validator = new ApplicationOptionsValidator(secrets); var location = new ConfigurationLocation(fixture.Root);
             fixture.Settings = new(location, validator); await fixture.Settings.SaveAsync(new() { MailAccounts = [fixture.Account], MailCache = new() { Enabled = enabled } }, await fixture.Settings.LoadAsync());
             var auth = new NoAuthentication(); var http = new MailHttp(new HttpClient(new NoNetwork()), auth);
-            var accounts = new MailAccounts(fixture.Settings, validator, secrets, auth, factory, new(secrets), http);
+            var accounts = new MailAccounts(fixture.Settings, validator, secrets, auth, factory, http);
             fixture.AccountService = accounts;
             fixture.Cache = new(fixture.Settings, new(location), accounts, factory, new(secrets), new ProtectedMailBlob(), new(accounts, factory)); return fixture;
         }

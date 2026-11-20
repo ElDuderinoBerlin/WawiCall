@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.IO;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
 using WawiCallPro.App.Hosting;
@@ -189,17 +188,16 @@ public partial class MailSettingsPage : XtraUserControl
         companyEdit.Properties.DataSource = companies.Select(item => new CompanyRow(item.Key, item.DisplayName)).ToArray(); companyEdit.EditValue = selection;
         statusLabel.Text = "Mandant für die Anzeige von Kundenmails bei Anrufen auswählen.";
     });
-    private void Google_Click(object? sender, EventArgs e) => Browse(true);
-    private void LxImport_Click(object? sender, EventArgs e) => Browse(false);
-    private void Browse(bool google) => Start(async token =>
+    private void Google_Click(object? sender, EventArgs e) => Browse();
+
+    private void Browse() => Start(async token =>
     {
         await Task.Yield(); var owner = (Control?)FindForm() ?? this;
         using var waiting = new UiWaitCursor(owner);
-        using var dialog = new XtraOpenFileDialog { Title = google ? "Google Desktop-Client importieren" : "Microsoft-365-Profil aus LxPrintStudio übernehmen", Filter = "JSON-Dateien (*.json)|*.json", Multiselect = false, CheckFileExists = true, RestoreDirectory = true };
-        if (!google) dialog.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LxPrintStudio", "appsettings.json");
+        using var dialog = new XtraOpenFileDialog { Title = "Google Desktop-Client importieren", Filter = "JSON-Dateien (*.json)|*.json", Multiselect = false, CheckFileExists = true, RestoreDirectory = true };
         if (dialog.ShowDialog(owner) != DialogResult.OK) { statusLabel.Text = "Import abgebrochen."; return; }
         SaveDraft();
-        var imported = google ? new[] { await _workspace!.Mail.Accounts.ReadGoogleClientAsync(dialog.FileName, token) } : await _workspace!.Mail.Accounts.ReadLxPrintStudioAsync(dialog.FileName, token);
+        var imported = new[] { await _workspace!.Mail.Accounts.ReadGoogleClientAsync(dialog.FileName, token) };
         Guid? selected = null;
         foreach (var account in imported)
         {
@@ -222,7 +220,7 @@ public partial class MailSettingsPage : XtraUserControl
     }
     private void SetBusy(bool busy)
     {
-        accountsGrid.Enabled = newButton.Enabled = lxImportButton.Enabled = !busy;
+        accountsGrid.Enabled = newButton.Enabled = !busy;
         detailsTabs.Enabled = removeButton.Enabled = !busy && _selected is not null;
         connectButton.Enabled = disconnectButton.Enabled = syncButton.Enabled = loadFoldersButton.Enabled = !busy && _selected is not null;
         syncButton.Enabled = syncButton.Enabled && cacheEnabledEdit.Checked;
@@ -241,11 +239,11 @@ public partial class MailSettingsPage : XtraUserControl
         {
             cacheDaysEdit.MinimumSize = new(cacheDaysEdit.LogicalToDeviceUnits(110), 0);
             UiButtonSizing.Apply(newButton, removeButton);
-            UiButtonSizing.Apply(lxImportButton); UiButtonSizing.Apply(googleButton); UiButtonSizing.Apply(storesButton); UiButtonSizing.Apply(companiesButton); UiButtonSizing.Apply(loadFoldersButton);
+            UiButtonSizing.Apply(googleButton); UiButtonSizing.Apply(storesButton); UiButtonSizing.Apply(companiesButton); UiButtonSizing.Apply(loadFoldersButton);
             UiButtonSizing.Apply(connectButton, syncButton);
             UiButtonSizing.Apply(disconnectButton, cancelButton);
             var available = Math.Max(1, ClientSize.Width - layout.Padding.Horizontal);
-            foreach (var (table, buttons) in new[] { (header, new[] { newButton, removeButton, lxImportButton }), (actions, new[] { connectButton, disconnectButton, syncButton, cancelButton }) })
+            foreach (var (table, buttons) in new[] { (header, new[] { newButton, removeButton }), (actions, new[] { connectButton, disconnectButton, syncButton, cancelButton }) })
             {
                 foreach (var button in buttons) button.Margin = new Padding(LogicalToDeviceUnits(4));
                 var columns = buttons.Length;

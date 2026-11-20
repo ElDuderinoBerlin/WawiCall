@@ -11,6 +11,9 @@ Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
 reduziert; reguläre Builds, vier gezielte Tests je Edition und begrenzte Hintergrundaufnahmen bestanden.
 Datenbank-, SIP-/Audio- und Anrufprüfungen bleiben offen; G1 insgesamt weiterhin offen.
+✅ G1-UI4: unerwünschte Aktion „Aus LxPrintStudio übernehmen“ samt Importdienst entfernt;
+Mailkonten werden in der eigenen Kontoeinrichtung angelegt. Beide regulären Builds sowie je 77 Office-
+und sechs gezielte Einstellungen-/Designerprüfungen bestanden; Pro 0.1.226 bereitgestellt.
 Zuvor ergänzt: ✅ Zentrale RAII-Wartecursor für potenziell langsame Dialog-/Browse-Vorbereitung und
 asynchrone UI-Operationen angeschlossen; verschachtelte/überlappende Vorgänge stellen den ursprünglichen
 Cursor nach der letzten Freigabe wieder her. Je Edition 21 gezielte Tests bestanden; Pro 0.1.222 bereitgestellt.
@@ -542,7 +545,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 vollständige Designer-/Layoutmatrix mit 27 Oberflächen, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
-| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und geschützte LxPrintStudio-Übernahme; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
+| 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
 | 13 | ⬜ | Altdatenübernahme | 3, 8–12 |
 | 14 | 🟨 | ✅ Velopack-Grundlage, Release-/Packaging-Skripte, gemeinsame Core-Abhängigkeiten mit Build-/Publishprüfung in Debug und lokale Paketnachweise; Lizenzierung, Installation und Updateabnahme offen | 8, passende Ausbauphasen |
@@ -2605,12 +2608,12 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
-Anwendungsversion `0.1.225` (Dateiversion `0.1.0.225`), Dateistand 20.11.2026 18:18 Uhr lokal.
+Anwendungsversion `0.1.226` (Dateiversion `0.1.0.226`), Dateistand 20.11.2026 18:29 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
 als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
-`82782429E062192B37FD256959B0812BFA00C4C3C6571BCAB43D276B63937F98`.
-Der vor dem zugehörigen Rahmen-Fix-Commit gebaute Arbeitsstand basiert auf `6518c32` mit der
-Rahmenkorrektur, dem begrenzten Plugin-Renderpfad und den bereits vorhandenen lokalen Änderungen;
+`7D723CECCE1AEBD467BABE1898C9E2EBDD329DD5894509EA16B5299DB61CE87C`.
+Der vor dem zugehörigen Fix-Commit gebaute Arbeitsstand basiert auf `bf441c5` mit der Entfernung
+der LxPrintStudio-Übernahme, dem begrenzten Mail-Einstellungsrenderpfad und den vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
 
@@ -2658,6 +2661,26 @@ Wiederaufnahme am 20.11.2026 um 18:21 Uhr lokal mit Pro 0.1.225 und demselben G1
 PID bei Start `13248`. Fingerabdruck vor dem Start geprüft; lokaler Nachweis
 `g1-restart-plugin-borders.json`. Prozess reagiert und besitzt das Pro-Hauptfenster.
 Schritt 2 weiterhin offen; noch keine gespeicherte Testverbindung vorhanden.
+**G1-UI4 ✅:** Benutzer lehnt die ungefragte Produktfunktion „Aus LxPrintStudio übernehmen“ ab
+(20.11.2026, Screenshot 18:22). Button, Ereignishandler, Anbieterzweig im Browse-Aufruf, öffentliche
+Importmethode, DI-Abhängigkeit/-Registrierung und Importklasse vollständig entfernt. Die Headerzeile
+enthält nur noch Hinzufügen/Entfernen; die verbleibende Google-Dateiauswahl verwendet weiter Owner und RAII-Wartecursor.
+Konten werden direkt für Outlook Desktop, Microsoft 365 oder Gmail eingerichtet. Bestehende Konfiguration
+und geschützte Anmeldedaten werden weder gelöscht noch geändert; keine fremde Quelldatei gelesen.
+Rider hat Methoden, Feld, Importklasse und den obsoleten Importtest entfernt sowie drei Konstruktoraufrufe
+an die entfallene DI-Abhängigkeit angepasst. Der frühere Importtest entfällt mit der entfernten Funktion.
+Beide Solution-Rebuilds Debug/Any CPU bestanden, Pro zuletzt: je 0 Fehler und 26 bekannte externe
+CSCore-Nullablewarnungen. Je Edition alle 77 verbleibenden Office-Tests und sechs gezielte UI-Fälle bestanden:
+leere sowie Outlook-/Microsoft-/Google-Konten, große Schrift, kleiner Dialog, heller/dunkler Skin,
+erhaltene Secrets/Ordnerauswahl/andere Entwürfe und Designer-Konstruktorverträge.
+Designer-Syntax-/Ressourcenprüfung aller 27 Oberflächen bestanden. Nur den Mail-Einstellungstab nativ
+je Edition sechsmal im Hintergrund gerendert; repräsentative Aufnahmen visuell geprüft.
+Nachweise `.remove-lx-import-{build,office,app,native}-{fin,pro}.log`, `.remove-lx-import-designer.log`,
+`.artifacts/app-shell/settings-ui/mail-settings` und `.artifacts/remove-lx-import-native-{fin,pro}`.
+Architektur und Phasenübersicht auf direkte Kontoeinrichtung abgeglichen; frühere Übernahmen bleiben
+als historische Nachweise erkennbar. Rücknahme ist als Quellcode-Revert möglich; keine Datenmigration nötig.
+Pro 0.1.226 am 20.11.2026 um 18:31 Uhr lokal mit demselben G1-Profil gestartet, PID bei Start `5376`;
+lokale Startmetadaten `g1-restart-remove-lx-import.json`. G1 Schritt 2 weiterhin offen.
 Keine SIP-Anmeldung oder Anrufprüfung durch den Agenten ausgeführt.
 
 **Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE
@@ -2874,7 +2897,7 @@ bereits entsorgte Owner, abweichende Abschlussreihenfolge und ein fehlgeschlagen
 kontrolliert behandelt; die Hilfe ist für Aufrufe auf dem UI-Thread ausgelegt.
 
 Anschlüsse: Einstellungen einschließlich Office/Mail, Schriftwahl, Datenbankassistent über Ribbon und
-Einstellungen, Wähl-/Anruferfenster, Dialogladen, JSON-/Logordner-/Google-/LxPrintStudio-Browse, Mailanhänge,
+Einstellungen, Wähl-/Anruferfenster, Dialogladen, JSON-/Logordner-/Google-Browse, Mailanhänge,
 SQLite-Auswahl sowie vorhandene Backup-/Restore-Browsepfade. Gemeinsame `PageOperation`-Abläufe und die
 eigenen Mail-/Datenbankassistent-Runner halten den Wartecursor bis zum tatsächlichen Abschluss. Interaktive
 Dialoge erhalten ihre eigenen Lade-Scopes; nach Abschluss ist ihr Cursor wieder normal. Die Vorgabe ist in
@@ -4154,7 +4177,7 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
 
 - [x] ✅ Mailanbindung im App-Host fertig angeschlossen (17.11.2026): E-Mail-Tab in den zentralen
   Einstellungen, mehrere Konten, öffentliche Microsoft-Desktop-Anmeldung oder vorhandene App-Anmeldung,
-  geschützter LxPrintStudio-/Google-Clientimport, benannte Outlook-Stores, Ordner-Checkboxen, Zeitraum,
+  Google-Desktop-Clientimport, benannte Outlook-Stores, Ordner-Checkboxen, Zeitraum,
   Mengenbegrenzung, Anmeldung/Abmeldung, Import/Abbruch und optionaler stiller Startimport.
   Verbindungsaktionen speichern ausschließlich Postfachdaten; allgemeine Entwürfe bleiben erhalten.
   `MailImportService` verschlüsselt Nachrichten und Cursor vor der atomaren Ablage, setzt abgebrochene
@@ -4197,8 +4220,9 @@ Schreibpfade sind in einem isolierten Bestand geprüft; relevante UI-Ansichten v
   Graph-Delta und Gmail-History, Outlook-STA/COM-Freigabe und begrenzte vollständige Abfragen.
   Lokales Einstellungsformat 9; portable Einstellungen enthalten keine Mailkonten oder Credentials.
   Atomare, kontogebundene DPAPI-Tokenablage ohne Klartext-Fallback; explizite Anmeldung/Abmeldung.
-  Vorhandene Microsoft-App-Anmeldedaten können aus LxPrintStudio benutzergebunden neu geschützt
-  übernommen werden. Ihre Entschlüsselbarkeit wurde ohne Werteausgabe geprüft; keine echten Mails gelesen.
+  Historisch wurden Microsoft-App-Anmeldedaten aus LxPrintStudio benutzergebunden neu geschützt
+  übernommen. Diese Produktfunktion wurde am 20.11.2026 auf Benutzerwunsch entfernt; frühere lokale
+  Einrichtung bleibt erhalten. Ihre Entschlüsselbarkeit wurde damals ohne Werteausgabe geprüft; keine echten Mails gelesen.
   Pro und FinOffice: je 29 neue Office-, 32 bestehende Konfigurations- und 386 vollständige Console-
   Prüfungen bestanden (447 je Edition). Beide Solution-Editionen Debug/Any CPU regulär rekompiliert:
   null Fehler, je 26 bekannte externe CSCore-Warnungen; abschließende Startausgabe FinOffice.

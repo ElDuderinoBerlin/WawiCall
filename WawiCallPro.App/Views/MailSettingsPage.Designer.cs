@@ -111,8 +111,6 @@ partial class MailSettingsPage
         newButton.Name = "newButton";
         removeButton = new DevExpress.XtraEditors.SimpleButton();
         removeButton.Name = "removeButton";
-        lxImportButton = new DevExpress.XtraEditors.SimpleButton();
-        lxImportButton.Name = "lxImportButton";
         googleButton = new DevExpress.XtraEditors.SimpleButton();
         googleButton.Name = "googleButton";
         storesButton = new DevExpress.XtraEditors.SimpleButton();
@@ -143,7 +141,7 @@ partial class MailSettingsPage
         layout.Padding = new System.Windows.Forms.Padding(8);
         layout.ColumnCount = 1;
         layout.RowCount = 5;
-        header.ColumnCount = 3;
+        header.ColumnCount = 2;
         header.RowCount = 1;
         content.ColumnCount = 2;
         content.RowCount = 1;
@@ -159,7 +157,6 @@ partial class MailSettingsPage
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        header.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         header.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         header.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         actions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -246,10 +243,6 @@ partial class MailSettingsPage
         removeButton.AutoSize = true;
         removeButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
         removeButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
-        lxImportButton.Text = "Aus LxPrintStudio übernehmen";
-        lxImportButton.AutoSize = true;
-        lxImportButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
-        lxImportButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
         googleButton.Text = "Google-Client importieren";
         googleButton.AutoSize = true;
         googleButton.Padding = new System.Windows.Forms.Padding(12, 6, 12, 6);
@@ -284,7 +277,6 @@ partial class MailSettingsPage
         cancelButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
         newButton.Click += New_Click;
         removeButton.Click += Remove_Click;
-        lxImportButton.Click += LxImport_Click;
         googleButton.Click += Google_Click;
         storesButton.Click += Stores_Click;
         companiesButton.Click += Companies_Click;
@@ -403,7 +395,6 @@ partial class MailSettingsPage
         statusLabel.Text = "Verbindung und Import speichern die Postfachdaten sofort. Zugangsdaten bleiben lokal geschützt.";
         header.Controls.Add(newButton, 0, 0);
         header.Controls.Add(removeButton, 1, 0);
-        header.Controls.Add(lxImportButton, 2, 0);
         content.Controls.Add(accountsGrid, 0, 0);
         content.Controls.Add(detailsTabs, 1, 0);
         actions.Controls.Add(connectButton, 0, 0);
@@ -499,7 +490,6 @@ partial class MailSettingsPage
     private DevExpress.XtraEditors.LabelControl maximumLabel;
     private DevExpress.XtraEditors.SimpleButton newButton;
     private DevExpress.XtraEditors.SimpleButton removeButton;
-    private DevExpress.XtraEditors.SimpleButton lxImportButton;
     private DevExpress.XtraEditors.SimpleButton googleButton;
     private DevExpress.XtraEditors.SimpleButton storesButton;
     private DevExpress.XtraEditors.SimpleButton companiesButton;

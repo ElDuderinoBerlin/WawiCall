@@ -480,9 +480,8 @@ damit auch ohne aktuelle Verbindung; ein deaktiviertes Konto wird nicht freigege
 
 Microsoft-Anmeldung verwendet MSAL: interaktive Desktop-Anmeldung über Systembrowser mit delegiertem
 Mail.Read/User.Read oder eine ausdrücklich konfigurierte App-Anmeldung mit Tenant-GUID, Client-ID,
-geschütztem Client-Secret und festem Zielpostfach. Die vorhandene LxPrintStudio-Konfiguration kann
-explizit gelesen werden; ihr DPAPI-Secret wird direkt für WawiCallPro neu geschützt. Quelldatei und
-SMTP-Zugangsdaten bleiben unverändert. Erfolgreiche Tokenbeschaffung bestätigt noch keine Leserechte;
+geschütztem Client-Secret und festem Zielpostfach. Die Einrichtung erfolgt direkt in WawiCallPro;
+eine Übernahme aus anderen Anwendungen ist nicht vorgesehen. Erfolgreiche Tokenbeschaffung bestätigt noch keine Leserechte;
 die Verbindung prüft zusätzlich einen tatsächlichen Ordnerabruf. App-Berechtigung Mail.Read benötigt
 die entsprechende Freigabe des Administrators. Die Connectoren führen ausschließlich GET-Aufrufe aus.
 
@@ -766,11 +765,11 @@ und verwendet weder automatische OAuth-Browseranmeldungen noch echte Postfächer
 
 ### Postfach einrichten
 
-Unter **Einstellungen → Office / Mail** ein Postfach hinzufügen oder **Aus LxPrintStudio übernehmen** wählen.
+Unter **Einstellungen → Office / Mail** über **Hinzufügen** ein Postfach anlegen und den Anbieter auswählen.
 Für den Mailcache ist keine Einrichtung der Kommunikationsdatenbank erforderlich; die eigene SQLite-Datei
 wird vom Cachedienst angelegt. Eine bestehende Kommunikationsdatenbank bleibt unverändert.
-Die Übernahme liest dessen lokale `appsettings.json` und schützt ein vorhandenes Microsoft-App-Secret
-für WawiCallPro neu. Sie übernimmt keine SMTP-Kennwörter, ändert die Quelldatei nicht und liest keine Mails.
+Microsoft-365-Zugangsdaten werden in der eigenen Kontoeinrichtung angegeben. Für Gmail kann eine
+Google-Desktop-Clientdatei importiert werden.
 
 **Mailcache verwenden** schaltet die lokale Ablage ein oder aus. **Cachezeitraum (Tage)** legt die
 Aufbewahrung nach Empfangsdatum fest (Vorgabe 30 Tage). Die normalen Speichern-/Import-/Exportaktionen

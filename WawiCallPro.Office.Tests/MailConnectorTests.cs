@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using WawiCallPro.Interfaces.Office;
@@ -37,20 +36,7 @@ public sealed class MailConnectorTests
             await Assert.ThrowsAsync<OperationCanceledException>(() => store.AcquireAsync(key, new CancellationToken(true)));
         store.Delete(key); Assert.IsNull(await store.ReadAsync(key, CancellationToken.None));
     }
-    [TestMethod]
-    public async Task LxPrintStudioImportReprotectsSyntheticClientSecretWithoutChangingTheSource()
-    {
-        if (!OperatingSystem.IsWindows()) return;
-        using var files = new Files(); var id = "m365-test"; var secret = "synthetic-only-client-secret";
-        var encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes("LxPrintStudio.Microsoft365ClientSecret.v1|" + id), DataProtectionScope.CurrentUser);
-        var document = new { EmailDelivery = new { Profiles = new[] { new { Transport = "Microsoft365Graph", Name = "Test", Sender = "mail@example.test", Microsoft365 = new { TenantId = Guid.NewGuid().ToString(), ClientId = Guid.NewGuid().ToString(), AuthenticationMode = "ClientSecret", ClientSecretCredentialId = id } } },
-            ProtectedMicrosoft365ClientSecrets = new Dictionary<string, object> { [id] = new { Version = 1, ProtectedSecret = Convert.ToBase64String(encrypted) } } } };
-        var path = Path.Combine(files.Root, "appsettings.json"); var original = JsonSerializer.Serialize(document); await File.WriteAllTextAsync(path, original);
-        var account = (await new LxPrintStudioMailImport(files.Secrets).ReadAsync(path, CancellationToken.None)).Single();
-        Assert.IsTrue(account.ApplicationAuthentication); Assert.AreEqual("mail@example.test", account.Mailbox);
-        using var clear = files.Secrets.Unprotect(account.MicrosoftClientSecret!, MailAccountSettings.MicrosoftSecretPurpose); Assert.AreEqual(secret, clear.Reveal());
-        Assert.AreEqual(original, await File.ReadAllTextAsync(path)); Assert.DoesNotContain(secret, JsonSerializer.Serialize(account));
-    }
+
     [TestMethod]
     public async Task GraphTraversesFoldersAndPagesWithImmutableIdsAndOnlyGetRequests()
     {

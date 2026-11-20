@@ -26,7 +26,7 @@ public sealed class MailImportServiceTests
             var account = new MailAccountSettings { Id = Guid.NewGuid(), Provider = MailProviderKind.Microsoft365, DisplayName = "Synthetic", Enabled = false, ClientId = Guid.NewGuid().ToString() };
             await store.SaveAsync(new() { MailAccounts = [account] }, await store.LoadAsync());
             var auth = new ConnectAuthentication(); using var client = new HttpClient(new FolderResponse()); var http = new MailHttp(client, auth);
-            var accounts = new MailAccounts(store, validator, secrets, auth, new MailConnectorFactory(http), new(secrets), http);
+            var accounts = new MailAccounts(store, validator, secrets, auth, new MailConnectorFactory(http), http);
             var connected = await accounts.ConnectAsync(account.Id); Assert.IsTrue(connected.Enabled); Assert.AreEqual("synthetic-identity", connected.RemoteIdentity);
             Assert.AreEqual(1, auth.Interactive); auth.Identity = "another-identity";
             await Assert.ThrowsExactlyAsync<MailException>(() => accounts.ConnectAsync(account.Id));
@@ -125,7 +125,7 @@ public sealed class MailImportServiceTests
             await new DatabaseProvisioner(new()).CreateAsync(result.Target); await new DatabaseMigrator(new(), new FluentMigratorEngine(DatabaseType.Sqlite)).MigrateAsync(result.Target);
             result.Repository = new(new(result.Target, new())); result.Connector = new(result.Account.Id);
             var http = new MailHttp(new HttpClient(new NoNetwork()), new Authentication());
-            var accounts = new MailAccounts(result.Store, validator, secrets, new Authentication(), new Factory(result.Connector), new(secrets), http);
+            var accounts = new MailAccounts(result.Store, validator, secrets, new Authentication(), new Factory(result.Connector), http);
             result.Sync = new(accounts, new Factory(result.Connector), result.Repository, new(secrets)); result.Source = new(accounts, result.Repository, new(secrets)); return result;
         }
         internal MailEnvelope Message(string id, string address) => new(new(new("outlook", Account.Id.ToString("N"), id), "Synthetic subject", address, "owner@example.test", "", DateTimeOffset.UtcNow, "private body", null, []), null, address, [], ["inbox"], id) { IsRead = true };
