@@ -115,12 +115,28 @@ public sealed class PluginRuntimeTests
             var plugin = session.GetPlugins().Single();
             Assert.AreEqual(variant, plugin.ProductLine.ToString());
             Assert.IsNotNull(plugin.Directory); // Resolving adapters must not read installations, credentials or companies.
+            var factory = new ProductWorkspaceProbe();
+            var lifetime = ((IWawiCallPluginWorkspaces)plugin).CreatePartySearch(factory);
+            Assert.AreSame(factory.Resource, lifetime); Assert.AreEqual(1, factory.Calls);
+            await lifetime.DisposeAsync(); Assert.IsTrue(factory.Resource.Disposed);
             var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
             foreach (var assembly in new[] { typeof(Quantarix.Lexware.Core.PropertyStore.PsParserFactory).Assembly,
                 typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly })
                 Assert.AreSame(assembly, context.LoadFromAssemblyName(assembly.GetName()));
             Assert.IsTrue(context.IsCollectible);
         });
+    }
+
+    private sealed class ProductWorkspaceProbe : IPartySearchWorkspaceFactory
+    {
+        internal int Calls;
+        internal readonly ProductWorkspaceResource Resource = new();
+        public IPluginLifetimeResource Create() { Calls++; return Resource; }
+    }
+    private sealed class ProductWorkspaceResource : IPluginLifetimeResource
+    {
+        internal bool Disposed;
+        public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
     }
 
     [TestMethod]
