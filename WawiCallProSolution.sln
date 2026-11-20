@@ -111,6 +111,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A5
 		scripts\test-release-scripts.ps1 = scripts\test-release-scripts.ps1
 		scripts\test-database-providers.ps1 = scripts\test-database-providers.ps1
 		scripts\test-native-tray.ps1 = scripts\test-native-tray.ps1
+		scripts\test-com-prototype.ps1 = scripts\test-com-prototype.ps1
+		scripts\ComPrototype\client.js = scripts\ComPrototype\client.js
 		scripts\Invoke-NativeTrayActivation.ps1 = scripts\Invoke-NativeTrayActivation.ps1
 		scripts\build-debug.ps1 = scripts\build-debug.ps1
 		scripts\test-database-backup.ps1 = scripts\test-database-backup.ps1
@@ -166,6 +168,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SIPSorceryMedia.Windows.CSCore", "..\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj", "{2185EB62-2832-4473-BDDB-67B96A2C90C3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Office.Tests", "WawiCallPro.Office.Tests\WawiCallPro.Office.Tests.csproj", "{9CE8C53A-B3DB-4624-9B48-46058915E325}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComPrototype.TestWorker", "Tools\ComPrototype.TestWorker\ComPrototype.TestWorker.csproj", "{E7737BF0-242B-4560-AABF-304F6880A0DC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -717,6 +721,18 @@ Global
 		{9CE8C53A-B3DB-4624-9B48-46058915E325}.Release|x64.Build.0 = Release|Any CPU
 		{9CE8C53A-B3DB-4624-9B48-46058915E325}.Release|x86.ActiveCfg = Release|Any CPU
 		{9CE8C53A-B3DB-4624-9B48-46058915E325}.Release|x86.Build.0 = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|x64.Build.0 = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Debug|x86.Build.0 = Debug|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|x64.ActiveCfg = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|x64.Build.0 = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|x86.ActiveCfg = Release|Any CPU
+		{E7737BF0-242B-4560-AABF-304F6880A0DC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -741,5 +757,6 @@ Global
 		{173395C1-B7AB-4529-90B8-0DB35B808714} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{8FD18CC9-2EAB-436B-B1C8-7EB1A573CF2C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{2185EB62-2832-4473-BDDB-67B96A2C90C3} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E7737BF0-242B-4560-AABF-304F6880A0DC} = {A8F92B06-E402-1E79-886D-1B1750DFB640}
 	EndGlobalSection
 EndGlobal

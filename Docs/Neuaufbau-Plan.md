@@ -7,8 +7,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Zusätzlicher Auftrag vom 20.11.2026: ✅ [COM-Automation-Studie mit eigenem Phasenplan](COM-Automation-Studie-und-Phasenplan.md)
-abgeschlossen (dort Phase 0). Empfohlen ist die Haupt-App als LocalServer mit fensterlosem COM-Start
-und einer getrennten Automation-Fassade. Implementierung und native Abnahme sind noch offen;
+abgeschlossen (dort Phase 0). ✅ Phase 1: isolierter COM-Prototyp nach LxTranslate.Server mit je 57
+bestandenen Pro-/FinOffice-Prüfungen; x86/x64-Aktivierung, paralleler Start, Dispatcher und Lebensdauer
+nachgewiesen, eigene HKCU-Registrierungen entfernt. Produktive Verträge/App-Anbindung und reale Abnahme
+bleiben offen. Kunden-/Lieferantenaufrufe nach Mandant und Nummer in den Phasen 2/4 ergänzt;
 die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
@@ -2613,7 +2615,7 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
   Die konkrete Testidentität A/B wird bei Schritt 4 festgehalten. Das bestätigt Bereitschaft, keinen Funktionstest.
   Die reale SIP-Grundprüfung für diesen Lauf ist noch offen und wird in Schritt 3 durchgeführt.
 
-**Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
+**Zuletzt im G1-Lauf eingesetzter Pro-Kandidat (historischer Laufnachweis):** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
 Anwendungsversion `0.1.226` (Dateiversion `0.1.0.226`), Dateistand 20.11.2026 18:29 Uhr lokal.
 Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
@@ -2623,6 +2625,9 @@ Der vor dem zugehörigen Fix-Commit gebaute Arbeitsstand basiert auf `bf441c5` m
 der LxPrintStudio-Übernahme, dem begrenzten Mail-Einstellungsrenderpfad und den vorhandenen lokalen Änderungen;
 die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
 wurden weder verändert noch in den Dokumentationscommit übernommen. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
+Die regulären Ausgaben wurden für die separate COM-Phase 1 erneut gebaut, ohne einen G1-Lauf zu starten.
+Vor der nächsten G1-Wiederaufnahme EXE-Version und DLL-Fingerabdruck neu erfassen; der folgende
+historische Fingerabdruck bestätigt ausschließlich den damals tatsächlich gestarteten Kandidaten.
 
 **Begonnener Pro-Lauf:** `G1-20261120-01`, Start am 20.11.2026 um 11:23 Uhr lokal,
 Erststand Pro 0.1.218, PID bei Start `34392`, damaliger DLL-Fingerabdruck

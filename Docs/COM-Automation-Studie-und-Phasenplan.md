@@ -9,9 +9,11 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse, Variantenvergleich und Phasenplan abgeschlossen.
-⬜ Umsetzung und native COM-Abnahme noch offen. Diese Studie führt keine COM-Registrierung,
-Skriptaktivierung, Anrufe oder GUI-Prüfungen aus und ändert keinen Anwendungscode.
+**Status:** ✅ Quellenanalyse und Phase 1 abgeschlossen: isolierter COM-Prototyp mit je 57
+bestandenen Prüfungen für Pro und FinOffice. Temporäre Benutzerregistrierungen wurden entfernt.
+⬜ Produktive Automation-Verträge, App-Anbindung und reale UI-/Telefonieabnahme noch offen.
+Die Prüfungen verwenden ausschließlich einen separaten Host, eigene Profile und synthetische Zustände;
+sie führen keine echten Anrufe aus und ändern weder die Produktregistrierung noch den Start der App.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
 
 ## 1. Was die vorhandenen Projekte tatsächlich leisten
@@ -148,6 +150,8 @@ belegt keine gleichzeitige Installation beider Editionen; Installation und Regis
 | `Show()` | Vorhandenes Hauptfenster anzeigen oder einmalig erzeugen; als Benutzerbetrieb behalten. Kurzer Auftrag, keine Wartezeit auf einen später geschlossenen Dialog. |
 | `ShowView(viewId, contextJson)` | Geprüften Präsentationsauftrag annehmen; Auftrags-ID zurückgeben. Unbekannte Ansicht oder ungültigen Kontext ausdrücklich melden. |
 | `ShowDial(number, companyKey)` | Wähldialog vorbefüllen; **kein Anruf**. Auswahl und Bestätigung bleiben beim Benutzer. |
+| `ShowCustomer(companyKey, customerNumber)` | Kunden anhand ihrer Kundennummer im eindeutig angegebenen Mandanten auflösen und vorhandene Kundenansicht öffnen; Auftrags-ID zurückgeben. |
+| `ShowSupplier(companyKey, supplierNumber)` | Lieferanten anhand ihrer Lieferantennummer im eindeutig angegebenen Mandanten auflösen und vorhandene Lieferantenansicht öffnen; Auftrags-ID zurückgeben. |
 | `ConnectTelephony()` | Gespeicherten SIP-Zugang explizit anmelden; Auftrags-ID zurückgeben. Keine Kennwörter über COM annehmen. |
 | `Dial(number, companyKey, requestId)` | Bewusst wählen; Auftrags-ID zurückgeben. `companyKey` muss aus dem freigegebenen Firmenkatalog stammen. Client vergibt eine eindeutige Request-ID. |
 | `GetOperation(operationId)` | Schreibgeschütztes Automation-Objekt mit `State`, `ErrorCode`, `Message` und gegebenenfalls `CallId`. |
@@ -252,6 +256,11 @@ Bei einem modalen Dialog das bedienbare Ownerfenster berücksichtigen. Kein zwei
 kein ungefragtes Schließen eines Entwurfs und kein impliziter Wechsel der Warenwirtschaftsproduktlinie.
 Ein `CompanyKey` enthält Produktlinie, Installation und externe ID; führende Nullen und Groß-/
 Kleinschreibung erhalten. Eine Kundennummer oder ein Firmenanzeigename allein genügt nicht.
+Die expliziten Kunden-/Lieferantenaufrufe sind ein zusätzlicher Benutzerauftrag vom 20.11.2026:
+Nummern als Strings mit führenden Nullen behandeln, stets nach Mandant und Rolle auflösen und genau
+einen Treffer verlangen. Fehlende oder doppelte Nummern ergeben `NotFound` beziehungsweise `Ambiguous`.
+Danach über den aufgelösten `PartyKey` dieselbe Fachansicht wie in der App öffnen; keine willkürliche
+Trefferauswahl, Datensatzänderung oder ungefragten Mandantenwechsel durchführen.
 
 `Show` stellt Sichtbarkeit her; Vordergrundaktivierung bleibt von Windows-Rechten abhängig.
 Native Clients können `CoAllowSetForegroundWindow` benutzen. Reines JScript kann diesen Win32-Aufruf
@@ -343,7 +352,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | Phase | Status | Ergebnis | Verantwortlich / Abnahme |
 |---|---|---|---|
 | 0 | ✅ | Quellenstudie, Variantenentscheidung und dokumentierter Plan | Agent; Quellen- und Dokumentkonsistenzprüfung |
-| 1 | ⬜ | Isolierter Aktivierungs-/Nachrichtenschleifen-/Lebensdauer-Prototyp | Agent; eigene Test-CLSIDs, keine echten Anrufe |
+| 1 | ✅ | Isolierter Prototyp: je 57 Prüfungen Pro/FinOffice, x86/x64, parallele Aktivierung, Dispatcher und Lebensdauer | Agent; eigene HKCU-CLSIDs entfernt, keine echten Anrufe |
 | 2 | ⬜ | Versionierter Automation-Vertrag und DI-Adapter | Agent; Vertrags-/Marshallingprüfungen |
 | 3 | ⬜ | COM- und normaler Start im einzigen App-Host | Agent; isolierte Start-/Instanztests |
 | 4 | ⬜ | Gemeinsamer Zugang zu allen verfügbaren Wawi-Ansichten | Agent; gezielte Layout-/UI-Nachweise; sichtbare Bedienung gemeinsam |
@@ -361,21 +370,78 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 - [x] ✅ 21 lokale Quellenverweise, neun übereinstimmende Phasenstatus, geschlossene Codeblöcke
   und genau einen Dokumenteintrag in der Hauptsolution geprüft. Neuaufbau-Plan auf den neuen Auftrag abgeglichen.
 
-### Phase 1 – ⬜ Technische Machbarkeit isoliert nachweisen
+### Phase 1 – ✅ Technische Machbarkeit isoliert nachgewiesen
 
-- [ ] COM-Registrierung/-Aktivierung mit eigener Prüf-CLSID und eigenem Profil; x86-/x64-JScript-Clients.
-- [ ] Eine App-Nachrichtenschleife mit COM-Klassenfabrik und DI-Erzeugung demonstrieren.
-- [ ] Zwei gleichzeitige COM-Kaltstarts sowie COM während normalem Start bedienen; ein Host, keine verlorene Aktivierung.
-- [ ] Keine sichtbaren Fenster beim Aktivieren; langsam startende Dienste blockieren die Klassenfabrik nicht.
-- [ ] Angepasste Lebensdauer gegen sichtbaren Benutzerbetrieb und simuliertes aktives Gespräch prüfen.
-- [ ] Quantarix-Erweiterungen getrennt prüfen; bestehende LxTranslate-COM-Fälle ohne reale Übersetzungsanbieter erhalten.
+- [x] ✅ COM-Registrierung/-Aktivierung mit eigener Prüf-CLSID und eigenem Profil; x86-/x64-JScript-Clients.
+- [x] ✅ Eine WinForms-Nachrichtenschleife mit COM-Klassenfabrik, DI-Erzeugung und expliziter UI-Thread-Übergabe nachgewiesen.
+- [x] ✅ Zwei gleichzeitige COM-Kaltstarts sowie COM während des simulierten Normalstarts bedienen denselben Host; keine verlorene Aktivierung.
+- [x] ✅ Keine sichtbaren Fenster beim Aktivieren; bei um 4,5 Sekunden verzögerter Initialisierung ist die Klassenfabrik schon erreichbar und liefert `Starting`.
+- [x] ✅ Lebensdauerbindungen für Benutzerbetrieb und aktives Gespräch simuliert; letzter Client beendet diese Haltegründe nicht. Echte Fenster-/Gesprächsabnahme folgt später.
+- [x] ✅ Keine Quantarix-Änderung nötig; eigener Adapter getrennt geprüft und unveränderter LxTranslate-Hostingpfad mit synthetischen Objekten aus x86/x64-JScript bestätigt.
 
-Abnahme: Der kritische gemeinsame Start-/Lebenszyklus ist nativ belegt. Erst danach die produktive API anschließen.
+Abnahme am 20.11.2026: kritischer Start-/Lebenszyklus im isolierten Host nativ belegt.
+Die produktive API wird erst in den nachfolgenden Phasen angeschlossen.
+
+#### Phase-1-Prototyp und Prüfumfang
+
+Implementierung unter [Tools/ComPrototype.TestWorker](../Tools/ComPrototype.TestWorker/ComPrototype.TestWorker.csproj),
+in der Hauptsolution als Test-Fixture eingebunden. Ausgaben bleiben nach Edition getrennt.
+Der Host referenziert `Quantarix.Interop`, verwendet dessen `IClassFactory`-/Ole32-Verträge und
+`WinFormsUiDispatcher`, betreibt aber genau eine eigene `Application.Run`-Schleife.
+Die injizierte Klassenfabrik erhält eine typisierte Erzeugungsfunktion aus dem Composition Root.
+Sie verwendet weder Service-Locator-Zugriffe noch `ComBase` für die neue Lebensdauer.
+Am gemeinsamen Quantarix-Repository und an LxTranslate.Server wurde nichts geändert.
+Deshalb werden keine Erweiterungen des gemeinsamen Subsystems benötigt; der eigene Adapter ist die
+in Abschnitt 6.1 vorgesehene Alternative. Der bisherige `LocalServer.Register<T>`-/`Run`-/`ComBase`-Pfad
+wird zusätzlich mit einem synthetischen Objekt aus beiden JScript-Bitnessen geprüft.
+
+Wiederholbarer Einstieg nach dem regulären Build:
+
+```powershell
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine FinOffice
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine Pro
+```
+
+Das Skript erzeugt pro Lauf neue CLSIDs/ProgIDs (`WCP.p<GUID>`, unter 39 Zeichen), eigene Profile
+und ausschließlich eigene HKCU-Klassen-/ProgID-Einträge. Beide Registry-Ansichten werden berücksichtigt,
+einschließlich gemeinsam sichtbarer Schlüssel. Ein belegter fremder Eintrag wird nicht überschrieben.
+Nach dem Lauf werden die eigenen Einträge entfernt und deren Abwesenheit geprüft.
+Die registrierte Befehlszeile enthält absolute, quotierte EXE-/Profilpfade. Kein `Regasm`, keine
+HKLM-Registrierung und keine Änderung von UAC-/DCOM-Richtlinien. Erhöhte Prüfshells starten den Lauf
+über den vorhandenen normalen Desktop mit verborgenem Konsolenfenster; der Kindprozess prüft, dass
+er nicht erhöht läuft. Ein Scheitern führt nicht zu einer Registrierung unter HKLM.
+
+Die native Prüfung hat gezeigt: .NET-COM-Aufrufe müssen ausdrücklich an den UI-Dispatcher übergeben
+werden. Das `[STAThread]` des Programmeinstiegs allein garantiert nicht, dass ein CCW-Methodenaufruf
+auf diesem Thread ausgeführt wird. Der Prototyp misst deshalb den tatsächlich benutzten UI-Thread.
+Die langsame Initialisierung erfolgt asynchron nach Veröffentlichung der Klassenfabrik; ein Client
+kann bereits `Starting` abfragen, bevor derselbe Host `Ready` erreicht.
+
+**Bewusste Grenzen:** Benutzerbetrieb und aktives Gespräch sind in Phase 1 Haltegründe im
+Lebensdauerdienst, keine sichtbaren Produktfenster und keine echten SIP-Gespräche. `Close` gibt die
+kooperative Testsitzung frei, ohne die Benutzer-/Gesprächsbindung zu löschen. Die Freigabe eines
+CCW ohne `Close` wird mit einer ausdrücklichen einmaligen Test-GC synchronisiert; daraus folgt
+keine garantierte Freigabelatenz beim Absturz eines produktiven Skripthosts. Dieser Fall bleibt
+Phase 6. Es gibt im neuen Host keinen periodischen erzwungenen GC. Die produktive UI-/Telefonie-
+Anbindung, Typbibliothek und Kunden-/Lieferantenaufrufe bleiben Phase 2–8.
+
+Nachweise: `.com-prototype-build-{fin,pro}.log` (Solution-Rebuilds Debug/Any CPU, je 0 Fehler und
+26 bekannte externe CSCore-Nullablewarnungen), `.com-prototype-{fin,pro}.log` und
+`.artifacts/com-prototype/{fin-final,pro-final}/results.json`. Je Edition sind 11 gezielte
+Lebensdauer-/Grenzprüfungen und 46 native Assertions über zehn isolierte Fixture-Konfigurationen
+bestanden. Die Fixtures belegen Kaltstart, beide Client-Bitnessen, denselben Singleton bei parallelem
+Start, erneute Aktivierung derselben CLSID nach Idle-Shutdown, Einstieg während Initialisierung,
+Benutzer-/Gesprächsbindung nach Sitzungsschluss, CCW-Fallback, Start ohne Client sowie den bisherigen
+Quantarix-Serverpfad. HRESULT und `IErrorInfo` erreichen JScript unverändert. Die neue Fassade erbt
+keine Freigabe für nicht vertrauenswürdiges Scripting. `RegistryCleanupConfirmed=true` und
+`Elevated=false` sind für beide vollständigen Läufe festgehalten. Keine neuen Forms/UserControls,
+keine Layoutänderung; daher kein Render-/Designer-Lauf für diese Phase erforderlich.
 
 ### Phase 2 – ⬜ Verträge und Adapter
 
 - [ ] Eigene ProgIDs/CLSIDs/IIDs, feste Dispatch-IDs und IDL/TLB mit dokumentierter Versionsstrategie.
 - [ ] Injizierte Fassade, Präsentationsschnittstelle, Firmen-/Viewkatalog und Auftragsverwaltung implementieren.
+- [ ] `ShowCustomer` und `ShowSupplier` mit Mandantenschlüssel und rollenbezogener Nummer als String vertraglich festlegen.
 - [ ] Status-/Fehlerobjekte, Limits, Auftragsaufbewahrung und Request-Deduplizierung definieren und prüfen.
 - [ ] Keine UI-/Diensteobjekte oder Tasks durch COM; Unicode, leere Werte, falsche IDs und Bitness prüfen.
 
@@ -396,6 +462,7 @@ Abnahme: Normaler Start verhält sich wie zuvor; reines COM-Erzeugen zeigt keine
 - [ ] Viewkatalog gemäß Abschnitt 5 an vorhandene Routing-/Dialogfabriken und Pluginverträge anbinden.
 - [ ] Vorhandene Dokumente/Dialoge wiederverwenden; korrekte Owner, Modalität und Entwurfs-/Gesprächsschutz.
 - [ ] Alle verfügbaren Ansichten öffnen, nötige Kontexte validieren und unbekannte IDs sichtbar ablehnen.
+- [ ] Kunden-/Lieferantenaufrufe nach Nummer in Pro und FinOffice prüfen: führende Nullen, gleiche Nummer in verschiedenen Mandanten/Rollen, kein Treffer und Mehrdeutigkeit; vorhandene Fachansicht über `PartyKey` öffnen.
 - [ ] Nur betroffene Oberflächen leer/gefüllt, klein, mit großer Schrift, höherer DPI und aktivem Skin prüfen.
 - [ ] Vordergrund und minimiert/maximiert/Tray/modal im konkreten Skripthost gemeinsam nachweisen.
 
@@ -453,7 +520,6 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Bei einem Umsetzungsauftrag mit **Phase 1** beginnen: native Aktivierung mit euren COM-Klassen,
-derselben WinForms-Schleife und angepasster Lebensdauer isoliert nachweisen. Diese Punkte entscheiden,
-ob die empfohlene Variante sauber auf dem vorhandenen Subsystem aufsetzt. Die jetzige Studie allein
-ist keine Freigabe einer bereits implementierten COM-API.
+Als Nächstes folgt **Phase 2**: den produktiven, versionierten Automation-Vertrag und seine DI-Adapter
+auf dem geprüften Prototyp aufbauen, einschließlich `ShowCustomer` und `ShowSupplier`.
+Phase 1 bestätigt die technische Machbarkeit; sie stellt noch keine produktive Wawi-COM-API bereit.
