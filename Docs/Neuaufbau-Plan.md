@@ -6,7 +6,10 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-Zuletzt ergänzt: ✅ DPI-R2–R4 behoben und isoliert geprüft: Fenster und Mindestgrößen bleiben im Arbeitsbereich,
+Zuletzt ergänzt: ✅ G1-Edition Pro vom Benutzer gewählt und regulärer Debug-/Any-CPU-Build 0.1.218 mit
+Pro-Plugin bereitgestellt (20.11.2026). Fingerabdruck unten erfasst; Testzeitpunkt und Laufzeitvoraussetzungen
+noch offen. Noch kein Testprofil angelegt und keine reale Prüfung durchgeführt.
+Zuvor ergänzt: ✅ DPI-R2–R4 behoben und isoliert geprüft: Fenster und Mindestgrößen bleiben im Arbeitsbereich,
 lange Einstellungsseiten scrollen bei sichtbarer Aktionszeile, Umbruchschwellen berücksichtigen DPI und Schrift.
 Fensterdaten speichern Bezugs-DPI und Monitorbezug versioniert; Neustarts rechnen die normalen Maße für den
 Zielmonitor um. Kleine Fenster bis 800 × 600 mit 24 pt geprüft; echte Monitorwechsel bleiben gemeinsame G5-Abnahme
@@ -2576,20 +2579,35 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 - [x] ✅ Vorbereitung: tatsächliche Bedienpfade und lokale Builddateien geprüft; folgende Schritte und
   Ergebnisraster erstellt. Ausschließlich Quellen-/Datei-/Versionsprüfung, kein Start, keine SIP-Anmeldung,
   kein Gerätezugriff und kein Gespräch durchgeführt. Das bestätigt die Vorbereitung, nicht G1.
-- [ ] Laufzeitvoraussetzungen gemeinsam bestätigen: Edition, Testzeitpunkt, FRITZ!Box-Testkonto,
+- [x] ✅ Erste G1-Edition gemeinsam festgelegt: Benutzer wählt Pro (20.11.2026). Regulärer Pro-Build
+  Debug/Any CPU erfolgreich, Pro-Plugin im Ausgabeordner, keine fremden Editionsreste der App-EXE;
+  0 Fehler und 26 bekannte externe CSCore-Warnungen. Nachweis `.phase8-g1-pro-build.log`.
+  Nur Build-/Dateiprüfung, kein Start oder Gerätezugriff. G1 bleibt offen.
+- [ ] Weitere Laufzeitvoraussetzungen gemeinsam bestätigen: Testzeitpunkt, FRITZ!Box-Testkonto,
   zweiter erreichbarer Testanschluss, Mikrofon/Wiedergabe sowie freigegebene Lexware-Testmandanten.
   Falls die reale SIP-Grundprüfung noch nicht dokumentiert ist, zuerst Schritt 3 durchführen.
 
-Vorbereiteter FinOffice-Kandidat: reguläre EXE
+**Aktuell bereitgestellter Pro-Kandidat:** reguläre EXE
+`WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.Pro.exe`,
+Anwendungsversion `0.1.218` (Dateiversion `0.1.0.218`), Dateistand 20.11.2026 11:20 Uhr lokal.
+Produktmetadaten `WawiCallPro Professional`; ausschließlich `WawiCallPro.Plugins.Lexware.Pro.dll`
+als Lexware-Plugin vorhanden. SHA-256 der zugehörigen `WawiCallPro.App.Pro.dll`:
+`1B06E3921D4071EF63CFE577C86FCABAD82A236D900F94F8AD5B559C686F218F`.
+Der gebaute Arbeitsstand basiert auf `078c53a` mit den bereits vorhandenen lokalen Änderungen;
+die Versionsnummer ist kein Nachweis eines ausschließlich sauberen Commitstands. Diese lokalen Änderungen
+wurden weder verändert noch in den Dokumentationscommit übernommen. Lauf-ID, Testzeitpunkt und Testbestand
+stehen noch aus; das Testprofil wurde nicht angelegt. Der Editionswechsel folgt der ausdrücklichen Benutzerwahl.
+
+**Früherer FinOffice-Kandidat (historischer Nachweis):** reguläre EXE
 `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/WawiCallPro.App.FinOffice.exe`,
 Anwendungsversion `0.1.217` (Dateiversion `0.1.0.217`), Dateistand 20.11.2026 10:21 Uhr lokal.
 Der vor dem zugehörigen Fix-Commit gebaute Arbeitsstand enthält die unten dokumentierte zentrale
 DPI-Buttonkorrektur und die Korrekturen R2–R4; die Versionsnummer allein ist kein Commitnachweis. Der frühere A4-Kandidat wurde
 damit ersetzt. SHA-256 der zugehörigen `WawiCallPro.App.FinOffice.dll`:
 `F72329D47BB0F3CC03158D48913EEC1AFF4F39A819548C4698F32FFC4285264B`.
-Die Ausgabe bleibt bei reiner Dokumentationsarbeit unverändert. Vor dem tatsächlichen Start Pfad,
-Edition und Fingerabdruck erneut vergleichen. Pro erst nach Benutzerwahl regulär in der aktiven
-Konfiguration bereitstellen und seinen eigenen Buildstand erfassen; der gemeinsame Ausgabeordner
+Dieser frühere FinOffice-Stand ist durch den Pro-Build im gemeinsamen Ausgabeordner ersetzt.
+Vor einem späteren FinOffice-Lauf die Edition regulär neu bauen und ihren neuen Fingerabdruck erfassen.
+Vor dem tatsächlichen Start Pfad, Edition und Fingerabdruck erneut vergleichen; der gemeinsame Ausgabeordner
 enthält jeweils nur die zuletzt gebaute Edition. Während einer laufenden Abnahme keinen Editionswechsel bauen.
 
 **Testprofil und Daten:** Pro Edition ein neues absolutes Profil unter
@@ -2612,7 +2630,7 @@ Benutzer gestartet. Bei einem neuen Lauf eine neue Lauf-ID wählen, beim Neustar
 
 ```powershell
 $g1Repository = 'D:\Application-Development\WawiCallPro'
-$g1Edition = 'FinOffice'
+$g1Edition = 'Pro'
 $g1RunId = 'G1-20261120-01'
 $g1Profile = Join-Path $g1Repository ".artifacts\phase8-g1\$g1Edition\$g1RunId"
 $g1Exe = Join-Path $g1Repository "WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.App.$g1Edition.exe"
@@ -2650,8 +2668,8 @@ Im Ergebnisraster ausschließlich Testaliasnamen und eine sachliche Beobachtung 
 
 | Nachweis | FinOffice | Pro |
 |---|---|---|
-| Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Offen |
-| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Kandidat oben vorbereitet; Start offen | Offen |
+| Edition/Testzeitpunkt/Testanschluss/Testbestände vereinbart | Offen | Edition Pro am 20.11.2026 bestätigt; Zeitpunkt/Anschluss/Testbestand offen |
+| Tatsächlicher EXE-/DLL-Stand und Lauf-ID beim Start erfasst | Früherer Kandidat ersetzt; vor Start neu bauen | 0.1.218 und Fingerabdruck oben vorbereitet; Start/Lauf-ID offen |
 | Neues Profil/eigene SQLite bestätigt | Offen | Offen |
 | Reale SIP-Grundprüfung/Audio für diesen Lauf bestanden | Offen | Offen |
 | Testidentitäten A/B und aktueller Cache bestätigt | Offen | Offen |
