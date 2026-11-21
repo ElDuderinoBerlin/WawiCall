@@ -1,6 +1,6 @@
 # Plugin-UI-Registrierung und Tab „Lexware“
 
-Stand: 21.11.2026. Architekturentwurf auf Benutzerauftrag; die Implementierung ist noch offen.
+Stand: 21.11.2026. ✅ Entwurf und Phase 1 implementiert und geprüft. Hostanbindung und sichtbare Umstellung folgen in Phasen 2–5.
 
 ## Ziel und Entscheidung
 
@@ -38,7 +38,7 @@ Diese Referenz liefert das Dialogmuster; eine dort vorhandene Plugin-Tabregistri
 
 Die Windows-Verträge gehören in die bestehende Shared Assembly `WawiCallPro.Plugin.Windows`.
 `WawiCallPro.Interfaces` erhält dadurch keine Abhängigkeit auf WinForms, DevExpress oder die App.
-Vorgeschlagene Namen und Signaturen sind Entwurfsstand:
+Die folgenden Kernverträge sind seit Phase 1 implementiert; Integration und View-Erzeugung folgen:
 
 ```csharp
 public interface IWindowsPluginHostServices : IWawiCallHostServices
@@ -212,7 +212,7 @@ COM-Aufträge und ändert keine Telefon-Cachequellen.
 | Phase | Ergebnis | Status |
 |---|---|---|
 | 0 – Bestand und Entwurf | Ist-Pfade gelesen, Host-/Plugin-Verantwortung und gewünschter Tab festgelegt; dieses Dokument geprüft und in der Hauptsolution aufgenommen. | ✅ Entwurf abgeschlossen |
-| 1 – Verträge und Registrierungsmodell | Windows-Hostfähigkeit, sitzungsgebundene Fassade, Deskriptoren, Factory-/View-/Registrierungs-Leases. | ⬜ Offen |
+| 1 – Verträge und Registrierungsmodell | Windows-Hostfähigkeit, sitzungsgebundene Fassade, Deskriptoren, Factory-/View-/Registrierungs-Leases. | ✅ Implementiert und geprüft |
 | 2 – Host und Pluginsitzung | Desktopadapter, korrekte DI-Identität, vorgemerkte Registrierung, Runtime-Ressourcen und geordnete Freigabe; Konsole ohne UI. | ⬜ Offen |
 | 3 – Lexware-Views | Pro und FinOffice registrieren je ihren vollständigen Tab „Lexware“; Zugang und Mandantenauswahl liegen im Plugin. | ⬜ Offen |
 | 4 – Einstellungsdialog und Umstellung | Generisches Einbetten, gemeinsames Speichern/Abbrechen, Mandantenpräferenz, COM-ID erhalten; alten Dock-Selector nach erfolgreicher Umstellung entfernen. | ⬜ Offen |
@@ -221,6 +221,52 @@ COM-Aufträge und ändert keine Telefon-Cachequellen.
 Jede Phase einzeln implementieren, prüfen, im Plan abhaken und separat committen.
 Für reine Dokumentation jetzt keine Builds oder GUI-Läufe starten. Bei späteren Codeänderungen
 die aktive IDE-Konfiguration/Plattform beibehalten, beide regulären Editionshosts bauen, Pro zuletzt.
+
+### ✅ Phase 1 – Implementierung und Nachweise
+
+Verträge: [PluginUiContracts.cs](../WawiCallPro.Plugin.Windows/PluginUiContracts.cs).
+`IWindowsPluginHostServices` erweitert den Basisvertrag nur in der vorhandenen Windows-Shared-Assembly.
+Pluginseite sieht ausschließlich `IPluginHostUi.RegisterSettingsTab`; Aktivierung, Eigentümer und
+Sitzungsgeneration werden vom Hostmodell verwaltet. Seitenkontext enthält den vorhandenen
+Zugangsentwurf, einen reinen Mandanten-Auswahlentwurf und typisierte Darstellungs-/Wartecursorhilfen.
+Die getrennte Veröffentlichungsschnittstelle ändert den Laufzeitkontext erst nach erfolgreichem Speichern.
+Die Context-/Publisher-Implementierungen und UI-Erzeugung sind noch nicht angeschlossen.
+
+Modell: [PluginSettingsRegistry.cs](../WawiCallPro.Plugin.Windows/PluginSettingsRegistry.cs).
+`CreateScope(pluginId)` erzeugt eine hostseitige Sitzung mit eigener und unveränderlicher ID.
+`Session.Ui` ist eine separate Fassade. Anmeldungen bleiben bis `Session.Activate()` unsichtbar;
+nach Aktivierung ist die Anmeldephase geschlossen. Höchstens eine Sitzung ist aktiv.
+`GetSnapshot()` liefert sortierte unveränderliche Metadaten mit Revision, ohne Factoryreferenzen.
+`AcquireFactory(key)` hält ausschließlich eine aktuelle Factory; die Registry ruft sie niemals auf.
+Der Host muss später UI-Thread, Autorisierung und Ressourcenverfolgung beim tatsächlichen Erzeugen durchsetzen.
+
+Widerruf entfernt den Tab sofort aus dem aktiven Katalog, sperrt neue Erwerbungen und wartet auf
+noch gehaltene Factory-Leases. Sitzungs-/Registry-Freigabe wartet auch auf bereits widerrufene,
+aber noch verwendete Einträge. Freigabe ist idempotent; alte Schlüssel und Registrierungs-Leases
+können die neue Sitzung nicht verändern. Factoryreferenzen werden beim Widerruf entfernt.
+Keine Benutzer-/Plugin-Callbacks unter der Registry-Sperre.
+
+Begrenzungen: 32 noch nicht vollständig freigegebene Sitzungen, 32 Einträge pro Sitzung, 1024
+gleichzeitig gehaltene Factory-Leases je Eintrag. Tab-ID 1–64 Zeichen (`a-z`, danach zusätzlich
+`0-9`, Punkt und Bindestrich), Titel 1–120 UTF-16-Codeeinheiten mit gültigem Unicode ohne Steuer-/
+Formatzeichen oder äußere Leerzeichen, Reihenfolge 0–10000. Diagnosen enthalten feste Fehlercodes
+ohne übergebene Titel, Schlüssel oder Konfigurationswerte.
+
+Prüfung: [PluginSettingsRegistryTests.cs](../WawiCallPro.App.Tests/PluginSettingsRegistryTests.cs)
+enthält **25 neue Prüffälle** für Lazy-Registrierung, Aktivierung, Rollback einer vorgemerkten Sitzung,
+doppelte/parallele Anmeldungen, Metadatenvalidierung/Unicode, Mengenbegrenzungen, veraltete Schlüssel,
+Widerruf mit mehreren Pins, konkurrierende Freigabe, Registry-/Sitzungsshutdown und tatsächliche
+Freigabe der Factoryreferenz trotz erhaltener Metadaten und Registrierungs-Lease.
+Je Edition **26 gezielte Tests** einschließlich bestehender Shared-Assembly-Identitätsprüfung und
+zusätzlich **9 vorhandene COM-Start-/Identitätstests** bestanden. Beide regulären Solution-Builds
+in der bestehenden Konfiguration **Debug / Any CPU**, null Fehler und null Warnungen; Pro zuletzt.
+Logs `.plugin-ui-phase1-{build,tests,host}-{fin,pro}.log`. Keine Controls erzeugt, kein GUI-Lauf,
+keine echten Quell-/SIP-Zugriffe und keine gespeicherten Einstellungen verändert.
+
+Phase 2 bindet dieses Modell erst an die Composition Roots und die tatsächliche Pluginsitzung an.
+Die bisherige Mandantenauswahl und der bisherige Zugangstab sind deshalb weiterhin sichtbar;
+deren Umstellung und der Titel „Lexware“ gehören zu Phase 3/4. Rücknahme von Phase 1 entfernt
+nur die neuen Verträge, das noch nicht verdrahtete Modell und seine Tests.
 
 ### Erforderliche Prüffälle für Phase 5
 
