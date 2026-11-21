@@ -51,7 +51,9 @@ zum geprüften Phase-7-Build; das normale Pro-Profil wird gemeinsam eingerichtet
 0.1.246; unter HKCU als normaler Benutzer registriert und beide Registry-Ansichten geprüft.
 TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. ✅ COM-Phase-8/Pro Schritt 1: Produkt-ProgID
 mit x86-/x64-JScript aktiviert, ein Pro-Prozess, Ready/unsichtbar/SIP Stopped; native Fenstermessung
-und Benutzerbeobachtung bestätigen den Start ohne Fenster. Eigene Lexware-Fach-Tabs und erweiterte
+und Benutzerbeobachtung bestätigen den Start ohne Fenster. ✅ COM-Phase-8/Pro Schritt 2: letzter
+JavaScript-Client freigegeben, Host nach 30,73 Sekunden mit Exitcode 0 geordnet beendet und per COM
+erneut ohne Fenster gestartet. Eigene Lexware-Fach-Tabs und erweiterte
 Fachfunktionen fehlen weiterhin; deren Bestandsaufnahme steht im Abnahmeprotokoll. COM-Phase 8
 insgesamt, beide vollständigen Editionsabnahmen und G1 bleiben offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:

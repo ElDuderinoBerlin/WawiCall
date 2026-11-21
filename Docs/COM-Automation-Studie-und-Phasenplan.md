@@ -1108,6 +1108,9 @@ JavaScript-Schritte im Ergebnisprotokoll.
 Ready/unsichtbar/SIP Stopped, ein App-Prozess und nativ kein sichtbares Fenster. Benutzer bestätigt
 den Start ohne Hauptfenster, Splash oder Fehlerdialog. Der aktuelle Katalog enthält 23 Basiseinträge;
 eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufnahme im Ergebnisprotokoll.
+✅ **Pro Schritt 2:** Beide JavaScript-Clients geordnet freigegeben; der fensterlose Host endet nach
+30,73 Sekunden mit Exitcode 0. Erneute Produktaktivierung startet einen neuen, weiterhin unsichtbaren
+Pro-Prozess im Zustand Ready/SIP Stopped. Keine erzwungene App-Beendigung.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|
@@ -1119,7 +1122,7 @@ eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufna
 | Anmeldung, `Dial`, Gespräch, `HangUp` | Freigegebene Gegenstelle, richtige Rufnummer/Firma, Audio in beide Richtungen | [ ] | [ ] |
 | Skriptende bei aktivem Gespräch | Gespräch bleibt kontrollierbar; kein ungefragtes Auflegen | [ ] | [ ] |
 | Neustart und Historie | Genau ein Gespräch mit richtiger Zuordnung und erhaltenen Notizen | [ ] | [ ] |
-| Letzter Client ohne Benutzerbetrieb | Beendet nach definierter Idlefrist geordnet; nächster COM-Start funktioniert | [ ] | [ ] |
+| Letzter Client ohne Benutzerbetrieb | Beendet nach definierter Idlefrist geordnet; nächster COM-Start funktioniert | [x] ✅ 21.11.2026 | [ ] |
 | Lizenz-/Installations-/Verbindungsfehler | Verständlicher Status ohne unangeforderte Dialoge und ohne Schutzumgehung | [ ] | [ ] |
 
 Vorher gemeinsam festlegen: tatsächlicher JavaScript-Host, Testzeitpunkt, Testmandant und Gegenstelle.
