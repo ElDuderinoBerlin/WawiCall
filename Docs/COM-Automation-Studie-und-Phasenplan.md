@@ -842,7 +842,7 @@ und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration 
 - [x] ✅ Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
 - [x] ✅ Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
 - [x] ✅ Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
-- [ ] Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
+- [x] ✅ Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
 - [ ] Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
 
 Abnahme: Keine Gesprächsabbrüche durch Objektfreigabe und kein erzwungenes Prozessende außerhalb des geregelten Shutdowns.
@@ -902,6 +902,21 @@ und private Providerfehler. Bestehende Prüfungen sichern Busy, Timeout, fehlend
 ungültige Eingaben, fremde Installation/Produktlinie und Rollen-/Nummerngrenzen. Nachweise:
 `.com-phase6-business-{build,app,contract}-{fin,pro}.log`; reguläre Rebuilds Debug/Any CPU ohne Fehler,
 weiterhin nur die 26 bekannten externen CSCore-Nullablewarnungen. Kein neuer visueller Prüfbedarf.
+
+Vierter abgeschlossener Schritt: Fachzugriffe führen durch die autorisierte Quelle und vor der
+Darstellung weiterhin durch den vorhandenen UI-Dispatcher und die bestehende Modalitäts-/Entwurfsprüfung.
+Telefonie verwendet unverändert dieselbe Befehlsgrenze wie die Oberfläche. Busy und geänderte Rechte
+werden als feste Fehler gemeldet; eigene Oberflächen oder ein direkter Zugriff auf Forms, DI-Container
+und Backendobjekte werden nicht exportiert. Bereits vorhandene Modalitäts-/Entwurfsnachweise aus
+Phase 4 und die gezielten Regressionen bleiben gültig; unveränderte Ansichten wurden nicht neu gerendert.
+
+Die native Fassade sowie alle drei Unterobjekttypen lehnen `IObjectSafety`, CLR-`_Object` und fremde
+IIDs tatsächlich per `QueryInterface` ab. Unterstützt bleiben genau `IUnknown`, `IDispatch`, das
+jeweilige versionierte Dispatch-Interface und `ISupportErrorInfo` mit konsistenter IUnknown-Identität.
+Die Klassen erben keine Freigaben aus `ComBase`/`IObjectSafetyImpl`. Dies ist durch je 18 Vertrags-/
+Referenztests und 70 native Vertragsprüfungen beider Editionen belegt; COM-GUIDs/Dispatch-IDs und
+die HKCU-/TLB-Regeln bleiben erhalten. Rücknahme: Fachautorisierungsadapter und Routerbindung
+gemeinsam zurücksetzen; niemals nur die Autorisierung in einem produktiven Host entfernen.
 
 ### Phase 7 – ⬜ Auslieferung
 
