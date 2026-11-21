@@ -34,8 +34,16 @@ Installations- und aktuelle Mandantengrenzen vor Fachzugriff und Anzeige erneut 
 begrenzte Aufträge, feste Fehlertexte sowie redigierte Datei-/UI-Logs nachgewiesen. Je Edition
 84 gezielte App-Tests, 18 Vertragstests, 18 native App-Prüfungen und 70 native Vertragsprüfungen
 bestanden. Beide regulären Rebuilds Debug/Any CPU ohne Fehler, Pro zuletzt; eigene HKCU-Testklassen
-entfernt, keine erzwungene Serverbeendigung und kein Server-Test-GC. Auslieferung und reale
-SIP-/Audio-/Fachhostabnahme folgen in COM-Phasen 7/8. Die bestehende G1-Abnahme bleibt offen.
+entfernt, keine erzwungene Serverbeendigung und kein Server-Test-GC.
+✅ COM-Phase 7: schnelle HKCU-Registrierung ohne TLB-/Interface-/Maschinenregistrierung, idempotente
+Entfernung mit Besitz-/Versions-/MVID-Schutz und Velopack-Hooks implementiert. Echte isolierte
+Installation, Update, Rücknahme und gezielte Deinstallation einschließlich x86-/x64-Aktivierung
+der installierten App in allen Zuständen geprüft; Profile erhalten, alte Hooks entfernen keine neuere
+Registrierung. Bedienanleitung und JScript-Beispiel ergänzt. Je Edition 99 gezielte App-Tests,
+18 Vertragstests, 26 native Deployment- und 21 echte Installationsprüfungen; zusätzlich 57
+Releaseskriptprüfungen bestanden. Reguläre Builds Debug/Any CPU ohne Fehler, Pro zuletzt; keine
+Produktregistrierungen oder öffentlichen Releases für Tests geändert. Reale Zielinstallation und
+SIP-/Audio-/Fachhostabnahme folgen gemeinsam in COM-Phase 8. Die bestehende G1-Abnahme bleibt offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

@@ -9,7 +9,7 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1–6 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–7 abgeschlossen. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
@@ -21,11 +21,15 @@ Viewprüfungen und 23 Start-/Fensterregressionen bestanden.
 ✅ Phase 5: COM-Telefonie am gemeinsamen UI-/SIP-Dienst, fensterlose Anrufzuordnung und
 Clientverlust-/Deduplizierungsnachweise implementiert. Je Edition 46 gezielte App-Tests und
 15 COM-Vertragstests bestanden. Die anschließende Lebensdauermatrix und Schutzprüfung steht in Phase 6;
-Auslieferung und reale Produktabnahme bleiben Phasen 7/8.
+Die Auslieferung wird anschließend in Phase 7 belegt; die reale Produktabnahme bleibt Phase 8.
 ✅ Phase 6: native Referenzbindungen für Fassaden und Unterobjekte, parallele Clients, harter
 Skriptabbruch, geordneter Shutdown und Aktivierung während Shutdown sowie erneute Fachautorisierung
 und Daten-/Loggrenzen geprüft. Je Edition 84 gezielte App-Tests, 18 Vertragstests, 18 native App-Prüfungen
 und 70 native Vertragsprüfungen bestanden. Pro zuletzt regulär in Debug/Any CPU gebaut.
+✅ Phase 7: HKCU-Registrierung ohne TLB, Besitz-/Versionsschutz, Velopack-Installation/Update/
+Rücknahme/Deinstallation und Bedienanleitung abgeschlossen. Je Edition 99 gezielte App-Tests,
+18 Vertragstests, 26 native Deploymentprüfungen und 21 echte Installationsprüfungen; zusätzlich
+57 Releaseskriptprüfungen bestanden. Produktregistrierungen für die Prüfungen nicht geändert.
 Phasen 1/2 verwenden einen separaten Host; Phase 3 prüft die reguläre App mit eigenen Profilen und
 synthetischen Daten. Keine echten Anrufe und keine persistente Produktregistrierung für die Tests.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
@@ -452,7 +456,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 4 | ✅ | Firmen-/Viewkatalog, ShowCustomer/ShowSupplier und alle verfügbaren Ansichten; je Edition 42 App-Tests, 15 Vertragstests, 78 native Views und 23 Start-/Fensterprüfungen | Agent; freigegebene x86-/x64-WSH-Läufe, synthetische Daten, gezielte Layoutnachweise |
 | 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung weiterhin Phase 8 |
 | 6 | ✅ | Native Objekt-/Unterobjektbindung, Clientabbruch, Mehrclient-/Shutdownrennen und Schutzgrenzen; je Edition 84 App-Tests, 18 Vertragstests, 18 native App- und 70 native Vertragsprüfungen | Agent; isolierte Profile/HKCU-Identitäten, keine erzwungene Serverbeendigung und kein Server-Test-GC |
-| 7 | ⬜ | Registrierung, Update, Deinstallation und Dokumentation | Agent; isolierte Installationsprüfung, Zielinstallation gemeinsam |
+| 7 | ✅ | HKCU-only ohne TLB, Besitz-/Versionsschutz, echte Velopack-Installation/Update/Rücknahme/Deinstallation und Anleitung; je Edition 99 App-/18 Vertragstests, 26 Deployment-/21 Installationsprüfungen, 57 Skriptprüfungen | Agent; isolierte zufällige Identitäten, Produktregistrierungen erhalten; reale Fachhost-/SIP-Abnahme Phase 8 |
 | 8 | ⬜ | Native JavaScript-Abnahme Pro und FinOffice | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
 
 ### Phase 0 – ✅ Studie und Entscheidung
@@ -965,16 +969,17 @@ Finale lokale Nachweise:
 `.artifacts/com-phase6-final-contract-native-{fin,pro}/results.json`,
 `.com-phase6-final-{build,app,contract}-{fin,pro}.log` und
 `.artifacts/com-phase6-final-evidence.json` mit Testfilter, Pfaden, Hashabgleich und bereinigten Ergebnissen.
-Alle technischen Phase-6-Punkte sind ✅; produktive Registrierung/Update/Deinstallation und der reale
-JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenbankmigration nötig.
+Alle technischen Phase-6-Punkte sind ✅; Registrierung/Update/Deinstallation werden anschließend
+isoliert in Phase 7 nachgewiesen. Der reale JavaScript-Fachhost mit SIP/Audio bleibt Phase 8.
+Keine Datenbankmigration nötig.
 
-### Phase 7 – ⬜ Auslieferung
+### Phase 7 – ✅ Auslieferung
 
 - [x] ✅ Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
 - [x] ✅ Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
 - [x] ✅ Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
 - [x] ✅ Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
-- [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
+- [x] ✅ Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
 
 Abnahme: Installierte EXE wird zuverlässig aufgelöst; alte Einträge überschreiben keine neue Installation.
 
@@ -1061,6 +1066,32 @@ lokale Links, Solutioneinträge und JavaScript-Argumente geprüft. Nachweise:
 `.artifacts/com-phase7-examples-{pro,fin}-02/results.json` und zugehörige Sample-Logs. Die abschließenden
 regulären Builds und Regressionen folgen im letzten Phase-7-Punkt.
 
+#### Abschließende Phase-7-Abnahme am 21.11.2026
+
+Fünfter Schritt: beide regulären Solution-Rebuilds in der unveränderten aktiven Konfiguration
+**Debug/Any CPU**, null Fehler, je 26 bekannte Nullablewarnungen der externen CSCore-Bibliothek.
+Pro zuletzt im normalen Ausgabeordner; isolierte Versions-/Paketbuilds ersetzen dies nicht.
+**Je Pro und FinOffice 99 gezielte App-/Frühstart-/Autorisierungs-/Lebensdauer-/Registrierungstests,
+18 Vertragstests und 26 native Deploymentprüfungen bestanden.** Die 21 echten Installationsfälle
+je Edition und 57 Releaseskriptprüfungen sind ebenfalls erfolgreich. Keine echte Telefonverbindung
+und keine produktiven Lexware-Datensätze verwendet. Unveränderte Views nicht neu gerendert.
+
+Die vollständigen installierten Prüfapps wurden unter zufälliger Paket-/COM-ID in x86/x64 vor und
+nach Update sowie nach Rücknahme gestartet und vor Austausch geordnet beendet. Alle eigenen
+COM-Schlüssel und SDK-Uninstall-Einträge wurden entfernt; getrennte Profile bleiben erhalten.
+Produktregistrierungen, TLB-/Interface-Metadaten und HKLM wurden für die Tests nicht verändert.
+SDK-Prozesslogs zeigen ausschließlich das Überspringen von Update.exe selbst, keine App-Kills.
+Nicht erfolgreiche Vorläufe zählen nicht als Nachweis; deren konkrete Harness-/SDK-Befunde und
+Korrekturen sind oben abgegrenzt. Keine öffentliche Veröffentlichung oder produktive Installation.
+
+Finale lokale Nachweise: `.com-phase7-final-{build,app,contract}-{fin,pro}.log`,
+`.artifacts/com-phase7-final-deployment-{fin,pro}/results.json`,
+`.artifacts/com-phase7-install-{fin,pro}-final/results.json`, `.com-phase7-final-release-scripts.log`
+und `.artifacts/com-phase7-final-evidence.json` mit Testfilter, DLL-/Paket-Hashes und Logauswertung.
+Die [Bedienanleitung](COM-Automation-Anleitung.md) enthält Voraussetzungen, Beispiele, Fehlercodes
+und den Reparaturweg. Alle fünf Phase-7-Punkte und die Phasenübersicht sind ✅. Die produktive
+Zielinstallation und tatsächliche JavaScript-/SIP-/Audio-/Fachhostabnahme erfolgen gemeinsam in Phase 8.
+
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
@@ -1082,7 +1113,7 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 7**: benutzerbezogene Registrierung/Entfernung, isolierte Update- und
-Deinstallationsnachweise sowie die Anwenderdokumentation fertigstellen. Die technische Lebensdauer-,
-Mehrclient-, Shutdown- und Schutzprüfung aus Phase 6 ist abgeschlossen. Reale SIP-/Audio- und
-Fachhostabnahme erfolgen anschließend gemeinsam in Phase 8; G1 bleibt davon getrennt offen.
+Als Nächstes folgt **Phase 8 gemeinsam**: tatsächlichen JavaScript-Host, produktive Zielinstallation,
+Testzeitpunkt, freigegebenen Mandanten und Gegenstelle abstimmen und die aufgeführten realen
+App-/SIP-/Audiofälle für beide Editionen prüfen. Die technische Robustheit und isolierte Auslieferung
+aus Phasen 6/7 sind abgeschlossen. G1 bleibt davon getrennt offen.

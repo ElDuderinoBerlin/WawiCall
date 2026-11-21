@@ -123,5 +123,10 @@ registrieren, Status und das vorhandene Log-Fenster prüfen. Protokollverzeichni
 unter Einstellungen → Allgemein. Geschäftsaktionen und Wählen prüfen Berechtigungen erneut;
 ein früher positiver Status oder zwischengespeicherter Mandantenkatalog hebt Sperren nicht auf.
 
+Ein fehlgeschlagener Installationshook liefert Exit 1 und einen festen Fehlertext. [Velopack-Hooks](https://docs.velopack.io/integrating/hooks)
+können den Installerablauf nicht abbrechen; deshalb dessen Log und die tatsächliche
+Registrierung prüfen. Falls nötig mit der aktuellen EXE `/regserver /user` reparieren. Eine fehlende
+HKCU-Schreibberechtigung wird nicht durch Maschinen- oder TLB-Registrierung umgangen.
+
 Die [technischen Nachweise](COM-Automation-Studie-und-Phasenplan.md) unterscheiden isolierte
 Deploymenttests von der noch gemeinsamen realen SIP-/Audio-/Fachhostabnahme in Phase 8.
