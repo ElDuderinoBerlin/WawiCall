@@ -971,7 +971,7 @@ JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenb
 ### Phase 7 – ⬜ Auslieferung
 
 - [x] ✅ Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
-- [ ] Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
+- [x] ✅ Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
 - [ ] Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
 - [ ] Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
 - [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
@@ -998,6 +998,16 @@ App-Kopie mit absichtlich ungültiger appsettings.json; Produktregistrierungen b
 Einstieg: `scripts/test-com-deployment.ps1 -ProductLine Pro -RegistrationOnly` bzw. `FinOffice` nach
 dem Editionsbuild. Nachweise: `.com-phase7-register-{build,tests,native}-{fin,pro}.log` und
 `.artifacts/com-phase7-register-native-{fin,pro}/results.json`. Die weiteren Phase-7-Punkte bleiben offen.
+
+Zweiter abgeschlossener Schritt: Je Pro und FinOffice bestehen 22 native Deploymentprüfungen.
+Die App registriert sich selbst in einem kopierten vollständigen Ausgabeverzeichnis mit Leerzeichen;
+x86- und x64-JScript aktivieren über die zufällige ProgID genau die gewählte Edition. Der Host bleibt
+fensterlos und beendet sich geordnet. Produkt-CLSIDs/ProgIDs sowie alle eigenen TLB-/Interface-Metadaten
+wurden in HKCU und HKLM in beiden Ansichten vor/nach dem Lauf lesend verglichen: unverändert.
+Keine Produktregistrierung für Tests angelegt; eigene Testschlüssel gezielt entfernt. Einstieg:
+`scripts/test-com-deployment.ps1 -ProductLine Pro` beziehungsweise `FinOffice`. Nachweise:
+`.artifacts/com-phase7-activation-{pro,fin}/results.json`, `.com-phase7-activation-{pro,fin}.log`
+und `.com-phase7-activation-build-{fin,pro}.log`; Debug/Any CPU ohne Fehler, Pro zuletzt regulär gebaut.
 
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 

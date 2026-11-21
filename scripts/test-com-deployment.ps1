@@ -62,6 +62,37 @@ function Invoke-App([string[]]$Arguments,[int]$Expected=0) {
         Check ($watch.Elapsed.TotalSeconds -lt 10) 'Registration command exits within ten seconds without a host or UI'
     } finally { $process.Dispose() }
 }
+$clientProcesses=[Collections.Generic.List[Diagnostics.Process]]::new()
+function Wait-For([scriptblock]$Condition,[string]$Name) {
+    $until=[DateTime]::UtcNow.AddSeconds(50)
+    while (-not (& $Condition)) { if ([DateTime]::UtcNow -gt $until) { throw "Timed out: $Name" }; Start-Sleep -Milliseconds 80 }
+}
+function Json-File([string]$Path) { try { return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json } catch { return $null } }
+function Protected-Registration {
+    $keys=@('CLSID\{B24140A1-859F-4A8F-97F6-962668F0D20D}','CLSID\{F078BC10-F918-49FF-99C7-C5A2B44CFD5E}',
+        'WawiCallPro.Pro.Application.1','WawiCallPro.FinOffice.Application.1','TypeLib\{7155BD3A-6580-4A46-A034-1E4F55CFA047}',
+        'Interface\{710E28F8-6286-4F6E-8898-C88A3F872FC1}','Interface\{9A897EBA-795D-4FDD-9417-97B156287D22}',
+        'Interface\{643E9245-55FF-466E-A7E7-57B18E9D3FC6}','Interface\{68DA705A-6F68-49F7-8C6A-B6CC3F29A4FE}')
+    $records=[Collections.Generic.List[string]]::new()
+    foreach ($hive in @([Microsoft.Win32.RegistryHive]::CurrentUser,[Microsoft.Win32.RegistryHive]::LocalMachine)) {
+        foreach ($view in $views) {
+            $root=[Microsoft.Win32.RegistryKey]::OpenBaseKey($hive,$view)
+            try {
+                function Record-Tree([string]$Path) {
+                    $node=$root.OpenSubKey("Software\Classes\$Path")
+                    if (-not $node) { $records.Add("$hive/$view/$Path/absent"); return }
+                    try {
+                        foreach ($name in @($node.GetValueNames() | Sort-Object)) { $records.Add("$hive/$view/$Path/$name=" + ($node.GetValue($name) | ConvertTo-Json -Compress)) }
+                        foreach ($subkey in @($node.GetSubKeyNames() | Sort-Object)) { Record-Tree "$Path\$subkey" }
+                    } finally { $node.Dispose() }
+                }
+                foreach ($key in $keys) { Record-Tree $key }
+            } finally { $root.Dispose() }
+        }
+    }
+    return $records.ToArray() -join "`n"
+}
+$protectedBefore=Protected-Registration
 try {
     foreach ($view in $views) { Check ($null -eq (Read-Key $view "CLSID\{$id}") -and $null -eq (Read-Key $view $progId)) 'Random fixture identity did not exist before this run' }
     $reserved=$true
@@ -84,9 +115,39 @@ try {
     Invoke-App @('--com-fixture',$profile,'/unregserver')
     Invoke-App @('--com-fixture',$profile,'/unregserver')
     foreach ($view in $views) { Check ($null -eq (Read-Key $view "CLSID\{$id}") -and $null -eq (Read-Key $view $progId)) 'Repeated unregister removes only the fixture registration' }
+    if (-not $RegistrationOnly) {
+        $full=Join-Path $output 'full install with spaces'
+        [IO.Directory]::CreateDirectory($full) | Out-Null
+        Get-ChildItem -LiteralPath $source -Force | Copy-Item -Destination $full -Recurse -Force
+        $exe=Join-Path $full "$baseName.exe"
+        @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.Dummy'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
+        Invoke-App @('--com-fixture',$profile,'/regserver')
+        foreach ($bits in @('x86','x64')) {
+            $prefix=Join-Path $profile "$bits-"
+            $start=[Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))
+            $start.UseShellExecute=$false; $start.CreateNoWindow=$true
+            foreach ($arg in @('//nologo','//E:JScript',(Join-Path $PSScriptRoot 'ComPrototype/lifetime.js'),$progId,$prefix)) { $start.ArgumentList.Add($arg) }
+            $client=[Diagnostics.Process]::Start($start); $clientProcesses.Add($client)
+            Wait-For { if (Test-Path -LiteralPath ($prefix+'failure.json')) { throw (Get-Content -LiteralPath ($prefix+'failure.json') -Raw) }; Test-Path -LiteralPath ($prefix+'ready.json') } 'native activation'
+            $ready=Json-File ($prefix+'ready.json')
+            Check ($ready.State -eq 'Ready' -and $ready.ProductLine -eq $ProductLine) "$bits ActiveXObject resolves the copied edition through HKCU without a registered TLB"
+            [IO.File]::WriteAllText(($prefix+'release'),'')
+            if (-not $client.WaitForExit(10000) -or $client.ExitCode -ne 0) { throw 'JScript client failed to release.' }
+        }
+        Wait-For { $r=Json-File (Join-Path $profile 'com-runtime.json'); $r -and $r.Forms -eq 0 -and $r.ServerLocks -eq 0 } 'windowless host after client release'
+        $runtime=Json-File (Join-Path $profile 'com-runtime.json')
+        $owner=Get-Process -Id $runtime.Pid
+        try { [IO.File]::WriteAllText((Join-Path $profile 'stop.request'),''); if (-not $owner.WaitForExit(30000)) { throw 'Copied host did not shut down cleanly.' } }
+        finally { $owner.Dispose() }
+        $stopped=Json-File (Join-Path $profile 'com-stopped.json')
+        Check ($stopped.Success -and $stopped.Revoked) 'Copied application completes its regular shutdown without opening forms'
+        Invoke-App @('--com-fixture',$profile,'/unregserver')
+    }
+    Check ($protectedBefore -eq (Protected-Registration)) 'Product registrations and all contract TypeLib/Interface metadata in HKCU/HKLM stayed unchanged in both views'
     $completed=$true
 } catch { $failure=$_.Exception.Message; throw }
 finally {
+    foreach ($client in $clientProcesses) { try { if (-not $client.HasExited) { $client.Kill($true); $client.WaitForExit() } } finally { $client.Dispose() } }
     # Use the real ownership-aware removal, never recursive deletion of a foreign registration.
     if ($reserved) {
         try {
