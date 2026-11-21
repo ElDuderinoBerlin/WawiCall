@@ -82,7 +82,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                     OnActivationRequested(this, EventArgs.Empty);
                     using var stopping = stoppingToken.Register(() => _closeRequested.TrySetResult());
                     await _closeRequested.Task;
-                    RevokeAutomation();
+                    await CompleteAutomationAsync();
                     return;
                 }
                 if (_auditDirectory is not null)
@@ -132,7 +132,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                     _form.Close();
                 }
                 await _closeRequested.Task;
-                RevokeAutomation();
+                await CompleteAutomationAsync();
             });
             // Emit success only after StopAsync and asynchronous container disposal have succeeded.
             if (_diagnostics) Console.WriteLine(JsonSerializer.Serialize(diagnostic));
@@ -199,8 +199,27 @@ internal sealed class AppApplicationContext : ApplicationContext
     {
         _automation.Stopping();
         _idleTimer.Stop();
+        if (_instance is IComInstancePublication publication) publication.WithdrawAutomation();
         _registration?.Dispose();
         _registration = null;
+    }
+
+    private async Task CompleteAutomationAsync()
+    {
+        RevokeAutomation();
+        if (_fixtureDirectory is { } directory)
+        {
+            var delayFile = System.IO.Path.Combine(directory, "shutdown-delay.request");
+            if (System.IO.File.Exists(delayFile))
+            {
+                var delay = int.Parse(System.IO.File.ReadAllText(delayFile), System.Globalization.CultureInfo.InvariantCulture);
+                System.IO.File.Delete(delayFile);
+                if (delay is < 0 or > 5000) throw new ArgumentOutOfRangeException(nameof(delay));
+                System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "com-stopping.json"), JsonSerializer.Serialize(new { Pid = Environment.ProcessId }));
+                await Task.Delay(delay);
+            }
+        }
+        await _operations.DisposeAsync();
     }
 
     private void CheckIdle(object? sender, EventArgs args)

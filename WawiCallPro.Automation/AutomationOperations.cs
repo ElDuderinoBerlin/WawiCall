@@ -18,6 +18,7 @@ public sealed class AutomationOperations : IAsyncDisposable
     private readonly CancellationTokenSource _stopping = new();
     private readonly Task _worker;
     private bool _closed;
+    private Task? _shutdown;
     public bool HasPendingOperations { get { lock (_gate) return _entries.Values.Any(entry => entry.CompletedAt is null); } }
 
     internal AutomationOperations(AutomationOptions options, TimeProvider clock, AutomationRouter router)
@@ -93,12 +94,24 @@ public sealed class AutomationOperations : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        lock (_gate) { if (_closed) return; _closed = true; _pending.Writer.TryComplete(); }
-        await _stopping.CancelAsync().ConfigureAwait(false);
-        await _worker.ConfigureAwait(false);
-        _stopping.Dispose();
+        lock (_gate)
+        {
+            if (_shutdown is not null) return new(_shutdown);
+            _closed = true; _pending.Writer.TryComplete();
+            _shutdown = StopAsync();
+            return new(_shutdown);
+        }
+    }
+    private async Task StopAsync()
+    {
+        Exception? cancellationFailure = null;
+        try { await _stopping.CancelAsync().ConfigureAwait(false); }
+        catch (Exception failure) { cancellationFailure = failure; }
+        try { await _worker.ConfigureAwait(false); }
+        finally { _stopping.Dispose(); }
+        if (cancellationFailure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cancellationFailure).Throw();
     }
 
     private sealed class Entry(AutomationCommand command, OperationSnapshot snapshot)

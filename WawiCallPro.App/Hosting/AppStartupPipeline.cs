@@ -9,7 +9,9 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
     private readonly List<IHostedService> _attempted = [];
     private readonly HashSet<IHostedService> _started = [];
     private int _next;
-    private bool _stopping;
+    private volatile bool _stopping;
+    private readonly object _shutdownGate = new();
+    private Task? _shutdown;
     private bool _userModeValidated;
     internal Func<CancellationToken, Task>? RevalidateBeforeUserMode { get; init; }
     internal Func<IHostedService>[] MetadataServices { get; init; } = [];
@@ -19,13 +21,20 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
         try
         {
             await AdvanceAsync(foundationCount, cancellationToken);
-            foreach (var factory in MetadataServices)
+            await _gate.WaitAsync(cancellationToken);
+            try
             {
-                var service = factory();
-                if (!_attempted.Contains(service)) _attempted.Add(service);
-                if (!_started.Contains(service)) { await service.StartAsync(cancellationToken); _started.Add(service); }
+                foreach (var factory in MetadataServices)
+                {
+                    if (_stopping) throw new OperationCanceledException();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var service = factory();
+                    if (!_attempted.Contains(service)) _attempted.Add(service);
+                    if (!_started.Contains(service)) { await service.StartAsync(cancellationToken); _started.Add(service); }
+                }
+                state.Ready();
             }
-            state.Ready();
+            finally { _gate.Release(); }
         }
         catch (Exception exception) { state.Failed(exception); }
     }
@@ -49,6 +58,7 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
             }
             while (_next < limit)
             {
+                if (_stopping) throw new OperationCanceledException();
                 token.ThrowIfCancellationRequested();
                 var service = factories[_next]();
                 if (!_attempted.Contains(service)) _attempted.Add(service);
@@ -60,18 +70,25 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
                 _next++;
                 if (limit > foundationCount && _next == foundationCount) _userModeValidated = true;
             }
-            if (limit == factories.Length) state.Ready();
+            if (limit > foundationCount && limit == factories.Length) state.Ready();
         }
         finally { _gate.Release(); }
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        lock (_shutdownGate)
+        {
+            _stopping = true; state.Stopping();
+            return _shutdown ??= StopServicesAsync(cancellationToken);
+        }
+    }
+    private async Task StopServicesAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(CancellationToken.None);
         var errors = new List<Exception>();
         try
         {
-            _stopping = true;
             foreach (var service in _attempted.AsEnumerable().Reverse())
             {
                 try { await service.StopAsync(cancellationToken); }

@@ -33,6 +33,7 @@ internal static class Program
         PrototypeOptions? options = null;
         try
         {
+            AutomationClassRegistration.PrepareProcess();
             if (args.Length is < 2 or > 3 || args[0] != "--profile"
                 || args.Length == 3 && args[2] is not ("-Embedding" or "--normal")) return 2;
             options = PrototypeOptions.Read(args[1]);

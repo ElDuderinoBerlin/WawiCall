@@ -840,7 +840,7 @@ und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration 
 ### Phase 6 – ⬜ Robustheit und Lebensdauer
 
 - [x] ✅ Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
-- [ ] Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
+- [x] ✅ Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
 - [ ] Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
 - [ ] Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
 - [ ] Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
@@ -861,7 +861,32 @@ Unterobjektfreigabe beendet sich der Host mit Klassenrücknahme und erfolgreiche
 Clientseitiges JScript-`CollectGarbage` gibt nur dessen Referenzen frei; der Server erzwingt keinen GC.
 Einstieg: `scripts/test-com-app.ps1 -Lifetime -ProductLine Pro` beziehungsweise `FinOffice` nach dem
 jeweiligen regulären Debug-/Any-CPU-Build. Lokale Nachweise: `.artifacts/com-phase6-native-{fin,pro}-01/results.json`
-und `.com-phase6-{app,contract,build}-{fin,pro}.log`. Die weiteren Phase-6-Punkte bleiben offen.
+und `.com-phase6-{app,contract,build}-{fin,pro}.log`.
+
+Zweiter abgeschlossener Schritt: Alle gleichzeitigen `DisposeAsync`-Aufrufe warten auf denselben
+Workerabschluss. Ein letzter Hosted Service sperrt und leert die Queue vor dem Stoppen der Telefonie
+und Fach-/Persistenzdienste; auch ein verzögerter, nicht kooperierender Backendaufruf wird abgewartet.
+Metadatenstart, UI-Nachstart und Stop sind serialisiert; Stop ist idempotent und darf den Status nicht
+später auf Ready zurücksetzen. In 200 konkurrierenden Export-/Idleversuchen gewinnt genau eine Seite.
+Ein unbalanciertes Klassenfabrik-`LockServer(false)` kann keine Objektbindung entfernen.
+
+Die Klassenbereitschaft wird vor `CoRevokeClassObject` zurückgenommen. Ein während Shutdown vom
+SCM gestarteter Nachfolger wartet auf die bisherige Instanzsperre und übernimmt sie erst nach deren
+Freigabe; eine veraltete Bereitschaft darf ihn nicht vorzeitig beenden. Für tote lokale Clients ist
+`COMGLB_FAST_RUNDOWN` aktiviert, **vor** WinForms und jedem Interface-Marshalling. Die Option läuft
+über native `IGlobalOptions`-Aufrufe, erhält andere Flags und ersetzt weder die Objektbindungen noch
+den geregelten App-Shutdown. Grundlage: [Microsoft IGlobalOptions](https://learn.microsoft.com/windows/win32/api/objidl/nn-objidl-iglobaloptions).
+
+Je Edition 58 gezielte App-/Telefonie-/Instanztests, 18 Vertragstests und 70 native Vertragsprüfungen
+bestanden. Die reguläre App besteht außerdem 14 native Prüfungen: beide Bitnessen, zurückbehaltene
+Unterobjekte, letzte Freigabe, erneuter Start, Aktivierung während eines kontrolliert verzögerten
+Shutdowns und harter JScript-Abbruch bei weiter nutzbarem zweitem Client. Erfolgreiche Läufe stoppen
+keinen App-Prozess gewaltsam und erzwingen keinen Server-GC. Nachweise:
+`.artifacts/com-phase6-native-fin-05/results.json`, `.artifacts/com-phase6-native-pro-02/results.json`,
+`.artifacts/com-phase6-contract-native-fin-fast-03/results.json`, `.artifacts/com-phase6-contract-native-pro/results.json`
+und `.com-phase6-races-{build,app,contract}-{fin,pro}.log`. Vorherige unvollständige Läufe mit
+konkurrierend gelesener Diagnosedatei, fehlendem Fast Rundown beziehungsweise zu später COM-Konfiguration
+sind keine erfolgreichen Nachweise. Die Fehler-/Fach-/Sicherheitsgrenzen folgen in den nächsten Punkten.
 
 ### Phase 7 – ⬜ Auslieferung
 

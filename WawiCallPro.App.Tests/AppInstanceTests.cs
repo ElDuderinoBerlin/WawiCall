@@ -9,6 +9,34 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppInstanceTests
 {
     [TestMethod]
+    public void ComSuccessorWaitsForRevokedOwnerAndTakesOverWithoutAnActivationSignal()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-com-handoff-" + Guid.NewGuid().ToString("N"));
+        using var owner = Create(directory, "Pro"); Assert.IsTrue(owner.TryAcquire()); owner.PublishAutomation();
+        var joined = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var proceed = new ManualResetEventSlim();
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var next = Create(directory, "Pro"); Assert.IsFalse(next.TryAcquire());
+                Assert.IsTrue(next.WaitForAutomation(TimeSpan.Zero)); joined.TrySetResult();
+                if (!proceed.Wait(TimeSpan.FromSeconds(4))) throw new TimeoutException();
+                Assert.IsFalse(next.WaitForAutomation(TimeSpan.FromSeconds(4)));
+                Assert.IsTrue(next.TryAcquire()); next.PublishAutomation();
+                Assert.IsFalse(next.TryConsumeActivation()); finished.TrySetResult();
+            }
+            catch (Exception error) { joined.TrySetException(error); finished.TrySetException(error); }
+        }) { IsBackground = true };
+        thread.Start(); joined.Task.WaitAsync(TimeSpan.FromSeconds(4)).GetAwaiter().GetResult();
+        owner.WithdrawAutomation(); proceed.Set();
+        Assert.IsFalse(finished.Task.IsCompleted);
+        owner.Dispose();
+        finished.Task.WaitAsync(TimeSpan.FromSeconds(4)).GetAwaiter().GetResult();
+        Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2))); Assert.IsFalse(Directory.Exists(directory));
+    }
+    [TestMethod]
     public void ComReadinessWaitDoesNotRequestWindowActivation()
     {
         var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-com-ready-" + Guid.NewGuid().ToString("N"));

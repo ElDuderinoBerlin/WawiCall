@@ -66,7 +66,7 @@ if (-not (Test-Path -LiteralPath $executable)) { throw 'Build the selected appli
 $fixtures = [Collections.Generic.List[object]]::new()
 $clients = [Collections.Generic.List[object]]::new()
 $checks = [Collections.Generic.List[string]]::new()
-$completed = $false; $failure = $null
+$completed = $false; $failure = $null; $forcedServerCleanup = 0
 function Check([bool]$Value, [string]$Name) { if (-not $Value) { throw "Failed: $Name" }; $checks.Add($Name) }
 function Wait-Until([scriptblock]$Condition, [string]$Name) {
     $limit = [DateTime]::UtcNow.AddSeconds($(if ($Views) { 180 } else { 50 }))
@@ -116,7 +116,15 @@ function Ready($Client) {
     Wait-Until { if (Test-Path -LiteralPath ($Client.Prefix+'failure.json')) { throw (Get-Content -LiteralPath ($Client.Prefix+'failure.json') -Raw) }; Test-Path -LiteralPath ($Client.Prefix+'ready.json') } 'JScript activation'
     return Read-Json ($Client.Prefix+'ready.json')
 }
-function Runtime($Fixture) { return Read-Json (Join-Path $Fixture.Profile 'com-runtime.json') }
+function Runtime($Fixture) {
+    # The app refreshes this diagnostic file each second. An overlapping read may see a partial write.
+    for ($attempt=0; $attempt -lt 5; $attempt++) {
+        $snapshot=Read-Json (Join-Path $Fixture.Profile 'com-runtime.json')
+        if ($snapshot) { return $snapshot }
+        Start-Sleep -Milliseconds 20
+    }
+    return $null
+}
 function Owner($Fixture) {
     $runtime = Runtime $Fixture
     if (-not $runtime) { throw 'Missing application runtime proof.' }
@@ -153,7 +161,7 @@ try {
             Check ((Runtime $fixture).Forms -eq 0 -and -not (Runtime $fixture).FormCreated) 'Parallel native clients create no forms'
             foreach ($client in @($a,$b)) { [IO.File]::WriteAllText(($client.Prefix+'drop-root'),'') }
             Wait-Until { (Test-Path -LiteralPath ($a.Prefix+'dropped.json')) -and (Test-Path -LiteralPath ($b.Prefix+'dropped.json')) } 'facade release'
-            Wait-Until { (Runtime $fixture).ServerLocks -eq 2 } 'only snapshot references remain'
+            Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 2 } 'only snapshot references remain'
             Check $true 'Native facade Release releases its host lease without forcing server garbage collection'
             $limit=[DateTime]::UtcNow.AddSeconds(33)
             while ([DateTime]::UtcNow -lt $limit) {
@@ -165,13 +173,46 @@ try {
             Wait-Until { (Test-Path -LiteralPath ($a.Prefix+'child.json')) -and (Test-Path -LiteralPath ($b.Prefix+'child.json')) } 'snapshot after facade release'
             Check ((Read-Json ($a.Prefix+'child.json')).State -eq 'Ready' -and (Read-Json ($b.Prefix+'child.json')).State -eq 'Ready') 'Both retained snapshots remain callable after their parent facades are released'
             Release-Client $a
-            Wait-Until { (Runtime $fixture).ServerLocks -eq 1 } 'first child release'
+            Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 1 } 'first child release'
             Check (-not $owner.HasExited) 'One client can release independently of the other client'
             Release-Client $b
             if (-not $owner.WaitForExit(45000)) { throw 'The host failed to exit after its last native Release and idle period.' }
             $stopped=Read-Json (Join-Path $fixture.Profile 'com-stopped.json')
             Check ($stopped -and $stopped.Success -and $stopped.Revoked) 'Last native Release permits a clean idle shutdown, class revocation and DI disposal'
         } finally { $owner.Dispose() }
+        $previous=(Runtime $fixture).Pid
+        $restart=Start-Client $fixture 'restart' 'x64'; $restarted=Ready $restart
+        Wait-Until { $r=Runtime $fixture; $r -and $r.Pid -ne $previous } 'new COM owner after idle shutdown'
+        Check ($restarted.State -eq 'Ready' -and (Runtime $fixture).Forms -eq 0) 'A new activation after idle shutdown starts a new windowless host'
+        $previous=(Runtime $fixture).Pid
+        $oldOwner=Owner $fixture
+        try {
+            [IO.File]::WriteAllText((Join-Path $fixture.Profile 'shutdown-delay.request'),'5000')
+            [IO.File]::WriteAllText((Join-Path $fixture.Profile 'stop.request'),'')
+            Wait-Until { $s=Read-Json (Join-Path $fixture.Profile 'com-stopping.json'); $s -and $s.Pid -eq $previous } 'revoked old owner during controlled shutdown'
+            Check (-not $oldOwner.HasExited) 'Class is revoked while the old host still owns its instance mutex'
+            $handoff=Start-Client $fixture 'handoff' 'x86'; $next=Ready $handoff
+            Wait-Until { $r=Runtime $fixture; $r -and $r.Pid -ne $previous } 'successor publishes after old shutdown'
+            Check ($next.State -eq 'Ready' -and $oldOwner.WaitForExit(10000)) 'Activation during shutdown waits for the old mutex and publishes a working successor'
+            Check ((Runtime $fixture).Forms -eq 0 -and (Runtime $fixture).SipState -eq 'Stopped') 'Shutdown handoff creates neither a form nor a SIP registration'
+            Release-Client $restart
+        } finally { $oldOwner.Dispose() }
+        $peer=Start-Client $fixture 'survivor' 'x64'; $peerStatus=Ready $peer
+        Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 4 } 'two clients before crash'
+        $handoff.Process.Kill($true); $handoff.Process.WaitForExit()
+        Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 2 } 'RPC rundown after abrupt JScript termination'
+        Check ($peerStatus.State -eq 'Ready') 'Abrupt client death releases its COM references without stopping the other client or forcing server GC'
+        [IO.File]::WriteAllText(($peer.Prefix+'drop-root'),'')
+        [IO.File]::WriteAllText(($peer.Prefix+'read-child'),'')
+        Wait-Until { Test-Path -LiteralPath ($peer.Prefix+'child.json') } 'surviving child after peer crash'
+        Check ((Read-Json ($peer.Prefix+'child.json')).State -eq 'Ready') 'Surviving client retains a callable snapshot after peer crash'
+        $survivor=Owner $fixture
+        try {
+            Release-Client $peer
+            if (-not $survivor.WaitForExit(45000)) { throw 'Post-crash host did not complete idle shutdown.' }
+            $stopped=Read-Json (Join-Path $fixture.Profile 'com-stopped.json')
+            Check ($stopped -and $stopped.Success -and $stopped.Revoked) 'Post-crash host shuts down cleanly after its final surviving client releases'
+        } finally { $survivor.Dispose() }
     } elseif ($Views) {
         foreach ($bits in @('x64','x86')) {
             $fixture=New-Fixture "views-$bits"
@@ -247,7 +288,11 @@ try {
 finally {
     foreach ($client in $clients) { try { if (-not $client.Process.HasExited) { $client.Process.Kill($true); $client.Process.WaitForExit() } } finally { $client.Process.Dispose() } }
     foreach ($fixture in $fixtures) {
-        foreach ($process in @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $executable -and $_.CommandLine.Contains($fixture.Profile) })) { Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue }
+        foreach ($process in @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $executable -and $_.CommandLine.Contains($fixture.Profile) })) {
+            $forcedServerCleanup++
+            if ($completed) { $completed=$false; $failure='A fixture host remained alive after the successful-path checks.' }
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
+        }
         foreach ($view in $fixture.Views) {
             $root = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,$view)
             try {
@@ -258,5 +303,6 @@ finally {
             } finally { $root.Dispose() }
         }
     }
-    @{Completed=$completed;Error=$failure;Checks=$checks.ToArray();RegistryCleanupConfirmed=$true;Elevated=$false;Edition=$ProductLine;Executable=$executable;DllSha256=(Get-FileHash -LiteralPath ([IO.Path]::ChangeExtension($executable,'.dll'))).Hash} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'results.json')
+    @{Completed=$completed;Error=$failure;Checks=$checks.ToArray();RegistryCleanupConfirmed=$true;ForcedServerCleanup=$forcedServerCleanup;Elevated=$false;Edition=$ProductLine;Executable=$executable;DllSha256=(Get-FileHash -LiteralPath ([IO.Path]::ChangeExtension($executable,'.dll'))).Hash} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'results.json')
 }
+if (-not $completed) { throw $failure }

@@ -31,6 +31,10 @@ public sealed class AutomationDispatchTests
         try
         {
             Assert.AreEqual(1, leases);
+            Assert.AreEqual(unchecked((int)0x8004A106), Assert.Throws<COMException>(() => boundary.LockServer(false)).HResult);
+            Assert.AreEqual(1, leases, "An unbalanced factory unlock must never remove a facade's native lease.");
+            boundary.LockServer(true); Assert.AreEqual(2, leases);
+            boundary.LockServer(false); Assert.AreEqual(1, leases);
             var status = InvokeObject(root, 1); pointers.Add(status);
             var operation = InvokeObject(root, 9, operationId); pointers.Add(operation);
             var call = InvokeObject(root, 10, Guid.NewGuid().ToString("D")); pointers.Add(call);

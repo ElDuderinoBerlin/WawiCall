@@ -18,6 +18,7 @@ internal static class Program
     {
         try
         {
+            WawiCallPro.Automation.AutomationClassRegistration.PrepareProcess();
             // Installer hooks must finish before UI, licensing or host services are loaded.
             VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
         }
@@ -101,9 +102,12 @@ internal static class Program
             if (!mode.SuppressNetwork && !instance.TryAcquire())
             {
                 if (mode.ComActivated)
-                    return instance is IComInstancePublication publication && publication.WaitForAutomation(TimeSpan.FromSeconds(45)) ? 0 : 3;
-                instance.RequestExistingInstanceActivation();
-                return 0;
+                {
+                    if (instance is not IComInstancePublication publication) return 3;
+                    if (publication.WaitForAutomation(TimeSpan.FromSeconds(45))) return 0;
+                    if (!instance.TryAcquire()) return 3;
+                }
+                else { instance.RequestExistingInstanceActivation(); return 0; }
             }
             var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance, identity);
             using var application = new AppApplicationContext(host, diagnostics, auditDirectory);

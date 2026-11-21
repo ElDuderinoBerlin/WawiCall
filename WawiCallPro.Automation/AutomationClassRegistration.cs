@@ -12,8 +12,11 @@ public sealed class AutomationClassRegistration : IDisposable
     private readonly AutomationClassFactory _factory;
     private readonly int _cookie;
     private bool _disposed;
+    /// <summary>Call at process entry before UI/RCW creation or any other interface marshalling.</summary>
+    public static void PrepareProcess() => AutomationComOptions.EnableFastRundown();
     public AutomationClassRegistration(Guid clsid, IAutomationApplicationFactory factory, Action<bool> serverLock)
     {
+        AutomationComOptions.EnableFastRundown();
         _factory = new(factory, serverLock);
         Marshal.ThrowExceptionForHR(Ole32.CoRegisterClassObject(ref clsid, _factory, Ole32.CLSCTX_LOCAL_SERVER,
             Ole32.REGCLS_MULTIPLEUSE | Ole32.REGCLS_SUSPENDED, out _cookie));
@@ -33,6 +36,8 @@ public sealed class AutomationClassRegistration : IDisposable
 [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
 internal sealed class AutomationClassFactory(IAutomationApplicationFactory factory, Action<bool> serverLock) : IClassFactory
 {
+    private readonly object _gate = new();
+    private int _explicitLocks;
     public void CreateInstance(object pUnkOuter, ref Guid riid, out IntPtr ppvObject)
     {
         ppvObject = IntPtr.Zero;
@@ -52,5 +57,16 @@ internal sealed class AutomationClassFactory(IAutomationApplicationFactory facto
         catch (AutomationFault fault) { throw new COMException(fault.Message, unchecked((int)0x8004A100) + (int)fault.Failure); }
         catch (Exception) { throw new COMException(AutomationFault.MessageFor(AutomationFailure.ProviderUnavailable), unchecked((int)0x8004A108)); }
     }
-    public void LockServer(bool fLock) => serverLock(fLock);
+    public void LockServer(bool fLock)
+    {
+        lock (_gate)
+        {
+            if (!fLock && _explicitLocks == 0)
+                throw new COMException(AutomationFault.MessageFor(AutomationFailure.Conflict), unchecked((int)0x8004A106));
+            try { serverLock(fLock); }
+            catch (AutomationFault fault) { throw new COMException(fault.Message, unchecked((int)0x8004A100) + (int)fault.Failure); }
+            catch (Exception) { throw new COMException(AutomationFault.MessageFor(AutomationFailure.ProviderUnavailable), unchecked((int)0x8004A108)); }
+            _explicitLocks += fLock ? 1 : -1;
+        }
+    }
 }

@@ -64,7 +64,24 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
 
     public bool TryConsumeActivation() => Interlocked.Exchange(ref _activationPending, 0) != 0;
     public void PublishAutomation() { if (!_owned) throw new InvalidOperationException("Only the owner may publish automation readiness."); _automationReady!.Set(); }
-    public bool WaitForAutomation(TimeSpan timeout) => _automationReady?.WaitOne(timeout) == true;
+    public void WithdrawAutomation() { if (_owned) _automationReady?.Reset(); }
+    public bool WaitForAutomation(TimeSpan timeout)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_owned || _automationReady is null || _mutex is null) return false;
+        int signal;
+        try { signal = WaitHandle.WaitAny([_mutex, _automationReady], timeout); }
+        catch (AbandonedMutexException error) { signal = error.MutexIndex; }
+        if (signal == 1) return true;
+        if (signal != 0) return false;
+        // The old host withdrew its class and finished shutdown. This thread now owns the same mutex;
+        // Program continues startup instead of reporting a stale ready event to COM and exiting.
+        _owned = true; _automationReady.Reset();
+        using var owner = _owner!.CreateViewAccessor();
+        owner.Write(0, Environment.ProcessId); owner.Flush();
+        _listener = ThreadPool.RegisterWaitForSingleObject(_signal!, OnSignal, null, Timeout.Infinite, false);
+        return false;
+    }
 
     public void RequestExistingInstanceActivation()
     {
@@ -95,5 +112,6 @@ internal sealed class AppInstanceGuard(ApplicationDescriptor application, Applic
 internal interface IComInstancePublication
 {
     void PublishAutomation();
+    void WithdrawAutomation();
     bool WaitForAutomation(TimeSpan timeout);
 }
