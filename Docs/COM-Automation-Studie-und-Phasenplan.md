@@ -9,7 +9,7 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1–5 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–6 abgeschlossen. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
@@ -20,7 +20,12 @@ vorhandene Dialoge angeschlossen. Je Edition 42 gezielte App-Tests, 15 Vertragst
 Viewprüfungen und 23 Start-/Fensterregressionen bestanden.
 ✅ Phase 5: COM-Telefonie am gemeinsamen UI-/SIP-Dienst, fensterlose Anrufzuordnung und
 Clientverlust-/Deduplizierungsnachweise implementiert. Je Edition 46 gezielte App-Tests und
-15 COM-Vertragstests bestanden. ⬜ Vollständige Lebensdauermatrix, Auslieferung und reale Produktabnahme bleiben offen.
+15 COM-Vertragstests bestanden. Die anschließende Lebensdauermatrix und Schutzprüfung steht in Phase 6;
+Auslieferung und reale Produktabnahme bleiben Phasen 7/8.
+✅ Phase 6: native Referenzbindungen für Fassaden und Unterobjekte, parallele Clients, harter
+Skriptabbruch, geordneter Shutdown und Aktivierung während Shutdown sowie erneute Fachautorisierung
+und Daten-/Loggrenzen geprüft. Je Edition 84 gezielte App-Tests, 18 Vertragstests, 18 native App-Prüfungen
+und 70 native Vertragsprüfungen bestanden. Pro zuletzt regulär in Debug/Any CPU gebaut.
 Phasen 1/2 verwenden einen separaten Host; Phase 3 prüft die reguläre App mit eigenen Profilen und
 synthetischen Daten. Keine echten Anrufe und keine persistente Produktregistrierung für die Tests.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
@@ -446,7 +451,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 3 | ✅ | Gemeinsamer App-/COM-Host, fensterloser Start und bedarfsweises Hauptfenster; je Edition 37 App-Tests, 15 Vertragstests, 23 native Prüfungen | Agent; eigene Profile/HKCU-Identitäten, Fenster-/Instanznachweise ohne reale Anrufe |
 | 4 | ✅ | Firmen-/Viewkatalog, ShowCustomer/ShowSupplier und alle verfügbaren Ansichten; je Edition 42 App-Tests, 15 Vertragstests, 78 native Views und 23 Start-/Fensterprüfungen | Agent; freigegebene x86-/x64-WSH-Läufe, synthetische Daten, gezielte Layoutnachweise |
 | 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung weiterhin Phase 8 |
-| 6 | ⬜ | Mehrclientbetrieb, Idle-Shutdown und Fehler-/Sicherheitsgrenzen | Agent; gezielte konkurrierende und negative Tests |
+| 6 | ✅ | Native Objekt-/Unterobjektbindung, Clientabbruch, Mehrclient-/Shutdownrennen und Schutzgrenzen; je Edition 84 App-Tests, 18 Vertragstests, 18 native App- und 70 native Vertragsprüfungen | Agent; isolierte Profile/HKCU-Identitäten, keine erzwungene Serverbeendigung und kein Server-Test-GC |
 | 7 | ⬜ | Registrierung, Update, Deinstallation und Dokumentation | Agent; isolierte Installationsprüfung, Zielinstallation gemeinsam |
 | 8 | ⬜ | Native JavaScript-Abnahme Pro und FinOffice | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
 
@@ -820,7 +825,8 @@ Historienansicht angezeigt. Dazu gemeinsame UI-Regressions-, DI-/Aufnahme-/DTMF-
 Fassaden werden während eines ausstehenden Rufaufbaus gesammelt; weder Auftrag noch Gespräch
 hängen daran. Laufende Aufträge und Gespräche sperren den Idle-Shutdown. Nach Gesprächsende bleibt
 die Idlefrist von 30 Sekunden erhalten. Test-GC wird ausschließlich im Testprojekt eingesetzt;
-native CCW-/Unterobjekt-, Skriptabsturz- und Shutdownrennen bleiben Phase 6/8. Die Deduplizierung
+native CCW-/Unterobjekt-, Skriptabsturz- und Shutdownrennen sind anschließend in Phase 6 belegt;
+die reale SIP-/Audioabnahme bleibt Phase 8. Die Deduplizierung
 bleibt wie in Abschnitt 4.2 prozesslokal und zeitlich begrenzt.
 
 Reguläre Solution-Rebuilds **Debug/Any CPU** für FinOffice und Pro: null Fehler, je 26 bekannte
@@ -837,13 +843,13 @@ Commits für gemeinsame Befehle (`654c697`), fensterlose Zuordnung (`e5f3b0c`) u
 Lebensdauer-/Regressionsnachweise enthalten. Rücknahme dieser Phase entfernt die Telefonieadapter
 und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration benötigen keine Migration.
 
-### Phase 6 – ⬜ Robustheit und Lebensdauer
+### Phase 6 – ✅ Robustheit und Lebensdauer
 
 - [x] ✅ Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
 - [x] ✅ Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
 - [x] ✅ Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
 - [x] ✅ Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
-- [ ] Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
+- [x] ✅ Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
 
 Abnahme: Keine Gesprächsabbrüche durch Objektfreigabe und kein erzwungenes Prozessende außerhalb des geregelten Shutdowns.
 
@@ -918,6 +924,50 @@ Referenztests und 70 native Vertragsprüfungen beider Editionen belegt; COM-GUID
 die HKCU-/TLB-Regeln bleiben erhalten. Rücknahme: Fachautorisierungsadapter und Routerbindung
 gemeinsam zurücksetzen; niemals nur die Autorisierung in einem produktiven Host entfernen.
 
+#### Abschließende Phase-6-Abnahme am 21.11.2026
+
+Fünfter Schritt und Abschluss: Auftragsverwaltung bleibt auf 128 Einträge, zehn Minuten Aufbewahrung
+und 30 Sekunden Bearbeitungsfrist begrenzt; nach Timeout/Shutdown bleiben beobachtbare Endzustände.
+Fehlertexte stammen aus einer festen Liste und enthalten keine Provider-, Kunden-, Rufnummern- oder
+Zugangsdaten. Die echte Serilog-Dateiausgabe nimmt nur erlaubte Metadaten an und überschreitet ihr
+Größenlimit nicht. Fremde Kategorien, Scopes, Formatierer und Exception-Texte bleiben ausgeschlossen.
+Die Log-Fenster-Warteschlange bleibt auf 2000 Einträge begrenzt, Entnahme höchstens 256 pro Durchlauf.
+Die beiden neuen Dateilogprüfungen verwenden kleine Grenzwerte von 1024/4096 Bytes; der Produktstandard
+bleibt 4 MiB. Es wurden keine produktiven Daten oder Zugangsdaten für die Prüfung verwendet.
+
+Die Instanzsperre und Aktivierung bleiben an den Windows-`Local`-Namensraum, Benutzer-SID, vollständigen
+Profilpfad und die Edition gebunden. Eigene Profile dürfen keine Produkt-CLSID veröffentlichen;
+Fixture-Identitäten müssen zufällig und in CLSID/ProgID passend sein. Native x86-/x64-Clients und Host
+sind nachweislich derselbe Benutzer, dieselbe interaktive Windows-Sitzung und genau ein Prozess pro
+Profil/Edition. Getrennte Profile/Editionen und ungültige Identitäten sind isoliert geprüft. Andere
+Benutzerkonten oder RDP-Sitzungen wurden nicht gestartet; deren Trennung ergibt sich aus den
+Windows-Namensräumen und der geprüften Identitätsbildung, nicht aus einem vorgetäuschten Fremdkontentest.
+
+**Final je Pro und FinOffice: 84 gezielte App-Tests, 18 Vertrags-/Referenztests, 18 native App-Prüfungen
+und 70 native Vertragsprüfungen bestanden.** Reguläre Solution-Rebuilds Debug/Any CPU: je null Fehler,
+26 bekannte Nullablewarnungen der externen CSCore-Bibliothek; Pro zuletzt im regulären Ausgabeordner.
+Die nativen Läufe melden `Completed=true`, `ForcedServerCleanup=0`, `RegistryCleanupConfirmed=true`
+und `Elevated=false`. Alle App-Prozesse durchlaufen ihren regulären Shutdown. Nur das ausgewählte
+JScript-Testclientprogramm wurde für den Absturzfall absichtlich beendet. Die nativen App-Läufe bleiben
+fensterlos; keine Layoutänderungen und keine erneuten Renderläufe unveränderter Ansichten.
+
+Wiederholbarer nativer Einstieg nach dem jeweiligen regulären Editionsbuild:
+
+```powershell
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine FinOffice -Lifetime
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine Pro -Lifetime
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine FinOffice -ContractsOnly
+./scripts/test-com-prototype.ps1 -Configuration Debug -LexwareProductLine Pro -ContractsOnly
+```
+
+Finale lokale Nachweise:
+`.artifacts/com-phase6-final-native-{fin,pro}/results.json`,
+`.artifacts/com-phase6-final-contract-native-{fin,pro}/results.json`,
+`.com-phase6-final-{build,app,contract}-{fin,pro}.log` und
+`.artifacts/com-phase6-final-evidence.json` mit Testfilter, Pfaden, Hashabgleich und bereinigten Ergebnissen.
+Alle technischen Phase-6-Punkte sind ✅; produktive Registrierung/Update/Deinstallation und der reale
+JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenbankmigration nötig.
+
 ### Phase 7 – ⬜ Auslieferung
 
 - [ ] Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
@@ -949,7 +999,7 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 6**: vollständige COM-/Unterobjekt-Lebensdauer, native Mehrclient- und
-Shutdownrennen sowie Fehler-/Sicherheitsgrenzen prüfen. Gemeinsame Telefoniebefehle, fensterlose
-Gesprächszuordnung und isolierter Clientverlust sind implementiert und geprüft. Produktive
-Registrierung sowie reale SIP-/Audio- und Fachhostabnahme bleiben Phasen 7/8 vorbehalten.
+Als Nächstes folgt **Phase 7**: benutzerbezogene Registrierung/Entfernung, isolierte Update- und
+Deinstallationsnachweise sowie die Anwenderdokumentation fertigstellen. Die technische Lebensdauer-,
+Mehrclient-, Shutdown- und Schutzprüfung aus Phase 6 ist abgeschlossen. Reale SIP-/Audio- und
+Fachhostabnahme erfolgen anschließend gemeinsam in Phase 8; G1 bleibt davon getrennt offen.

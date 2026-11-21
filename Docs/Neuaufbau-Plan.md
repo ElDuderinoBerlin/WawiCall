@@ -27,8 +27,15 @@ fensterlose Zuordnung, Historie und Notizen einschließlich Neustart geprüft. J
 App-Tests und 15 Vertragstests bestanden; 100 parallele Wiederholungen derselben Request-ID erzeugen
 genau einen Rufaufbau, Clientverlust beendet kein Gespräch. Aufnahme-/DTMF-Bindungen derselben Sitzung
 erhalten; reguläre Rebuilds beider Editionen Debug/Any CPU erfolgreich, Pro zuletzt. Test-Doubles und
-isolierte SQLite-Profile, keine echten Anrufe. Vollständige Lebensdauermatrix, Auslieferung und reale
-SIP-/Audio-Abnahme folgen in COM-Phasen 6–8. Die bestehende G1-Abnahme bleibt offen.
+isolierte SQLite-Profile, keine echten Anrufe.
+✅ COM-Phase 6: native Lebensdauerbindungen für Fassaden und alle Unterobjekte, parallele Clients,
+harter Clientabbruch, geordneter Shutdown und Aktivierung während Shutdown geprüft. Lizenz-,
+Installations- und aktuelle Mandantengrenzen vor Fachzugriff und Anzeige erneut durchgesetzt;
+begrenzte Aufträge, feste Fehlertexte sowie redigierte Datei-/UI-Logs nachgewiesen. Je Edition
+84 gezielte App-Tests, 18 Vertragstests, 18 native App-Prüfungen und 70 native Vertragsprüfungen
+bestanden. Beide regulären Rebuilds Debug/Any CPU ohne Fehler, Pro zuletzt; eigene HKCU-Testklassen
+entfernt, keine erzwungene Serverbeendigung und kein Server-Test-GC. Auslieferung und reale
+SIP-/Audio-/Fachhostabnahme folgen in COM-Phasen 7/8. Die bestehende G1-Abnahme bleibt offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

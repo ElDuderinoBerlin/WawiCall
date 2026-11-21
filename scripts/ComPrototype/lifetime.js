@@ -12,7 +12,7 @@ try {
         if (status.State != "Starting") break;
         status = null; CollectGarbage(); WScript.Sleep(30);
     } while (new Date().getTime() < deadline);
-    write("ready.json", '{"State":' + quote(status.State) + '}');
+    write("ready.json", '{"State":' + quote(status.State) + ',"ProductLine":' + quote(status.ProductLine) + '}');
     deadline = new Date().getTime() + 210000;
     var dropped = false;
     while (!fs.FileExists(prefix + "release") && new Date().getTime() < deadline) {

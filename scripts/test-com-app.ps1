@@ -155,9 +155,16 @@ try {
         $a = Start-Client $fixture 'x64' 'x64'; $first = Ready $a
         $b = Start-Client $fixture 'x86' 'x86'; $second = Ready $b
         Check ($first.State -eq 'Ready' -and $second.State -eq 'Ready') 'Both client bitnesses activate the actual application without registered type libraries'
+        Check ($first.ProductLine -eq $ProductLine -and $second.ProductLine -eq $ProductLine) 'Both native clients are bound to the selected product edition'
         Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 4 } 'two facades and two snapshots'
         $owner = Owner $fixture
         try {
+            Check ($owner.SessionId -eq (Get-Process -Id $PID).SessionId -and $a.Process.SessionId -eq $owner.SessionId -and $b.Process.SessionId -eq $owner.SessionId) 'Both clients and the host stay in the current interactive Windows session'
+            $serverProcess=Get-CimInstance Win32_Process -Filter "ProcessId = $($owner.Id)"
+            $serverUser=Invoke-CimMethod -InputObject $serverProcess -MethodName GetOwnerSid
+            Check ($serverUser.ReturnValue -eq 0 -and $serverUser.Sid -eq [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) 'COM activation uses the current Windows user identity'
+            $sameProfile=@(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $executable -and $_.CommandLine.Contains($fixture.Profile) })
+            Check ($sameProfile.Count -eq 1) 'Parallel clients share exactly one host process for this edition and profile'
             Check ((Runtime $fixture).Forms -eq 0 -and -not (Runtime $fixture).FormCreated) 'Parallel native clients create no forms'
             foreach ($client in @($a,$b)) { [IO.File]::WriteAllText(($client.Prefix+'drop-root'),'') }
             Wait-Until { (Test-Path -LiteralPath ($a.Prefix+'dropped.json')) -and (Test-Path -LiteralPath ($b.Prefix+'dropped.json')) } 'facade release'
