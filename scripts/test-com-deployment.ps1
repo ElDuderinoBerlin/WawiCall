@@ -1,0 +1,103 @@
+param(
+    [ValidateSet('Pro','FinOffice')][string]$ProductLine='Pro',
+    [ValidateSet('Debug','Release')][string]$Configuration='Debug',
+    [string]$OutputDirectory,
+    [switch]$RegistrationOnly,
+    [switch]$FromDesktop
+)
+$ErrorActionPreference='Stop'
+Set-StrictMode -Version Latest
+$repository=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if (-not $OutputDirectory) { $OutputDirectory=Join-Path $repository ".artifacts/com-deployment/$ProductLine/$([DateTime]::Now.ToString('yyyyMMdd-HHmmss'))" }
+$output=[IO.Path]::GetFullPath($OutputDirectory)
+if ((Test-Path -LiteralPath $output) -and @(Get-ChildItem -LiteralPath $output -Force).Count) { throw 'Use a fresh evidence directory.' }
+[IO.Directory]::CreateDirectory($output) | Out-Null
+$principal=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    if ($FromDesktop) { throw 'HKCU activation requires the normal desktop token; no machine fallback.' }
+    $arguments='-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -File "{0}" -ProductLine {1} -Configuration {2} -OutputDirectory "{3}" -FromDesktop' -f $PSCommandPath,$ProductLine,$Configuration,$output
+    if ($RegistrationOnly) { $arguments+=' -RegistrationOnly' }
+    $shell=New-Object -ComObject Shell.Application; $handle=0
+    $desktop=$shell.Windows().FindWindowSW(0,0,8,[ref]$handle,1)
+    if (-not $desktop) { throw 'Normal user desktop unavailable.' }
+    $desktop.Document.Application.ShellExecute((Join-Path $PSHOME 'pwsh.exe'),$arguments,$repository,'open',0)
+    $until=[DateTime]::UtcNow.AddSeconds(20)
+    while (-not (Test-Path -LiteralPath (Join-Path $output 'bootstrap.json'))) {
+        if ([DateTime]::UtcNow -gt $until) { throw 'Harness bootstrap timed out.' }; Start-Sleep -Milliseconds 60
+    }
+    $bootstrap=Get-Content -LiteralPath (Join-Path $output 'bootstrap.json') -Raw | ConvertFrom-Json
+    $child=Get-Process -Id $bootstrap.Pid
+    try {
+        $until=[DateTime]::UtcNow.AddMinutes(8)
+        while (-not $child.WaitForExit(1000)) { if ([DateTime]::UtcNow -gt $until) { throw 'Deployment harness timed out.' } }
+        $proof=Get-Content -LiteralPath (Join-Path $output 'results.json') -Raw | ConvertFrom-Json
+        if (-not $proof.Completed) { throw "Deployment verification failed: $($proof.Error). Evidence: $output" }
+        Write-Output "Passed $($proof.Checks.Count) deployment checks. Evidence: $output"
+    } finally { $child.Dispose() }
+    return
+}
+@{Pid=$PID;Elevated=$false} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $output 'bootstrap.json')
+$checks=[Collections.Generic.List[string]]::new(); $completed=$false; $failure=$null; $reserved=$false; $cleanup=$true
+$views=@([Microsoft.Win32.RegistryView]::Registry64,[Microsoft.Win32.RegistryView]::Registry32)
+$id=[Guid]::NewGuid(); $progId="WCP.p$($id.ToString('N'))"
+$profile=Join-Path $output 'isolated profile'; $thin=Join-Path $output 'thin install with spaces'
+[IO.Directory]::CreateDirectory($profile) | Out-Null; [IO.Directory]::CreateDirectory($thin) | Out-Null
+@{ClassId=$id;ProgId=$progId} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'com-fixture.json')
+$source=Join-Path $repository "WawiCallPro.App/bin/$Configuration/net11.0-windows10.0.19041.0"
+$baseName="WawiCallPro.App.$ProductLine"; $exe=Join-Path $thin "$baseName.exe"
+function Check([bool]$Value,[string]$Name) { if (-not $Value) { throw "Failed: $Name" }; $checks.Add($Name) }
+function Read-Key($View,[string]$Path) {
+    $root=[Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,$View)
+    try { $key=$root.OpenSubKey("Software\Classes\$Path"); if (-not $key) { return $null }
+        try { $values=[ordered]@{}; foreach ($name in @($key.GetValueNames() | Sort-Object)) { $values[$name]=$key.GetValue($name) }; return ,$values }
+        finally { $key.Dispose() }
+    } finally { $root.Dispose() }
+}
+function Invoke-App([string[]]$Arguments,[int]$Expected=0) {
+    $start=[Diagnostics.ProcessStartInfo]::new($exe); $start.UseShellExecute=$false; $start.CreateNoWindow=$true
+    foreach ($arg in $Arguments) { $start.ArgumentList.Add($arg) }
+    $watch=[Diagnostics.Stopwatch]::StartNew(); $process=[Diagnostics.Process]::Start($start)
+    try { if (-not $process.WaitForExit(10000)) { $process.Kill($true); throw 'Registration process exceeded its fast budget.' }
+        if ($process.ExitCode -ne $Expected) { throw "Registration exit $($process.ExitCode), expected $Expected." }
+        Check ($watch.Elapsed.TotalSeconds -lt 10) 'Registration command exits within ten seconds without a host or UI'
+    } finally { $process.Dispose() }
+}
+try {
+    foreach ($view in $views) { Check ($null -eq (Read-Key $view "CLSID\{$id}") -and $null -eq (Read-Key $view $progId)) 'Random fixture identity did not exist before this run' }
+    $reserved=$true
+    foreach ($file in @("$baseName.exe","$baseName.dll","$baseName.deps.json","$baseName.runtimeconfig.json",'Velopack.dll')) {
+        Copy-Item -LiteralPath (Join-Path $source $file) -Destination (Join-Path $thin $file)
+    }
+    '{invalid JSON' | Set-Content -LiteralPath (Join-Path $thin 'appsettings.json')
+    Invoke-App @('--com-fixture',$profile,'/regserver')
+    $before=@($views | ForEach-Object { Read-Key $_ "CLSID\{$id}\LocalServer32" }) | ConvertTo-Json -Compress
+    Invoke-App @('--com-fixture',$profile,'/regserver')
+    Check ($before -eq (@($views | ForEach-Object { Read-Key $_ "CLSID\{$id}\LocalServer32" }) | ConvertTo-Json -Compress)) 'Repeated registration is idempotent'
+    foreach ($view in $views) {
+        $server=Read-Key $view "CLSID\{$id}\LocalServer32"
+        Check ($server['ServerExecutable'] -eq $exe -and $server[''] -eq ('"{0}" --com-fixture "{1}"' -f $exe,$profile)) 'Both views contain the exact quoted executable and fixture path'
+        Check ((Read-Key $view "$progId\CLSID")[''] -eq $id.ToString('B')) 'ProgID resolves to its own fixture CLSID'
+    }
+    Check (-not (Test-Path -LiteralPath (Join-Path $thin 'logs')) -and -not (Test-Path -LiteralPath (Join-Path $profile 'com-runtime.json'))) 'Thin registration ignores invalid appsettings and never starts application services'
+    Invoke-App @('/regserver','/machine') 2
+    Invoke-App @('/regserver','/tlb') 2
+    Invoke-App @('--com-fixture',$profile,'/unregserver')
+    Invoke-App @('--com-fixture',$profile,'/unregserver')
+    foreach ($view in $views) { Check ($null -eq (Read-Key $view "CLSID\{$id}") -and $null -eq (Read-Key $view $progId)) 'Repeated unregister removes only the fixture registration' }
+    $completed=$true
+} catch { $failure=$_.Exception.Message; throw }
+finally {
+    # Use the real ownership-aware removal, never recursive deletion of a foreign registration.
+    if ($reserved) {
+        try {
+            $exists=@($views | Where-Object { $null -ne (Read-Key $_ "CLSID\{$id}") -or $null -ne (Read-Key $_ $progId) }).Count -gt 0
+            if ($exists -and (Test-Path -LiteralPath $exe)) { Invoke-App @('--com-fixture',$profile,'/unregserver') }
+            foreach ($view in $views) {
+                if ($null -ne (Read-Key $view "CLSID\{$id}") -or $null -ne (Read-Key $view $progId)) { $cleanup=$false }
+            }
+        } catch { $cleanup=$false }
+    }
+    if (-not $cleanup) { $completed=$false; $failure='Fixture registration cleanup could not be confirmed.' }
+    @{Completed=$completed;Error=$failure;Checks=$checks.ToArray();Edition=$ProductLine;Elevated=$false;RegistryCleanupConfirmed=$cleanup} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $output 'results.json')
+}
+if (-not $completed) { throw $failure }

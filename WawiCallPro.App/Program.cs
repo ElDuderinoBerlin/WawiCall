@@ -18,7 +18,7 @@ internal static class Program
     {
         try
         {
-            WawiCallPro.Automation.AutomationClassRegistration.PrepareProcess();
+            if (AppComDeployment.TryRun(args) is { } registrationResult) return registrationResult;
             // Installer hooks must finish before UI, licensing or host services are loaded.
             VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
         }
@@ -34,6 +34,7 @@ internal static class Program
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int RunAfterInstaller(string[] args)
     {
+        WawiCallPro.Automation.AutomationClassRegistration.PrepareProcess();
         AppStartArguments start;
         try { start = AppStartArguments.Parse(args); }
         catch (ArgumentException)

@@ -970,13 +970,34 @@ JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenb
 
 ### Phase 7 – ⬜ Auslieferung
 
-- [ ] Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
+- [x] ✅ Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
 - [ ] Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
 - [ ] Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
 - [ ] Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
 - [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
 
 Abnahme: Installierte EXE wird zuverlässig aufgelöst; alte Einträge überschreiben keine neue Installation.
+
+Erster abgeschlossener Schritt: `/regserver` und `/unregserver` (optional `/user`) laufen vor dem
+Anwendungshost. Ausschließlich eigene CLSID-/ProgID-/LocalServer32-Werte unter HKCU, beide Registry-
+Ansichten, korrekt zitierter EXE-Pfad und `ServerExecutable`; `/machine` und `/tlb` werden abgewiesen.
+Typbibliotheken, Interface-Proxys und HKLM werden nicht beschrieben. Der frühe Pfad benötigt weder
+DevExpress, DI, Lizenzierung, Konfiguration noch die Automation-Laufzeit. COM Fast Rundown wird erst
+nach den beendeten Installerhooks, weiterhin vor dem ersten normalen UI-/Marshalling-Aufruf vorbereitet.
+
+Besitzmarkierungen und SemVer schützen neuere beziehungsweise andere gleich alte Installationen.
+Deinstallation löscht nur Werte des exakt passenden EXE-/Versions-/Installationsbesitzers; geänderte
+fremde Werte bleiben erhalten. Änderungen beider Registry-Ansichten werden vorher geprüft und bei
+partiellem Schreibfehler zurückgesetzt. Eine benutzerbezogene globale Mutex koordiniert auch mehrere
+Sitzungen desselben Benutzers. Keine rekursiven Löschungen im produktiven Registry-Adapter.
+
+Je Edition 17 Registrierungs-/Frühstart-/Argumenttests und 16 native Registrierungsprüfungen bestanden;
+reguläre Rebuilds Debug/Any CPU ohne Fehler, 26 bekannte externe CSCore-Warnungen, Pro zuletzt.
+Die native Prüfung verwendet zufällige Testidentitäten, einen Pfad mit Leerzeichen und eine dünne
+App-Kopie mit absichtlich ungültiger appsettings.json; Produktregistrierungen bleiben unangetastet.
+Einstieg: `scripts/test-com-deployment.ps1 -ProductLine Pro -RegistrationOnly` bzw. `FinOffice` nach
+dem Editionsbuild. Nachweise: `.com-phase7-register-{build,tests,native}-{fin,pro}.log` und
+`.artifacts/com-phase7-register-native-{fin,pro}/results.json`. Die weiteren Phase-7-Punkte bleiben offen.
 
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 
