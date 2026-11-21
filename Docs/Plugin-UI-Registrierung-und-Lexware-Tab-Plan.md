@@ -1,0 +1,243 @@
+# Plugin-UI-Registrierung und Tab „Lexware“
+
+Stand: 21.11.2026. Architekturentwurf auf Benutzerauftrag; die Implementierung ist noch offen.
+
+## Ziel und Entscheidung
+
+Das aktive Warenwirtschaftsplugin erhält vom Desktop-Host ein typisiertes UI-Interface und
+registriert darüber seinen Einstellungs-Tab. Das Lexware-Plugin liefert eine vollständige,
+designerfähige UserControl-View für **Zugang und Mandantenauswahl**. Der sichtbare Tab heißt bei
+Pro und FinOffice ausschließlich **„Lexware“**. Die bisherige Mandantenauswahl im Navigationsdock
+der Haupt-App entfällt nach erfolgreicher Umstellung.
+
+Der Host stellt den zentralen Einstellungsdialog, Tabcontainer, Darstellung und das gemeinsame
+Speichern bereit. Das Plugin bestimmt seine Inhalte und fachlichen Regeln. Die Registrierung
+meldet eine View-Factory an; sie erzeugt noch keine Controls und öffnet kein Fenster.
+
+Dies ist ein eigener Umsetzungsschritt. Der begonnene G1-Telefonietest wartet weiterhin auf die
+Bestätigung der Audiogeräte und des zweiten Anschlusses. Dieser Entwurf hakt keinen Telefonietest ab.
+
+## Quellenbefund – ✅ geprüft
+
+| Bestehende Stelle | Befund und Konsequenz |
+|---|---|
+| [IWawiCallHostServices](../WawiCallPro.Interfaces/Hosting/IWawiCallHostServices.cs) | Technikunabhängige Hostdienste für Kontext, Dispatcher und Historie. Kein Zugriff auf die UI-Registrierung vorhanden. |
+| [PluginSession](../WawiCallPro.Utilities/Plugins/PluginSession.cs) | Gemeinsamer `WawiCallHostServices`-Adapter; Plugin wird über DI aufgebaut und mit `Configure` an Hostdienste gebunden. Neue UI-Fähigkeit hier sitzungsbezogen anbinden. |
+| [PluginSettingsViews](../WawiCallPro.Plugin.Windows/PluginSettingsViews.cs), [PluginViewAccess](../WawiCallPro.Plugin.Windows/PluginViewAccess.cs) | Bisher fragt der Host `IWawiCallPluginSettings` ab und fordert den Zugangseditor an. Ziel ist die ausdrückliche Anmeldung des Tabs durch das Plugin. |
+| [SettingsPage.PluginSettings](../WawiCallPro.App/Views/SettingsPage.PluginSettings.cs) | Host bettet bereits eine komplette Plugin-View ein und schützt den gemeinsamen Einstellungsentwurf. Diese Semantik erhalten. |
+| [ProConnectionSettingsPage](../WawiCallPro.Plugins.Lexware.Pro/ProConnectionSettingsPage.cs) | Pro besitzt seinen vollständigen Zugangseditor. Mandantenbereich dort als Teil der Plugin-View ergänzen. |
+| [FinOffice-Plugin](../WawiCallPro.Plugins.Lexware.FinOffice/LexwarePlugin.cs) | Bietet bisher keinen eigenen Einstellungs-Tab an. Neue View für seine Mandanten-/Quellenfunktionen bereitstellen; bestehende Installationserkennung verwenden. |
+| [CompanySelector](../WawiCallPro.App/Views/CompanySelector.cs), [MainForm.Companies](../WawiCallPro.App/MainForm.Companies.cs) | Mandanten-UI und ihre Lade-/Auswahllogik befinden sich noch in der App. Die Datenabfragen selbst liegen bereits hinter dem Plugin-Verzeichnisdienst. |
+| [AppAutomationCatalog](../WawiCallPro.App/Hosting/AppAutomationCatalog.cs) | Zugangseditor ist über `settings-wawi` erreichbar. Die öffentliche COM-View-ID erhalten und auf den registrierten Tab abbilden. |
+
+Die Gestaltung des zentralen Dialogs wurde mit
+`D:\Application-Development\LxTranslate\LxTranslate.App\Views\FrmSettings.cs` verglichen.
+Diese Referenz liefert das Dialogmuster; eine dort vorhandene Plugin-Tabregistrierung wird nicht behauptet.
+
+## Verträge und Zuständigkeiten
+
+Die Windows-Verträge gehören in die bestehende Shared Assembly `WawiCallPro.Plugin.Windows`.
+`WawiCallPro.Interfaces` erhält dadurch keine Abhängigkeit auf WinForms, DevExpress oder die App.
+Vorgeschlagene Namen und Signaturen sind Entwurfsstand:
+
+```csharp
+public interface IWindowsPluginHostServices : IWawiCallHostServices
+{
+    IPluginHostUi Ui { get; }
+}
+
+public interface IPluginHostUi
+{
+    IPluginSettingsRegistration RegisterSettingsTab(
+        PluginSettingsTabDescriptor descriptor,
+        IPluginSettingsPageFactory factory);
+}
+
+public sealed record PluginSettingsTabDescriptor(
+    string Id, string Title, int Order);
+
+public interface IPluginSettingsRegistration : IPluginLifetimeResource { }
+
+public interface IPluginSettingsPageFactory
+{
+    IPluginSettingsPage Create(IPluginSettingsPageContext context);
+}
+
+public interface IPluginSettingsPage : IPluginLifetimeResource
+{
+    Control View { get; }
+    bool HasUnsavedChanges { get; }
+    Task LoadAsync(CancellationToken cancellationToken);
+    Task ValidateAsync(CancellationToken cancellationToken);
+    void StageChanges();
+    Task StopAsync(CancellationToken cancellationToken);
+}
+```
+
+`IPluginSettingsPageContext` stellt ausschließlich den aktuellen Dialogentwurf, eng begrenzte
+Mandanten-Auswahlbefehle und UI-Hilfen bereit. Für Pro baut er auf dem vorhandenen
+`IPluginConnectionEditContext` auf. Kein Zugriff auf `IServiceProvider`, Container, `MainForm`,
+`FrmSettings`, `XtraTabControl`, fremde Tabs oder beliebige Konfigurationsdateien.
+Der bisherige `ICompanyContext` bleibt ein lesbarer, gemeinsam genutzter Laufzeitkontext.
+Eine neue schmale Auswahl-Schnittstelle übernimmt die Veröffentlichung nach dem Speichern.
+
+Das Plugin erhält die UI-Fähigkeit einmalig bei `Configure`:
+
+```csharp
+if (hostServices is IWindowsPluginHostServices desktop)
+{
+    registration = desktop.Ui.RegisterSettingsTab(
+        new("lexware", "Lexware", 200), settingsPageFactory);
+}
+```
+
+Das ist eine optionale Hostfähigkeit am Integrationspunkt. Fachlogik und Views erhalten ihre
+benötigten Dienste weiterhin durch Konstruktorinjektion. Ein allgemeiner Service-Locator wird
+nicht eingeführt. Die Factory wird dem Plugin über seine DI-Registrierung zugeführt.
+
+| Verantwortlicher | Aufgabe |
+|---|---|
+| Desktop-Composition-Root | UI-Registry und Dispatcher registrieren; Windows-Hostadapter für die aktive Pluginsitzung erzeugen. |
+| Pluginsitzung | Dem Plugin bei Konstruktorinjektion und `Configure` dieselbe Hostadapter-Instanz geben. Vorhandene Identitätsprüfung erhalten. |
+| Plugin | Tab anmelden, vollständige View bereitstellen, Zugang/Erkennung/Mandanten fachlich behandeln. |
+| UI-Registry | Metadaten validieren, Eigentümer und Sitzung festhalten, Registrierungen bei Fehlschlag zurücknehmen. |
+| Einstellungsdialog | Registrierte Factories generisch öffnen, Entwürfe validieren und gemeinsam speichern. |
+| Konfigurationsdienst | Versionsmigration, DPAPI-Geheimnisse, atomare Veröffentlichung und Konkurrenzschutz. |
+
+Der Host stellt eine **pro Pluginsitzung gebundene** `IPluginHostUi`-Fassade bereit.
+Eigentümer und Sitzungsgeneration stammen vom Host und werden nicht aus frei angegebenen
+Pluginparametern übernommen. Pro und FinOffice können denselben lokalen Tabbezeichner `lexware`
+verwenden, da zu jedem Zeitpunkt höchstens eine aktive Warenwirtschaftssitzung existiert.
+
+## Ablauf und Lebensdauer
+
+```mermaid
+sequenceDiagram
+    participant S as Pluginsitzung
+    participant P as Lexware-Plugin
+    participant U as UI-Registry des Hosts
+    participant D as Einstellungsdialog
+    S->>P: Configure(sitzungsgebundene Hostdienste)
+    P->>U: RegisterSettingsTab(lexware, Lexware, Factory)
+    U-->>P: Registrierungs-Lease
+    S->>U: Registrierung nach erfolgreichem Laden freigeben
+    D->>U: Aktive Tabdeskriptoren anfordern
+    U->>P: Factory.Create(Dialogkontext), auf UI-Thread
+    P-->>D: Vollständige Plugin-View mit Laufzeit-Lease
+    D->>P: LoadAsync außerhalb des Erzeugungs-Callbacks
+    D->>P: ValidateAsync und StageChanges bei Speichern
+    D->>D: Gemeinsamen Konfigurationsentwurf speichern
+    D->>P: StopAsync, anschließend DisposeAsync
+    S->>U: Registrierung vor Plugin-Unload freigeben
+```
+
+- `Configure` meldet nur Metadaten und die Factory an. Keine Quellabfragen, Controls, Handles oder
+  Dialoge erzeugen. Wird die Pluginsitzung nicht erfolgreich aktiv, alle vorgemerkten Anmeldungen verwerfen.
+- Erst nach erfolgreicher Aktivierung des Plugins ist der Tab erreichbar. Während `Starting`,
+  Pluginwechsel oder Shutdown keine neue View erzeugen.
+- Erzeugung und Control-Zugriffe laufen über den UI-Dispatcher. Konstruktor und `InitializeComponent`
+  enthalten nur statische Oberfläche. Die asynchronen Ladevorgänge beginnen anschließend.
+- Factory-Erzeugung über den vorhandenen Laufzeit-/Ressourcenschutz führen. `LoadAsync` darf nicht
+  innerhalb desselben gehaltenen Runtime-Callbacks erneut `UseAsync` aufrufen; diesen Deadlock vermeiden.
+- Der Dialog besitzt die geöffnete View-Lease; die Runtime verfolgt sie zusätzlich als Pluginressource.
+  Beim Dialogschluss Ladevorgänge abbrechen, ihr Ende abwarten, Ereignisse lösen und Controls auf
+  dem UI-Thread freigeben. Danach kann die Anmeldung für das nächste Dialogöffnen bestehen bleiben.
+- Beim Pluginwechsel zunächst Entwurfsschutz prüfen. Abbruch erhält Plugin und Tab. Nach bestätigtem
+  Wechsel neue Zugriffe sperren, offene Views geordnet stoppen, Registrierungs-Leases freigeben und
+  Factoryreferenzen entfernen; erst danach Plugin/DI-Scope entladen. Nicht bei laufenden Aufrufen entladen.
+- Freigabe ist idempotent. Verzögerte Ergebnisse einer alten Sitzung dürfen keinen neuen Tab binden.
+  Keine UI-Operationen mehr aus einem abschließenden synchronen `Shutdown` heraus starten.
+
+## Inhalt des Tabs „Lexware“
+
+Pro liefert eine vollständige `LexwareSettingsPage` mit den Bereichen **Zugang** und **Mandant**.
+Der vorhandene Pro-Zugangseditor kann als designerfähiges untergeordnetes Control weiterverwendet
+werden. FinOffice liefert seine eigene `LexwareSettingsPage` mit den für diese Produktlinie
+tatsächlich nötigen Quellen-/Mandantenfunktionen. Es erhält keine Pro-API-Felder.
+Gemeinsame reine Darstellungshilfen dürfen in `Plugin.Windows` liegen; fachliche Entscheidungen
+und Abfragen bleiben im betreffenden Lexware-Plugin.
+
+Die Mandantenauswahl verwendet einen durchsuchbaren DevExpress-`LookUpEdit` mit ausschließlich dem
+Mandantennamen. Der vollständige `CompanyKey` bleibt intern erhalten. Kein automatisches Auswählen
+der ersten Firma. Laden/Aktualisieren zeigt Ladezustand und einen handlungsfähigen Fehlerhinweis.
+Ohne eingerichteten Zugang führt der Hinweis zum Zugangsbereich im selben Tab.
+
+Neue ungespeicherte Zugangsdaten werden nicht für versteckte Anmeldeversuche verwendet.
+Benötigen sie einen Neustart, zunächst Zugang speichern/neustarten und danach Mandanten laden.
+Ein Mandantenladefehler verändert keine gespeicherten Zugangsdaten oder Cachequellen.
+
+Alle Controls werden in `*.cs`, `*.Designer.cs` und gültiger `*.resx` aufgebaut; ein parameterloser
+Designer-Konstruktor bleibt erhalten. Layout über `TableLayoutPanel`, zentrale kompakte
+Buttonbemessung und den aktiven Skin. Langsame Lade-/Dialogvorgänge verwenden die vom Host
+bereitgestellte `UiWaitCursor`-Scope. Höhere DPI, größere Schrift und kleine Fenster berücksichtigen.
+
+## Speichern, Abbrechen und Mandantenkontext
+
+1. Jede Dialogöffnung erhält einen gemeinsamen Snapshot mit Konkurrenzschutz. Zugang und die
+   gewählte Mandantenidentität sind zunächst nur Plugin-Entwurf.
+2. „Speichern“ validiert alle Seiten. Ein Fehler verhindert das Speichern des gesamten Entwurfs.
+   Die Auswahl muss zum aktuellen Plugin, zur Produktlinie und zum autorisierten Katalog gehören.
+3. Das Plugin schreibt ausschließlich seinen Konfigurationsbereich in den Entwurf; der Host speichert
+   einmal über den bestehenden Konfigurationsdienst. Kennwörter/Client-Keys bleiben geschützt.
+4. Nach erfolgreichem Speichern kann der Host die bestätigte Auswahl über die schmale Auswahl-Schnittstelle
+   in den gemeinsamen Laufzeitkontext veröffentlichen. Bei geändertem Zugang erst nach Neustart und
+   erneuter Autorisierungsprüfung. Datei-Speicherung und Laufzeitveröffentlichung sind keine gemeinsame
+   Datenbanktransaktion; bei gescheiterter Veröffentlichung „gespeichert, Neustart erforderlich“ melden.
+5. „Abbrechen“ und X verwerfen den Entwurf und erhalten die vorherige aktive Auswahl.
+   Kein vorzeitiges `CompanyContext.SelectAsync` bei Änderungen im Lookup.
+
+Die gespeicherte Mandantenpräferenz gehört zum jeweiligen Plugin-Konfigurationsbereich und enthält
+den vollständigen Schlüssel. Dafür eine reguläre Konfigurationsversion vorsehen und ältere Dateien
+weiter laden. Nach einem Quellenwechsel ungültige Präferenzen ausdrücklich als nicht verfügbar behandeln.
+Die globale Auswahl ersetzt keine expliziten Mandantenkontexte vorhandener Views, Gespräche oder
+COM-Aufträge und ändert keine Telefon-Cachequellen.
+
+## COM, Konsole und Schutzgrenzen
+
+- Der Desktop-COM-Host kann die Windows-UI-Fähigkeit besitzen, ohne ein Fenster anzulegen. Registrierung
+  erzeugt ausschließlich Metadaten. Erst `ShowView("settings-wawi", "")` öffnet den registrierten Tab.
+- Die bestehende COM-ID `settings-wawi` bleibt erhalten; sichtbarer Titel wird „Lexware“. Kataloge werden
+  aus aktiven Registrierungsmetadaten gewonnen. Keine neue COM-Schnittstelle oder TLB-Registrierung nötig.
+- Die Konsole stellt `IWindowsPluginHostServices` nicht bereit. Das Plugin lässt die UI-Anmeldung dort
+  aus und behält seine Fach-/Konfigurationsdienste. Keine WinForms-Controls zur Erkennung erzeugen.
+- Registry akzeptiert begrenzte, gültige IDs/Titel, verhindert doppelte Anmeldungen derselben Sitzung
+  und entfernt fremde Anmeldungen nicht. Keine pluginseitig frei durchgereichten Formularaktionen.
+- Bestehende Lizenz-, Installations- und Mandantenprüfungen bleiben vor jedem Fachzugriff wirksam.
+  Fehlertexte und Logs enthalten keine Zugangsdaten, Tokens oder vollständigen Verbindungswerte.
+- Diese Änderung beseitigt keine unabhängig fehlende Fachfunktion oder falsche Zugangskonfiguration.
+  Ein registrierter Tab ist noch kein Nachweis erfolgreicher Lexware-Anmeldung oder Mandantenladung.
+
+## Phasenübersicht
+
+| Phase | Ergebnis | Status |
+|---|---|---|
+| 0 – Bestand und Entwurf | Ist-Pfade gelesen, Host-/Plugin-Verantwortung und gewünschter Tab festgelegt; dieses Dokument geprüft und in der Hauptsolution aufgenommen. | ✅ Entwurf abgeschlossen |
+| 1 – Verträge und Registrierungsmodell | Windows-Hostfähigkeit, sitzungsgebundene Fassade, Deskriptoren, Factory-/View-/Registrierungs-Leases. | ⬜ Offen |
+| 2 – Host und Pluginsitzung | Desktopadapter, korrekte DI-Identität, vorgemerkte Registrierung, Runtime-Ressourcen und geordnete Freigabe; Konsole ohne UI. | ⬜ Offen |
+| 3 – Lexware-Views | Pro und FinOffice registrieren je ihren vollständigen Tab „Lexware“; Zugang und Mandantenauswahl liegen im Plugin. | ⬜ Offen |
+| 4 – Einstellungsdialog und Umstellung | Generisches Einbetten, gemeinsames Speichern/Abbrechen, Mandantenpräferenz, COM-ID erhalten; alten Dock-Selector nach erfolgreicher Umstellung entfernen. | ⬜ Offen |
+| 5 – Prüfung und Abnahme | Lebensdauer, Schutzgrenzen, Designer/Layout und beide regulären Hosts nachweisen; erst danach Umsetzung abhaken. | ⬜ Offen |
+
+Jede Phase einzeln implementieren, prüfen, im Plan abhaken und separat committen.
+Für reine Dokumentation jetzt keine Builds oder GUI-Läufe starten. Bei späteren Codeänderungen
+die aktive IDE-Konfiguration/Plattform beibehalten, beide regulären Editionshosts bauen, Pro zuletzt.
+
+### Erforderliche Prüffälle für Phase 5
+
+- ⬜ Pro/FinOffice: genau ein Tab „Lexware“, vollständige Plugin-View, keine Mandantenauswahl im Dock.
+- ⬜ Plugin ohne UI-Fähigkeit, Konsole und fensterloser COM-Start erzeugen keine Controls/Handles/Dialogs.
+- ⬜ Doppelte/ungültige Registrierung, fehlgeschlagenes `Configure`, mehrfaches Öffnen/Schließen und
+  Pluginwechsel hinterlassen keine Factory-/Controlreferenzen oder Anmeldungen der alten Sitzung.
+- ⬜ Abbrechen/X, konkurrierendes Speichern, Validierungsfehler und Zugangswechsel erhalten den
+  bisherigen Laufzeitkontext; nur erfolgreich bestätigte Auswahl wird veröffentlicht.
+- ⬜ Leerer, fehlerhafter, fremder und verspäteter Mandantenkatalog; exakte Mandantenschlüssel,
+  unveränderte explizite Gesprächs-/COM-Kontexte und erhaltene Telefon-Cachequellen.
+- ⬜ Stoppen während Laden/Speichern, fehlerhafte Freigabe und mehrfaches Dispose ohne Zugriff auf
+  entladene Dienste; kein Runtime-Reentry-Deadlock.
+- ⬜ Shared-Assembly-Identität und Deployment beider Editionen; `settings-wawi` mit neuem Titel erreichbar,
+  Modalität/Entwurfsschutz weiter wirksam, keine Änderungen an HKCU-/TLB-Regeln.
+- ⬜ Gezielte Designer-/Rendernachweise für beide Plugin-Views: leere/gefüllte synthetische Daten,
+  kleine Fenster, größere Schrift, helle/dunkle Skins und höhere DPI; danach gemeinsame Live-Mandantenprüfung.
+
+Zugehörige Pläne: [Neuaufbau](Neuaufbau-Plan.md),
+[COM-Automation](COM-Automation-Studie-und-Phasenplan.md).

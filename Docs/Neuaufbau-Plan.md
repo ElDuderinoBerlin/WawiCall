@@ -6,6 +6,11 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 21.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+Zusätzlicher UI-Auftrag vom 21.11.2026: ✅ [Entwurf für Plugin-UI-Registrierung und Tab „Lexware“](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md)
+erstellt. Das Plugin erhält eine optionale Windows-UI-Hostfähigkeit und registriert seinen vollständigen
+Einstellungs-Tab selbst. Pro/FinOffice stellen Zugang und Mandantenauswahl unter dem Titel „Lexware“
+bereit; nach Umstellung entfällt die Mandantenauswahl im Hauptfenster-Dock. Implementierungsphasen 1–5
+sind offen; dieser Entwurf ist kein Funktionsnachweis. G1 wartet weiter auf die gemeinsame Audio-/Anrufprüfung.
 Zusätzlicher Auftrag vom 20.11.2026: ✅ [COM-Automation-Studie mit eigenem Phasenplan](COM-Automation-Studie-und-Phasenplan.md)
 abgeschlossen (dort Phase 0). ✅ Phase 1: isolierter COM-Prototyp nach LxTranslate.Server mit je 57
 bestandenen Pro-/FinOffice-Prüfungen; x86/x64-Aktivierung, paralleler Start, Dispatcher und Lebensdauer
