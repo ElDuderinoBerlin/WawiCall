@@ -66,7 +66,8 @@ public sealed class AutomationTests
         Assert.Throws<COMException>(() => app.ShowSupplier("foreign", "00123"));
         Assert.Throws<COMException>(() => app.GetOperation("bad"));
         Assert.Throws<COMException>(() => app.Dial("1", key, Guid.Empty.ToString("D")));
-        foreach (var context in new[] { "[]", "{\"secret\":\"x\"}", "{\"callId\":\"bad\"}", "{\"callId\":\"x\",\"callId\":\"y\"}", new string(' ', 8193) })
+        foreach (var context in new[] { "[]", "{\"secret\":\"x\"}", "{\"callId\":\"bad\"}", "{\"callId\":\"x\",\"callId\":\"y\"}",
+            "{\"customerNumber\":\"001\"}", "{\"companyKey\":\"x\",\"customerNumber\":\"001\",\"supplierNumber\":\"001\"}", new string(' ', 8193) })
             Assert.Throws<COMException>(() => app.ShowView("history", context));
         Assert.AreEqual(0, fixture.Environment.Reads); Assert.AreEqual(0, fixture.Environment.Shown); Assert.AreEqual(0, fixture.Environment.Dials);
     }

@@ -37,12 +37,13 @@ internal sealed class AutomationRouter(IAutomationEnvironment environment, IAuto
         if (command.Kind == "hangup") { await telephony.HangUpAsync(AutomationInput.Id(command.Value), token).ConfigureAwait(false); return null; }
 
         var request = new PresentationRequest(command.Kind == "show" ? "home" : command.Value, command.Company, ContextJson: command.Context);
+        if (command.Kind == "show") request = request with { ActivateOnly = true };
         if (command.Kind is "customer" or "supplier")
         {
             var kind = command.Kind == "customer" ? PartyKind.Customer : PartyKind.Supplier;
             var key = await parties.ResolveAsync(command.Company!, kind, command.Value, token).ConfigureAwait(false);
             environment.RequireAccess(AutomationAccess.Business, key.Company);
-            request = new(command.Kind, key.Company, key);
+            request = new(command.Kind, key.Company, key, Number: command.Value);
         }
         else if (command.Kind == "showdial") request = new("dial", command.Company, Number: command.Value);
         if (command.Kind == "view")
@@ -56,6 +57,14 @@ internal sealed class AutomationRouter(IAutomationEnvironment environment, IAuto
                     var company = AutomationInput.Company(key.GetString()!, environment);
                     environment.RequireAccess(AutomationAccess.Business, company);
                     request = request with { Company = company };
+                    var kind = json.RootElement.TryGetProperty("customerNumber", out var number) ? PartyKind.Customer
+                        : json.RootElement.TryGetProperty("supplierNumber", out number) ? PartyKind.Supplier : (PartyKind?)null;
+                    if (kind is { } role)
+                    {
+                        if (!command.Value.StartsWith("plugin:", StringComparison.Ordinal)) throw new AutomationFault(AutomationFailure.InvalidArgument);
+                        var party = await parties.ResolveAsync(company, role, number.GetString()!, token).ConfigureAwait(false);
+                        request = request with { Party = party, Number = number.GetString() };
+                    }
                 }
             }
         }

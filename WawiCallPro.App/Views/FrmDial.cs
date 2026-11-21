@@ -44,6 +44,7 @@ public partial class FrmDial : XtraForm
     }
 
     internal void PrepareForBackgroundRun() { _backgroundRun = true; ShowInTaskbar = false; Opacity = 0; }
+    internal void SetAutomationNumber(string number) => destinationEdit.Text = number;
     protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
     protected override CreateParams CreateParams
     {

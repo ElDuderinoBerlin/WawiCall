@@ -9,6 +9,19 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppComStartupTests
 {
     [TestMethod]
+    public async Task MetadataServicesAreNotStartedTwiceWhenTheUiStartsLater()
+    {
+        var state = State(); var log = new List<string>();
+        var first = new Service("foundation", log); var metadata = new Service("metadata", log); var sip = new Service("sip", log);
+        var pipeline = new AppStartupPipeline([() => first, () => metadata, () => sip], 1, state) { MetadataServices = [() => metadata] };
+        await pipeline.StartAsync(default);
+        CollectionAssert.AreEqual(new[] { "start:foundation", "start:metadata" }, log);
+        await pipeline.ResumeAsync(default);
+        Assert.AreEqual(1, log.Count(item => item == "start:metadata"));
+        await pipeline.StopAsync(default);
+        Assert.AreEqual(1, log.Count(item => item == "stop:metadata"));
+    }
+    [TestMethod]
     public async Task ComFoundationChecksBothLexwareProductsIndependently()
     {
         var registry = new RegistryProbe();

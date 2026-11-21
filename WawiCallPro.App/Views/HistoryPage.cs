@@ -29,6 +29,25 @@ public partial class HistoryPage : XtraUserControl
     private ImmutableArray<CallNote> _renderedNoteList;
     private ImmutableArray<CallPartySnapshot> _renderedParties;
     internal bool HasUnsavedNotes => _notes.Values.Any(notes => notes.HasUnsavedChanges);
+    internal async Task ShowCallAsync(Guid id, CancellationToken token)
+    {
+        if (_stopping || _history is null) throw new InvalidOperationException("History unavailable.");
+        var history = await _history.GetCallAsync(id, token);
+        if (history?.Call.Id != id) throw new Hosting.AutomationCallNotFoundException();
+        var call = history.Call;
+        _binding = true;
+        try
+        {
+            grid.DataSource = new[] { new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
+                call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call), "") };
+            grid.ForceInitialize();
+            if (view.Columns[nameof(HistoryRow.Id)] is { } identity) identity.Visible = false;
+            _state?.Restore(view, "CallHistory");
+            view.FocusedRowHandle = 0;
+        }
+        finally { _binding = false; }
+        await LoadFocusedDetailsAsync(token);
+    }
     public HistoryPage()
     {
         InitializeComponent();

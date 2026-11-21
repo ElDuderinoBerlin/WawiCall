@@ -143,6 +143,22 @@ public partial class SettingsPage : XtraUserControl
     }
     internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
+    internal void SelectAutomationTab(string id)
+    {
+        tabs.SelectedTabPage = id switch
+        {
+            "plugin" => pluginTab, "settings-hotkeys" => hotkeysTab,
+            "settings-sip" or "settings-sip-advanced" or "settings-line-company" => sipTab,
+            "settings-database" => databaseTab, "settings-audio" or "settings-audio-levels" => audioTab,
+            "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics" => cacheTab,
+            "settings-mail" => mailTab, _ => generalTab
+        };
+        if (id.StartsWith("settings-sip", StringComparison.Ordinal) || id == "settings-line-company")
+            sipPages.SelectedTabPage = id == "settings-line-company" ? lineTab : id == "settings-sip-advanced" ? sipAdvanced : sipStandard;
+        if (id is "settings-audio" or "settings-audio-levels") audioPages.SelectedTabPage = id == "settings-audio-levels" ? audioLevelsTab : audioDevicesTab;
+        if (id is "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics")
+            cachePages.SelectedTabPage = id == "number-diagnostics" ? diagnosticsTab : id == "settings-phone-matching" ? matchingTab : cacheSourcesTab;
+    }
     internal void SelectMailTab() => tabs.SelectedTabPage = mailTab;
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => tabs;
     private async Task ActivatePluginAsync(string id, CancellationToken token)

@@ -3,6 +3,7 @@ param(
     [ValidateSet('Debug','Release')][string]$Configuration = 'Debug',
     [string]$OutputDirectory,
     [switch]$AllowVisibleWindows,
+    [switch]$Views,
     [switch]$FromDesktop
 )
 $ErrorActionPreference = 'Stop'
@@ -17,6 +18,7 @@ $principal = [Security.Principal.WindowsPrincipal]::new([Security.Principal.Wind
 if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     if ($FromDesktop) { throw 'HKCU COM testing requires a normal desktop token.' }
     $arguments = '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -File "{0}" -ProductLine {1} -Configuration {2} -OutputDirectory "{3}" -AllowVisibleWindows -FromDesktop' -f $PSCommandPath,$ProductLine,$Configuration,$output
+    if ($Views) { $arguments += ' -Views' }
     $shell = New-Object -ComObject Shell.Application
     $desktopHandle = 0
     $desktop = $shell.Windows().FindWindowSW(0,0,8,[ref]$desktopHandle,1)
@@ -30,7 +32,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     $bootstrap = Get-Content -LiteralPath (Join-Path $output 'bootstrap.json') -Raw | ConvertFrom-Json
     $child = Get-Process -Id $bootstrap.Pid
     try {
-        $limit = [DateTime]::UtcNow.AddSeconds(240)
+        $limit = [DateTime]::UtcNow.AddSeconds($(if ($Views) { 480 } else { 240 }))
         while (-not $child.WaitForExit(1000)) { if ([DateTime]::UtcNow -gt $limit) { $child.Kill($true); throw 'Native harness timed out.' } }
         $proof = Get-Content -LiteralPath (Join-Path $output 'results.json') -Raw | ConvertFrom-Json
         if (-not $proof.Completed) { throw "Native application test failed: $($proof.Error). Results: $output" }
@@ -64,7 +66,7 @@ $checks = [Collections.Generic.List[string]]::new()
 $completed = $false; $failure = $null
 function Check([bool]$Value, [string]$Name) { if (-not $Value) { throw "Failed: $Name" }; $checks.Add($Name) }
 function Wait-Until([scriptblock]$Condition, [string]$Name) {
-    $limit = [DateTime]::UtcNow.AddSeconds(50)
+    $limit = [DateTime]::UtcNow.AddSeconds($(if ($Views) { 180 } else { 50 }))
     while (-not (& $Condition)) { if ([DateTime]::UtcNow -gt $limit) { throw "Timed out: $Name" }; Start-Sleep -Milliseconds 80 }
 }
 function Read-Json([string]$File) { try { Get-Content -LiteralPath $File -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop } catch { return $null } }
@@ -102,7 +104,8 @@ function Start-Client($Fixture, [string]$Name, [string]$Bits) {
     $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($Bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))
     $start.UseShellExecute=$false; $start.CreateNoWindow=$true
     $prefix = Join-Path $Fixture.Profile "$Name-"
-    foreach ($argument in @('//nologo','//E:JScript',(Join-Path $PSScriptRoot 'ComPrototype/app.js'),$Fixture.ProgId,$prefix)) { $start.ArgumentList.Add($argument) }
+    $script = if ($Views) { 'ComPrototype/views.js' } else { 'ComPrototype/app.js' }
+    foreach ($argument in @('//nologo','//E:JScript',(Join-Path $PSScriptRoot $script),$Fixture.ProgId,$prefix)) { $start.ArgumentList.Add($argument) }
     $client = [pscustomobject]@{ Process=[Diagnostics.Process]::Start($start); Prefix=$prefix }
     $clients.Add($client); return $client
 }
@@ -136,6 +139,16 @@ function Explorer-Start($Fixture) {
     $shell.ShellExecute($executable, ('--com-fixture "{0}"' -f $Fixture.Profile), (Split-Path $executable -Parent), 'open', 1)
 }
 try {
+    if ($Views) {
+        foreach ($bits in @('x64','x86')) {
+            $fixture=New-Fixture "views-$bits"
+            $client=Start-Client $fixture 'views' $bits
+            $ready=Ready $client
+            foreach ($name in $ready.Checks) { Check $true "$bits $name" }
+            Release-Client $client; Stop-Fixture $fixture
+        }
+    }
+    else {
     $fixture = New-Fixture 'cold'
     $a = Start-Client $fixture 'x64' 'x64'; $b = Start-Client $fixture 'x86' 'x86'
     $first = Ready $a; $second = Ready $b
@@ -195,6 +208,7 @@ try {
     Wait-Until { $null -ne (Runtime $fixture) } 'failed startup runtime'
     Check ((Runtime $fixture).Forms -eq 0) 'Configuration failure constructs no forms'
     Release-Client $client; Stop-Fixture $fixture
+    }
     $completed = $true
 } catch { $failure = $_.Exception.Message; throw }
 finally {

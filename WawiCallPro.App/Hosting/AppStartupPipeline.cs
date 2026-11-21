@@ -7,14 +7,26 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
 {
     private readonly SemaphoreSlim _gate = new(1);
     private readonly List<IHostedService> _attempted = [];
+    private readonly HashSet<IHostedService> _started = [];
     private int _next;
     private bool _stopping;
     private bool _userModeValidated;
     internal Func<CancellationToken, Task>? RevalidateBeforeUserMode { get; init; }
+    internal Func<IHostedService>[] MetadataServices { get; init; } = [];
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        try { await AdvanceAsync(foundationCount, cancellationToken); }
+        try
+        {
+            await AdvanceAsync(foundationCount, cancellationToken);
+            foreach (var factory in MetadataServices)
+            {
+                var service = factory();
+                if (!_attempted.Contains(service)) _attempted.Add(service);
+                if (!_started.Contains(service)) { await service.StartAsync(cancellationToken); _started.Add(service); }
+            }
+            state.Ready();
+        }
         catch (Exception exception) { state.Failed(exception); }
     }
 
@@ -40,11 +52,15 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
                 token.ThrowIfCancellationRequested();
                 var service = factories[_next]();
                 if (!_attempted.Contains(service)) _attempted.Add(service);
-                await service.StartAsync(token);
+                if (!_started.Contains(service))
+                {
+                    await service.StartAsync(token);
+                    _started.Add(service);
+                }
                 _next++;
                 if (limit > foundationCount && _next == foundationCount) _userModeValidated = true;
             }
-            state.Ready();
+            if (limit == factories.Length) state.Ready();
         }
         finally { _gate.Release(); }
     }

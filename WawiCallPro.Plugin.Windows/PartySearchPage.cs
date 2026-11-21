@@ -21,6 +21,12 @@ public partial class PartySearchPage : XtraUserControl
     private CompanyKey? _lastCompany;
     private string _lastText = "";
     private int _lastRole = -1;
+    private bool _directRecord;
+    private PartyKey? _displayedParty;
+    private CancellationToken _externalDetailToken;
+    [System.ComponentModel.Browsable(false)]
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public PartyKey? DisplayedParty => _displayedParty;
 
     public PartySearchPage()
     {
@@ -34,7 +40,33 @@ public partial class PartySearchPage : XtraUserControl
         presentation.Restore(view); Appearance_Changed(this, EventArgs.Empty);
     }
     private void Appearance_Changed(object? sender, EventArgs e) => _presentation?.SizeButtons(reloadButton, openButton);
-    private async void Page_Load(object? sender, EventArgs e) { searchTimer.Start(); await ReloadAsync(); }
+    private async void Page_Load(object? sender, EventArgs e) { searchTimer.Start(); if (!_directRecord) await ReloadAsync(); }
+    /// <summary>Displays one explicitly scoped record in the existing read-only master-data view.</summary>
+    public Task ShowRecordAsync(PartyKey key, string number, CancellationToken token) => Track(async () =>
+    {
+        _directRecord = true; _externalDetailToken = token;
+        try
+        {
+            await ReloadAsync(); token.ThrowIfCancellationRequested();
+            if (_stopped || _directory is null || !_companies.Any(company => company.Key == key.Company)) throw new InvalidOperationException("Company unavailable.");
+            var party = await _directory.GetPartyAsync(key, token);
+            token.ThrowIfCancellationRequested();
+            if (party?.Key != key) throw new InvalidOperationException("Record unavailable.");
+            _binding = true;
+            try
+            {
+                companyEdit.EditValue = key.Company; roleEdit.SelectedIndex = (int)key.Kind;
+                view.ApplyFindFilter(number);
+                _lastCompany = key.Company; _lastRole = (int)key.Kind; _lastText = number;
+                _resultQuery = new(key.Company, number, key.Kind);
+                grid.DataSource = new[] { new SearchRow(party) }; view.FocusedRowHandle = 0;
+            }
+            finally { _binding = false; }
+            await OpenCoreAsync(); token.ThrowIfCancellationRequested();
+            if (_displayedParty != key) throw new InvalidOperationException("Record was not displayed.");
+        }
+        finally { _externalDetailToken = CancellationToken.None; }
+    });
     private Task Track(Func<Task> action)
     {
         if (_stopped || _disposed) return Task.CompletedTask;
@@ -136,7 +168,9 @@ public partial class PartySearchPage : XtraUserControl
         if (_directory is null || _resultQuery is not { } query || !CurrentQueryMatches(query) || view.GetFocusedRow() is not SearchRow row) return;
         var key = row.Party.Key;
         var companyName = _companies.Single(company => company.Key == key.Company).DisplayName;
-        var request = Renew(ref _detailCancellation); var token = request.Token;
+        var request = Renew(ref _detailCancellation);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(request.Token, _externalDetailToken);
+        var token = linked.Token;
         detailsTab.PageEnabled = false; detailText.Text = ""; openButton.Enabled = false;
         try
         {
@@ -159,6 +193,7 @@ public partial class PartySearchPage : XtraUserControl
                 lines.AddRange(address.Phones.Where(phone => phone is not null).Select(phone => PhoneText(phone.Kind) + ": " + phone.OriginalValue));
             }
             detailText.Lines = lines.ToArray(); detailsTab.PageEnabled = true; tabs.SelectedTabPage = detailsTab;
+            _displayedParty = key;
             statusLabel.Text = "Stammdaten gelesen. Die Ansicht verändert keine Quelldaten.";
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

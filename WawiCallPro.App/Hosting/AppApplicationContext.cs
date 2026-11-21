@@ -50,6 +50,7 @@ internal sealed class AppApplicationContext : ApplicationContext
         _mode = host.Services.GetRequiredService<StartupExecutionMode>();
         _operations = host.Services.GetRequiredService<AutomationOperations>();
         _automation.ShowRequested = ShowAutomationAsync;
+        _automation.PresentRequested = PresentAutomationAsync;
         if (!_mode.ComActivated) _automation.EnterUserMode();
         var identity = host.Services.GetRequiredService<AppComIdentity>();
         _fixtureDirectory = identity.FixtureDirectory;
@@ -147,6 +148,7 @@ internal sealed class AppApplicationContext : ApplicationContext
             RevokeAutomation();
             _idleTimer.Dispose();
             _automation.ShowRequested = null;
+            _automation.PresentRequested = null;
             _instance.ActivationRequested -= OnActivationRequested;
             await _activationStopping.CancelAsync();
             try
@@ -209,9 +211,16 @@ internal sealed class AppApplicationContext : ApplicationContext
             {
                 Pid = Environment.ProcessId, Forms = Application.OpenForms.Count, FormCreated = _form is not null,
                 WindowHandle = _form is { IsHandleCreated: true } ? _form.Handle.ToInt64() : 0,
+                Views = _form?.AutomationDiagnostics(),
                 Visible = _form?.Visible == true, State = _automation.GetStatus().State, SipState = _automation.GetStatus().SipState
             }));
             var stop = System.IO.Path.Combine(directory, "stop.request");
+            var closeDialogs = System.IO.Path.Combine(directory, "close-dialog.request");
+            if (_form is not null && System.IO.File.Exists(closeDialogs))
+            {
+                System.IO.File.Delete(closeDialogs);
+                foreach (var dialog in _form.OwnedForms.ToArray()) dialog.Close();
+            }
             if (System.IO.File.Exists(stop))
             {
                 System.IO.File.Delete(stop);
@@ -255,6 +264,14 @@ internal sealed class AppApplicationContext : ApplicationContext
     {
         if (!_windowReady || !_instance.TryConsumeActivation()) return;
         await ShowAutomationAsync(_activationToken);
+    }
+
+    private async Task PresentAutomationAsync(PresentationRequest request, CancellationToken token)
+    {
+        await ShowAutomationAsync(token);
+        if (_form is null) throw new AutomationFault(AutomationFailure.NotReady);
+        await _form.PresentAutomationAsync(request, token);
+        await _host.Services.GetRequiredService<AppAutomationCatalog>().RefreshAsync(token);
     }
 
     private async void OnActivationRequested(object? sender, EventArgs args)

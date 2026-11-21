@@ -19,6 +19,14 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     private bool _visible, _owned, _stopping, _userMode;
     internal bool UserMode { get { lock (_gate) return _userMode; } }
     internal Func<CancellationToken, Task>? ShowRequested { get; set; }
+    internal Func<PresentationRequest, CancellationToken, Task>? PresentRequested { get; set; }
+    internal WawiCallPro.Interfaces.Plugins.IProductPluginRuntime? Runtime { get; set; }
+    private ImmutableArray<Company> _companies = [];
+    private ImmutableArray<AutomationView> _views = AppAutomationCatalog.BaseViews;
+    private string? _catalogPlugin;
+    private bool _businessReady;
+    internal void PublishCatalog(ImmutableArray<Company> companies, ImmutableArray<AutomationView> views, string? plugin, bool businessReady)
+    { lock (_gate) { _companies = companies; _views = views; _catalogPlugin = plugin; _businessReady = businessReady; } }
     internal WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; set; }
     public AutomationStatus GetStatus()
     {
@@ -63,14 +71,22 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
         ~Lease() { lock (owner._gate) { owner._clients--; owner._changed = owner.clockNow(); } }
     }
     private DateTimeOffset clockNow() => clock.GetUtcNow();
-    public ImmutableArray<Company> GetCompanies() => [];
-    public ImmutableArray<AutomationView> GetViews() => [new("home", "Hauptfenster")];
+    public ImmutableArray<Company> GetCompanies() { lock (_gate) return _companies; }
+    public ImmutableArray<AutomationView> GetViews()
+    { lock (_gate) return BusinessAvailable() ? _views : AppAutomationCatalog.BaseViews; }
+    private bool BusinessAvailable() => _businessReady && (Runtime as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
+        && Runtime?.IsLoaded == true && (Runtime is not WawiCallPro.Interfaces.Plugins.IProductPluginAvailability available || available.CanUseActivePlugin);
     public void RequireAccess(AutomationAccess access, CompanyKey? company = null)
     {
         lock (_gate)
         {
             if (_stopping) throw new AutomationFault(AutomationFailure.Stopping);
-            if (access != AutomationAccess.Presentation) throw new AutomationFault(_state == "Ready" ? AutomationFailure.NotSupported : AutomationFailure.NotReady);
+            if (access == AutomationAccess.Telephony) throw new AutomationFault(_state == "Ready" ? AutomationFailure.NotSupported : AutomationFailure.NotReady);
+            if (access == AutomationAccess.Business)
+            {
+                if (_state != "Ready") throw new AutomationFault(AutomationFailure.NotReady);
+                if (!BusinessAvailable() || company is not null && !_companies.Any(item => item.Key == company)) throw new AutomationFault(AutomationFailure.AccessDenied);
+            }
             if (_state == "Starting") throw new AutomationFault(AutomationFailure.NotReady);
         }
     }

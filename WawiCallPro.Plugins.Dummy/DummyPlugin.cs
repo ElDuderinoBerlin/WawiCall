@@ -48,7 +48,9 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
         CheckCompany(query.Company, cancellationToken);
         var party = CreateParty();
         var matches = (query.Kind is null or PartyKind.Customer) && (string.IsNullOrEmpty(query.SearchText)
-            || party.DisplayName.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase));
+            || party.DisplayName.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase)
+            || party.Number?.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase) == true
+            || party.Email?.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase) == true);
         return Task.FromResult(new PartyPage(query.Company, new Page<Party>(matches && query.Page.Offset == 0 ? [party] : [], false)));
     }
     public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default)

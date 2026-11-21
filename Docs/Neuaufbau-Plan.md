@@ -4,7 +4,7 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 20.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 21.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Zusätzlicher Auftrag vom 20.11.2026: ✅ [COM-Automation-Studie mit eigenem Phasenplan](COM-Automation-Studie-und-Phasenplan.md)
 abgeschlossen (dort Phase 0). ✅ Phase 1: isolierter COM-Prototyp nach LxTranslate.Server mit je 57
@@ -16,8 +16,13 @@ Registrierung; IDL/TLB ohne Registrierung geprüft. ✅ COM-Phase 3: gemeinsamer
 fensterlosem Start, frühem Status, bedarfsweisem Hauptfenster, dialogfreier Fehleranzeige und
 geprüfter Explorer-/COM-Instanzübergabe. Je Edition 37 gezielte App-Tests, 15 Vertrags-/Adaptertests
 und 23 native Prüfungen der regulären App bestanden; reguläre Builds Debug/Any CPU erfolgreich.
-Weitere Fachansichten, Telefonie und Auslieferung folgen in COM-Phasen 4–8. Die bestehende G1-Abnahme
-wird dadurch nicht als erledigt markiert.
+✅ COM-Phase 4: Firmen-/Viewkatalog, `ShowCustomer`/`ShowSupplier`, alle verfügbaren Ansichten,
+Dialoge und gespeicherte Gesprächsdetails an vorhandene Oberflächen angebunden. Mandanten-/Rollen-
+und Nummerngrenzen, Entwurfsschutz und Freigabe geschlossener Ansichten geprüft. Je Edition
+42 gezielte App-Tests, 15 Vertragstests, 78 native x86-/x64-Viewprüfungen und 23 Start-/Fensterprüfungen
+bestanden; beide regulären Builds Debug/Any CPU erfolgreich, Pro zuletzt. Sichtbare Tests freigegeben,
+synthetische Daten und ausschließlich eigene bereinigte HKCU-Identitäten. Telefonie und Auslieferung
+folgen in COM-Phasen 5–8. Die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

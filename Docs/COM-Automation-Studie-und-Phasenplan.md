@@ -1,6 +1,6 @@
 # WawiCallPro – COM-Automation: Studie und Phasenplan
 
-Stand: 20.11.2026. Auftrag: WawiCallPro aus JavaScript über `ActiveXObject` erzeugen,
+Stand: 21.11.2026. Auftrag: WawiCallPro aus JavaScript über `ActiveXObject` erzeugen,
 bei Bedarf anzeigen, seine Ansichten öffnen und mit der vorhandenen Telefonie wählen.
 
 **Empfehlung:** Die vorhandene `WawiCallPro.App` wird selbst zum COM-LocalServer.
@@ -9,13 +9,16 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1–3 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–4 abgeschlossen. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
 ✅ Gemeinsamer App-/COM-Host mit fensterlosem Start, Status, bedarfsweisem Hauptfenster und
 Instanzübergabe: je Edition 37 gezielte App-Tests, 15 COM-Vertragstests und 23 native App-Prüfungen.
-⬜ Weitere Fachansichten, COM-Telefonie, Auslieferung und gemeinsame Produktabnahme bleiben offen.
+✅ Phase 4: Firmen-/Viewkatalog, Kunden-/Lieferantenansichten, gespeicherte Gesprächsdetails und
+vorhandene Dialoge angeschlossen. Je Edition 42 gezielte App-Tests, 15 Vertragstests, 78 native
+Viewprüfungen und 23 Start-/Fensterregressionen bestanden.
+⬜ COM-Telefonie, Auslieferung und gemeinsame Produktabnahme bleiben offen.
 Phasen 1/2 verwenden einen separaten Host; Phase 3 prüft die reguläre App mit eigenen Profilen und
 synthetischen Daten. Keine echten Anrufe und keine persistente Produktregistrierung für die Tests.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
@@ -141,8 +144,8 @@ Start konfigurierte Hintergrundaufgaben höchstens einmal starten; keine doppelt
 ## 4. Implementierter Automation-Vertrag V1
 
 Die folgenden Verträge und Adapter sind implementiert. Nativ verfügbar sind sie in Phase 2 im
-isolierten Prüfhost und seit Phase 3 auch im App-Host. Die App stellt aktuell Status und Hauptfenster
-bereit; Fachansichten und Telefonie folgen in Phasen 4/5. COM-sichtbar sind nur die
+isolierten Prüfhost und seit Phase 3 auch im App-Host. Phase 4 ergänzt Firmenkatalog, Fachansichten
+und Dialoge; der Telefonieanschluss bleibt Phase 5. COM-sichtbar sind nur die
 ausdrücklichen Automation-Verträge; keine Forms, Controls, ServiceProvider, Tasks oder Pluginobjekte.
 
 Versionsgebundene ProgIDs: `WawiCallPro.Pro.Application.1` und
@@ -207,10 +210,12 @@ Die beiden MIDL-TLBs werden mit `REGKIND_NONE` geladen und gegen die C#-Verträg
 UI-Dispatcher; weder COM-Aufruf noch UI-Thread warten synchron auf asynchrone Facharbeit.
 Kataloge und Status müssen bereits geladene, vom Host freigegebene Momentaufnahmen liefern.
 Zugriffsgates werden vor Annahme und bei Ausführung erneut geprüft, bei Präsentation nochmals
-auf dem UI-Thread. Die tatsächlichen Lizenz-, Installations- und SIP-Regeln liefert später der App-Adapter.
+auf dem UI-Thread. Die App-Adapter setzen Lizenz-, Installations- und Pluginregeln durch;
+der gemeinsame SIP-Anwendungsdienst wird in Phase 5 angeschlossen.
 
 `GetCompaniesJson()` und `GetViewsJson()` liefern `SchemaVersion: 1` und `Items`.
-Firmen haben `Key`/`Name`, Ansichten `Id`/`Caption`. Den vollständigen `Key` unverändert zurückgeben:
+Firmen haben `Key`/`Name`, Ansichten `Id`/`Caption` und seit Phase 4 `Context` als Beschreibung
+des erforderlichen Kontextes. Den vollständigen `Key` unverändert zurückgeben:
 Er codiert Produktlinie, Installation und externe Mandanten-ID und wird ausschließlich gegen den
 freigegebenen Katalog aufgelöst. Er ist kein Berechtigungsnachweis. Namen oder Nummern nicht als
 Ersatz verwenden. `ShowCustomer`/`ShowSupplier` suchen im angegebenen Mandanten und in der richtigen
@@ -223,8 +228,10 @@ meldet `Busy`; gültige Deduplizierungsnachweise werden nicht vorzeitig verdrän
 Prozessende entfällt die In-Memory-Deduplizierung. Request-, Auftrags- und Gesprächs-IDs sind nichtleere
 GUID-Strings im Format `D`. Nummern: maximal 200 Zeichen, View-ID 128, Firmenschlüssel 2048;
 leere Werte und Steuerzeichen werden abgewiesen. `contextJson` darf leer sein oder ein Objekt mit
-den Stringfeldern `companyKey`/`callId` enthalten, maximal 8192 Zeichen, keine doppelten oder unbekannten
-Felder. Kataloge enthalten höchstens 1000 Firmen bzw. 256 Ansichten und 262144 JSON-Zeichen.
+den Stringfeldern `companyKey`/`callId` enthalten. Für angebotene `plugin:<id>`-Ansichten ist zusätzlich
+genau eines von `customerNumber`/`supplierNumber` zusammen mit `companyKey` erlaubt; dieselbe exakte
+Auflösung wie bei `ShowCustomer`/`ShowSupplier` wird verwendet. Maximal 8192 Zeichen, keine doppelten
+oder unbekannten Felder. Kataloge enthalten höchstens 1000 Firmen bzw. 256 Ansichten und 262144 JSON-Zeichen.
 Firmenname/Ansichtsbeschriftung sind auf 256 Zeichen begrenzt.
 
 Fehler vor Annahme werden als sichere COM-Ausnahme gemeldet; nach Annahme stehen dieselben Codes
@@ -310,22 +317,22 @@ Für Katalog-/Kontext-JSON ist ein im jeweiligen Host verfügbarer Parser zu pr�
 
 ## 5. Alle Ansichten über eine gemeinsame Präsentationsschicht
 
-Die COM-Fassade erhält einen injizierten Präsentationsdienst. Er übernimmt Dispatcher, Owner,
+Die COM-Fassade verwendet einen injizierten Präsentationsdienst. Er übernimmt Dispatcher, Owner,
 vorhandene Fenster, Modalität und dieselben fachlichen Sperren wie Ribbon und Navigation.
 `MainForm` wird nicht selbst zur COM-Klasse; auch Button-Eventhandler werden nicht fernaufgerufen.
 
-| Ansicht | Geplanter Zugang und Grenze |
+| Ansicht | Zugang und Grenze seit Phase 4 |
 |---|---|
 | Startseite, Historie, E-Mails, Hilfe, Über | Explizite IDs `home`, `history`, `mail`, `help`, `about`; vorhandenes Dokument wiederverwenden. |
-| Kunden-/Lieferantensuche und Plugin-Fachansichten | `parties` sowie vom aktiven Plugin veröffentlichte IDs. Berechtigter Mandant und vollständiger `PartyKey` erforderlich; keine beliebige Typinstanziierung. |
-| Anrufersuche und Gesprächsdetails | `caller` beziehungsweise `call` mit gültiger Gesprächs-ID. Historischen Kontext erhalten und aktive Entwürfe schützen. |
-| Wähldialog | `ShowDial`; ausdrücklich getrennt von `Dial`. |
-| Einstellungen einschließlich Plugins, SIP, Audio, Telefon-Cache und Office/Mail | Vorhandener zentraler Dialog mit expliziter Tabauswahl; keinen zweiten Einstellungseditor aufbauen. |
-| Datenbankeinrichtung und Nummerndiagnostik | Eigene freigegebene Präsentationsbefehle. Das heutige `Navigate("database")` wählt nur das Ribbon und ersetzt keinen Assistentenaufruf. |
+| Kunden-/Lieferantensuche und Plugin-Fachansichten | `parties`, wenn das Plugin einen Sucharbeitsbereich anbietet; zusätzliche Ansichten nur als tatsächlich veröffentlichte `plugin:<id>`. `ShowCustomer`/`ShowSupplier` öffnen die vorhandenen schreibgeschützten Stammdaten über den vollständigen `PartyKey`. |
+| Anrufersuche und Gesprächsdetails | `caller` öffnet die Anrufersuche; optional `callId` für ein aktives Gespräch. `call` verlangt eine gültige Gesprächs-ID und öffnet aktive oder gespeicherte Details mit historischem Kontext und Notizschutz. |
+| Wähldialog | `ShowDial` oder `ShowView("dial", contextJson)` mit `companyKey`; vorbefüllen und anzeigen, ohne einen Ruf auszulösen. COM-Wählen bleibt Phase 5. |
+| Einstellungen einschließlich Plugins, SIP, Audio, Telefon-Cache und Office/Mail | Zentraler `FrmSettings`: `settings`, `settings-general`, `plugin`, `settings-hotkeys`, `settings-sip`, `settings-sip-advanced`, `settings-line-company`, `settings-database`, `settings-audio`, `settings-audio-levels`, `settings-phone-cache`, `settings-cache-sources`, `settings-phone-matching`, `number-diagnostics`, `settings-mail`. |
+| Datenbankeinrichtung und Nummerndiagnostik | `database` öffnet den echten Einrichtungsassistenten mit Owner; `number-diagnostics` den vorhandenen Untertab im zentralen Einstellungsdialog. |
 | Log-Fenster | Vorhandenen Logfensterdienst verwenden; keine Rohlogs oder Zugangsdaten durch COM zurückgeben. |
 | Untercontrols, Splash und technische Dispatcherfenster | Keine eigenständigen Automation-Ansichten. Untercontrols bleiben Bestandteil ihrer Dialoge; Splash entfällt beim COM-Start. |
 
-`GetViewsJson()` soll alle tatsächlich verfügbaren Ansichten mit nötigem Kontext beschreiben.
+`GetViewsJson()` beschreibt die tatsächlich verfügbaren Ansichten mit nötigem Kontext.
 Noch geplante oder nicht vom Plugin angebotene Funktionen mit `NotSupported` melden. „Alle Views“
 bedeutet Zugang zu allen fachlich verfügbaren Oberflächen, nicht Freigabe jedes internen Controls.
 
@@ -339,7 +346,7 @@ einen Treffer verlangen. Fehlende oder doppelte Nummern ergeben `NotFound` bezie
 Danach über den aufgelösten `PartyKey` dieselbe Fachansicht wie in der App öffnen; keine willkürliche
 Trefferauswahl, Datensatzänderung oder ungefragten Mandantenwechsel durchführen.
 
-`Show` stellt Sichtbarkeit her; Vordergrundaktivierung bleibt von Windows-Rechten abhängig.
+`Show` stellt Sichtbarkeit her und erhält die aktive Ansicht; Vordergrundaktivierung bleibt von Windows-Rechten abhängig.
 Native Clients können `CoAllowSetForegroundWindow` benutzen. Reines JScript kann diesen Win32-Aufruf
 nicht unmittelbar ausführen; Fokusübergabe im tatsächlichen Host separat prüfen. Keine TopMost-
 Schleifen als Ersatz. [Microsoft: COM-Vordergrundrecht übertragen](https://learn.microsoft.com/en-us/windows/win32/api/objbase/nf-objbase-coallowsetforegroundwindow).
@@ -435,7 +442,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 1 | ✅ | Isolierter Prototyp: je 57 Prüfungen Pro/FinOffice, x86/x64, parallele Aktivierung, Dispatcher und Lebensdauer | Agent; eigene HKCU-CLSIDs entfernt, keine echten Anrufe |
 | 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
 | 3 | ✅ | Gemeinsamer App-/COM-Host, fensterloser Start und bedarfsweises Hauptfenster; je Edition 37 App-Tests, 15 Vertragstests, 23 native Prüfungen | Agent; eigene Profile/HKCU-Identitäten, Fenster-/Instanznachweise ohne reale Anrufe |
-| 4 | ⬜ | Gemeinsamer Zugang zu allen verfügbaren Wawi-Ansichten | Agent; gezielte Layout-/UI-Nachweise; sichtbare Bedienung gemeinsam |
+| 4 | ✅ | Firmen-/Viewkatalog, ShowCustomer/ShowSupplier und alle verfügbaren Ansichten; je Edition 42 App-Tests, 15 Vertragstests, 78 native Views und 23 Start-/Fensterprüfungen | Agent; freigegebene x86-/x64-WSH-Läufe, synthetische Daten, gezielte Layoutnachweise |
 | 5 | ⬜ | Wähldialog, SIP-Verbindung, Wählen und Gesprächsstatus | Agent mit Test-Doubles; reale SIP-Prüfung gemeinsam |
 | 6 | ⬜ | Mehrclientbetrieb, Idle-Shutdown und Fehler-/Sicherheitsgrenzen | Agent; gezielte konkurrierende und negative Tests |
 | 7 | ⬜ | Registrierung, Update, Deinstallation und Dokumentation | Agent; isolierte Installationsprüfung, Zielinstallation gemeinsam |
@@ -504,7 +511,7 @@ CCW ohne `Close` wird mit einer ausdrücklichen einmaligen Test-GC synchronisier
 keine garantierte Freigabelatenz beim Absturz eines produktiven Skripthosts. Dieser Fall bleibt
 Phase 6. Es gibt im neuen Host keinen periodischen erzwungenen GC. Die produktive UI-/Telefonie-
 Anbindung bleibt den folgenden Phasen vorbehalten; Typbibliothek und Kunden-/Lieferantenverträge
-sind inzwischen in Phase 2 ergänzt. Ihre Verbindung mit echten Ansichten folgt in Phase 4.
+sind inzwischen in Phase 2 ergänzt und seit Phase 4 mit den vorhandenen App-Ansichten verbunden.
 
 Nachweise: `.com-prototype-build-{fin,pro}.log` (Solution-Rebuilds Debug/Any CPU, je 0 Fehler und
 26 bekannte externe CSCore-Nullablewarnungen), `.com-prototype-{fin,pro}.log` und
@@ -600,7 +607,9 @@ ein früher Auftrag bleibt bis zur UI-Bereitschaft vorgemerkt.
 registrierten Dienste mit ihren DI-Lebensdauern. COM prüft zunächst beide Lexware-Installationsmerkmale,
 lädt Konfiguration, initialisiert Darstellung und prüft die tatsächliche Lizenzregel. `SuppressNetwork`
 wird dafür nicht eingeschaltet. Hauptformular, Splash, Trayicon, SIP-Anmeldung, Mailimport und weitere
-Hintergrunddienste werden dabei nicht gestartet. Ungültige Konfiguration oder fehlende erforderliche
+Hintergrunddienste werden dabei nicht gestartet. Seit Phase 4 werden nach erfolgreicher Lizenzprüfung
+das konfigurierte Plugin und die abgelösten Firmen-/Viewmetadaten bereits fensterlos geladen.
+Ungültige Konfiguration oder fehlende erforderliche
 Lizenz bleiben als `ConfigurationRequired`/`LicenseRequired` abfragbar; Aktivierungsdialoge bleiben zu.
 
 Erst `Show()`, `ShowView("home", "")` oder ein normaler Zweitstart gibt den Benutzerbetrieb frei.
@@ -658,23 +667,106 @@ Frühere unvollständige Harnessläufe (Interop-/Fokusvorbereitung beziehungswei
 Timer-Nachweis) gelten nicht als bestanden und werden durch die vollständigen Abnahmen ersetzt.
 
 **Noch offen:** Produktinstallation/Benutzerregistrierungsbefehle folgen Phase 7; der App-Start
-schreibt keine persistente COM-Registrierung. Aktuell sind Hauptfenster und Status angeschlossen.
-Andere Ansichten sowie Kunden/Lieferanten und Firmenkatalog erhalten ihre produktiven Adapter in
-Phase 4, COM-Telefoniebefehle in Phase 5; bis dahin liefern sie ausdrücklich `NotSupported`/`NotReady`.
+schreibt keine persistente COM-Registrierung. Kunden/Lieferanten, Firmenkatalog und weitere Ansichten
+sind in Phase 4 angeschlossen. COM-Telefoniebefehle bleiben bis Phase 5 ausdrücklich
+`NotSupported`/`NotReady`.
 Echte Lizenz-/Server- und SIP-/Audioabnahme bleibt Phase 8. Rücknahme dieses Phasencommits entfernt
 den App-Anschluss und stellt den vorherigen Startpfad wieder her; keine Produktdatenmigration.
 
-### Phase 4 – ⬜ Ansichten und Fensterführung
+### Phase 4 – ✅ Ansichten und Fensterführung
 
 - [x] ✅ Datenbankassistent schließt nach einem einzelnen Auftrag auch bei bereits abgeschlossener Arbeit: endgültiges `Close` nach dem ursprünglichen `FormClosing` einreihen. Je zwei gezielte Modal-/Abbruchtests und reguläre App-Builds für Pro/FinOffice bestanden; Protokolle `.com-phase4-db-modal-{pro,fin}.log`.
-- [ ] Viewkatalog gemäß Abschnitt 5 an vorhandene Routing-/Dialogfabriken und Pluginverträge anbinden.
-- [ ] Vorhandene Dokumente/Dialoge wiederverwenden; korrekte Owner, Modalität und Entwurfs-/Gesprächsschutz.
-- [ ] Alle verfügbaren Ansichten öffnen, nötige Kontexte validieren und unbekannte IDs sichtbar ablehnen.
-- [ ] Kunden-/Lieferantenaufrufe nach Nummer in Pro und FinOffice prüfen: führende Nullen, gleiche Nummer in verschiedenen Mandanten/Rollen, kein Treffer und Mehrdeutigkeit; vorhandene Fachansicht über `PartyKey` öffnen.
-- [ ] Nur betroffene Oberflächen leer/gefüllt, klein, mit großer Schrift, höherer DPI und aktivem Skin prüfen.
-- [ ] Vordergrund und minimiert/maximiert/Tray/modal im konkreten Skripthost gemeinsam nachweisen.
+- [x] ✅ Viewkatalog gemäß Abschnitt 5 an vorhandene Routing-/Dialogfabriken und Pluginverträge anbinden.
+- [x] ✅ Vorhandene Dokumente/Dialoge wiederverwenden; korrekte Owner, Modalität und Entwurfs-/Gesprächsschutz.
+- [x] ✅ Alle verfügbaren Ansichten öffnen, nötige Kontexte validieren und unbekannte IDs sichtbar ablehnen.
+- [x] ✅ Kunden-/Lieferantenaufrufe nach Nummer in Pro und FinOffice prüfen: führende Nullen, gleiche Nummer in verschiedenen Mandanten/Rollen, kein Treffer und Mehrdeutigkeit; vorhandene Fachansicht über `PartyKey` öffnen.
+- [x] ✅ Betroffene Arbeitsbereiche leer/gefüllt und bei Fehlern, 640/980 Pixel Breite, 10/16-Punkt-Schrift, simulierter 150-%-Skalierung und Basic/Office 2019 Black geprüft; Aufnahmen visuell kontrolliert. Echte Monitorwechsel bleiben G1.
+- [x] ✅ Freigegebene native WSH-Läufe mit x86/x64 und Fenster-/Ownerprüfungen: Vordergrund, minimiert/maximiert/Tray sowie modale Dialoge. Der tatsächliche spätere Fach-Skripthost bleibt Bestandteil von Phase 8.
 
 Abnahme: Jede im Katalog verfügbare Ansicht ist erreichbar; COM erzeugt keine zweite UI oder abweichende Layouts.
+
+#### Phase-4-Implementierung
+
+[AppAutomationCatalog](../WawiCallPro.App/Hosting/AppAutomationCatalog.cs) lädt freigegebene Firmen
+und tatsächlich angebotene Pluginansichten asynchron vor `Ready`. COM-Katalogabfragen lesen nur
+abgelöste Momentaufnahmen. Das konfigurierte Plugin wird beim späteren sichtbaren Start nicht
+erneut gestartet; SIP, Audio und Mail bleiben bis zum ausdrücklichen Benutzerbetrieb zurückgestellt.
+Produktlinie, Kataloggrößen, eindeutige Schlüssel und Pluginverfügbarkeit werden geprüft.
+Ein Pluginwechsel sperrt alte Metadaten sofort; Fehler geben nur feste Warntexte im Logfenster aus.
+
+[MainForm.Automation](../WawiCallPro.App/MainForm.Automation.cs) verwendet vorhandene Dokumente,
+Dialogfabriken und Plugin-Lebensdauern. Einstellungen und Datenbankassistent sind modal und haben
+das Hauptfenster als Owner. Ein Auftrag ist nach `Shown` abgeschlossen; er wartet nicht bis zum
+Schließen. Derselbe Einstellungsdialog kann gezielt einen anderen Tab wählen, konfliktierende
+Navigation liefert `Busy`. Vorbereitungen und Dialogaufrufe verwenden `UiWaitCursor` mit `using`.
+`Show()` erhält das aktuelle Dokument; Notiz- und Pluginentwürfe werden weder geschlossen noch ersetzt.
+
+`ShowCustomer`/`ShowSupplier` lösen führende Nullen, Rolle und vollständigen Mandanten getrennt auf.
+Die vorhandene `PartySearchPage` zeigt den exakten Datensatz im schreibgeschützten Stammdatentab.
+Die globale Mandantenauswahl bleibt erhalten. Gleiche Nummern in anderen Firmen oder Rollen werden
+nicht übernommen; kein Treffer und Mehrdeutigkeit bleiben `NotFound`/`Ambiguous`. Wiederholungen
+verwenden die passende vorhandene Ansicht. Hat der Benutzer dort inzwischen einen anderen Datensatz
+geöffnet, bleibt diese Ansicht erhalten und ein neuer passender Arbeitsbereich wird geöffnet.
+Beim regulären Schließen wird auch die COM-Dokumentzuordnung entfernt, damit sie keine entsorgten
+Controls festhält. Der vorhandene Plugin-/Notizschutz bleibt vor dieser Freigabe wirksam.
+Pro und FinOffice bieten aktuell diesen gemeinsamen Pluginarbeitsbereich an, aber keine zusätzlichen
+`IWawiCallPluginViews`-Tabs. Optionale Pluginansichten werden daher ausschließlich bei tatsächlichem
+Angebot veröffentlicht; ein isoliertes Testplugin belegt deren vollen `PartyKey` und Entwurfsschutz.
+
+`call` verwendet bei aktiven Gesprächen die vorhandene Gesprächsseite und bei gespeicherten Gesprächen
+die vorhandene `HistoryPage` mit gespeicherten Zuordnungen. Wiederholungen erhalten denselben
+Notizentwurf. Unbekannte Gesprächs-IDs liefern `NotFound`, fehlender Kontext `InvalidArgument`.
+Keine Änderungen an SQL, Migrationen, COM-GUIDs, Dispatch-IDs oder registrierten Typbibliotheken.
+
+#### Phase-4-Abnahme am 21.11.2026
+
+Je Edition **42 App-Tests und 15 Vertrags-/Adaptertests bestanden**. Die App-Prüfungen umfassen
+positive Kunden-/Lieferantentreffer in getrennten Firmen und Rollen, führende Nullen, fehlende und
+mehrdeutige Nummern, veraltete Pluginfreigaben, tatsächliche Datensatzanzeige, optionale Pluginviews,
+Notiz-/Pluginentwürfe, Ressourcenfreigabe sowie bestehende Modalitäts- und Layoutregressionen.
+Synthetische Adapter bestätigen beide Produktlinien; produktive Lexware-Datensätze wurden nicht gelesen.
+
+Je Edition **78 native Viewprüfungen**: tatsächliche reguläre App aus x86-/x64-JScript aktivieren,
+Firmenkatalog vor `Show`, Kundenansicht öffnen/wiederverwenden, falsche Rolle und ungenaue Nummer
+abweisen und alle ohne Datensatzkontext öffnbaren Basis-/Dummy-Ansichten einschließlich
+Einstellungsuntertabs abarbeiten (Katalog: 26 Einträge).
+Gespeicherte Gesprächsdetails benötigen einen Datensatz und sind positiv im isolierten App-Test
+belegt; zusätzliche Pluginviews sind positiv über das Testplugin geprüft. Dazu je **23 native
+Start-/Fensterregressionen** einschließlich fensterloser Initialisierung, paralleler Aktivierung,
+normalem Start und Explorer-Beitritt, minimiert/maximiert/Tray, Konfigurationsfehler und Shutdown.
+Modale Dialoge werden über den realen Schließpfad beendet; der Datenbankassistent benötigt nur
+einen Schließauftrag. Keine echten Anrufe, produktiven Zugangsdaten oder Lexware-Änderungen.
+
+Wiederholbarer Einstieg nach dem jeweiligen regulären Editionsbuild und nach sichtbarer Testfreigabe:
+
+```powershell
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine FinOffice -AllowVisibleWindows -Views
+./scripts/test-com-app.ps1 -Configuration Debug -ProductLine Pro -AllowVisibleWindows -Views
+```
+
+Ergebnisse: `artifacts/com-views/{fin,pro}-final/results.json` und
+`artifacts/com-views/fin-startup-final/results.json` sowie
+`artifacts/com-views/pro-startup-prepared/results.json`, zusätzlich
+`.com-phase4-{native,startup}-{fin,pro}-evidence.log`. Jede Ergebnismenge enthält Editions-EXE,
+DLL-SHA256, vollständige Prüfnamen, normalen Desktop-Token und bestätigte HKCU-Bereinigung.
+Temporäre eigene CLSID-/ProgID-Einträge entfernt; weiterhin keine TLB-/Interface-/HKLM-Registrierung.
+Test-/Buildprotokolle: `.com-phase4-{unit,contract,build}-{fin,pro}.log`.
+Neue Stammdatenaufnahmen: `.artifacts/app-shell/settings-ui/com-views/{Pro,FinOffice}`;
+bestehende Leer-/Fehler-/Detailprüfungen zusätzlich im jeweiligen Testausgabeordner unter
+`.artifacts/party-search-ui/<Edition>`. Designer-Struktur und statische Layouts bleiben erhalten.
+Beide regulären Solution-Rebuilds **Debug/Any CPU**, null Fehler und je 26 bekannte externe
+CSCore-Nullablewarnungen; Pro liegt zuletzt im regulären Ausgabeordner.
+
+Die vollständigen finalen Läufe ersetzen frühere unvollständige beziehungsweise vor der letzten
+Freigabekorrektur erzeugte Nachweise. Bei Pro scheiterten Wiederholungen zunächst an der anfänglichen
+Fokusvorbereitung (anderes Programm blieb im Vordergrund), nicht an einer bestandenen Aktivierungsprüfung.
+Der Testhelfer verwendet jetzt bei Bedarf genau einen Klick auf die anhand von Prozess, Handle,
+Titelleisten-Hittest und freiem Zielpunkt geprüfte eigene Titelleiste. Anschließend werden die
+Aktivierungsübergänge unverändert ohne Korrektureingriffe gemessen; der vollständige Pro-Lauf mit
+dieser Vorbereitung ist bestanden. Die abgebrochenen Läufe werden nicht als bestanden gezählt.
+G1, produktive Registrierung und tatsächliche SIP-/Audio- sowie
+Fachhostabnahme bleiben offen. Rücknahme des Phase-4-Commits entfernt Katalog-/Viewadapter und
+stellt den Hauptfensterzugang aus Phase 3 wieder her; keine Produktdatenmigration.
 
 ### Phase 5 – ⬜ Telefonie anschließen
 
@@ -728,6 +820,7 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 4**: den Viewkatalog, Kunden-/Lieferantenaufrufe und weitere Ansichten
-an die vorhandenen Routing-/Dialogfabriken anbinden. Der gemeinsame COM-/App-Host sowie Status und
-Hauptfenster sind geprüft; produktive Registrierung und echte Telefonieabnahme bleiben späteren Phasen vorbehalten.
+Als Nächstes folgt **Phase 5**: den gemeinsamen Wähl-Anwendungsdienst und die expliziten COM-
+Telefoniebefehle anschließen. Viewkatalog, Kunden-/Lieferantenansichten, Dialoge und gespeicherte
+Gesprächsdetails sind geprüft. Produktive Registrierung sowie reale SIP-/Audio- und Fachhostabnahme
+bleiben den späteren Phasen vorbehalten.

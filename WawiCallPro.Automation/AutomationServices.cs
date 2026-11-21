@@ -6,9 +6,15 @@ namespace WawiCallPro.Automation;
 
 public enum AutomationAccess { Presentation, Business, Telephony }
 public sealed record AutomationStatus(LexwareProductLine ProductLine, string State, bool IsVisible, string SipState, string ErrorCode = "");
-public sealed record AutomationView(string Id, string Caption);
+public sealed record AutomationView(string Id, string Caption)
+{
+    public string Context { get; init; } = "";
+}
 public sealed record AutomationCall(Guid Id, string State);
-public sealed record PresentationRequest(string ViewId, CompanyKey? Company = null, PartyKey? Party = null, string? Number = null, string ContextJson = "");
+public sealed record PresentationRequest(string ViewId, CompanyKey? Company = null, PartyKey? Party = null, string? Number = null, string ContextJson = "")
+{
+    public bool ActivateOnly { get; init; }
+}
 
 /// <summary>Host-owned detached catalogs and gates. Reads use already loaded snapshots, never synchronous source IO.</summary>
 public interface IAutomationEnvironment

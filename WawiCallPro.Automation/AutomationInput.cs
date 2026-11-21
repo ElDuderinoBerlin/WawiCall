@@ -43,10 +43,14 @@ internal static class AutomationInput
             if (document.RootElement.ValueKind != JsonValueKind.Object) throw new JsonException();
             foreach (var property in document.RootElement.EnumerateObject())
             {
-                if (property.Name is not ("companyKey" or "callId") || property.Value.ValueKind != JsonValueKind.String) throw new JsonException();
+                if (property.Name is not ("companyKey" or "callId" or "customerNumber" or "supplierNumber") || property.Value.ValueKind != JsonValueKind.String) throw new JsonException();
                 Text(property.Value.GetString(), 2048);
                 if (property.Name == "callId") Id(property.Value.GetString()!);
+                if (property.Name is "customerNumber" or "supplierNumber") Text(property.Value.GetString(), 200);
             }
+            var customer = document.RootElement.TryGetProperty("customerNumber", out _);
+            var supplier = document.RootElement.TryGetProperty("supplierNumber", out _);
+            if (customer && supplier || (customer || supplier) && !document.RootElement.TryGetProperty("companyKey", out _)) throw new JsonException();
             return JsonSerializer.Serialize(document.RootElement);
         }
         catch (JsonException) { throw new AutomationFault(AutomationFailure.InvalidArgument); }

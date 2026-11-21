@@ -8,12 +8,13 @@ internal sealed class AppAutomationPresentation(AppAutomationState state) : IAut
 {
     public Task ShowAsync(PresentationRequest request, CancellationToken cancellationToken)
     {
-        if (request.ViewId != "home") throw new AutomationFault(AutomationFailure.NotSupported);
-        return state.ShowRequested?.Invoke(cancellationToken) ?? throw new AutomationFault(AutomationFailure.NotReady);
+        return state.PresentRequested?.Invoke(request, cancellationToken)
+            ?? (request.ViewId == "home" ? state.ShowRequested?.Invoke(cancellationToken) : null)
+            ?? throw new AutomationFault(AutomationFailure.NotReady);
     }
 }
 
-/// <summary>Explicit phase boundary: real views/party and telephony adapters are connected in phases 4 and 5.</summary>
+/// <summary>Phase-5 boundary: unsupported telephone commands never touch a SIP account.</summary>
 internal sealed class PendingAutomationAdapters : IPartySearch, IAutomationTelephony
 {
     public Task<PartySearchResult> SearchAsync(PartySearchQuery query, CancellationToken cancellationToken = default) => throw new AutomationFault(AutomationFailure.NotSupported);

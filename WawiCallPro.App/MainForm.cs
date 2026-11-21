@@ -232,6 +232,7 @@ public partial class MainForm : RibbonForm
         }
         await StopPageAsync(page.Control);
         if (_pluginPages.Remove(page, out var handle)) await handle.DisposeAsync();
+        foreach (var key in _automationParties.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray()) _automationParties.Remove(key);
         foreach (var key in _documents.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray()) _documents.Remove(key);
         var control = page.Control;
         if (ReferenceEquals(_lastDocument, page)) _lastDocument = null;
