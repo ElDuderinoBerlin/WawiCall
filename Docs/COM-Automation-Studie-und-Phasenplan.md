@@ -770,14 +770,22 @@ stellt den Hauptfensterzugang aus Phase 3 wieder her; keine Produktdatenmigratio
 
 ### Phase 5 – ⬜ Telefonie anschließen
 
-- [ ] Gemeinsamen Wähl-Anwendungsdienst für UI und COM verwenden; `ShowDial` und `Dial` getrennt halten.
-- [ ] Explizite SIP-Anmeldung, Rufaufbau, Status und Auflegen über bestehende SIPSorcery-/CSCore-Dienste anbinden.
-- [ ] Lizenz, Installationsprüfung, Mandant, Nummer, Registrierung und Mehrfachwahl atomar durchsetzen.
+- [x] ✅ Gemeinsamer `AppTelephonyService` als injizierter UI-/COM-Zugang zum vorhandenen SIP-Runtime; `ShowDial` bleibt reine Präsentation, `Dial` führt den ausdrücklichen Auftrag aus.
+- [x] ✅ Fensterloser `AppAutomationTelephony` an Anmeldung, Rufaufbau, Gesprächsstatus und Auflegen angebunden. `ConnectTelephony` wartet auf `Registered` oder meldet Fehler/Fristablauf; reine COM-Aktivierung meldet kein Konto an.
+- [x] ✅ Gemeinsames Kommandogate, erneute Lizenz-/Installations-/Mandantenprüfung innerhalb der Plugin-Lease, Nummerngrenzen, Registrierung und einzelne aktive Verbindung durchgesetzt. Das Auflegen eines eigenen Gesprächs bleibt nach Entzug der Berechtigung möglich.
 - [ ] Anrufe ohne vorhandenes Hauptformular vollständig verfolgen, persistieren und später korrekt darstellen.
 - [ ] Einmalige Ausführung bei doppelter Request-ID sowie Clientverlust während des Rufaufbaus isoliert prüfen.
 
 Abnahme: Synthetische Gespräche erreichen dieselbe Historie und Kontextzuordnung wie UI-Gespräche.
 Echte Anrufe bleiben Bestandteil der gemeinsamen Abnahme.
+
+Zwischenstand am 21.11.2026: erste drei Punkte geprüft, Phase insgesamt noch offen. Reguläre
+Solution-Rebuilds Debug/Any CPU für FinOffice und Pro erfolgreich (26 bekannte externe
+CSCore-Nullablewarnungen). FinOffice: 20 gezielte Tests; Pro: 25 einschließlich bestehender
+Wähldialogprüfungen. Nachweise: `.com-phase5-commands-{fin,pro}.log` und
+`.com-phase5-build-{fin,pro}.log`. Keine SIP-Transporte, Audiogeräte, realen Anrufe oder
+Produktdaten in diesen Tests. Automatische Anrufzuordnung ohne Fenster und gemeinsame
+Clientverlust-/Deduplizierungsabnahme folgen als eigene Punkte.
 
 ### Phase 6 – ⬜ Robustheit und Lebensdauer
 

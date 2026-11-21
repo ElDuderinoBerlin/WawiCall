@@ -15,7 +15,9 @@ internal static class AppAutomationComposition
         services.AddSingleton<IAutomationEnvironment>(provider => provider.GetRequiredService<AppAutomationState>());
         services.AddSingleton<IAutomationViewHost, AppAutomationPresentation>();
         services.AddSingleton<IAutomationPresentation, DispatchedAutomationPresentation>();
-        services.AddSingleton<IAutomationTelephony, PendingAutomationAdapters>();
+        services.AddSingleton<AppAutomationTelephony>();
+        services.AddSingleton<IAutomationTelephony>(provider => provider.GetRequiredService<AppAutomationTelephony>());
+        services.AddHostedService(provider => provider.GetRequiredService<AppAutomationTelephony>());
         services.AddWawiAutomation();
         services.AddSingleton<AppAutomationFactory>();
         services.AddSingleton<AppAutomationCatalog>();
@@ -48,7 +50,7 @@ internal static class AppAutomationComposition
         {
             RevalidateBeforeUserMode = token => ((LicenseStartupGate)provider.GetRequiredKeyedService<IHostedService>(keys[foundation - 1])).StartAsync(token),
             MetadataServices = [() => provider.GetRequiredService<WawiCallPro.Utilities.Plugins.ProductPluginRuntime>(),
-                () => provider.GetRequiredService<AppAutomationCatalog>()]
+                () => provider.GetRequiredService<AppAutomationCatalog>(), () => provider.GetRequiredService<AppAutomationTelephony>()]
         });
         services.AddSingleton<IHostedService>(provider => provider.GetRequiredService<AppStartupPipeline>());
     }

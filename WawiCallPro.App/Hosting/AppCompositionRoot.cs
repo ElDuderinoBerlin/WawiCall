@@ -52,6 +52,11 @@ internal static class AppCompositionRoot
                 services.AddPersistedRecordings();
                 services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
                 services.AddSipTelephony(!mode.SuppressNetwork);
+                services.AddSingleton<AppTelephonyAccess>();
+                services.AddSingleton(provider => new AppTelephonyService(provider.GetRequiredService<SipTelephonyService>(),
+                    provider.GetRequiredService<SipTelephonyService>(), provider.GetRequiredService<AppTelephonyAccess>()));
+                services.AddSingleton<WawiCallPro.Interfaces.Telephony.ITelephonyService>(provider => provider.GetRequiredService<AppTelephonyService>());
+                services.AddSingleton<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>(provider => provider.GetRequiredService<AppTelephonyService>());
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
                 if (!mode.SuppressNetwork) services.AddHostedService<MailStartupImport>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();

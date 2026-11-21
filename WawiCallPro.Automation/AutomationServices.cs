@@ -72,7 +72,7 @@ public sealed class AutomationFault(AutomationFailure failure) : Exception(Messa
         AutomationFailure.NotReady => "Die Anwendung oder Verbindung ist noch nicht bereit.",
         AutomationFailure.NotSupported => "Diese Ansicht oder Funktion wird nicht angeboten.",
         AutomationFailure.Conflict => "Die Request-ID gehört zu einem anderen Auftrag.",
-        AutomationFailure.Busy => "Die begrenzte Auftragsverwaltung ist ausgelastet.",
+        AutomationFailure.Busy => "Die Aktion ist derzeit belegt. Laufende Vorgänge oder Gespräche prüfen.",
         AutomationFailure.Timeout => "Die Bearbeitungsfrist ist abgelaufen. Den vorhandenen Auftrag prüfen, bevor erneut gewählt wird.",
         AutomationFailure.Stopping => "Die Anwendung wird beendet.",
         _ => "Die Datenquelle oder Funktion ist derzeit nicht verfügbar."

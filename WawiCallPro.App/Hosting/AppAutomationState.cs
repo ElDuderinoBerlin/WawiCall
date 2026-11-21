@@ -62,7 +62,8 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     {
         lock (_gate)
         {
-            if (_stopping || _state == "Starting" || _owned || _clients != 0 || _locks != 0 || hasWork || clock.GetUtcNow() - _changed < TimeSpan.FromSeconds(30)) return false;
+            if (_stopping || _state == "Starting" || _owned || _clients != 0 || _locks != 0 || hasWork
+                || Telephony?.GetCalls().Any(AppTelephonyService.IsActive) == true || clock.GetUtcNow() - _changed < TimeSpan.FromSeconds(30)) return false;
             _stopping = true; _state = "Stopping"; return true;
         }
     }
@@ -81,7 +82,7 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
         lock (_gate)
         {
             if (_stopping) throw new AutomationFault(AutomationFailure.Stopping);
-            if (access == AutomationAccess.Telephony) throw new AutomationFault(_state == "Ready" ? AutomationFailure.NotSupported : AutomationFailure.NotReady);
+            if (access == AutomationAccess.Telephony && (_state != "Ready" || Telephony is null)) throw new AutomationFault(AutomationFailure.NotReady);
             if (access == AutomationAccess.Business)
             {
                 if (_state != "Ready") throw new AutomationFault(AutomationFailure.NotReady);
