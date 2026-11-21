@@ -99,6 +99,7 @@ public partial class MainForm : RibbonForm
         _state?.Restore(this);
         _state?.Restore(dockManager);
         Navigate("home");
+        _ = ReloadCompaniesAsync();
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
             ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."
             : "Anwendung gestartet. Lexware-abhängige Cacheaktualisierung ist gesperrt.");
@@ -187,6 +188,9 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
+        var stopCompanies = companySelector.StopAsync();
+        var stopParties = StopPartyOpeningAsync();
+        await Task.WhenAll(stopCompanies, stopParties);
         await StopMailOperationAsync();
         var stopNotes = _callPages.Values.Select(call => call.Page.Notes.StopAsync()).Concat(
             _documents.Values.Select(document => document.Control).OfType<Panel>()
@@ -195,7 +199,6 @@ public partial class MainForm : RibbonForm
             .SelectMany(host => host.Controls.OfType<MailPage>()).Select(mail => mail.StopAsync()).ToArray();
         await Task.WhenAll(stopNotes.Concat(stopMail));
         if (_operation is not null) await _operation.StopAsync();
-        await StopPartyOpeningAsync();
         foreach (var page in _documents.Values.ToArray()) await StopPageAsync(page.Control);
         foreach (var settings in OwnedForms.OfType<FrmSettings>()) await settings.StopAsync();
         foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
@@ -300,6 +303,7 @@ public partial class MainForm : RibbonForm
         var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync);
         settings.ConfigureLayoutPersistence(_state);
         settings.FormClosed += MailSettingsClosed;
+        settings.FormClosed += CompanySettings_Closed;
         if (_audioDevices is not null) settings.ConfigureAudioDevices(_audioDevices);
         if (plugins) settings.SelectPluginsTab();
         return settings;
@@ -307,10 +311,12 @@ public partial class MainForm : RibbonForm
     private async Task PreparePluginSwitchAsync()
     {
         EnsureViewsCanClose();
+        var resetCompanies = companySelector.ResetAsync();
+        var stopParties = StopPartyOpeningAsync();
+        await Task.WhenAll(resetCompanies, stopParties);
         foreach (var dial in OwnedForms.OfType<FrmDial>().ToArray()) { await dial.StopAsync(); dial.Close(); }
         foreach (var call in _callPages.Values.ToArray()) await CloseDocumentAsync(call.Document);
         if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
-        await StopPartyOpeningAsync();
         await ClosePluginPagesAsync();
     }
     private void OpenSettings(bool plugins = false)

@@ -60,6 +60,19 @@ COM-Abnahmebefund vom 21.11.2026: Im zentralen Einstellungsdialog fehlt weiterhi
 Lexware-Pro-API-Zugang; bisher nur lokale Console-Einrichtung `--erp-configure` mit verdeckter
 Kennwort-/Key-Eingabe. GUI-Konfiguration ergänzen und prüfen; erfolgreiche Pluginanzeige oder
 COM-Navigation belegt diesen Einrichtungsweg nicht. Profil-/Quell-/Fachabnahme bleibt offen.
+✅ **Mandantenanbindung im Hauptfenster (21.11.2026):** Die produktabhängigen Abfragen liegen bereits
+in `ProBusinessDirectory`/`ProApiSession` und `FinOfficeBusinessDirectory`/`FinOfficeInstallationSource`.
+Der fehlende zentrale UI-Anschluss ist ergänzt: `CompanySelector` lädt beim Hauptfensterstart sowie
+nach Schließen der Einstellungen ausschließlich über `PluginBusinessDirectory` aus dem aktiven Plugin.
+Durchsuchbare Auswahl nach Mandantennamen, vollständiger `CompanyKey` im gemeinsamen `CompanyContext`,
+Aktualisierung, Abbruch/Shutdown und Schutz vor verspäteten Ergebnissen nach Pluginwechsel geprüft.
+Keine automatische Wahl der ersten Firma; aktive Firma und Telefon-Cachequellen bleiben getrennt.
+Je Edition 22 gezielte App-/Designer-/COM-Viewprüfungen bestanden; 70 Pro- und 46 FinOffice-Pluginprüfungen.
+Reguläre Rebuilds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen, Pro zuletzt.
+28 Designer-Dateitripel geprüft; gezielte Hintergrundbilder mit leerem/gefülltem Katalog, heller/dunkler
+Darstellung, 9/16 pt und 150-%-Layoutsimulation visuell geprüft. Korrigierte inhaltsabhängige Breite/Höhe
+verhindert abgeschnittene Auswahl-/Statustexte im Navigationsdock. Echte Mandanten-/API-/SIP-Abnahme
+und der Pro-Zugangseditor bleiben offen; die Testprofileinrichtung ist damit nicht abgeschlossen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
@@ -599,7 +612,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 vollständige Designer-/Layoutmatrix mit 27 Oberflächen, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl nun 28 Oberflächen; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2502,7 +2515,9 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
 
   **A4-Abdeckungsverzeichnis (20.11.2026).** `scripts/test-ui-designer.ps1` erfasst die eigenen Klassen
   in App, gemeinsamem Windows-Plugin sowie Pro-/FinOffice-Plugin einschließlich der Ableitungskette.
-  Ergebnis: weiterhin 27 Typen, keine zusätzliche indirekte eigene Oberfläche. Zu jedem Typ erzeugt der
+  Ausgangsnachweis: 27 Typen. Am 21.11.2026 um `CompanySelector` auf 28 Typen ergänzt und erneut geprüft;
+  aktueller Quellnachweis unter `.artifacts/company-selector/designer/designer-sources.json`.
+  Zu jedem Typ erzeugt der
   Prüflauf die konkreten Quell-, Designer- und Ressourcenpfade in
   `.artifacts/phase8-a4/designer-sources.json`. Roslyn prüft die Syntaxbäume von `InitializeComponent()`
   statt bloßer Textmuster: expliziter Aufbau, keine Bedingungen, Schleifen, Lambdas, lokalen Funktionen,
@@ -2510,7 +2525,8 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   Dateitripel, `partial` und öffentlicher parameterloser Aufbau werden ebenfalls geprüft; Designeraufbau
   außerhalb der Designer-Datei und Standard-Browse-Dialoge werden abgewiesen.
   `AllOwnDesignerSurfacesConstructWithoutRuntimeServicesAndExposeOnlyExplicitDesignerProperties`
-  ergänzt dies am kompilierten Produkt: alle 27 Konstruktoren ohne DI/DB/Host, kein erzeugtes Fensterhandle,
+  ergänzt dies am kompilierten Produkt: ursprünglich 27, einschließlich `CompanySelector` jetzt 28
+  Konstruktoren ohne DI/DB/Host, kein erzeugtes Fensterhandle,
   ladbare eingebettete Ressourcen sowie explizite Serialisierungsattribute und auswertbare Designer-Properties.
   Laufzeitbindung und Vorgänge bleiben in den `.cs`-Dateien. Fremde DevExpress-/Quantarix-Typen wie der
   Lizenzdialog und der Fortschrittsbalken sind eingebundene Bibliotheksoberflächen, keine weiteren eigenen Typen.
@@ -2522,6 +2538,7 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   | Eigene Oberfläche | Einbettung und Layout-/Datenzustände | Persistierung |
   |---|---|---|
   | `MainForm` | R1: Ribbon, Docks und Dashboard; normal/klein, 10/16 pt, heller/dunkler Skin, Skalierung | `MainForm`, Docking über `AppUiState` |
+  | `CompanySelector` | Ergänzung 21.11.2026: Katalog leer/gefüllt, Abfragefehler und ungültige/fremde Firmen, Abbruch/Pluginwechsel; 9/16 pt, heller/dunkler Skin, 150-%-Layoutsimulation und Einbettung in das echte Navigationsdock | Host; ausgewählter vollständiger Schlüssel im `CompanyContext`, keine Änderung der Cachequellen |
   | `HomeDashboard` | R1: Statuskarten mit/ohne gebundene Konfiguration, schmale Kartenanordnung, große Schrift | Host |
   | `StartPage` | R2: neu ergänzte leere/gefüllte Fallbackansicht, langer Umbruchtext, klein, 10/16 pt, beide Skins, 150 % | Host |
   | `LogPanel` | R3: normale Meldung/Warnung/Fehler, leerer Bestand, Suche verborgen/leer/Treffer | Dock/Host; Meldungen und Suchtext bleiben sitzungsbezogen |

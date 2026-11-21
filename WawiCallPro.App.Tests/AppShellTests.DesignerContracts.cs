@@ -24,7 +24,7 @@ public sealed partial class AppShellTests
             .SelectMany(assembly => assembly.GetTypes()).Where(type => !type.IsAbstract
                 && (typeof(Form).IsAssignableFrom(type) || typeof(UserControl).IsAssignableFrom(type))).ToArray();
         CollectionAssert.AreEquivalent(new[] { "MainForm", "LogListBoxSearchController", "CallControlPanel", "CallDetailsPage",
-            "CallerLookupPage", "CallNotesPanel", "FrmCallerLookup", "FrmDatabaseSetup", "FrmDial", "FrmSettings",
+            "CallerLookupPage", "CallNotesPanel", "CompanySelector", "FrmCallerLookup", "FrmDatabaseSetup", "FrmDial", "FrmSettings",
             "FrmStartupSplashScreen", "HistoryPage", "HomeDashboard", "LogPanel", "MailPage", "MailSettingsPage",
             "PhoneNumberDiagnosticsPage", "PluginPage", "SettingsPage", "StartPage", "UcDbStep1DbType", "UcDbStep2Connection",
             "UcDbStep3Migration", "UcConMyPg", "UcConSqlite", "UcConSqlServer", "PartySearchPage" }, surfaces.Select(type => type.Name).ToArray(),

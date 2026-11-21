@@ -27,6 +27,8 @@ partial class MainForm
         paletteGallery = new DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem();
         contentLayout = new System.Windows.Forms.TableLayoutPanel();
         navigation = new DevExpress.XtraBars.Navigation.AccordionControl();
+        navigationLayout = new System.Windows.Forms.TableLayoutPanel();
+        companySelector = new WawiCallPro.App.Views.CompanySelector();
         tray = new System.Windows.Forms.NotifyIcon(components);
         trayMenu = new DevExpress.XtraBars.PopupMenu(components);
         trayShowItem = new DevExpress.XtraBars.BarButtonItem();
@@ -373,7 +375,19 @@ partial class MainForm
         navigationDock.OriginalSize = new System.Drawing.Size(220, 160);
         navigationDock.Size = new System.Drawing.Size(220, 500);
         navigationDock.Controls.Add(navigationContainer);
-        navigationContainer.Controls.Add(navigation);
+        navigationContainer.Controls.Add(navigationLayout);
+        navigationLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+        navigationLayout.ColumnCount = 1;
+        navigationLayout.RowCount = 2;
+        navigationLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        navigationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        navigationLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        navigationLayout.Controls.Add(companySelector, 0, 0);
+        navigationLayout.Controls.Add(navigation, 0, 1);
+        companySelector.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        companySelector.Margin = new System.Windows.Forms.Padding(0);
+        companySelector.Name = "companySelector";
+        companySelector.Layout += CompanySelector_Layout;
         navigationContainer.Dock = System.Windows.Forms.DockStyle.Fill;
         navigation.AllowItemSelection = true;
         navigation.SelectedElement = homeNav;
@@ -444,6 +458,8 @@ partial class MainForm
     private DevExpress.XtraBars.SkinRibbonGalleryBarItem skinGallery;
     private DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem paletteGallery;
     private System.Windows.Forms.TableLayoutPanel contentLayout;
+    private System.Windows.Forms.TableLayoutPanel navigationLayout;
+    private WawiCallPro.App.Views.CompanySelector companySelector;
     private DevExpress.XtraBars.Navigation.AccordionControl navigation;
     private System.Windows.Forms.NotifyIcon tray;
     private DevExpress.XtraBars.PopupMenu trayMenu;

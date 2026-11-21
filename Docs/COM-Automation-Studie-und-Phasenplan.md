@@ -457,7 +457,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung weiterhin Phase 8 |
 | 6 | ✅ | Native Objekt-/Unterobjektbindung, Clientabbruch, Mehrclient-/Shutdownrennen und Schutzgrenzen; je Edition 84 App-Tests, 18 Vertragstests, 18 native App- und 70 native Vertragsprüfungen | Agent; isolierte Profile/HKCU-Identitäten, keine erzwungene Serverbeendigung und kein Server-Test-GC |
 | 7 | ✅ | HKCU-only ohne TLB, Besitz-/Versionsschutz, echte Velopack-Installation/Update/Rücknahme/Deinstallation und Anleitung; je Edition 99 App-/18 Vertragstests, 26 Deployment-/21 Installationsprüfungen, 57 Skriptprüfungen | Agent; isolierte zufällige Identitäten, Produktregistrierungen erhalten; reale Fachhost-/SIP-Abnahme Phase 8 |
-| 8 | ⬜ | Native JavaScript-Abnahme Pro und FinOffice | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
+| 8 | 🟨 | Pro: fensterlose Produktaktivierung und Idleende/Neustart belegt; Mandantenanbindung ergänzt und isoliert geprüft. Weitere reale Pro-/FinOffice-Fälle offen | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
 
 ### Phase 0 – ✅ Studie und Entscheidung
 
@@ -1092,7 +1092,7 @@ Die [Bedienanleitung](COM-Automation-Anleitung.md) enthält Voraussetzungen, Bei
 und den Reparaturweg. Alle fünf Phase-7-Punkte und die Phasenübersicht sind ✅. Die produktive
 Zielinstallation und tatsächliche JavaScript-/SIP-/Audio-/Fachhostabnahme erfolgen gemeinsam in Phase 8.
 
-### Phase 8 – ⬜ Gemeinsame native Abnahme
+### Phase 8 – 🟨 Gemeinsame native Abnahme
 
 ✅ **Vorbereitung am 21.11.2026:** [Schrittfolge und Ergebnisprotokoll](COM-Automation-Phase8-Abnahme.md)
 angelegt. Benutzer wählt Pro zuerst, Windows Script Host in x86/x64 und erlaubt sichtbare Tests.
@@ -1115,6 +1115,13 @@ Pro-Prozess im Zustand Ready/SIP Stopped. Keine erzwungene App-Beendigung.
 liefert `Busy`. GUI-Bedienbestätigung und Testprofileinrichtung stehen noch aus. Zusätzlich fehlt der
 Lexware-Pro-Zugangseditor im Einstellungsdialog; bisheriger Einrichtungsweg ist Console `--erp-configure`.
 Dieser Befund und die noch fehlenden Fach-Tabs bleiben offen und werden nicht als COM-Funktionserfolg gewertet.
+✅ **Korrektur Mandantenanbindung:** Hauptfenster lädt den vorhandenen Katalog des aktiven Plugins
+jetzt in einer zentralen durchsuchbaren Mandantenauswahl und aktualisiert ihn nach den Einstellungen.
+Pro-/FinOffice-Erkennung und Firmenabfragen bleiben in den jeweiligen Plugins. Fremde/ungültige und
+verspätete Ergebnisse werden verworfen; Pluginwechsel und Shutdown brechen ausstehende Ladevorgänge ab.
+Je Edition 22 gezielte App-/Designer-/COM-Viewprüfungen sowie 70 Pro- und 46 FinOffice-Pluginprüfungen
+bestanden; reguläre Rebuilds Debug/Any CPU erfolgreich, Pro zuletzt. Dies ist ein isolierter technischer
+Nachweis. Freigegebener Live-Testmandant, lokaler Pro-Zugang und tatsächliche Fachabnahme bleiben offen.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|

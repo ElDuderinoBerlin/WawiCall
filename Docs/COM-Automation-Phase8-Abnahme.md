@@ -154,6 +154,40 @@ gezielten Aufruf bereit. Telefonnummern und companyKey werden weder erfunden noc
 Gesamtstatus: **offen**. Kein Häkchen in der Phase-8-Abnahmematrix, bevor der jeweilige Fall mit
 Laufzeitnachweis und erforderlicher Benutzerbeobachtung tatsächlich bestanden ist.
 
+## Korrektur des Mandantenanschlusses am 21.11.2026
+
+✅ Zentraler Mandantenkatalog im Hauptfenster ergänzt. `CompanySelector` ist ein eigenständiges,
+designerfähiges Control mit TableLayoutPanel, durchsuchbarem DevExpress-Lookup und zentraler kompakter
+Buttonbemessung. Beim Hauptfensterstart und nach dem Einstellungsdialog lädt es über
+`PluginBusinessDirectory` ausschließlich aus `plugin.Directory.GetCompaniesAsync()`.
+Die fachliche Erkennung, Autorisierung und Abfrage liegen bereits im Pro-/FinOffice-Plugin;
+in die Haupt-App wurde kein Lexware-spezifischer Registry-, API- oder Datenbankzugriff eingebaut.
+
+Die Auswahl zeigt nur Namen und setzt den vollständigen `CompanyKey` im vorhandenen `CompanyContext`.
+Erste Firma wird nicht automatisch gewählt. Die zentrale Auswahl ändert keine gespeicherten
+Telefon-Cachequellen und keine expliziten Gesprächs-/COM-Mandantenkontexte. Ladefehler leeren veraltete
+Auswahl, zeigen einen festen Hinweis und werden im Log-Fenster gemeldet. Pluginwechsel und Shutdown
+brechen Ladevorgänge ab und warten deren Ende ab; verspätete/fremde Ergebnisse werden nicht gebunden.
+
+Bestanden: je Edition 22 gezielte App-Prüfungen, 70 Pro- und 46 FinOffice-Pluginprüfungen und die
+Roslyn-/Ressourcenprüfung aller 28 Oberflächen. Reguläre Rebuilds in Debug/Any CPU ohne Fehler,
+je 26 bekannte externe CSCore-Warnungen, Pro zuletzt. Gezielte Bilder für leere/gefüllte Auswahl,
+helle/dunkle Skins, 9/16 pt, 150-%-Layoutsimulation und das tatsächliche Navigationsdock visuell geprüft.
+Die erste Größenberechnung schnitt dort bei großer Schrift Status ab; die inhaltsabhängige Breite
+und Höhe sind korrigiert und erneut geprüft. Das ist kein echter Monitor-/DPI-Wechselnachweis.
+
+Nachweise: `.company-selector-{build,tests}-{fin,pro}.log`, `.company-selector-plugin-{fin,pro}.log`,
+`.company-selector-designer.log` und `.artifacts/company-selector/{Pro,FinOffice}/images`.
+Der aktuelle reguläre Pro-Build ist **0.1.252**; der vorher gemeinsam geprüfte Stand 0.1.246 bleibt
+als historischer Nachweis dokumentiert. Die Pro-Benutzerregistrierung ist auf den aktuellen Build
+aktualisiert; beide HKCU-Ansichten und unveränderte TLB-/Interface-/HKLM-/FinOffice-Metadaten geprüft.
+Auch 0.1.252 wurde aus normalen x86-/x64-JScript-Clients fensterlos aktiviert: ein Prozess, Ready,
+IsVisible=false, SIP Stopped. Nach Freigabe endet er nach 30,99 Sekunden mit Exitcode 0 ohne Zwangsstopp.
+Nachweise unter `.artifacts/company-selector/native-Pro`; DLL-SHA-256
+`C60A890AB59F6088E9F60AE5CC74F0F12547D9CE36719DBDCF62069C8FE44D89`.
+Live-Mandanten-/API-/SIP-/Fachabnahme und GUI-Editor des Pro-Zugangs bleiben offen;
+das normale Pro-Testprofil ist weiterhin nicht angelegt. Keine echten Mandantendaten abgefragt.
+
 Nach Abschluss nur die zum Lauf gehörenden Clientreferenzen und Prüfprozesse freigeben. Eine für die
 weitere Nutzung gewählte Produktregistrierung erhalten; soll sie entfernt werden, ausschließlich die
 bestätigte Eigentümer-EXE mit `/unregserver /user` verwenden. Keine fremden Registry-Schlüssel löschen.
