@@ -666,6 +666,7 @@ den App-Anschluss und stellt den vorherigen Startpfad wieder her; keine Produktd
 
 ### Phase 4 – ⬜ Ansichten und Fensterführung
 
+- [x] ✅ Datenbankassistent schließt nach einem einzelnen Auftrag auch bei bereits abgeschlossener Arbeit: endgültiges `Close` nach dem ursprünglichen `FormClosing` einreihen. Je zwei gezielte Modal-/Abbruchtests und reguläre App-Builds für Pro/FinOffice bestanden; Protokolle `.com-phase4-db-modal-{pro,fin}.log`.
 - [ ] Viewkatalog gemäß Abschnitt 5 an vorhandene Routing-/Dialogfabriken und Pluginverträge anbinden.
 - [ ] Vorhandene Dokumente/Dialoge wiederverwenden; korrekte Owner, Modalität und Entwurfs-/Gesprächsschutz.
 - [ ] Alle verfügbaren Ansichten öffnen, nötige Kontexte validieren und unbekannte IDs sichtbar ablehnen.

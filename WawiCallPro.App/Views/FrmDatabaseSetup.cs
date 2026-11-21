@@ -176,7 +176,11 @@ public partial class FrmDatabaseSetup : XtraForm
         e.Cancel = true;
         if (_closing) return;
         _closing = true;
-        try { await StopAsync(); _canClose = true; Close(); }
+        try
+        {
+            await StopAsync(); _canClose = true;
+            if (!IsDisposed && IsHandleCreated) BeginInvoke(new Action(Close));
+        }
         finally { _closing = false; }
     }
 }
