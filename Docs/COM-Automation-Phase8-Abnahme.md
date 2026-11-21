@@ -43,7 +43,7 @@ keinen zweiten Ruf mit neuer Request-ID auslösen. Details zur API stehen in der
 | Schritt | Aktion und gemeinsame Beobachtung | Bestehenskriterium | Pro | FinOffice |
 |---|---|---|---|---|
 | 0 | Bestätigte Ziel-EXE mit `/regserver /user` als normaler Benutzer registrieren; CLSID, ProgID und `LocalServer32` in beiden HKCU-Ansichten lesen. | Beide Ansichten zeigen dieselbe richtige Edition/EXE; keine TLB-/Interface-/HKLM-Registrierung. | ✅ 21.11.2026 | Offen |
-| 1 | App regulär schließen; nur `ActiveXObject` aus x64 erzeugen, Status bis Ende von `Starting` abfragen und Referenz halten. Dann x86-Client gleichzeitig hinzufügen. Benutzer beobachtet den Desktop. | Ein richtiger App-Prozess; kein Hauptfenster, Splash oder unerwarteter Dialog; beide Clients melden dieselbe Edition. Konfigurations-/Lizenzstatus gesondert notieren, kein Ready vortäuschen. | Offen | Offen |
+| 1 | App regulär schließen; nur `ActiveXObject` aus x64 erzeugen, Status bis Ende von `Starting` abfragen und Referenz halten. Dann x86-Client gleichzeitig hinzufügen. Benutzer beobachtet den Desktop. | Ein richtiger App-Prozess; kein Hauptfenster, Splash oder unerwarteter Dialog; beide Clients melden dieselbe Edition. Konfigurations-/Lizenzstatus gesondert notieren, kein Ready vortäuschen. | ✅ 21.11.2026 | Offen |
 | 2 | Ohne `Show`, SIP-Anmeldung oder Benutzerbetrieb beide Clients samt Unterobjekten freigeben; Prozessende messen. Danach COM erneut aktivieren. | Geordnetes Ende nach der definierten 30-Sekunden-Idlefrist plus begrenzter Messreserve; erneuter Start funktioniert. Idle-Messung nur vor Übergang in den Benutzerbetrieb. | Offen | Offen |
 | 3 | Per COM `Show()` ausführen; danach zweiten Client bei bereits sichtbarer App erzeugen. Minimieren, wieder anzeigen; anschließend Tray-Zustand und erneuten Explorer-Start prüfen. | Eine App-Instanz; bedienbares Fenster wiederhergestellt, Zustand erhalten. Tatsächlichen Vordergrund getrennt von bloßer Sichtbarkeit beurteilen. | Offen | Offen |
 | 4 | `GetViewsJson()` aus dem tatsächlichen Host lesen. Verfügbare normale Views einzeln öffnen; erforderliche Kontexte verwenden, Dialoge nach jeder Prüfung schließen. Einstellungen modal offen lassen und Navigation versuchen. | Richtige Views; fremde Navigation bei modalem Dialog verständlich gesperrt; Tabwechsel im bestehenden Dialog möglich; Eingaben/Notizentwürfe erhalten. | Offen | Offen |
@@ -59,6 +59,22 @@ Eine fehlende Gegenstelle oder nicht verfügbare Lizenzfehler-Testumgebung bleib
 ein bestehender automatisierter Nachweis wird als solcher verlinkt und nicht als gemeinsam ausgeführt markiert.
 
 ## Ansichten und Modalität in Schritt 4
+
+**Bestandsaufnahme am 21.11.2026:** Der echte JavaScript-Laufzeitkatalog ohne eingerichtetes
+Pro-Plugin enthält 23 Basis-/Dialogeinträge. `Ready` bestätigt hier den gestarteten COM-Host;
+es belegt weder einen konfigurierten Lexware-Zugang noch vollständige Fachfunktionen.
+
+| Bereich | Tatsächlicher Stand | Noch ausstehender Nachweis |
+|---|---|---|
+| Basisansichten, Einstellungen und Datenbankassistent | Konkrete Host-Oberflächen und COM-Routing vorhanden; Katalog per JavaScript aus Pro 0.1.246 gelesen. | Sichtbar einzeln öffnen, Bedienzustände und jeweilige Fachfunktionen prüfen. |
+| Kunden/Lieferanten, Kontakte, Mail-/Telefonzuordnung | Gemeinsame lesende `PartySearchPage` und Adapter vorhanden; beide Lexware-Plugins bieten diesen Workspace an. | Freigegebenen Testmandanten einrichten, tatsächliche Datensätze und Zuordnung prüfen. |
+| Eigene Lexware-Fach-Tabs | **Fehlen in Pro und FinOffice.** Beide `LexwarePlugin`-Klassen implementieren `IWawiCallPluginWorkspaces`, aber kein `IWawiCallPluginViews`. | Keine erfolgreiche Abnahme solcher Tabs behaupten; Umsetzung bleibt im Neuaufbauplan offen. |
+| Belege, offene Posten, Zahlungsübersicht, Projekte, Preise, Umsatz/Top-Artikel und Schreibfunktionen | Im jeweiligen Adapter weiterhin `Unsupported`; Quellumfang in `ProCapabilities`/`FinOfficeCapabilities` und [Funktionsmatrix](Capability-Matrix.md) ausgewiesen. | Eigene Fachabfragen und Oberflächen fehlen; vorhandene Referenzbibliotheken ersetzen diese nicht. |
+| Mail und Telefonie/Audio | Host-Ansichten und Dienste vorhanden. Ohne eingerichtete Konten/Gegenstelle kein Funktionsnachweis. | Verbindung, Anzeigen/Zuordnen sowie echte Gespräche separat prüfen. |
+
+Diese Bestandsaufnahme wurde durch Quellenvergleich und das echte `GetViewsJson()` gewonnen;
+sie ist kein grüner UI- oder Fachfunktionstest. Fehlende Funktionalität wird bei der COM-Abnahme
+als fehlend festgehalten und nicht durch eine erfolgreiche Anzeige eines leeren Fensters ersetzt.
 
 Der aktuelle Laufzeitkatalog ist maßgeblich. Vorbereitet sind Startseite, Gesprächshistorie, E-Mails,
 Hilfe, Über-Dialog, Log, Datenbankassistent und alle angebotenen Einstellungsbereiche einschließlich
@@ -97,6 +113,7 @@ gezielten Aufruf bereit. Telefonnummern und companyKey werden weder erfunden noc
 |---|---|---|
 | 21.11.2026 / Pro / Vorbereitung | Normaler Desktop-Token, Prozess-/Profil-/Registrierungsmetadaten, Pro-DLL-Hash geprüft; Host/Bitness und sichtbare Tests vom Benutzer bestätigt. | ✅ Vorbereitung abgeschlossen. Ziel-EXE und Testprofil noch zu bestätigen. Kein nativer Abnahmefall ausgeführt. |
 | 21.11.2026 / Pro / 0 | Benutzer bestätigt Repository-Build und gemeinsame Profileinrichtung. `/regserver /user` als normaler Desktop-Benutzer, Exitcode 0; beide Registry-Ansichten, gequoteter EXE-Pfad, Besitzer und Version geprüft; geschützte Registry-Teilbäume vorher/nachher identisch. | ✅ Registrierung. Nachweis: `.artifacts/com-phase8/20261121-Pro-01/registration.json`. Noch kein Profil angelegt; weiter mit JavaScript-Aktivierung ohne Fenster. |
+| 21.11.2026 / Pro / 1 | Reale Produkt-ProgID aus gehaltenen x64-/x86-JScript-Clients aktiviert. Beide melden API 1.0, Pro, Ready, IsVisible=false, SIP Stopped. Ein App-Prozess PID 23540 mit bestätigtem EXE-Pfad, MainWindowHandle=0 und nativ keinem sichtbaren Fenster. Benutzer bestätigt ausdrücklich, dass weder Hauptfenster noch Splash/Fehlerdialog erschien. | ✅ Fensterloser Produkt-COM-Start. Nachweise: `initial-{x64,x86}-{bootstrap,ready}.json`, `initial-two-clients-windows.json` im lokalen Laufordner. Katalog `initial-x64-v01.json`; Sichtbar-/SIP-/Fachtests weiterhin offen. |
 
 Gesamtstatus: **offen**. Kein Häkchen in der Phase-8-Abnahmematrix, bevor der jeweilige Fall mit
 Laufzeitnachweis und erforderlicher Benutzerbeobachtung tatsächlich bestanden ist.

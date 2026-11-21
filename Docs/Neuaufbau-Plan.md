@@ -46,10 +46,14 @@ Produktregistrierungen oder öffentlichen Releases für Tests geändert. Reale Z
 SIP-/Audio-/Fachhostabnahme folgen gemeinsam in COM-Phase 8. Die bestehende G1-Abnahme bleibt offen.
 ✅ COM-Phase-8-Vorbereitung: [gemeinsame Schrittfolge und Ergebnisprotokoll](COM-Automation-Phase8-Abnahme.md)
 erstellt; Pro zuerst, Windows Script Host x86/x64 und sichtbare Tests bestätigt. Pro 0.1.246 passt
-zum geprüften Phase-7-Build; normale HKCU-Registrierung und Pro-Profil fehlen. Ziel-EXE/Testprofil
-vor Aktivierung bestätigen. ✅ Danach COM-Phase-8/Pro Schritt 0: Benutzer bestätigt Repository-Build
+zum geprüften Phase-7-Build; das normale Pro-Profil wird gemeinsam eingerichtet.
+✅ COM-Phase-8/Pro Schritt 0: Benutzer bestätigt Repository-Build
 0.1.246; unter HKCU als normaler Benutzer registriert und beide Registry-Ansichten geprüft.
-TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. Die reale Abnahmematrix beider Editionen und G1 bleiben offen.
+TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. ✅ COM-Phase-8/Pro Schritt 1: Produkt-ProgID
+mit x86-/x64-JScript aktiviert, ein Pro-Prozess, Ready/unsichtbar/SIP Stopped; native Fenstermessung
+und Benutzerbeobachtung bestätigen den Start ohne Fenster. Eigene Lexware-Fach-Tabs und erweiterte
+Fachfunktionen fehlen weiterhin; deren Bestandsaufnahme steht im Abnahmeprotokoll. COM-Phase 8
+insgesamt, beide vollständigen Editionsabnahmen und G1 bleiben offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

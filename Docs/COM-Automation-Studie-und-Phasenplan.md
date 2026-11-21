@@ -1103,11 +1103,15 @@ und Aktivierung bestätigt.
 ✅ **Pro Schritt 0:** Benutzer wählt Repository-Build 0.1.246 und gemeinsame Testprofileinrichtung.
 HKCU-Registrierung als normaler Desktop-Benutzer mit Exitcode 0 bestanden; beide Ansichten zeigen auf
 die bestätigte EXE. TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. Nachweis und weitere
-JavaScript-Schritte im Ergebnisprotokoll; die zehn eigentlichen Abnahmefälle bleiben noch offen.
+JavaScript-Schritte im Ergebnisprotokoll.
+✅ **Pro Schritt 1:** Echte Produktaktivierung aus gehaltenen x64-/x86-JScript-Clients, API 1.0,
+Ready/unsichtbar/SIP Stopped, ein App-Prozess und nativ kein sichtbares Fenster. Benutzer bestätigt
+den Start ohne Hauptfenster, Splash oder Fehlerdialog. Der aktuelle Katalog enthält 23 Basiseinträge;
+eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufnahme im Ergebnisprotokoll.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|
-| Nur `ActiveXObject` bei geschlossener App | Richtige EXE startet, kein sichtbares Wawi-Fenster | [ ] | [ ] |
+| Nur `ActiveXObject` bei geschlossener App | Richtige EXE startet, kein sichtbares Wawi-Fenster | [x] ✅ 21.11.2026 | [ ] |
 | Zwei Clients / bereits sichtbare App | Ein App-Prozess und eine SIP-/Audiositzung | [ ] | [ ] |
 | `Show` und Viewwechsel | Richtige Ansicht; minimiert/Tray/modal bedienbar; kein Entwurfsverlust | [ ] | [ ] |
 | Tatsächlicher JavaScript-Host | Aufrufe und Fehlerdarstellung funktionieren; benötigte x86-/x64-Varianten belegt | [ ] | [ ] |
