@@ -27,7 +27,7 @@ public partial class FrmSettings : XtraForm
     }
     public FrmSettings()
     {
-        InitializeComponent(); UiButtonSizing.Attach(this);
+        InitializeComponent(); UiButtonSizing.Attach(this); AppIconHelper.Apply(this);
         WindowWorkArea.Attach(this);
         settingsPage.CloseRequested += Settings_CloseRequested;
         settingsPage.SaveCompleted += Settings_SaveCompleted;

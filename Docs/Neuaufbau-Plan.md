@@ -100,6 +100,13 @@ der Migrationsfortschritte auf die vorhandenen Versionen 1–14 korrigiert, kein
 gemeinsam prüfen. COM-Phase 8/G1 werden hierdurch nicht abgeschlossen. Nur den jeweils nächsten Schritt
 im [COM-Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) ausführen.
 
+✅ **Dialog-App-Icon (21.11.2026):** `FrmSettings` verwendet jetzt wie die übrigen eigenen Fenster
+`AppIconHelper.Apply`: dasselbe App-SVG für DevExpress und das App-ICO für native Fenstersymbole.
+Alle sechs eigenen Formulartypen ohne Handles auf beide Iconvarianten geprüft; gezielte Bilder nur
+für den geänderten Einstellungsdialog (hell/dunkel, 9/16 pt und Skalierung) ausgewertet. Reguläre Builds
+Debug/Any CPU Pro und FinOffice sowie je zwei gezielte Prüfungen bestanden; Pro zuletzt.
+Fremde Browse-/Systemdialoge erhalten weiterhin den aufrufenden Owner.
+
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
