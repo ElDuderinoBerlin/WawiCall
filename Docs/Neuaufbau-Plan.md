@@ -100,6 +100,23 @@ der Migrationsfortschritte auf die vorhandenen Versionen 1–14 korrigiert, kein
 gemeinsam prüfen. COM-Phase 8/G1 werden hierdurch nicht abgeschlossen. Nur den jeweils nächsten Schritt
 im [COM-Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) ausführen.
 
+✅ **SIP-Beispielzugang lokal übernommen (21.11.2026):** Auf Benutzerauftrag Daten ausschließlich aus
+`D:\Application-Development\sipsorcery-examples\PlaySounds\Program.cs` in die vom Pro-Host tatsächlich
+geladene Datei `%LOCALAPPDATA%\WawiCallPro\Pro\connection.local.json` übernommen. Das ist die zentrale
+Anwendungskonfiguration; keine zusätzliche ungebundene `appsettings.json` angelegt. Kennwort mit der
+vorhandenen DPAPI-CurrentUser-Hilfe geschützt, über `ConfigurationStore` validiert und mit Konkurrenzschutz
+gespeichert. Erneutes Laden und Entschlüsseln nur intern verglichen; Ergebnisdatei enthält ausschließlich
+Erfolgsmerkmale. Andere Einstellungen erhalten, keine Zugangsdaten in Git, Konsolenausgabe oder Bericht.
+TCP, lokaler SIP-Port 5060 und Registrierung 120 Sekunden entsprechen dem Beispiel. `RegisterOnStartup`
+bleibt für die ausdrücklich gemockte COM-Abnahme aus; keine Anmeldung am echten SIP-Server vorgenommen.
+`SipTelephonyService` verwendet bereits `SIPRegistrationUserAgent`: AOR/Registrar/Contact, optionalen
+Authentifizierungsnamen, konfigurierbare Zeitlimits, alle Registrierungsereignisse, `Start()` und
+`Stop(true)` vor Transportfreigabe geprüft. Je Edition drei vorhandene Loopbacktests erneut erfolgreich:
+UDP-An-/Abmeldung und Portfreigabe, TCP-Contact-/Registrar-Konsistenz, dauerhafter Registrierungsfehler
+mit explizitem Wiederanmelden. Das belegt keine tatsächliche FRITZ!Box-Anmeldung und kein Audiogespräch.
+Lokaler Nachweis: `.artifacts/com-mock-acceptance/20261121/sip-seed/import-result.log` und
+`.sip-registration-check-{pro,fin}.log`.
+
 ✅ **SIP-Eingabebreite (21.11.2026):** Der Standardtab verwendet drei TableLayoutPanel-Spalten:
 Beschriftung nach Inhalt, begrenzter Eingabebereich und eine freie Restspalte. Die Eingabebreite passt
 sich Schrift/DPI und dem verfügbaren Platz an; der Serverport bleibt kompakt. Eingaben und Controls
