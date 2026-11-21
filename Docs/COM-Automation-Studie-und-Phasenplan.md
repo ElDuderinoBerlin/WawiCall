@@ -1111,6 +1111,10 @@ eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufna
 ✅ **Pro Schritt 2:** Beide JavaScript-Clients geordnet freigegeben; der fensterlose Host endet nach
 30,73 Sekunden mit Exitcode 0. Erneute Produktaktivierung startet einen neuen, weiterhin unsichtbaren
 Pro-Prozess im Zustand Ready/SIP Stopped. Keine erzwungene App-Beendigung.
+**Weitere Teilprüfung:** JavaScript `Show` und Einstellungsdialog erfolgreich; modale Fremdnavigation
+liefert `Busy`. GUI-Bedienbestätigung und Testprofileinrichtung stehen noch aus. Zusätzlich fehlt der
+Lexware-Pro-Zugangseditor im Einstellungsdialog; bisheriger Einrichtungsweg ist Console `--erp-configure`.
+Dieser Befund und die noch fehlenden Fach-Tabs bleiben offen und werden nicht als COM-Funktionserfolg gewertet.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|

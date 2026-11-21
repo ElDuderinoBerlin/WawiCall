@@ -56,6 +56,10 @@ JavaScript-Client freigegeben, Host nach 30,73 Sekunden mit Exitcode 0 geordnet 
 erneut ohne Fenster gestartet. Eigene Lexware-Fach-Tabs und erweiterte
 Fachfunktionen fehlen weiterhin; deren Bestandsaufnahme steht im Abnahmeprotokoll. COM-Phase 8
 insgesamt, beide vollständigen Editionsabnahmen und G1 bleiben offen.
+COM-Abnahmebefund vom 21.11.2026: Im zentralen Einstellungsdialog fehlt weiterhin der Editor für den
+Lexware-Pro-API-Zugang; bisher nur lokale Console-Einrichtung `--erp-configure` mit verdeckter
+Kennwort-/Key-Eingabe. GUI-Konfiguration ergänzen und prüfen; erfolgreiche Pluginanzeige oder
+COM-Navigation belegt diesen Einrichtungsweg nicht. Profil-/Quell-/Fachabnahme bleibt offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

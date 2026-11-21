@@ -24,6 +24,8 @@ Editionen offen. Ergebnisse aus den isolierten Phasen 1–7 ersetzen keinen geme
   tatsächlichen Startpfad klären. Ein Profil-Override darf nicht mit Produkt-COM kombiniert werden;
   isolierte Profile benötigen eine eigene zufällige Fixture-Identität. Keine bestehenden Profile kopieren
   oder überschreiben. Ein Dummy-Profil ersetzt keine Lexware-/SIP-Abnahme.
+  Für den bestätigten Repository-Build wird das zuvor fehlende normale Benutzerprofil
+  `%LOCALAPPDATA%\WawiCallPro\Pro` verwendet. Der Benutzer hat die gemeinsame Neueinrichtung beauftragt.
 - ⬜ Ausschließlich freigegebenen Testmandanten und je einen Kunden/Lieferanten mit bekannten Nummern
   auswählen; bei Bedarf gleiche Nummern und führende Nullen im Testbestand prüfen.
 - ⬜ Vor dem ersten Ruf Testgegenstelle, Zeitfenster, abgehende Leitung/Firma und Audiogeräte bestätigen.
@@ -71,6 +73,7 @@ es belegt weder einen konfigurierten Lexware-Zugang noch vollständige Fachfunkt
 | Eigene Lexware-Fach-Tabs | **Fehlen in Pro und FinOffice.** Beide `LexwarePlugin`-Klassen implementieren `IWawiCallPluginWorkspaces`, aber kein `IWawiCallPluginViews`. | Keine erfolgreiche Abnahme solcher Tabs behaupten; Umsetzung bleibt im Neuaufbauplan offen. |
 | Belege, offene Posten, Zahlungsübersicht, Projekte, Preise, Umsatz/Top-Artikel und Schreibfunktionen | Im jeweiligen Adapter weiterhin `Unsupported`; Quellumfang in `ProCapabilities`/`FinOfficeCapabilities` und [Funktionsmatrix](Capability-Matrix.md) ausgewiesen. | Eigene Fachabfragen und Oberflächen fehlen; vorhandene Referenzbibliotheken ersetzen diese nicht. |
 | Mail und Telefonie/Audio | Host-Ansichten und Dienste vorhanden. Ohne eingerichtete Konten/Gegenstelle kein Funktionsnachweis. | Verbindung, Anzeigen/Zuordnen sowie echte Gespräche separat prüfen. |
+| Lexware-Pro-Zugang im Einstellungsdialog | **Editor fehlt.** Die App-Views schreiben keine `ProErpSettings`; Pluginverwaltung bietet Auswahl/Details/Fähigkeiten. Vorhanden ist die lokale Console-Einrichtung `--erp-configure`. | UI-Lücke im Neuaufbau schließen; für die aktuelle Testeinrichtung den bestehenden interaktiven Konsolenweg verwenden. Kennwort/Client-Key bleiben lokal und verdeckt. |
 
 Diese Bestandsaufnahme wurde durch Quellenvergleich und das echte `GetViewsJson()` gewonnen;
 sie ist kein grüner UI- oder Fachfunktionstest. Fehlende Funktionalität wird bei der COM-Abnahme
@@ -85,6 +88,37 @@ Gesprächsdetails benötigen die CallId aus diesem Testlauf, die Wählansicht ei
 Fehlt eine Ansicht im aktuellen Katalog, Verfügbarkeit und Grund notieren statt einen erfolgreichen Test
 zu behaupten. Kein Speichern unbeabsichtigter Einstellungsänderungen; Entwurfsschutz mit einer
 absichtlich eingegebenen harmlosen Testnotiz prüfen.
+
+### Gemeinsame Profileinrichtung nach dem fensterlosen Start
+
+`Show()` und `ShowView("settings-general", "")` wurden am bestätigten Build per JScript erfolgreich
+ausgeführt. Der anschließende JScript-Aufruf `ShowView("history", "")` wird bei offenem modalem
+Einstellungsdialog mit dem Auftragsfehler `Busy` abgewiesen. Der native Fensterbaum zeigt das
+Hauptfenster und den Einstellungsdialog. Die Benutzerbestätigung der sichtbaren/bedienbaren
+Oberfläche und das erstmalige Speichern stehen noch aus; Schritt 3/4 bleiben insgesamt offen.
+
+1. Im bereits geöffneten Einstellungsdialog unter Allgemein einmal **Speichern** wählen.
+   Das erzeugt das neue normale Pro-Profil; keine fremde Konfiguration importieren.
+2. Datenbankassistent und SIP/Audio danach gezielt einrichten. Vor Quelleingaben und Firmenabrufen
+   ausschließlich freigegebenen Testmandanten und API-Testkonto bestätigen.
+3. Der aktuelle GUI-Stand hat noch keinen Editor für den Lexware-API-Zugang. Der vorhandene
+   lokale Einrichtungsweg lautet, in einer normalen interaktiven PowerShell vom Repository aus:
+
+   ```powershell
+   & '.\WawiCallPro.Console\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.Console.Pro.exe' --erp-configure
+   ```
+
+   Zuvor Einstellungsdialog und App regulär schließen, um veraltete Einstellungs-Snapshots zu vermeiden.
+   Nur Zugang zum Testsystem verwenden. API-Adresse/Installation bei passender automatischer Erkennung
+   leer lassen; Benutzer lokal eingeben, Kennwort und gegebenenfalls Client-Key verdeckt eingeben.
+   Leer beim Client-Key übernimmt die bereits geprüfte Buildvorgabe. Der Befehl speichert geschützt
+   und führt selbst keine Anmeldung oder Fachabrufe aus. Anschließend die App neu per COM starten.
+   Keine Zugangsdaten als Kommandozeilenargumente, in Chat, Prüfskript oder Ergebnisdatei übernehmen.
+
+Die COM-V1-API bietet keine Funktion zum Ändern oder Speichern von Einstellungen. Deshalb werden
+ihre Anzeige-/Navigationsfunktionen per JavaScript getestet; die lokale Konto-/Profileingabe benötigt
+den vorhandenen Editor beziehungsweise Einrichtungsdialog der Console. Das ist eine aktuelle
+Funktionsgrenze und kein erfolgreich geprüfter GUI-Einrichtungsweg für Lexware Pro.
 
 ## Erster ausführbarer Schritt nach Bestätigung der Ziel-EXE
 
@@ -115,6 +149,7 @@ gezielten Aufruf bereit. Telefonnummern und companyKey werden weder erfunden noc
 | 21.11.2026 / Pro / 0 | Benutzer bestätigt Repository-Build und gemeinsame Profileinrichtung. `/regserver /user` als normaler Desktop-Benutzer, Exitcode 0; beide Registry-Ansichten, gequoteter EXE-Pfad, Besitzer und Version geprüft; geschützte Registry-Teilbäume vorher/nachher identisch. | ✅ Registrierung. Nachweis: `.artifacts/com-phase8/20261121-Pro-01/registration.json`. Noch kein Profil angelegt; weiter mit JavaScript-Aktivierung ohne Fenster. |
 | 21.11.2026 / Pro / 1 | Reale Produkt-ProgID aus gehaltenen x64-/x86-JScript-Clients aktiviert. Beide melden API 1.0, Pro, Ready, IsVisible=false, SIP Stopped. Ein App-Prozess PID 23540 mit bestätigtem EXE-Pfad, MainWindowHandle=0 und nativ keinem sichtbaren Fenster. Benutzer bestätigt ausdrücklich, dass weder Hauptfenster noch Splash/Fehlerdialog erschien. | ✅ Fensterloser Produkt-COM-Start. Nachweise: `initial-{x64,x86}-{bootstrap,ready}.json`, `initial-two-clients-windows.json` im lokalen Laufordner. Katalog `initial-x64-v01.json`; Sichtbar-/SIP-/Fachtests weiterhin offen. |
 | 21.11.2026 / Pro / 2 | Beide JScript-Clients geben ihre Referenzen frei (`released.json`). App PID 23540 endet nach 30,73 Sekunden mit Exitcode 0 ohne erzwungenen Stopp. Erneute echte Produktaktivierung über x64-JScript startet einen neuen Pro-Prozess PID 67008, wieder Ready/unsichtbar/SIP Stopped und ohne sichtbares Fenster. | ✅ Idleende und Reaktivierung. Nachweise `idle.json`, `restart-x64-{bootstrap,ready}.json`, `restart-windows.json` im lokalen Laufordner. Client-Exitcodes wurden nicht für beide Prozesse erfasst und werden nicht als geprüft ausgegeben; Referenzfreigabe und App-Exit sind belegt. |
+| 21.11.2026 / Pro / 3–4, Teilprüfung | JScript `Show()` und `ShowView("settings-general", "")` erfolgreich. Native Messung findet Pro-Hauptfenster und Einstellungen. `ShowView("history", "")` bei offenem modalem Dialog liefert Failed/Busy. Quellprüfung bestätigt fehlende Lexware-API-Konfiguration in der GUI und offene Fach-Tabs. | Technischer Teilnachweis, **kein Abschluss** von Schritt 3/4 oder Profileinrichtung. Ergebnisse `restart-x64-v02.json` bis `v04.json` und `settings-general-windows.json` im lokalen Laufordner. Benutzer soll Sichtbarkeit/Bedienbarkeit und erstmaliges Speichern bestätigen. |
 
 Gesamtstatus: **offen**. Kein Häkchen in der Phase-8-Abnahmematrix, bevor der jeweilige Fall mit
 Laufzeitnachweis und erforderlicher Benutzerbeobachtung tatsächlich bestanden ist.
