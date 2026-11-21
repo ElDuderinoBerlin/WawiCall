@@ -34,6 +34,20 @@ Editionen offen. Ergebnisse aus den isolierten Phasen 1–7 ersetzen keinen geme
 Lokaler Vorprüfungsnachweis: `.artifacts/com-phase8/20261121-Pro-01/preflight.json`.
 Diese Vorprüfung aktiviert keine COM-Klasse und ändert keine Registrierung oder Konfiguration.
 
+## Aktueller Einrichtungsstand nach den Korrekturen
+
+✅ Pro **0.1.254** aus dem regulären Debug-/Any-CPU-Pfad bereitgestellt. DLL-SHA-256:
+`7785101FF6292D253BA512201E942D381C3369AE6FFBADA72EF4001A39A46E33`. Plugin-Editor Commit `3768783`, App-Icon Commit `9c37db9`.
+HKCU-Registrierung beider Ansichten im normalen Benutzerkontext mit Exitcode 0 geprüft;
+TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. Erneuter x64-JScript-Start: Ready,
+IsVisible=false, SIP Stopped; ein App-Prozess und nativ kein sichtbares Fenster.
+`GetViewsJson()` enthält 23 gemeinsame Einträge plus die vom Pro-Plugin gelieferte
+`settings-wawi`-View mit Titel „Lexware-Pro-Zugang“, obwohl noch kein Pro-Zugang gespeichert ist.
+JavaScript öffnet die kompletten Plugin-Einstellungen erfolgreich. Eigene Skriptreferenzen danach
+freigegeben; der Einstellungsdialog bleibt für die lokale Eingabe geöffnet.
+Nachweis: `.artifacts/pro-connection-editor/native-final`. Kein Testzugang und keine echten
+Mandantendaten gelesen. **Jetzt ausschließlich lokal eintragen; noch nicht speichern.**
+
 ## Durchführung – jeweils nur den nächsten Schritt ausführen
 
 Pro beginnt nach der Zielbestätigung. Pro Schritt werden Zeitpunkt, Edition, tatsächlicher EXE-Pfad,
