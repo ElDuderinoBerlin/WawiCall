@@ -1099,7 +1099,11 @@ angelegt. Benutzer wählt Pro zuerst, Windows Script Host in x86/x64 und erlaubt
 Lesende Vorprüfung im normalen Desktop-Benutzerkontext: keine laufende Wawi-Instanz, keine
 Produkt-COM-Registrierung, normales Pro-Profil fehlt. Pro 0.1.246 aus dem regulären Debug-/Any-CPU-
 Ausgabepfad stimmt im DLL-Hash mit Phase 7 überein. Ziel-EXE und Testprofil werden vor Registrierung
-und Aktivierung bestätigt. Noch kein gemeinsamer nativer Abnahmefall bestanden; die Matrix bleibt offen.
+und Aktivierung bestätigt.
+✅ **Pro Schritt 0:** Benutzer wählt Repository-Build 0.1.246 und gemeinsame Testprofileinrichtung.
+HKCU-Registrierung als normaler Desktop-Benutzer mit Exitcode 0 bestanden; beide Ansichten zeigen auf
+die bestätigte EXE. TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. Nachweis und weitere
+JavaScript-Schritte im Ergebnisprotokoll; die zehn eigentlichen Abnahmefälle bleiben noch offen.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|
@@ -1121,8 +1125,9 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 ## 9. Nächster sinnvoller Arbeitsschritt
 
 Als Nächstes folgt **Phase 8 gemeinsam** nach der [vorbereiteten Schrittfolge](COM-Automation-Phase8-Abnahme.md):
-Pro zuerst mit Windows Script Host x86/x64; sichtbare Tests sind erlaubt. Zunächst Ziel-EXE und
-Testprofil bestätigen, dann HKCU registrieren und fensterlose Aktivierung/Idleende prüfen. Freigegebenen
+Pro zuerst mit Windows Script Host x86/x64; sichtbare Tests sind erlaubt. Ziel-EXE 0.1.246 ist bestätigt
+und unter HKCU registriert. Als Nächstes fensterlose JavaScript-Aktivierung/Idleende prüfen und
+das normale, bisher fehlende Pro-Testprofil gemeinsam einrichten. Freigegebenen
 Testmandanten und Gegenstelle vor Fachzugriff beziehungsweise Anrufen abstimmen; danach die realen
 App-/SIP-/Audiofälle für beide Editionen prüfen. Die technische Robustheit und isolierte Auslieferung
 aus Phasen 6/7 sind abgeschlossen. G1 bleibt davon getrennt offen.

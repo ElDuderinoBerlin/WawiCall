@@ -17,7 +17,9 @@ Editionen offen. Ergebnisse aus den isolierten Phasen 1–7 ersetzen keinen geme
   identisch zum abgeschlossenen Phase-7-Nachweis, Quellstand `41b7d82`.
 - ✅ Beide `cscript.exe`-Varianten vorhanden. Am üblichen Velopack-Zielpfad liegt keine installierte
   Pro- oder FinOffice-EXE. Normales Pro-Profil fehlt; ein FinOffice-Profil existiert, wurde nicht geöffnet.
-- ⬜ Ziel-EXE bestätigen: Repository-Kandidat oder abweichende Zielinstallation.
+- ✅ Ziel-EXE bestätigt: Benutzer wählt Pro 0.1.246 aus dem Repository. Benutzerregistrierung
+  im normalen Desktop-Kontext mit Exitcode 0 durchgeführt; beide HKCU-Ansichten zeigen auf diese EXE.
+  Eigene TLB-/Interface-Metadaten, HKLM-Produktregistrierungen und FinOffice-Registrierung unverändert.
 - ⬜ Pro-Testprofil einrichten beziehungsweise vorhandenen Testprofilpfad nennen und dessen
   tatsächlichen Startpfad klären. Ein Profil-Override darf nicht mit Produkt-COM kombiniert werden;
   isolierte Profile benötigen eine eigene zufällige Fixture-Identität. Keine bestehenden Profile kopieren
@@ -40,7 +42,7 @@ keinen zweiten Ruf mit neuer Request-ID auslösen. Details zur API stehen in der
 
 | Schritt | Aktion und gemeinsame Beobachtung | Bestehenskriterium | Pro | FinOffice |
 |---|---|---|---|---|
-| 0 | Bestätigte Ziel-EXE mit `/regserver /user` als normaler Benutzer registrieren; CLSID, ProgID und `LocalServer32` in beiden HKCU-Ansichten lesen. | Beide Ansichten zeigen dieselbe richtige Edition/EXE; keine TLB-/Interface-/HKLM-Registrierung. | Offen | Offen |
+| 0 | Bestätigte Ziel-EXE mit `/regserver /user` als normaler Benutzer registrieren; CLSID, ProgID und `LocalServer32` in beiden HKCU-Ansichten lesen. | Beide Ansichten zeigen dieselbe richtige Edition/EXE; keine TLB-/Interface-/HKLM-Registrierung. | ✅ 21.11.2026 | Offen |
 | 1 | App regulär schließen; nur `ActiveXObject` aus x64 erzeugen, Status bis Ende von `Starting` abfragen und Referenz halten. Dann x86-Client gleichzeitig hinzufügen. Benutzer beobachtet den Desktop. | Ein richtiger App-Prozess; kein Hauptfenster, Splash oder unerwarteter Dialog; beide Clients melden dieselbe Edition. Konfigurations-/Lizenzstatus gesondert notieren, kein Ready vortäuschen. | Offen | Offen |
 | 2 | Ohne `Show`, SIP-Anmeldung oder Benutzerbetrieb beide Clients samt Unterobjekten freigeben; Prozessende messen. Danach COM erneut aktivieren. | Geordnetes Ende nach der definierten 30-Sekunden-Idlefrist plus begrenzter Messreserve; erneuter Start funktioniert. Idle-Messung nur vor Übergang in den Benutzerbetrieb. | Offen | Offen |
 | 3 | Per COM `Show()` ausführen; danach zweiten Client bei bereits sichtbarer App erzeugen. Minimieren, wieder anzeigen; anschließend Tray-Zustand und erneuten Explorer-Start prüfen. | Eine App-Instanz; bedienbares Fenster wiederhergestellt, Zustand erhalten. Tatsächlichen Vordergrund getrennt von bloßer Sichtbarkeit beurteilen. | Offen | Offen |
@@ -94,6 +96,7 @@ gezielten Aufruf bereit. Telefonnummern und companyKey werden weder erfunden noc
 | Zeitpunkt / Edition / Schritt | Ausgeführter Nachweis | Ergebnis / nächster Schritt |
 |---|---|---|
 | 21.11.2026 / Pro / Vorbereitung | Normaler Desktop-Token, Prozess-/Profil-/Registrierungsmetadaten, Pro-DLL-Hash geprüft; Host/Bitness und sichtbare Tests vom Benutzer bestätigt. | ✅ Vorbereitung abgeschlossen. Ziel-EXE und Testprofil noch zu bestätigen. Kein nativer Abnahmefall ausgeführt. |
+| 21.11.2026 / Pro / 0 | Benutzer bestätigt Repository-Build und gemeinsame Profileinrichtung. `/regserver /user` als normaler Desktop-Benutzer, Exitcode 0; beide Registry-Ansichten, gequoteter EXE-Pfad, Besitzer und Version geprüft; geschützte Registry-Teilbäume vorher/nachher identisch. | ✅ Registrierung. Nachweis: `.artifacts/com-phase8/20261121-Pro-01/registration.json`. Noch kein Profil angelegt; weiter mit JavaScript-Aktivierung ohne Fenster. |
 
 Gesamtstatus: **offen**. Kein Häkchen in der Phase-8-Abnahmematrix, bevor der jeweilige Fall mit
 Laufzeitnachweis und erforderlicher Benutzerbeobachtung tatsächlich bestanden ist.
