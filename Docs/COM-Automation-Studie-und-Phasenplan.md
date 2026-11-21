@@ -841,7 +841,7 @@ und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration 
 
 - [x] ✅ Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
 - [x] ✅ Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
-- [ ] Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
+- [x] ✅ Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
 - [ ] Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
 - [ ] Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
 
@@ -887,6 +887,21 @@ keinen App-Prozess gewaltsam und erzwingen keinen Server-GC. Nachweise:
 und `.com-phase6-races-{build,app,contract}-{fin,pro}.log`. Vorherige unvollständige Läufe mit
 konkurrierend gelesener Diagnosedatei, fehlendem Fast Rundown beziehungsweise zu später COM-Konfiguration
 sind keine erfolgreichen Nachweise. Die Fehler-/Fach-/Sicherheitsgrenzen folgen in den nächsten Punkten.
+
+Dritter abgeschlossener Schritt: `IAutomationBusinessAccess` ergänzt eine injizierte, asynchrone
+Autorisierung des App-Hosts. Vor Kunden-/Lieferantensuche und erneut vor der Anzeige werden aktuelle
+Lizenz, beide Installationsmerkmale, Pluginverfügbarkeit und die vollständige Mandantenidentität
+in der aktuellen Quelle geprüft. Ein veralteter Katalog, eine inzwischen entzogene Lizenz oder
+`ShowView` mit Geschäftskontext geben keine Fachfunktion frei. Die Prüfung aktiviert keine Lizenz,
+öffnet keinen Dialog und ändert weder globale Firmenauswahl noch Quelldaten.
+
+Je Edition bestehen jetzt 75 gezielte App-/Fach-/Telefonie-/Shutdowntests und 18 Vertragstests.
+Zusätzliche Fälle: beide Rollen, sechs unzulässige Lizenzzustände, keine/nur Pro/nur FinOffice/beide
+Installationen und Prüfungsfehler, aus der Quelle entfernter Mandant, Lizenzentzug während der Suche
+und private Providerfehler. Bestehende Prüfungen sichern Busy, Timeout, fehlende Konfiguration,
+ungültige Eingaben, fremde Installation/Produktlinie und Rollen-/Nummerngrenzen. Nachweise:
+`.com-phase6-business-{build,app,contract}-{fin,pro}.log`; reguläre Rebuilds Debug/Any CPU ohne Fehler,
+weiterhin nur die 26 bekannten externen CSCore-Nullablewarnungen. Kein neuer visueller Prüfbedarf.
 
 ### Phase 7 – ⬜ Auslieferung
 

@@ -16,6 +16,7 @@ internal static class AppAutomationComposition
         services.AddSingleton<IAutomationViewHost, AppAutomationPresentation>();
         services.AddSingleton<IAutomationPresentation, DispatchedAutomationPresentation>();
         services.AddSingleton<AppAutomationTelephony>();
+        services.AddSingleton<IAutomationBusinessAccess, AppAutomationBusinessAccess>();
         services.AddSingleton<IAutomationTelephony>(provider => provider.GetRequiredService<AppAutomationTelephony>());
         services.AddHostedService(provider => provider.GetRequiredService<AppAutomationTelephony>());
         services.AddSingleton<AppCallAssociation>();

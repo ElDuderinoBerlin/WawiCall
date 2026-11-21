@@ -25,6 +25,22 @@ public interface IAutomationEnvironment
     void RequireAccess(AutomationAccess access, CompanyKey? company = null);
 }
 
+/// <summary>Host-specific asynchronous authorization before source reads and immediately before presentation.</summary>
+public interface IAutomationBusinessAccess
+{
+    Task RequireAsync(CompanyKey company, CancellationToken cancellationToken);
+}
+
+internal sealed class EnvironmentBusinessAccess(IAutomationEnvironment environment) : IAutomationBusinessAccess
+{
+    public Task RequireAsync(CompanyKey company, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        environment.RequireAccess(AutomationAccess.Business, company);
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>Presentation adapter supplied by the UI host. It must preserve ownership, modal dialogs and dirty drafts.</summary>
 public interface IAutomationPresentation
 {

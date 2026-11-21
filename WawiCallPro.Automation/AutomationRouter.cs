@@ -24,14 +24,20 @@ public sealed class DispatchedAutomationPresentation(IUiDispatcher dispatcher, I
     }
 }
 
-internal sealed class AutomationRouter(IAutomationEnvironment environment, IAutomationPresentation presentation,
-    IAutomationTelephony telephony, NumberedPartyResolver parties)
+internal sealed class AutomationRouter(
+    IAutomationEnvironment environment,
+    IAutomationPresentation presentation,
+    IAutomationTelephony telephony,
+    NumberedPartyResolver parties,
+    IAutomationBusinessAccess businessAccess)
 {
     internal async Task<Guid?> ExecuteAsync(AutomationCommand command, CancellationToken token)
     {
         var access = command.Kind is "connect" or "dial" or "hangup" ? AutomationAccess.Telephony
             : command.Company is null ? AutomationAccess.Presentation : AutomationAccess.Business;
         environment.RequireAccess(access, command.Company);
+        if (access == AutomationAccess.Business && command.Company is { } authorizedCompany)
+            await businessAccess.RequireAsync(authorizedCompany, token).ConfigureAwait(false);
         if (command.Kind == "connect") { await telephony.ConnectAsync(token).ConfigureAwait(false); return null; }
         if (command.Kind == "dial") return await telephony.DialAsync(command.Company!, command.Value, token).ConfigureAwait(false);
         if (command.Kind == "hangup") { await telephony.HangUpAsync(AutomationInput.Id(command.Value), token).ConfigureAwait(false); return null; }
@@ -56,6 +62,7 @@ internal sealed class AutomationRouter(IAutomationEnvironment environment, IAuto
                 {
                     var company = AutomationInput.Company(key.GetString()!, environment);
                     environment.RequireAccess(AutomationAccess.Business, company);
+                    await businessAccess.RequireAsync(company, token).ConfigureAwait(false);
                     request = request with { Company = company };
                     var kind = json.RootElement.TryGetProperty("customerNumber", out var number) ? PartyKind.Customer
                         : json.RootElement.TryGetProperty("supplierNumber", out number) ? PartyKind.Supplier : (PartyKind?)null;
@@ -68,6 +75,8 @@ internal sealed class AutomationRouter(IAutomationEnvironment environment, IAuto
                 }
             }
         }
+        if (request.Company is { } presentedCompany)
+            await businessAccess.RequireAsync(presentedCompany, token).ConfigureAwait(false);
         await presentation.ShowAsync(request, token).ConfigureAwait(false);
         return null;
     }

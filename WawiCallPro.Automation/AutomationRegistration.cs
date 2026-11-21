@@ -25,6 +25,7 @@ public static class AutomationRegistration
         services.AddSingleton(policy);
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<NumberedPartyResolver>();
+        services.TryAddSingleton<IAutomationBusinessAccess, EnvironmentBusinessAccess>();
         services.AddSingleton<AutomationRouter>();
         services.AddSingleton(provider => new AutomationOperations(policy, provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<AutomationRouter>()));
         services.AddSingleton<IAutomationApplicationFactory, AutomationApplicationFactory>();
