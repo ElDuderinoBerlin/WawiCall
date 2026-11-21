@@ -76,6 +76,10 @@ foreach ($name in @('connection.local.json', 'secret.snk', 'MMS.Core.dll', 'Quan
     Remove-Item -LiteralPath $file
 }
 $feedDestination = Join-Path $fixtureRoot 'feed destination'
+$comFixture = Join-Path $bad 'wawicallpro.com-fixture.json'
+[IO.File]::WriteAllText($comFixture, '{"Profile":"synthetic"}')
+Assert-Fails { & (Join-Path $PSScriptRoot 'Assert-ReleasePackage.ps1') -Directory $bad -ProductLine Pro -Version '1.2.3' } 'COM fixture'
+Remove-Item -LiteralPath $comFixture
 foreach ($version in @('1.2.3', '1.2.4')) {
     $packages = Join-Path $fixtureRoot "packages-$version"
     New-Item -ItemType Directory -Path $packages | Out-Null

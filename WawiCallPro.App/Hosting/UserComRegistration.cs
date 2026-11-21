@@ -1,5 +1,7 @@
 using Microsoft.Win32;
 using System.IO;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Security.Principal;
 
 namespace WawiCallPro.App.Hosting;
@@ -7,6 +9,8 @@ namespace WawiCallPro.App.Hosting;
 internal sealed record ComRegistrationIdentity(Guid ClassId, string ProgId, string ProductLine, string Executable,
     string Version, string InstallationRoot, string Arguments = "")
 {
+    internal string? AssemblyPath { get; init; }
+    internal Guid? ModuleId { get; init; }
     internal string Command => "\"" + Executable + "\"" + Arguments;
     internal string ClassKey => @"CLSID\" + ClassId.ToString("B");
 }
@@ -79,6 +83,7 @@ internal sealed class UserComRegistration(IUserComRegistry registry)
         if (!acquired) throw new TimeoutException("COM registration is busy.");
         try
         {
+            using var image = LockCurrentImage(identity);
             var changes = new List<(RegistryView View, string Key, Dictionary<string, string>? Before, Dictionary<string, string>? After)>();
             foreach (var view in Views)
             {
@@ -146,6 +151,20 @@ internal sealed class UserComRegistration(IUserComRegistry registry)
     private static bool SameOwner(Dictionary<string, string> value, ComRegistrationIdentity identity) =>
         SamePath(value[Owner], identity.Executable) && SamePath(value[Root], identity.InstallationRoot) && value[Version] == identity.Version;
     private static bool SamePath(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    private static FileStream? LockCurrentImage(ComRegistrationIdentity identity)
+    {
+        if (identity.AssemblyPath is null) return null;
+        var file = File.Open(identity.AssemblyPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
+        {
+            using var pe = new PEReader(file, PEStreamOptions.LeaveOpen);
+            var metadata = pe.GetMetadataReader();
+            if (metadata.GetGuid(metadata.GetModuleDefinition().Mvid) != identity.ModuleId)
+                throw new InvalidOperationException("The registration caller is an obsolete image.");
+            return file;
+        }
+        catch { file.Dispose(); throw; }
+    }
     private static void Validate(ComRegistrationIdentity identity)
     {
         if (identity.ClassId == Guid.Empty || string.IsNullOrWhiteSpace(identity.ProgId) || identity.ProgId.Length > 128

@@ -7,6 +7,7 @@ param(
     [string]$PackagePath
 )
 $ErrorActionPreference = 'Stop'
+if (Test-Path -LiteralPath (Join-Path $Directory 'wawicallpro.com-fixture.json')) { throw 'COM fixture overrides must never be shipped in a production package.' }
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'Release.Common.psm1') -Force
 $context = Get-ReleaseContext -ProductLine $ProductLine -Version $Version

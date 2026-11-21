@@ -8,6 +8,34 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppComRegistrationTests
 {
     [TestMethod]
+    public void ReplacedAssemblyIsRejectedInsideTheRegistrationLockBeforeAnyMutation()
+    {
+        var store = new RegistryDouble(); var identity = Identity("1.0.0") with
+        { AssemblyPath = typeof(Program).Assembly.Location, ModuleId = Guid.NewGuid() };
+        Assert.Throws<InvalidOperationException>(() => new UserComRegistration(store).Register(identity));
+        Assert.AreEqual(0, store.Nodes.Count);
+    }
+    [TestMethod]
+    public void ImageLeasePreventsFileReplacementWhileRegistrationIsWritten()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "WawiCallPro-image-lease-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory); var file = Path.Combine(directory, "assembly.dll");
+        try
+        {
+            File.Copy(typeof(Program).Assembly.Location, file);
+            var store = new RegistryDouble(); var checkedLease = false;
+            store.BeforeWrite = () =>
+            {
+                Assert.Throws<IOException>(() => { using var writer = File.Open(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete); });
+                checkedLease = true;
+            };
+            var identity = Identity("1.0.0") with { AssemblyPath = file, ModuleId = typeof(Program).Assembly.ManifestModule.ModuleVersionId };
+            new UserComRegistration(store).Register(identity); Assert.IsTrue(checkedLease);
+            using var released = File.Open(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+    [TestMethod]
     public void RegisterAndRemoveAreIdempotentAndTouchOnlyOwnClassAndProgIdInBothViews()
     {
         var store = new RegistryDouble(); var service = new UserComRegistration(store); var identity = Identity("1.0.0");
@@ -81,9 +109,10 @@ public sealed class AppComRegistrationTests
     {
         internal readonly Dictionary<(RegistryView View, string Key), Dictionary<string, string>> Nodes = [];
         internal int Writes, FailAt;
+        internal Action? BeforeWrite;
         public Dictionary<string, string>? Read(RegistryView view, string key) => Nodes.TryGetValue((view, key), out var value) ? new(value) : null;
         public void Write(RegistryView view, string key, IReadOnlyDictionary<string, string> values)
-        { Nodes[(view, key)] = new(values); if (++Writes == FailAt) throw new IOException("Synthetic registry failure."); }
+        { BeforeWrite?.Invoke(); Nodes[(view, key)] = new(values); if (++Writes == FailAt) throw new IOException("Synthetic registry failure."); }
         public void Restore(RegistryView view, string key, IReadOnlyDictionary<string, string>? values)
         { if (values is null || values.Count == 0) Nodes.Remove((view, key)); else Nodes[(view, key)] = new(values); }
         internal string Snapshot() => string.Join("\n", Nodes.OrderBy(item => item.Key.View).ThenBy(item => item.Key.Key)

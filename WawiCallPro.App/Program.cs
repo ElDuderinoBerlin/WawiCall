@@ -20,7 +20,7 @@ internal static class Program
         {
             if (AppComDeployment.TryRun(args) is { } registrationResult) return registrationResult;
             // Installer hooks must finish before UI, licensing or host services are loaded.
-            VelopackApp.Build().SetAutoApplyOnStartup(false).Run();
+            AppVelopackBootstrap.Run();
         }
         catch (Exception)
         {

@@ -69,6 +69,7 @@ internal static class AppComDeployment
         var parent = Path.GetDirectoryName(content);
         if (installationRoot is null && Path.GetFileName(content).Equals("current", StringComparison.OrdinalIgnoreCase)
             && parent is not null && File.Exists(Path.Combine(parent, "Update.exe"))) installationRoot = parent;
-        return new(clsid, progId, line, executable, version, Path.GetFullPath(installationRoot ?? directory).TrimEnd(Path.DirectorySeparatorChar), arguments);
+        return new(clsid, progId, line, executable, version, Path.GetFullPath(installationRoot ?? directory).TrimEnd(Path.DirectorySeparatorChar), arguments)
+        { AssemblyPath = assembly.Location, ModuleId = assembly.ManifestModule.ModuleVersionId };
     }
 }

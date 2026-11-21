@@ -972,7 +972,7 @@ JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenb
 
 - [x] ✅ Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
 - [x] ✅ Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
-- [ ] Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
+- [x] ✅ Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
 - [ ] Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
 - [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
 
@@ -1008,6 +1008,41 @@ Keine Produktregistrierung für Tests angelegt; eigene Testschlüssel gezielt en
 `scripts/test-com-deployment.ps1 -ProductLine Pro` beziehungsweise `FinOffice`. Nachweise:
 `.artifacts/com-phase7-activation-{pro,fin}/results.json`, `.com-phase7-activation-{pro,fin}.log`
 und `.com-phase7-activation-build-{fin,pro}.log`; Debug/Any CPU ohne Fehler, Pro zuletzt regulär gebaut.
+
+Dritter abgeschlossener Schritt: Die echten Velopack-1.2.161-Callbacks nach Installation/Update
+registrieren die aktive EXE; vor Deinstallation wird ausschließlich der passende Eigentümer entfernt.
+Vor dem Update wird nicht vorsorglich deregistriert. Paket-ID, Version, tatsächliches Inhaltsverzeichnis
+und aktives Assembly-MVID müssen zusammenpassen. Die Assembly wird innerhalb der benutzerbezogenen
+Registrierungssperre geprüft und während der Änderung gegen Ersetzen gesperrt. Ein ersetzter Prozess
+kann keine neuen Besitzdaten schreiben. Eine Rücknahme ist nur für dieselbe Installation mit tatsächlich
+zurückgenommener EXE über den validierten Updatehook zulässig, nicht für eine fremde alte Kopie.
+
+Je Edition **21 reale Installationsprüfungen** mit zufälliger Paket-/COM-ID bestanden: `Setup.exe`,
+Update.exe von 1.0.0 auf 2.0.0, Rücknahme auf 1.0.0, x86-/x64-Aktivierung der vollständig installierten
+App in allen drei Zuständen, geordneter Hoststop vor Austausch sowie gezielte Deinstallation. Alte
+Update-/Uninstall-Hooks einer separaten Kopie überschreiben/löschen den neueren Eigentümer nicht.
+COM- und eigener HKCU-Uninstall-Eintrag verschwinden, das außerhalb der Installation liegende Profil
+bleibt erhalten. SDK-Prozessscans finden nach Hoststop nur Update.exe selbst und überspringen es;
+keine App wird in den erfolgreichen Läufen gewaltsam beendet. Keine echten Anrufe oder Lexware-Daten.
+
+Das Paket verwendet eine streng validierte zufällige Testidentität. Die Testmarkierung
+`wawicallpro.com-fixture.json` wird von der Produktionspaketprüfung ausdrücklich zurückgewiesen.
+Der kontrollierte Test-Erststart endet vor UI/Host; reguläre Produktpakete erhalten dieses Verhalten nicht.
+Der gepinnte Setup-Parser hat bei zusätzlichen EXE-Argumenten einen nativen Panic gezeigt. Die
+erfolgreichen Läufe verwenden deshalb stille Installation ohne diese Argumente; SDK/CLI wurden nicht
+aktualisiert. Frühere fehlgeschlagene Läufe zählen nicht als Abnahme. Automatisches Anwenden von Updates
+beim normalen App-Start bleibt deaktiviert; Anwendung bei aktiven Gesprächen ist hier nicht freigegeben.
+
+Je Edition zusätzlich 19 Registrierungs-/MVID-/Dateisperr-/Frühstart-/Argumenttests; 57 Release-
+Skriptprüfungen einschließlich des Testmarker-Ausschlusses bestanden. Reguläre Rebuilds Debug/Any CPU
+ohne Fehler, 26 bekannte externe CSCore-Warnungen, Pro zuletzt. Reale Installerpakete und eigene
+Versionsbuilds ersetzen diese regulären Builds nicht. Nachweise:
+`.artifacts/com-phase7-install-{pro,fin}-final/results.json`, die dortigen Setup-/Update-/Rollback-/
+Uninstall-Logs, `.com-phase7-hooks-{build,tests}-{fin,pro}.log` und `.com-phase7-release-script-tests.log`.
+Wiederholbarer Einstieg ist `scripts/test-com-installation.ps1` mit eigenen Versionsbuilds und
+`-RuntimeDirectory` der betreffenden regulären Edition. Keine produktiven Registrierungen oder Feeds
+wurden geändert. Rücknahme der Hookanbindung zusammen mit deren Registrierungsänderungen durchführen;
+keine TLB-/Maschinenregistrierung als Ersatz verwenden.
 
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 
