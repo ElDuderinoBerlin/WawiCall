@@ -39,10 +39,18 @@ internal sealed class AutomationClassFactory(IAutomationApplicationFactory facto
         if (pUnkOuter is not null) throw new COMException("Aggregation unsupported.", unchecked((int)0x80040110));
         if (riid != new Guid("00000000-0000-0000-C000-000000000046") && riid != new Guid("00020400-0000-0000-C000-000000000046")
             && riid != typeof(IApplicationV1).GUID) throw new COMException("Interface unsupported.", unchecked((int)0x80004002));
-        var instance = factory.Create();
-        var unknown = Marshal.GetIUnknownForObject(instance);
-        try { Marshal.ThrowExceptionForHR(Marshal.QueryInterface(unknown, in riid, out ppvObject)); }
-        finally { Marshal.Release(unknown); }
+        try
+        {
+            var instance = factory.Create();
+            var unknown = Marshal.GetIUnknownForObject(instance);
+            nint dispatch;
+            var dispatchId = new Guid("00020400-0000-0000-C000-000000000046");
+            try { Marshal.ThrowExceptionForHR(Marshal.QueryInterface(unknown, in dispatchId, out dispatch)); }
+            finally { Marshal.Release(unknown); }
+            ppvObject = AutomationDispatch.Export(dispatch, typeof(IApplicationV1).GUID, serverLock);
+        }
+        catch (AutomationFault fault) { throw new COMException(fault.Message, unchecked((int)0x8004A100) + (int)fault.Failure); }
+        catch (Exception) { throw new COMException(AutomationFault.MessageFor(AutomationFailure.ProviderUnavailable), unchecked((int)0x8004A108)); }
     }
     public void LockServer(bool fLock) => serverLock(fLock);
 }

@@ -629,9 +629,9 @@ Der explizite Testmodus unterdrückt UI-Persistierung und globale Hotkeys, ände
 Fixture-Steuerdateien und Zustandsnachweise werden ausschließlich in diesem eigenen Profil verwendet.
 
 Die Grundbindung hält den Host bei COM-Fassaden, Serverlocks, laufenden Aufträgen oder sichtbarem
-Benutzerbetrieb am Leben. Ohne Haltegrund gilt eine Idlefrist von 30 Sekunden; die CCW-Freigabe hängt
-weiterhin vom CLR-Finalizer ab. Vollständige Unterobjekt-, Skriptabsturz-, Gesprächs- und Shutdownrennen
-bleiben Phase 6. Keine periodische Test-GC oder pauschale `IObjectSafety`-Freigabe im App-Host.
+Benutzerbetrieb am Leben. Ohne Haltegrund gilt eine Idlefrist von 30 Sekunden. Die ursprüngliche
+Finalizerbindung aus Phase 3 wird in Phase 6 durch native Referenzzählung für Fassaden und
+Unterobjekte ersetzt. Keine periodische Test-GC oder pauschale `IObjectSafety`-Freigabe im App-Host.
 
 #### Phase-3-Abnahme
 
@@ -839,13 +839,29 @@ und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration 
 
 ### Phase 6 – ⬜ Robustheit und Lebensdauer
 
-- [ ] Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
+- [x] ✅ Benutzerbetrieb, COM-/Unterobjekte, Aufträge und Gespräche mit ausdrücklichen Lebensdauerbindungen versehen.
 - [ ] Letzter Client verschwindet, Skriptabsturz, Aktivierung während Shutdown und parallele Clients prüfen.
 - [ ] Busy-Zustand, fehlende Konfiguration/Lizenz/Lexware, nicht berechtigter Mandant und ungültige Eingaben prüfen.
 - [ ] Fachfunktionen ohne UI-Sperren nicht umgehen; keine ungeprüfte `IObjectSafety`-Freigabe erben.
 - [ ] Begrenzte Fehler-/Auftragsdaten und redigierte Logs kontrollieren; keine fremden Sitzungen übernehmen.
 
 Abnahme: Keine Gesprächsabbrüche durch Objektfreigabe und kein erzwungenes Prozessende außerhalb des geregelten Shutdowns.
+
+Erster abgeschlossener Schritt am 21.11.2026: Der native `IDispatch`-Adapter bindet jede exportierte
+Fassade und jedes Status-/Auftrags-/Gesprächsobjekt über `AddRef`/`Release` an den Host. Die letzte
+native Freigabe löst die Bindung unmittelbar, unabhängig von CLR-Finalizern. Aufträge gehören dem
+gemeinsamen Worker, aktive Gespräche dem Telefoniedienst und sichtbarer/Tray-Benutzerbetrieb dem
+App-Kontext; eine COM-Freigabe beendet diese nicht. Maximal 4096 gleichzeitige Objekt-/Serverbindungen;
+Freigaben während Shutdown bleiben möglich, neue Bindungen und Zustandswiederbelebung sind gesperrt.
+
+Nachweis dieses Schritts: je Edition 18 Vertrags-/Referenztests, 50 gezielte App-/Telefonietests und
+7 native Prüfungen der regulären App. x86 und x64 teilen denselben fensterlosen Prozess; nach
+Freigabe beider Fassaden bleiben deren Statusobjekte über die Idlefrist hinaus nutzbar. Nach letzter
+Unterobjektfreigabe beendet sich der Host mit Klassenrücknahme und erfolgreicher DI-Freigabe.
+Clientseitiges JScript-`CollectGarbage` gibt nur dessen Referenzen frei; der Server erzwingt keinen GC.
+Einstieg: `scripts/test-com-app.ps1 -Lifetime -ProductLine Pro` beziehungsweise `FinOffice` nach dem
+jeweiligen regulären Debug-/Any-CPU-Build. Lokale Nachweise: `.artifacts/com-phase6-native-{fin,pro}-01/results.json`
+und `.com-phase6-{app,contract,build}-{fin,pro}.log`. Die weiteren Phase-6-Punkte bleiben offen.
 
 ### Phase 7 – ⬜ Auslieferung
 

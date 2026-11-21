@@ -4,11 +4,13 @@ param(
     [string]$OutputDirectory,
     [switch]$AllowVisibleWindows,
     [switch]$Views,
+    [switch]$Lifetime,
     [switch]$FromDesktop
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-if (-not $AllowVisibleWindows) { throw 'The native application test opens windows. Use -AllowVisibleWindows only after agreement.' }
+if (-not $Lifetime -and -not $AllowVisibleWindows) { throw 'The native application test opens windows. Use -AllowVisibleWindows only after agreement.' }
+if ($Lifetime -and $Views) { throw 'Choose either the windowless lifetime tests or the visible view tests.' }
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repository "artifacts/com-app/$ProductLine/$([DateTime]::Now.ToString('yyyyMMdd-HHmmss'))" }
 $output = [IO.Path]::GetFullPath($OutputDirectory)
@@ -19,6 +21,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     if ($FromDesktop) { throw 'HKCU COM testing requires a normal desktop token.' }
     $arguments = '-NoLogo -NoProfile -NonInteractive -WindowStyle Hidden -File "{0}" -ProductLine {1} -Configuration {2} -OutputDirectory "{3}" -AllowVisibleWindows -FromDesktop' -f $PSCommandPath,$ProductLine,$Configuration,$output
     if ($Views) { $arguments += ' -Views' }
+    if ($Lifetime) { $arguments += ' -Lifetime' }
     $shell = New-Object -ComObject Shell.Application
     $desktopHandle = 0
     $desktop = $shell.Windows().FindWindowSW(0,0,8,[ref]$desktopHandle,1)
@@ -32,7 +35,7 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     $bootstrap = Get-Content -LiteralPath (Join-Path $output 'bootstrap.json') -Raw | ConvertFrom-Json
     $child = Get-Process -Id $bootstrap.Pid
     try {
-        $limit = [DateTime]::UtcNow.AddSeconds($(if ($Views) { 480 } else { 240 }))
+        $limit = [DateTime]::UtcNow.AddSeconds($(if ($Views -or $Lifetime) { 480 } else { 240 }))
         while (-not $child.WaitForExit(1000)) { if ([DateTime]::UtcNow -gt $limit) { $child.Kill($true); throw 'Native harness timed out.' } }
         $proof = Get-Content -LiteralPath (Join-Path $output 'results.json') -Raw | ConvertFrom-Json
         if (-not $proof.Completed) { throw "Native application test failed: $($proof.Error). Results: $output" }
@@ -104,7 +107,7 @@ function Start-Client($Fixture, [string]$Name, [string]$Bits) {
     $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($Bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))
     $start.UseShellExecute=$false; $start.CreateNoWindow=$true
     $prefix = Join-Path $Fixture.Profile "$Name-"
-    $script = if ($Views) { 'ComPrototype/views.js' } else { 'ComPrototype/app.js' }
+    $script = if ($Lifetime) { 'ComPrototype/lifetime.js' } elseif ($Views) { 'ComPrototype/views.js' } else { 'ComPrototype/app.js' }
     foreach ($argument in @('//nologo','//E:JScript',(Join-Path $PSScriptRoot $script),$Fixture.ProgId,$prefix)) { $start.ArgumentList.Add($argument) }
     $client = [pscustomobject]@{ Process=[Diagnostics.Process]::Start($start); Prefix=$prefix }
     $clients.Add($client); return $client
@@ -139,7 +142,37 @@ function Explorer-Start($Fixture) {
     $shell.ShellExecute($executable, ('--com-fixture "{0}"' -f $Fixture.Profile), (Split-Path $executable -Parent), 'open', 1)
 }
 try {
-    if ($Views) {
+    if ($Lifetime) {
+        $fixture = New-Fixture 'native-lifetime'
+        $a = Start-Client $fixture 'x64' 'x64'; $first = Ready $a
+        $b = Start-Client $fixture 'x86' 'x86'; $second = Ready $b
+        Check ($first.State -eq 'Ready' -and $second.State -eq 'Ready') 'Both client bitnesses activate the actual application without registered type libraries'
+        Wait-Until { $r=Runtime $fixture; $r -and $r.ServerLocks -eq 4 } 'two facades and two snapshots'
+        $owner = Owner $fixture
+        try {
+            Check ((Runtime $fixture).Forms -eq 0 -and -not (Runtime $fixture).FormCreated) 'Parallel native clients create no forms'
+            foreach ($client in @($a,$b)) { [IO.File]::WriteAllText(($client.Prefix+'drop-root'),'') }
+            Wait-Until { (Test-Path -LiteralPath ($a.Prefix+'dropped.json')) -and (Test-Path -LiteralPath ($b.Prefix+'dropped.json')) } 'facade release'
+            Wait-Until { (Runtime $fixture).ServerLocks -eq 2 } 'only snapshot references remain'
+            Check $true 'Native facade Release releases its host lease without forcing server garbage collection'
+            $limit=[DateTime]::UtcNow.AddSeconds(33)
+            while ([DateTime]::UtcNow -lt $limit) {
+                if ($owner.HasExited) { throw 'The host exited while snapshots were still referenced.' }
+                Start-Sleep -Milliseconds 250
+            }
+            Check (-not $owner.HasExited) 'Status subobjects alone keep the host alive beyond the 30-second idle period'
+            foreach ($client in @($a,$b)) { [IO.File]::WriteAllText(($client.Prefix+'read-child'),'') }
+            Wait-Until { (Test-Path -LiteralPath ($a.Prefix+'child.json')) -and (Test-Path -LiteralPath ($b.Prefix+'child.json')) } 'snapshot after facade release'
+            Check ((Read-Json ($a.Prefix+'child.json')).State -eq 'Ready' -and (Read-Json ($b.Prefix+'child.json')).State -eq 'Ready') 'Both retained snapshots remain callable after their parent facades are released'
+            Release-Client $a
+            Wait-Until { (Runtime $fixture).ServerLocks -eq 1 } 'first child release'
+            Check (-not $owner.HasExited) 'One client can release independently of the other client'
+            Release-Client $b
+            if (-not $owner.WaitForExit(45000)) { throw 'The host failed to exit after its last native Release and idle period.' }
+            $stopped=Read-Json (Join-Path $fixture.Profile 'com-stopped.json')
+            Check ($stopped -and $stopped.Success -and $stopped.Revoked) 'Last native Release permits a clean idle shutdown, class revocation and DI disposal'
+        } finally { $owner.Dispose() }
+    } elseif ($Views) {
         foreach ($bits in @('x64','x86')) {
             $fixture=New-Fixture "views-$bits"
             $client=Start-Client $fixture 'views' $bits

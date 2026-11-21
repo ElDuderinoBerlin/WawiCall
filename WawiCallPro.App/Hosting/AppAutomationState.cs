@@ -17,6 +17,7 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     private DateTimeOffset _changed = clock.GetUtcNow();
     private string _state = "Starting";
     private bool _visible, _owned, _stopping, _userMode;
+    internal int ServerLocks { get { lock (_gate) return _locks; } }
     internal bool UserMode { get { lock (_gate) return _userMode; } }
     internal Func<CancellationToken, Task>? ShowRequested { get; set; }
     internal Func<PresentationRequest, CancellationToken, Task>? PresentRequested { get; set; }
@@ -33,10 +34,10 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
         lock (_gate) return new(application.ProductLine == "Pro" ? LexwareProductLine.Pro : LexwareProductLine.FinOffice,
             _state, _visible, Telephony?.Registration.State.ToString() ?? "Stopped", _state is "Failed" or "ConfigurationRequired" ? "ProviderUnavailable" : "");
     }
-    internal void Ready() { lock (_gate) { _state = "Ready"; _changed = clock.GetUtcNow(); } }
+    internal void Ready() { lock (_gate) { if (_stopping) return; _state = "Ready"; _changed = clock.GetUtcNow(); } }
     internal void Failed(Exception failure)
     {
-        lock (_gate) { _state = failure is LicenseAccessException ? "LicenseRequired" : failure is ConfigurationException ? "ConfigurationRequired" : "Failed"; _changed = clock.GetUtcNow(); }
+        lock (_gate) { if (_stopping) return; _state = failure is LicenseAccessException ? "LicenseRequired" : failure is ConfigurationException ? "ConfigurationRequired" : "Failed"; _changed = clock.GetUtcNow(); }
     }
     internal void EnterUserMode() { lock (_gate) { if (_stopping) throw new AutomationFault(AutomationFailure.Stopping); _userMode = true; } }
     internal void Visible() { lock (_gate) { _visible = true; _owned = true; } }
@@ -54,7 +55,9 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     {
         lock (_gate)
         {
-            if (_stopping || !acquire && _locks == 0) throw new AutomationFault(AutomationFailure.Stopping);
+            if (acquire && _stopping) throw new AutomationFault(AutomationFailure.Stopping);
+            if (acquire && _locks >= 4096) throw new AutomationFault(AutomationFailure.Busy);
+            if (!acquire && _locks == 0) throw new AutomationFault(AutomationFailure.Conflict);
             _locks += acquire ? 1 : -1; _changed = clock.GetUtcNow();
         }
     }

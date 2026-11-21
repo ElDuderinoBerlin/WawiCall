@@ -56,7 +56,7 @@ internal sealed class AppApplicationContext : ApplicationContext
         _fixtureDirectory = identity.FixtureDirectory;
         if (!_mode.SuppressNetwork && identity.Enabled)
         {
-            _registration = new(identity.ClassId, host.Services.GetRequiredService<AppAutomationFactory>(), _automation.ServerLock);
+            _registration = new(identity.ClassId, host.Services.GetRequiredService<IAutomationApplicationFactory>(), _automation.ServerLock);
             if (_instance is IComInstancePublication publication) publication.PublishAutomation();
             _idleTimer.Tick += CheckIdle;
             _idleTimer.Start();
@@ -212,7 +212,8 @@ internal sealed class AppApplicationContext : ApplicationContext
                 Pid = Environment.ProcessId, Forms = Application.OpenForms.Count, FormCreated = _form is not null,
                 WindowHandle = _form is { IsHandleCreated: true } ? _form.Handle.ToInt64() : 0,
                 Views = _form?.AutomationDiagnostics(),
-                Visible = _form?.Visible == true, State = _automation.GetStatus().State, SipState = _automation.GetStatus().SipState
+                Visible = _form?.Visible == true, State = _automation.GetStatus().State, SipState = _automation.GetStatus().SipState,
+                ServerLocks = _automation.ServerLocks
             }));
             var stop = System.IO.Path.Combine(directory, "stop.request");
             var closeDialogs = System.IO.Path.Combine(directory, "close-dialog.request");
