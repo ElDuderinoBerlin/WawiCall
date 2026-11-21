@@ -1813,7 +1813,8 @@ entfernen; vorhandene Aufträge, Dateien, Worker und geschützte Abschlusszustel
 Unter **Einstellungen → Audio → Lautstärken und MP3** kann die automatische Konvertierung neuer WAVs
 aktiviert werden. Vorgabe ist aus. `AutomaticMp3Settings` hält Enabled und den UTC-Aktivierungszeitpunkt;
 die Oberfläche setzt ihn bei einer neuen Aktivierung, erhält ihn bei unverändertem Speichern und löscht
-ihn beim Ausschalten. Einstellungsformat 11 liest ältere Formate weiterhin ohne automatische Freigabe.
+ihn beim Ausschalten. Seit Einstellungsformat 11 werden ältere Formate weiterhin ohne automatische Freigabe gelesen;
+Format 12 ergänzt inzwischen die lokale Aufnahmequellenwahl.
 Die lokale Freigabe wird über den portablen JSON-Export/-Import nicht auf einen anderen Rechner übertragen.
 
 `AutomaticRecordingConversions` prüft bei einer Workeranforderung nur bestätigte lokale WAV-Artefakte
@@ -1838,7 +1839,7 @@ Doppeljobs. Schema 14 und SQL unverändert. Keine sichtbaren GUI-Tests oder prod
 
 Rollback: Option deaktivieren und automatische Vorbereitung sowie die zusätzlichen Signalschnittstellen
 zurücknehmen; vorhandene Jobs und Abschlussaufträge mit kompatiblen Diensten zustellen. Einstellungen
-im Format 11 vor Verwendung einer älteren Programmversion sichern; alte Versionen kennen die neue Freigabe nicht.
+im jeweils aktuellen Format vor Verwendung einer älteren Programmversion sichern; alte Versionen kennen neue Felder/Freigaben nicht.
 
 ### Tatsächliche Prozessabbrüche bei der MP3-Verarbeitung (17.11.2026)
 

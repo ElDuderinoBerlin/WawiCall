@@ -253,6 +253,7 @@ public partial class SettingsPage : XtraUserControl
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
         automaticMp3Edit.Checked = options.AutomaticMp3.Enabled;
+        recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
         _cacheCompanies.AddRange(options.Companies.Where(company => !known.Contains(company.Company))
@@ -274,7 +275,7 @@ public partial class SettingsPage : XtraUserControl
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
                 DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
-                CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
+                RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
             AutomaticMp3 = new() { Enabled = automaticMp3Edit.Checked,
                 SinceUtc = automaticMp3Edit.Checked ? old.AutomaticMp3.Enabled ? old.AutomaticMp3.SinceUtc : DateTimeOffset.UtcNow : null },
             SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)

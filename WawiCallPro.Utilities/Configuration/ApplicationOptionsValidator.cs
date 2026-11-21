@@ -176,6 +176,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("devices.playbackVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
         if (devices.RingVolumePercent is < 0 or > 100)
             issues.Add(new("devices.ringVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
+        if (!Enum.IsDefined(devices.RecordingReceiveSource))
+            issues.Add(new("devices.recordingReceiveSource", "Eine gültige Aufnahmequelle auswählen."));
     }
 
     private void ValidateDatabase(CommunicationDatabaseSettings? database, ImmutableArray<ConfigurationIssue>.Builder issues)

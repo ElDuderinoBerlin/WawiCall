@@ -20,7 +20,7 @@ public sealed partial class SentRtpPcmTests
     {
         await using var fixture = new Fixture(codec); fixture.EnableReceiveBuffer(); await fixture.Connect(); using var files = new RecordingFiles();
         using var host = ConsoleCompositionRoot.Build(loadPlugins: false); var factory = host.Services.GetRequiredService<IDuplexPcmRecordingFactory>();
-        Assert.IsInstanceOfType<DuplexPcmRecordingFactory>(factory); Assert.AreSame(factory, host.Services.GetRequiredService<IDuplexPcmRecordingFactory>());
+        Assert.IsInstanceOfType<RecordingSourceFactory>(factory); Assert.AreSame(factory, host.Services.GetRequiredService<IDuplexPcmRecordingFactory>());
         await using var recording = await factory.StartAsync(fixture.Tap, DuplexRequest(fixture, files));
         var rate = fixture.Format.ClockRate; var block = rate / 50; var inputs = new[] { Samples(block, 0), Samples(block, 1) };
         fixture.Capture(inputs[0]); fixture.EmitExtras(160, new AudioEncoder().EncodeAudio(Samples(block, 2), fixture.Format)); fixture.Capture(inputs[1]);

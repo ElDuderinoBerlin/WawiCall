@@ -162,3 +162,49 @@ Die tatsächliche FRITZ!Box, Ton in beide Richtungen, Geräteverlust und konkret
 Profile sind noch nicht abgenommen. Gesonderte Domain-/Proxy-/RTP-Optionen bleiben vom konkreten
 Anlagenbedarf abhängig. Ein lokaler Registrar-Ausfalltest belegt keine Windows-Netzadapterumschaltung
 und keine Ende-zu-Ende-Audioqualität.
+
+## Aufnahmequelle: RTP oder CSCore-Loopback (21.11.2026)
+
+Unter **Einstellungen → Audio → Geräte → Aufnahmequelle** stehen zwei Möglichkeiten bereit:
+
+| Auswahl | Empfangene Aufnahmeseite | Eigene Aufnahmeseite |
+|---|---|---|
+| RTP / Medienpfad (Vorgabe) | PCM nach dem Decodieren der empfangenen RTP-Audiodaten | PCM aus dem tatsächlichen Codec-/RTP-Sendepfad |
+| CSCore-Loopback | WASAPI-Loopback des gewählten Gesprächsausgabegeräts, einschließlich weiterer dort wiedergegebener Töne | Weiterhin derselbe Codec-/RTP-Sendepfad |
+
+Die Auswahl gilt für neu erzeugte Gesprächsmedien und startet keine Aufnahme. Bei „Systemstandard“
+wird das tatsächliche Wiedergabegerät beim Erzeugen der Gesprächsmedien aufgelöst und für diese
+Sitzung festgehalten; ein späterer Wechsel des Windows-Standards lenkt eine laufende Aufnahme nicht um.
+Die Quelle ist eine lokale Einstellung: portabler Export überträgt diese Freigabe nicht, Import
+erhält den lokalen Wert. Ältere Konfigurationen verwenden weiterhin RTP. Lokales Einstellungsformat
+ist jetzt 12; `devices.recordingReceiveSource` wird als `Rtp` oder `PlaybackLoopback` gespeichert.
+
+`WindowsSipMediaSessionFactory` gibt einen `RecordingInputMediaSession`-Wrapper zurück. Er markiert
+die alternative Quelle nur; erst der ausdrückliche `StartRecordingAsync`-Auftrag öffnet Loopback.
+`RecordingSourceFactory` wählt zwischen bestehender RTP-Duplexfactory und
+`PlaybackDuplexRecordingFactory`. Beide verwenden die vorhandene PCM-Sitzung, den Gesprächsmixer
+und die unveränderte persistierte Aufnahme-/MP3-Pipeline. Es gibt keine zweite WAV-Persistenz und
+keine Aufnahme anderer Mikrofone. Die allgemeine Aufnahmebedienung bleibt ein separater Planpunkt.
+
+Die native Implementierung verwendet CSCore `AudioClient`/`AudioCaptureClient` mit
+`StreamFlagsLoopback`. Sie übernimmt die WASAPI-Geräteposition und QPC-Position des ersten Frames,
+kalibriert diese gegen die explizite UTC-Aufnahmeepoche und positioniert weitere Blöcke anhand
+des Geräte-Framezählers. Stille bleibt auf der gemeinsamen Aufnahmezeitachse erhalten; Paketankunft
+ersetzt keine RTP-Zeitstempel. `GetBuffer` liefert QPC bereits in 100-ns-Einheiten; jeder erfolgreiche
+Paketabruf wird auf demselben Workerthread über `ReleaseBuffer` freigegeben.
+[Microsoft: IAudioCaptureClient.GetBuffer](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudiocaptureclient-getbuffer).
+
+PCM16/24/32 und Float32 einschließlich entsprechender Extensible-Formate werden begrenzt nach Mono-PCM16
+umgerechnet. Zeitstempelfehler, nachträgliche Diskontinuitäten, Überlappungen, ungültige Daten und
+Geräteausfälle verwerfen die Aufnahme ausdrücklich; sie erzeugen keine scheinbar erfolgreiche Mischdatei.
+Stoppen/Abbrechen wartet auf Capture und Sendebindung vor der Dateifinalisierung beziehungsweise Freigabe.
+
+Nachweise je Edition: 20 App-/Loopback-/UI-/DI-Prüfungen, 64 PCM-/Zeitachsenprüfungen,
+212 bestehende RTP-/Aufnahme-/Mixertests und 17 Konfigurationstests bestanden. Beide regulären Builds
+Debug/Any CPU erfolgreich, Pro zuletzt. 29 Designer-Dateitripel geprüft; Audio-Tab mit 10/16 pt,
+hellem/dunklem Skin und 150-%-Layoutsimulation ohne neue sichtbare App-Instanz gerendert und ausgewertet.
+Native Quelle im normalen Benutzerkontext zweimal gestartet/gestoppt, keine Datei und kein Mikrofon
+geöffnet. Das Ausgabegerät war still: **0 beobachtete Pakete**, daher kein echter Signal-/Gesprächsnachweis.
+Dieser bleibt zusammen mit Wiedergabeprüfung und Geräteverlusttest in G1/Phase 9 offen.
+Logs `.loopback-*.log`, Bilder `.artifacts/app-shell/settings-ui/recording-source`,
+nativer Status `.artifacts/loopback/native-smoke-result.json`.

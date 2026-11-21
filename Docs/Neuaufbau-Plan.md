@@ -3249,6 +3249,24 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
 - [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
 - [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren;
   Empfangspfad aus `RecordIncomingCall` berücksichtigen und beide Gesprächsseiten gezielt erfassen.
+- [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
+  **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
+  Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;
+  keine Aufnahme beim Laden/Speichern/Anmelden. CSCore-Capture öffnet erst beim ausdrücklichen
+  Aufnahmeauftrag. WASAPI-Geräteframezähler/QPC statt Paketankunft positionieren Loopback auf der
+  gemeinsamen Aufnahmeepoche; Stille, begrenzte PCM16/24/32-/Float32-Umrechnung und Fehlerabbruch
+  ohne scheinbar erfolgreiche WAV. Bestehende PCM-/Mixer-/Journal-/MP3-Pipeline wiederverwendet.
+  Lokales Einstellungsformat 12, ältere Dateien verwenden RTP; portable Übernahme aktiviert Loopback
+  nicht. Je Edition 20 gezielte App-/Loopback-/UI-/DI-, 64 Core-, 212 RTP-/Aufnahme-/Mixer- und
+  17 Konfigurationsprüfungen bestanden. Beide regulären Builds Debug/Any CPU, Pro zuletzt;
+  29 Designer-Dateitripel und gezielte helle/dunkle Audio-Renderbilder mit größerer Schrift und
+  150-%-Layoutsimulation geprüft. Native CSCore-Quelle im normalen Benutzerkontext zweimal
+  gestartet/freigegeben, keine Audiodatei und kein Mikrofon; stilles Gerät, 0 Audiopakete.
+  **Keine echte Gesprächsaufnahme oder Wiedergabe damit bestätigt; G1/Audioabnahme bleiben offen.**
+  Details in [SIP-Einstellungen](SIP-Einstellungen.md#aufnahmequelle-rtp-oder-cscore-loopback-21112026),
+  Logs `.loopback-*.log`, `.artifacts/loopback/native-smoke-result.json` und
+  `.artifacts/app-shell/settings-ui/recording-source`. Allgemeine Aufnahmebedienung separat offen.
+
 - [x] ✅ Dateibasierte Mixer-Vorstufe nach `WavMixer`/`SimpleMixer` umgesetzt (14.11.2026):
   `IConversationWaveMixer` mit injiziertem `IConversationWaveRenderer` im bestehenden Audio-Projekt;
   beide Hosts registrieren zustandslose Dienste. Ein Auftrag enthält Call-/Aufnahme-ID, finalisierte

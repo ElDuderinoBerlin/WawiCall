@@ -43,7 +43,8 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.SentPcmRecordingBindingFactory>(sentBindings);
             Assert.AreSame(sentBindings, host.Services.GetRequiredService<ISentPcmRecordingBindingFactory>());
             var duplex = host.Services.GetRequiredService<IDuplexPcmRecordingFactory>();
-            Assert.IsInstanceOfType<WawiCallPro.Core.Audio.DuplexPcmRecordingFactory>(duplex);
+            Assert.IsInstanceOfType<RecordingSourceFactory>(duplex);
+            Assert.IsInstanceOfType<WawiCallPro.Core.Audio.DuplexPcmRecordingFactory>(host.Services.GetRequiredService<WawiCallPro.Core.Audio.DuplexPcmRecordingFactory>());
             Assert.AreSame(duplex, host.Services.GetRequiredService<IDuplexPcmRecordingFactory>());
             var anchors = host.Services.GetRequiredService<IRtpRecordingAnchorResolver>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpRecordingAnchorResolver>(anchors);

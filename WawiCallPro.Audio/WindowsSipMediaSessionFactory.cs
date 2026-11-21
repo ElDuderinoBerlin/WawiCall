@@ -22,7 +22,8 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         try
         {
-            if (devices.PlaybackDeviceId is not null) playback = enumerator.GetDevice(devices.PlaybackDeviceId);
+            playback = devices.PlaybackDeviceId is not null ? enumerator.GetDevice(devices.PlaybackDeviceId)
+                : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
             if (devices.CaptureDeviceId is not null) capture = enumerator.GetDevice(devices.CaptureDeviceId);
             endpoint = new WindowsAudioEndPoint(pcm, playback, capture, disableSource: devices.MicrophoneMuted);
             if (!endpoint.IsAudioSinkInitialized || !devices.MicrophoneMuted && !endpoint.IsAudioSourceInitialized)
@@ -33,7 +34,8 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
             media = new VoIPMediaSession(endpoint.ToMediaEndPoints(), System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
                 { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
             receive = bridges.Create(media, endpoint, pcm);
-            return new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm, receive);
+            return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm, receive),
+                devices with { PlaybackDeviceId = playback.DeviceID });
         }
         catch
         {

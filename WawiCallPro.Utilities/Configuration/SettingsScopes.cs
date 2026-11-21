@@ -25,6 +25,8 @@ public sealed record AutomaticMp3Settings
     public DateTimeOffset? SinceUtc { get; init; }
 }
 
+public enum RecordingReceiveSource { Rtp, PlaybackLoopback }
+
 /// <summary>Local CSCore/MMDevice endpoint IDs, never enumeration indexes. Null selects the system default later.</summary>
 public sealed record AudioDeviceSettings
 {
@@ -34,6 +36,7 @@ public sealed record AudioDeviceSettings
     public int PlaybackVolumePercent { get; init; } = 100;
     public int RingVolumePercent { get; init; } = 100;
     public bool MicrophoneMuted { get; init; }
+    public RecordingReceiveSource RecordingReceiveSource { get; init; } = RecordingReceiveSource.Rtp;
     public override string ToString() => nameof(AudioDeviceSettings);
 }
 
