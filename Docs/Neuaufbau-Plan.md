@@ -111,7 +111,20 @@ COM-Phasenübersicht und [Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) en
 Reguläre Builds Debug/Any CPU erfolgreich, Pro zuletzt. Belege `.artifacts/com-mock-acceptance/20261121`.
 **G1–G6, echte SIP-/Audio-/Lexware- und fehlende Fachfunktionen bleiben separat offen.**
 
-✅ **SIP-Beispielzugang lokal übernommen (21.11.2026):** Auf Benutzerauftrag Daten ausschließlich aus
+✅ **Aktiver MicroSIP-Zugang lokal übernommen (21.11.2026):** Auf erneuten Benutzerauftrag den aktiven
+Account aus der lokalen MicroSIP-Konfiguration einschließlich Kennwort in das Pro-Profil übernommen.
+Die bereitgestellte `MicroSIP-Einstellungen.txt` stimmt für Server, Domain, Benutzer, Kennwort,
+Authentifizierungsname, Transport und Registrierungsdauer mit diesem Account überein (intern verglichen).
+Server/Domain sind gleich, kein separater Proxy konfiguriert; TCP und Registrierung 300 Sekunden
+übernommen. Die früheren PlaySounds-Zugangswerte sind dadurch im lokalen Pro-Profil ersetzt.
+Das MicroSIP-Speicherformat wurde vor der Übernahme validiert; das Kennwort nur im Speicher entschlüsselt
+und über `ConfigurationStore` mit DPAPI CurrentUser geschützt nach
+`%LOCALAPPDATA%\WawiCallPro\Pro\connection.local.json` geschrieben. Erneutes Laden, Kennwortvergleich und
+Erhalt aller übrigen Einstellungsbereiche erfolgreich. MicroSIP-Quelldatei unverändert; keine Zugangswerte
+in Git, Berichten oder Ausgaben. Startautomatik bleibt aus, keine echte SIP-Anmeldung oder Anrufe.
+Bereinigter lokaler Nachweis: `.artifacts/sip-password-review/microsip-import-result.json`.
+
+✅ **SIP-Beispielzugang lokal übernommen (21.11.2026, später durch MicroSIP ersetzt):** Auf Benutzerauftrag Daten ausschließlich aus
 `D:\Application-Development\sipsorcery-examples\PlaySounds\Program.cs` in die vom Pro-Host tatsächlich
 geladene Datei `%LOCALAPPDATA%\WawiCallPro\Pro\connection.local.json` übernommen. Das ist die zentrale
 Anwendungskonfiguration; keine zusätzliche ungebundene `appsettings.json` angelegt. Kennwort mit der
