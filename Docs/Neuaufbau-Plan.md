@@ -100,6 +100,17 @@ der Migrationsfortschritte auf die vorhandenen Versionen 1–14 korrigiert, kein
 gemeinsam prüfen. COM-Phase 8/G1 werden hierdurch nicht abgeschlossen. Nur den jeweils nächsten Schritt
 im [COM-Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) ausführen.
 
+✅ **COM-Phase 8 im neu vereinbarten Mock-Umfang abgeschlossen (21.11.2026):** Benutzer wünscht zunächst
+nur funktionierende COM-Aufrufe und erlaubt temporäre Mocks. Vorhandene isolierte Fixtures verwendet;
+produktive Dienste und reale Zugangseinstellungen dafür nicht verändert. Je Pro/FinOffice **110 App-,
+18 Vertrags-, 70 native COM-Vertrags-, 78 native App-View- und 18 native Lebensdauerprüfungen** bestanden.
+Windows Script Host x86/x64, UI-/Mandanten-/Rollenrouting, Auftrags-/Fehlerantworten, Telefonie mit Doubles,
+Clientverlust, Idleende/Neustart und Shutdownrennen nachgewiesen. Temporäre Klassen ausschließlich
+unter HKCU bereinigt, keine TLB-/Interface-/HKLM-Registrierung, keine erzwungene Serverbeendigung.
+COM-Phasenübersicht und [Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) entsprechend aktualisiert.
+Reguläre Builds Debug/Any CPU erfolgreich, Pro zuletzt. Belege `.artifacts/com-mock-acceptance/20261121`.
+**G1–G6, echte SIP-/Audio-/Lexware- und fehlende Fachfunktionen bleiben separat offen.**
+
 ✅ **SIP-Beispielzugang lokal übernommen (21.11.2026):** Auf Benutzerauftrag Daten ausschließlich aus
 `D:\Application-Development\sipsorcery-examples\PlaySounds\Program.cs` in die vom Pro-Host tatsächlich
 geladene Datei `%LOCALAPPDATA%\WawiCallPro\Pro\connection.local.json` übernommen. Das ist die zentrale

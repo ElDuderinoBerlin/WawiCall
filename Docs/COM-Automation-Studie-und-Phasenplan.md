@@ -9,7 +9,10 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1–7 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–8 im vereinbarten COM-Prüfumfang abgeschlossen.
+Am 21.11.2026 begrenzt der Benutzer die Abnahme ausdrücklich auf die generelle Funktion der COM-Aufrufe;
+Telefonie und Warenwirtschaft werden dafür gemockt. Echte SIP-/Audio-/Lexware-Abnahmen gehören weiterhin
+zu den getrennten G-Punkten des Neuaufbauplans. Diese Eingrenzung ersetzt die frühere Live-Vorgabe für Phase 8. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
@@ -21,7 +24,7 @@ Viewprüfungen und 23 Start-/Fensterregressionen bestanden.
 ✅ Phase 5: COM-Telefonie am gemeinsamen UI-/SIP-Dienst, fensterlose Anrufzuordnung und
 Clientverlust-/Deduplizierungsnachweise implementiert. Je Edition 46 gezielte App-Tests und
 15 COM-Vertragstests bestanden. Die anschließende Lebensdauermatrix und Schutzprüfung steht in Phase 6;
-Die Auslieferung wird anschließend in Phase 7 belegt; die reale Produktabnahme bleibt Phase 8.
+Die Auslieferung ist in Phase 7 belegt; reale Fach-/SIP-/Audioabnahmen bleiben getrennt in G1–G6 des Neuaufbauplans.
 ✅ Phase 6: native Referenzbindungen für Fassaden und Unterobjekte, parallele Clients, harter
 Skriptabbruch, geordneter Shutdown und Aktivierung während Shutdown sowie erneute Fachautorisierung
 und Daten-/Loggrenzen geprüft. Je Edition 84 gezielte App-Tests, 18 Vertragstests, 18 native App-Prüfungen
@@ -454,10 +457,10 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
 | 3 | ✅ | Gemeinsamer App-/COM-Host, fensterloser Start und bedarfsweises Hauptfenster; je Edition 37 App-Tests, 15 Vertragstests, 23 native Prüfungen | Agent; eigene Profile/HKCU-Identitäten, Fenster-/Instanznachweise ohne reale Anrufe |
 | 4 | ✅ | Firmen-/Viewkatalog, ShowCustomer/ShowSupplier und alle verfügbaren Ansichten; je Edition 42 App-Tests, 15 Vertragstests, 78 native Views und 23 Start-/Fensterprüfungen | Agent; freigegebene x86-/x64-WSH-Läufe, synthetische Daten, gezielte Layoutnachweise |
-| 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung weiterhin Phase 8 |
+| 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung separat in G1–G6 |
 | 6 | ✅ | Native Objekt-/Unterobjektbindung, Clientabbruch, Mehrclient-/Shutdownrennen und Schutzgrenzen; je Edition 84 App-Tests, 18 Vertragstests, 18 native App- und 70 native Vertragsprüfungen | Agent; isolierte Profile/HKCU-Identitäten, keine erzwungene Serverbeendigung und kein Server-Test-GC |
-| 7 | ✅ | HKCU-only ohne TLB, Besitz-/Versionsschutz, echte Velopack-Installation/Update/Rücknahme/Deinstallation und Anleitung; je Edition 99 App-/18 Vertragstests, 26 Deployment-/21 Installationsprüfungen, 57 Skriptprüfungen | Agent; isolierte zufällige Identitäten, Produktregistrierungen erhalten; reale Fachhost-/SIP-Abnahme Phase 8 |
-| 8 | 🟨 | Pro: fensterlose Produktaktivierung und Idleende/Neustart belegt; Mandantenanbindung ergänzt und isoliert geprüft. Weitere reale Pro-/FinOffice-Fälle offen | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
+| 7 | ✅ | HKCU-only ohne TLB, Besitz-/Versionsschutz, echte Velopack-Installation/Update/Rücknahme/Deinstallation und Anleitung; je Edition 99 App-/18 Vertragstests, 26 Deployment-/21 Installationsprüfungen, 57 Skriptprüfungen | Agent; isolierte zufällige Identitäten, Produktregistrierungen erhalten; reale Fachhost-/SIP-Abnahme separat in G1–G6 |
+| 8 | ✅ | Technische COM-Abnahme mit Test-Doubles für Pro und FinOffice: je 110 App-/18 Vertragstests, 70 native Vertrags-, 78 native View- und 18 native Lebensdauerprüfungen | Agent; Windows Script Host x86/x64, synthetische Daten, echte Fach-/SIP-/Audioabnahme separat in G1–G6 |
 
 ### Phase 0 – ✅ Studie und Entscheidung
 
@@ -1089,75 +1092,65 @@ Finale lokale Nachweise: `.com-phase7-final-{build,app,contract}-{fin,pro}.log`,
 `.artifacts/com-phase7-install-{fin,pro}-final/results.json`, `.com-phase7-final-release-scripts.log`
 und `.artifacts/com-phase7-final-evidence.json` mit Testfilter, DLL-/Paket-Hashes und Logauswertung.
 Die [Bedienanleitung](COM-Automation-Anleitung.md) enthält Voraussetzungen, Beispiele, Fehlercodes
-und den Reparaturweg. Alle fünf Phase-7-Punkte und die Phasenübersicht sind ✅. Die produktive
-Zielinstallation und tatsächliche JavaScript-/SIP-/Audio-/Fachhostabnahme erfolgen gemeinsam in Phase 8.
+und den Reparaturweg. Alle fünf Phase-7-Punkte und die Phasenübersicht sind ✅. Die technische
+COM-Abnahme ist in Phase 8 mit Mocks nachgewiesen. Die produktive Zielinstallation sowie reale SIP-/Audio-/
+Fachhostabnahme bleiben gemeinsam unter G1–G6 des Neuaufbauplans.
 
-### Phase 8 – 🟨 Gemeinsame native Abnahme
+### Phase 8 – ✅ Technische native COM-Abnahme mit Test-Doubles
 
-✅ **Vorbereitung am 21.11.2026:** [Schrittfolge und Ergebnisprotokoll](COM-Automation-Phase8-Abnahme.md)
-angelegt. Benutzer wählt Pro zuerst, Windows Script Host in x86/x64 und erlaubt sichtbare Tests.
-Lesende Vorprüfung im normalen Desktop-Benutzerkontext: keine laufende Wawi-Instanz, keine
-Produkt-COM-Registrierung, normales Pro-Profil fehlt. Pro 0.1.246 aus dem regulären Debug-/Any-CPU-
-Ausgabepfad stimmt im DLL-Hash mit Phase 7 überein. Ziel-EXE und Testprofil werden vor Registrierung
-und Aktivierung bestätigt.
-✅ **Pro Schritt 0:** Benutzer wählt Repository-Build 0.1.246 und gemeinsame Testprofileinrichtung.
-HKCU-Registrierung als normaler Desktop-Benutzer mit Exitcode 0 bestanden; beide Ansichten zeigen auf
-die bestätigte EXE. TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert. Nachweis und weitere
-JavaScript-Schritte im Ergebnisprotokoll.
-✅ **Pro Schritt 1:** Echte Produktaktivierung aus gehaltenen x64-/x86-JScript-Clients, API 1.0,
-Ready/unsichtbar/SIP Stopped, ein App-Prozess und nativ kein sichtbares Fenster. Benutzer bestätigt
-den Start ohne Hauptfenster, Splash oder Fehlerdialog. Der aktuelle Katalog enthält 23 Basiseinträge;
-eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufnahme im Ergebnisprotokoll.
-✅ **Pro Schritt 2:** Beide JavaScript-Clients geordnet freigegeben; der fensterlose Host endet nach
-30,73 Sekunden mit Exitcode 0. Erneute Produktaktivierung startet einen neuen, weiterhin unsichtbaren
-Pro-Prozess im Zustand Ready/SIP Stopped. Keine erzwungene App-Beendigung.
-**Weitere Teilprüfung:** JavaScript `Show` und Einstellungsdialog erfolgreich; modale Fremdnavigation
-liefert `Busy`. GUI-Bedienbestätigung und Testprofileinrichtung stehen noch aus. Die dabei erkannte
-Editorlücke ist inzwischen geschlossen, siehe unten. Fehlende Fach-Tabs bleiben offen und werden nicht
-als COM-Funktionserfolg gewertet.
-✅ **Korrektur Mandantenanbindung:** Hauptfenster lädt den vorhandenen Katalog des aktiven Plugins
-jetzt in einer zentralen durchsuchbaren Mandantenauswahl und aktualisiert ihn nach den Einstellungen.
-Pro-/FinOffice-Erkennung und Firmenabfragen bleiben in den jeweiligen Plugins. Fremde/ungültige und
-verspätete Ergebnisse werden verworfen; Pluginwechsel und Shutdown brechen ausstehende Ladevorgänge ab.
-Je Edition 22 gezielte App-/Designer-/COM-Viewprüfungen sowie 70 Pro- und 46 FinOffice-Pluginprüfungen
-bestanden; reguläre Rebuilds Debug/Any CPU erfolgreich, Pro zuletzt. Dies ist ein isolierter technischer
-Nachweis. Freigegebener Live-Testmandant, lokaler Pro-Zugang und tatsächliche Fachabnahme bleiben offen.
+**Umfang vom Benutzer am 21.11.2026 festgelegt:** „echte Logik z.B. Telefonieren noch nicht nur schauen
+ob die COM-Aufrufe generell funktionieren“ und „oder mocke das temporär“. Damit gilt die technische
+COM-Abnahme als aktueller Abschlussumfang. Die früher vorbereitete echte SIP-/Audio-/Lexware-Abnahme
+wird nicht als bestanden umgedeutet, sondern unter G1–G6 des Neuaufbauplans separat fortgeführt.
+Die bisherige echte Pro-Produktaktivierung und die begonnene Einrichtung bleiben im
+[Ergebnisprotokoll](COM-Automation-Phase8-Abnahme.md) nachvollziehbar.
 
-✅ **Pro-Zugangseditor ergänzt:** Der zentrale Tab **Lexware-Pro-Zugang** lädt einen optionalen Editor aus
-dem Pro-Plugin; Validierung und Quelllogik bleiben dort. Typisierter Entwurf, maskierte Geheimnisse,
-DPAPI-Speicherung gemeinsam mit den allgemeinen Einstellungen, Abbrechen ohne Schreiben und Schutz
-vor konkurrierenden Änderungen geprüft. Neustart übernimmt den neuen Zugang; beim Schließen dafür
-kein Abruf mit dem alten Zugang. COM öffnet den Tab über `settings-wawi`, 23 gemeinsame Basis-/Dialogeinträge plus die optionale Plugin-Zugangs-View.
-Reguläre Builds Debug/Any CPU beider Editionen, gezielte App-/Utilities-/Plugin-/Console-Prüfungen sowie
-Designer-/Layout- und Shared-Assembly-Deploymentnachweise erfolgreich, Details im Neuaufbauplan.
-**Nächster gemeinsamer Schritt:** Testzugang ausschließlich lokal im Editor eintragen; noch nicht
-speichern. Erst nach Benutzerbestätigung speichern/neustarten und tatsächliche Firmenladung prüfen.
-Das [Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) führt jeden Schritt einzeln; Live-Testbestand,
-SIP-/Audio- und Fachabnahme sowie Phase 8 insgesamt bleiben offen.
+- [x] ✅ Beide Editionen regulär in Debug/Any CPU gebaut; Pro zuletzt. Vorhandene fremde Änderungen erhalten.
+- [x] ✅ Je Edition **110 App-Prüfungen**: COM-Start, Instanzidentität, DI-Anschlüsse, Geschäftspartner-/Mandantengrenzen,
+  Kunden/Lieferanten, asynchrone Aufträge, Telefonie mit Test-Doubles, Deduplizierung, Clientverlust,
+  Persistierung/Neustart, Schutzgrenzen, begrenzte Logs und Registrierung.
+- [x] ✅ Je Edition **18 Vertragstests**: Interface-/Dispatchverträge und TLB nur mit `REGKIND_NONE`.
+- [x] ✅ Je Edition **70 native Vertragsprüfungen** aus echtem `cscript.exe` x86/x64: `ActiveXObject`,
+  `GetStatus`, Firmen-/Viewkatalog, `Show`, `ShowView`, `ShowCustomer`, `ShowSupplier`, `ShowDial`,
+  `ConnectTelephony`, `Dial`, `GetOperation`, `GetCall` und `HangUp` mit synthetischem Backend;
+  Unicode, exakte Nummern/Rollen, feste Fehler/HRESULTs sowie vollständige Freigabe.
+- [x] ✅ Je Edition **78 native Viewprüfungen** gegen die tatsächliche App mit isoliertem Dummy-Profil:
+  `ShowCustomer` öffnet den echten Stammdaten-Workspace, wiederholte Anzeige verwendet dieselbe View,
+  falsche Rolle/Nummer wird abgewiesen. Alle angebotenen Basis-/Einstellungsviews, Datenbankassistent,
+  Anrufersuche und Wähldialog aus x86/x64 geöffnet. Modaler Einstellungsdialog sperrt Fremdnavigation
+  mit `Busy`, Tabwechsel bleibt möglich. Unbekannte View und fehlender Gesprächskontext werden abgewiesen.
+- [x] ✅ Je Edition **18 native Lebensdauerprüfungen**: fensterloser Mehrclientstart unter demselben
+  Benutzer/in derselben Sitzung, gehaltene Unterobjekte nach Fassadenfreigabe, unabhängige Releases,
+  geordnetes Idleende nach 30 Sekunden, neue Aktivierung, Aktivierung im Shutdown und harter Clientabbruch
+  mit weiter verwendbarem zweiten Client. Keine erzwungene Serverbeendigung und kein Server-Test-GC.
+- [x] ✅ Temporäre CLSID-/ProgID-Einträge nur unter HKCU, keine TLB-/Interface-/HKLM-Registrierung.
+  Isolierte Fixture-Registrierungen entfernt, Produktprofile und fremde Registrierungen erhalten.
 
-| Fall | Erwarteter Nachweis | Pro | FinOffice |
+| COM-Bereich | Nachweis | Pro | FinOffice |
 |---|---|---|---|
-| Nur `ActiveXObject` bei geschlossener App | Richtige EXE startet, kein sichtbares Wawi-Fenster | [x] ✅ 21.11.2026 | [ ] |
-| Zwei Clients / bereits sichtbare App | Ein App-Prozess und eine SIP-/Audiositzung | [ ] | [ ] |
-| `Show` und Viewwechsel | Richtige Ansicht; minimiert/Tray/modal bedienbar; kein Entwurfsverlust | [ ] | [ ] |
-| Tatsächlicher JavaScript-Host | Aufrufe und Fehlerdarstellung funktionieren; benötigte x86-/x64-Varianten belegt | [ ] | [ ] |
-| `ShowDial` | Testnummer/Mandant vorbelegt; noch kein Ruf | [ ] | [ ] |
-| Anmeldung, `Dial`, Gespräch, `HangUp` | Freigegebene Gegenstelle, richtige Rufnummer/Firma, Audio in beide Richtungen | [ ] | [ ] |
-| Skriptende bei aktivem Gespräch | Gespräch bleibt kontrollierbar; kein ungefragtes Auflegen | [ ] | [ ] |
-| Neustart und Historie | Genau ein Gespräch mit richtiger Zuordnung und erhaltenen Notizen | [ ] | [ ] |
-| Letzter Client ohne Benutzerbetrieb | Beendet nach definierter Idlefrist geordnet; nächster COM-Start funktioniert | [x] ✅ 21.11.2026 | [ ] |
-| Lizenz-/Installations-/Verbindungsfehler | Verständlicher Status ohne unangeforderte Dialoge und ohne Schutzumgehung | [ ] | [ ] |
+| Aktivierung, Status, x86/x64 und Mehrclientbetrieb | Native Vertrags-/Lebensdauer-Fixtures | ✅ | ✅ |
+| Anzeige, vorhandene Views und Modalität | Tatsächliche App mit Dummy-Quelle, native View-Fixtures | ✅ | ✅ |
+| `ShowCustomer` / `ShowSupplier`, Rolle und exakte Nummer | Native synthetische Verträge und App-Doubles | ✅ | ✅ |
+| `ShowDial`, `ConnectTelephony`, `Dial`, `GetCall`, `HangUp` | Native Vertrags-Fixture und gemeinsame App-Telefoniedienste mit Doubles | ✅ | ✅ |
+| Auftragsstatus, parallele Request-IDs, Fehler/HRESULTs | Native Verträge und App-Tests | ✅ | ✅ |
+| Clientverlust, geordneter Shutdown und Neustart | Native App-Lebensdauer und App-Telefonietests | ✅ | ✅ |
+| Registrierung und Metadatengrenzen | Native Fixtureprüfung; vorherige Phase-7-Update-/Deinstallationsnachweise erhalten | ✅ | ✅ |
 
-Vorher gemeinsam festlegen: tatsächlicher JavaScript-Host, Testzeitpunkt, Testmandant und Gegenstelle.
-Keine Zugangsdaten im Skript oder in diesem Plan ablegen. EXE-Pfad, Build, Prozesszahl und bereinigte
-Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ markieren.
+Wiederholbare Befehle: `scripts/test-com-prototype.ps1 -ContractsOnly`,
+`scripts/test-com-app.ps1 -Views -AllowVisibleWindows` und `scripts/test-com-app.ps1 -Lifetime`,
+jeweils mit Edition, Debug und neuem isoliertem Ausgabeordner. App-Prüffilter baut auf
+`.artifacts/com-phase7-final-filter.txt` auf, ergänzt um Katalog-, Datenbankdialog-, Pluginzugangs- und Iconfälle.
+Nachweise: `.artifacts/com-mock-acceptance/20261121/{Pro,FinOffice}/{contracts,views,lifetime}/results.json`
+und zentrale `verification.json`; CLI-Zusammenfassungen `.com-mock-*.log`.
+Alle nativen Läufe im normalen Desktop-Benutzerkontext; sichtbare Viewprüfungen waren ausdrücklich erlaubt.
+
+**Grenze:** Synthetische Firmen/Datensätze und gemockte Telefonie bestätigen den COM-Aufrufweg,
+keine tatsächliche Lexware-Anmeldung, FRITZ!Box-Verbindung, Audioqualität oder Vollständigkeit noch
+fehlender Fachviews. Vorhandene `Unsupported`-Funktionen bleiben in der Capability-Matrix offen.
+Es wurden keine temporären Mock-Änderungen in produktive Dienste eingebaut; vorhandene Test-Fixtures verwendet.
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 8 gemeinsam** nach der [vorbereiteten Schrittfolge](COM-Automation-Phase8-Abnahme.md):
-Pro zuerst mit Windows Script Host x86/x64; sichtbare Tests sind erlaubt. Ziel-EXE 0.1.246 ist bestätigt
-und unter HKCU registriert. Als Nächstes fensterlose JavaScript-Aktivierung/Idleende prüfen und
-das normale, bisher fehlende Pro-Testprofil gemeinsam einrichten. Freigegebenen
-Testmandanten und Gegenstelle vor Fachzugriff beziehungsweise Anrufen abstimmen; danach die realen
-App-/SIP-/Audiofälle für beide Editionen prüfen. Die technische Robustheit und isolierte Auslieferung
-aus Phasen 6/7 sind abgeschlossen. G1 bleibt davon getrennt offen.
+Der beauftragte technische COM-Prüfumfang ist abgeschlossen. Echte Anmeldung, Telefonie/Audio,
+Lexware-Daten und Belastung bei Bedarf gemeinsam nach den getrennten G1–G6-Schritten im Neuaufbauplan
+prüfen. Sie benötigen weiterhin freigegebene Testdaten und Gegenstellen und werden nicht automatisch gestartet.

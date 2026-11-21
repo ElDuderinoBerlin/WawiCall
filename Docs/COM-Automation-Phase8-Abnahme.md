@@ -1,8 +1,38 @@
 # COM-Phase 8 – gemeinsame native Abnahme
 
 Stand: 21.11.2026. Zugehöriger [Phasenplan](COM-Automation-Studie-und-Phasenplan.md).
-Dies ist das Ablauf- und Ergebnisprotokoll; die Phase bleibt bis zur vollständigen Abnahme beider
-Editionen offen. Ergebnisse aus den isolierten Phasen 1–7 ersetzen keinen gemeinsamen Prüfschritt.
+Dies ist das Ablauf- und Ergebnisprotokoll. ✅ Die technische COM-Abnahme mit Test-Doubles ist für
+Pro und FinOffice abgeschlossen. Der Benutzer hat den Umfang am 21.11.2026 auf die generelle Funktion
+der COM-Aufrufe begrenzt und Mocks ausdrücklich erlaubt. Echte Telefonie und Lexware-Funktionen folgen
+separat im Neuaufbauplan; sie werden durch diese Abnahme nicht als geprüft ausgewiesen.
+
+## ✅ Abgeschlossene technische COM-Abnahme mit Mocks – 21.11.2026
+
+| Prüfung | Pro | FinOffice | Umgebung |
+|---|---|---|---|
+| App-Integration einschließlich Telefonie-Doubles und Registrierung | ✅ 110 | ✅ 110 | Isolierte Hosts/SQLite-Profile, kein echter Ruf |
+| Vertrag-/Dispatch-/TLB-Prüfungen | ✅ 18 | ✅ 18 | TLB nur `REGKIND_NONE`, keine Registrierung |
+| Native COM-Verträge einschließlich Wählen/Auflegen | ✅ 70 | ✅ 70 | `cscript.exe` x86/x64 mit synthetischem Vertragsserver |
+| Native verfügbare App-Views, Kunden-/Lieferantenauflösung und Modalität | ✅ 78 | ✅ 78 | Tatsächliche App, eigene Dummy-Profile, x86/x64 |
+| Native Lebensdauer, Mehrclientbetrieb, Releases und Shutdownrennen | ✅ 18 | ✅ 18 | Tatsächliche App, eigene HKCU-Klassen, normaler Benutzer |
+
+Reguläre Builds Debug/Any CPU erfolgreich, Pro zuletzt. Keine erzwungene Serverbereinigung in den
+App-Fixtures; eigene temporäre Registrierungen entfernt. Produktive Dienste enthalten keinen neuen
+Mock-Schalter. Belege unter `.artifacts/com-mock-acceptance/20261121`, Details und Befehle im
+[Phasenplan](COM-Automation-Studie-und-Phasenplan.md).
+
+Aktueller regulärer Pro-Build: **0.1.257**, DLL-SHA-256
+`9A80EDBA003184146FB4C2B85FCBE551D59A05FD5478ED2BEDC730AC1D8FBF20`. Benutzerregistrierung danach auf diesen Stand aktualisiert:
+Exitcode 0, beide HKCU-Ansichten geprüft, geschützte TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert.
+Die Registrierung startete keine Anwendung und erhielt die inzwischen gespeicherte lokale Konfiguration.
+Nachweis: `product-registration/registration.json` im gleichen Prüfordner.
+
+Die folgenden Abschnitte erhalten den Ablauf der zuvor begonnenen echten Profileinrichtung und deren
+noch offene Fach-/SIP-Kriterien. Diese historischen Live-Schritte sind **keine offenen COM-Mocktests**.
+Die beiden Warnungen beim noch unvollständig eingerichteten Pro-Profil sind damit ebenfalls keine
+fehlgeschlagenen Dispatchnachweise: Pro-Zugang war nicht gespeichert, MP3-Recovery hatte keine
+Arbeitsplatzkennung/Kommunikationsdatenbank. Für die COM-Abnahme wurden eigene Testprofile benutzt.
+SIP-Beispielzugang inzwischen geschützt lokal übernommen, automatische Anmeldung ausgeschaltet.
 
 ## Vereinbarter Rahmen und Vorprüfung
 
@@ -34,7 +64,7 @@ Editionen offen. Ergebnisse aus den isolierten Phasen 1–7 ersetzen keinen geme
 Lokaler Vorprüfungsnachweis: `.artifacts/com-phase8/20261121-Pro-01/preflight.json`.
 Diese Vorprüfung aktiviert keine COM-Klasse und ändert keine Registrierung oder Konfiguration.
 
-## Aktueller Einrichtungsstand nach den Korrekturen
+## Beginn der Profileinrichtung nach den Korrekturen (historisch)
 
 ✅ Pro **0.1.254** aus dem regulären Debug-/Any-CPU-Pfad bereitgestellt. DLL-SHA-256:
 `7785101FF6292D253BA512201E942D381C3369AE6FFBADA72EF4001A39A46E33`. Plugin-Editor Commit `3768783`, App-Icon Commit `9c37db9`.
@@ -49,7 +79,7 @@ Nachweis: `.artifacts/pro-connection-editor/native-final`. Kein Testzugang und k
 Mandantendaten gelesen. Die lokale Eingabe wurde inzwischen vom Benutzer bestätigt;
 Speichern und Neustart sind noch nicht bestätigt.
 
-## Durchführung – jeweils nur den nächsten Schritt ausführen
+## Frühere Live-Schrittfolge – bei Fortsetzung jeweils nur den nächsten Schritt ausführen
 
 Pro beginnt nach der Zielbestätigung. Pro Schritt werden Zeitpunkt, Edition, tatsächlicher EXE-Pfad,
 Version/DLL-Hash, Client-Bitness, Prozesszahl und das bereinigte Ergebnis festgehalten. Bei einem
