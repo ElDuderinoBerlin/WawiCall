@@ -46,7 +46,8 @@ IsVisible=false, SIP Stopped; ein App-Prozess und nativ kein sichtbares Fenster.
 JavaScript öffnet die kompletten Plugin-Einstellungen erfolgreich. Eigene Skriptreferenzen danach
 freigegeben; der Einstellungsdialog bleibt für die lokale Eingabe geöffnet.
 Nachweis: `.artifacts/pro-connection-editor/native-final`. Kein Testzugang und keine echten
-Mandantendaten gelesen. **Jetzt ausschließlich lokal eintragen; noch nicht speichern.**
+Mandantendaten gelesen. Die lokale Eingabe wurde inzwischen vom Benutzer bestätigt;
+Speichern und Neustart sind noch nicht bestätigt.
 
 ## Durchführung – jeweils nur den nächsten Schritt ausführen
 
@@ -123,14 +124,16 @@ altem Zugang isoliert geprüft. Separate Shared-Assembly-/Deploymentprüfung fü
 Editionen bestanden; Designer-Dateitripel und echte Plugin-Oberfläche bei kleinem Dialog, großer Schrift,
 hellem/dunklem Skin und 150-%-Layoutsimulation geprüft. Details und Prüfzahlen im Neuaufbauplan.
 
-**Jetzt nur der nächste Schritt:** Im Tab **Lexware-Pro-Zugang** „Lexware-Pro-Zugang verwenden“ aktivieren
-und den freigegebenen API-Testbenutzer samt Kennwort **lokal** eintragen. API-Adresse und
-Installationskennung dürfen bei lokaler Erkennung leer bleiben. Verfügbare Client-Key-Buildvorgabe
-übernehmen oder den freigegebenen eigenen Client-Key lokal eingeben. Noch nicht speichern und keine
-Zugangsdaten in Chat, Skripte oder Ergebnisdateien übernehmen; zunächst die Eingabe bestätigen.
+✅ **Lokale Eingabe bestätigt (21.11.2026):** Benutzer meldet „Eingetragen“. Zugangsdaten wurden
+weder ausgelesen noch ins Protokoll übernommen. Die Bestätigung belegt die Eingabe, noch keine
+Speicherung, erfolgreiche Anmeldung oder Mandantenladung.
 
-Erst danach gemeinsam separat: **Speichern** und angebotenen Neustart durchführen; tatsächliche
-Mandantenladung über das aktive Pro-Plugin prüfen, Testfirma anhand ihres Namens bestätigen und deren
+**Jetzt nur der nächste Schritt:** Im Einstellungsdialog **Speichern** wählen und den angebotenen
+Neustart mit **Ja** bestätigen. Abwarten, bis das Pro-Hauptfenster wieder bedienbar ist. Benutzer meldet
+„Neu gestartet“ oder ausschließlich den Fehlertext ohne Zugangsdaten. Speichern/Neustart bis dahin offen.
+
+Erst danach gemeinsam separat: tatsächliche Mandantenladung über das aktive Pro-Plugin prüfen,
+Testfirma anhand ihres Namens bestätigen und deren
 vollständigen Schlüssel ausschließlich lokal für weitere COM-Prüfungen übernehmen. Datenbank-/SIP-/
 Audiotests erst in den nachfolgenden vereinbarten Schritten. Die Testprofileinrichtung und Live-Ladung
 sind weiterhin offen. Technische Editorprüfung schließt Schritt 3–5 nicht ab.
