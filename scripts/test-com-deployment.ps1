@@ -122,6 +122,26 @@ try {
         $exe=Join-Path $full "$baseName.exe"
         @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.Dummy'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
         Invoke-App @('--com-fixture',$profile,'/regserver')
+        $sample=Join-Path $output 'automation-example-fixture.js'
+        $sampleText=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ComExamples/automation.js')).Replace('WawiCallPro.Pro.Application.1',$progId).Replace('WawiCallPro.FinOffice.Application.1',$progId)
+        if ($sampleText.ToCharArray() | Where-Object { [int]$_ -gt 127 }) { throw 'The WSH example must remain ASCII with Unicode escapes.' }
+        [IO.File]::WriteAllText($sample,$sampleText,[Text.ASCIIEncoding]::new())
+        foreach ($bits in @('x86','x64')) {
+            foreach ($action in @('status','call')) {
+                $start=[Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))
+                $start.UseShellExecute=$false; $start.CreateNoWindow=$true; $start.RedirectStandardOutput=$true; $start.RedirectStandardError=$true
+                foreach ($arg in @('//nologo','//E:JScript',$sample,$ProductLine,$action)) { $start.ArgumentList.Add($arg) }
+                if ($action -eq 'call') { $start.ArgumentList.Add('invalid-guid') }
+                $process=[Diagnostics.Process]::Start($start); $stdout=$process.StandardOutput.ReadToEndAsync(); $stderr=$process.StandardError.ReadToEndAsync()
+                try {
+                    if (-not $process.WaitForExit(50000)) { $process.Kill($true); throw 'Example client did not finish.' }
+                    $text=$stdout.GetAwaiter().GetResult()+$stderr.GetAwaiter().GetResult()
+                    [IO.File]::WriteAllText((Join-Path $output "sample-$bits-$action.log"),$text)
+                    if ($action -eq 'status') { Check ($process.ExitCode -eq 0 -and $text.Trim().StartsWith($ProductLine+' / ')) "$bits shipped JavaScript status example succeeds with an isolated ProgID" }
+                    else { Check ($process.ExitCode -eq 1 -and $text.Contains('80070057')) "$bits shipped JavaScript example reports the expected COM HRESULT for invalid input" }
+                } finally { $process.Dispose() }
+            }
+        }
         foreach ($bits in @('x86','x64')) {
             $prefix=Join-Path $profile "$bits-"
             $start=[Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))

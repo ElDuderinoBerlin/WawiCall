@@ -973,7 +973,7 @@ JavaScript-Fachhost mit SIP/Audio bleiben ausdrücklich Phasen 7/8. Keine Datenb
 - [x] ✅ Schnelle, idempotente Registrierung/-entfernung ausschließlich unter HKCU umsetzen; keine Maschinenvariante oder TLB-/Interface-Registrierung.
 - [x] ✅ Beide Client-Bitnessen, Pfade mit Leerzeichen, Aktivierung ohne registrierte TLB und Editionsbindung prüfen.
 - [x] ✅ Velopack-Update, Rücknahme und zielgenaue Deinstallation mit isolierten Installationen nachweisen.
-- [ ] Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
+- [x] ✅ Kurze JavaScript-Beispiele, Hostvoraussetzungen, Fehlercodes und Diagnoseweg dokumentieren.
 - [ ] Betroffene Anwendungshosts in der aktiven Konfiguration regulär rekompilieren; Produktregistrierung nicht für Tests ändern.
 
 Abnahme: Installierte EXE wird zuverlässig aufgelöst; alte Einträge überschreiben keine neue Installation.
@@ -1043,6 +1043,23 @@ Wiederholbarer Einstieg ist `scripts/test-com-installation.ps1` mit eigenen Vers
 `-RuntimeDirectory` der betreffenden regulären Edition. Keine produktiven Registrierungen oder Feeds
 wurden geändert. Rücknahme der Hookanbindung zusammen mit deren Registrierungsänderungen durchführen;
 keine TLB-/Maschinenregistrierung als Ersatz verwenden.
+
+Vierter abgeschlossener Schritt: Die [Bedienanleitung](COM-Automation-Anleitung.md) beschreibt
+ProgIDs, x86/x64-WSH, Laufzeitvoraussetzungen, HKCU-Reparatur/Entfernung, Status, Ansichten,
+Kunden-/Lieferantenaufrufe, explizite Anmeldung/Wahl/Auflegen, Auftrags-/Call-ID und Diagnosecodes.
+Das [ausgelieferte JScript-Beispiel](../scripts/ComExamples/automation.js) wartet begrenzt, nutzt keine
+Credentials oder eval, gibt seine Referenzen im finally frei und verspricht keine Deduplizierung
+über Neustarts. Es führt ausschließlich die angeforderte Aktion aus. Wahlbeispiele wurden nicht
+gegen echte Anschlüsse ausgeführt. Neue Anleitung in der Hauptsolution unter Docs aufgenommen und
+im vorhandenen Rider-Editor geöffnet.
+
+Je Edition 26 native Deploymentprüfungen bestanden, einschließlich desselben Beispiels mit nur
+ausgetauschten Test-ProgID-Literalen in x86/x64: Statusausgabe erfolgreich, ungültige Call-ID liefert
+Exit 1 und `0x80070057`. Klassischer JScript liest die ASCII-Quelle mit Unicode-Escapes zuverlässig;
+ein vorheriger UTF-8-BOM-Prüfkopiefehler wurde korrigiert und nicht als Erfolg gewertet. Anleitung,
+lokale Links, Solutioneinträge und JavaScript-Argumente geprüft. Nachweise:
+`.artifacts/com-phase7-examples-{pro,fin}-02/results.json` und zugehörige Sample-Logs. Die abschließenden
+regulären Builds und Regressionen folgen im letzten Phase-7-Punkt.
 
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 
