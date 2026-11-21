@@ -1098,6 +1098,20 @@ Fachhostabnahme bleiben gemeinsam unter G1–G6 des Neuaufbauplans.
 
 ### Phase 8 – ✅ Technische native COM-Abnahme mit Test-Doubles
 
+✅ **Abschlussabgleich am 21.11.2026:** Erneut je Edition 99 gezielte App-/COM-Regressionen,
+18 Vertragstests und 70 native x86-/x64-JavaScript-Vertragsprüfungen ohne Fehler bestanden.
+Die früheren 78 View- und 18 Lebensdauernachweise je Edition sind weiterhin zugeordnet.
+Die [Abnahmeübersicht](COM-Automation-Phase8-Abnahme.md) führt alle 13 COM-Methoden als geprüft;
+der ältere Live-Ablauf ist als historisch eingeordnet und zählt nicht als offene technische Checkliste.
+Das inzwischen eingerichtete lokale Pro-Profil hat zusätzlich eine erfolgreiche echte
+SIP-Anmeldung (`ConnectTelephony`: Succeeded / Ready / Registered). Reale Gespräche/Audio und
+Lexware-Fachabnahme bleiben getrennte Aufgaben im Neuaufbauplan. Neue technische Nachweise unter
+`.artifacts/com-closeout/20261121`, Testzusammenfassungen `.com-closeout-*.log`.
+Aktueller Pro-Produktbuild 0.1.262 zusätzlich mit gleichzeitig gehaltenen x86-/x64-JavaScript-Clients
+geprüft: ein Prozess, Ready/IsVisible=false/SIP Stopped und MainWindowHandle 0; unabhängige Freigabe,
+anschließend geordnetes Idleende nach 30,34 Sekunden mit Exitcode 0. Vorheriger unvollständiger
+Exitcode-Beobachterlauf zählt nicht als Erfolg; bestanden ist `product-pro-02/results.json`.
+
 **Umfang vom Benutzer am 21.11.2026 festgelegt:** „echte Logik z.B. Telefonieren noch nicht nur schauen
 ob die COM-Aufrufe generell funktionieren“ und „oder mocke das temporär“. Damit gilt die technische
 COM-Abnahme als aktueller Abschlussumfang. Die früher vorbereitete echte SIP-/Audio-/Lexware-Abnahme

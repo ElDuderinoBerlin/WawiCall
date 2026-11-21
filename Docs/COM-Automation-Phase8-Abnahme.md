@@ -1,10 +1,62 @@
-# COM-Phase 8 – gemeinsame native Abnahme
+# COM-Phase 8 – ✅ technische COM-Abnahme abgeschlossen
 
 Stand: 21.11.2026. Zugehöriger [Phasenplan](COM-Automation-Studie-und-Phasenplan.md).
 Dies ist das Ablauf- und Ergebnisprotokoll. ✅ Die technische COM-Abnahme mit Test-Doubles ist für
 Pro und FinOffice abgeschlossen. Der Benutzer hat den Umfang am 21.11.2026 auf die generelle Funktion
 der COM-Aufrufe begrenzt und Mocks ausdrücklich erlaubt. Echte Telefonie und Lexware-Funktionen folgen
 separat im Neuaufbauplan; sie werden durch diese Abnahme nicht als geprüft ausgewiesen.
+
+## ✅ Abschlussprüfung am 21.11.2026 nach der Pro-Profileinrichtung
+
+**Keine offenen technischen COM-Prüfpunkte im vereinbarten Umfang.** Die frühere Live-Schrittfolge
+steht unten ausschließlich als historisches Protokoll. Ihre offenen Fach-/Audiofälle sind keine
+noch offenen COM-Mocktests und ändern den Abschluss von COM-Phase 8 nicht.
+
+| Erneut ausgeführte Prüfung | Pro | FinOffice | Nachweis |
+|---|---|---|---|
+| COM-/App-Regression: Start, Instanz, Dienste, Mandanten-/Rollengrenzen, Aufträge, Telefonie-Doubles, Clientverlust, Persistierung/Neustart, Shutdown und Registrierung | ✅ 99 | ✅ 99 | `.com-closeout-app-{pro,fin}.log`; Filter `.artifacts/com-phase7-final-filter.txt` |
+| Versionierte Verträge, Dispatch und TLB ohne Registrierung | ✅ 18 | ✅ 18 | `.com-closeout-contract-{pro,fin}.log` |
+| Native `ActiveXObject`-/Methoden-/Fehlerprüfungen mit `cscript.exe` x86 und x64 | ✅ 70 | ✅ 70 | `.artifacts/com-closeout/20261121/{Pro,FinOffice}/contracts/results.json` |
+| Aktueller Produkt-COM-Start mit gehaltenen x86-/x64-JavaScript-Clients, unabhängiger Freigabe und Idleende | ✅ ein Prozess, Ready / IsVisible=false / SIP Stopped; Ende nach 30,34 s, Exit 0 | Beide Editionen bereits in den nativen Lebensdauer-Fixtures abgedeckt | `.artifacts/com-closeout/20261121/product-pro-02/results.json` |
+
+Die 99 App-Fälle sind die erneut ausgeführte COM-Regressionsauswahl, keine Umdeutung der früheren
+110 Abnahmefälle. Alle oben als bestanden angegebenen Prüfungen ohne fehlgeschlagene oder übersprungene Tests. Die früher bestandenen
+**78 nativen Viewprüfungen und 18 nativen Lebensdauerprüfungen je Edition** wurden den Ergebnissen
+erneut zugeordnet; ihre unveränderten COM-Abläufe wurden nicht pauschal sichtbar wiederholt.
+Ergebnisse vollständig, eigene HKCU-Fixtures bereinigt, kein erzwungener App-Serverstopp in den
+View-/Lebensdauernachweisen. Keine TLB-/Interface-/HKLM-Registrierung.
+
+Der ergänzende aktuelle Produktlauf hält beide JavaScript-Clients gleichzeitig. Ein Pro-Prozess,
+API-Status `IsVisible=false` und `MainWindowHandle=0` bestätigt; Freigabe des ersten Clients beendet
+den Server nicht. Nach Freigabe beider Clients geordnetes Ende nach 30,34 Sekunden, Exitcode 0.
+Der Prüfprozess hielt dabei den Prozesshandle vor dem Ende fest. Ein vorheriger Lauf mit unvollständiger
+Exitcode-Messung zählt nicht als bestanden; die Korrektur betraf nur den lokalen Beobachter.
+Eine zuvor vorbereitete Anbindung an eine schon laufende App wurde verworfen, weil diese inzwischen
+regulär beendet war. Diese Vorläufe sind keine fehlgeschlagenen COM-Methodenprüfungen.
+Zusammengefasste Ergebnisprüfung: `.artifacts/com-closeout/20261121/verification.json`.
+
+| Abgedeckte COM-Aufrufe | Ergebnis beider Editionen |
+|---|---|
+| `GetStatus`, `GetCompaniesJson`, `GetViewsJson` | ✅ Aktivierung, Status, Kataloge und Zugriffsgrenzen |
+| `Show`, `ShowView` | ✅ Anzeige, angebotene Views, Modalität und Wiederverwendung |
+| `ShowCustomer`, `ShowSupplier`, `ShowDial` | ✅ Mandant, Rolle, exakte Nummer und Anzeige ohne Rufaufbau |
+| `ConnectTelephony`, `Dial`, `GetOperation`, `GetCall`, `HangUp` | ✅ Gemeinsame Dienste mit Test-Doubles, Auftrags-/Gesprächsstatus und gezieltes Auflegen |
+
+**Aktuelles Pro-Profil:** Benutzer hat die lokale SQLite-Einrichtung ausdrücklich gewählt.
+`%LOCALAPPDATA%\WawiCallPro\Pro\communications.db` über den bestehenden Einrichtungsdienst angelegt,
+Schema `Current`, Arbeitsplatzkennung vorhanden und übrige Einstellungen erhalten. Nach Neustart
+`ConnectTelephony()` gegen den echten SIP-Endpunkt: Auftrag `Succeeded`, App `Ready`, SIP `Registered`.
+Die erfolgreiche reale Anmeldung ist ein zusätzlicher Pro-Nachweis; sie wird durch einen späteren
+fensterlosen COM-Start ohne automatische Anmeldung nicht erneut ausgelöst. Kein Rufaufbau und kein Audiotest.
+Regulärer Pro-Build **0.1.262**, Debug / Any CPU, DLL-SHA-256
+`4317145C493A8EF6A8697D30CC15DFBF4CD2675DB277AC7FCFC15185687450E2`.
+Einrichtungs-/Anmeldenachweis: `.artifacts/sip-db-diagnosis/local-setup-result.log` und
+`native-registration-result.txt`; Fehleranzeige korrigiert in Commit `6203c20`.
+
+**Separat verbleibend im [Neuaufbauplan](Neuaufbau-Plan.md):** echte Lexware-Testmandanten und
+Kunden-/Lieferantendaten, fehlende Fachansichten, freigegebene Testgegenstelle mit Audio sowie
+vollständige reale Gesprächs-/Historienabnahme beider Editionen. Dafür bestehen weiterhin G1–G6.
+Die Pro-SIP-Anmeldung ist bereits nachgewiesen; ein tatsächliches Gespräch wird damit nicht behauptet.
 
 ## ✅ Abgeschlossene technische COM-Abnahme mit Mocks – 21.11.2026
 
@@ -21,7 +73,7 @@ App-Fixtures; eigene temporäre Registrierungen entfernt. Produktive Dienste ent
 Mock-Schalter. Belege unter `.artifacts/com-mock-acceptance/20261121`, Details und Befehle im
 [Phasenplan](COM-Automation-Studie-und-Phasenplan.md).
 
-Aktueller regulärer Pro-Build: **0.1.257**, DLL-SHA-256
+Build des früheren technischen Abnahmelaufs: **0.1.257**, DLL-SHA-256
 `9A80EDBA003184146FB4C2B85FCBE551D59A05FD5478ED2BEDC730AC1D8FBF20`. Benutzerregistrierung danach auf diesen Stand aktualisiert:
 Exitcode 0, beide HKCU-Ansichten geprüft, geschützte TLB-/Interface-/HKLM-/FinOffice-Metadaten unverändert.
 Die Registrierung startete keine Anwendung und erhielt die inzwischen gespeicherte lokale Konfiguration.
@@ -32,7 +84,16 @@ noch offene Fach-/SIP-Kriterien. Diese historischen Live-Schritte sind **keine o
 Die beiden Warnungen beim noch unvollständig eingerichteten Pro-Profil sind damit ebenfalls keine
 fehlgeschlagenen Dispatchnachweise: Pro-Zugang war nicht gespeichert, MP3-Recovery hatte keine
 Arbeitsplatzkennung/Kommunikationsdatenbank. Für die COM-Abnahme wurden eigene Testprofile benutzt.
-SIP-Beispielzugang inzwischen geschützt lokal übernommen, automatische Anmeldung ausgeschaltet.
+Der damalige Beispielzugang wurde inzwischen auf Benutzerauftrag durch den aktiven MicroSIP-Zugang
+ersetzt; die aktuelle Datenbankeinrichtung und erfolgreiche Anmeldung stehen oben. Automatische
+Anmeldung bleibt ausgeschaltet.
+
+<details>
+<summary>Historischer Live-Ablauf und damalige Zwischenstände – keine offene COM-Checkliste</summary>
+
+Die folgenden Angaben beschreiben die damaligen Prüfzeitpunkte. Ältere Formulierungen wie „offen“,
+fehlendes Profil oder noch ausstehende SIP-Einrichtung sind durch den Abschlussstand oben überholt.
+Noch nicht ausgeführte reale Fach-/Gesprächsfälle werden separat im Neuaufbauplan weitergeführt.
 
 ## Vereinbarter Rahmen und Vorprüfung
 
@@ -158,7 +219,7 @@ hellem/dunklem Skin und 150-%-Layoutsimulation geprüft. Details und Prüfzahlen
 weder ausgelesen noch ins Protokoll übernommen. Die Bestätigung belegt die Eingabe, noch keine
 Speicherung, erfolgreiche Anmeldung oder Mandantenladung.
 
-**Jetzt nur der nächste Schritt:** Im Einstellungsdialog **Speichern** wählen und den angebotenen
+**Damals vorgesehener nächster Schritt (historisch):** Im Einstellungsdialog **Speichern** wählen und den angebotenen
 Neustart mit **Ja** bestätigen. Abwarten, bis das Pro-Hauptfenster wieder bedienbar ist. Benutzer meldet
 „Neu gestartet“ oder ausschließlich den Fehlertext ohne Zugangsdaten. Speichern/Neustart bis dahin offen.
 
@@ -203,7 +264,7 @@ gezielten Aufruf bereit. Telefonnummern und companyKey werden weder erfunden noc
 | 21.11.2026 / Pro / 2 | Beide JScript-Clients geben ihre Referenzen frei (`released.json`). App PID 23540 endet nach 30,73 Sekunden mit Exitcode 0 ohne erzwungenen Stopp. Erneute echte Produktaktivierung über x64-JScript startet einen neuen Pro-Prozess PID 67008, wieder Ready/unsichtbar/SIP Stopped und ohne sichtbares Fenster. | ✅ Idleende und Reaktivierung. Nachweise `idle.json`, `restart-x64-{bootstrap,ready}.json`, `restart-windows.json` im lokalen Laufordner. Client-Exitcodes wurden nicht für beide Prozesse erfasst und werden nicht als geprüft ausgegeben; Referenzfreigabe und App-Exit sind belegt. |
 | 21.11.2026 / Pro / 3–4, Teilprüfung | JScript `Show()` und `ShowView("settings-general", "")` erfolgreich. Native Messung findet Pro-Hauptfenster und Einstellungen. `ShowView("history", "")` bei offenem modalem Dialog liefert Failed/Busy. Quellprüfung bestätigt fehlende Lexware-API-Konfiguration in der GUI und offene Fach-Tabs. | Technischer Teilnachweis, **kein Abschluss** von Schritt 3/4 oder Profileinrichtung. Ergebnisse `restart-x64-v02.json` bis `v04.json` und `settings-general-windows.json` im lokalen Laufordner. Benutzer soll Sichtbarkeit/Bedienbarkeit und erstmaliges Speichern bestätigen. |
 
-Gesamtstatus: **offen**. Kein Häkchen in der Phase-8-Abnahmematrix, bevor der jeweilige Fall mit
+Damals noch ausstehende Live-Abnahme: **offen**. Kein Häkchen in deren Matrix, bevor der jeweilige Fall mit
 Laufzeitnachweis und erforderlicher Benutzerbeobachtung tatsächlich bestanden ist.
 
 ## Korrektur des Mandantenanschlusses am 21.11.2026
@@ -243,3 +304,5 @@ das normale Pro-Testprofil ist weiterhin nicht angelegt. Keine echten Mandantend
 Nach Abschluss nur die zum Lauf gehörenden Clientreferenzen und Prüfprozesse freigeben. Eine für die
 weitere Nutzung gewählte Produktregistrierung erhalten; soll sie entfernt werden, ausschließlich die
 bestätigte Eigentümer-EXE mit `/unregserver /user` verwenden. Keine fremden Registry-Schlüssel löschen.
+
+</details>
