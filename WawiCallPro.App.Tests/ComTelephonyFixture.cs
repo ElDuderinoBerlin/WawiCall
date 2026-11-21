@@ -107,7 +107,12 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         public Task ConnectAsync(CancellationToken token = default)
         {
             token.ThrowIfCancellationRequested(); Connects++;
-            if (ConnectFailure is { } failure) { Register(RegistrationState.Failed); return Task.FromException(failure); }
+            if (ConnectFailure is { } failure)
+            {
+                Registration = new(RegistrationState.Failed, DateTimeOffset.UtcNow, (failure as TelephonyException)?.Code);
+                RegistrationChanged?.Invoke(this, new(Registration));
+                return Task.FromException(failure);
+            }
             Register(RegisterOnConnect ? RegistrationState.Registered : RegistrationState.Registering); return Task.CompletedTask;
         }
         public Task DisconnectAsync(CancellationToken token = default) { Disconnects++; Register(RegistrationState.Stopped); return Task.CompletedTask; }

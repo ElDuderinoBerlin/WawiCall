@@ -10,6 +10,37 @@ namespace WawiCallPro.App.Tests;
 public partial class AppShellTests
 {
     [TestMethod]
+    public Task SipDatabasePrerequisiteFailureDoesNotBlameCredentials() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var backend = (ComTelephonyFixture.Backend)workspace.Telephony!;
+        backend.ConnectFailure = new TelephonyException("DatabaseNotReady");
+        using var settings = new FrmSettings(workspace);
+        settings.PrepareForBackgroundRun();
+        settings.ClientSize = new Size(760, 700);
+        settings.Show();
+        var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync();
+        settings.SelectAutomationTab("settings-sip");
+        Field<TextEdit>(page, "serverEdit").Text = "sip.example.invalid";
+        Field<TextEdit>(page, "usernameEdit").Text = "isolated-test-user";
+        var password = Field<ButtonEdit>(page, "passwordEdit");
+        password.Text = "isolated-database-test-secret";
+        await InvokeActionAsync(page, "SipConnect_Click");
+        Application.DoEvents();
+        var status = Field<LabelControl>(page, "sipStatus");
+        Assert.AreEqual("Anmeldung nicht gestartet: Kommunikationsdatenbank und Arbeitsplatz prüfen.", status.Text);
+        Assert.AreEqual("isolated-database-test-secret", password.Text);
+        Assert.IsTrue(password.Properties.UseSystemPasswordChar);
+        Assert.IsTrue(Field<SimpleButton>(page, "sipConnectButton").Enabled);
+        CheckTableBounds(settings);
+        var directory = Path.Combine(RenderOutput(), "sip-database-status");
+        Directory.CreateDirectory(directory);
+        using (var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings))
+            bitmap.Save(Path.Combine(directory, "database-not-ready.png"), System.Drawing.Imaging.ImageFormat.Png);
+        await settings.StopAsync();
+    }, new ComTelephonyFixture.Backend());
+
+    [TestMethod]
     public Task SipPasswordSurvivesFailedRetriesAndDelayedRegistrationFailure() => WithWorkspace(async (workspace, _, _) =>
     {
         var backend = (ComTelephonyFixture.Backend)workspace.Telephony!;

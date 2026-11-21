@@ -111,6 +111,28 @@ COM-Phasenübersicht und [Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) en
 Reguläre Builds Debug/Any CPU erfolgreich, Pro zuletzt. Belege `.artifacts/com-mock-acceptance/20261121`.
 **G1–G6, echte SIP-/Audio-/Lexware- und fehlende Fachfunktionen bleiben separat offen.**
 
+✅ **Pro-Profil eingerichtet und echte SIP-Anmeldung bestätigt (21.11.2026):** Der Benutzerbefund
+„Kommunikationsdatenbank und Arbeitsplatz einrichten“ entstand im normalen Pro-Profil, dessen
+SQLite-Datei und Serververbindung noch nicht konfiguriert waren. Die früheren Datenbanknachweise
+gehören zu getrennten Testprofilen. Der Telefoniedienst brach deshalb vor Erstellung des SIP-Transports
+mit `DatabaseNotReady` ab; die pauschale Anzeige „Konto und Verbindung prüfen“ war irreführend.
+Der SIP-Status benennt jetzt ausdrücklich die noch nicht gestartete Anmeldung und die fehlende
+Datenbank-/Arbeitsplatzbereitschaft. Die bestehende Persistenzvoraussetzung bleibt erhalten.
+Auf ausdrückliche Auswahl „Lokale SQLite-Datenbank einrichten“ bei regulär beendeter App den
+vorhandenen `IDatabaseSetupService` verwendet: `%LOCALAPPDATA%\WawiCallPro\Pro\communications.db`
+neu angelegt, reguläre Migrationen erfolgreich, Schema `Current`, Arbeitsplatzkennung initialisiert
+und Verbindung mit Konkurrenzschutz gespeichert. Alle übrigen Einstellungen einschließlich des
+geschützten SIP-Kontos intern auf unveränderten Inhalt geprüft. Keine vorhandene Datenbank übernommen.
+Nach Neustart des regulären Pro-Hosts über x64-WSH-JScript `ConnectTelephony` ausgeführt:
+Auftrag `Succeeded`, App `Ready`, SIP `Registered`, kein Fehlercode. SIP-Tab anschließend geöffnet.
+Damit ist die tatsächliche Pro-Anmeldung am konfigurierten SIP-Endpunkt bestätigt; kein Rufaufbau,
+kein Audionachweis und keine vollständige G1-/FinOffice-Abnahme. Startautomatik weiterhin aus.
+Je Edition vier gezielte Tests einschließlich neuer Datenbankfehleranzeige und Kennworterhalt
+bestanden; Fehlerstatus bei 760 Pixeln ohne Überlappung gerendert und selbst geprüft. Beide regulären
+Builds Debug/Any CPU erfolgreich, Pro zuletzt. Nachweise: `.sip-db-{build,tests}-{pro,fin}.log`,
+`.artifacts/sip-db-diagnosis/local-setup-result.log`, `native-registration-result.txt` und
+`.artifacts/app-shell/settings-ui/sip-database-status/database-not-ready.png`.
+
 ✅ **Aktiver MicroSIP-Zugang lokal übernommen (21.11.2026):** Auf erneuten Benutzerauftrag den aktiven
 Account aus der lokalen MicroSIP-Konfiguration einschließlich Kennwort in das Pro-Profil übernommen.
 Die bereitgestellte `MicroSIP-Einstellungen.txt` stimmt für Server, Domain, Benutzer, Kennwort,

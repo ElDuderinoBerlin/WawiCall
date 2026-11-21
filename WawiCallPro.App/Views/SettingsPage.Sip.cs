@@ -85,12 +85,15 @@ public partial class SettingsPage
 
     private void UpdateSipStatus()
     {
-        var state = _workspace?.Telephony?.Registration.State ?? RegistrationState.Stopped;
+        var registration = _workspace?.Telephony?.Registration;
+        var state = registration?.State ?? RegistrationState.Stopped;
         sipStatus.Text = state switch
         {
             RegistrationState.Registering => "Anmeldung läuft …",
             RegistrationState.Registered => "Angemeldet",
             RegistrationState.Reconnecting => "Verbindung unterbrochen; erneute Anmeldung …",
+            RegistrationState.Failed when registration?.ErrorCode == "DatabaseNotReady" =>
+                "Anmeldung nicht gestartet: Kommunikationsdatenbank und Arbeitsplatz prüfen.",
             RegistrationState.Failed => "Anmeldung fehlgeschlagen. Konto und Verbindung prüfen.",
             _ => "Nicht angemeldet"
         };
