@@ -1094,6 +1094,13 @@ Zielinstallation und tatsächliche JavaScript-/SIP-/Audio-/Fachhostabnahme erfol
 
 ### Phase 8 – ⬜ Gemeinsame native Abnahme
 
+✅ **Vorbereitung am 21.11.2026:** [Schrittfolge und Ergebnisprotokoll](COM-Automation-Phase8-Abnahme.md)
+angelegt. Benutzer wählt Pro zuerst, Windows Script Host in x86/x64 und erlaubt sichtbare Tests.
+Lesende Vorprüfung im normalen Desktop-Benutzerkontext: keine laufende Wawi-Instanz, keine
+Produkt-COM-Registrierung, normales Pro-Profil fehlt. Pro 0.1.246 aus dem regulären Debug-/Any-CPU-
+Ausgabepfad stimmt im DLL-Hash mit Phase 7 überein. Ziel-EXE und Testprofil werden vor Registrierung
+und Aktivierung bestätigt. Noch kein gemeinsamer nativer Abnahmefall bestanden; die Matrix bleibt offen.
+
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|
 | Nur `ActiveXObject` bei geschlossener App | Richtige EXE startet, kein sichtbares Wawi-Fenster | [ ] | [ ] |
@@ -1113,7 +1120,9 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 8 gemeinsam**: tatsächlichen JavaScript-Host, produktive Zielinstallation,
-Testzeitpunkt, freigegebenen Mandanten und Gegenstelle abstimmen und die aufgeführten realen
+Als Nächstes folgt **Phase 8 gemeinsam** nach der [vorbereiteten Schrittfolge](COM-Automation-Phase8-Abnahme.md):
+Pro zuerst mit Windows Script Host x86/x64; sichtbare Tests sind erlaubt. Zunächst Ziel-EXE und
+Testprofil bestätigen, dann HKCU registrieren und fensterlose Aktivierung/Idleende prüfen. Freigegebenen
+Testmandanten und Gegenstelle vor Fachzugriff beziehungsweise Anrufen abstimmen; danach die realen
 App-/SIP-/Audiofälle für beide Editionen prüfen. Die technische Robustheit und isolierte Auslieferung
 aus Phasen 6/7 sind abgeschlossen. G1 bleibt davon getrennt offen.
