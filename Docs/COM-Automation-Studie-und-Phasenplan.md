@@ -1112,9 +1112,9 @@ eigene Lexware-Fach-Tabs fehlen weiterhin in beiden Plugins, siehe Bestandsaufna
 30,73 Sekunden mit Exitcode 0. Erneute Produktaktivierung startet einen neuen, weiterhin unsichtbaren
 Pro-Prozess im Zustand Ready/SIP Stopped. Keine erzwungene App-Beendigung.
 **Weitere Teilprüfung:** JavaScript `Show` und Einstellungsdialog erfolgreich; modale Fremdnavigation
-liefert `Busy`. GUI-Bedienbestätigung und Testprofileinrichtung stehen noch aus. Zusätzlich fehlt der
-Lexware-Pro-Zugangseditor im Einstellungsdialog; bisheriger Einrichtungsweg ist Console `--erp-configure`.
-Dieser Befund und die noch fehlenden Fach-Tabs bleiben offen und werden nicht als COM-Funktionserfolg gewertet.
+liefert `Busy`. GUI-Bedienbestätigung und Testprofileinrichtung stehen noch aus. Die dabei erkannte
+Editorlücke ist inzwischen geschlossen, siehe unten. Fehlende Fach-Tabs bleiben offen und werden nicht
+als COM-Funktionserfolg gewertet.
 ✅ **Korrektur Mandantenanbindung:** Hauptfenster lädt den vorhandenen Katalog des aktiven Plugins
 jetzt in einer zentralen durchsuchbaren Mandantenauswahl und aktualisiert ihn nach den Einstellungen.
 Pro-/FinOffice-Erkennung und Firmenabfragen bleiben in den jeweiligen Plugins. Fremde/ungültige und
@@ -1122,6 +1122,18 @@ verspätete Ergebnisse werden verworfen; Pluginwechsel und Shutdown brechen auss
 Je Edition 22 gezielte App-/Designer-/COM-Viewprüfungen sowie 70 Pro- und 46 FinOffice-Pluginprüfungen
 bestanden; reguläre Rebuilds Debug/Any CPU erfolgreich, Pro zuletzt. Dies ist ein isolierter technischer
 Nachweis. Freigegebener Live-Testmandant, lokaler Pro-Zugang und tatsächliche Fachabnahme bleiben offen.
+
+✅ **Pro-Zugangseditor ergänzt:** Der zentrale Tab **Lexware-Pro-Zugang** lädt einen optionalen Editor aus
+dem Pro-Plugin; Validierung und Quelllogik bleiben dort. Typisierter Entwurf, maskierte Geheimnisse,
+DPAPI-Speicherung gemeinsam mit den allgemeinen Einstellungen, Abbrechen ohne Schreiben und Schutz
+vor konkurrierenden Änderungen geprüft. Neustart übernimmt den neuen Zugang; beim Schließen dafür
+kein Abruf mit dem alten Zugang. COM öffnet den Tab über `settings-wawi`, 23 gemeinsame Basis-/Dialogeinträge plus die optionale Plugin-Zugangs-View.
+Reguläre Builds Debug/Any CPU beider Editionen, gezielte App-/Utilities-/Plugin-/Console-Prüfungen sowie
+Designer-/Layout- und Shared-Assembly-Deploymentnachweise erfolgreich, Details im Neuaufbauplan.
+**Nächster gemeinsamer Schritt:** Testzugang ausschließlich lokal im Editor eintragen; noch nicht
+speichern. Erst nach Benutzerbestätigung speichern/neustarten und tatsächliche Firmenladung prüfen.
+Das [Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) führt jeden Schritt einzeln; Live-Testbestand,
+SIP-/Audio- und Fachabnahme sowie Phase 8 insgesamt bleiben offen.
 
 | Fall | Erwarteter Nachweis | Pro | FinOffice |
 |---|---|---|---|

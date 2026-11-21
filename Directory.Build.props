@@ -17,6 +17,9 @@
     <SharedProjectAssembly Include="Quantarix.Lexware.Core;Quantarix.Pcfk.Core" Preload="true" />
     <SharedPackage Include="Dapper;Microsoft.Extensions.Configuration;Microsoft.Extensions.Configuration.Abstractions;Microsoft.Extensions.Configuration.Binder;Microsoft.Extensions.DependencyInjection;Microsoft.Extensions.DependencyInjection.Abstractions;Microsoft.Extensions.Diagnostics;Microsoft.Extensions.Diagnostics.Abstractions;Microsoft.Extensions.Logging;Microsoft.Extensions.Logging.Abstractions;Microsoft.Extensions.Options;Microsoft.Extensions.Options.ConfigurationExtensions;Microsoft.Extensions.Primitives" />
     <!-- Current shared packages each expose the matching assembly name. Packages such as DevExpress must specify RuntimeAssemblyNames explicitly. -->
+    <!-- The plugin's desktop reference brings the same transitive support assemblies already owned by both hosts. -->
+    <SharedPackage Include="Microsoft.Extensions.ObjectPool;System.Data.OleDb;System.ServiceModel.Http" />
+    <SharedPackage Include="System.ServiceModel.Primitives" RuntimeAssemblyNames="System.ServiceModel;System.ServiceModel.Duplex;System.ServiceModel.Primitives;System.ServiceModel.Security" />
   </ItemGroup>
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>

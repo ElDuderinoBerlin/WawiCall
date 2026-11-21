@@ -19,7 +19,7 @@ public sealed class ProAdapterTests
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-pro-adapter-" + Guid.NewGuid().ToString("N"));
     private static readonly Uri ApiUrl = new("http://isolated.invalid:9710");
-    private static ProConnectionOptions Credentials => new()
+    private static ProConnectionOptions Credentials { get; } = new()
     {
         ApiUrl = ApiUrl, InstallationId = "isolated-installation", Username = "synthetic-user",
         Password = "synthetic-password", ClientKey = "{11111111-1111-1111-1111-111111111111}"

@@ -103,7 +103,7 @@ public sealed class RecordingWaveArtifactTests
     private sealed class WrongDigest(IRecordingJournalDelivery inner) : IRecordingJournalDelivery
     {
         public RecordingWrite Recording => inner.Recording; public RecordingCaptureWrite Capture => inner.Capture; public Stream? Wave => inner.Wave;
-        public string? WaveSha256 => new string('0', 64); public void Acknowledge() => throw new InvalidOperationException();
+        public string? WaveSha256 { get; } = new string('0', 64); public void Acknowledge() => throw new InvalidOperationException();
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

@@ -76,7 +76,7 @@ public sealed class PluginPartySearchTests
     private sealed class Plugin(IBusinessDirectory source) : IWawiCallPlugin
     {
         public string Name => "Isolated search source";
-        public Version Version => new(1, 0);
+        public Version Version { get; } = new(1, 0);
         public LexwareProductLine ProductLine => LexwareProductLine.Pro;
         public IBusinessDirectory Directory => source;
         public void Configure(IWawiCallHostServices services) { }

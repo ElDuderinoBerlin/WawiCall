@@ -30,5 +30,9 @@ public partial class MainForm
     }
     private void CompanyCatalog_LoadFailed(object? sender, EventArgs e) =>
         AppendOutput("Mandanten konnten nicht geladen werden. Wawi-Zugang und aktives Plugin prüfen.");
-    private async void CompanySettings_Closed(object? sender, FormClosedEventArgs e) => await ReloadCompaniesAsync();
+    private async void CompanySettings_Closed(object? sender, FormClosedEventArgs e)
+    {
+        if (sender is Views.FrmSettings { RestartRequested: true }) return;
+        await ReloadCompaniesAsync();
+    }
 }

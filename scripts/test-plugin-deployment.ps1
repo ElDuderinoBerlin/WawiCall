@@ -11,6 +11,7 @@ if ($HostOutputRoot) { $HostOutputRoot = [IO.Path]::GetFullPath($HostOutputRoot)
 [xml]$props = Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props') -Raw
 $shared = @($props.Project.ItemGroup.SharedProjectAssembly.Include; $props.Project.ItemGroup.SharedPackage.Include) -join ';'
 $shared = $shared.Split(';', [StringSplitOptions]::RemoveEmptyEntries)
+$shared += @($props.Project.ItemGroup.SharedPackage | ForEach-Object { $_.GetAttribute('RuntimeAssemblyNames').Split(';', [StringSplitOptions]::RemoveEmptyEntries) })
 $preloaded = @($props.Project.ItemGroup.SharedProjectAssembly | Where-Object { $_.GetAttribute('Preload') -eq 'true' } | ForEach-Object { $_.Include.Split(';', [StringSplitOptions]::RemoveEmptyEntries) })
 if (!$ProductLine) {
     $hostRoot = if ($HostOutputRoot) { Join-Path $HostOutputRoot 'Console' } else { Join-Path $root "WawiCallPro.Console/bin/$Configuration/net11.0-windows10.0.19041.0" }

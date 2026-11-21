@@ -3,11 +3,12 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Plugin.Windows;
 
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
 [PluginServices(typeof(ProPluginServices))]
-public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces
+public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings
 {
     private bool _initialized;
     private bool _configured;
@@ -23,6 +24,22 @@ public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirec
     }
     public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => _configured
         ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");
+    public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context)
+    {
+        if (!_configured) throw new InvalidOperationException("Plugin is not configured.");
+        var page = new ProConnectionSettingsPage();
+        try { page.Reload(context); return new SettingsView(page); }
+        catch { page.Dispose(); throw; }
+    }
+    public string ConnectionSettingsTitle => "Lexware-Pro-Zugang";
+    private sealed class SettingsView(ProConnectionSettingsPage page) : IPluginSettingsView
+    {
+        public System.Windows.Forms.Control View => page;
+        public bool HasUnsavedChanges => page.HasChanges();
+        public void Reload(IPluginConnectionEditContext context) => page.Reload(context);
+        public void ApplyChanges(IPluginConnectionEditContext context) => page.ApplyChanges(context);
+        public void Dispose() => page.Dispose();
+    }
     public void Execute() => throw new NotSupportedException("Fachoperationen werden über den Datenadapter ausgeführt.");
     public void Shutdown() { _configured = false; _initialized = false; }
 }

@@ -79,7 +79,17 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     private DateTimeOffset clockNow() => clock.GetUtcNow();
     public ImmutableArray<Company> GetCompanies() { lock (_gate) return _companies; }
     public ImmutableArray<AutomationView> GetViews()
-    { lock (_gate) return BusinessAvailable() ? _views : AppAutomationCatalog.BaseViews; }
+    {
+        lock (_gate)
+        {
+            if (BusinessAvailable()) return _views;
+            // Connection setup remains reachable before a source catalog can be authenticated.
+            if ((Runtime as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
+                && Runtime?.IsLoaded == true && (Runtime is not WawiCallPro.Interfaces.Plugins.IProductPluginAvailability availability || availability.CanUseActivePlugin))
+                return AppAutomationCatalog.BaseViews.AddRange(_views.Where(view => view.Id == "settings-wawi"));
+            return AppAutomationCatalog.BaseViews;
+        }
+    }
     private bool BusinessAvailable() => _businessReady && (Runtime as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
         && Runtime?.IsLoaded == true && (Runtime is not WawiCallPro.Interfaces.Plugins.IProductPluginAvailability available || available.CanUseActivePlugin);
     public void RequireAccess(AutomationAccess access, CompanyKey? company = null)

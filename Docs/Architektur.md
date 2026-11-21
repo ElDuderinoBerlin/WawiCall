@@ -92,6 +92,29 @@ Der UI-Bearbeitungsstand wird nach erfolgreichem Import aktualisiert. Laufende D
 ihre Startkonfiguration; der Dialog bietet einen Neustart an. Prüfungen und Rendernachweise in
 [Phase 8](Neuaufbau-Plan.md#phase-8--app-und-erstes-vollständiges-kernprodukt-).
 
+## Wawi-Einstellungen und Funktions-Interfaces
+
+Nutzerpräzisierung vom 21.11.2026: Wawi-spezifische Einstellungsseiten werden als vollständige
+UserControls mit eigener `.cs`, `.Designer.cs` und `.resx` im jeweiligen Plugin aufgebaut. Das aktive
+Plugin liefert über ein optionales Interface die komplette View und ihren Titel. Der zentrale
+Einstellungsdialog bettet das Control ein und besitzt dessen Lease bis zum Schließen/Pluginwechsel.
+Ohne bereitgestellte View erscheint kein Platzhaltertab. Der Host baut keine einzelnen Lexware-Felder
+zusammen. Allgemeine Einstellungen, Pluginverwaltung, SIP und Audio bleiben gemeinsame Hostseiten.
+
+Erster Anschluss: `IWawiCallPluginSettings` liefert `ProConnectionSettingsPage` samt Titel
+„Lexware-Pro-Zugang“. `IPluginSettingsView`/`IPluginSettingsHandle` regeln Entwurf, Übernahme und
+Freigabe; `IPluginConnectionEditContext` verbindet den Plugin-Entwurf mit der gemeinsamen geschützten
+Speicherung. Der Host speichert atomar und erhält Geheimnisse bei leeren Eingaben, während Pro-
+Validierung, automatische Quellerkennung, Anmeldung und Firmenabruf im Pro-Plugin bleiben. COM-ID
+`settings-wawi` ist eine optionale Fähigkeit des aktiven Plugins und vor dessen erster Anmeldung
+verfügbar. Nicht unterstützte Plugins bieten diese View nicht an.
+
+Fachfunktionen werden über kleine Funktions-Interfaces angeboten; bestehend sind insbesondere
+`IBusinessDirectory`, `IWawiCallPluginWorkspaces` und `IWawiCallPluginViews`. Der gemeinsame Host nutzt
+die unterstützten Verträge und Kontexte. Produktabhängige Quellen-/Authentifizierungs- und
+Datensatzlogik wird nicht durch Produktlinienabfragen in Views ersetzt. Weitere Funktionen ergänzen
+passende Verträge und Fähigkeiten; die offene fachliche Umsetzung bleibt in der Capability-Matrix sichtbar.
+
 ## Fachansichten nach LxOutlook-Vorlage
 
 Zusätzliche fachliche Referenz ist `D:\Application-Development\OutlookBlazorAddin` mit LxOutlook.

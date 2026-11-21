@@ -75,6 +75,7 @@ public partial class SettingsPage
     }
     private async Task ImportSettingsCoreAsync(string path, CancellationToken token)
     {
+        RequireCleanPluginDraft();
         Apply(await _workspace!.Settings.ImportPortableAsync(path, _snapshot!, token));
         LoadAutoStart();
         statusLabel.Text = "Einstellungen importiert und gespeichert. Lokale Verbindungen und Zuordnungen bleiben erhalten. Bitte WawiCallPro neu starten.";

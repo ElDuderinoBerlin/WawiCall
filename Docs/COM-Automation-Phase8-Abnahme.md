@@ -73,7 +73,7 @@ es belegt weder einen konfigurierten Lexware-Zugang noch vollständige Fachfunkt
 | Eigene Lexware-Fach-Tabs | **Fehlen in Pro und FinOffice.** Beide `LexwarePlugin`-Klassen implementieren `IWawiCallPluginWorkspaces`, aber kein `IWawiCallPluginViews`. | Keine erfolgreiche Abnahme solcher Tabs behaupten; Umsetzung bleibt im Neuaufbauplan offen. |
 | Belege, offene Posten, Zahlungsübersicht, Projekte, Preise, Umsatz/Top-Artikel und Schreibfunktionen | Im jeweiligen Adapter weiterhin `Unsupported`; Quellumfang in `ProCapabilities`/`FinOfficeCapabilities` und [Funktionsmatrix](Capability-Matrix.md) ausgewiesen. | Eigene Fachabfragen und Oberflächen fehlen; vorhandene Referenzbibliotheken ersetzen diese nicht. |
 | Mail und Telefonie/Audio | Host-Ansichten und Dienste vorhanden. Ohne eingerichtete Konten/Gegenstelle kein Funktionsnachweis. | Verbindung, Anzeigen/Zuordnen sowie echte Gespräche separat prüfen. |
-| Lexware-Pro-Zugang im Einstellungsdialog | **Editor fehlt.** Die App-Views schreiben keine `ProErpSettings`; Pluginverwaltung bietet Auswahl/Details/Fähigkeiten. Vorhanden ist die lokale Console-Einrichtung `--erp-configure`. | UI-Lücke im Neuaufbau schließen; für die aktuelle Testeinrichtung den bestehenden interaktiven Konsolenweg verwenden. Kennwort/Client-Key bleiben lokal und verdeckt. |
+| Lexware-Pro-Zugang im Einstellungsdialog | ✅ **Lexware-Pro-Zugang** lädt den Editor aus dem Pro-Plugin. Plugin prüft Felder; Host speichert Zugang und allgemeine Einstellungen gemeinsam atomar mit DPAPI. COM-View-ID `settings-wawi`. | Isolierte technische Prüfung bestanden; freigegebenen Testzugang lokal eintragen, danach speichern/neustarten und echte Mandantenladung gemeinsam nachweisen. |
 
 Diese Bestandsaufnahme wurde durch Quellenvergleich und das echte `GetViewsJson()` gewonnen;
 sie ist kein grüner UI- oder Fachfunktionstest. Fehlende Funktionalität wird bei der COM-Abnahme
@@ -82,7 +82,10 @@ als fehlend festgehalten und nicht durch eine erfolgreiche Anzeige eines leeren 
 Der aktuelle Laufzeitkatalog ist maßgeblich. Vorbereitet sind Startseite, Gesprächshistorie, E-Mails,
 Hilfe, Über-Dialog, Log, Datenbankassistent und alle angebotenen Einstellungsbereiche einschließlich
 Plugins, Tastenkürzel, SIP/Erweitert, Leitungsfirma, Datenbank, Audio/Lautstärken, Telefon-Cache,
-Cachequellen, Stammnummernabgleich, Nummerndiagnostik und Office/Mail.
+Cachequellen, Stammnummernabgleich, Nummerndiagnostik, Office/Mail und nun **Lexware-Pro-Zugang**.
+Mit dem zusätzlichen Pro-Einstellungsbereich enthält der Katalog vor Anmeldung **24** Einträge
+(23 gemeinsame Einträge plus optionale Plugin-Zugangs-View); die zuvor
+protokollierten 23 gehören zum älteren Build und werden nicht rückwirkend umgedeutet.
 Plugin-/Stammdatenansichten nur für den freigegebenen Testmandanten öffnen.
 Gesprächsdetails benötigen die CallId aus diesem Testlauf, die Wählansicht einen gültigen companyKey.
 Fehlt eine Ansicht im aktuellen Katalog, Verfügbarkeit und Grund notieren statt einen erfolgreichen Test
@@ -97,28 +100,30 @@ Einstellungsdialog mit dem Auftragsfehler `Busy` abgewiesen. Der native Fensterb
 Hauptfenster und den Einstellungsdialog. Die Benutzerbestätigung der sichtbaren/bedienbaren
 Oberfläche und das erstmalige Speichern stehen noch aus; Schritt 3/4 bleiben insgesamt offen.
 
-1. Im bereits geöffneten Einstellungsdialog unter Allgemein einmal **Speichern** wählen.
-   Das erzeugt das neue normale Pro-Profil; keine fremde Konfiguration importieren.
-2. Datenbankassistent und SIP/Audio danach gezielt einrichten. Vor Quelleingaben und Firmenabrufen
-   ausschließlich freigegebenen Testmandanten und API-Testkonto bestätigen.
-3. Der aktuelle GUI-Stand hat noch keinen Editor für den Lexware-API-Zugang. Der vorhandene
-   lokale Einrichtungsweg lautet, in einer normalen interaktiven PowerShell vom Repository aus:
+✅ **Editor technisch vorbereitet (21.11.2026):** Oberfläche und Pro-Eingaberegeln liegen im
+Pro-Plugin; der zentrale Einstellungsdialog enthält nur die optionale Plugin-UI-Anbindung und den
+geschützten Speicherkontext. Kein Quellzugriff beim Editieren oder Speichern. Kennwort/Client-Key bleiben
+maskiert und werden nie aus gespeicherten Geheimnissen in die Oberfläche zurückgeladen. Abbrechen/X,
+konkurrierendes Speichern, unveränderte Geheimnisse, Pluginwechsel und Neustart ohne erneuten Abruf mit
+altem Zugang isoliert geprüft. Separate Shared-Assembly-/Deploymentprüfung für App und Console beider
+Editionen bestanden; Designer-Dateitripel und echte Plugin-Oberfläche bei kleinem Dialog, großer Schrift,
+hellem/dunklem Skin und 150-%-Layoutsimulation geprüft. Details und Prüfzahlen im Neuaufbauplan.
 
-   ```powershell
-   & '.\WawiCallPro.Console\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.Console.Pro.exe' --erp-configure
-   ```
+**Jetzt nur der nächste Schritt:** Im Tab **Lexware-Pro-Zugang** „Lexware-Pro-Zugang verwenden“ aktivieren
+und den freigegebenen API-Testbenutzer samt Kennwort **lokal** eintragen. API-Adresse und
+Installationskennung dürfen bei lokaler Erkennung leer bleiben. Verfügbare Client-Key-Buildvorgabe
+übernehmen oder den freigegebenen eigenen Client-Key lokal eingeben. Noch nicht speichern und keine
+Zugangsdaten in Chat, Skripte oder Ergebnisdateien übernehmen; zunächst die Eingabe bestätigen.
 
-   Zuvor Einstellungsdialog und App regulär schließen, um veraltete Einstellungs-Snapshots zu vermeiden.
-   Nur Zugang zum Testsystem verwenden. API-Adresse/Installation bei passender automatischer Erkennung
-   leer lassen; Benutzer lokal eingeben, Kennwort und gegebenenfalls Client-Key verdeckt eingeben.
-   Leer beim Client-Key übernimmt die bereits geprüfte Buildvorgabe. Der Befehl speichert geschützt
-   und führt selbst keine Anmeldung oder Fachabrufe aus. Anschließend die App neu per COM starten.
-   Keine Zugangsdaten als Kommandozeilenargumente, in Chat, Prüfskript oder Ergebnisdatei übernehmen.
+Erst danach gemeinsam separat: **Speichern** und angebotenen Neustart durchführen; tatsächliche
+Mandantenladung über das aktive Pro-Plugin prüfen, Testfirma anhand ihres Namens bestätigen und deren
+vollständigen Schlüssel ausschließlich lokal für weitere COM-Prüfungen übernehmen. Datenbank-/SIP-/
+Audiotests erst in den nachfolgenden vereinbarten Schritten. Die Testprofileinrichtung und Live-Ladung
+sind weiterhin offen. Technische Editorprüfung schließt Schritt 3–5 nicht ab.
 
-Die COM-V1-API bietet keine Funktion zum Ändern oder Speichern von Einstellungen. Deshalb werden
-ihre Anzeige-/Navigationsfunktionen per JavaScript getestet; die lokale Konto-/Profileingabe benötigt
-den vorhandenen Editor beziehungsweise Einrichtungsdialog der Console. Das ist eine aktuelle
-Funktionsgrenze und kein erfolgreich geprüfter GUI-Einrichtungsweg für Lexware Pro.
+Die COM-V1-API ändert keine Zugangsdaten. JavaScript öffnet per `ShowView("settings-wawi", "")` den
+Editor; die Eingabe geschieht bewusst lokal. Alternativ bleibt Console `--erp-configure` verfügbar,
+bei regulär geschlossener App und ohne Geheimnisse in Kommandozeilenargumenten.
 
 ## Erster ausführbarer Schritt nach Bestätigung der Ziel-EXE
 

@@ -646,6 +646,7 @@ public sealed class PluginRuntimeTests
 
     private IHost CreateHost() => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly()).ConfigureServices(services =>
     {
+        services.AddSingleton(new SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginSettings).Assembly));
         services.AddSingleton(new ConfigurationLocation(_root));
         services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
     }).Build();

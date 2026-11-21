@@ -58,6 +58,18 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
             try
             {
                 if (!runtime.IsLoaded || runtime is IProductPluginAvailability availability && !availability.CanUseActivePlugin) return;
+                var settingsTitle = await runtime.UseAsync((plugin, _) => Task.FromResult(
+                    plugin is IWawiCallPluginSettings { HasConnectionSettings: true } settings ? settings.ConnectionSettingsTitle : null), token);
+                var availableViews = BaseViews;
+                if (settingsTitle is not null)
+                {
+                    if (string.IsNullOrWhiteSpace(settingsTitle) || settingsTitle.Length > 120 || settingsTitle.Any(char.IsControl))
+                        throw new InvalidOperationException("Invalid plugin settings title.");
+                    availableViews = availableViews.Add(new("settings-wawi", settingsTitle));
+                }
+                token.ThrowIfCancellationRequested();
+                if (pluginId != PluginId) return;
+                state.PublishCatalog([], availableViews, pluginId, false);
                 var companies = await directory.GetCompaniesAsync(token);
                 var line = state.GetStatus().ProductLine;
                 if (companies.IsDefault || companies.Length > 1000 || companies.Any(company => company?.Key is null
@@ -76,7 +88,7 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
                 }, token);
                 token.ThrowIfCancellationRequested();
                 if (pluginId != PluginId) return;
-                var result = BaseViews;
+                var result = availableViews;
                 if (views.Workspaces) result = result.Add(new("parties", "Kunden und Lieferanten"));
                 result = result.Add(new("caller", "Anrufersuche") { Context = "callId optional für ein aktives Gespräch" }).Add(new("dial", "Wähldialog") { Context = "companyKey" });
                 result = result.AddRange(views.Views.Select(view => new AutomationView("plugin:" + view.Id, view.DisplayName) { Context = "companyKey + customerNumber oder supplierNumber" }));

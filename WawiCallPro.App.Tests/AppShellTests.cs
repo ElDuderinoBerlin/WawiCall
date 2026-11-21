@@ -3633,6 +3633,7 @@ public sealed partial class AppShellTests
             services.AddSingleton<IProductPluginRuntime>(new TestRuntime(plugin));
             services.AddSingleton<WawiCallPro.Interfaces.PhoneNumbers.IPhoneCacheService, WawiCallPro.Utilities.Persistence.PhoneCacheService>();
             services.AddSingleton<IPluginViewAccess, PluginViewAccess>();
+            services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(IWawiCallPluginSettings).Assembly));
             services.AddSingleton(new StartupExecutionMode(true));
             services.AddSingleton<AppUiState>(); services.AddSingleton<AppWorkspace>();
             services.AddSingleton<CallNotesSessionFactory>();
@@ -3741,8 +3742,12 @@ public sealed partial class AppShellTests
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }
-    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews, IWawiCallPluginWorkspaces
+    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews, IWawiCallPluginWorkspaces, IWawiCallPluginSettings
     {
+        internal Func<IPluginConnectionEditContext, IPluginSettingsView>? SettingsFactory;
+        public bool HasConnectionSettings => SettingsFactory is not null;
+        public string ConnectionSettingsTitle { get; set; } = "Zugang";
+        public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context) => SettingsFactory!(context);
         public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => factory.Create();
         internal int Created;
         internal int Disposed;

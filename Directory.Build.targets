@@ -16,16 +16,25 @@
     </PropertyGroup>
   </Target>
   <Import Project="$(MSBuildThisFileDirectory)..\Quantarix.Plugin.System\Directory.Build.targets" />
-  <Target Name="GenerateWawiSharedPackageManifest" BeforeTargets="AssignTargetPaths" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Utilities'">
-    <ItemGroup><SharedPackage Update="@(SharedPackage)" Condition="'%(SharedPackage.RuntimeAssemblyNames)' == ''"><RuntimeAssemblyNames>%(SharedPackage.Identity)</RuntimeAssemblyNames></SharedPackage></ItemGroup>
+  <Target Name="PrepareWawiSharedPackageAssemblies">
+    <ItemGroup>
+      <SharedPackage Update="@(SharedPackage)" Condition="'%(SharedPackage.RuntimeAssemblyNames)' == ''"><RuntimeAssemblyNames>%(SharedPackage.Identity)</RuntimeAssemblyNames></SharedPackage>
+    </ItemGroup>
+    <PropertyGroup>
+      <_WawiSharedRuntimeNames>@(SharedPackage->'%(RuntimeAssemblyNames)')</_WawiSharedRuntimeNames>
+      <_WawiSharedRuntimeNames>$([MSBuild]::Unescape('$(_WawiSharedRuntimeNames)'))</_WawiSharedRuntimeNames>
+    </PropertyGroup>
+    <ItemGroup><_WawiSharedPackageAssembly Include="$(_WawiSharedRuntimeNames)" /></ItemGroup>
+  </Target>
+  <Target Name="GenerateWawiSharedPackageManifest" BeforeTargets="AssignTargetPaths" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Utilities'">
     <ItemGroup>
       <_WawiPreloadedProjectAssembly Include="@(SharedProjectAssembly)" Condition="'%(SharedProjectAssembly.Preload)' == 'true'" />
     </ItemGroup>
-    <WriteLinesToFile File="$(IntermediateOutputPath)WawiSharedPackages.txt" Lines="@(SharedPackage->'%(RuntimeAssemblyNames)');@(_WawiPreloadedProjectAssembly)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)WawiSharedPackages.txt" Lines="@(_WawiSharedPackageAssembly);@(_WawiPreloadedProjectAssembly)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <ItemGroup><EmbeddedResource Include="$(IntermediateOutputPath)WawiSharedPackages.txt" LogicalName="WawiCallPro.SharedPackages" /></ItemGroup>
   </Target>
   <!-- Adapt the reference filter to MSBuild metadata matching; Identity is not custom item metadata. -->
-  <Target Name="FilterSharedAssembliesAndPackages" AfterTargets="ResolveReferences" Condition="'$(IsPluginProject)' == 'true'">
+  <Target Name="FilterSharedAssembliesAndPackages" AfterTargets="ResolveReferences" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(IsPluginProject)' == 'true'">
     <ItemGroup>
       <_WawiSharedFiles Include="@(SharedProjectAssembly->'%(Identity).dll')" />
       <_WawiSharedPackages Include="@(SharedPackage)" />
@@ -36,10 +45,14 @@
     <ItemGroup>
       <ReferenceCopyLocalPaths Remove="@(_WawiSharedFiles)" MatchOnMetadata="Filename" />
       <ReferenceCopyLocalPaths Remove="@(_WawiSharedPackages)" MatchOnMetadata="NuGetPackageId" />
+      <!-- Plugin UI uses the host's DevExpress instances and skin; never ship private UI copies. -->
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('DevExpress.'))" />
     </ItemGroup>
   </Target>
-  <Target Name="GetWawiPluginDeploymentFiles" Returns="@(_WawiDeploymentFiles)" Condition="'$(IsPluginProject)' == 'true'">
-    <Delete Files="@(SharedProjectAssembly->'$(TargetDir)%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)%(Identity).pdb');@(SharedPackage->'$(TargetDir)%(Identity).dll');@(SharedPackage->'$(TargetDir)%(Identity).pdb')" />
+  <Target Name="GetWawiPluginDeploymentFiles" Returns="@(_WawiDeploymentFiles)" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(IsPluginProject)' == 'true'">
+    <ItemGroup><_WawiPrivateUiCopies Include="$(TargetDir)DevExpress.*.dll;$(TargetDir)DevExpress.*.pdb" /></ItemGroup>
+    <Delete Files="@(_WawiPrivateUiCopies)" />
+    <Delete Files="@(SharedProjectAssembly->'$(TargetDir)%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)%(Identity).pdb');@(_WawiSharedPackageAssembly->'$(TargetDir)%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)%(Identity).pdb')" />
     <ItemGroup>
       <_WawiDeploymentFiles Include="$(TargetDir)**\*">
         <PluginName>$(AssemblyName)</PluginName>
@@ -52,7 +65,7 @@
     </ItemGroup>
     <ItemGroup>
       <_WawiDeploymentFiles Remove="@(SharedProjectAssembly->'$(TargetDir)%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)%(Identity).pdb')" />
-      <_WawiDeploymentFiles Remove="@(SharedPackage->'$(TargetDir)%(Identity).dll');@(SharedPackage->'$(TargetDir)%(Identity).pdb')" />
+      <_WawiDeploymentFiles Remove="@(_WawiSharedPackageAssembly->'$(TargetDir)%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)%(Identity).pdb')" />
     </ItemGroup>
   </Target>
   <!-- Framework upgrades must not leave an older executable as an alternative entry point. -->
@@ -86,7 +99,7 @@
     </ItemGroup>
     <Delete Files="@(_WawiStaleEditionOutput)" />
   </Target>
-  <Target Name="DeployWawiPlugins" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+  <Target Name="DeployWawiPlugins" AfterTargets="Build" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <ItemGroup>
       <_WawiPluginProject Include="@(ProjectReference)" Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('WawiCallPro.Plugins.'))" />
     </ItemGroup>
@@ -95,12 +108,12 @@
     </MSBuild>
     <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(TargetDir)plugins\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
     <Delete Files="@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
-    <Delete Files="@(SharedPackage->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedPackage->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
+    <Delete Files="@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
   </Target>
   <Target Name="PublishWawiPlugins" AfterTargets="Publish" DependsOnTargets="DeployWawiPlugins" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(PublishDir)plugins\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
     <Delete Files="@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
-    <Delete Files="@(SharedPackage->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedPackage->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
+    <Delete Files="@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
   </Target>
   <ItemGroup>
     <AssemblyMetadata Include="LexwareProductLine" Value="$(LexwareProductLine)" />

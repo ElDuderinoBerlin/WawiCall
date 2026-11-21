@@ -20,6 +20,10 @@ public sealed class ConfigurationStore(
 {
     private const int MaximumFileSize = 131072;
 
+    /// <summary>Creates dialog-local connection edits without changing the saved or running configuration.</summary>
+    public PluginConnectionEditContext BeginPluginConnectionEdit(ConfigurationSnapshot snapshot, WawiCallPro.Utilities.Security.ISecretProtector secrets)
+        => new(snapshot, secrets);
+
     /// <summary>Exports saved portable preferences atomically. No credentials, connections or local identity mappings are included.</summary>
     public async Task ExportPortableAsync(string path, CancellationToken cancellationToken = default)
     {

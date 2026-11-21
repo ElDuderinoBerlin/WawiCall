@@ -308,6 +308,14 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ### Zentraler Einstellungsdialog
 
+- Wawi-spezifische Einstellungen möglichst als vollständige, designerfähige UserControls im jeweiligen
+  Plugin implementieren und über optionale Plugin-Interfaces samt Titel bereitstellen. Der Host bettet
+  die komplette View ein und verwaltet Navigation, Lebensdauer sowie das gemeinsame Speichern; keine
+  produktspezifischen Eingabefelder im Host dynamisch zusammensetzen. Tabs nur für bereitgestellte Views anzeigen.
+- Wawi-spezifische Funktionen über fachliche Funktions-Interfaces anbieten. Erkennung, Anmeldung,
+  Mandanten-/Datensatzabfragen und produktabhängige Regeln im Plugin kapseln; der Host verwendet die
+  unterstützten Fähigkeiten über diese Verträge. Fehlende Fähigkeiten ausdrücklich als nicht verfügbar behandeln.
+
 - Nutzerauftrag vom 20.11.2026: Textbuttons in Ansichten, Dialogen und Browse-Zeilen einheitlich kompakt
   über die zentrale Größenhilfe bemessen. Keine zusätzliche Mindesthöhe oder vertikale Padding-Vergrößerung
   allein wegen eines Dialoghosts verwenden. Die native Skinhöhe stellt den sichtbaren vertikalen Textabstand

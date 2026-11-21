@@ -72,7 +72,34 @@ Reguläre Rebuilds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warn
 28 Designer-Dateitripel geprüft; gezielte Hintergrundbilder mit leerem/gefülltem Katalog, heller/dunkler
 Darstellung, 9/16 pt und 150-%-Layoutsimulation visuell geprüft. Korrigierte inhaltsabhängige Breite/Höhe
 verhindert abgeschnittene Auswahl-/Statustexte im Navigationsdock. Echte Mandanten-/API-/SIP-Abnahme
-und der Pro-Zugangseditor bleiben offen; die Testprofileinrichtung ist damit nicht abgeschlossen.
+bleibt offen; die Testprofileinrichtung ist damit nicht abgeschlossen. Der Pro-Zugangseditor ist inzwischen
+wie nachfolgend beschrieben implementiert und isoliert geprüft.
+✅ **Pro-Zugangseditor im Plugin (21.11.2026):** Einstellungen → **Lexware-Pro-Zugang** enthält die vom
+aktiven Pro-Plugin bereitgestellte Oberfläche. API-Adresse/Installation optional, API-Benutzer,
+maskiertes Kennwort und Client-Key, geschützte Übernahme der Buildvorgabe und Zeitlimits.
+Das Plugin liefert das vollständige designerfähige `ProConnectionSettingsPage`-UserControl und den
+Tabtitel über `IWawiCallPluginSettings`. Ohne solche Fähigkeit gibt es keinen Zugangstab. Fachfunktionen
+werden über Funktions-Interfaces angeboten, siehe [Architektur](Architektur.md#wawi-einstellungen-und-funktions-interfaces).
+Produktabhängige Eingabeprüfung und Oberfläche liegen im Pro-Plugin; der Host stellt einen typisierten
+Entwurf und DPAPI-Speicherung bereit. Ein gemeinsamer atomarer Speichervorgang erhält andere Einstellungen;
+leere Geheimnisfelder behalten den gespeicherten Wert, Abbrechen/X schreibt nichts. Änderungen gelten
+nach dem angebotenen Neustart; unmittelbar davor kein Katalogabruf mit dem alten Zugang. Keine Anmeldung
+oder Quellabfrage beim Bearbeiten/Speichern. Kein Credential-Import aus anderen Tools.
+Isoliert geprüft: 39 gezielte App-Prüfungen Pro / 38 FinOffice, je 136 betroffene Utilities-Prüfungen,
+70 Pro-/46 FinOffice-Pluginprüfungen und je sieben Console-Prüfungen. Nach abschließender Layout-/
+Deploymentkorrektur nochmals zehn Pro-Editor-/Speicher-/Neustartprüfungen, je 28 Pluginruntime- und zwei
+Console-Hostprüfungen erfolgreich. Shared-UI-/Supportassemblies bleiben im Host; keine privaten DevExpress-
+Kopien im Plugin. Reguläre Builds Debug/Any CPU beider Editionen erfolgreich, Pro zuletzt.
+29 Designer-Dateitripel; dienstfreier Plugin-Konstruktor und eingebettete Ressourcen sowie leerer/gefüllter
+Editor im echten Dialog, heller/dunkler Skin, 9/16 pt und 150-%-Layoutsimulation geprüft. Der umgebrochene
+Hinweis bleibt auch im kleinen Dialog mit großer Schrift vollständig erreichbar. Nachweise unter
+`.artifacts/pro-connection-editor/designer` und `.artifacts/app-shell/settings-ui/pro-connection-editor`.
+Für die neue Desktop-Testabhängigkeit Objekt-erzeugende Fixture-Getter stabilisiert; veraltete Erwartung
+der Migrationsfortschritte auf die vorhandenen Versionen 1–14 korrigiert, keine produktive Migration geändert.
+**Offen:** Benutzer trägt freigegebenen Testzugang lokal ein; tatsächliche Mandantenladung anschließend
+gemeinsam prüfen. COM-Phase 8/G1 werden hierdurch nicht abgeschlossen. Nur den jeweils nächsten Schritt
+im [COM-Abnahmeprotokoll](COM-Automation-Phase8-Abnahme.md) ausführen.
+
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht
@@ -612,7 +639,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl nun 28 Oberflächen; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -2402,7 +2429,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 | Anruferfenster und Notizen | `MainForm.Calls.cs`, `FrmCallerLookup`, `CallerLookupPage`, `CallDetailsPage` und `CallNotesSession` verbinden Ruf, Treffer, Auswahl, Notizen und unabhängige Gesprächskontexte. Benachrichtigungen sind einstellbar; ausstehende UI-Arbeit wird beim Schließen beendet. | Vorhandene Tests u. a. `CallNotesPersistAfterCallEndAndPopupCloseWithoutBusinessAccessOrCrossCallDrafts`, `CallerLookupGroupsRealCachesAndPreservesManualChoiceWithoutSwitchingViews` und `LateCallDetailsCannotPublishAfterSelectionChangeOrCallEnd`. Keine fehlende Grundanbindung belegt; A1 und A3 seit 20.11.2026 ✅; G1–G3 offen. |
 | Einstellungen | `FrmSettings`/`SettingsPage` mit SIP, Geräten, Datenbankassistent, Hotkeys, Autostart und Benachrichtigungen; JSON-Transfer, Logoptionen und DirectX sind vorhanden. Cache-Mandanten bleiben ausschließlich dort. | `AppShellTests.Settings*.cs`, `AppShellTests.cs`, `AutoStartTests` und `AppHotkeyTests` enthalten Teilnachweise. ✅ Technische Designer-/Layoutabdeckung in A4 ergänzt; gemeinsame Bedien-/Systemprüfung G4/G5 offen, aktive Medienumschaltung gehört zu Phase 9. |
 | Tray, Hotkeys, Fokus und Schließschutz | `MainForm.Tray.cs`, `MainForm.Hotkeys.cs`, `AppHotkeys`, `MainForm.Calls.cs`, `StartupFocusHandoff` und `StartupSplash.CompleteAsync` sind angebunden. Splash-Reihenfolge: Vordergrund erfassen → bei eigenem Vordergrund aktivieren → Splash schließen. | `ApplicationLifetimeTests`, `StartupSplashTests`, `AppHotkeyTests` und `NativeTrayAudit` vorhanden. Diese Prüfeinstiege ersetzen keine neue sichtbare Abnahme; G3/G4 sowie Schließfälle G1/G2 bleiben offen. |
-| Designer-Aufteilung | 27 eigene Oberflächen in App und `WawiCallPro.Plugin.Windows`; die erneute Ableitungskettenprüfung fand keine weiteren eigenen Typen. In den beiden Editionsplugins keine eigenen Form-/Control-Ableitungen; sie liefern die gemeinsame Suchansicht über ihre Factory. | ✅ A4: Dateitripel, Ressourcen-XML, Roslyn-Designerprüfung, tatsächlicher dienstfreier Aufbau ohne Handles, eingebettete Ressourcen und explizite Designer-Properties geprüft. Kein behaupteter interaktiver Designer-Roundtrip. |
+| Designer-Aufteilung | Aktuell 29 eigene Oberflächen: 28 in App/Windows-Plugin einschließlich `CompanySelector`, zusätzlich `ProConnectionSettingsPage` im Pro-Plugin. Beide Editionen liefern die gemeinsame Suchansicht über ihre Factory. | ✅ A4: Dateitripel, Ressourcen-XML, Roslyn-Designerprüfung, tatsächlicher dienstfreier Aufbau ohne Handles, eingebettete Ressourcen und explizite Designer-Properties geprüft. Kein behaupteter interaktiver Designer-Roundtrip. |
 | Layout, Schrift, Skin, DPI | TableLayoutPanel-Layouts und `UiButtonSizing`; A4 ordnet jedem Typ die konkreten Renderfälle und Fenster-/Gridpersistierung zu und ergänzt die belegten Lücken. | ✅ A4 mit neuen und erneut geprüften betroffenen Layoutfällen sowie Bildauswertung. Tatsächliche Monitor-/DPI- und Bedienprüfung G5 bleibt gemeinsam. |
 
 Die Bestandsaufnahme begründet keinen erneuten vollständigen Neubau dieser Funktionen. In A1–A4 zunächst
@@ -2516,7 +2543,8 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   **A4-Abdeckungsverzeichnis (20.11.2026).** `scripts/test-ui-designer.ps1` erfasst die eigenen Klassen
   in App, gemeinsamem Windows-Plugin sowie Pro-/FinOffice-Plugin einschließlich der Ableitungskette.
   Ausgangsnachweis: 27 Typen. Am 21.11.2026 um `CompanySelector` auf 28 Typen ergänzt und erneut geprüft;
-  aktueller Quellnachweis unter `.artifacts/company-selector/designer/designer-sources.json`.
+  mit `ProConnectionSettingsPage` am selben Tag auf **29** ergänzt. Aktueller Quellnachweis unter
+  `.artifacts/pro-connection-editor/designer/designer-sources.json`.
   Zu jedem Typ erzeugt der
   Prüflauf die konkreten Quell-, Designer- und Ressourcenpfade in
   `.artifacts/phase8-a4/designer-sources.json`. Roslyn prüft die Syntaxbäume von `InitializeComponent()`
@@ -2528,6 +2556,9 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   ergänzt dies am kompilierten Produkt: ursprünglich 27, einschließlich `CompanySelector` jetzt 28
   Konstruktoren ohne DI/DB/Host, kein erzeugtes Fensterhandle,
   ladbare eingebettete Ressourcen sowie explizite Serialisierungsattribute und auswertbare Designer-Properties.
+  Der zusätzliche Pro-Editor wird separat aus dem tatsächlich geladenen signierten Plugin geprüft:
+  `RealProConnectionEditorLoadsFromPluginValidatesAndRendersInCentralSettings`, parameterlos ohne Handle
+  und mit eingebetteter Ressource, Default-Context-DevExpress-Typen und aktivem Host-Skin.
   Laufzeitbindung und Vorgänge bleiben in den `.cs`-Dateien. Fremde DevExpress-/Quantarix-Typen wie der
   Lizenzdialog und der Fortschrittsbalken sind eingebundene Bibliotheksoberflächen, keine weiteren eigenen Typen.
 
@@ -2545,6 +2576,7 @@ Eine nicht nachgewiesene Prüfung ist eine Nachweislücke, nicht automatisch ein
   | `LogListBoxSearchController` | R3: eingebettet im Log, Strg+F/Escape/Schließen, kleine Breite, große Schrift und Skalierung | Kein eigener Fenster-/Spaltenzustand |
   | `FrmSettings` | R4: alle vorhandenen Tabs leer/gefüllt, kleiner Dialog, Footerumbruch und Skin/Schrift/Skalierung | `FrmSettings` |
   | `SettingsPage` | R4: allgemeine Werte, SIP/Expertenmodus, Hotkeys, Geräte, Cachequellen/Nummernregeln und DB-Zusammenfassung | `CacheSources`; enthaltene Unterseiten separat |
+  | `ProConnectionSettingsPage` | Ergänzung 21.11.2026: plugin-eigener Editor im zentralen Dialog, leer/gefüllt, maskierte Geheimnisse, Validierung, 900 × 740, 9/16 pt, Basic/Office 2019 Black und 150-%-Layoutsimulation; umgebrochene Hinweise vollständig erreichbar | Host `FrmSettings`; Zugang geschützt in `connection.local.json`, kein eigener Fensterzustand |
   | `PluginPage` | R5: installierte/leere Katalogkarten, Plugin-Details und Fähigkeiten, kleine Breite/große Schrift, beide Skins | `PluginCapabilities`; HTML-Katalogkarten haben keine anpassbaren Tabellenspalten |
   | `MailSettingsPage` | R6: leer, Outlook, Microsoft 365 und Google, kleines Fenster, lange Werte, große Schrift/Skalierung | `MailAccounts-v1`, `MailImportFolders-v1` |
   | `PhoneNumberDiagnosticsPage` | R7: vorhandene/leere Diagnosezeilen und Quellen im Einstellungsdialog, klein, Schrift/Skin/Skalierung | `PhoneNumberDiagnostics-v1` |

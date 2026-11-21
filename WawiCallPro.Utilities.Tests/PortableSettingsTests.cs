@@ -116,7 +116,7 @@ public sealed class PortableSettingsTests
         Assert.DoesNotContain("private-path", readError.ToString()); Assert.DoesNotContain("private-path", writeError.ToString());
     }
 
-    private static CompanyKey Company => new(LexwareProductLine.FinOffice, "private-installation", "01");
+    private static CompanyKey Company { get; } = new(LexwareProductLine.FinOffice, "private-installation", "01");
     private static ApplicationOptions LocalOptions(ISecretProtector protector)
     {
         var account = new SipAccountOptions { Server = "private.invalid", Username = "synthetic-user", Password = protector.Protect("synthetic-secret", SipAccountOptions.PasswordPurpose) };

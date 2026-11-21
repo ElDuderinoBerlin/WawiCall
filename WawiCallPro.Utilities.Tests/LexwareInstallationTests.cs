@@ -156,7 +156,7 @@ public sealed class LexwareInstallationTests
     private sealed class Plugin : IWawiCallPlugin
     {
         public string Name => "isolated-test";
-        public Version Version => new(1, 0);
+        public Version Version { get; } = new(1, 0);
         public LexwareProductLine ProductLine => LexwareProductLine.Pro;
         public IBusinessDirectory Directory => throw new AssertFailedException("The guard must run before accessing a source.");
         public void Configure(IWawiCallHostServices services) { }

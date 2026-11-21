@@ -17,7 +17,8 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class OperationsTests
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-operations-tests-" + Guid.NewGuid().ToString("N"));
-    private ApplicationPaths Paths => new(new ConfigurationLocation(_root));
+    private ApplicationPaths? _paths;
+    private ApplicationPaths Paths => _paths ??= new(new ConfigurationLocation(_root));
 
     [TestCleanup]
     public void Cleanup()

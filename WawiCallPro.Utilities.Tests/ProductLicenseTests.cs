@@ -25,7 +25,8 @@ public sealed class ProductLicenseTests
     private readonly Guid _licenseId = Guid.NewGuid();
     private readonly Clock _clock = new();
     private readonly LicenseProductIdentity _product = new("WAWICALLPRO_PRO", new Guid(LicenseProductIdentity.ProApplicationId), "0.1.0", true);
-    private ApplicationPaths Paths => new(new ConfigurationLocation(_root));
+    private ApplicationPaths? _paths;
+    private ApplicationPaths Paths => _paths ??= new(new ConfigurationLocation(_root));
     [TestCleanup]
     public void Cleanup() { _signer.Dispose(); if (Directory.Exists(_root)) Directory.Delete(_root, true); }
 
@@ -163,7 +164,7 @@ public sealed class ProductLicenseTests
         }
     }
 
-    private static StartupSettings Settings => new() { LicenseServerUrl = new Uri("https://isolated.invalid"), UploadCrashReports = true };
+    private static StartupSettings Settings { get; } = new() { LicenseServerUrl = new Uri("https://isolated.invalid"), UploadCrashReports = true };
     private ProductLicenseService CreateService(Handler handler)
     {
         var keys = new EmbeddedPublicKeyProvider(new Dictionary<string, string> { ["synthetic"] = _signer.ExportSubjectPublicKeyInfoPem() });

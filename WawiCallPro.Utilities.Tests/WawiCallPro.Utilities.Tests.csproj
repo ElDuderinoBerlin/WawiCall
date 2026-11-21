@@ -1,14 +1,17 @@
 <Project Sdk="MSTest.Sdk">
   <PropertyGroup>
-    <TargetFramework>net11.0</TargetFramework>
+    <TargetFramework>net11.0-windows</TargetFramework>
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Headless runtime tests load the actual Windows plugin; they do not implement WinForms UI. -->
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <Compile Remove="Fixtures/**/*.cs" />
     <ProjectReference Include="Fixtures/RuntimePlugin/RuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="Fixtures/SignedRuntimePlugin/SignedRuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />
+    <ProjectReference Include="..\WawiCallPro.Plugin.Windows\WawiCallPro.Plugin.Windows.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />

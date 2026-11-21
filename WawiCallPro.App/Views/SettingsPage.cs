@@ -38,6 +38,7 @@ public partial class SettingsPage : XtraUserControl
             Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
             + audioDevicesTab.Top + audioDevicesTab.Left);
         if (tabs.SelectedTabPage == mailTab) content = Math.Max(content, mailSettingsPage.GetRequiredHeight());
+        if (tabs.SelectedTabPage == wawiTab) content = Math.Max(content, wawiLayout.GetPreferredSize(new(width, 0)).Height);
         var statusWidth = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal - statusLabel.Margin.Horizontal);
         // Hidden pages may retain an old Height. Derive chrome from content and stable header/border offsets instead.
         return content + layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left
@@ -137,6 +138,7 @@ public partial class SettingsPage : XtraUserControl
         _audioStopped = true;
         SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
         if (_operation is not null) await _operation.StopAsync();
+        await ClosePluginConnectionEditorAsync();
         await pluginPage.StopAsync();
         await numberDiagnosticsPage.StopAsync();
         await mailSettingsPage.StopAsync();
@@ -145,9 +147,15 @@ public partial class SettingsPage : XtraUserControl
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
     internal void SelectAutomationTab(string id)
     {
+        if (id == "settings-wawi")
+        {
+            if (tabs.TabPages.Contains(wawiTab)) tabs.SelectedTabPage = wawiTab;
+            else _selectPluginConnectionOnLoad = true;
+            return;
+        }
         tabs.SelectedTabPage = id switch
         {
-            "plugin" => pluginTab, "settings-hotkeys" => hotkeysTab,
+            "plugin" => pluginTab, "settings-wawi" => wawiTab, "settings-hotkeys" => hotkeysTab,
             "settings-sip" or "settings-sip-advanced" or "settings-line-company" => sipTab,
             "settings-database" => databaseTab, "settings-audio" or "settings-audio-levels" => audioTab,
             "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics" => cacheTab,
@@ -164,12 +172,14 @@ public partial class SettingsPage : XtraUserControl
     private async Task ActivatePluginAsync(string id, CancellationToken token)
     {
         if (_workspace?.Plugins is not WawiCallPro.Interfaces.Plugins.IProductPluginSelection selection) return;
+        RequireCleanPluginDraft();
         saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
         try
         {
             pluginPage.ReportSwitchStatus("Offene Ansichten und Vorgänge werden beendet …");
             if (_operation is not null) await _operation.StopAsync();
+            await ClosePluginConnectionEditorAsync();
             if (_beforePluginSwitch is not null) await _beforePluginSwitch();
             await _workspace.Companies.SelectAsync(null);
             pluginPage.ReportSwitchStatus("Bisheriges Plugin wird entladen, neues Plugin wird geladen …");
@@ -178,6 +188,8 @@ public partial class SettingsPage : XtraUserControl
             var previous = _snapshot!;
             await _workspace.Settings.SaveAsync(previous.Options with { User = previous.Options.User with { ActivePluginId = id } }, previous, token);
             _snapshot = await _workspace.Settings.LoadAsync(token);
+            ApplyPluginConnectionSnapshot(_snapshot);
+            await LoadPluginConnectionEditorAsync(token);
         }
         finally
         {
@@ -211,6 +223,7 @@ public partial class SettingsPage : XtraUserControl
         mailSettingsPage.Apply(snapshot.Options.MailAccounts, snapshot.Options.Companies);
         mailSettingsPage.ApplyCache(snapshot.Options.MailCache);
         _snapshot = snapshot;
+        ApplyPluginConnectionSnapshot(snapshot);
         var options = snapshot.Options;
         ApplyCallerLine(options);
         notificationsEdit.Checked = options.User.ShowCallNotifications;
@@ -247,7 +260,7 @@ public partial class SettingsPage : XtraUserControl
     {
         sipProperties.CloseEditor();
         var old = _snapshot!.Options;
-        return old with
+        var options = old with
         {
             User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
                 LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
@@ -272,6 +285,7 @@ public partial class SettingsPage : XtraUserControl
             MailAccounts = mailSettingsPage.ReadAccounts(),
             MailCache = mailSettingsPage.ReadCache()
         };
+        return ApplyPluginConnectionDraft(options);
     }
 
     private ImmutableArray<CompanySettings> ReadCompanySettings(ApplicationOptions old)
@@ -310,7 +324,14 @@ public partial class SettingsPage : XtraUserControl
         BindMatchingCompanies();
     }
 
-    internal Task ReloadAsync() => _operation?.RunAsync(async token => { Apply(await _workspace!.Settings.LoadAsync(token)); LoadAutoStart(); await LoadAudioDevicesAsync(token); }) ?? Task.CompletedTask;
+    internal Task ReloadAsync() => _operation?.RunAsync(async token =>
+    {
+        RequireCleanPluginDraft();
+        Apply(await _workspace!.Settings.LoadAsync(token));
+        LoadAutoStart();
+        await LoadAudioDevicesAsync(token);
+        await LoadPluginConnectionEditorAsync(token);
+    }) ?? Task.CompletedTask;
     private async Task ReloadMailSettingsAsync(CancellationToken token)
     {
         var next = await _workspace!.Settings.LoadAsync(token);
@@ -372,7 +393,7 @@ public partial class SettingsPage : XtraUserControl
         await _operation.RunAsync(async token =>
         {
             await SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
-            "Die geänderten Darstellungs- oder Tastenkürzeleinstellungen wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Die geänderte Darstellung, Tastenkürzel oder Plugin-Zugangsdaten wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
             "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token);
             saved = true;
         });
@@ -399,11 +420,15 @@ public partial class SettingsPage : XtraUserControl
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {
         var previous = _snapshot!.Options.User;
+        var previousErp = _snapshot.Options.Erp;
         await SaveAsync(token);
         var saved = _snapshot.Options.User;
-        if (RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User))
-            statusLabel.Text = "Einstellungen gespeichert. Geänderte DirectX- oder Tastenkürzeleinstellungen werden nach einem Neustart wirksam.";
-        if (RestartSettingsDiffer(saved, previous) && RestartSettingsDiffer(saved, _workspace.Configuration.Current.Options.User) && confirm())
+        var connectionChanged = PluginConnectionSettingsDiffer(previousErp, _snapshot.Options.Erp);
+        var restartNeeded = RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User)
+            || PluginConnectionSettingsDiffer(_snapshot.Options.Erp, _workspace.Configuration.Current.Options.Erp);
+        if (restartNeeded)
+            statusLabel.Text = "Einstellungen gespeichert. Geänderte Darstellung, Tastenkürzel oder Plugin-Zugangsdaten werden nach einem Neustart wirksam.";
+        if ((RestartSettingsDiffer(saved, previous) || connectionChanged) && restartNeeded && confirm())
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
     private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>

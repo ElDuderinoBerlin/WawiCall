@@ -251,9 +251,10 @@ public sealed class PhoneCacheServiceTests
         internal ICompanyRepository Companies => services.GetRequiredService<ICompanyRepository>();
         internal ConfigurationStore Settings => services.GetRequiredService<ConfigurationStore>();
         private LexwareProductLine ProductLine => Enum.Parse<LexwareProductLine>(services.GetRequiredService<ApplicationDescriptor>().ProductLine);
-        internal Company A => new(new(ProductLine, "installation-A", "01"), "Firma A");
-        internal Company B => new(new(ProductLine, "installation-B", "01"), "Firma B");
-        internal Company C => new(new(ProductLine, "installation-A", "03"), "Firma C");
+        private Company? _a, _b, _c;
+        internal Company A => _a ??= new(new(ProductLine, "installation-A", "01"), "Firma A");
+        internal Company B => _b ??= new(new(ProductLine, "installation-B", "01"), "Firma B");
+        internal Company C => _c ??= new(new(ProductLine, "installation-A", "03"), "Firma C");
         internal async Task SaveSelectionAsync(params Company[] selected)
         {
             var snapshot = await Settings.LoadAsync();
