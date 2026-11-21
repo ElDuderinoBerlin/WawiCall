@@ -112,7 +112,8 @@ partial class SettingsPage
         usernameLabel = new DevExpress.XtraEditors.LabelControl();
         authUserEdit = new DevExpress.XtraEditors.TextEdit();
         authUserLabel = new DevExpress.XtraEditors.LabelControl();
-        passwordEdit = new DevExpress.XtraEditors.TextEdit();
+        passwordEdit = new DevExpress.XtraEditors.ButtonEdit();
+        passwordVisibilityButton = new DevExpress.XtraEditors.Controls.EditorButton();
         passwordLabel = new DevExpress.XtraEditors.LabelControl();
         databaseTab = new DevExpress.XtraTab.XtraTabPage();
         databaseLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -549,7 +550,7 @@ partial class SettingsPage
         passwordEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         passwordEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         passwordLabel.Name = "passwordLabel";
-        passwordLabel.Text = "Neues Kennwort";
+        passwordLabel.Text = "Kennwort";
         passwordLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         passwordLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         passwordLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
@@ -560,6 +561,13 @@ partial class SettingsPage
         sipLayout.Controls.Add(passwordLabel, 0, 6);
         sipLayout.Controls.Add(passwordEdit, 1, 6);
         passwordEdit.Properties.UseSystemPasswordChar = true;
+        passwordVisibilityButton.Kind = DevExpress.XtraEditors.Controls.ButtonPredefines.Glyph;
+        passwordVisibilityButton.ImageOptions.SvgImageSize = new System.Drawing.Size(16, 16);
+        passwordVisibilityButton.ToolTip = "Kennwort anzeigen";
+        passwordVisibilityButton.Caption = "Kennwort anzeigen";
+        passwordEdit.Properties.Buttons.Clear();
+        passwordEdit.Properties.Buttons.Add(passwordVisibilityButton);
+        passwordEdit.ButtonClick += PasswordVisibility_Click;
         sipHint.Name = "sipHint";
         sipHint.Text = "Die automatische Anmeldung gilt beim nächsten Programmstart. Speichern allein stellt keine Verbindung her. Ein leeres Kennwortfeld behält das gespeicherte Kennwort. Netzwerk- und Medienoptionen finden Sie unter Erweitert.";
         sipHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
@@ -1232,7 +1240,8 @@ partial class SettingsPage
     private DevExpress.XtraEditors.LabelControl usernameLabel;
     private DevExpress.XtraEditors.TextEdit authUserEdit;
     private DevExpress.XtraEditors.LabelControl authUserLabel;
-    private DevExpress.XtraEditors.TextEdit passwordEdit;
+    private DevExpress.XtraEditors.ButtonEdit passwordEdit;
+    private DevExpress.XtraEditors.Controls.EditorButton passwordVisibilityButton;
     private DevExpress.XtraEditors.LabelControl passwordLabel;
     private DevExpress.XtraTab.XtraTabPage databaseTab;
     private System.Windows.Forms.TableLayoutPanel databaseLayout;

@@ -2457,6 +2457,7 @@ public sealed partial class AppShellTests
                     if (index == 0)
                     {
                         var server = Field<TextEdit>(page, "serverEdit");
+                        Assert.AreEqual(server.Height, Field<ButtonEdit>(page, "passwordEdit").Height, "The eye icon must not increase the editor height.");
                         server.Text = "sip.example.invalid";
                         Field<TextEdit>(page, "usernameEdit").Text = "isolated-test-user";
                         Field<TextEdit>(page, "passwordEdit").Text = "isolated-test-secret";
@@ -3659,6 +3660,7 @@ public sealed partial class AppShellTests
                 new("WawiCallPro.App.Test", "\"C:\\Fixture App\\WawiCallPro.App.Test.exe\""), new StartupExecutionMode(false)));
                 services.AddSipTelephony(false);
             if (telephony is not null) services.AddSingleton(telephony);
+            if (telephony is ITelephonyConnection connection) services.AddSingleton(connection);
         }).Build();
         try
         {

@@ -48,6 +48,7 @@ public partial class SettingsPage : XtraUserControl
     public SettingsPage()
     {
         InitializeComponent();
+        SetSipPasswordVisibility(false);
         databaseLayout.Layout += DatabaseLayout_Changed;
         footer.SizeChanged += ButtonLayout_Changed;
         footer.Layout += General_Layout;
@@ -138,6 +139,8 @@ public partial class SettingsPage : XtraUserControl
         _audioStopped = true;
         SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
         if (_operation is not null) await _operation.StopAsync();
+        passwordEdit.Text = "";
+        SetSipPasswordVisibility(false);
         await ClosePluginConnectionEditorAsync();
         await pluginPage.StopAsync();
         await numberDiagnosticsPage.StopAsync();
@@ -203,6 +206,7 @@ public partial class SettingsPage : XtraUserControl
     private void DisposePage()
     {
         _audioStopped = true;
+        passwordEdit.Text = "";
         _operation?.Dispose();
         if (_workspace?.Telephony is not null) _workspace.Telephony.RegistrationChanged -= SipRegistration_Changed;
         if (!_sipUiLifetime.IsCancellationRequested) { _sipUiLifetime.Cancel(); _sipUiLifetime.Dispose(); }
@@ -242,6 +246,8 @@ public partial class SettingsPage : XtraUserControl
         usernameEdit.Text = options.SipAccount?.Username ?? "";
         authUserEdit.Text = options.SipAccount?.AuthenticationUsername ?? "";
         passwordEdit.Text = "";
+        passwordEdit.Properties.NullValuePrompt = options.SipAccount?.Password is null ? "Kennwort eingeben" : "Kennwort gespeichert";
+        SetSipPasswordVisibility(false);
         ApplyDatabase(options.Database);
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;

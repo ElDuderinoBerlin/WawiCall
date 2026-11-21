@@ -150,6 +150,22 @@ bleiben bei Größenänderungen erhalten. Je Edition die gezielte SIP-Renderprü
 29 Designer-Dateitripel geprüft, beide regulären Builds Debug/Any CPU erfolgreich, Pro zuletzt.
 Bilder: `.artifacts/app-shell/settings-ui/sip-settings`; Logs `.sip-width-tests-{pro,fin}.log`.
 
+✅ **SIP-Kennwortkorrektur und kompakter Augenbutton (21.11.2026):** Benutzer bestätigt die übernommenen
+SIP-Werte und die begrenzten Eingabebreiten. „Anmelden“ erhält den Kennwortentwurf jetzt maskiert auch
+nach erneutem Laden beim Speichern, wiederholten Anmeldefehlern und verzögert gemeldeter Ablehnung.
+Der rechte Augenbutton verwendet ein skinfähiges SVG mit 16 logischen Pixeln; das Kennwortfeld bleibt
+genauso hoch wie das Serverfeld. Text und Auswahl bleiben beim Umschalten erhalten. Gespeicherte
+Kennwörter werden erst durch ausdrücklichen Klick entschlüsselt; „Kennwort gespeichert“ kennzeichnet
+den vorhandenen geschützten Wert. Laden setzt die Maskierung zurück, Stoppen/Schließen leert den
+Entwurf. Server und Benutzer bleiben beim Speichern/Laden erhalten. Keine Zugangswerte in Meldungen.
+Je Edition drei gezielte Tests bestanden: wiederholter/synchroner sowie späterer Registrierungsfehler,
+bewusstes Anzeigen/Verbergen einschließlich Auswahl und Freigabe, vorhandene SIP-Renderprüfung mit
+leeren/gefüllten synthetischen Werten, 760/1440 Pixeln, 10/16 pt, Basic/Office 2019 Black und
+150-%-Layoutsimulation. Aufnahmen selbst geprüft; gleiche Editorhöhen zusätzlich für alle
+Schrift-/Skinfälle zugesichert. 29 Designer-Dateitripel und beide regulären Builds Debug/Any CPU
+erfolgreich; Pro zuletzt. Logs: `.sip-password-{build,tests}-{pro,fin}.log`, Designer-Nachweis unter
+`.artifacts/sip-password-review/designer`. Reale SIP-Anmeldung und G1 bleiben offen.
+
 ✅ **Dialog-App-Icon (21.11.2026):** `FrmSettings` verwendet jetzt wie die übrigen eigenen Fenster
 `AppIconHelper.Apply`: dasselbe App-SVG für DevExpress und das App-ICO für native Fenstersymbole.
 Alle sechs eigenen Formulartypen ohne Handles auf beide Iconvarianten geprüft; gezielte Bilder nur
