@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Companies;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Telephony;
@@ -54,7 +55,7 @@ internal sealed class AppTelephonyAccess(IProductLicenseService licenses, Licens
 
 /// <summary>One shared UI/COM command gate around the existing SIP runtime; events and snapshots retain their original ownership.</summary>
 internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyConnection connection, AppTelephonyAccess access)
-    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IAsyncDisposable
+    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver, ICallRecordingService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _commands = new(1);
     private readonly CancellationTokenSource _stopping = new();
@@ -67,6 +68,11 @@ internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyC
     { add => backend.RegistrationChanged += value; remove => backend.RegistrationChanged -= value; }
     public event EventHandler<CallChangedEventArgs>? CallChanged
     { add => backend.CallChanged += value; remove => backend.CallChanged -= value; }
+    public event EventHandler<DtmfReceivedEventArgs>? DtmfReceived
+    { add { if (backend is IDtmfReceiver receiver) receiver.DtmfReceived += value; }
+        remove { if (backend is IDtmfReceiver receiver) receiver.DtmfReceived -= value; } }
+    public Task<IDuplexPcmRecording> StartRecordingAsync(DuplexPcmRecordingRequest request, CancellationToken token = default) =>
+        backend is ICallRecordingService recordings ? recordings.StartRecordingAsync(request, token) : throw new TelephonyException("AudioUnavailable");
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {

@@ -24,11 +24,11 @@ internal sealed class AppAutomationTelephony(ITelephonyService phone, ITelephony
         await SafeAsync(async () =>
         {
             Check();
-            var registered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var registered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             void Observe(RegistrationSnapshot value)
             {
-                if (value.State == RegistrationState.Registered) registered.TrySetResult();
-                else if (value.State == RegistrationState.Failed) registered.TrySetException(new AutomationFault(AutomationFailure.NotReady));
+                if (value.State == RegistrationState.Registered) registered.TrySetResult(true);
+                else if (value.State == RegistrationState.Failed) registered.TrySetResult(false);
             }
             void Changed(object? sender, RegistrationChangedEventArgs args) => Observe(args.Registration);
             phone.RegistrationChanged += Changed;
@@ -37,7 +37,7 @@ internal sealed class AppAutomationTelephony(ITelephonyService phone, ITelephony
                 await connection.ConnectAsync(token).ConfigureAwait(false);
                 Observe(phone.Registration);
                 if (phone.Registration.State == RegistrationState.Stopped) throw new AutomationFault(AutomationFailure.NotReady);
-                await registered.Task.WaitAsync(token).ConfigureAwait(false);
+                if (!await registered.Task.WaitAsync(token).ConfigureAwait(false)) throw new AutomationFault(AutomationFailure.NotReady);
                 return true;
             }
             finally { phone.RegistrationChanged -= Changed; }
@@ -52,18 +52,23 @@ internal sealed class AppAutomationTelephony(ITelephonyService phone, ITelephony
     {
         await SafeAsync(async () =>
         {
-            Check();
+            CheckCallControl();
             if (!phone.GetCalls().Any(call => call.Id == callId && AppTelephonyService.IsActive(call))) throw new AutomationFault(AutomationFailure.NotFound);
             await phone.HangUpAsync(callId, token).ConfigureAwait(false); return true;
         }).ConfigureAwait(false);
     }
     public AutomationCall GetCall(Guid callId)
     {
-        Check();
+        CheckCallControl();
         var call = phone.GetCalls().SingleOrDefault(call => call.Id == callId) ?? throw new AutomationFault(AutomationFailure.NotFound);
         return new(call.Id, call.State.ToString());
     }
     private void Check()
+    {
+        if (state.GetStatus().State != "Ready") throw new AutomationFault(AutomationFailure.NotReady);
+        CheckCallControl();
+    }
+    private void CheckCallControl()
     {
         if (_stopping) throw new AutomationFault(AutomationFailure.Stopping);
         state.RequireAccess(AutomationAccess.Telephony);

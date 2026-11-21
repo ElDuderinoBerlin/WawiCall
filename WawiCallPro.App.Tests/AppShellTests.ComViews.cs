@@ -127,7 +127,7 @@ public sealed partial class AppShellTests
         await catalog.StartAsync(default); state.Ready();
         var registrations = new ServiceCollection();
         registrations.AddSingleton<IAutomationEnvironment>(state); registrations.AddSingleton<IPartySearch>(search);
-        registrations.AddSingleton<IAutomationTelephony, PendingAutomationAdapters>();
+        registrations.AddSingleton<IAutomationTelephony>(new AppAutomationTelephony(workspace.Telephony!, workspace.TelephonyConnection!, state));
         registrations.AddSingleton<IAutomationPresentation>(new DispatchedAutomationPresentation(workspace.Dispatcher, new AutomationTestViewHost(form), state));
         registrations.AddWawiAutomation();
         await using var automation = registrations.BuildServiceProvider();

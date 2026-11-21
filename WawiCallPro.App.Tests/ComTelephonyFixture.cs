@@ -81,7 +81,7 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken token = default) => throw new NotSupportedException();
         public Task<Party?> GetPartyAsync(PartyKey party, CancellationToken token = default) => throw new NotSupportedException();
     }
-    internal sealed class Backend : ITelephonyService, ITelephonyConnection, ICallLineContextProvider
+    internal sealed class Backend : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver
     {
         private readonly object _gate = new();
         private ImmutableArray<CallSnapshot> _calls = [];
@@ -90,18 +90,26 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         internal Func<CancellationToken, Task>? BeforeDial;
         internal Func<CallSnapshot, Task>? Persist = null;
         internal Exception? Failure = null;
+        internal Exception? ConnectFailure = null;
         internal PhoneLineContext? Line = null;
         internal CancellationToken LastDialToken;
         public RegistrationSnapshot Registration { get; private set; } = new(RegistrationState.Stopped, DateTimeOffset.UtcNow);
         public string? LastFailureCode => null;
         public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged;
         public event EventHandler<CallChangedEventArgs>? CallChanged;
+        public event EventHandler<DtmfReceivedEventArgs>? DtmfReceived;
+        internal void EmitDtmf(char digit) => DtmfReceived?.Invoke(this, new(Guid.NewGuid(), digit, 160));
         internal int RegistrationSubscribers => RegistrationChanged?.GetInvocationList().Length ?? 0;
         internal int CallSubscribers => CallChanged?.GetInvocationList().Length ?? 0;
         public PhoneLineContext? GetLineContext(Guid id) => Line;
         public ImmutableArray<CallSnapshot> GetCalls() { lock (_gate) return _calls; }
         internal void Register(RegistrationState state) { Registration = new(state, DateTimeOffset.UtcNow); RegistrationChanged?.Invoke(this, new(Registration)); }
-        public Task ConnectAsync(CancellationToken token = default) { token.ThrowIfCancellationRequested(); Connects++; Register(RegisterOnConnect ? RegistrationState.Registered : RegistrationState.Registering); return Task.CompletedTask; }
+        public Task ConnectAsync(CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested(); Connects++;
+            if (ConnectFailure is { } failure) { Register(RegistrationState.Failed); return Task.FromException(failure); }
+            Register(RegisterOnConnect ? RegistrationState.Registered : RegistrationState.Registering); return Task.CompletedTask;
+        }
         public Task DisconnectAsync(CancellationToken token = default) { Disconnects++; Register(RegistrationState.Stopped); return Task.CompletedTask; }
         internal async Task PublishAsync(CallSnapshot call)
         {

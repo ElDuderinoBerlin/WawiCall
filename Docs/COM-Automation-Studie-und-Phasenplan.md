@@ -9,7 +9,7 @@ Automation-Fassade. Normaler Start und COM benutzen denselben Prozess, denselben
 dieselbe SIP-/Audiositzung. Ein zusätzlicher Server mit einer zweiten vollständigen Oberfläche
 ist für diesen Auftrag nicht sinnvoll. Ein reiner COM-Vermittler bleibt eine spätere Alternative.
 
-**Status:** ✅ Quellenanalyse sowie Phasen 1–4 abgeschlossen. Versionierte COM-Verträge,
+**Status:** ✅ Quellenanalyse sowie Phasen 1–5 abgeschlossen. Versionierte COM-Verträge,
 DI-Adapter und Kunden-/Lieferantenauflösung sind implementiert: je Edition 15 Vertrags-/Adaptertests,
 70 native COM-Prüfungen und 57 Prototyp-/Lebensdauerprüfungen bestanden.
 Registrierung ausschließlich unter HKCU; keine TLB-/Interface-Registrierung. Temporäre Einträge entfernt.
@@ -18,7 +18,9 @@ Instanzübergabe: je Edition 37 gezielte App-Tests, 15 COM-Vertragstests und 23 
 ✅ Phase 4: Firmen-/Viewkatalog, Kunden-/Lieferantenansichten, gespeicherte Gesprächsdetails und
 vorhandene Dialoge angeschlossen. Je Edition 42 gezielte App-Tests, 15 Vertragstests, 78 native
 Viewprüfungen und 23 Start-/Fensterregressionen bestanden.
-⬜ COM-Telefonie, Auslieferung und gemeinsame Produktabnahme bleiben offen.
+✅ Phase 5: COM-Telefonie am gemeinsamen UI-/SIP-Dienst, fensterlose Anrufzuordnung und
+Clientverlust-/Deduplizierungsnachweise implementiert. Je Edition 46 gezielte App-Tests und
+15 COM-Vertragstests bestanden. ⬜ Vollständige Lebensdauermatrix, Auslieferung und reale Produktabnahme bleiben offen.
 Phasen 1/2 verwenden einen separaten Host; Phase 3 prüft die reguläre App mit eigenen Profilen und
 synthetischen Daten. Keine echten Anrufe und keine persistente Produktregistrierung für die Tests.
 Grüne Häkchen bezeichnen ausschließlich tatsächlich abgeschlossene Arbeiten.
@@ -145,7 +147,7 @@ Start konfigurierte Hintergrundaufgaben höchstens einmal starten; keine doppelt
 
 Die folgenden Verträge und Adapter sind implementiert. Nativ verfügbar sind sie in Phase 2 im
 isolierten Prüfhost und seit Phase 3 auch im App-Host. Phase 4 ergänzt Firmenkatalog, Fachansichten
-und Dialoge; der Telefonieanschluss bleibt Phase 5. COM-sichtbar sind nur die
+und Dialoge; Phase 5 bindet die Telefonie an dieselben Dienste wie die UI. COM-sichtbar sind nur die
 ausdrücklichen Automation-Verträge; keine Forms, Controls, ServiceProvider, Tasks oder Pluginobjekte.
 
 Versionsgebundene ProgIDs: `WawiCallPro.Pro.Application.1` und
@@ -211,7 +213,7 @@ UI-Dispatcher; weder COM-Aufruf noch UI-Thread warten synchron auf asynchrone Fa
 Kataloge und Status müssen bereits geladene, vom Host freigegebene Momentaufnahmen liefern.
 Zugriffsgates werden vor Annahme und bei Ausführung erneut geprüft, bei Präsentation nochmals
 auf dem UI-Thread. Die App-Adapter setzen Lizenz-, Installations- und Pluginregeln durch;
-der gemeinsame SIP-Anwendungsdienst wird in Phase 5 angeschlossen.
+seit Phase 5 verwenden UI und COM denselben geschützten SIP-Anwendungsdienst.
 
 `GetCompaniesJson()` und `GetViewsJson()` liefern `SchemaVersion: 1` und `Items`.
 Firmen haben `Key`/`Name`, Ansichten `Id`/`Caption` und seit Phase 4 `Context` als Beschreibung
@@ -326,7 +328,7 @@ vorhandene Fenster, Modalität und dieselben fachlichen Sperren wie Ribbon und N
 | Startseite, Historie, E-Mails, Hilfe, Über | Explizite IDs `home`, `history`, `mail`, `help`, `about`; vorhandenes Dokument wiederverwenden. |
 | Kunden-/Lieferantensuche und Plugin-Fachansichten | `parties`, wenn das Plugin einen Sucharbeitsbereich anbietet; zusätzliche Ansichten nur als tatsächlich veröffentlichte `plugin:<id>`. `ShowCustomer`/`ShowSupplier` öffnen die vorhandenen schreibgeschützten Stammdaten über den vollständigen `PartyKey`. |
 | Anrufersuche und Gesprächsdetails | `caller` öffnet die Anrufersuche; optional `callId` für ein aktives Gespräch. `call` verlangt eine gültige Gesprächs-ID und öffnet aktive oder gespeicherte Details mit historischem Kontext und Notizschutz. |
-| Wähldialog | `ShowDial` oder `ShowView("dial", contextJson)` mit `companyKey`; vorbefüllen und anzeigen, ohne einen Ruf auszulösen. COM-Wählen bleibt Phase 5. |
+| Wähldialog | `ShowDial` oder `ShowView("dial", contextJson)` mit `companyKey`; vorbefüllen und anzeigen, ohne einen Ruf auszulösen. Das getrennte `Dial` verwendet seit Phase 5 den gemeinsamen Telefoniedienst. |
 | Einstellungen einschließlich Plugins, SIP, Audio, Telefon-Cache und Office/Mail | Zentraler `FrmSettings`: `settings`, `settings-general`, `plugin`, `settings-hotkeys`, `settings-sip`, `settings-sip-advanced`, `settings-line-company`, `settings-database`, `settings-audio`, `settings-audio-levels`, `settings-phone-cache`, `settings-cache-sources`, `settings-phone-matching`, `number-diagnostics`, `settings-mail`. |
 | Datenbankeinrichtung und Nummerndiagnostik | `database` öffnet den echten Einrichtungsassistenten mit Owner; `number-diagnostics` den vorhandenen Untertab im zentralen Einstellungsdialog. |
 | Log-Fenster | Vorhandenen Logfensterdienst verwenden; keine Rohlogs oder Zugangsdaten durch COM zurückgeben. |
@@ -443,7 +445,7 @@ keinen Anwendungsbuild und keine GUI-Läufe.
 | 2 | ✅ | V1-Verträge und DI-Adapter einschließlich ShowCustomer/ShowSupplier; je Edition 15 Tests, 70 native und 57 Prototypprüfungen | Agent; x86/x64 ohne TLB-/Interface-Registrierung, eigene HKCU-Einträge entfernt |
 | 3 | ✅ | Gemeinsamer App-/COM-Host, fensterloser Start und bedarfsweises Hauptfenster; je Edition 37 App-Tests, 15 Vertragstests, 23 native Prüfungen | Agent; eigene Profile/HKCU-Identitäten, Fenster-/Instanznachweise ohne reale Anrufe |
 | 4 | ✅ | Firmen-/Viewkatalog, ShowCustomer/ShowSupplier und alle verfügbaren Ansichten; je Edition 42 App-Tests, 15 Vertragstests, 78 native Views und 23 Start-/Fensterprüfungen | Agent; freigegebene x86-/x64-WSH-Läufe, synthetische Daten, gezielte Layoutnachweise |
-| 5 | ⬜ | Wähldialog, SIP-Verbindung, Wählen und Gesprächsstatus | Agent mit Test-Doubles; reale SIP-Prüfung gemeinsam |
+| 5 | ✅ | Gemeinsame UI-/COM-Telefonie, fensterlose Zuordnung und Neustart, Deduplizierung und Clientverlust; je Edition 46 App- und 15 Vertragstests | Agent mit Test-Doubles; reale SIP-/Audio-Prüfung weiterhin Phase 8 |
 | 6 | ⬜ | Mehrclientbetrieb, Idle-Shutdown und Fehler-/Sicherheitsgrenzen | Agent; gezielte konkurrierende und negative Tests |
 | 7 | ⬜ | Registrierung, Update, Deinstallation und Dokumentation | Agent; isolierte Installationsprüfung, Zielinstallation gemeinsam |
 | 8 | ⬜ | Native JavaScript-Abnahme Pro und FinOffice | Gemeinsam; reale Host-/Fenster-/Telefoniebelege |
@@ -668,8 +670,8 @@ Timer-Nachweis) gelten nicht als bestanden und werden durch die vollständigen A
 
 **Noch offen:** Produktinstallation/Benutzerregistrierungsbefehle folgen Phase 7; der App-Start
 schreibt keine persistente COM-Registrierung. Kunden/Lieferanten, Firmenkatalog und weitere Ansichten
-sind in Phase 4 angeschlossen. COM-Telefoniebefehle bleiben bis Phase 5 ausdrücklich
-`NotSupported`/`NotReady`.
+sind in Phase 4 angeschlossen. COM-Telefoniebefehle verwenden seit Phase 5 den gemeinsamen
+Telefoniedienst und prüfen dessen tatsächliche Bereitschaft.
 Echte Lizenz-/Server- und SIP-/Audioabnahme bleibt Phase 8. Rücknahme dieses Phasencommits entfernt
 den App-Anschluss und stellt den vorherigen Startpfad wieder her; keine Produktdatenmigration.
 
@@ -768,32 +770,72 @@ G1, produktive Registrierung und tatsächliche SIP-/Audio- sowie
 Fachhostabnahme bleiben offen. Rücknahme des Phase-4-Commits entfernt Katalog-/Viewadapter und
 stellt den Hauptfensterzugang aus Phase 3 wieder her; keine Produktdatenmigration.
 
-### Phase 5 – ⬜ Telefonie anschließen
+### Phase 5 – ✅ Telefonie anschließen
 
 - [x] ✅ Gemeinsamer `AppTelephonyService` als injizierter UI-/COM-Zugang zum vorhandenen SIP-Runtime; `ShowDial` bleibt reine Präsentation, `Dial` führt den ausdrücklichen Auftrag aus.
 - [x] ✅ Fensterloser `AppAutomationTelephony` an Anmeldung, Rufaufbau, Gesprächsstatus und Auflegen angebunden. `ConnectTelephony` wartet auf `Registered` oder meldet Fehler/Fristablauf; reine COM-Aktivierung meldet kein Konto an.
 - [x] ✅ Gemeinsames Kommandogate, erneute Lizenz-/Installations-/Mandantenprüfung innerhalb der Plugin-Lease, Nummerngrenzen, Registrierung und einzelne aktive Verbindung durchgesetzt. Das Auflegen eines eigenen Gesprächs bleibt nach Entzug der Berechtigung möglich.
 - [x] ✅ Anrufe ohne Hauptformular mit dem regulären SIP-Persistenzadapter verfolgen; `AppCallAssociation` speichert dieselben konservativen Zuordnungen wie die UI. Historie, Kontext und Notizen nach frischem Hoststart und in der vorhandenen Detailansicht geprüft.
-- [ ] Einmalige Ausführung bei doppelter Request-ID sowie Clientverlust während des Rufaufbaus isoliert prüfen.
+- [x] ✅ 100 parallele Fassaden mit identischer Request-ID erzeugen genau einen Backendaufruf; widersprüchliche Parameter liefern `Conflict`. Wiederholung nach Auflegen bleibt derselbe Auftrag. Verlust des letzten Clients während Rufaufbau und aktivem Gespräch unterbricht keine Telefonie; anschließende Idlefrist geprüft.
 
 Abnahme: Synthetische Gespräche erreichen dieselbe Historie und Kontextzuordnung wie UI-Gespräche.
 Echte Anrufe bleiben Bestandteil der gemeinsamen Abnahme.
 
-Zwischenstand am 21.11.2026: erste drei Punkte geprüft, Phase insgesamt noch offen. Reguläre
-Solution-Rebuilds Debug/Any CPU für FinOffice und Pro erfolgreich (26 bekannte externe
-CSCore-Nullablewarnungen). FinOffice: 20 gezielte Tests; Pro: 25 einschließlich bestehender
-Wähldialogprüfungen. Nachweise: `.com-phase5-commands-{fin,pro}.log` und
-`.com-phase5-build-{fin,pro}.log`. Keine SIP-Transporte, Audiogeräte, realen Anrufe oder
-Produktdaten in diesen Tests. Die gemeinsame Clientverlust-/Deduplizierungsabnahme folgt als eigener Punkt.
+#### Phase-5-Implementierung und Abnahme am 21.11.2026
 
-Ergänzung: je Edition elf Prüfungen für die fensterlose Zuordnung und den bestehenden UI-Gesamtablauf
-bestanden; reguläre Rebuilds beider Editionen erfolgreich. Zehn fensterlose Varianten: eingehend,
-ausgehend, mehrdeutig, unterdrückt, fremde Ausgangsfirma, manuell zugeordnet, verspätet gespeichert,
-Abbruch bei nicht kooperativer Quelle, verifizierte Leitung und abweichende Leitung. Keine neue
-automatische Auswahl bei unvollständigem Kontext; eine ausdrücklich gewählte Ausgangsfirma wird
-nicht durch einen automatischen Fremdtreffer ersetzt. Das gilt über denselben Helfer auch in der UI.
-Eigene SQLite-Profile, reguläre Repositories und vorhandene Migrationen, kein neuer SQL-Code.
-Nachweise `.com-phase5-headless-{fin,pro}.log`, `.com-phase5-headless-build-{fin,pro}.log`.
+[AppTelephonyService](../WawiCallPro.App/Hosting/AppTelephonyService.cs) umschließt den vorhandenen
+SIPSorcery-/CSCore-Runtime. Die DI-Bindungen für Telefonie, Verbindung, DTMF und Aufnahme zeigen
+auf denselben Anwendungsdienst. Ein Kommandogate serialisiert neue Anmeldungen und Wählaufträge;
+die Plugin-Lease bleibt bis zur Annahme des Rufaufbaus erhalten. Lizenz, beide Installationsmerkmale,
+Produktlinie und berechtigter vollständiger Mandant werden vor dem Aufruf erneut geprüft.
+Der Dummy-Betrieb bleibt Lexware-unabhängig; die SIP-Anmeldung verlangt keine Warenwirtschaftsdaten.
+
+[AppAutomationTelephony](../WawiCallPro.App/Hosting/AppAutomationTelephony.cs) wird fensterlos als
+Metadatendienst gestartet, ohne ein Konto anzumelden. Erst `ConnectTelephony` meldet den gespeicherten
+Zugang an; Erfolg verlangt `Registered`. Fehlgeschlagene Anmeldung und kooperative Fristüberschreitung
+werden als sichere Auftragsfehler gemeldet, der Beobachter wird in allen Fällen entfernt. Ein früher
+Setupfehler hinterlässt keinen unbeobachteten Fehler-Task. `Dial` liefert die echte Gesprächs-ID;
+`GetCall` liest nur die gespeicherten In-Memory-Snapshots dieses Runtimes. Unbekannte IDs ergeben
+`NotFound`. Status und Auflegen eines eigenen aktiven Gesprächs bleiben auch bei späterem Lizenzfehler
+verfügbar; neue Aufträge bleiben gesperrt. Keine Aktivierungs-/OAuthdialoge durch Telefoniebefehle.
+
+[AppCallAssociation](../WawiCallPro.App/Hosting/AppCallAssociation.cs) verarbeitet Anrufereignisse
+ohne Forms und verwendet Telefoncache, Rufnummerninterpretation, Entscheidungsdienst und vorhandenen
+Zuordnungsspeicher. Offene Zuordnungen werden begrenzt gehalten und bei vorübergehend fehlender
+Persistierung erneut versucht. Leitungsdaten stammen vom tatsächlichen Gespräch; eine abweichende
+oder unbestätigte Leitung begründet keine automatische Auswahl. Unvollständige oder mehrdeutige
+Treffer bleiben ungewählt, unterdrückte Nummern werden nicht ergänzt. Eine gewählte Ausgangsfirma
+wird durch automatische Fremdtreffer nicht ersetzt; derselbe Helfer gilt für die UI. Historische
+Nachweise und manuelle Zuordnungen bleiben erhalten. Shutdown meldet Ereignisse ab und wartet auch
+auf noch laufende, nicht kooperative Quellen. SIP-Persistenz und vorhandene Repositories bleiben
+Eigentümer von Zuständen, Ereignissen und Notizen; kein neuer SQL-Code oder Schemaschritt.
+
+**Je Edition 46 App-Tests und 15 Vertrags-/Adaptertests bestanden.** Darin zehn fensterlose
+Neustartfälle: eingehend, ausgehend, mehrdeutig, unterdrückt, fremde Ausgangsfirma, manuelle Auswahl,
+verspätete Speicherung, Suchabbruch, verifizierte und abweichende Leitung. Nach frischem Hoststart
+werden Gespräch, Zuordnung, Ereignisse und Notizen identisch geladen und in der vorhandenen
+Historienansicht angezeigt. Dazu gemeinsame UI-Regressions-, DI-/Aufnahme-/DTMF- und Startprüfungen.
+
+100 parallele Fassadenwiederholungen führen genau einen Wählaufruf aus. Testweise freigegebene
+Fassaden werden während eines ausstehenden Rufaufbaus gesammelt; weder Auftrag noch Gespräch
+hängen daran. Laufende Aufträge und Gespräche sperren den Idle-Shutdown. Nach Gesprächsende bleibt
+die Idlefrist von 30 Sekunden erhalten. Test-GC wird ausschließlich im Testprojekt eingesetzt;
+native CCW-/Unterobjekt-, Skriptabsturz- und Shutdownrennen bleiben Phase 6/8. Die Deduplizierung
+bleibt wie in Abschnitt 4.2 prozesslokal und zeitlich begrenzt.
+
+Reguläre Solution-Rebuilds **Debug/Any CPU** für FinOffice und Pro: null Fehler, je 26 bekannte
+externe CSCore-Nullablewarnungen; Pro zuletzt im regulären Ausgabeordner. Finale Nachweise:
+`.com-phase5-final-{build,app,contract}-{fin,pro}.log`, zusätzlich
+`.artifacts/com-phase5-evidence.json`. Frühere Teilnachweise `.com-phase5-commands-*` und
+`.com-phase5-headless-*` dokumentieren die getrennten Implementierungspunkte. Feste Test-Doubles,
+eigene SQLite-Profile und reguläre Repository-/Migrationsdienste; keine SIP-Transporte, Audiogeräte,
+echten Anrufe oder produktiven Lexware-Daten. Keine neuen Layouts und keine sichtbaren GUI-Läufe.
+COM-GUIDs, Dispatch-IDs und Registrierungsregeln bleiben erhalten; nur HKCU, keine TLB-Registrierung.
+
+G1 und reale SIP-/Audio-/Skripthostabnahme bleiben offen. Die Implementierung ist in getrennten
+Commits für gemeinsame Befehle (`654c697`), fensterlose Zuordnung (`e5f3b0c`) und die abschließenden
+Lebensdauer-/Regressionsnachweise enthalten. Rücknahme dieser Phase entfernt die Telefonieadapter
+und stellt die Phase-4-Grenze wieder her; vorhandene Historie und Konfiguration benötigen keine Migration.
 
 ### Phase 6 – ⬜ Robustheit und Lebensdauer
 
@@ -836,7 +878,7 @@ Ergebnisse pro Fall dokumentieren. Phase 8 erst nach beiden Produktlinien ✅ ma
 
 ## 9. Nächster sinnvoller Arbeitsschritt
 
-Als Nächstes folgt **Phase 5**: den gemeinsamen Wähl-Anwendungsdienst und die expliziten COM-
-Telefoniebefehle anschließen. Viewkatalog, Kunden-/Lieferantenansichten, Dialoge und gespeicherte
-Gesprächsdetails sind geprüft. Produktive Registrierung sowie reale SIP-/Audio- und Fachhostabnahme
-bleiben den späteren Phasen vorbehalten.
+Als Nächstes folgt **Phase 6**: vollständige COM-/Unterobjekt-Lebensdauer, native Mehrclient- und
+Shutdownrennen sowie Fehler-/Sicherheitsgrenzen prüfen. Gemeinsame Telefoniebefehle, fensterlose
+Gesprächszuordnung und isolierter Clientverlust sind implementiert und geprüft. Produktive
+Registrierung sowie reale SIP-/Audio- und Fachhostabnahme bleiben Phasen 7/8 vorbehalten.

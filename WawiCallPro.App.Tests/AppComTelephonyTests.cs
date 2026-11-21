@@ -14,6 +14,15 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppComTelephonyTests
 {
     [TestMethod]
+    public async Task SetupFailureAndRegistrationFailureAreObservedWithoutUiOrLeakedObservers()
+    {
+        await using var h = await Harness.CreateAsync();
+        h.Fixture.Phone.ConnectFailure = new TelephonyException("AccountMissing");
+        var failed = await Done(h.App, h.App.ConnectTelephony());
+        Assert.AreEqual("NotReady", failed.ErrorCode); Assert.AreEqual("Failed", h.App.GetStatus().SipState);
+        Assert.AreEqual(0, h.Fixture.Phone.RegistrationSubscribers); Assert.AreEqual(0, h.Presentation.Shown);
+    }
+    [TestMethod]
     public async Task ConnectDialGetCallAndHangupUseTheSharedRuntimeWithoutPresentation()
     {
         await using var h = await Harness.CreateAsync(); var app = h.App;
@@ -70,6 +79,9 @@ public sealed class AppComTelephonyTests
         var dial = await Done(h.App, h.App.Dial("00123", h.Company, Guid.NewGuid().ToString("D")));
         Assert.AreEqual("Busy", (await Done(h.App, h.App.Dial("00456", h.Company, Guid.NewGuid().ToString("D")))).ErrorCode);
         h.Fixture.License.Status = LicenseStatus.Revoked; h.Fixture.Source.Available = false;
+        h.State.Failed(new LicenseAccessException(LicenseStatus.Revoked));
+        Assert.AreEqual("Dialing", h.App.GetCall(dial.CallId).State);
+        Assert.AreEqual("NotReady", (await Done(h.App, h.App.Dial("00456", h.Company, Guid.NewGuid().ToString("D")))).ErrorCode);
         Assert.AreEqual("Succeeded", (await Done(h.App, h.App.HangUp(dial.CallId))).State);
     }
 
@@ -93,6 +105,7 @@ public sealed class AppComTelephonyTests
         internal ServiceProvider Services = null!;
         internal IApplicationV1 App = null!;
         internal string Company = "";
+        internal IApplicationV1 NewClient() => new AppAutomationFactory(Services.GetRequiredService<IAutomationApplicationFactory>(), State).Create();
         internal static async Task<Harness> CreateAsync(TimeSpan? timeout = null, TimeProvider? clock = null)
         {
             var h = new Harness();
@@ -103,7 +116,7 @@ public sealed class AppComTelephonyTests
             var services = new ServiceCollection(); services.AddSingleton<IAutomationEnvironment>(h.State);
             services.AddSingleton<IPartySearch, NoSearch>(); services.AddSingleton<IAutomationPresentation>(h.Presentation);
             services.AddSingleton<IAutomationTelephony>(h.Adapter); services.AddWawiAutomation(new() { CommandTimeout = timeout ?? TimeSpan.FromSeconds(3) });
-            h.Services = services.BuildServiceProvider(); h.App = h.Services.GetRequiredService<IAutomationApplicationFactory>().Create();
+            h.Services = services.BuildServiceProvider(); h.App = h.NewClient();
             using var catalog = System.Text.Json.JsonDocument.Parse(h.App.GetCompaniesJson());
             h.Company = catalog.RootElement.GetProperty("Items")[0].GetProperty("Key").GetString()!;
             return h;

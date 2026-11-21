@@ -21,8 +21,14 @@ Dialoge und gespeicherte Gesprächsdetails an vorhandene Oberflächen angebunden
 und Nummerngrenzen, Entwurfsschutz und Freigabe geschlossener Ansichten geprüft. Je Edition
 42 gezielte App-Tests, 15 Vertragstests, 78 native x86-/x64-Viewprüfungen und 23 Start-/Fensterprüfungen
 bestanden; beide regulären Builds Debug/Any CPU erfolgreich, Pro zuletzt. Sichtbare Tests freigegeben,
-synthetische Daten und ausschließlich eigene bereinigte HKCU-Identitäten. Telefonie und Auslieferung
-folgen in COM-Phasen 5–8. Die bestehende G1-Abnahme wird dadurch nicht als erledigt markiert.
+synthetische Daten und ausschließlich eigene bereinigte HKCU-Identitäten.
+✅ COM-Phase 5: Anmeldung, Wählen, Status und Auflegen über den gemeinsamen UI-/SIP-Dienst;
+fensterlose Zuordnung, Historie und Notizen einschließlich Neustart geprüft. Je Edition 46 gezielte
+App-Tests und 15 Vertragstests bestanden; 100 parallele Wiederholungen derselben Request-ID erzeugen
+genau einen Rufaufbau, Clientverlust beendet kein Gespräch. Aufnahme-/DTMF-Bindungen derselben Sitzung
+erhalten; reguläre Rebuilds beider Editionen Debug/Any CPU erfolgreich, Pro zuletzt. Test-Doubles und
+isolierte SQLite-Profile, keine echten Anrufe. Vollständige Lebensdauermatrix, Auslieferung und reale
+SIP-/Audio-Abnahme folgen in COM-Phasen 6–8. Die bestehende G1-Abnahme bleibt offen.
 Zuletzt ergänzt: ✅ G1/Pro Schritt 1 anhand des Benutzer-Screenshots vom 20.11.2026 18:07 Uhr bestätigt:
 Lexware Pro aktiv und in der Pluginübersicht verfügbar; kein sichtbarer Start-/Installationsfehler.
 Der Datenzugriff ist damit noch nicht geprüft. ✅ G1-UI3: verschachtelte Außenrahmen der Pluginübersicht

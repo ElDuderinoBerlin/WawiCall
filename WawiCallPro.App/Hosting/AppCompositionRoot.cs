@@ -4,6 +4,7 @@ using WawiCallPro.Office;
 using WawiCallPro.Telephony.Sip;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Threading;
 using WawiCallPro.Interfaces.Hosting;
@@ -55,8 +56,10 @@ internal static class AppCompositionRoot
                 services.AddSingleton<AppTelephonyAccess>();
                 services.AddSingleton(provider => new AppTelephonyService(provider.GetRequiredService<SipTelephonyService>(),
                     provider.GetRequiredService<SipTelephonyService>(), provider.GetRequiredService<AppTelephonyAccess>()));
-                services.AddSingleton<WawiCallPro.Interfaces.Telephony.ITelephonyService>(provider => provider.GetRequiredService<AppTelephonyService>());
-                services.AddSingleton<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>(provider => provider.GetRequiredService<AppTelephonyService>());
+                services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Telephony.ITelephonyService>(provider => provider.GetRequiredService<AppTelephonyService>()));
+                services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>(provider => provider.GetRequiredService<AppTelephonyService>()));
+                services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Telephony.IDtmfReceiver>(provider => provider.GetRequiredService<AppTelephonyService>()));
+                services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Audio.ICallRecordingService>(provider => provider.GetRequiredService<AppTelephonyService>()));
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
                 if (!mode.SuppressNetwork) services.AddHostedService<MailStartupImport>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();

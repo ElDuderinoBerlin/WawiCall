@@ -30,6 +30,9 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<CscorePcmSegmentSinkFactory>(host.Services.GetRequiredService<IPcmSegmentSinkFactory>());
             Assert.IsInstanceOfType<PersistedSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
             Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<ICallRecordingService>());
+            Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>());
+            Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.IDtmfReceiver>());
+            Assert.AreEqual(1, host.Services.GetServices<WawiCallPro.Interfaces.Telephony.ITelephonyService>().Count());
             var feeds = host.Services.GetRequiredService<IRtpPcmRecordingFeedFactory>();
             Assert.IsInstanceOfType<WawiCallPro.Core.Audio.RtpPcmRecordingFeedFactory>(feeds);
             Assert.AreSame(feeds, host.Services.GetRequiredService<IRtpPcmRecordingFeedFactory>());

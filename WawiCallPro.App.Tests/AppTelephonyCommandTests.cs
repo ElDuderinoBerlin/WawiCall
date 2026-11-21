@@ -10,6 +10,17 @@ namespace WawiCallPro.App.Tests;
 public sealed class AppTelephonyCommandTests
 {
     [TestMethod]
+    public async Task SharedServiceRetainsLineContextAndDtmfSubscriptions()
+    {
+        await using var f = new ComTelephonyFixture();
+        f.Phone.Line = new("synthetic-system", "line");
+        Assert.AreSame(f.Phone.Line, f.Service.GetLineContext(Guid.NewGuid()));
+        char? received = null;
+        EventHandler<DtmfReceivedEventArgs> observer = (_, args) => received = args.Digit;
+        f.Service.DtmfReceived += observer; f.Phone.EmitDtmf('#'); Assert.AreEqual('#', received);
+        f.Service.DtmfReceived -= observer; f.Phone.EmitDtmf('*'); Assert.AreEqual('#', received);
+    }
+    [TestMethod]
     public async Task ConcurrentUiAndAutomationCommandsShareOneCallAndOneRegistration()
     {
         await using var f = new ComTelephonyFixture();
