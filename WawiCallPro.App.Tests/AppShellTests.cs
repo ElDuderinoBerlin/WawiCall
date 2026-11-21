@@ -2456,6 +2456,22 @@ public sealed partial class AppShellTests
                     bitmap.Save(Path.Combine(destination, $"Sip-{skin}-{fontSize}-{index}.png"), ImageFormat.Png);
                     if (index == 0)
                     {
+                        var server = Field<TextEdit>(page, "serverEdit");
+                        server.Text = "sip.example.invalid";
+                        Field<TextEdit>(page, "usernameEdit").Text = "isolated-test-user";
+                        Field<TextEdit>(page, "passwordEdit").Text = "isolated-test-secret";
+                        form.ClientSize = new Size(1440, 820); form.PerformLayout(); Application.DoEvents();
+                        var table = Field<TableLayoutPanel>(page, "sipLayout");
+                        Assert.AreEqual(3, table.ColumnCount);
+                        Assert.IsTrue(table.GetColumnWidths()[2] > 0, "Wide windows must leave a free spacer column.");
+                        Assert.IsTrue(server.Width < table.ClientSize.Width / 2, "The editor must not stretch across the dialog.");
+                        Assert.IsTrue(Field<SpinEdit>(page, "portEdit").Width < server.Width);
+                        Assert.IsTrue(Field<SpinEdit>(page, "portEdit").Width >= page.Font.Height * 4, "The port value and spin buttons must remain visible.");
+                        using (var wideImage = WawiCallPro.App.Diagnostics.UiAudit.Capture(form))
+                            wideImage.Save(Path.Combine(destination, $"Sip-{skin}-{fontSize}-wide.png"), ImageFormat.Png);
+                        form.ClientSize = new Size(760, 700); form.PerformLayout(); Application.DoEvents();
+                        Assert.AreSame(server, Field<TextEdit>(page, "serverEdit"));
+                        Assert.AreEqual("sip.example.invalid", server.Text);
                         var sipScroll = Field<XtraScrollableControl>(page, "sipScroll");
                         var actions = Field<TableLayoutPanel>(page, "sipActions");
                         sipScroll.ScrollControlIntoView(actions);
