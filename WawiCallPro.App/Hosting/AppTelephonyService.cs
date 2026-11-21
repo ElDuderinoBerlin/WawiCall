@@ -41,6 +41,7 @@ internal sealed class AppTelephonyAccess(IProductLicenseService licenses, Licens
             return await dial(cancellation).ConfigureAwait(false);
         }, token).ConfigureAwait(false);
     }
+    internal void CheckBusinessSource() => CheckSource();
     private void CheckSource()
     {
         var installed = installation.Check();

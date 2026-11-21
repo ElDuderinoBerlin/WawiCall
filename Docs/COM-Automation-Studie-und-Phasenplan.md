@@ -773,7 +773,7 @@ stellt den Hauptfensterzugang aus Phase 3 wieder her; keine Produktdatenmigratio
 - [x] ✅ Gemeinsamer `AppTelephonyService` als injizierter UI-/COM-Zugang zum vorhandenen SIP-Runtime; `ShowDial` bleibt reine Präsentation, `Dial` führt den ausdrücklichen Auftrag aus.
 - [x] ✅ Fensterloser `AppAutomationTelephony` an Anmeldung, Rufaufbau, Gesprächsstatus und Auflegen angebunden. `ConnectTelephony` wartet auf `Registered` oder meldet Fehler/Fristablauf; reine COM-Aktivierung meldet kein Konto an.
 - [x] ✅ Gemeinsames Kommandogate, erneute Lizenz-/Installations-/Mandantenprüfung innerhalb der Plugin-Lease, Nummerngrenzen, Registrierung und einzelne aktive Verbindung durchgesetzt. Das Auflegen eines eigenen Gesprächs bleibt nach Entzug der Berechtigung möglich.
-- [ ] Anrufe ohne vorhandenes Hauptformular vollständig verfolgen, persistieren und später korrekt darstellen.
+- [x] ✅ Anrufe ohne Hauptformular mit dem regulären SIP-Persistenzadapter verfolgen; `AppCallAssociation` speichert dieselben konservativen Zuordnungen wie die UI. Historie, Kontext und Notizen nach frischem Hoststart und in der vorhandenen Detailansicht geprüft.
 - [ ] Einmalige Ausführung bei doppelter Request-ID sowie Clientverlust während des Rufaufbaus isoliert prüfen.
 
 Abnahme: Synthetische Gespräche erreichen dieselbe Historie und Kontextzuordnung wie UI-Gespräche.
@@ -784,8 +784,16 @@ Solution-Rebuilds Debug/Any CPU für FinOffice und Pro erfolgreich (26 bekannte 
 CSCore-Nullablewarnungen). FinOffice: 20 gezielte Tests; Pro: 25 einschließlich bestehender
 Wähldialogprüfungen. Nachweise: `.com-phase5-commands-{fin,pro}.log` und
 `.com-phase5-build-{fin,pro}.log`. Keine SIP-Transporte, Audiogeräte, realen Anrufe oder
-Produktdaten in diesen Tests. Automatische Anrufzuordnung ohne Fenster und gemeinsame
-Clientverlust-/Deduplizierungsabnahme folgen als eigene Punkte.
+Produktdaten in diesen Tests. Die gemeinsame Clientverlust-/Deduplizierungsabnahme folgt als eigener Punkt.
+
+Ergänzung: je Edition elf Prüfungen für die fensterlose Zuordnung und den bestehenden UI-Gesamtablauf
+bestanden; reguläre Rebuilds beider Editionen erfolgreich. Zehn fensterlose Varianten: eingehend,
+ausgehend, mehrdeutig, unterdrückt, fremde Ausgangsfirma, manuell zugeordnet, verspätet gespeichert,
+Abbruch bei nicht kooperativer Quelle, verifizierte Leitung und abweichende Leitung. Keine neue
+automatische Auswahl bei unvollständigem Kontext; eine ausdrücklich gewählte Ausgangsfirma wird
+nicht durch einen automatischen Fremdtreffer ersetzt. Das gilt über denselben Helfer auch in der UI.
+Eigene SQLite-Profile, reguläre Repositories und vorhandene Migrationen, kein neuer SQL-Code.
+Nachweise `.com-phase5-headless-{fin,pro}.log`, `.com-phase5-headless-build-{fin,pro}.log`.
 
 ### Phase 6 – ⬜ Robustheit und Lebensdauer
 

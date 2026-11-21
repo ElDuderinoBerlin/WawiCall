@@ -5,6 +5,7 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Hosting;
@@ -25,12 +26,14 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
     internal readonly Runtime Source;
     internal readonly CompanyKey A, B;
     internal readonly AppTelephonyService Service;
+    internal readonly AppTelephonyAccess Access;
     internal ComTelephonyFixture()
     {
         var line = Enum.Parse<LexwareProductLine>(Application.ProductLine);
         A = new(line, "installation-A", "1"); B = new(line, "installation-B", "1");
         Source = new(line, [new(A, "Firma A"), new(B, "Firma B")]);
-        Service = new(Phone, Phone, new(License, new("fixture", Guid.NewGuid(), "1.0", true), Installation, Source, Application, Failures));
+        Access = new(License, new("fixture", Guid.NewGuid(), "1.0", true), Installation, Source, Application, Failures);
+        Service = new(Phone, Phone, Access);
     }
     public ValueTask DisposeAsync() => Service.DisposeAsync();
     internal sealed class LicenseProbe : IProductLicenseService
@@ -78,7 +81,7 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         public Task<PartyPage> GetPartiesAsync(PartyQuery query, CancellationToken token = default) => throw new NotSupportedException();
         public Task<Party?> GetPartyAsync(PartyKey party, CancellationToken token = default) => throw new NotSupportedException();
     }
-    internal sealed class Backend : ITelephonyService, ITelephonyConnection
+    internal sealed class Backend : ITelephonyService, ITelephonyConnection, ICallLineContextProvider
     {
         private readonly object _gate = new();
         private ImmutableArray<CallSnapshot> _calls = [];
@@ -87,12 +90,15 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         internal Func<CancellationToken, Task>? BeforeDial;
         internal Func<CallSnapshot, Task>? Persist = null;
         internal Exception? Failure = null;
+        internal PhoneLineContext? Line = null;
         internal CancellationToken LastDialToken;
         public RegistrationSnapshot Registration { get; private set; } = new(RegistrationState.Stopped, DateTimeOffset.UtcNow);
         public string? LastFailureCode => null;
         public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged;
         public event EventHandler<CallChangedEventArgs>? CallChanged;
         internal int RegistrationSubscribers => RegistrationChanged?.GetInvocationList().Length ?? 0;
+        internal int CallSubscribers => CallChanged?.GetInvocationList().Length ?? 0;
+        public PhoneLineContext? GetLineContext(Guid id) => Line;
         public ImmutableArray<CallSnapshot> GetCalls() { lock (_gate) return _calls; }
         internal void Register(RegistrationState state) { Registration = new(state, DateTimeOffset.UtcNow); RegistrationChanged?.Invoke(this, new(Registration)); }
         public Task ConnectAsync(CancellationToken token = default) { token.ThrowIfCancellationRequested(); Connects++; Register(RegisterOnConnect ? RegistrationState.Registered : RegistrationState.Registering); return Task.CompletedTask; }
@@ -118,8 +124,10 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         {
             var call = GetCalls().SingleOrDefault(call => call.Id == id && AppTelephonyService.IsActive(call)) ?? throw new TelephonyException("CallNotActive");
             Hangups++;
-            await PublishAsync(call with { Revision = call.Revision + 1, State = CallState.Ended, StateChangedAtUtc = DateTimeOffset.UtcNow,
-                EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Cancelled });
+            var ended = DateTimeOffset.UtcNow;
+            await PublishAsync(call with { Revision = call.Revision + 1, State = CallState.Ended, StateChangedAtUtc = ended,
+                EndedAtUtc = ended, EndReason = call.State is CallState.Connected or CallState.Held ? CallEndReason.Completed
+                    : call.Direction == CallDirection.Incoming ? CallEndReason.Rejected : CallEndReason.Cancelled });
         }
         public Task AnswerAsync(Guid id, CancellationToken token = default) => Task.CompletedTask;
         public Task RejectAsync(Guid id, CancellationToken token = default) => HangUpAsync(id, token);

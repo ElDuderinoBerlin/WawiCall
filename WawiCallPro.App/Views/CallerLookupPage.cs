@@ -12,6 +12,7 @@ namespace WawiCallPro.App.Views;
 /// <summary>Explicit number lookup and detached selection. No change of the active company or plugin documents.</summary>
 public partial class CallerLookupPage : XtraUserControl
 {
+    private CallSnapshot? _boundCall;
     private AppWorkspace? _workspace;
     private AppUiState? _state;
     private PageOperation? _operation;
@@ -69,6 +70,7 @@ public partial class CallerLookupPage : XtraUserControl
     internal void BindNotes(CallNotesSession notes) { notesPanel.Bind(notes); notesTab.PageVisible = true; }
     internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
     {
+        _boundCall = call;
         _accept = accept;
         _boundLine = (_workspace?.Telephony as ICallLineContextProvider)?.GetLineContext(call.Id);
         numberEdit.Text = call.RemoteAddress.Presentation == NumberPresentation.Available ? call.RemoteAddress.OriginalValue ?? call.RemoteAddress.E164 ?? "" : "";
@@ -124,7 +126,8 @@ public partial class CallerLookupPage : XtraUserControl
                     _context = _context with { LineAssignment = mapping with { IsVerified = mapping.IsVerified && _boundLine is { } line
                         && mapping.Line.TelephonySystemId == line.TelephonySystemId && mapping.Line.LineId == line.LineId } };
                 var context = _context with { ActiveCompany = _workspace.Companies.Current.Company?.Key };
-                Display(_workspace.CallerDecisions.Evaluate(result, context, previous));
+                var decision = _workspace.CallerDecisions.Evaluate(result, context, previous);
+                Display(_boundCall is { } boundCall ? AppCallAssociation.RespectDialCompany(decision, boundCall) : decision);
                 if (_accept is not null) await _accept(_decision!, request.Token);
             }
             catch (OperationCanceledException) when (request.IsCancellationRequested)
