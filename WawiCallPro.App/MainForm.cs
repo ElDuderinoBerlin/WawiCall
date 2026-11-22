@@ -98,7 +98,7 @@ public partial class MainForm : RibbonForm
         UpdateDatabaseActions();
         _state?.Restore(this);
         _state?.Restore(dockManager);
-        Navigate("home");
+        if (_configuration?.Current.Options.User.ShowStartPage != false) Navigate("home");
         _ = ReloadCompaniesAsync();
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
             ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."

@@ -43,7 +43,7 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
         var operation = state is OperationEvents.SafeOperationRecord safe ? safe.Event
             : backgroundFailure ? OperationEvent.BackgroundFailed
             : category == "Quantarix.Plugin" ? OperationEvent.PluginMessage : OperationEvent.FrameworkMessage;
-        if (_settings.IsEnabled(level))
+        if (_settings.IsEnabledForCategory(level, category))
         {
             // Only allowlisted metadata enters Serilog. It never receives foreign state, scopes or exceptions.
             _serilog.Write(new LogEvent(DateTimeOffset.UtcNow, RuntimeLoggingSettings.ToSerilog(level), null, Template,
@@ -70,7 +70,14 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
             EventId = ((ScalarValue)logEvent.Properties["EventId"]).Value,
             ExceptionType = ((ScalarValue)logEvent.Properties["ExceptionType"]).Value
         };
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(entry);
+        byte[] bytes;
+        if (_settings.OutputTemplate is { } template)
+        {
+            using var writer = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+            new Serilog.Formatting.Display.MessageTemplateTextFormatter(template).Format(logEvent, writer);
+            bytes = System.Text.Encoding.UTF8.GetBytes(writer.ToString());
+        }
+        else bytes = JsonSerializer.SerializeToUtf8Bytes(entry);
         Exception? logFailure = null;
         lock (_gate)
         {
@@ -78,7 +85,20 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
             {
                 var directory = _settings.Directory;
                 Directory.CreateDirectory(directory);
-                var filePath = Path.Combine(directory, $"operations-{Environment.ProcessId}-{_runId:N}.jsonl");
+                var configured = _settings.FileName;
+                var prefix = configured is null ? null : Path.GetFileNameWithoutExtension(configured);
+                var extension = configured is null ? null : Path.GetExtension(configured);
+                var fileName = configured is null ? $"operations-{Environment.ProcessId}-{_runId:N}.jsonl"
+                    : $"{prefix}{DateTime.UtcNow:yyyyMMdd}-{Environment.ProcessId}-{_runId:N}{extension}";
+                var filePath = Path.Combine(directory, fileName);
+                if (configured is not null)
+                {
+                    var pattern = "^" + System.Text.RegularExpressions.Regex.Escape(prefix!) + @"\d{8}-\d+-[a-f0-9]{32}" + System.Text.RegularExpressions.Regex.Escape(extension!) + "$";
+                    var own = new DirectoryInfo(directory).EnumerateFiles().Where(file => System.Text.RegularExpressions.Regex.IsMatch(file.Name, pattern)
+                        && (file.Attributes & FileAttributes.ReparsePoint) == 0).OrderByDescending(file => file.LastWriteTimeUtc).ToArray();
+                    var keep = _settings.RetainedFileCountLimit - 1;
+                    foreach (var stale in own.Where(file => file.FullName != filePath).Skip(keep)) stale.Delete();
+                }
                 using var stream = new FileStream(filePath, FileMode.Append, FileAccess.Write, FileShare.Read);
                 if (stream.Length + bytes.Length + 1 > _maximumBytes) throw OperationException.LogUnavailable();
                 stream.Write(bytes);
@@ -100,7 +120,7 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
     private sealed class SafeLogger(SafeFileLoggerProvider provider, string category) : Microsoft.Extensions.Logging.ILogger
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => provider._settings.IsEnabled(logLevel)
+        public bool IsEnabled(LogLevel logLevel) => provider._settings.IsEnabledForCategory(logLevel, category)
             || category == "Microsoft.Extensions.Hosting.Internal.Host" && logLevel is >= LogLevel.Error and < LogLevel.None;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {

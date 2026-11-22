@@ -4,6 +4,14 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+Vorlagenabgleich vom 22.11.2026: ✅ Vollständige Produkt-appsettings nach der echten LxTranslate-Datei
+übernommen; AppUi, vorhandene Lizenz-/Crash-Dienste und Serilog-Fileoptionen angebunden. Fremde
+Logtexte bleiben ausgeschlossen; eigene tägliche Dateien werden begrenzt aufbewahrt. Debug-Key-Regel
+bleibt erhalten, Hilfe-/Druck-/Artikel-/Updateparameter sind übernommen; deren noch fehlende Fachmodule
+werden dadurch nicht als implementiert markiert. Isolierte Konfigurations-/Datenschutzprüfungen unter
+`.artifacts/company-multiselect`. Ein zusätzlich erfasster älterer Lifetime-Test scheitert an seinem
+fehlenden AppAutomationState-Testdienst, unabhängig von dieser Konfigurationsänderung; nicht bestanden.
+
 Debug-Key-Korrektur vom 22.11.2026: ✅ Build-Aktion übernimmt `LexwareApiClientKeyPro`
 nur in Debug-Pro aus `Solution.props` und schreibt ihn verschlüsselt in Ausgabe-appsettings.
 Release übernimmt auch bei erzwungenem Schalter keinen Vorgabekey/Assembly-Metadatenkey.

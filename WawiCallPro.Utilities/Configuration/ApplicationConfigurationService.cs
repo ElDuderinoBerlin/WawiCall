@@ -20,6 +20,7 @@ public sealed class ApplicationConfigurationService : IHostedService
     {
         var loaded = await _store.LoadAsync(cancellationToken).ConfigureAwait(false);
         _logging?.Apply(loaded.Options.User);
+        if (loaded.ProductFile is { } product) _logging?.ApplyProduct(new ProductAppSettings(product).Read(), loaded.Options.User);
         _current = loaded;
     }
 

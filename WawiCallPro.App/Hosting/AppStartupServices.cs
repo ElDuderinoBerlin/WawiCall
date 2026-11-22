@@ -17,7 +17,8 @@ internal static class AppStartupServices
     {
         services.AddSingleton(mode);
         services.AddSingleton(LicenseProductIdentity.FromAssembly(Assembly.GetExecutingAssembly()));
-        services.AddSingleton(provider => StartupSettings.Load(provider.GetRequiredService<ApplicationPaths>()));
+        services.AddSingleton(provider => StartupSettings.LoadApplicationSettings(provider.GetRequiredService<ApplicationPaths>(),
+            provider.GetRequiredService<WawiCallPro.Utilities.Configuration.ConfigurationLocation>()));
         services.AddSingleton<IPublicKeyProvider, CompiledLicenseKeys>();
         services.AddSingleton<ILocalLicenseProtector, DpapiLocalLicenseProtector>();
         services.AddSingleton<IMachineIdProvider, WindowsMachineIdProvider>();

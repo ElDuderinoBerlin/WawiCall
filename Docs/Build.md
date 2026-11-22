@@ -798,3 +798,26 @@ Installation und Berechtigung werden weiterhin im Plugin geprüft. Nur allgemein
 Logging und DirectX behalten ihre dokumentierte Neustartsemantik. Rollback: alten Build und die vor
 Speichern gesicherten Profil-/Produktdateien gemeinsam wiederherstellen; neuere Formate werden von
 älteren Builds bewusst abgewiesen. Keine Produktivzugriffe durch die isolierten Prüfungen.
+
+
+### Vollständige LxTranslate-Vorlage (22.11.2026)
+
+`WawiCallPro.App/appsettings.json` übernimmt die Abschnitte Help, LexwareApi, AppUi,
+PrintDialog, PrintForms, Velopack, LicenseServer, CrashReporting und Serilog aus der tatsächlichen
+LxTranslate-Datei. ClientKey bleibt in der Quellvorlage leer und wird ausschließlich durch die
+Debug-Pro-Build-Aktion gesetzt. Logpfad/Dateinamen verwenden WawiCallPro. Kommentare der Vorlage
+sind dokumentarisch; die ausgegebene Datei ist reguläres JSON. Key-Verschlüsselung und Build erhalten
+alle übrigen Abschnitte.
+
+AppUi steuert Schriftfamilie, Punktgröße und anfängliche Startseite. Der Benutzervertrag ist jetzt 15,
+ältere Profile bleiben lesbar. LicenseServer und CrashReporting konfigurieren die bestehenden Dienste
+mit getrennten Endpunkten und Crash-Zeitlimit; explizite alte startup.local.json bleibt vorrangig.
+Serilog berücksichtigt Default/Override-Level, File-Pfad, tägliche Dateien, Aufbewahrungsanzahl und
+OutputTemplate. Prozess-/Sitzungszusätze verhindern konkurrierende Dateischreiber; Bereinigung erfasst
+nur eigene, exakt benannte Dateien. Die vorhandene Metadaten-Allowlist bleibt erhalten: fremde
+Formatierer, Scopes, Meldungen und Ausnahmetexte gelangen auch mit FromLogContext nicht in Dateien.
+
+Help-/Druck-/Artikeltransfer-/Updater-Werte bleiben vollständig in der Produktdatei für die jeweiligen
+Fachmodule erhalten. WawiCallPro besitzt derzeit weder den LxTranslate-Druckformularübersetzer noch
+dessen Artikeltransfer-/Hilfeindex oder einen aktiven Velopack-Updateclient; die Dateiübernahme allein
+ist kein Funktionsnachweis dieser Module. Hilfe-Cachewerte erhalten keine Settings-Dialogfelder.

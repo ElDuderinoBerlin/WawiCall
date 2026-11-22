@@ -24,7 +24,7 @@ public sealed class CrashReportUploader(CrashReportQueue queue, IProductLicenseS
         {
             var files = queue.GetPendingFiles();
             if (files.Length == 0 || await licenses.GetCrashAuthenticationAsync(cancellationToken).ConfigureAwait(false) is not { } authentication) return;
-            using var http = clients.Create();
+            using var http = clients.CreateCrashClient();
             foreach (var path in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();

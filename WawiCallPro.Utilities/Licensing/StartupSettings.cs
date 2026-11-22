@@ -38,6 +38,36 @@ public sealed record StartupSettings
     public int RequestTimeoutSeconds { get; init; } = 10;
     public int LicenseCheckIntervalSeconds { get; init; } = 600;
     public int CrashFlushIntervalSeconds { get; init; } = 30;
+    public Uri? CrashServiceBaseUri { get; init; }
+    public int CrashRequestTimeoutSeconds { get; init; } = 15;
+
+    public static StartupSettings LoadApplicationSettings(ApplicationPaths paths, WawiCallPro.Utilities.Configuration.ConfigurationLocation location)
+    {
+        // Retain explicit existing deployment overrides during migration.
+        if (File.Exists(Path.Combine(paths.RootDirectory, "startup.local.json")) || location.ProductFilePath is null) return Load(paths);
+        try
+        {
+            var root = new WawiCallPro.Utilities.Configuration.ProductAppSettings(location.ProductFilePath).Read();
+            var license = root["LicenseServer"]; var crash = root["CrashReporting"];
+            var settings = new StartupSettings
+            {
+                LicenseServerUrl = license?["Url"] is { } url ? new Uri(url.GetValue<string>(), UriKind.Absolute) : null,
+                ServerThumbprint = license?["Thumbprint"]?.GetValue<string>(),
+                UploadCrashReports = crash?["Enabled"]?.GetValue<bool>() ?? false,
+                CrashServiceBaseUri = crash?["ServiceBaseUri"] is { } endpoint ? new Uri(endpoint.GetValue<string>(), UriKind.Absolute) : null,
+                CrashFlushIntervalSeconds = crash?["QueueFlushIntervalSeconds"]?.GetValue<int>() ?? 30,
+                CrashRequestTimeoutSeconds = crash?["RequestTimeoutSeconds"]?.GetValue<int>() ?? 15
+            };
+            foreach (var uri in new[] { settings.LicenseServerUrl, settings.CrashServiceBaseUri })
+                if (uri is not null && (!string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)
+                    || uri.AbsolutePath != "/" || uri.Scheme != "https" && !(uri.IsLoopback && uri.Scheme == "http"))) throw new InvalidDataException();
+            if (settings.CrashFlushIntervalSeconds is < 5 or > 3600 || settings.CrashRequestTimeoutSeconds is < 1 or > 120
+                || settings.UploadCrashReports && settings.CrashServiceBaseUri is null
+                || settings.ServerThumbprint is { } pin && (pin.Length is not (40 or 64) || !pin.All(Uri.IsHexDigit))) throw new InvalidDataException();
+            return settings;
+        }
+        catch { throw new LicenseAccessException(LicenseStatus.ConfigurationMissing); }
+    }
 
     public static StartupSettings Load(ApplicationPaths paths)
     {
@@ -75,10 +105,16 @@ public sealed class CompiledLicenseKeys : IPublicKeyProvider
     public RSA GetPublicKey(string? keyId) => _configured ? _keys.GetPublicKey(keyId) : throw new LicenseAccessException(LicenseStatus.ConfigurationMissing);
 }
 
-public interface IStartupHttpClientFactory { HttpClient Create(); }
+public interface IStartupHttpClientFactory
+{
+    HttpClient Create();
+    HttpClient CreateCrashClient() => Create();
+}
 
 public sealed class StartupHttpClientFactory(StartupSettings settings) : IStartupHttpClientFactory
 {
+    public HttpClient CreateCrashClient() => new StartupHttpClientFactory(settings with
+    { LicenseServerUrl = settings.CrashServiceBaseUri ?? settings.LicenseServerUrl, RequestTimeoutSeconds = settings.CrashRequestTimeoutSeconds }).Create();
     public HttpClient Create()
     {
         if (settings.LicenseServerUrl is null) throw new LicenseAccessException(LicenseStatus.ConfigurationMissing);

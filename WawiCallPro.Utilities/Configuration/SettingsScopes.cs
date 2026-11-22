@@ -6,6 +6,9 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>Local user's preferences. PreferredCompany is a preference, not proof of a selectable/active company.</summary>
 public sealed record UserSettings
 {
+    public string FontFamily { get; init; } = "Segoe UI";
+    public float FontSize { get; init; } = 9;
+    public bool ShowStartPage { get; init; } = true;
     public bool LoggingEnabled { get; init; } = true;
     public Microsoft.Extensions.Logging.LogLevel LogLevel { get; init; } = Microsoft.Extensions.Logging.LogLevel.Information;
     public string? LogDirectory { get; init; }

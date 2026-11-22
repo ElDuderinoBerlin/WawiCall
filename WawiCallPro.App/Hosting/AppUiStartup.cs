@@ -15,6 +15,8 @@ internal sealed class AppUiStartup(IUiDispatcher dispatcher, ApplicationConfigur
     {
         ApplyRenderingPreference(configuration.Current.Options.User.UseDirectXRendering, WindowsFormsSettings.ForceDirectXPaint);
         Apply();
+        var settings = configuration.Current.Options.User;
+        WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = new Font(settings.FontFamily, settings.FontSize);
     }, cancellationToken).AsTask();
     internal static void ApplyRenderingPreference(bool directX, Action enableDirectX)
     {

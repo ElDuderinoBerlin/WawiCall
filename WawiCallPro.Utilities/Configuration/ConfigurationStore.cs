@@ -180,6 +180,15 @@ public sealed class ConfigurationStore(
         var target = System.Text.Json.Nodes.JsonNode.Parse(ConfigurationFormat.Encode(new ApplicationOptions()))!.AsObject();
         target.Remove("Logging");
         Merge(target["settings"]!.AsObject(), defaults);
+        if (product["AppUi"] is { } ui)
+        {
+            var user = target["settings"]!["user"]!;
+            if (ui["FontFamily"] is { } family) user["fontFamily"] = family.DeepClone();
+            if (ui["FontSize"] is { } size) user["fontSize"] = size.DeepClone();
+            if (ui["ShowStartPage"] is { } start) user["showStartPage"] = start.DeepClone();
+        }
+        if (product["Serilog"]?["MinimumLevel"]?["Default"] is { } minimum)
+            target["settings"]!["user"]!["logLevel"] = minimum.DeepClone();
         if (product["Logging"] is { } logging)
         {
             var baseOptions = ConfigurationFormat.Decode(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(target)).Options;

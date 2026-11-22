@@ -17,6 +17,9 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
         if (options.User is { } user)
         {
+            if (string.IsNullOrWhiteSpace(user.FontFamily) || user.FontFamily.Length > 128 || user.FontFamily.Any(char.IsControl)
+                || !float.IsFinite(user.FontSize) || user.FontSize is < 6 or > 48)
+                issues.Add(new("user.font", "Schriftfamilie und Schriftgröße (6 bis 48 Punkt) prüfen."));
             if (!Enum.IsDefined(user.LogLevel)) issues.Add(new("user.logLevel", "Ein gültiges Log-Level auswählen."));
             if (user.LogDirectory is { } directory && !IsValidLogDirectory(directory))
                 issues.Add(new("user.logDirectory", "Für das Log-Verzeichnis einen absoluten lokalen Ordnerpfad angeben."));
