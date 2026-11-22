@@ -6,6 +6,18 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+Absturzprüfung vom 22.11.2026: ✅ Windows-Ereignisse 1026 (acht Einträge, 10:09:34–10:43:10)
+mit temporären LxWebDesk-FinOffice-QA-Treibern abgeglichen. Letzte Einträge: PID 36428 um 10:42:53,
+fehlende `LxWebDesk.Web, Version=1.0.284.0`; PID 3184 um 10:43:10, unbehandelte Prüfausnahme
+`No invented currency for unknown native mapping`. Der identische Prüftext steht in
+`%TEMP%/LxWebDesk-FO-ui-qa.cs`; `%TEMP%/LxWebDesk-FO-run.ps1` kompiliert temporäre
+`LxWebDesk-FO-driver-<GUID>.dll` und startet sie mit `dotnet exec`. Weitere QA-Ausnahmen betreffen
+SQLite-Schema, Datentypen und Schreibzugriffe. Ursache der Windows-Dialoge: unbehandelte Ausnahmen
+in `Qa.Main`, keine belastbare Zuordnung zu WawiCallPro. Keine dieser Proben erneut ausgeführt und
+keine fremden Testprogramme oder Daten verändert. Unter den heutigen abgefragten 1026-Ereignissen
+kein WawiCallPro-/Testhost-/MSBuild-Aufrufstapel; dies ist keine allgemeine Absturzfreiheitsgarantie.
+Die späteren sieben COM-Beispielprüfungen liefen um 10:56 ohne neue .NET-Runtime-Absturzereignisse.
+Behebung der QA-Treiber und ihrer fachlichen Assertions gehört in den LxWebDesk-Arbeitsauftrag.
 Zusatzauftrag vom 22.11.2026: ✅ VBS-/PowerShell-Beispiele für die COM-Main-App ergänzt, Standard
 ohne Fenster/Telefonaktion, explizite View-/Kunden-/Lieferanten-/Telefonaktionen, begrenzte Auftragsabfrage
 und Referenzfreigabe. Sieben native Pro-Clientprüfungen einschließlich x86/x64, PowerShell 5.1/7 und
