@@ -13,6 +13,8 @@ public interface IWawiCallPluginSettings
 public interface IPluginSettingsView : IPluginViewLease
 {
     bool HasUnsavedChanges { get; }
+    bool SupportsCompanyValidation => false;
+    Task<WawiCallPro.Interfaces.Companies.Company?> ResolveCompanyAsync(WawiCallPro.Interfaces.Companies.CompanyKey company, CancellationToken token = default) => throw new NotSupportedException();
     void Reload(IPluginConnectionEditContext context);
     void ApplyChanges(IPluginConnectionEditContext context);
     Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
@@ -24,6 +26,8 @@ public interface IPluginSettingsView : IPluginViewLease
 public interface IPluginSettingsHandle : IPluginViewHandle
 {
     string Title { get; }
+    bool SupportsCompanyValidation => false;
+    Task<WawiCallPro.Interfaces.Companies.Company?> ResolveCompanyAsync(WawiCallPro.Interfaces.Companies.CompanyKey company, CancellationToken token = default) => throw new NotSupportedException();
     void Reload(IPluginConnectionEditContext context);
     void ApplyChanges(IPluginConnectionEditContext context);
     Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

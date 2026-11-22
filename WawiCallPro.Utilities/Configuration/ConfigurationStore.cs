@@ -10,6 +10,7 @@ public sealed record ConfigurationSnapshot(ApplicationOptions Options, bool File
     public bool RequiresUpgrade => FileFound && FormatVersion < ConfigurationFormat.CurrentVersion;
     internal string? ContentHash { get; init; }
     internal string? SourceFile { get; init; }
+    internal string? ProductFile { get; init; }
 }
 
 /// <summary>Strict typed JSON persistence. Invalid input is never repaired or replaced with defaults silently.</summary>
@@ -19,6 +20,7 @@ public sealed class ConfigurationStore(
     PhoneSearchChanges? phoneSearchChanges = null)
 {
     private const int MaximumFileSize = 131072;
+    public event Action<ErpConnectionSettings, bool>? ErpSaved;
 
     /// <summary>Creates dialog-local connection edits without changing the saved or running configuration.</summary>
     public PluginConnectionEditContext BeginPluginConnectionEdit(ConfigurationSnapshot snapshot, WawiCallPro.Utilities.Security.ISecretProtector secrets)
@@ -92,12 +94,26 @@ public sealed class ConfigurationStore(
         {
             var bytes = await ReadBytesAsync(cancellationToken).ConfigureAwait(false);
             var snapshot = ConfigurationFormat.Decode(bytes);
+            if (location.ProductFilePath is not null)
+            {
+                var defaults = ApplyProductDefaults(new(new ApplicationOptions(), false));
+                var target = System.Text.Json.Nodes.JsonNode.Parse(ConfigurationFormat.Encode(defaults.Options))!.AsObject();
+                target.Remove("Logging");
+                var localBytes = bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }) ? bytes[3..] : bytes;
+                var local = System.Text.Json.Nodes.JsonNode.Parse(localBytes)!.AsObject();
+                Merge(target["settings"]!.AsObject(), snapshot.FormatVersion == 0 ? local : local["settings"]!.AsObject());
+                if (local["Logging"] is { } logging) target["Logging"] = logging.DeepClone();
+                var merged = ConfigurationFormat.Decode(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(target));
+                snapshot = snapshot with { Options = merged.Options with { ProductClientKeyAvailable = defaults.Options.ProductClientKeyAvailable } };
+            }
             validator.Validate(snapshot.Options);
-            return snapshot with { SourceFile = location.FilePath };
+            return snapshot with { SourceFile = location.FilePath, ProductFile = location.ProductFilePath };
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {
-            return new ConfigurationSnapshot(new ApplicationOptions(), false) { SourceFile = location.FilePath };
+            var defaults = ApplyProductDefaults(new ConfigurationSnapshot(new ApplicationOptions(), false));
+            validator.Validate(defaults.Options);
+            return defaults with { SourceFile = location.FilePath, ProductFile = location.ProductFilePath };
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -137,7 +153,10 @@ public sealed class ConfigurationStore(
                 throw ConfigurationException.FileError("Die Einstellungen wurden inzwischen geändert. Bitte neu laden.");
             await File.WriteAllBytesAsync(temporaryFile, bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            using var keyEdit = options.ProductClientKeyEdit is { } edit ? new ProductAppSettings(edit.Path).BeginKeyUpdate(edit.Value, edit.ExpectedHash) : null;
             File.Move(temporaryFile, location.FilePath, true);
+            keyEdit?.Commit();
+            ErpSaved?.Invoke(options.Erp, options.ProductClientKeyEdit is not null);
             phoneSearchChanges?.ConfigurationSaved(options);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -147,6 +166,38 @@ public sealed class ConfigurationStore(
         finally
         {
             if (File.Exists(temporaryFile)) File.Delete(temporaryFile);
+        }
+    }
+
+    private ConfigurationSnapshot ApplyProductDefaults(ConfigurationSnapshot snapshot)
+    {
+        if (location.ProductFilePath is null) return snapshot;
+        var productFile = new ProductAppSettings(location.ProductFilePath);
+        var product = productFile.Read();
+        snapshot = snapshot with { Options = snapshot.Options with { ProductClientKeyAvailable = productFile.ReadClientKey() is not null } };
+        if (product["settings"] is not null and not System.Text.Json.Nodes.JsonObject) throw ConfigurationException.FileError("Ungültige appsettings.json-Vorgaben.");
+        var defaults = product["settings"] as System.Text.Json.Nodes.JsonObject ?? new();
+        var target = System.Text.Json.Nodes.JsonNode.Parse(ConfigurationFormat.Encode(new ApplicationOptions()))!.AsObject();
+        target.Remove("Logging");
+        Merge(target["settings"]!.AsObject(), defaults);
+        if (product["Logging"] is { } logging)
+        {
+            var baseOptions = ConfigurationFormat.Decode(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(target)).Options;
+            baseOptions = baseOptions with { User = ConfigurationFormat.ApplyLogging(System.Text.Json.JsonSerializer.SerializeToElement(logging), baseOptions.User) };
+            target = System.Text.Json.Nodes.JsonNode.Parse(ConfigurationFormat.Encode(baseOptions))!.AsObject();
+        }
+        target.Remove("Logging");
+        if (snapshot.FileFound)
+            Merge(target["settings"]!.AsObject(), System.Text.Json.Nodes.JsonNode.Parse(ConfigurationFormat.Encode(snapshot.Options))!["settings"]!.AsObject());
+        var merged = ConfigurationFormat.Decode(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(target));
+        return snapshot with { Options = merged.Options with { ProductClientKeyAvailable = snapshot.Options.ProductClientKeyAvailable } };
+    }
+    private static void Merge(System.Text.Json.Nodes.JsonObject target, System.Text.Json.Nodes.JsonObject source)
+    {
+        foreach (var pair in source)
+        {
+            if (pair.Value is System.Text.Json.Nodes.JsonObject child && target[pair.Key] is System.Text.Json.Nodes.JsonObject existing) Merge(existing, child);
+            else target[pair.Key] = pair.Value?.DeepClone();
         }
     }
 
@@ -167,7 +218,7 @@ public sealed class ConfigurationStore(
 
     private async Task<byte[]> ReadBytesAsync(CancellationToken cancellationToken)
     {
-        await using var stream = new FileStream(location.FilePath, FileMode.Open, FileAccess.Read,
+        await using var stream = new FileStream(File.Exists(location.FilePath) ? location.FilePath : location.LegacyFilePath, FileMode.Open, FileAccess.Read,
             FileShare.Read | FileShare.Delete, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
         if (stream.Length > MaximumFileSize) throw ConfigurationException.FileError("Die Datei ist zu groß.");
         var bytes = new byte[(int)stream.Length];

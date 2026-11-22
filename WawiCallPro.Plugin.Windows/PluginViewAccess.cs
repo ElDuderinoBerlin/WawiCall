@@ -41,6 +41,13 @@ public sealed class PluginViewAccess(IProductPluginRuntime runtime, IUiDispatche
         private IPluginSettingsView? _view = view;
         private readonly SemaphoreSlim _gate = new(1);
         public string Title { get; } = title;
+        public bool SupportsCompanyValidation => _view?.SupportsCompanyValidation == true;
+        public async Task<WawiCallPro.Interfaces.Companies.Company?> ResolveCompanyAsync(WawiCallPro.Interfaces.Companies.CompanyKey company, CancellationToken token = default)
+        {
+            Task<WawiCallPro.Interfaces.Companies.Company?>? result = null;
+            await dispatcher.InvokeAsync(() => result = (_view ?? throw new ObjectDisposedException(nameof(SettingsHandle))).ResolveCompanyAsync(company, token), token).ConfigureAwait(false);
+            return await result!.ConfigureAwait(false);
+        }
         public Control View => _view?.View ?? throw new ObjectDisposedException(nameof(SettingsHandle));
         public bool HasUnsavedChanges => _view?.HasUnsavedChanges == true;
         public void Reload(IPluginConnectionEditContext context) => (_view ?? throw new ObjectDisposedException(nameof(SettingsHandle))).Reload(context);

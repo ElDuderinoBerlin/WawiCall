@@ -29,7 +29,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             || pluginId.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('.' or '-' or '_'))
             || pluginId is "." or ".."))
             issues.Add(new("user.activePluginId", "Die Plugin-Kennung ist ungültig."));
-        ValidateErp(options.Erp, issues);
+        ValidateErp(options.Erp, issues, options.ProductClientKeyAvailable || options.ProductClientKeyEdit is not null);
         ValidateDevices(options.Devices, issues);
         if (options.AutomaticMp3 is null || options.AutomaticMp3.Enabled && options.AutomaticMp3.SinceUtc is null ||
             options.AutomaticMp3?.SinceUtc is { } since && since.Offset != TimeSpan.Zero)
@@ -163,7 +163,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         }
     }
 
-    private void ValidateErp(ErpConnectionSettings? erp, ImmutableArray<ConfigurationIssue>.Builder issues)
+    private void ValidateErp(ErpConnectionSettings? erp, ImmutableArray<ConfigurationIssue>.Builder issues,
+        bool externalClientKey)
     {
         if (erp is null) { issues.Add(new("erp", "Warenwirtschaftseinstellungen dürfen nicht null sein.")); return; }
         foreach (var id in new[] { erp.FinOfficeInstallationId, erp.Pro?.InstallationId })
@@ -177,7 +178,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (pro.TimeoutSeconds is < 1 or > 300 || pro.TokenTimeoutSeconds is < 1 or > 300)
             issues.Add(new("erp.pro.timeout", "Zeitlimits müssen zwischen 1 und 300 Sekunden liegen."));
         ValidateErpSecret(pro.Password, ProErpSettings.PasswordPurpose, false, issues);
-        if (pro.ClientKey is not null || LexwareClientDefaults.GetProClientKey() is null)
+        if (pro.ClientKey is not null || !externalClientKey && LexwareClientDefaults.GetProClientKey() is null)
             ValidateErpSecret(pro.ClientKey, ProErpSettings.ClientKeyPurpose, true, issues);
     }
 

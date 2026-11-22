@@ -14,14 +14,11 @@ public partial class SettingsPage
     private bool _pluginSettingsLoaded;
     private bool _selectPluginConnectionOnLoad;
 
-    private static bool PluginConnectionSettingsDiffer(ErpConnectionSettings left, ErpConnectionSettings right) =>
-        !System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(left).AsSpan().SequenceEqual(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(right));
-
     private void ApplyPluginConnectionSnapshot(ConfigurationSnapshot snapshot)
     {
         if (_workspace is null) return;
         _pluginEditContext = _workspace.Settings.BeginPluginConnectionEdit(snapshot, _workspace.Secrets);
-        _pluginPageContext = new(_pluginEditContext, _workspace, snapshot.Options.User.PreferredCompany);
+        _pluginPageContext = new(_pluginEditContext, _workspace, snapshot.Options.User.PreferredCompany) { CompanyValidation = _pluginSettings };
         if (_pluginSettings is not null && _pluginSettingsId == (_workspace.Plugins as IProductPluginSelection)?.ActivePluginId)
             _pluginSettings.Reload(_pluginPageContext);
     }
@@ -64,6 +61,7 @@ public partial class SettingsPage
             wawiTab.Text = editor.Title;
             tabs.TabPages.Insert(2, wawiTab);
             _pluginSettings = editor; editor = null;
+            if (_pluginPageContext is not null) _pluginPageContext.CompanyValidation = _pluginSettings;
             wawiHintLabel.Visible = false;
             if (_selectPluginConnectionOnLoad) { tabs.SelectedTabPage = wawiTab; _selectPluginConnectionOnLoad = false; }
             await _pluginSettings.LoadAsync(token);

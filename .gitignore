@@ -10,6 +10,10 @@ artifacts/
 *.pfx
 *.log
 appsettings.Local.json
+appsettings.json
+!WawiCallPro.App/appsettings.json
+appsettings.json.lock
+appsettings.json.*.tmp
 connection.local.json
 connection.local.json.lock
 .connection-*.tmp

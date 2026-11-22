@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>The version belongs to settings JSON, independently of the DPAPI envelope version.</summary>
 public static class ConfigurationFormat
 {
-    public const int CurrentVersion = 13;
+    public const int CurrentVersion = 14;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -49,9 +49,9 @@ public static class ConfigurationFormat
                 };
             }
             if (!version.TryGetInt32(out var value) || value is < 1 or > CurrentVersion)
-                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1 bis 13.");
+                throw ConfigurationException.FileError("Das Einstellungsformat wird nicht unterstützt. Unterstützt werden Version 1 bis 14.");
             var envelope = root.Deserialize<SettingsDocument>(JsonOptions)!;
-            return new ConfigurationSnapshot(envelope.Settings, true) { FormatVersion = value, ContentHash = ComputeHash(bytes) };
+            return new ConfigurationSnapshot(envelope.Settings with { User = ApplyLogging(root.TryGetProperty("Logging", out var logging) ? logging : default, envelope.Settings.User) }, true) { FormatVersion = value, ContentHash = ComputeHash(bytes) };
         }
         catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
         {
@@ -60,14 +60,33 @@ public static class ConfigurationFormat
     }
 
     internal static byte[] Encode(ApplicationOptions options) =>
-        JsonSerializer.SerializeToUtf8Bytes(new SettingsDocument { FormatVersion = CurrentVersion, Settings = options }, JsonOptions);
+        JsonSerializer.SerializeToUtf8Bytes(new SettingsDocument { FormatVersion = CurrentVersion, Settings = options, Logging = new() { Enabled = options.User.LoggingEnabled, LogLevel = options.User.LogLevel, LogDirectory = options.User.LogDirectory } }, JsonOptions);
 
     internal static string ComputeHash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+
+    internal static UserSettings ApplyLogging(JsonElement section, UserSettings user)
+    {
+        if (section.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) return user;
+        try
+        {
+            var settings = section.Deserialize<LoggingDocument>(JsonOptions) ?? throw new JsonException();
+            return user with { LoggingEnabled = settings.Enabled ?? user.LoggingEnabled, LogLevel = settings.LogLevel ?? user.LogLevel,
+                LogDirectory = section.TryGetProperty("LogDirectory", out _) ? settings.LogDirectory : user.LogDirectory };
+        }
+        catch (JsonException) { throw ConfigurationException.FileError("Die Logging-Einstellungen sind ungültig."); }
+    }
+    private sealed class LoggingDocument
+    {
+        [JsonPropertyName("Enabled")] public bool? Enabled { get; init; }
+        [JsonPropertyName("LogLevel")] public Microsoft.Extensions.Logging.LogLevel? LogLevel { get; init; }
+        [JsonPropertyName("LogDirectory")] public string? LogDirectory { get; init; }
+    }
 
     private sealed class SettingsDocument
     {
         public required int FormatVersion { get; init; }
         public required ApplicationOptions Settings { get; init; }
+        [JsonPropertyName("Logging")] public LoggingDocument? Logging { get; init; }
     }
 
     private sealed class LegacyConnectionOptions

@@ -26,7 +26,7 @@ public partial class SettingsPage : XtraUserControl
     internal event EventHandler? ContentSizeChanged;
     internal int GetMinimumWindowHeight()
     {
-        if (tabs.SelectedTabPage == sipTab) return GetRequiredGeneralHeight();
+        if (tabs.SelectedTabPage == sipTab || tabs.SelectedTabPage == generalTab) return GetRequiredGeneralHeight();
         var width = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal);
         var statusHeight = statusLabel.GetPreferredSize(new(Math.Max(1, width - statusLabel.Margin.Horizontal), 0)).Height;
         return layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left + Font.Height * 4
@@ -239,6 +239,7 @@ public partial class SettingsPage : XtraUserControl
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
         directXEdit.Checked = options.User.UseDirectXRendering;
+        loggingEnabledEdit.Checked = options.User.LoggingEnabled;
         logLevelEdit.SelectedIndex = (int)options.User.LogLevel;
         logDirectoryEdit.Text = options.User.LogDirectory ?? _workspace?.Paths.LogsDirectory ?? "";
         showWindowHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.ShowWindowHotkey);
@@ -265,7 +266,7 @@ public partial class SettingsPage : XtraUserControl
         var old = _snapshot!.Options;
         var options = old with
         {
-            User = old.User with { ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
+            User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
                 LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
                 LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
@@ -384,7 +385,7 @@ public partial class SettingsPage : XtraUserControl
                 }
                 LoadAutoStart();
             }
-            statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank, Geräte und Protokollierung werden beim nächsten Programmstart übernommen.";
+            statusLabel.Text = "Einstellungen gespeichert. Der Lexware-Zugang ist übernommen. Datenbank-, Geräte- und Protokollierungsänderungen benötigen gegebenenfalls einen Neustart.";
         }
         finally { if (!IsDisposed) sipContainer.Enabled = true; }
     }
@@ -396,13 +397,15 @@ public partial class SettingsPage : XtraUserControl
         await _operation.RunAsync(async token =>
         {
             await SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
-            "Die geänderte Darstellung, Tastenkürzel oder Plugin-Zugangsdaten wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Die geänderte Darstellung oder Tastenkürzel wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
             "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token);
             saved = true;
         });
         if (saved) SaveCompleted?.Invoke(this, EventArgs.Empty);
     }
     private void Cancel_Click(object? sender, EventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    private void LoggingEnabled_Changed(object? sender, EventArgs e) => logLevelEdit.Enabled = logDirectoryEdit.Enabled = logDirectoryBrowseButton.Enabled = loggingEnabledEdit.Checked;
 
     private void LogDirectoryBrowse_Click(object? sender, EventArgs e)
     {
@@ -423,15 +426,12 @@ public partial class SettingsPage : XtraUserControl
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {
         var previous = _snapshot!.Options.User;
-        var previousErp = _snapshot.Options.Erp;
         await SaveAsync(token);
         var saved = _snapshot.Options.User;
-        var connectionChanged = PluginConnectionSettingsDiffer(previousErp, _snapshot.Options.Erp);
-        var restartNeeded = RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User)
-            || PluginConnectionSettingsDiffer(_snapshot.Options.Erp, _workspace.Configuration.Current.Options.Erp);
+        var restartNeeded = RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User);
         if (restartNeeded)
-            statusLabel.Text = "Einstellungen gespeichert. Geänderte Darstellung, Tastenkürzel oder Plugin-Zugangsdaten werden nach einem Neustart wirksam.";
-        if ((RestartSettingsDiffer(saved, previous) || connectionChanged) && restartNeeded && confirm())
+            statusLabel.Text = "Einstellungen gespeichert. Geänderte Darstellung oder Tastenkürzel werden nach einem Neustart wirksam.";
+        if (RestartSettingsDiffer(saved, previous) && restartNeeded && confirm())
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
     private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>

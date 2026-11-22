@@ -15,6 +15,8 @@ public enum SipTransport
 /// <summary>Independent scopes in one immutable settings snapshot; no company setting overrides workstation credentials.</summary>
 public sealed record ApplicationOptions
 {
+    internal bool ProductClientKeyAvailable { get; init; }
+    internal ProductClientKeyEdit? ProductClientKeyEdit { get; init; }
     public ErpConnectionSettings Erp { get; init; } = new();
     public SipAccountOptions? SipAccount { get; init; }
     public ImmutableArray<SipAccountProfile> SipProfiles { get; init; } = [];
@@ -63,3 +65,6 @@ public sealed record SipConnectionOptions
     public bool AcceptRtpFromAny { get; init; }
     public bool EnableG722 { get; init; } = true;
 }
+
+internal sealed record ProductClientKeyEdit(string Path, string Value, string? ExpectedHash)
+{ public override string ToString() => nameof(ProductClientKeyEdit); }

@@ -24,7 +24,7 @@ public sealed class ProAdapterTests
         await using var missing = Build(handler, options: new ProConnectionOptions());
         var directory = missing.GetRequiredService<IBusinessDirectory>();
         Assert.IsFalse(((IBusinessDirectoryConnectionState)directory).IsConnectionConfigured);
-        Assert.IsFalse(new LexwarePlugin(null!, directory).IsConnectionConfigured);
+        Assert.IsFalse(new LexwarePlugin(null!, directory, missing.GetRequiredService<IProDirectoryFactory>()).IsConnectionConfigured);
         Assert.IsEmpty(handler.Requests);
         var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCompaniesAsync());
         Assert.AreEqual(ProFailure.ConfigurationRequired, error.Failure);

@@ -8,6 +8,10 @@ namespace WawiCallPro.Plugins.Lexware.Pro;
 /// <summary>Complete Pro-owned settings view: API access and a dialog-local authorized company selection.</summary>
 public partial class LexwareSettingsPage : XtraUserControl
 {
+    [System.ComponentModel.Browsable(false), System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    internal IPluginConnectionDirectoryFactory? Directories { get; set; }
+    private IBusinessDirectory? _preview;
+    private IPluginSettingsPageContext? _context;
     public LexwareSettingsPage() => InitializeComponent();
     public override Size GetPreferredSize(Size proposedSize)
     {
@@ -20,26 +24,29 @@ public partial class LexwareSettingsPage : XtraUserControl
     internal void Reload(IPluginConnectionEditContext context, IBusinessDirectory directory, Func<bool> connectionReady)
     {
         connectionPage.Reload(context);
-        companyPage.Bind(context as IPluginSettingsPageContext, directory, WawiCallPro.Interfaces.Companies.LexwareProductLine.Pro,
-            connectionReady, connectionPage.HasChanges, DescribeFailure);
+        _context = context as IPluginSettingsPageContext;
+        _preview = context is IPluginConnectionPreview preview && Directories is not null
+            ? new ProSettingsDirectory(preview, connectionPage.ReadChanges, Directories) : directory;
+        companyPage.Bind(_context, _preview, WawiCallPro.Interfaces.Companies.LexwareProductLine.Pro,
+            () => true, describeFailure: DescribeFailure);
     }
-    internal void ApplyChanges(IPluginConnectionEditContext context)
+    internal void ApplyChanges(IPluginConnectionEditContext context) => connectionPage.ApplyChanges(context);
+    internal Task LoadAsync(CancellationToken token) => connectionPage.HasChanges() ? Task.CompletedTask : companyPage.LoadAsync(token);
+    internal async Task ValidateAsync(CancellationToken token)
     {
-        if (connectionPage.HasChanges() && companyPage.HasUnsavedChanges)
-            throw new PluginSettingsValidationException(PluginSettingsIssue.ConnectionRestartRequired);
-        connectionPage.ApplyChanges(context);
+        await companyPage.ValidateAsync(token);
+        if (_context?.Companies.SelectedCompany is { } company && (connectionPage.HasChanges() || companyPage.HasUnsavedChanges))
+            if (await ResolveCompanyAsync(company, token) is null) throw new InvalidOperationException("Selected company is unavailable.");
     }
-    internal Task LoadAsync(CancellationToken token) => companyPage.LoadAsync(token);
-    internal Task ValidateAsync(CancellationToken token)
+    internal async Task<WawiCallPro.Interfaces.Companies.Company?> ResolveCompanyAsync(WawiCallPro.Interfaces.Companies.CompanyKey company, CancellationToken token)
     {
-        if (connectionPage.HasChanges() && companyPage.HasUnsavedChanges)
-            throw new PluginSettingsValidationException(PluginSettingsIssue.ConnectionRestartRequired);
-        return companyPage.ValidateAsync(token);
+        if (_preview is null) throw new InvalidOperationException("Company source is unavailable.");
+        return (await _preview.GetCompaniesAsync(token)).SingleOrDefault(item => item.Key == company);
     }
     internal Task StopAsync(CancellationToken token) => companyPage.StopAsync(token);
     private static string DescribeFailure(Exception error) => error is ProAdapterException failure ? failure.Failure switch
     {
-        ProFailure.ConfigurationRequired => "Lexware-Pro-Zugang einrichten, speichern und neu starten. Danach Mandanten laden.",
+        ProFailure.ConfigurationRequired => "Lexware-Pro-Zugang eingeben. Danach Mandanten laden.",
         ProFailure.AuthenticationFailed or ProFailure.InvalidToken => "Lexware-Anmeldung abgelehnt. API-Benutzer, Kennwort und Client-Key prüfen.",
         ProFailure.InstallationUnavailable => "Lexware-Pro-Installation oder API-Adresse prüfen.",
         ProFailure.ApiUnavailable => "Lexware-API nicht erreichbar. Dienst, Adresse und Verbindung prüfen.",

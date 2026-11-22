@@ -8,13 +8,17 @@ using WawiCallPro.Plugin.Windows;
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
 [PluginServices(typeof(ProPluginServices))]
-public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings, IBusinessDirectoryConnectionState
+public sealed class LexwarePlugin(
+    IWawiCallHostServices services,
+    IBusinessDirectory directory,
+    IProDirectoryFactory directories) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings, IBusinessDirectoryConnectionState
 {
     private bool _initialized;
     private bool _configured;
     public string Name => "Lexware Pro";
     public Version Version { get; } = new(1, 0);
     public LexwareProductLine ProductLine => LexwareProductLine.Pro;
+    public long ConnectionRevision => (directory as IBusinessDirectoryConnectionState)?.ConnectionRevision ?? 0;
     public bool IsConnectionConfigured => directory is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured;
     public IBusinessDirectory Directory => _configured ? directory : throw new InvalidOperationException("Plugin is not configured.");
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
@@ -28,7 +32,7 @@ public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirec
     public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context)
     {
         if (!_configured) throw new InvalidOperationException("Plugin is not configured.");
-        var page = new LexwareSettingsPage();
+        var page = new LexwareSettingsPage { Directories = directories };
         try { page.Reload(context, directory, () => IsConnectionConfigured); return new SettingsView(page, directory, () => IsConnectionConfigured); }
         catch { page.Dispose(); throw; }
     }
@@ -37,6 +41,8 @@ public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirec
     {
         public System.Windows.Forms.Control View => page;
         public bool HasUnsavedChanges => page.HasChanges;
+        public bool SupportsCompanyValidation => true;
+        public Task<Company?> ResolveCompanyAsync(CompanyKey company, CancellationToken token = default) => page.ResolveCompanyAsync(company, token);
         public void Reload(IPluginConnectionEditContext context) => page.Reload(context, directory, connectionReady);
         public void ApplyChanges(IPluginConnectionEditContext context) => page.ApplyChanges(context);
         public Task LoadAsync(CancellationToken cancellationToken = default) => page.LoadAsync(cancellationToken);

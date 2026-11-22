@@ -116,13 +116,13 @@ wird dadurch nicht ersetzt. Unveränderte Ansichten müssen nicht nach jedem rei
 Die Diagnosekonsole und die App melden bei fehlender Einrichtung `ConnectionConfigured=false`.
 Seit Phase 2, Punkt 4 kommen `ConfigurationFound` und `ConnectionConfigured` aus einer typisiert validierten
 Startkonfiguration. Ein konfiguriertes Konto ist noch kein Nachweis einer SIP-Registrierung/Netzwerkverbindung.
-Vorgabepfad: `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>/connection.local.json`; über
+Vorgabepfad: `%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>/appsettings.json`; über
 `WAWICALLPRO_CONFIG_DIR` kann ein absolutes Verzeichnis für isolierte Läufe gesetzt werden.
 Vorhandene ungültige Konfiguration verhindert den Start und bleibt erhalten. Fehlermeldungen enthalten feste
 Feldangaben, keine Rohwerte. Beide Hosts schreiben umgeleitete Ausgaben als UTF-8. Kennwörter werden
 ausschließlich als DPAPI-CurrentUser-Werte gespeichert; Details stehen in `Docs/Vertraege.md`.
-Seit Punkt 5 werden `SettingsFormatVersion` und `SettingsUpgradeRequired` gemeldet. Geschrieben wird die
-Hülle `{"formatVersion":1,"settings":{...}}` mit getrennten Benutzer-/Mandanten-/Geräte-/Datenbankbereichen.
+Seit Punkt 5 werden `SettingsFormatVersion` und `SettingsUpgradeRequired` gemeldet. Geschrieben wird inzwischen die
+Hülle `{"formatVersion":14,"settings":{...},"Logging":{...}}` mit getrennten Benutzer-/Mandanten-/Geräte-/Datenbankbereichen.
 Das bisherige unversionierte SIP-Format bleibt beim Lesen unverändert und wird erst bei ausdrücklichem
 Speichern aufgerüstet. Neuere Versionen und unversionierte neue Felder verhindern den Start. Schreibende
 Änderungen benötigen einen geladenen Snapshot; veraltete Stände werden unter einer Dateisperre abgewiesen.
@@ -248,7 +248,7 @@ Provider-/Repositoryabnahme. MySQL-DDL besitzt keinen versprochenen vollständig
 ## Datenbankverwaltung und Arbeitsplatz einrichten
 
 Beide Hosts verwenden dieselben DI-Dienste und denselben geladenen Konfigurationsstand. SQLite verwendet
-standardmäßig communications.db neben connection.local.json. Server-Verbindungszeichenfolgen bleiben
+standardmäßig communications.db neben appsettings.json. Server-Verbindungszeichenfolgen bleiben
 zweckgebunden DPAPI-geschützt; Providerbuilder validieren sie vor dem Start ohne Netzwerkzugriff.
 Die Console bietet folgende ausdrückliche Aktionen (Beispiel Pro):
 
@@ -270,7 +270,7 @@ wieder her; zum Testen WAWICALLPRO_CONFIG_DIR auf ein eigenes absolutes Testverz
 Bestehende Dateien einschließlich WAL-/SHM-/Journal-Resten werden nicht ersetzt. Serververfahren stehen
 in [Datenbankschema.md](Datenbankschema.md); Aufnahmen separat sichern.
 
-workstation.local.json neben connection.local.json enthält Format 1 und eine dauerhafte GUID.
+workstation.local.json neben appsettings.json enthält Format 1 und eine dauerhafte GUID.
 App/Console im selben lokalen Benutzer-/Produktprofil teilen sie; kopierte Profile sind keine neue
 physische PC-Erkennung. Kennungsdatei nicht zwischen Arbeitsplätzen duplizieren. Bei unbekanntem Format
 oder beschädigter Datei wird keine neue Kennung erfunden. Regulärer Hoststart/--diagnostics erzeugen
@@ -737,3 +737,62 @@ FinOffice-Varianten. Der Prüfer kontrolliert fehlende/fremde Assemblies, fremde
 SHA256-Identität und PE-Architektur. Nachweise dieses Arbeitslaufs: `.artifacts/sqlite-interop`.
 Rücknahme: Commit rückgängig machen und die gewählte Edition einschließlich Restore neu bauen;
 lokale Einstellungen und Datenbanken wurden nicht geändert.
+
+
+## Zwei appsettings-Dateien, Client-Key und Logging (22.11.2026)
+
+Die Produktdatei `appsettings.json` neben App-/Console-EXE liefert gemeinsame Vorgaben unter
+`settings` und `Logging` sowie ausschließlich lokal den Abschnitt `LexwareApi` mit `ClientKey`,
+`InstallationId`, `TimeoutSeconds` und `TokenTimeoutSeconds`. Die Vorlage liegt im App-Projekt;
+Build und Publish übernehmen sie. Das Benutzerprofil bleibt editionsgetrennt unter
+`%LOCALAPPDATA%/WawiCallPro/<Pro|FinOffice>/appsettings.json`, alternativ im expliziten
+`WAWICALLPRO_CONFIG_DIR`. Es überschreibt nur ausdrücklich vorhandene Werte. Ohne neue Profildatei
+wird weiterhin `connection.local.json` gelesen; erst ausdrückliches Speichern erstellt die neue Datei,
+die alte bleibt unverändert. Interner Vertrag 14 liest ältere Versionen weiterhin. Portabler Export
+schreibt Version 2 mit `loggingEnabled`, Import akzeptiert Version 1 und 2. Die interne Datei ist
+kein portables Importziel.
+
+Beide Dateien unterstützen den Abschnitt:
+
+```json
+"Logging": {
+  "Enabled": true,
+  "LogLevel": "Information",
+  "LogDirectory": null
+}
+```
+
+`null` verwendet den bestehenden Profil-Logordner. Im Tab „Allgemein“ sind Dateiprotokollierung,
+Level und Verzeichnis bearbeitbar; Abschalten erhält Level/Pfad, sperrt deren Editoren und gilt
+beim nächsten Start für den vorhandenen Serilog-Dateiprotokollierer. Loggingfehler werden weiterhin
+gesondert gemeldet. Der portable Export enthält keine persönlichen Logpfade oder Zugänge.
+
+Der Client-Key verwendet wie LxTranslate AES-128-CBC mit zufälligem IV und Base64-Hülle. Dies ist
+portable Verschleierung mit der kompatiblen festen Produktableitung, kein persönlicher Secret-Tresor.
+Benutzerkennwörter bleiben DPAPI-CurrentUser-geschützt. Neue Key-Eingaben werden erst beim Speichern
+in die Produktdatei geschrieben; alte geschützte Profilkeys werden dabei übernommen. Bei einem
+Klartext-Key fragt die interaktive App beim Beenden nach Zustimmung zur Verschlüsselung. „Nein“
+erhält den Wert; ein Schreibfehler verhindert das Beenden. Fensterlose COM-Starts zeigen keine Nachfrage.
+Die Datei muss für den gewählten Benutzer beschreibbar sein. Alternativ ohne Fenster/Hoststart:
+
+```powershell
+& .\WawiCallPro.App.Pro.exe --secure-settings
+& .\WawiCallPro.App.Pro.exe --secure-settings 'D:\Testprofil\appsettings.json'
+```
+
+Exitcode 0: geschützt oder bereits geschützt, 1: Lese-/Schreib-/Keyfehler, 2: ungültige Argumente.
+Der Build provisioniert einen fehlenden Pro-Vorgabekey bereits verschlüsselt; vorhandene Werte bleiben
+erhalten. DEBUG kann leere Lexware-Editoren aus der ignorierten Datei
+`.artifacts/developer-lexware-defaults.json` vorbelegen. Das Kennwort ist dort bereits DPAPI-geschützt;
+gespeicherte Zugänge werden nicht ersetzt, ungespeicherte Vorgaben melden sich nicht automatisch an.
+Nur Debug-Pro übernimmt diese Vorgaben, die Release-Vorbereitung entfernt `DebugLexware` und die
+Paketprüfung weist solche Entwickler- oder persönlichen Profilkonfigurationen zurück.
+
+Mandanten laden verwendet ausdrücklich die aktuellen Editorwerte in einer separaten Plugin-Sitzung.
+Abbrechen veröffentlicht sie nicht. Erfolgreiches Speichern ersetzt den Pro-Zugang in der laufenden
+Konfiguration: alte Abfragen laufen aus, veraltete Ergebnisse werden verworfen und der nächste Abruf
+verwendet eine neue Sitzung. COM-Katalog und Mandantenauswahl beachten dieselbe Zugangsrevision.
+Installation und Berechtigung werden weiterhin im Plugin geprüft. Nur allgemeine Startoptionen wie
+Logging und DirectX behalten ihre dokumentierte Neustartsemantik. Rollback: alten Build und die vor
+Speichern gesicherten Profil-/Produktdateien gemeinsam wiederherstellen; neuere Formate werden von
+älteren Builds bewusst abgewiesen. Keine Produktivzugriffe durch die isolierten Prüfungen.

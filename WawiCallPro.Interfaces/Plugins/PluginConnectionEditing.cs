@@ -6,6 +6,7 @@ namespace WawiCallPro.Interfaces.Plugins;
 public sealed class ProConnectionEditorSnapshot
 {
     public bool Configured { get; init; }
+    [JsonIgnore] public string? InitialPassword { get; init; }
     public Uri? ApiUrl { get; init; }
     public string? InstallationId { get; init; }
     public string? Username { get; init; }
@@ -32,6 +33,12 @@ public sealed class ProConnectionEditorChange
     public override string ToString() => nameof(ProConnectionEditorChange);
 }
 
+/// <summary>Optional host decryption boundary for explicit read-only tests of an unsaved draft.</summary>
+public interface IPluginConnectionPreview
+{
+    ProConnectionConfiguration? ReadProPreview(ProConnectionEditorChange change);
+}
+
 /// <summary>A dialog-owned draft. Staging never writes files or opens a source connection.</summary>
 public interface IPluginConnectionEditContext
 {
@@ -53,7 +60,7 @@ public sealed class PluginSettingsValidationException(PluginSettingsIssue issue)
     PluginSettingsIssue.InvalidInstallationId => "Die optionale Installationskennung ist ungültig.",
     PluginSettingsIssue.UsernameRequired => "Einen gültigen API-Benutzernamen eingeben.",
     PluginSettingsIssue.PasswordRequired => "Für den neuen Zugang ist ein Kennwort erforderlich.",
-    PluginSettingsIssue.ClientKeyRequired => "Einen Client-Key eingeben oder die verfügbare Buildvorgabe auswählen.",
+    PluginSettingsIssue.ClientKeyRequired => "Einen gültigen Client-Key in der lokalen appsettings.json oder im Zugang eingeben.",
     PluginSettingsIssue.InvalidClientKey => "Der Client-Key muss eine gültige GUID mit geschweiften Klammern sein.",
     PluginSettingsIssue.DefaultClientKeyUnavailable => "Für diesen Build ist kein vorgegebener Client-Key verfügbar.",
     PluginSettingsIssue.InvalidTimeout => "Die Zeitlimits müssen zwischen 1 und 300 Sekunden liegen.",

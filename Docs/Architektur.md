@@ -80,12 +80,12 @@ Fußzeile wechselt bei wenig Platz in zwei Zeilen. DevExpress-Dateidialoge erhal
 und einen Wartecursor, der auch bei Abbruch und Fehlern wiederhergestellt wird. Export verwendet
 den gespeicherten Stand; Import ersetzt nach Bestätigung auch die noch ungespeicherten UI-Eingaben.
 
-Der eigene JSON-Vertrag Version 1 enthält ausschließlich allgemeine/logbezogene Benutzervorgaben,
+Der eigene JSON-Vertrag Version 2 (Import auch Version 1) enthält ausschließlich allgemeine/logbezogene Benutzervorgaben,
 Tastenkürzel sowie Lautstärken und Mikrofon-Stummschaltung. Zugangsdaten, Datenbank-/ERP-/SIP-
 Verbindungen, aktive Plugins, Mandanten-/Leitungszuordnungen und Geräte-IDs sind nicht Teil dieses
 Formats und bleiben beim Import lokal erhalten. Windows-Autostart ist eine lokale Betriebssystemoption.
-Der interne Einstellungsvertrag hat inzwischen Version 13 mit benannten SIP-Profilen und geschützten Werten;
-die interne Datei `connection.local.json` ist kein Import-/Exportziel.
+Der interne Einstellungsvertrag hat inzwischen Version 14 mit benannten SIP-Profilen und geschützten Werten;
+die interne Datei `appsettings.json` ist kein Import-/Exportziel.
 
 `ConfigurationStore` übernimmt die Dateioperationen über den bereits injizierten Persistenzdienst.
 Export finalisiert eine temporäre Geschwisterdatei inklusive Flush vor atomarer Zielersetzung.
@@ -140,8 +140,10 @@ Kein automatischer erster Treffer. Speichern prüft eine geänderte Auswahl erne
 Katalog, speichert `User.PreferredCompany` atomar und veröffentlicht erst danach den Laufzeitkontext.
 Abbrechen, Validierungs-/Konkurrenzfehler und abgebrochene Abrufe erhalten ihn. Beim Start wird eine
 vorhandene Präferenz nur bei weiterhin gültiger Berechtigung wiederhergestellt. Die Quellenwahl des
-Telefon-Caches bleibt davon unabhängig. Geänderte Pro-Zugangsdaten benötigen weiterhin einen Neustart;
-neu eingetippte Daten lösen keinen verdeckten Anmeldeversuch aus. Ein Pro-Plugin ohne Zugang meldet
+Telefon-Caches bleibt davon unabhängig. Geänderte Pro-Zugangsdaten gelten nach erfolgreichem
+Speichern ohne Neustart. „Mandanten laden“ prüft die aktuellen Editorwerte in einer separaten
+Plugin-Sitzung; Abbrechen erhält den aktiven Zugang. Neu eingetippte Daten lösen keinen verdeckten
+Anmeldeversuch aus. Alte Abrufe werden vor Sitzungswechsel beendet und veraltete Ergebnisse verworfen. Ein Pro-Plugin ohne Zugang meldet
 Einrichtungsbedarf, statt den COM-Katalog erfolglos abzufragen. `settings-wawi` bleibt vor der Anmeldung
 als COM-ID erreichbar. Prüfungen und offene Live-Abnahme stehen im [Plugin-UI-Plan](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md).
 
@@ -2890,3 +2892,6 @@ Noch offen sind insbesondere:
 Dieses Dokument legt die Architektur fest; es meldet die offenen Teile nicht als implementiert.
 Details: [Fachverträge](Vertraege.md), [Umsetzungsplan](Neuaufbau-Plan.md),
 [Datenbankschema](Datenbankschema.md), [Quantarix-Zuordnung](Quantarix-Zuordnung.md).
+
+Die appsettings-Schichten, Client-Key-Verschlüsselung, CLI und Logging-Optionen sind unter
+[Build und Konfiguration](Build.md#zwei-appsettings-dateien-client-key-und-logging-22112026) beschrieben.

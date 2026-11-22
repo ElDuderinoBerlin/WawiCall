@@ -134,7 +134,7 @@ public sealed partial class AppShellTests
         var line = Enum.Parse<LexwareProductLine>(workspace.Application.ProductLine);
         plugin.SettingsFactory = context => new PluginCompanySettingsView(workspace.Directory, line, context);
         var initial = await workspace.Settings.LoadAsync(); await workspace.Settings.SaveAsync(initial.Options, initial);
-        var file = Path.Combine(workspace.Paths.RootDirectory, "connection.local.json"); var before = await File.ReadAllBytesAsync(file);
+        var file = Path.Combine(workspace.Paths.RootDirectory, "appsettings.json"); var before = await File.ReadAllBytesAsync(file);
         using var page = new SettingsPage(); page.Bind(workspace); await page.ReloadAsync();
         var lookup = Find<LookUpEdit>(Field<Control>(page, "_pluginSettingsControl"), "companyEdit");
         lookup.EditValue = ((Company[])lookup.Properties.DataSource)[0].Key;

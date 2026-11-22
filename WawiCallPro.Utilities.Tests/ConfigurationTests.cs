@@ -251,7 +251,7 @@ public sealed class ConfigurationTests
     }
 
     [TestMethod]
-    public async Task ErpCredentialsStayProtectedAndPluginReadsOnlyStartupSnapshot()
+    public async Task ErpCredentialsStayProtectedAndCommittedChangesArePublishedLive()
     {
         RequireWindows();
         using var directory = new TestDirectory();
@@ -277,7 +277,8 @@ public sealed class ConfigurationTests
         Assert.DoesNotContain(key, JsonSerializer.Serialize(connection));
         var snapshot = await directory.Store.LoadAsync();
         await directory.Store.SaveAsync(snapshot.Options with { Erp = new() }, snapshot);
-        Assert.AreEqual(Sentinel, bridge.ReadPro()!.Password);
+        Assert.IsNull(bridge.ReadPro());
+        Assert.IsTrue(bridge.Revision > 0);
         await configuration.StartAsync(default);
         Assert.IsNull(bridge.ReadPro());
     }

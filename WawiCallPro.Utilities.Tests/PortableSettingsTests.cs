@@ -19,7 +19,7 @@ public sealed class PortableSettingsTests
         var json = await File.ReadAllTextAsync(files.Export);
         foreach (var forbidden in new[] { "synthetic-secret", "synthetic-user", "private.invalid", "local-device", "local-plugin", "private-installation", "sipAccount", "password", "connectionString", "companies", "callerLineAssignment", "activePluginId", "preferredCompany" })
             Assert.DoesNotContain(forbidden, json);
-        var document = JsonNode.Parse(json)!; Assert.AreEqual(1, (int)document["formatVersion"]!); Assert.AreEqual("WawiCallPro", (string)document["application"]!);
+        var document = JsonNode.Parse(json)!; Assert.AreEqual(2, (int)document["formatVersion"]!); Assert.AreEqual("WawiCallPro", (string)document["application"]!);
         Assert.AreEqual("Debug", (string)document["user"]!["logLevel"]!); Assert.AreEqual("Ctrl+Alt+F3", (string)document["user"]!["dialHotkey"]!);
         Assert.IsFalse(Directory.GetFiles(files.Root).Any(path => path.EndsWith(".tmp", StringComparison.Ordinal)));
     }
@@ -62,7 +62,7 @@ public sealed class PortableSettingsTests
         await files.Store.ExportPortableAsync(files.Export); var node = JsonNode.Parse(await File.ReadAllTextAsync(files.Export))!;
         switch (mode)
         {
-            case "version": node["formatVersion"] = 2; break;
+            case "version": node["formatVersion"] = 3; break;
             case "application": node["application"] = "Other"; break;
             case "unknown": node["password"] = "private-detail"; break;
             case "missing": node.AsObject().Remove("audio"); break;
@@ -72,7 +72,7 @@ public sealed class PortableSettingsTests
             case "integer-enum": node["user"]!["logLevel"] = 2; break;
         }
         var json = mode == "truncated" ? "{" : node.ToJsonString();
-        if (mode == "duplicate") json = json.Replace("\"formatVersion\":1", "\"formatVersion\":1,\"formatVersion\":1", StringComparison.Ordinal);
+        if (mode == "duplicate") json = json.Replace("\"formatVersion\":2", "\"formatVersion\":2,\"formatVersion\":2", StringComparison.Ordinal);
         await File.WriteAllTextAsync(files.Export, json); var before = await File.ReadAllBytesAsync(files.Location.FilePath);
         var error = await Assert.ThrowsExactlyAsync<ConfigurationException>(() => files.Store.ImportPortableAsync(files.Export, snapshot));
         Assert.DoesNotContain("private-detail", error.ToString()); CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(files.Location.FilePath));

@@ -236,4 +236,17 @@
     <Delete Files="$(PublishDir)SQLite.Interop.dll" />
     <ItemGroup><FileWrites Include="@(_WawiSqliteInterop->'$(PublishDir)%(RelativePath)')" /></ItemGroup>
   </Target>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.Console'">
+    <Content Include="$(MSBuildThisFileDirectory)WawiCallPro.App\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="InitializeWawiAppSettings" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <PropertyGroup>
+      <_WawiSeedClientKey>0</_WawiSeedClientKey>
+      <_WawiSeedClientKey Condition="'$(WawiIncludeBuildLexwareClientKeyDefault)' == 'true' and '$(WawiUseVelopackAppSettings)' != 'true'">1</_WawiSeedClientKey>
+    </PropertyGroup>
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)scripts\initialize-appsettings.ps1&quot; -SettingsPath &quot;$(TargetDir)appsettings.json&quot; -SolutionProps &quot;$(MSBuildThisFileDirectory)Solution.props&quot; -ProductLine $(LexwareProductLine) -Configuration $(Configuration) -DebugDefaults &quot;$(MSBuildThisFileDirectory).artifacts\developer-lexware-defaults.json&quot; -IncludeClientKey $(_WawiSeedClientKey)" EchoOff="true" />
+  </Target>
+  <Target Name="InitializeWawiPublishedAppSettings" AfterTargets="Publish" DependsOnTargets="InitializeWawiAppSettings" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFiles="$(PublishDir)appsettings.json" />
+  </Target>
 </Project>

@@ -28,7 +28,14 @@ public sealed partial class AppShellTests
         await ((ISelectedPluginSession)session).LoadSelectedAsync(directory);
         var provider = session.GetPlugins().Single() as IWawiCallPluginSettings;
         Assert.IsNotNull(provider);
-        plugin.SettingsFactory = context => provider.CreateConnectionSettings(context);
+        plugin.SettingsFactory = context =>
+        {
+            var view = provider.CreateConnectionSettings(context);
+            var property = view.View.GetType().GetProperty("Directories", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            property.SetValue(view.View, new PreviewFactoryDouble(workspace.Directory));
+            view.Reload(context);
+            return view;
+        };
         plugin.ConnectionSettingsTitle = provider.ConnectionSettingsTitle;
         var oldSkin = UserLookAndFeel.Default.ActiveSkinName;
         var oldFont = WindowsFormsSettings.DefaultFont;
@@ -68,28 +75,24 @@ public sealed partial class AppShellTests
                 Field<TextEdit>(editor, "usernameEdit").Text = "test-api";
                 if (firstEditor)
                 {
-                    Field<CheckEdit>(editor, "defaultKeyEdit").Checked = false;
                     Assert.AreEqual(PluginSettingsIssue.PasswordRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
                     Field<TextEdit>(editor, "passwordEdit").Text = "isolated-only-secret";
-                    Assert.AreEqual(PluginSettingsIssue.ClientKeyRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
+                    Field<TextEdit>(editor, "clientKeyEdit").Text = Guid.NewGuid().ToString("B");
                     var context = Field<WawiCallPro.App.Hosting.PluginSettingsPageContext>(page, "_pluginPageContext");
+                    await Field<PluginCompanySettingsPage>(exported, "companyPage").LoadAsync();
                     context.StageSelection((await workspace.Directory.GetCompaniesAsync())[0].Key);
-                    var combined = await Assert.ThrowsExactlyAsync<PluginSettingsValidationException>(() => page.SaveAsync(CancellationToken.None));
-                    Assert.AreEqual(PluginSettingsIssue.ConnectionRestartRequired, combined.Issue);
-                    Assert.IsNull(workspace.Companies.Current.Company);
+                    await page.SaveAsync(CancellationToken.None);
+                    Assert.IsNotNull(workspace.Companies.Current.Company);
                     context.StageSelection(null);
                     firstEditor = false;
                 }
                 Field<TextEdit>(editor, "passwordEdit").Text = "isolated-only-secret";
-                Field<CheckEdit>(editor, "defaultKeyEdit").Checked = false;
                 Field<TextEdit>(editor, "clientKeyEdit").Text = Guid.NewGuid().ToString("B");
                 Assert.IsTrue(Field<TextEdit>(editor, "passwordEdit").Properties.UseSystemPasswordChar);
                 Assert.IsTrue(Field<TextEdit>(editor, "clientKeyEdit").Properties.UseSystemPasswordChar);
                 var expected = page.ReadOptions(); Assert.IsNotNull(expected.Erp.Pro?.Password);
                 var clientKeyText = Field<TextEdit>(editor, "clientKeyEdit").Text;
-                Field<CheckEdit>(editor, "defaultKeyEdit").Checked = true;
-                Assert.IsNotNull(page.ReadOptions().Erp.Pro!.ClientKey, "A selected build key must be persisted with DPAPI, independent of future build defaults.");
-                Field<CheckEdit>(editor, "defaultKeyEdit").Checked = false;
+                Assert.IsNotNull(page.ReadOptions().Erp.Pro!.Password);
                 Field<TextEdit>(editor, "clientKeyEdit").Text = clientKeyText;
                 var oldEndpoint = Field<TextEdit>(editor, "apiUrlEdit").Text;
                 foreach (var endpoint in new[] { "invalid", "https://user:password@example.invalid", "https://example.invalid/?secret=hidden", "file:///local" })
@@ -142,7 +145,6 @@ public sealed partial class AppShellTests
                 await page.SaveAndOfferRestartAsync(() => false, CancellationToken.None);
                 Assert.AreEqual("", Field<TextEdit>(editor, "passwordEdit").Text);
                 Assert.AreEqual("", Field<TextEdit>(editor, "clientKeyEdit").Text);
-                Assert.Contains("Kennwort gespeichert", Field<LabelControl>(editor, "storedLabel").Text);
                 var confirmations = 0;
                 await page.SaveAndOfferRestartAsync(() => { confirmations++; return false; }, CancellationToken.None);
                 Assert.AreEqual(0, confirmations, "Unchanged saved ciphertext must not cause another restart prompt.");
@@ -156,5 +158,15 @@ public sealed partial class AppShellTests
             UserLookAndFeel.Default.SetSkinStyle(oldSkin);
         }
     });
+    private sealed class PreviewFactoryDouble(WawiCallPro.Interfaces.Directory.IBusinessDirectory source) : IPluginConnectionDirectoryFactory
+    {
+        public IPluginConnectionDirectory Create(ProConnectionConfiguration settings) => new PreviewLeaseDouble(source);
+    }
+    private sealed class PreviewLeaseDouble(WawiCallPro.Interfaces.Directory.IBusinessDirectory source) : IPluginConnectionDirectory
+    {
+        public WawiCallPro.Interfaces.Directory.IBusinessDirectory Directory => source;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
 }
 #endif

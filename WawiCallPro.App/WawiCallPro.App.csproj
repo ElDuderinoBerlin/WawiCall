@@ -28,6 +28,7 @@
     <ProjectReference Include="..\WawiCallPro.Office\WawiCallPro.Office.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Icons\*.svg" />
     <EmbeddedResource Include="AppIcon.svg;AppIcon.ico" />
     <PackageReference Include="Velopack" Version="1.2.161" />

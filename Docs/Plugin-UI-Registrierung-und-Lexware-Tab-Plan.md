@@ -166,7 +166,8 @@ der ersten Firma. Laden/Aktualisieren zeigt Ladezustand und einen handlungsfähi
 Ohne eingerichteten Zugang führt der Hinweis zum Zugangsbereich im selben Tab.
 
 Neue ungespeicherte Zugangsdaten werden nicht für versteckte Anmeldeversuche verwendet.
-Benötigen sie einen Neustart, zunächst Zugang speichern/neustarten und danach Mandanten laden.
+„Mandanten laden“ prüft die aktuellen Eingaben in einer getrennten Plugin-Sitzung.
+Erst erfolgreiches Speichern veröffentlicht den Zugang ohne Neustart.
 Ein Mandantenladefehler verändert keine gespeicherten Zugangsdaten oder Cachequellen.
 
 Alle Controls werden in `*.cs`, `*.Designer.cs` und gültiger `*.resx` aufgebaut; ein parameterloser
@@ -183,8 +184,8 @@ bereitgestellte `UiWaitCursor`-Scope. Höhere DPI, größere Schrift und kleine 
 3. Das Plugin schreibt ausschließlich seinen Konfigurationsbereich in den Entwurf; der Host speichert
    einmal über den bestehenden Konfigurationsdienst. Kennwörter/Client-Keys bleiben geschützt.
 4. Nach erfolgreichem Speichern kann der Host die bestätigte Auswahl über die schmale Auswahl-Schnittstelle
-   in den gemeinsamen Laufzeitkontext veröffentlichen. Bei geändertem Zugang erst nach Neustart und
-   erneuter Autorisierungsprüfung. Datei-Speicherung und Laufzeitveröffentlichung sind keine gemeinsame
+   in den gemeinsamen Laufzeitkontext veröffentlichen. Geänderte Pro-Zugänge werden dabei
+   ohne Neustart und nach erneuter Autorisierungsprüfung übernommen. Datei-Speicherung und Laufzeitveröffentlichung sind keine gemeinsame
    Datenbanktransaktion; bei gescheiterter Veröffentlichung „gespeichert, Neustart erforderlich“ melden.
 5. „Abbrechen“ und X verwerfen den Entwurf und erhalten die vorherige aktive Auswahl.
    Kein vorzeitiges `CompanyContext.SelectAsync` bei Änderungen im Lookup.
@@ -286,7 +287,7 @@ Neue Auswahl wird erst nach erneuter Katalogfreigabe und erfolgreichem atomarem 
 Die View-Leases unterstützen Laden/Validieren/Stoppen, wobei Laden außerhalb des Runtime-Erzeugungs-
 Callbacks erfolgt. Abrufabbruch, wartende Freigabe, wiederholtes Stop/Dispose und veraltete Auswahl sind
 geprüft. Pro-Einrichtungsbedarf startet keine Anmeldung; geänderte Zugangsdaten und eine neue Auswahl
-müssen getrennt über Speichern/Neustart übernommen werden.
+werden erst nach erfolgreichem Speichern in die laufende Konfiguration übernommen.
 
 Nachweise: zuerst Pro auf ausdrücklichen Nutzerwunsch, anschließend FinOffice und zum Schluss erneut
 Pro regulär Debug/Any CPU ohne Warnungen/Fehler gebaut. Je Edition 58 gezielte App-/Plugin-/Kontext-/
@@ -321,3 +322,14 @@ als abgeschlossen markiert. Keine neue COM-Schnittstelle, TLB-/Maschinenregistri
 
 Zugehörige Pläne: [Neuaufbau](Neuaufbau-Plan.md),
 [COM-Automation](COM-Automation-Studie-und-Phasenplan.md).
+
+
+### ✅ Ergänzung 22.11.2026 – Pro-Zugangswechsel und Konfigurationsdateien
+
+Technische Installation-/Zeitlimitwerte und die Build-Key-Checkbox entfallen im Plugin-Editor;
+Werte werden aus `LexwareApi` der Produkt-appsettings gelesen. Vorschauabfragen besitzen eine eigene
+Sitzung, veröffentlichen keine Geheimnisse/Entwürfe und werden beim Schließen abgebrochen/freigegeben.
+Erfolgreiches Speichern erhöht die Zugangsrevision; neue Anfragen ersetzen die alte Sitzung und
+veraltete Antworten werden verworfen. Die vollständige Plugin-View und die gemeinsame atomare
+Auswahlprüfung bleiben erhalten. Isolierte Pro-Adapter-, Konfigurations-, App- und Renderprüfungen
+siehe [Neuaufbau](Neuaufbau-Plan.md). Echte Mandantenabnahme und formale Registry-Anbindung bleiben offen.

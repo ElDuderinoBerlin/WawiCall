@@ -16,7 +16,7 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
-    public Task PluginConnectionSaveIsAtomicEncryptedAndRequiresRestartWithoutConnecting() => WithWorkspace(async (workspace, _, plugin) =>
+    public Task PluginConnectionSaveIsAtomicEncryptedAndActivatesWithoutRestart() => WithWorkspace(async (workspace, _, plugin) =>
     {
         ConnectionViewDouble? editor = null;
         plugin.SettingsFactory = context => editor = new(context);
@@ -29,15 +29,15 @@ public sealed partial class AppShellTests
         Field<ComboBoxEdit>(page, "logLevelEdit").SelectedIndex = (int)LogLevel.Warning;
         var confirmations = 0;
         await page.SaveAndOfferRestartAsync(() => { confirmations++; return false; }, CancellationToken.None);
-        Assert.AreEqual(1, confirmations);
+        Assert.AreEqual(0, confirmations);
         var snapshot = await workspace.Settings.LoadAsync(); var pro = snapshot.Options.Erp.Pro!;
         Assert.AreEqual("test-api", pro.Username); Assert.AreEqual(LogLevel.Warning, snapshot.Options.User.LogLevel);
         using (var decrypted = workspace.Secrets.Unprotect(pro.Password!, ProErpSettings.PasswordPurpose)) Assert.AreEqual(password, decrypted.Reveal());
         using (var decrypted = workspace.Secrets.Unprotect(pro.ClientKey!, ProErpSettings.ClientKeyPurpose)) Assert.AreEqual(key, decrypted.Reveal());
-        var file = Path.Combine(workspace.Paths.RootDirectory, "connection.local.json");
+        var file = Path.Combine(workspace.Paths.RootDirectory, "appsettings.json");
         var json = await File.ReadAllTextAsync(file);
         Assert.DoesNotContain(password, json); Assert.DoesNotContain(key, json); Assert.Contains("dpapi-user-v1:", json);
-        Assert.IsNull(workspace.Configuration.Current.Options.Erp.Pro, "The running plugin configuration remains the startup snapshot.");
+        Assert.IsNotNull(workspace.Configuration.Current.Options.Erp.Pro, "Committed ERP settings are available without restarting.");
         Assert.IsTrue(editor.Snapshot.PasswordStored); Assert.IsTrue(editor.Snapshot.ClientKeyStored); Assert.IsFalse(editor.HasUnsavedChanges);
         Assert.Contains("Neustart", Field<LabelControl>(page, "statusLabel").Text);
         var export = Path.Combine(workspace.Paths.RootDirectory, "portable.json");
@@ -94,7 +94,7 @@ public sealed partial class AppShellTests
     public Task PluginConnectionCancelOrWindowCloseNeverSavesTheDraft(bool useButton) => WithWorkspace(async (workspace, _, plugin) =>
     {
         var initial = await workspace.Settings.LoadAsync(); await workspace.Settings.SaveAsync(initial.Options, initial);
-        var file = Path.Combine(workspace.Paths.RootDirectory, "connection.local.json"); var before = await File.ReadAllBytesAsync(file);
+        var file = Path.Combine(workspace.Paths.RootDirectory, "appsettings.json"); var before = await File.ReadAllBytesAsync(file);
         ConnectionViewDouble? editor = null; plugin.SettingsFactory = context => editor = new(context);
         using var form = new FrmSettings(workspace); form.PrepareForBackgroundRun(); form.Show();
         var page = Field<SettingsPage>(form, "settingsPage"); await page.ReloadAsync();

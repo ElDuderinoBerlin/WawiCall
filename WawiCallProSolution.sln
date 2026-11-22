@@ -91,6 +91,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{51A50D7C-E0E2-4F86-927E-075304786242}"
 	ProjectSection(SolutionItems) = preProject
 		bootstrap.ps1 = bootstrap.ps1
+		scripts\initialize-appsettings.ps1 = scripts\initialize-appsettings.ps1
 		debug-build.bat = debug-build.bat
 		debug-publish.bat = debug-publish.bat
 		release-build.bat = release-build.bat

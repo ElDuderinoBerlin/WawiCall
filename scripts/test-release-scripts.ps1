@@ -76,6 +76,12 @@ foreach ($name in @('connection.local.json', 'secret.snk', 'MMS.Core.dll', 'Quan
     Remove-Item -LiteralPath $file
 }
 $feedDestination = Join-Path $fixtureRoot 'feed destination'
+$settingsFile = Join-Path $bad 'appsettings.json'
+foreach ($json in @('{"DebugLexware":{"Username":"synthetic"}}', '{"formatVersion":14,"settings":{}}')) {
+    [IO.File]::WriteAllText($settingsFile, $json)
+    Assert-Fails { & (Join-Path $PSScriptRoot 'Assert-ReleasePackage.ps1') -Directory $bad -ProductLine Pro -Version '1.2.3' } 'Unzulässige appsettings.json'
+    Remove-Item -LiteralPath $settingsFile
+}
 $comFixture = Join-Path $bad 'wawicallpro.com-fixture.json'
 [IO.File]::WriteAllText($comFixture, '{"Profile":"synthetic"}')
 Assert-Fails { & (Join-Path $PSScriptRoot 'Assert-ReleasePackage.ps1') -Directory $bad -ProductLine Pro -Version '1.2.3' } 'COM fixture'

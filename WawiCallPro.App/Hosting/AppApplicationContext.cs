@@ -314,7 +314,11 @@ internal sealed class AppApplicationContext : ApplicationContext
         e.Cancel = true;
         try
         {
-            if (_form is not null) await _form.PrepareToCloseAsync();
+            if (_form is not null)
+            {
+                if (!_host.Services.GetRequiredService<ClientKeyExitProtection>().TryComplete(_form)) return;
+                await _form.PrepareToCloseAsync();
+            }
         }
         catch (Exception exception) when (exception is WawiCallPro.Plugin.Windows.UnsavedPluginChangesException or UnsavedCallNotesException)
         { if (_form is not null) { _form.RestartRequested = false; _form.ReportUnsavedChanges(); } return; }

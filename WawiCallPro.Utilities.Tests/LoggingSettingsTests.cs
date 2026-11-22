@@ -78,7 +78,7 @@ public sealed class LoggingSettingsTests
             Assert.AreEqual(legacy, await File.ReadAllTextAsync(location.FilePath));
             await store.SaveAsync(old.Options, old);
             var current = await store.LoadAsync();
-            Assert.AreEqual(8, current.FormatVersion); Assert.IsTrue(current.Options.User.StartMinimized);
+            Assert.AreEqual(ConfigurationFormat.CurrentVersion, current.FormatVersion); Assert.IsTrue(current.Options.User.StartMinimized);
             var before = await File.ReadAllBytesAsync(location.FilePath);
             foreach (var path in new[] { "relative", "", " ", "C:\\logs\nprivate", @"\\server\share", @"C:\logs:stream", @"C:\" })
                 await Assert.ThrowsExactlyAsync<ConfigurationException>(() => store.SaveAsync(current.Options with { User = current.Options.User with { LogDirectory = path } }, current));

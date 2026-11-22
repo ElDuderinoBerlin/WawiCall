@@ -66,7 +66,7 @@ public sealed class PersistenceHostTests
             var database = host.Services.GetRequiredService<ICommunicationDatabase>();
             Assert.AreEqual(DatabaseSchemaState.MissingDatabase, (await database.GetStatusAsync(token)).State);
             Assert.IsNull(await host.Services.GetRequiredService<IWorkstationIdentity>().GetAsync(token));
-            Assert.IsFalse(File.Exists(Path.Combine(_root, "connection.local.json")));
+            Assert.IsFalse(File.Exists(Path.Combine(_root, "appsettings.json")));
             Assert.IsFalse(File.Exists(Path.Combine(_root, "communications.db")));
             Assert.IsFalse(File.Exists(Path.Combine(_root, "communications.db.migration.lock")));
         });
@@ -224,7 +224,7 @@ public sealed class PersistenceHostTests
             Assert.AreEqual("synthetic-setup-password", password.Reveal());
             Assert.AreEqual(DatabaseSchemaState.MissingDatabase, (await active.GetStatusAsync(token)).State, "Live repositories keep the startup target until restart.");
             await Assert.ThrowsExactlyAsync<ConfigurationException>(() => setup.SaveAsync(draft, snapshot, token));
-            Assert.DoesNotContain("synthetic-setup-password", await File.ReadAllTextAsync(Path.Combine(_root, "connection.local.json"), token));
+            Assert.DoesNotContain("synthetic-setup-password", await File.ReadAllTextAsync(Path.Combine(_root, "appsettings.json"), token));
         });
     }
 

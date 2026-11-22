@@ -17,7 +17,7 @@ public sealed class SipProfileTests
         var first = SipProfileCatalog.Select(new(), drafts, drafts[0].Id);
         await files.Store.SaveAsync(first);
         var before = await files.Store.LoadAsync();
-        Assert.AreEqual(13, before.FormatVersion);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, before.FormatVersion);
         Assert.IsNull(before.Options.SipProfiles[0].Account);
         Assert.IsNull(before.Options.SipProfiles[0].LineAssignment);
         var next = SipProfileCatalog.Select(before.Options, SipProfileCatalog.Read(before.Options), drafts[1].Id);
@@ -59,7 +59,7 @@ public sealed class SipProfileTests
         CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(files.Location.FilePath));
         await files.Store.SaveAsync(SipProfileCatalog.Select(legacy.Options, drafts, drafts[0].Id), legacy);
         var saved = await files.Store.LoadAsync();
-        Assert.AreEqual(13, saved.FormatVersion);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, saved.FormatVersion);
         using var secret = files.Protector.Unprotect(saved.Options.SipAccount!.Password!, SipAccountOptions.PasswordPurpose);
         Assert.AreEqual("synthetic-profile-secret-0", secret.Reveal());
         var empty = SipProfileCatalog.Read(new());

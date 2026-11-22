@@ -18,6 +18,8 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0].Equals("--secure-settings", StringComparison.OrdinalIgnoreCase))
+                return AppSettingsCommand.TryRun(args) ?? 2;
             if (AppComDeployment.TryRun(args) is { } registrationResult) return registrationResult;
             // Installer hooks must finish before UI, licensing or host services are loaded.
             AppVelopackBootstrap.Run();

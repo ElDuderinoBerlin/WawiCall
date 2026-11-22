@@ -2,9 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace WawiCallPro.Interfaces.Plugins;
 
-/// <summary>Startup configuration supplied by the host. Reading never contacts an ERP system.</summary>
+/// <summary>Current committed connection configuration supplied by the host. Reading never contacts an ERP system.</summary>
 public interface IPluginConnectionConfiguration
 {
+    long Revision => 0;
     ProConnectionConfiguration? ReadPro();
     string? ReadFinOfficeInstallationId();
 }

@@ -32,6 +32,22 @@ public partial class SettingsPage
             var width = Math.Min(available, preferred);
             if (Math.Abs(sipLayout.ColumnStyles[1].Width - width) >= 1) sipLayout.ColumnStyles[1].Width = width;
             if (Math.Abs(sipProfilesLayout.ColumnStyles[1].Width - width) >= 1) sipProfilesLayout.ColumnStyles[1].Width = width;
+            var actionWidth = addSipProfileButton.Width + addSipProfileButton.Margin.Horizontal
+                + removeSipProfileButton.Width + removeSipProfileButton.Margin.Horizontal + sipProfileActions.Padding.Horizontal;
+            var columns = actionWidth <= width ? 2 : 1;
+            if (sipProfileActions.ColumnCount != columns)
+            {
+                sipProfileActions.SuspendLayout();
+                try
+                {
+                    sipProfileActions.ColumnCount = columns; sipProfileActions.RowCount = columns == 2 ? 1 : 2;
+                    sipProfileActions.ColumnStyles.Clear(); sipProfileActions.RowStyles.Clear();
+                    for (var i = 0; i < columns; i++) sipProfileActions.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+                    for (var i = 0; i < sipProfileActions.RowCount; i++) sipProfileActions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                    sipProfileActions.SetCellPosition(removeSipProfileButton, new TableLayoutPanelCellPosition(columns == 2 ? 1 : 0, columns == 2 ? 0 : 1));
+                }
+                finally { sipProfileActions.ResumeLayout(true); }
+            }
             var portWidth = Math.Min(width, (int)Math.Ceiling(Font.GetHeight(DeviceDpi) * 7) + LogicalToDeviceUnits(24));
             if (portEdit.Width != portWidth) portEdit.Width = portWidth;
         }

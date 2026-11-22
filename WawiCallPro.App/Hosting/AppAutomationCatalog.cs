@@ -28,6 +28,7 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
     private Task? _watch;
     private string? _loadedPlugin;
     private long _retryAtTicks;
+    private long _connectionRevision = -1;
     private string? _lastNotice;
     private int _disposed;
     private string? PluginId => (runtime as IProductPluginSelection)?.ActivePluginId;
@@ -44,7 +45,15 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
             while (await timer.WaitForNextTickAsync(_stopping.Token))
-                if (_loadedPlugin != PluginId || Volatile.Read(ref _retryAtTicks) is > 0 and var retry && DateTimeOffset.UtcNow.UtcTicks >= retry) await RefreshAsync(_stopping.Token);
+            {
+                var revision = -1L;
+                try { if (runtime.IsLoaded) revision = await runtime.UseAsync((plugin, _) => Task.FromResult((plugin as IBusinessDirectoryConnectionState)?.ConnectionRevision ?? 0), _stopping.Token); }
+                catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { throw; }
+                catch { }
+
+                if (_loadedPlugin != PluginId || revision != _connectionRevision || Volatile.Read(ref _retryAtTicks) is > 0 and var retry && DateTimeOffset.UtcNow.UtcTicks >= retry)
+                    await RefreshAsync(_stopping.Token);
+            }
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
     }
@@ -64,7 +73,9 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
                 if (!runtime.IsLoaded || runtime is IProductPluginAvailability availability && !availability.CanUseActivePlugin) return;
                 var setup = await runtime.UseAsync((plugin, _) => Task.FromResult((
                     Title: plugin is IWawiCallPluginSettings { HasConnectionSettings: true } settings ? settings.ConnectionSettingsTitle : null,
-                    Configured: plugin is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured)), token);
+                    Configured: plugin is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured,
+                    Revision: (plugin as IBusinessDirectoryConnectionState)?.ConnectionRevision ?? 0)), token);
+                _connectionRevision = setup.Revision;
                 var settingsTitle = setup.Title;
                 var availableViews = BaseViews;
                 if (settingsTitle is not null)
@@ -107,6 +118,8 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
                     || companies.Select(company => company.Key).Distinct().Count() != companies.Length) throw new InvalidOperationException("Invalid company catalog.");
                 token.ThrowIfCancellationRequested();
                 if (pluginId != PluginId) return;
+                var currentRevision = await runtime.UseAsync((plugin, _) => Task.FromResult((plugin as IBusinessDirectoryConnectionState)?.ConnectionRevision ?? 0), token);
+                if (currentRevision != setup.Revision || pluginId != PluginId) return;
                 state.PublishCatalog(companies, result, pluginId, true);
                 _lastNotice = null;
             }

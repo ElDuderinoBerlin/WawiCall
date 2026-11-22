@@ -40,19 +40,29 @@ public sealed partial class AppShellTests
         var page = Field<SettingsPage>(form, "settingsPage");
         var level = Field<ComboBoxEdit>(page, "logLevelEdit");
         var directory = Field<TextEdit>(page, "logDirectoryEdit");
+        var enabled = Field<CheckEdit>(page, "loggingEnabledEdit");
+        Assert.IsTrue(enabled.Checked);
         Assert.AreEqual((int)LogLevel.Information, level.SelectedIndex);
         Assert.AreEqual(workspace.Paths.LogsDirectory, directory.Text);
         level.SelectedIndex = (int)LogLevel.Debug;
         directory.Text = Path.Combine(workspace.Paths.RootDirectory, "custom-logs");
+        enabled.Checked = false;
+        Assert.IsFalse(level.Enabled); Assert.IsFalse(directory.Enabled);
+        Assert.IsFalse(Field<SimpleButton>(page, "logDirectoryBrowseButton").Enabled);
         await page.SaveAsync(default);
         var saved = await workspace.Settings.LoadAsync();
         Assert.AreEqual(LogLevel.Debug, saved.Options.User.LogLevel);
+        Assert.IsFalse(saved.Options.User.LoggingEnabled);
+        Assert.IsTrue(workspace.Configuration.Current.Options.User.LoggingEnabled);
         Assert.AreEqual(directory.Text, saved.Options.User.LogDirectory);
         Assert.AreEqual(LogLevel.Information, workspace.Configuration.Current.Options.User.LogLevel);
         level.SelectedIndex = (int)LogLevel.Error;
         directory.Text = "relative";
         await Assert.ThrowsExactlyAsync<ConfigurationException>(() => page.SaveAsync(default));
         await page.ReloadAsync();
+        Assert.IsFalse(enabled.Checked);
+        enabled.Checked = true;
+        Assert.IsTrue(level.Enabled); Assert.IsTrue(directory.Enabled);
         Assert.AreEqual((int)LogLevel.Debug, level.SelectedIndex);
         Assert.AreEqual(saved.Options.User.LogDirectory, directory.Text);
         directory.Text = "";
@@ -112,6 +122,7 @@ public sealed partial class AppShellTests
                 var current = workspace.Configuration.Current;
                 page.Apply(current with { Options = current.Options with { User = current.Options.User with
                 {
+                    LoggingEnabled = !populated,
                     LogLevel = populated ? LogLevel.Debug : LogLevel.Information,
                     LogDirectory = populated ? @"C:\Users\Beispiel\AppData\Local\WawiCallPro\Eigene Protokolle" : null
                 } } });

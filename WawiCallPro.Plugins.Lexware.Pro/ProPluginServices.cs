@@ -25,6 +25,9 @@ public sealed class ProPluginServices : IPluginServiceModule
         services.AddSingleton<IProApiConnectionFactory, ProApiConnectionFactory>();
         services.AddSingleton<IProApiSession, ProApiSession>();
         services.AddSingleton<ProPartyDirectory>();
-        services.AddSingleton<IBusinessDirectory, ProBusinessDirectory>();
+        services.AddSingleton<ProBusinessDirectory>();
+        services.AddSingleton<IProDirectoryFactory, ProDirectoryFactory>();
+        services.AddSingleton<IBusinessDirectory>(provider => new ReloadingProBusinessDirectory(provider.GetService<IPluginConnectionConfiguration>(),
+            provider.GetRequiredService<IProDirectoryFactory>(), provider.GetRequiredService<ProBusinessDirectory>()));
     }
 }

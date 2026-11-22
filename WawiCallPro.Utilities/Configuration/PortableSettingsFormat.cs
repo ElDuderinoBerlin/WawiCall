@@ -19,9 +19,9 @@ internal static class PortableSettingsFormat
         Converters = { new JsonStringEnumConverter<LogLevel>(allowIntegerValues: false) }
     };
 
-    internal static byte[] Encode(ApplicationOptions options) => JsonSerializer.SerializeToUtf8Bytes(new Document(1, "WawiCallPro",
+    internal static byte[] Encode(ApplicationOptions options) => JsonSerializer.SerializeToUtf8Bytes(new Document(2, "WawiCallPro",
         new(options.User.LogLevel, options.User.LogDirectory, options.User.ShowCallNotifications, options.User.StartMinimized,
-            options.User.UseDirectXRendering, options.User.ShowWindowHotkey, options.User.DialHotkey),
+            options.User.UseDirectXRendering, options.User.ShowWindowHotkey, options.User.DialHotkey) { LoggingEnabled = options.User.LoggingEnabled },
         new(options.Devices.PlaybackVolumePercent, options.Devices.RingVolumePercent, options.Devices.MicrophoneMuted)) { MailCache = options.MailCache }, JsonOptions);
 
     internal static ApplicationOptions Decode(ReadOnlyMemory<byte> bytes, ApplicationOptions local)
@@ -30,25 +30,25 @@ internal static class PortableSettingsFormat
         {
             if (bytes.Span.StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) bytes = bytes[3..];
             var document = JsonSerializer.Deserialize<Document>(bytes.Span, JsonOptions);
-            if (document is null || document.FormatVersion != 1 || document.Application != "WawiCallPro" || document.User is null || document.Audio is null)
+            if (document is null || document.FormatVersion is < 1 or > 2 || document.Application != "WawiCallPro" || document.User is null || document.Audio is null)
                 throw new JsonException();
             var user = document.User; var audio = document.Audio;
             return local with
             {
                 MailCache = document.MailCache ?? local.MailCache,
-                User = local.User with { LogLevel = user.LogLevel, LogDirectory = user.LogDirectory,
+                User = local.User with { LoggingEnabled = user.LoggingEnabled, LogLevel = user.LogLevel, LogDirectory = user.LogDirectory,
                     ShowCallNotifications = user.ShowCallNotifications, StartMinimized = user.StartMinimized,
                     UseDirectXRendering = user.UseDirectXRendering, ShowWindowHotkey = user.ShowWindowHotkey, DialHotkey = user.DialHotkey },
                 Devices = local.Devices with { PlaybackVolumePercent = audio.PlaybackVolumePercent, RingVolumePercent = audio.RingVolumePercent, MicrophoneMuted = audio.MicrophoneMuted }
             };
         }
         catch (Exception error) when (error is JsonException or ArgumentException or InvalidOperationException)
-        { throw ConfigurationException.FileError("Dies ist keine gültige WawiCallPro-Einstellungsdatei für Import/Export (Version 1)."); }
+        { throw ConfigurationException.FileError("Dies ist keine gültige WawiCallPro-Einstellungsdatei für Import/Export (Version 1 oder 2)."); }
     }
 
     private sealed record Document(int FormatVersion, string Application, UserPreferences User, AudioPreferences Audio)
     { public MailCacheSettings? MailCache { get; init; } }
     private sealed record UserPreferences(LogLevel LogLevel, string? LogDirectory, bool ShowCallNotifications,
-        bool StartMinimized, bool UseDirectXRendering, string? ShowWindowHotkey, string? DialHotkey);
+        bool StartMinimized, bool UseDirectXRendering, string? ShowWindowHotkey, string? DialHotkey) { public bool LoggingEnabled { get; init; } = true; }
     private sealed record AudioPreferences(int PlaybackVolumePercent, int RingVolumePercent, bool MicrophoneMuted);
 }

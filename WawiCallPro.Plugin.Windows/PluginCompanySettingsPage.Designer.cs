@@ -79,7 +79,7 @@ partial class PluginCompanySettingsPage
         clearButton.Margin = new System.Windows.Forms.Padding(4);
         clearButton.Click += Clear_Click;
         statusLabel.Name = "statusLabel";
-        statusLabel.Text = "Mandanten werden nach dem Öffnen geladen.";
+        statusLabel.Text = "Zugang prüfen und „Mandanten laden“ wählen.";
         statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         statusLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);

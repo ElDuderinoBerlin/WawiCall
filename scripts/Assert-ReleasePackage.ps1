@@ -25,6 +25,13 @@ $inventory = @{}
 foreach ($file in Get-ChildItem -LiteralPath $Directory -File -Recurse) {
     $relative = [IO.Path]::GetRelativePath($Directory, $file.FullName).Replace('\', '/')
     Assert-FileName $relative
+    if ($file.Name -eq 'appsettings.json') {
+        try { $settings = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable }
+        catch { throw 'Unzulässige appsettings.json: ungültiges JSON.' }
+        if ($settings.ContainsKey('DebugLexware') -or $settings.ContainsKey('formatVersion')) {
+            throw 'Unzulässige appsettings.json: Entwicklerzugang oder persönliche Profilkonfiguration.'
+        }
+    }
     $inventory[$relative] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
     if ($file.Extension -eq '.json' -and $file.Name -like '*.deps.json') {
         $graph = Get-Content -LiteralPath $file.FullName -Raw

@@ -8,7 +8,7 @@ namespace WawiCallPro.App.Hosting;
 
 /// <summary>Dialog-owned connection/selection drafts and narrow UI helpers. Publication is the host's explicit save step.</summary>
 internal sealed class PluginSettingsPageContext(PluginConnectionEditContext connection, AppWorkspace workspace, CompanyKey? selected)
-    : IPluginConnectionEditContext, IPluginSettingsPageContext, IPluginCompanySelectionDraft, IPluginSettingsPresentation, IPluginSettingsSourceAccess
+    : IPluginConnectionEditContext, IPluginConnectionPreview, IPluginSettingsPageContext, IPluginCompanySelectionDraft, IPluginSettingsPresentation, IPluginSettingsSourceAccess
 {
     private readonly string? _pluginId = (workspace.Plugins as IProductPluginSelection)?.ActivePluginId;
     private readonly CompanyKey? _initialSelection = selected;
@@ -19,6 +19,8 @@ internal sealed class PluginSettingsPageContext(PluginConnectionEditContext conn
     internal bool HasSelectionChanges => SelectedCompany != _initialSelection;
     public ProConnectionEditorSnapshot ReadPro() => connection.ReadPro();
     public void StagePro(ProConnectionEditorChange change) => connection.StagePro(change);
+    public ProConnectionConfiguration? ReadProPreview(ProConnectionEditorChange change) => connection.ReadProPreview(change);
+    internal IPluginSettingsHandle? CompanyValidation { get; set; }
     public void StageSelection(CompanyKey? company)
     {
         if (company is not null && company.ProductLine.ToString() != workspace.Application.ProductLine)
@@ -41,6 +43,12 @@ internal sealed class PluginSettingsPageContext(PluginConnectionEditContext conn
     {
         if (!HasSelectionChanges || SelectedCompany is null) return null;
         await EnsureSourceAccessAsync(token);
+        if (CompanyValidation?.SupportsCompanyValidation == true)
+        {
+            var resolved = await CompanyValidation.ResolveCompanyAsync(SelectedCompany, token);
+            await EnsureSourceAccessAsync(token);
+            return resolved ?? throw new InvalidOperationException("Selected company is unavailable.");
+        }
         var companies = await workspace.Directory.GetCompaniesAsync(token);
         await EnsureSourceAccessAsync(token);
         return companies.SingleOrDefault(company => company.Key == SelectedCompany)
