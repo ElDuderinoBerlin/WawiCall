@@ -14,19 +14,4 @@
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
     <ProjectReference Include="..\WawiCallPro.Plugin.Windows\WawiCallPro.Plugin.Windows.csproj" />
   </ItemGroup>
-  <PropertyGroup>
-    <_WawiFinOfficeNativePlatform Condition="'$(Platform)' == 'x86' or '$(PlatformTarget)' == 'x86'">Win32</_WawiFinOfficeNativePlatform>
-    <_WawiFinOfficeNativePlatform Condition="'$(_WawiFinOfficeNativePlatform)' == ''">x64</_WawiFinOfficeNativePlatform>
-    <_WawiFinOfficeNativeRoot>$(MSBuildThisFileDirectory)..\..\sqlite-netFx-source-1.0.117.0\bin\$(_WawiFinOfficeNativePlatform)</_WawiFinOfficeNativeRoot>
-    <!-- Use the supplied native Release binary when managed Debug has no native counterpart. -->
-    <WawiFinOfficeSqliteInteropPath Condition="'$(WawiFinOfficeSqliteInteropPath)' == '' and '$(Configuration)' == 'Debug' and !Exists('$(_WawiFinOfficeNativeRoot)\Debug\SQLite.Interop.dll')">$(_WawiFinOfficeNativeRoot)\Release\SQLite.Interop.dll</WawiFinOfficeSqliteInteropPath>
-    <WawiFinOfficeSqliteInteropPath Condition="'$(WawiFinOfficeSqliteInteropPath)' == ''">$(_WawiFinOfficeNativeRoot)\$(Configuration)\SQLite.Interop.dll</WawiFinOfficeSqliteInteropPath>
-  </PropertyGroup>
-  <ItemGroup>
-    <Content Include="$(WawiFinOfficeSqliteInteropPath)" Link="SQLite.Interop.dll"
-             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-  <Target Name="ValidateFinOfficeNativeSqlite" BeforeTargets="PrepareForBuild">
-    <Error Condition="!Exists('$(WawiFinOfficeSqliteInteropPath)')" Text="Native PCFK-Laufzeit fehlt: $(WawiFinOfficeSqliteInteropPath). SQLite.Interop aus dem fixierten Schwesterrepository bereitstellen." />
-  </Target>
 </Project>

@@ -52,6 +52,10 @@ Netzwerk- oder Datenbankzugriffe. Nach Auswahl lädt der nächste Start genau di
 Der Plugin-Manager verwendet die vorhandene Quantarix-Pluginlaufzeit. Seine Oberfläche verwaltet
 zulässige Plugins, Produktlinie, Version, Fähigkeiten, Ladezustand und Konfiguration. Ein jeweiliger
 Pro-/FinOffice-Build enthält ausschließlich die dazu passenden Warenwirtschaftsbibliotheken.
+Seit 22.11.2026 sind auch Referenzgraph und gemeinsames Vorladen editionsabhängig: Pro verwendet
+Lexware.Core/APIService, FinOffice Pcfk.Core/DataAccess und System.Data.SQLite mit eigener x86-/x64-
+Interop. Die Installationsmerkmale beider Linien werden trotzdem unabhängig geprüft. Einzelheiten
+und Ausgabeprüfung in [Build](Build.md#editionsgetrennte-lexware--und-native-sqlite-ausgabe-22112026).
 
 ### Navigation im View-Verlauf (15.11.2026)
 

@@ -8,17 +8,22 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot
 if ($HostOutputRoot) { $HostOutputRoot = [IO.Path]::GetFullPath($HostOutputRoot) }
-[xml]$props = Get-Content -LiteralPath (Join-Path $root 'Directory.Build.props') -Raw
-$shared = @($props.Project.ItemGroup.SharedProjectAssembly.Include; $props.Project.ItemGroup.SharedPackage.Include) -join ';'
-$shared = $shared.Split(';', [StringSplitOptions]::RemoveEmptyEntries)
-$shared += @($props.Project.ItemGroup.SharedPackage | ForEach-Object { $_.GetAttribute('RuntimeAssemblyNames').Split(';', [StringSplitOptions]::RemoveEmptyEntries) })
-$preloaded = @($props.Project.ItemGroup.SharedProjectAssembly | Where-Object { $_.GetAttribute('Preload') -eq 'true' } | ForEach-Object { $_.Include.Split(';', [StringSplitOptions]::RemoveEmptyEntries) })
 if (!$ProductLine) {
     $hostRoot = if ($HostOutputRoot) { Join-Path $HostOutputRoot 'Console' } else { Join-Path $root "WawiCallPro.Console/bin/$Configuration/net11.0-windows10.0.19041.0" }
     $editions = @('Pro','FinOffice' | Where-Object { Test-Path -LiteralPath (Join-Path $hostRoot "WawiCallPro.Console.$_.dll") })
     if ($editions.Count -ne 1) { throw 'Zuerst genau eine Edition bauen oder -ProductLine angeben.' }
     $ProductLine = $editions[0]
 }
+# Evaluate conditions through MSBuild; raw XML would include the opposite edition too.
+$metadata = & dotnet msbuild (Join-Path $root 'WawiCallPro.Utilities/WawiCallPro.Utilities.csproj') "-p:Configuration=$Configuration" "-p:LexwareProductLine=$ProductLine" '-getItem:SharedProjectAssembly,SharedPackage' -v:quiet
+if ($LASTEXITCODE -ne 0) { throw 'Could not evaluate edition-specific shared assemblies.' }
+$items = ($metadata -join [Environment]::NewLine | ConvertFrom-Json).Items
+$shared = @($items.SharedProjectAssembly | ForEach-Object { $_.Identity })
+$shared += @($items.SharedPackage | ForEach-Object {
+    $_.Identity
+    if ($_.PSObject.Properties['RuntimeAssemblyNames']) { $_.RuntimeAssemblyNames.Split(';', [StringSplitOptions]::RemoveEmptyEntries) }
+})
+$preloaded = @($items.SharedProjectAssembly | Where-Object { $_.PSObject.Properties['Preload'] -and $_.Preload -eq 'true' } | ForEach-Object { $_.Identity })
 foreach ($variant in @($ProductLine)) {
     $productPlugin = if ($variant -eq 'Pro') { 'WawiCallPro.Plugins.Lexware.Pro' } else { 'WawiCallPro.Plugins.Lexware.FinOffice' }
     foreach ($plugin in @($productPlugin, 'WawiCallPro.Plugins.Dummy')) {

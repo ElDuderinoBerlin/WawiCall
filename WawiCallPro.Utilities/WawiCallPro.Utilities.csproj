@@ -12,12 +12,19 @@
     <EmbeddedResource Include="$(WawiLicensePublicKeysFile)" LogicalName="WawiCallPro.LicensePublicKeys" />
     <ProjectReference Include="..\..\Quantarix.License.System\Quantarix.License.Client\Quantarix.License.Client.csproj" />
     <ProjectReference Include="..\..\Quantarix.Core\Quantarix.Core.csproj" />
-    <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" />
-    <ProjectReference Include="..\..\Quantarix.Pcfk.Core\Quantarix.Pcfk.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" Condition="'$(LexwareProductLinePro)' == 'true'" />
+    <ProjectReference Include="..\..\Quantarix.Pcfk.Core\Quantarix.Pcfk.Core.csproj" Condition="'$(LexwareProductLineFinOffice)' == 'true'" />
     <ProjectReference Include="..\..\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\Quantarix.Plugin.Hosting.csproj" />
     <ProjectReference Include="..\WawiCallPro.Interfaces\WawiCallPro.Interfaces.csproj" />
     <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
     <ProjectReference Include="..\WawiCallPro.Database\WawiCallPro.Database.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(LexwareProductLinePro)' == 'true'">
+    <ProjectReference Include="..\..\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
+    <ProjectReference Include="..\..\Quantarix.Pcfk.DataAccess\Quantarix.Pcfk.DataAccess.csproj" />
+    <ProjectReference Include="..\..\sqlite-netFx-source-1.0.117.0\System.Data.SQLite\System.Data.SQLite.NetStandard21.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />

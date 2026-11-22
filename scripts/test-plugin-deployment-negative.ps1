@@ -45,7 +45,8 @@ function Test-MissingFile([string]$Path, [string]$Expected) {
 $app = Join-Path $isolatedRoot 'App'
 $plugin = if ($ProductLine -eq 'Pro') { 'WawiCallPro.Plugins.Lexware.Pro' } else { 'WawiCallPro.Plugins.Lexware.FinOffice' }
 $pluginDirectory = Join-Path $app "plugins/$plugin"
-foreach ($name in @('Quantarix.Lexware.Core','Quantarix.Pcfk.Core')) {
+$selectedShared = if ($ProductLine -eq 'Pro') { @('Quantarix.Lexware.Core', 'Quantarix.Lexware.APIService') } else { @('Quantarix.Pcfk.Core', 'Quantarix.Pcfk.DataAccess', 'System.Data.SQLite') }
+foreach ($name in $selectedShared) {
     Test-MissingFile (Join-Path $app "$name.dll") "Host-owned shared assembly missing: $name"
 }
 $core = if ($ProductLine -eq 'Pro') { 'Quantarix.Lexware.Core.dll' } else { 'Quantarix.Pcfk.Core.dll' }
@@ -55,9 +56,9 @@ Copy-Item -LiteralPath (Join-Path $app $core) -Destination $extra
 try { Assert-Rejected 'Shared assembly copied into plugin deployment' }
 finally { Remove-Item -LiteralPath $extra }
 
-$privateName = if ($ProductLine -eq 'Pro') { 'Quantarix.Lexware.APIService.dll' } else { 'Quantarix.Pcfk.DataAccess.dll' }
+$privateName = $plugin + '.dll'
 $privateFile = Assert-IsolatedFile (Join-Path $pluginDirectory $privateName)
-Test-MissingFile $privateFile 'Missing private dependency:'
+Test-MissingFile $privateFile 'Plugin or dependency manifest missing'
 $backup = Assert-IsolatedFile ($privateFile + '.deployment-check-backup')
 if (Test-Path -LiteralPath $backup) { throw 'Test backup already exists.' }
 Move-Item -LiteralPath $privateFile -Destination $backup

@@ -1,6 +1,11 @@
 using Microsoft.Extensions.Logging;
+using System.Runtime.Versioning;
+using Microsoft.Win32;
+#if LX_PRO
 using Quantarix.Lexware.Core.Registry;
+#else
 using Quantarix.Pcfk.Core.Registry;
+#endif
 using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Plugins;
@@ -14,8 +19,43 @@ public interface ILexwareRegistryProbe
 
 public sealed class LexwareRegistryProbe : ILexwareRegistryProbe
 {
-    public bool IsProInstalled() => OperatingSystem.IsWindows() ? LexwareRegistry.IsInstalled() : throw new PlatformNotSupportedException();
-    public bool IsFinOfficeInstalled() => OperatingSystem.IsWindows() ? PcfkRegistry.IsInstalled() : throw new PlatformNotSupportedException();
+    public bool IsProInstalled()
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+#if LX_PRO
+        return LexwareRegistry.IsInstalled();
+#else
+        // Same marker as LexwareRegistry.IsInstalled; no Pro assembly in FinOffice output.
+        using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Lexware\Lexware professional\Verzeichnisse");
+        return key is not null;
+#endif
+    }
+    public bool IsFinOfficeInstalled()
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+#if LX_FINOFFICE
+        return PcfkRegistry.IsInstalled();
+#else
+        return HasFinOfficeMarker();
+#endif
+    }
+#if LX_PRO
+    [SupportedOSPlatform("windows")]
+    private static bool HasFinOfficeMarker()
+    {
+        // Match PcfkRegistry's Registry32 probe and explicit WOW6432Node fallback.
+        try
+        {
+            using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+            using var key = machine.OpenSubKey(@"SOFTWARE\Lexware\financial office");
+            if (key is not null) return true;
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        using var fallback = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Lexware\financial office");
+        return fallback is not null;
+    }
+#endif
 }
 
 /// <summary>Registry markers alone do not establish a complete or working installation.</summary>

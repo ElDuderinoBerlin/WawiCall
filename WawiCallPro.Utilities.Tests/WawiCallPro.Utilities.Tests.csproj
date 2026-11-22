@@ -8,6 +8,9 @@
     <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <Compile Remove="Fixtures/**/*.cs" />
+    <!-- Mixed-edition fixture tests deliberately reference both; production hosts do not. -->
+    <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" />
+    <ProjectReference Include="..\..\Quantarix.Pcfk.Core\Quantarix.Pcfk.Core.csproj" />
     <ProjectReference Include="Fixtures/RuntimePlugin/RuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="Fixtures/SignedRuntimePlugin/SignedRuntimePlugin.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\WawiCallPro.Utilities\WawiCallPro.Utilities.csproj" />

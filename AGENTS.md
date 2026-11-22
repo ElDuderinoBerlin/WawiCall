@@ -374,3 +374,26 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Vorhandene Konsolenreferenz für N/P/G/Q-Navigation: `WawiCallPro.Console`.
 - Die vorhandene Renderprüfung über `LX_UI_AUDIT_SURFACES` auf betroffene Typnamen begrenzen
   (kommagetrennt, beispielsweise `FrmSettings`).
+
+### Editionsabhängige Lexware-Buildausgabe (Nutzerauftrag 22.11.2026)
+
+- `Solution.props` hält wie bei LxTranslate die zentrale Auswahl `LexwareProductLine`.
+- Pro: ausschließlich `Quantarix.Lexware.APIService.dll` und `Quantarix.Lexware.Core.dll`
+  aus den genannten Lexware-Bibliotheken in die Build-/Publish-Ausgabe übernehmen.
+- FinOffice: ausschließlich `Quantarix.Pcfk.Core.dll`, `Quantarix.Pcfk.DataAccess.dll` und
+  `System.Data.SQLite.dll` (Projekt `System.Data.SQLite.NetStandard21`) sowie die eigene
+  `SQLite.Interop.dll` aus `D:\Application-Development\sqlite-netFx-source-1.0.117.0\SQLite.Interop`.
+  Die nativen Binärdateien liegen unter `bin/Win32/<Konfiguration>` beziehungsweise
+  `bin/x64/<Konfiguration>` des SQLite-Repositorys. x86 nach `runtimes/win-x86/native`,
+  x64 nach `runtimes/win-x64/native`; RID-lose AnyCPU-Ausgaben enthalten beide Varianten.
+  Wegen der .NET-11-Erkennung des aktuellen System.Data.SQLite-Loaders zusätzlich dieselben
+  eigenen Binärdateien in `x86`/`x64` bereitstellen; keine architekturgebundene Rootkopie.
+- Die genannten Assemblies der jeweils anderen Edition müssen auch nach einem Editionswechsel
+  fehlen, einschließlich alter Kopien in Plugin-/Runtime-Unterordnern. Andere Assemblies und
+  native Laufzeiten, insbesondere `e_sqlite3.dll` der Kommunikationsdatenbank, erhalten.
+- Referenzgraph, gemeinsam geladene Plugin-Assemblies und bereinigte Ausgabe müssen übereinstimmen;
+  benötigte Abhängigkeiten nicht lediglich nachträglich löschen. Build und Publish sowie beide
+  Wechselrichtungen und native Architektur/Dateiidentität prüfen.
+- Beide Installationsmerkmale weiterhin unabhängig prüfen. Für die nicht ausgelieferte Produktlinie
+  ist eine gleichwertige lokale Registry-Merkmalprüfung zulässig; dafür nicht deren vollständige
+  Core-Assembly in die andere Edition aufnehmen. Fehler bleiben fehlersperrend.

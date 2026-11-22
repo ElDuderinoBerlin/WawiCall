@@ -400,9 +400,9 @@ dotnet test --project .\WawiCallPro.Plugins.Lexware.FinOffice.Tests\WawiCallPro.
 Verbindungsstack. Die Registry-Erkennung wird über IPcfkInstallationManager isoliert. Lesen, tatsächlicher
 Schreibschutz, zwei getrennte Mandanten, parallele Aufrufe, Abbruch, Freigabe und feste Fehlercodes sind geprüft.
 Die System.Data.SQLite-Laufzeit benötigt die passende native SQLite.Interop.dll aus dem fixierten
-sqlite-Schwesternrepository. Sie wird in das FinOffice-Pluginbundle kopiert; fehlt sie, schlägt der Build fehl.
-Bei fehlendem nativen Debug-x64-Build dient die dort vorhandene native Release-DLL wie in LxTranslate.
-Ein expliziter Pfad ist über `WawiFinOfficeSqliteInteropPath` möglich. Keine native DLL im Pro-Paket.
+sqlite-Schwesternrepository. Seit 22.11.2026 gelten die unten dokumentierten zentralen Architektur-
+und Editionsregeln: passende Konfiguration zwingend, kein stiller Release-Ersatz im Debug-Build.
+Keine native SQLite.Interop-DLL im Pro-Paket.
 Host-Projektreferenzen kopieren Plugininhalte nicht zusätzlich ins Hostroot; das vorhandene Deploymenttarget
 stellt das vollständige private Bundle bereit. Die Produktlinienfilter schließen das jeweils fremde Testprojekt aus.
 Nachweise `.artifacts/finoffice-*`; keine geänderte Oberfläche und keine GUI-Prüfung erforderlich.
@@ -654,24 +654,23 @@ echte PST-/Exchange-Ordner und die WawiCallPro-Anbindung. Dafür eine freigegebe
 
 ## Gemeinsam geladene Registry-Corebibliotheken (14.11.2026)
 
-Die Installationsprüfung benötigt `Quantarix.Lexware.Core.dll` und `Quantarix.Pcfk.Core.dll` in beiden
-Hosts. Zusätzliche private Plugin-Kopien führten zur fehlgeschlagenen Duplikatprüfung. Beide stehen
-jetzt in `Directory.Build.props` als `SharedProjectAssembly` mit `Preload="true"`. Der vorhandene
-Sharedfilter entfernt DLL-/PDB-Kopien aus Plugin-Build-/Deploy-/Publish-Ausgaben. Hostreferenzen für
-beide Produktlinien bleiben erhalten; externe Schwesterprojekte werden nicht verändert.
+Seit 22.11.2026 wird jeweils nur die gewählte Produktlinie vorab im Host geladen. Pro verwendet
+`Quantarix.Lexware.Core` und `Quantarix.Lexware.APIService`, FinOffice `Quantarix.Pcfk.Core`,
+`Quantarix.Pcfk.DataAccess` und `System.Data.SQLite`. `SharedProjectAssembly`/`Preload` und die
+normalen Projektreferenzen sind bedingt; API-/Datenzugriff liegen gemeinsam im Host statt nochmals
+privat im Plugin. Der Pro-HTTP-Support verwendet ebenfalls die Hostinstanz.
 
-`GenerateWawiSharedPackageManifest` übernimmt diese markierten Projektassemblies zusätzlich in die
-bestehende Ressource `WawiCallPro.SharedPackages`. `SharedPluginContracts.EnsureLoaded` lädt sie vor
-Managererzeugung im Default-ALC. Die Factory übergibt dieselben Namen an die Quantarix-Laufzeit.
-Der historische API-Name `GetSharedPackageAssemblyNames` umfasst damit auch diese Projektassemblies;
-ein SharedAssembly-Attribut in den externen Cores ist nicht erforderlich. API-/Datenzugriffsassemblies
-und native Pluginabhängigkeiten bleiben privat. Signatur-/Lizenzprüfung und Registryabfragen ändern sich nicht.
+`GenerateWawiSharedPackageManifest` übernimmt diese Namen in `WawiCallPro.SharedPackages`;
+`SharedPluginContracts.EnsureLoaded` lädt sie vor Managererzeugung im Default-ALC. Die Factory
+übergibt dieselben Namen an die Quantarix-Laufzeit. Die zusätzliche Installationsprüfung der anderen
+Produktlinie prüft die gleichen Registry-Merkmale lokal, ohne deren Core-Assembly auszuliefern.
+Beide Produktlinien werden weiterhin unabhängig geprüft; Fehler sperren Lexware-Funktionen.
 
-Die Deploymentprüfung verlangt beide Host-Cores ausdrücklich und prüft weiterhin Manifeste, private
-Dateien/Hashes sowie das Fehlen gemeinsamer Plugin-Kopien. `-Configuration` bezeichnet den gebauten
-Stand, `-HostOutputRoot` einen lokalen Publish-Stamm mit `App` und `Console`. Die Hashprüfung
-unmittelbar nach dem Build derselben Edition ausführen; ein anschließender Build der anderen Edition
-überschreibt die gemeinsamen Projekt-Ausgaben, gegen die private Dateien geprüft werden.
+Die Deploymentprüfung wertet die bedingten Regeln mit MSBuild aus und prüft weiterhin Manifeste,
+private Dateien/Hashes und das Fehlen privater Kopien der gemeinsam geladenen Assemblies.
+`-Configuration` bezeichnet den gebauten Stand, `-HostOutputRoot` einen lokalen Publish-Stamm
+mit `App` und `Console`. Unmittelbar nach dem Build derselben Edition prüfen; der nächste
+Editionsbuild überschreibt die gemeinsamen Ausgaben.
 Beispiel im Repositoryroot in Debug/Any CPU; Pro separat genauso bauen und prüfen:
 
 ```powershell
@@ -702,3 +701,39 @@ Logs `.core-sharing-*.log`, Publishkopien `.artifacts/core-sharing/publish/{Pro,
 Rollback: den gesamten Änderungsschritt zurücknehmen und Hosts/Plugins derselben Edition neu bauen
 und publizieren. Vorladen und Dateibereitstellung zusammen zurücknehmen, keine einzelne Host-Core-DLL
 manuell entfernen. Konfigurationen und Bestandsdaten bleiben unverändert.
+
+## Editionsgetrennte Lexware- und native SQLite-Ausgabe (22.11.2026)
+
+| Edition | Ausgelieferte Bibliotheken dieser Gruppe | In dieser Edition ausgeschlossen |
+|---|---|---|
+| Pro | Quantarix.Lexware.Core, Quantarix.Lexware.APIService | Quantarix.Pcfk.Core, Quantarix.Pcfk.DataAccess, System.Data.SQLite, SQLite.Interop |
+| FinOffice | Quantarix.Pcfk.Core, Quantarix.Pcfk.DataAccess, System.Data.SQLite (Projekt System.Data.SQLite.NetStandard21), eigene SQLite.Interop | Quantarix.Lexware.Core, Quantarix.Lexware.APIService |
+
+Die Produktwahl bleibt wie bei LxTranslate in `Solution.props`. Die ausgeschlossenen Namen gelten
+für DLL/PDB/XML in Host-, Plugin- und Runtime-Unterordnern, auch nach Editionswechsel und Publish.
+Alle übrigen Assemblies werden von dieser Bereinigung nicht erfasst. Die vorhandene Bereinigung
+des eigenen fremden Editionshosts/-plugins bleibt erhalten und gilt auch beim Publish.
+
+`Directory.Build.targets` kopiert die eigene native Interop aus dem Schwesterrepository
+`sqlite-netFx-source-1.0.117.0/bin/Win32/<Konfiguration>` beziehungsweise `bin/x64/<Konfiguration>`
+in `runtimes/win-x86/native` beziehungsweise `runtimes/win-x64/native` von Host und FinOffice-Plugin.
+RID-lose AnyCPU-Ausgaben tragen beide Varianten; explizite x86/x64-Ziele die passende Variante.
+Die alte Rootkopie entfällt. Der aktuelle System.Data.SQLite-Loader erkennt .NET 11 bei
+`IsDotNetCore()` nicht; deshalb werden zusätzlich identische eigene Binärdateien in seine
+architekturgetrennten Kompatibilitätspfade `x86`/`x64` kopiert. Damit funktionieren 32- und 64-Bit-
+.NET-11-Aufrufe ohne architekturgebundene Rootkopie. Das Schwesterrepository wird dafür nicht geändert.
+Fehlende Binärdateien oder andere RIDs brechen den FinOffice-Build ab. Optional lässt sich das
+native Binärwurzelverzeichnis über `WawiSqliteInteropRoot` angeben. Build/Publish ersetzen auch
+neuer datierte falsche Ausgabedateien. `e_sqlite3.dll` für Microsoft.Data.Sqlite bleibt unabhängig.
+
+Wiederholbarer Prüfeinstieg, zum gebauten Stand passend:
+
+```powershell
+./scripts/test-lexware-output.ps1 -OutputDirectory ./WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0 -ProductLine Pro -Configuration Debug
+```
+
+Mit `-Architecture x86`/`x64` explizite Architekturausgaben prüfen; ohne Angabe AnyCPU mit beiden
+FinOffice-Varianten. Der Prüfer kontrolliert fehlende/fremde Assemblies, fremde Pluginreste,
+SHA256-Identität und PE-Architektur. Nachweise dieses Arbeitslaufs: `.artifacts/sqlite-interop`.
+Rücknahme: Commit rückgängig machen und die gewählte Edition einschließlich Restore neu bauen;
+lokale Einstellungen und Datenbanken wurden nicht geändert.

@@ -167,4 +167,73 @@
     <Exec Command="dotnet &quot;$(_WawiStripDxToolPath)&quot; --input &quot;$(_WawiStripDxPublishDir).&quot; --pattern &quot;WawiCallPro*.dll&quot; --pattern &quot;WawiCallPro*.exe&quot; $(_WawiStripDxKeyArgument)"
           IgnoreStandardErrorWarningFormat="true" />
   </Target>
+  <Target Name="RemoveWawiOtherLexwareAssemblies" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <ItemGroup>
+      <_WawiOutputLibraries Include="$(TargetDir)**\*.dll;$(TargetDir)**\*.pdb;$(TargetDir)**\*.xml" />
+      <_WawiOtherLexwareFiles Include="@(_WawiOutputLibraries)" Condition="$([System.String]::Copy(';$(WawiExcludedLexwareAssemblyNames);').Contains(';%(_WawiOutputLibraries.Filename);'))" />
+    </ItemGroup>
+    <Delete Files="@(_WawiOtherLexwareFiles)" />
+  </Target>
+  <Target Name="RemoveWawiOtherLexwarePublishAssemblies" AfterTargets="Publish" DependsOnTargets="RemoveWawiOtherLexwareAssemblies" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <PropertyGroup>
+      <_WawiOtherPublishEdition Condition="'$(LexwareProductLinePro)' == 'true'">FinOffice</_WawiOtherPublishEdition>
+      <_WawiOtherPublishEdition Condition="'$(LexwareProductLineFinOffice)' == 'true'">Pro</_WawiOtherPublishEdition>
+    </PropertyGroup>
+    <ItemGroup>
+      <_WawiStaleEditionPublish Include="$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(_WawiOtherPublishEdition)\**\*" />
+      <_WawiStaleEditionPublish Include="$(PublishDir)$(MSBuildProjectName).$(_WawiOtherPublishEdition).dll;$(PublishDir)$(MSBuildProjectName).$(_WawiOtherPublishEdition).exe;$(PublishDir)$(MSBuildProjectName).$(_WawiOtherPublishEdition).pdb;$(PublishDir)$(MSBuildProjectName).$(_WawiOtherPublishEdition).deps.json;$(PublishDir)$(MSBuildProjectName).$(_WawiOtherPublishEdition).runtimeconfig.json" />
+      <_WawiPublishLibraries Include="$(PublishDir)**\*.dll;$(PublishDir)**\*.pdb;$(PublishDir)**\*.xml" />
+      <_WawiOtherLexwarePublishFiles Include="@(_WawiPublishLibraries)" Condition="$([System.String]::Copy(';$(WawiExcludedLexwareAssemblyNames);').Contains(';%(_WawiPublishLibraries.Filename);'))" />
+    </ItemGroup>
+    <Delete Files="@(_WawiOtherLexwarePublishFiles);@(_WawiStaleEditionPublish)" />
+  </Target>
+  <!-- Use the supplied SQLite build in every native search location. Keep e_sqlite3 independent. -->
+  <PropertyGroup>
+    <_WawiSqliteInteropHost Condition="'$(LexwareProductLineFinOffice)' == 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console' or '$(MSBuildProjectName)' == 'WawiCallPro.Plugins.Lexware.FinOffice' or '$(MSBuildProjectName)' == 'WawiCallPro.Plugins.Lexware.FinOffice.Tests')">true</_WawiSqliteInteropHost>
+    <WawiSqliteInteropRoot Condition="'$(WawiSqliteInteropRoot)' == ''">$(MSBuildThisFileDirectory)..\sqlite-netFx-source-1.0.117.0\bin</WawiSqliteInteropRoot>
+  </PropertyGroup>
+  <Target Name="PrepareWawiSqliteInterop" BeforeTargets="PrepareForBuild"
+          Condition="'$(_WawiSqliteInteropHost)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_WawiSqliteArchitecture Condition="'$(RuntimeIdentifier)' == 'win-x86'">x86</_WawiSqliteArchitecture>
+      <_WawiSqliteArchitecture Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</_WawiSqliteArchitecture>
+      <_WawiSqliteArchitecture Condition="'$(RuntimeIdentifier)' == '' and ('$(PlatformTarget)' == 'x86' or '$(Platform)' == 'x86')">x86</_WawiSqliteArchitecture>
+      <_WawiSqliteArchitecture Condition="'$(RuntimeIdentifier)' == '' and '$(_WawiSqliteArchitecture)' == '' and ('$(PlatformTarget)' == 'x64' or '$(Platform)' == 'x64')">x64</_WawiSqliteArchitecture>
+      <_WawiSqliteX86Path>$(WawiSqliteInteropRoot)\Win32\$(Configuration)\SQLite.Interop.dll</_WawiSqliteX86Path>
+      <_WawiSqliteX64Path>$(WawiSqliteInteropRoot)\x64\$(Configuration)\SQLite.Interop.dll</_WawiSqliteX64Path>
+    </PropertyGroup>
+    <Error Condition="'$(RuntimeIdentifier)' != '' and '$(RuntimeIdentifier)' != 'win-x86' and '$(RuntimeIdentifier)' != 'win-x64'"
+           Text="Die eigene SQLite.Interop unterstützt hier nur win-x86 und win-x64, nicht $(RuntimeIdentifier)." />
+    <ItemGroup>
+      <_WawiSqliteInterop Remove="@(_WawiSqliteInterop)" />
+      <_WawiSqliteInterop Include="$(_WawiSqliteX86Path)" Condition="'$(_WawiSqliteArchitecture)' == '' or '$(_WawiSqliteArchitecture)' == 'x86'">
+        <RelativePath>runtimes\win-x86\native\SQLite.Interop.dll</RelativePath>
+      </_WawiSqliteInterop>
+      <_WawiSqliteInterop Include="$(_WawiSqliteX64Path)" Condition="'$(_WawiSqliteArchitecture)' == '' or '$(_WawiSqliteArchitecture)' == 'x64'">
+        <RelativePath>runtimes\win-x64\native\SQLite.Interop.dll</RelativePath>
+      </_WawiSqliteInterop>
+      <!-- The current provider's .NET detection misses .NET 11. Its legacy preload paths remain reliable. -->
+      <_WawiSqliteInterop Include="$(_WawiSqliteX86Path)" Condition="'$(_WawiSqliteArchitecture)' == '' or '$(_WawiSqliteArchitecture)' == 'x86'">
+        <RelativePath>x86\SQLite.Interop.dll</RelativePath>
+      </_WawiSqliteInterop>
+      <_WawiSqliteInterop Include="$(_WawiSqliteX64Path)" Condition="'$(_WawiSqliteArchitecture)' == '' or '$(_WawiSqliteArchitecture)' == 'x64'">
+        <RelativePath>x64\SQLite.Interop.dll</RelativePath>
+      </_WawiSqliteInterop>
+    </ItemGroup>
+    <Error Condition="!Exists('%(_WawiSqliteInterop.Identity)')"
+           Text="Eigene SQLite.Interop fehlt: %(_WawiSqliteInterop.Identity). SQLite.Interop im Schwesterrepository für die passende Architektur und $(Configuration) bauen." />
+  </Target>
+  <!-- Copy last, even when a stale NuGet/output file has a newer timestamp. -->
+  <Target Name="CopyWawiSqliteInterop" AfterTargets="Build" DependsOnTargets="PrepareWawiSqliteInterop"
+          Condition="'$(_WawiSqliteInteropHost)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <Copy SourceFiles="@(_WawiSqliteInterop)" DestinationFiles="@(_WawiSqliteInterop->'$(TargetDir)%(RelativePath)')" />
+    <Delete Files="$(TargetDir)SQLite.Interop.dll" />
+    <ItemGroup><FileWrites Include="@(_WawiSqliteInterop->'$(TargetDir)%(RelativePath)')" /></ItemGroup>
+  </Target>
+  <Target Name="PublishWawiSqliteInterop" AfterTargets="Publish" DependsOnTargets="PrepareWawiSqliteInterop"
+          Condition="'$(_WawiSqliteInteropHost)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <Copy SourceFiles="@(_WawiSqliteInterop)" DestinationFiles="@(_WawiSqliteInterop->'$(PublishDir)%(RelativePath)')" />
+    <Delete Files="$(PublishDir)SQLite.Interop.dll" />
+    <ItemGroup><FileWrites Include="@(_WawiSqliteInterop->'$(PublishDir)%(RelativePath)')" /></ItemGroup>
+  </Target>
 </Project>

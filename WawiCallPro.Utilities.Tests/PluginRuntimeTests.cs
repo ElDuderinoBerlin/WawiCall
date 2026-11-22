@@ -65,8 +65,9 @@ public sealed class PluginRuntimeTests
         {
             var contracts = host.Services.GetRequiredService<ISharedPluginContracts>();
             var names = contracts.GetSharedPackageAssemblyNames();
-            Assert.Contains("Quantarix.Lexware.Core", names);
-            Assert.Contains("Quantarix.Pcfk.Core", names);
+            var pro = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly()) == "Pro";
+            Assert.Contains(pro ? "Quantarix.Lexware.Core" : "Quantarix.Pcfk.Core", names);
+            Assert.DoesNotContain(pro ? "Quantarix.Pcfk.Core" : "Quantarix.Lexware.Core", names);
             contracts.EnsureLoaded();
             await using var session = host.Services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
             await session.LoadAsync(directory);
@@ -78,6 +79,7 @@ public sealed class PluginRuntimeTests
                 ("PcfkCoreAssembly", typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly)
             })
             {
+                if (!names.Contains(expected.GetName().Name!)) continue;
                 var assembly = (Assembly)plugin.GetType().GetProperty(property)!.GetValue(plugin)!;
                 Assert.AreSame(expected, assembly);
                 Assert.AreSame(AssemblyLoadContext.Default, AssemblyLoadContext.GetLoadContext(assembly));
@@ -122,7 +124,8 @@ public sealed class PluginRuntimeTests
             var context = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)!;
             foreach (var assembly in new[] { typeof(Quantarix.Lexware.Core.PropertyStore.PsParserFactory).Assembly,
                 typeof(Quantarix.Pcfk.Core.PropertyStore.PsParserFactory).Assembly })
-                Assert.AreSame(assembly, context.LoadFromAssemblyName(assembly.GetName()));
+                if (host.Services.GetRequiredService<ISharedPluginContracts>().GetSharedPackageAssemblyNames().Contains(assembly.GetName().Name!))
+                    Assert.AreSame(assembly, context.LoadFromAssemblyName(assembly.GetName()));
             Assert.IsTrue(context.IsCollectible);
         });
     }

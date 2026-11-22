@@ -67,6 +67,7 @@
     <!-- Produktlinien-Metadaten fuer Assembly-Namen, Anzeigenamen und Formular-Unterordner. -->
     <PropertyGroup Condition="'$(LexwareProductLinePro)' == 'true'">
         <LexwareProductLineShortName>Pro</LexwareProductLineShortName>
+        <WawiExcludedLexwareAssemblyNames>Quantarix.Pcfk.Core;Quantarix.Pcfk.DataAccess;System.Data.SQLite;SQLite.Interop</WawiExcludedLexwareAssemblyNames>
         <LexwareProductLineDisplayName>Professional</LexwareProductLineDisplayName>
         <LexwareFormulareProductSubDirectory>Pro</LexwareFormulareProductSubDirectory>
         <LexwareApiDefaultClientKey>$(LexwareApiClientKeyPro)</LexwareApiDefaultClientKey>
@@ -74,6 +75,7 @@
 
     <PropertyGroup Condition="'$(LexwareProductLineFinOffice)' == 'true'">
         <LexwareProductLineShortName>FinOffice</LexwareProductLineShortName>
+        <WawiExcludedLexwareAssemblyNames>Quantarix.Lexware.Core;Quantarix.Lexware.APIService</WawiExcludedLexwareAssemblyNames>
         <LexwareProductLineDisplayName>Financial Office</LexwareProductLineDisplayName>
         <LexwareFormulareProductSubDirectory>FinOffice</LexwareFormulareProductSubDirectory>
         <LexwareApiDefaultClientKey>$(LexwareApiClientKeyFinOffice)</LexwareApiDefaultClientKey>
