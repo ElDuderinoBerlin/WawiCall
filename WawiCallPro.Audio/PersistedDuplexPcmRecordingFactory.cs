@@ -14,7 +14,17 @@ public sealed class PersistedDuplexPcmRecordingFactory(IDuplexPcmRecordingFactor
         ArgumentNullException.ThrowIfNull(request.Recording); ArgumentNullException.ThrowIfNull(request.Sent); ArgumentNullException.ThrowIfNull(request.Received);
         var item = request.Recording; var now = clock.GetUtcNow();
         if (request.RecordingEpochUtc is not { } epoch || epoch.Offset != TimeSpan.Zero || epoch > now)
-            throw new ArgumentException("Eine verifizierte UTC-Aufnahmeepoche ist erforderlich und darf nicht in der Zukunft liegen.");
+            throw new ArgumentException("Eine explizite UTC-Aufnahmeepoche ist erforderlich und darf nicht in der Zukunft liegen.");
+        if (!Enum.IsDefined(request.TimelineBasis) || request.TimelineBasis == RecordingTimelineBasis.LocalCodecObservation
+            && (source is PlaybackRecordingSource loopback ? loopback.Sent : source) is not LiveRecordingPreparation)
+            throw new ArgumentException("Die lokale Medienzeitachse benötigt ihre eigene vorbereitete Aufnahmequelle.");
+        if (request.TimelineBasis == RecordingTimelineBasis.LocalCodecObservation)
+        {
+            var prepared = (LiveRecordingPreparation)(source is PlaybackRecordingSource selected ? selected.Sent : source);
+            var expected = prepared.CreateRequest(item);
+            if (expected.RecordingEpochUtc != epoch || expected.Sent != request.Sent || expected.Received != request.Received)
+                throw new ArgumentException("Die Aufnahmezeitreferenzen gehören nicht zu dieser lokalen Medienvorbereitung.");
+        }
         ConversationWaveMixValidation.Validate(new(item.CallId, item.RecordingId, [], item.WavePath, item.SampleRate, TimeSpan.FromMilliseconds(1), item.Layout));
         if (item.QueueCapacity is < 1 or > 256 || !Valid(request.Sent.RtpClockRate, request.Sent.RecordingOffset) || !Valid(request.Received.RtpClockRate, request.Received.RecordingOffset))
             throw new ArgumentException("Gültige Aufnahmeanker und eine begrenzte Audiowarteschlange sind erforderlich.");

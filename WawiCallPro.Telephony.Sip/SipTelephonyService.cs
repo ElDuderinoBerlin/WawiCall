@@ -250,15 +250,20 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Rejected)).ConfigureAwait(false);
     }, cancellationToken);
 
-    public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default) => CommandAsync(callId, async agent =>
+    public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default)
     {
-        var current = agent.State!.Current;
-        var reason = current.AnsweredAtUtc.HasValue ? CallEndReason.Completed : current.Direction == CallDirection.Outgoing ? CallEndReason.Cancelled : CallEndReason.Rejected;
-        if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
-        else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.Decline, null);
-        else agent.UserAgent.Cancel();
-        await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, reason)).ConfigureAwait(false);
-    }, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        CancelRecordingStartup(callId);
+        return CommandAsync(callId, async agent =>
+        {
+            var current = agent.State!.Current;
+            var reason = current.AnsweredAtUtc.HasValue ? CallEndReason.Completed : current.Direction == CallDirection.Outgoing ? CallEndReason.Cancelled : CallEndReason.Rejected;
+            if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
+            else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.Decline, null);
+            else agent.UserAgent.Cancel();
+            await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, reason)).ConfigureAwait(false);
+        }, cancellationToken);
+    }
 
     public Task HoldAsync(Guid callId, CancellationToken cancellationToken = default) => SetHoldAsync(callId, true, cancellationToken);
     public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => SetHoldAsync(callId, false, cancellationToken);
@@ -332,9 +337,13 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             if ((int)response.Status is >= 200 and < 300) Queue(() => ChangeAsync(agent, CallState.Connected));
         };
         agent.UserAgent.ClientCallFailed += (_, _, response) => agent.FailureStatus = response?.Status;
-        agent.UserAgent.OnCallHungup += _ => Queue(() => ChangeAsync(agent,
-            agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
-            agent.ShutdownRequested ? CallEndReason.Interrupted : agent.TransferAccepted ? CallEndReason.Transferred : CallEndReason.RemoteHangup));
+        agent.UserAgent.OnCallHungup += _ =>
+        {
+            (agent.Media as ISipLiveRecordingMediaSession)?.CancelPendingStart();
+            Queue(() => ChangeAsync(agent,
+                agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
+                agent.ShutdownRequested ? CallEndReason.Interrupted : agent.TransferAccepted ? CallEndReason.Transferred : CallEndReason.RemoteHangup));
+        };
         agent.UserAgent.OnTransferNotify += body =>
         {
             if (!agent.TransferAccepted) return;

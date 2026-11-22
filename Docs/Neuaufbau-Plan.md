@@ -6,9 +6,9 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
-G1-Wiederaufnahme vom 22.11.2026: beidseitiger Echtmitschnitt angefordert. Vorprüfung bestätigt noch
-fehlende Aufnahmebedienung und automatische Live-Zeitreferenzen; vor dem Aufnahmeanruf ergänzen.
-Der nächste gemeinsame Schritt ist die Geräte-/Testanschlussvorbereitung; noch kein Echtanruf erfolgt.
+G1-Wiederaufnahme vom 22.11.2026: ✅ manuelle Aufnahme-Start-/Stop-Bedienung und lokale Live-Medienzeitachse
+implementiert und isoliert geprüft. ✅ Headset und zweiter Anschluss vom Benutzer als bereit bestätigt.
+Nächster gemeinsamer Schritt: Pro-Profil, Geräte, RTP-Quellenwahl und SIP-Status prüfen; noch kein Echtanruf erfolgt.
 Zusätzlicher UI-Auftrag vom 21.11.2026: ✅ [Entwurf für Plugin-UI-Registrierung und Tab „Lexware“](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md)
 erstellt. Das Plugin erhält eine optionale Windows-UI-Hostfähigkeit und registriert seinen vollständigen
 Einstellungs-Tab selbst. Pro/FinOffice stellen Zugang und Mandantenauswahl unter dem Titel „Lexware“
@@ -744,8 +744,8 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; G1–G6 und Gesamtabschluss offen | 4–7 |
-| 9 | 🟨 | ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; Aufnahmebedienung und freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, automatische Live-Zeitreferenzen/-Überwachung, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmebedienung, Ansagen und echte Audioabnahme offen | 7, 8 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; ✅ manuelle Gesprächsaufnahme mit gemeinsamem Status und lokaler Live-Medienzeitachse; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 9 | 🟨 | ✅ manuelle Live-Aufnahme mit lokaler Codec-/RTP-Zeitreferenzierung, quellenübergreifendem Drain und Abschluss vor Medienfreigabe; ✅ RTP/CSCore-Loopback auswählbar; ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, gerätegenaue Abtastuhr-Synchronisierung/Driftkorrektur, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmeautomatik, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
 | 12 | ⬜ | Telefonmenüs und Automatisierung | 7–9 |
@@ -2807,30 +2807,40 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 
 **Wiederaufnahme mit gewünschter beidseitiger Echtaufnahme (22.11.2026):**
 
-- [x] ✅ Vorprüfung des vorhandenen Aufnahme-Anschlusses: `CallControlPanel` bietet Annehmen,
+- [x] ✅ Vorprüfung vor Implementierung der Aufnahmebedienung: `CallControlPanel` bietet Annehmen,
   Auflegen und Halten, aber noch keinen Aufnahmebeginn/-abschluss. `AppTelephonyService` reicht
   `ICallRecordingService.StartRecordingAsync` an den SIP-Dienst durch; ein UI-Aufrufer fehlt.
   `DuplexPcmRecordingRequest` benötigt gemeinsame Aufnahmeepoche und Sende-/Empfangsanker.
   `IRtpRecordingAnchorResolver` prüft bereits gelieferte verifizierte Zeitreferenzen; er gewinnt
-  oder synchronisiert diese nicht selbst. Automatische Live-Zeitreferenzen bleiben offen.
-- [ ] Vor dem Aufnahmeanruf die fehlende manuelle Aufnahmebedienung einschließlich gültiger
-  Live-Zeitreferenzierung und Abschluss vor Medienfreigabe implementieren und prüfen. Keine
-  erfundenen RTP-/NTP-Anker oder Paketankunftszeiten als verifizierte Abtastzeit einsetzen.
-  Ein bereits vorhandener Mixer oder die Quellenwahl allein belegt keine benutzbare Live-Aufnahme.
-- [ ] Gemeinsamer nächster Schritt: Headset und zweiten erreichbaren Testanschluss für Pro
-  bereitstellen und Rückmeldung abwarten; noch keinen Anruf starten. Danach Profil/Geräte und
-  SIP-Status prüfen. Für den ersten beidseitigen Mitschnitt RTP verwenden; Loopback getrennt testen.
+  oder synchronisiert diese nicht selbst. Die lokale Live-Anbindung stand bei dieser Vorprüfung noch aus.
+- [x] ✅ Fehlende manuelle Aufnahmebedienung und lokale Live-Zeitreferenzierung ergänzt und geprüft
+  (22.11.2026): Aufnahme starten/stoppen direkt am Gespräch, Status zwischen Ansichten gemeinsam,
+  Abschluss vor Freigabe des Medienbesitzers. `LocalCodecObservation` kennzeichnet die erste lokale
+  Codec-Beobachtung jeder Seite relativ zu einer gemeinsamen monotonen Epoche; danach reale
+  RTP-Zähler für Abstände/Lücken. **Keine verifizierte Synchronisierung entfernter Abtastuhren**,
+  keine erfundenen NTP-Referenzen und keine automatische Übernahme von RTCP-Berichten.
+  Vollständiger Ablauf und Grenzen unter Phase 9 und in [SIP-Einstellungen](SIP-Einstellungen.md#manuelle-live-aufnahme-und-lokale-medienzeitachse-22112026).
+- [x] ✅ Benutzer bestätigt Headset und zweiten erreichbaren Testanschluss für Pro als bereit
+  (22.11.2026). Damit noch kein Gerätezugriff oder Audionachweis bestätigt.
+- [ ] Gemeinsamer nächster Schritt: Pro-Profil/Geräte, RTP-Quellenwahl und SIP-Status prüfen;
+  noch keinen Anruf starten. Für den ersten beidseitigen Mitschnitt RTP verwenden; Loopback getrennt testen.
 - [ ] Erst mit verfügbarer und geprüfter Aufnahmebedienung anrufen, beide Seiten abwechselnd
   mit unterscheidbaren Testmarkern sprechen lassen, Aufnahme beenden und WAV-Prüfung durchführen:
   Gesprächszuordnung, Dauer, Kanalzahl, beide Kanalpegel und anschließende Hörprüfung. Beobachtungen
   und Dateinachweis getrennt protokollieren; bisher kein Echtgespräch oder Aufnahmesignal bestätigt.
 
-Lesend erfasster regulärer Pro-Kandidat: `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/`
+Historischer Vorprüfungs-Kandidat, vor Implementierung der Aufnahmebedienung:
+`WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/`
 `WawiCallPro.App.Pro.exe`, Version **0.1.266**, DLL-SHA-256
 `C36D97CB3CCB192FA9EFFE0CEB185634C9F02BF17A54A139D2DD7173C29D3B09`.
 Beim Vorprüfen keine laufende WawiCallPro-Instanz gefunden; keine Anwendung gestartet,
 keine Audiogeräte geöffnet, keine Konfiguration geändert. Diese Dokumentationsprüfung erfordert
-keinen erneuten Build und schließt G1 oder Phase 9 nicht ab.
+keinen erneuten Build und schließt G1 oder Phase 9 nicht ab. Dieser Kandidat ist inzwischen ersetzt.
+
+**Neuer Aufnahmekandidat vom 22.11.2026:** reguläre Pro-EXE im selben Ordner, Version **0.1.268**,
+DLL-SHA-256 `A0C382DA791DC471169DB2C21CD8CF779927C844F67B86D1BE6E91A18E267D73`.
+Beide Editionen regulär Debug/Any CPU gebaut, Pro zuletzt. Keine sichtbare App gestartet,
+kein echter Anruf oder Mikrofon-/Headset-Zugriff bei der isolierten Prüfung.
 
 - [x] ✅ Vorbereitung: tatsächliche Bedienpfade und lokale Builddateien geprüft; folgende Schritte und
   Ergebnisraster erstellt. Ausschließlich Quellen-/Datei-/Versionsprüfung, kein Start, keine SIP-Anmeldung,
@@ -3279,6 +3289,30 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
 - [ ] Klingeltonwiedergabe von Gesprächsaudio trennen; Ressourcen nach Ende zuverlässig freigeben.
 - [ ] Manuelle und ausdrücklich konfigurierte automatische Aufzeichnung mit Beginn/Ende/Fehlerstatus implementieren;
   Empfangspfad aus `RecordIncomingCall` berücksichtigen und beide Gesprächsseiten gezielt erfassen.
+- [x] ✅ Manuelle Live-Aufnahme einschließlich lokaler Zeitreferenzen umgesetzt (22.11.2026).
+  `ILiveCallRecordingService` führt Start/Stop und gemeinsamen Status pro Call-ID; Buttons in
+  Anruferfenster und Gesprächsdetails verwenden dieselbe Instanz. Start nur verbunden, Stop auch
+  gehalten, neue Abschnitte mit neuer Aufnahme-ID; automatische Aufnahme weiterhin aus/nicht umgesetzt.
+  Ein lokaler monotoner Startbezug plus erste tatsächliche Sende-/Empfangs-Codecbeobachtung ergeben
+  `LocalCodecObservation`-Anker. Danach reale RTP-Zähler einschließlich Überläufen, Lücken und
+  vorhandener Empfangspufferung. Kein Einsatz des strengeren NTP-Resolvers mit erfundenen Referenzen.
+  Basis und vorbereitete Quellen-/Ankeridentität werden vor dem DB-Journal geprüft; keine Aussage
+  über synchronisierte Hardwareuhren, genaue Wiedergabelatenz oder kompensierte Dauerdrift.
+  Vorbereitung höchstens 5 s, höchstens 128 Blöcke/1 MiB PCM; fehlende Seite, Metadaten-/Gerätefehler,
+  Überlauf oder Speicherausfall melden Fehler. Eingabe wird vor Abschluss vollständig abgekoppelt
+  und geleert; tatsächliche Output-Frames bestimmen die Mindestdauer. Maximal 500 ms Vorsprung
+  gegenüber der monotonen Uhr werden vor UTC-Endbestätigung abgewartet, größere Konflikte scheitern.
+  Lokales/entferntes Auflegen unterbricht wartenden Start; Gesprächsende und Host-Cleanup schließen
+  die besessene Aufnahme vor Freigabe der Medien ab. Quellen-/Native-Ressourcen bleiben bis dahin besessen.
+  Vorhandene Dapper-/Journal-/WAV-/MP3-Pipeline erhalten, SQL/Schema unverändert.
+  Je Edition 44 gezielte App-/Aufnahme-/UI-/DI-Prüfungen, 99 Core-/Ankerprüfungen, 215 Console-/RTP-/
+  Mixertests einschließlich drei echter lokaler UDP-/Codec-Läufe (PCMA/PCMU/G.722) und 31 SIP-Runtime-
+  Prüfungen sowie 23 Persistenz-/Journaltests bestanden. SQLite-Verweis und verfügbare Stereo-WAV mit beiden synthetischen Signalen geprüft.
+  Beide regulären Builds Debug/Any CPU ohne Fehler/Warnungen, Pro zuletzt. 29 Designer-Dateitripel;
+  Anruferfenster und Gesprächsdetails in leerer/bereiter, laufender, abgeschlossener und fehlerhafter
+  Aufnahme, 10/16 pt, hellem/dunklem Skin und 150-%-Layoutsimulation geprüft.
+  Nachweise `.live-recording-*.log`, `.artifacts/app-shell/settings-ui/live-recording`.
+  **Echte FRITZ!Box-/Headset-Aufnahme, Hörprüfung, Geräteverlust und Dauerlauf bleiben G1/Phase 9 offen.**
 - [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
   **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
   Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;

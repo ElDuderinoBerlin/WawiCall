@@ -1,11 +1,16 @@
 namespace WawiCallPro.Interfaces.Audio;
 
-/// <summary>Both anchors must refer to the same caller-established recording epoch. No automatic calibration is implied.</summary>
+public enum RecordingTimelineBasis { CallerSamplingReferences, LocalCodecObservation }
+
+/// <summary>Both anchors refer to one explicit recording epoch. The basis distinguishes verified caller references
+/// from first local codec observations; the latter does not claim synchronization of remote sampling clocks.</summary>
 public sealed record DuplexPcmRecordingRequest(PcmRecordingRequest Recording, SentPcmTimelineAnchor Sent, RtpPcmTimelineAnchor Received)
 {
-    /// <summary>Optional for standalone audio. Persisted call recording requires the caller-verified UTC instant
-    /// corresponding to zero on the shared recording timeline, not call start or packet arrival.</summary>
+    /// <summary>Optional for standalone audio. Persisted recording requires the explicit UTC instant at zero
+    /// on the declared timeline basis. LocalCodecObservation correlates the local monotonic clock only;
+    /// CallerSamplingReferences requires the caller's verified sampling references, not report arrival.</summary>
     public DateTimeOffset? RecordingEpochUtc { get; init; }
+    public RecordingTimelineBasis TimelineBasis { get; init; } = RecordingTimelineBasis.CallerSamplingReferences;
     public override string ToString() => nameof(DuplexPcmRecordingRequest);
 }
 

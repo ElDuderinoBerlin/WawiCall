@@ -1,0 +1,295 @@
+using System.Buffers.Binary;
+using CSCore.Codecs.WAV;
+using Microsoft.Extensions.DependencyInjection;
+using WawiCallPro.Audio;
+using WawiCallPro.Interfaces.Audio;
+using WawiCallPro.Telephony.Sip;
+using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Operations;
+
+namespace WawiCallPro.App.Tests;
+
+[TestClass]
+public sealed class LiveRecordingTests
+{
+    [TestMethod]
+    public async Task LiveLoopbackKeepsTheSelectedEndpointAndDrainsCaptureBeforeChoosingDuration()
+    {
+        using var fixture = new Fixture(); var capture = new CaptureDouble();
+        using var services = new ServiceCollection().AddLogging().AddSingleton<TimeProvider>(fixture.Clock)
+            .AddAudioConversion().AddSingleton<IPlaybackPcmCaptureFactory>(capture).BuildServiceProvider();
+        var factory = new LivePcmRecordingFactory(new ForwardFactory(services.GetRequiredService<IDuplexPcmRecordingFactory>()), fixture.Clock);
+        var start = factory.StartAsync(new PlaybackRecordingSource(fixture.Source, "synthetic-playback"), fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        await using var recording = await start;
+        fixture.Clock.Advance(40); await recording.StopAsync();
+        Assert.AreEqual("synthetic-playback", capture.Endpoint); Assert.AreEqual(1, capture.Stops);
+        Assert.IsTrue(File.Exists(fixture.Path));
+    }
+
+    [TestMethod]
+    public async Task ImmediateStopDrainsTheLastWholeFrameInsteadOfCuttingItOrInventingAFutureUtcEnd()
+    {
+        using var fixture = new Fixture();
+        var factory = new LivePcmRecordingFactory(fixture.Persisted, TimeProvider.System);
+        var start = factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        await using var recording = await start;
+        var result = await recording.StopAsync();
+        Assert.IsTrue(result.Wave.FrameCount >= 160);
+        Assert.IsTrue(File.Exists(fixture.Path)); Assert.AreEqual(0, fixture.Source.Subscribers);
+    }
+
+    [TestMethod]
+    public async Task RealRtpCounterAndSequenceWrapRemainValidOnTheLocalTimeline()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(uint.MaxValue - 159, 100); fixture.Source.Receive(65535, uint.MaxValue - 159, 200);
+        await using var recording = await start;
+        fixture.Clock.Advance(20); fixture.Source.Send(0, 300); fixture.Source.Receive(0, 0, 400);
+        fixture.Clock.Advance(40); await recording.StopAsync();
+        Assert.AreEqual(PcmRecordingState.Completed, recording.State);
+    }
+
+    [TestMethod]
+    public async Task ExplicitPendingStartCancellationKeepsTheConversationMediaAlive()
+    {
+        using var fixture = new Fixture(); var native = new NativeMedia(fixture.Source);
+        await using var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, new(new ConfigurationLocation(fixture.Root)));
+        var start = media.StartLiveAsync(Guid.NewGuid(), CancellationToken.None);
+        media.CancelPendingStart();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => start);
+        Assert.AreEqual(0, native.Disposals); Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.AreEqual(LiveRecordingState.Failed, media.RecordingStatus.State);
+    }
+
+    [TestMethod]
+    public async Task MultipleExplicitSegmentsUseDifferentIdsAndDoNotDisposeTheConversation()
+    {
+        using var fixture = new Fixture(); var native = new NativeMedia(fixture.Source);
+        var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root)); Directory.CreateDirectory(paths.RecordingsDirectory);
+        await using var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, paths);
+        var call = Guid.NewGuid();
+        for (var segment = 0; segment < 2; segment++)
+        {
+            var start = media.StartLiveAsync(call, CancellationToken.None);
+            for (var wait = 0; fixture.Source.Subscribers == 0 && wait < 200; wait++) await Task.Delay(5);
+            Assert.AreEqual(1, fixture.Source.Subscribers);
+            fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200); await start;
+            fixture.Clock.Advance(40); await media.StopLiveAsync(CancellationToken.None);
+        }
+        Assert.AreEqual(2, Directory.EnumerateFiles(paths.RecordingsDirectory, "*.wav").Count());
+        Assert.AreEqual(0, native.Disposals); Assert.AreEqual(0, fixture.Source.Subscribers);
+    }
+
+    [TestMethod]
+    public async Task LocalReferencesUseOneMonotonicEpochAndRealRtpMetadataWithoutClaimingRemoteSynchronization()
+    {
+        var source = new LiveRecordingSourceDouble(); var clock = new LiveRecordingClock();
+        await using var preparation = new LiveRecordingPreparation(source, clock);
+        clock.Advance(10); source.Send(0xfffffff0, 100);
+        clock.Advance(15); source.Receive(65535, 2000, 200);
+        await preparation.Ready;
+        var request = preparation.CreateRequest(new(Guid.NewGuid(), Guid.NewGuid(), "unused.wav"));
+        Assert.AreEqual(RecordingTimelineBasis.LocalCodecObservation, request.TimelineBasis);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(10), request.Sent.RecordingOffset);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(25), request.Received.RecordingOffset);
+        Assert.AreEqual(0xfffffff0u, request.Sent.Timestamp); Assert.AreEqual((ushort)65535, request.Received.SequenceNumber);
+        clock.UtcShift = TimeSpan.FromHours(1);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(25), preparation.GetElapsed());
+        Assert.AreEqual(new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero), request.RecordingEpochUtc);
+    }
+
+    [TestMethod]
+    public async Task StartAndStopCreateBothWaveChannelsPreserveRtpGapsAndDrainOnce()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        await using var recording = await start;
+        fixture.Clock.Advance(40); fixture.Source.Send(1320, 300); fixture.Source.Receive(3, 2320, 400);
+        fixture.Clock.Advance(40);
+        var first = recording.StopAsync(); Assert.AreSame(first, recording.StopAsync());
+        await first;
+        Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.AreEqual(PcmRecordingState.Completed, recording.State);
+        using var reader = new WaveFileReader(fixture.Path);
+        Assert.AreEqual(2, reader.WaveFormat.Channels);
+        byte[] bytes = new byte[(int)reader.Length]; reader.Read(bytes, 0, bytes.Length);
+        Assert.AreEqual((short)100, BinaryPrimitives.ReadInt16LittleEndian(bytes));
+        Assert.AreEqual((short)200, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(2)));
+        Assert.AreEqual((short)0, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(160 * 4)));
+        Assert.AreEqual((short)300, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(320 * 4)));
+        Assert.AreEqual((short)400, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(320 * 4 + 2)));
+    }
+
+    [TestMethod]
+    public async Task CancellationWhileWaitingForASecondSideDetachesAndCreatesNoWave()
+    {
+        using var fixture = new Fixture(); using var stopping = new CancellationTokenSource();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request(), stopping.Token);
+        fixture.Source.Send(1000, 100); stopping.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => start);
+        Assert.AreEqual(0, fixture.Source.Subscribers); Assert.IsFalse(File.Exists(fixture.Path));
+    }
+
+    [TestMethod]
+    public async Task StartupBufferIsBoundedAndRejectsInsteadOfSilentlyDroppingOneSide()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        for (uint i = 0; i < 140 && fixture.Source.Subscribers > 0; i++) fixture.Source.Send(1000 + i * 160, 100);
+        await Assert.ThrowsAsync<PcmRecordingException>(() => start);
+        Assert.AreEqual(0, fixture.Source.Subscribers); Assert.IsFalse(File.Exists(fixture.Path));
+    }
+
+    [TestMethod]
+    public async Task SourceLossAndInvalidMetadataCannotProduceASuccessfulWave()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        var recording = await start; fixture.Clock.Advance(40);
+        fixture.Source.Fail();
+        await Assert.ThrowsAsync<PcmRecordingException>(() => recording.StopAsync());
+        try { await recording.DisposeAsync(); } catch (PcmRecordingException) { }
+        Assert.IsFalse(File.Exists(fixture.Path)); Assert.AreEqual(0, fixture.Source.Subscribers);
+    }
+
+    [TestMethod]
+    public async Task LateLocalFramesBeyondBoundedClockToleranceFailWithoutPublishing()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        var recording = await start;
+        fixture.Source.Send(9000, 100);
+        await Assert.ThrowsAsync<PcmRecordingException>(() => recording.StopAsync());
+        try { await recording.DisposeAsync(); } catch (PcmRecordingException) { }
+        Assert.IsFalse(File.Exists(fixture.Path));
+    }
+
+    [TestMethod]
+    public async Task MediaTerminationFinalizesBeforeClosingNativeMediaAndRejectsParallelStarts()
+    {
+        using var fixture = new Fixture();
+        var native = new NativeMedia(fixture.Source);
+        var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root)); Directory.CreateDirectory(paths.RecordingsDirectory);
+        var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, paths);
+        var states = new List<LiveRecordingState>(); media.RecordingChanged += (_, e) => states.Add(e.Snapshot.State);
+        var id = Guid.NewGuid(); var start = media.StartLiveAsync(id, CancellationToken.None);
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200); await start;
+        await Assert.ThrowsAsync<WawiCallPro.Interfaces.Telephony.TelephonyException>(() => media.StartLiveAsync(id, CancellationToken.None));
+        fixture.Clock.Advance(40);
+        native.BeforeDispose = () => Assert.IsTrue(Directory.EnumerateFiles(paths.RecordingsDirectory, "*.wav").Any());
+        var close = media.DisposeAsync().AsTask(); await close; Assert.AreSame(close, media.DisposeAsync().AsTask());
+        Assert.AreEqual(1, native.Disposals); Assert.AreEqual(LiveRecordingState.Completed, media.RecordingStatus.State);
+        CollectionAssert.AreEqual(new[] { LiveRecordingState.Starting, LiveRecordingState.Recording, LiveRecordingState.Stopping, LiveRecordingState.Completed }, states);
+        Assert.AreEqual(0, fixture.Source.Subscribers);
+    }
+
+    [TestMethod]
+    public async Task MediaCloseCancelsAnUnprimedStartBeforeReleasingNativeResources()
+    {
+        using var fixture = new Fixture(); var native = new NativeMedia(fixture.Source);
+        var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, new(new ConfigurationLocation(fixture.Root)));
+        var start = media.StartLiveAsync(Guid.NewGuid(), CancellationToken.None);
+        await media.DisposeAsync();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => start);
+        Assert.AreEqual(0, fixture.Source.Subscribers); Assert.AreEqual(1, native.Disposals);
+    }
+
+    [TestMethod]
+    public async Task AbortingDoesNotPublishAndAnotherExplicitSegmentCanStart()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
+        var recording = await start; await recording.DisposeAsync();
+        Assert.IsFalse(File.Exists(fixture.Path)); Assert.AreEqual(0, fixture.Source.Subscribers);
+        start = fixture.Factory.StartAsync(fixture.Source, fixture.Request());
+        fixture.Source.Send(2000, 100); fixture.Source.Receive(2, 3000, 200);
+        recording = await start; fixture.Clock.Advance(40); await recording.StopAsync(); await recording.DisposeAsync();
+        Assert.IsTrue(File.Exists(fixture.Path));
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        internal readonly string Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WawiCallPro-live-" + Guid.NewGuid().ToString("N"));
+        internal string Path => System.IO.Path.Combine(Root, "live.wav");
+        internal readonly LiveRecordingClock Clock = new();
+        internal readonly LiveRecordingSourceDouble Source = new();
+        internal readonly ServiceProvider Services;
+        internal readonly LivePcmRecordingFactory Factory;
+        internal readonly IPersistedDuplexPcmRecordingFactory Persisted;
+        internal Fixture()
+        {
+            Directory.CreateDirectory(Root); var services = new ServiceCollection(); services.AddLogging(); services.AddSingleton<TimeProvider>(Clock); services.AddAudioConversion();
+            Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true });
+            Persisted = new ForwardFactory(Services.GetRequiredService<IDuplexPcmRecordingFactory>());
+            Factory = new(Persisted, Clock);
+        }
+        internal PcmRecordingRequest Request() => new(Guid.NewGuid(), Guid.NewGuid(), Path, 8000);
+        public void Dispose() { Services.Dispose(); Directory.Delete(Root, true); }
+    }
+    internal sealed class ForwardFactory(IDuplexPcmRecordingFactory inner) : IPersistedDuplexPcmRecordingFactory
+    {
+        public Task<IDuplexPcmRecording> StartAsync(IConversationPcmFailureSource source, DuplexPcmRecordingRequest request, CancellationToken token = default) => inner.StartAsync(source, request, token);
+    }
+    internal sealed class NativeMedia(IConversationPcmSource source) : ISipPcmMediaSession
+    {
+        internal int Disposals; internal Action? BeforeDispose;
+        public SIPSorcery.SIP.App.IMediaSession Session => throw new NotSupportedException();
+        public IConversationPcmSource PcmSource => source;
+        public void ApplyPlaybackSettings() { }
+        public ValueTask DisposeAsync() { BeforeDispose?.Invoke(); Disposals++; return ValueTask.CompletedTask; }
+    }
+    private sealed class CaptureDouble : IPlaybackPcmCaptureFactory, IPlaybackPcmCapture
+    {
+        private readonly TaskCompletionSource _completed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal string? Endpoint; internal int Stops;
+        public Task Completion => _completed.Task;
+        public Task<IPlaybackPcmCapture> StartAsync(string? id, DateTimeOffset epoch, IPlaybackPcmObserver observer, CancellationToken token = default)
+        {
+            Endpoint = id; Assert.IsTrue(observer.TryObserve(TimeSpan.Zero, 8000, Enumerable.Repeat((short)200, 160).ToArray()));
+            return Task.FromResult<IPlaybackPcmCapture>(this);
+        }
+        public ValueTask DisposeAsync() { Stops++; _completed.TrySetResult(); return ValueTask.CompletedTask; }
+    }
+}
+
+internal sealed class LiveRecordingClock : TimeProvider
+{
+    private long _ticks;
+    internal TimeSpan UtcShift;
+    public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+    public override long GetTimestamp() => _ticks;
+    public override DateTimeOffset GetUtcNow() => new DateTimeOffset(2026, 11, 22, 0, 0, 0, TimeSpan.Zero).AddTicks(_ticks) + UtcShift;
+    internal void Advance(int milliseconds) => _ticks += TimeSpan.FromMilliseconds(milliseconds).Ticks;
+}
+
+internal sealed class LiveRecordingSourceDouble : IConversationPcmFailureSource
+{
+    private Lease? _lease;
+    internal int Subscribers => _lease is null ? 0 : 1;
+    public long FailureCount => 0;
+    public PcmObservationFailure? LastFailure => null;
+    public IConversationPcmSubscription Subscribe(IConversationPcmObserver observer)
+    { if (_lease is not null) throw new InvalidOperationException(); return _lease = new(this, observer); }
+    internal void Send(uint timestamp, short sample) => (_lease?.Observer as ISentRtpPcmObserver)?.TryObserveSent(new(7, timestamp, 8000, 160), 8000, 1, Enumerable.Repeat(sample, 160).ToArray());
+    internal void Receive(ushort sequence, uint timestamp, short sample) => (_lease?.Observer as IReceivedRtpPcmObserver)?.TryObserveReceived(new(9, sequence, timestamp, 8000), 8000, 1, Enumerable.Repeat(sample, 160).ToArray());
+    internal void Fail()
+    {
+        var lease = _lease;
+        (lease?.Observer as IConversationPcmFailureObserver)?.OnPcmObservationFailed(PcmObservationFailure.SentMetadataUnavailable);
+        lease?.Completed.TrySetResult(PcmObservationFailure.SentMetadataUnavailable);
+    }
+    private sealed class Lease(LiveRecordingSourceDouble owner, IConversationPcmObserver observer) : IConversationPcmSubscription
+    {
+        internal IConversationPcmObserver Observer = observer;
+        internal readonly TaskCompletionSource<PcmObservationFailure?> Completed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Task<PcmObservationFailure?> Completion => Completed.Task;
+        public ValueTask DisposeAsync() { owner._lease = null; Completed.TrySetResult(null); return ValueTask.CompletedTask; }
+    }
+}

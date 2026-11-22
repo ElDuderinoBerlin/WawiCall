@@ -28,7 +28,8 @@ public sealed partial class AppShellTests
             Assert.IsInstanceOfType<PcmRecordingSessionFactory>(recordingFactory);
             Assert.AreSame(recordingFactory, host.Services.GetRequiredService<IPcmRecordingSessionFactory>());
             Assert.IsInstanceOfType<CscorePcmSegmentSinkFactory>(host.Services.GetRequiredService<IPcmSegmentSinkFactory>());
-            Assert.IsInstanceOfType<PersistedSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
+            Assert.IsInstanceOfType<LivePersistedSipMediaSessionFactory>(host.Services.GetRequiredService<WawiCallPro.Telephony.Sip.ISipMediaSessionFactory>());
+            Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<ILiveCallRecordingService>());
             Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<ICallRecordingService>());
             Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>());
             Assert.AreSame<object>(host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>(), host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.IDtmfReceiver>());

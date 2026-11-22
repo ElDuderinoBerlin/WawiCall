@@ -55,7 +55,7 @@ internal sealed class AppTelephonyAccess(IProductLicenseService licenses, Licens
 
 /// <summary>One shared UI/COM command gate around the existing SIP runtime; events and snapshots retain their original ownership.</summary>
 internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyConnection connection, AppTelephonyAccess access)
-    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver, ICallRecordingService, IAsyncDisposable
+    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver, ICallRecordingService, ILiveCallRecordingService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _commands = new(1);
     private readonly CancellationTokenSource _stopping = new();
@@ -73,6 +73,20 @@ internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyC
         remove { if (backend is IDtmfReceiver receiver) receiver.DtmfReceived -= value; } }
     public Task<IDuplexPcmRecording> StartRecordingAsync(DuplexPcmRecordingRequest request, CancellationToken token = default) =>
         backend is ICallRecordingService recordings ? recordings.StartRecordingAsync(request, token) : throw new TelephonyException("AudioUnavailable");
+    public LiveRecordingSnapshot GetRecording(Guid callId) => (backend as ILiveCallRecordingService)?.GetRecording(callId)
+        ?? new(callId, null, LiveRecordingState.Idle);
+    public event EventHandler<LiveRecordingChangedEventArgs>? RecordingChanged
+    { add { if (backend is ILiveCallRecordingService recordings) recordings.RecordingChanged += value; }
+        remove { if (backend is ILiveCallRecordingService recordings) recordings.RecordingChanged -= value; } }
+    public async Task StartLiveRecordingAsync(Guid callId, CancellationToken cancellationToken = default)
+    {
+        await access.CheckLicenseAsync(cancellationToken).ConfigureAwait(false);
+        if (backend is not ILiveCallRecordingService recordings) throw new TelephonyException("RecordingUnavailable");
+        await recordings.StartLiveRecordingAsync(callId, cancellationToken).ConfigureAwait(false);
+    }
+    public Task StopLiveRecordingAsync(Guid callId, CancellationToken cancellationToken = default) =>
+        backend is ILiveCallRecordingService recordings ? recordings.StopLiveRecordingAsync(callId, cancellationToken)
+            : throw new TelephonyException("RecordingUnavailable");
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {

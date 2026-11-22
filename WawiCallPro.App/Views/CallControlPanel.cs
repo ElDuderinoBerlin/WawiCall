@@ -1,6 +1,7 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.App.Views;
 
@@ -10,6 +11,8 @@ public partial class CallControlPanel : XtraUserControl
     private ITelephonyService? _telephony;
     private CallSnapshot? _call;
     private readonly PageOperation _operation;
+    private readonly PageOperation _recordingOperation;
+    private bool _recordingBusy;
     private readonly CancellationTokenSource _lifetime = new();
     private Task? _stopTask;
     private bool _busy;
@@ -20,6 +23,7 @@ public partial class CallControlPanel : XtraUserControl
         InitializeComponent();
         UiButtonSizing.Attach(this);
         _operation = new(this, statusLabel);
+        _recordingOperation = new(this, recordingStatus);
         UpdateButtons();
     }
 
@@ -28,8 +32,10 @@ public partial class CallControlPanel : XtraUserControl
         ArgumentNullException.ThrowIfNull(call);
         if (_busy || _stopTask is not null) throw new InvalidOperationException("Call controls are busy or stopping.");
         if (_telephony is not null) _telephony.CallChanged -= Call_Changed;
+        if (_telephony is ILiveCallRecordingService previous) previous.RecordingChanged -= Recording_Changed;
         _telephony = telephony; _call = call;
         if (_telephony is not null) _telephony.CallChanged += Call_Changed;
+        if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged += Recording_Changed;
         ShowStatus(); UpdateButtons();
     }
 
@@ -62,6 +68,51 @@ public partial class CallControlPanel : XtraUserControl
             || _call.State is CallState.Connected or CallState.Held);
         holdButton.Text = _call?.State == CallState.Held ? "Fortsetzen" : "Halten";
         holdButton.Enabled = available && (_call!.State is CallState.Connected or CallState.Held);
+        UpdateRecording();
+    }
+    private void UpdateRecording()
+    {
+        if (_disposed) return;
+        var recordings = _telephony as ILiveCallRecordingService;
+        var state = _call is null ? LiveRecordingState.Idle : recordings?.GetRecording(_call.Id).State ?? LiveRecordingState.Idle;
+        recordingButton.Text = state == LiveRecordingState.Recording ? "Aufnahme stoppen" : "Aufnahme starten";
+        recordingButton.Enabled = !_recordingBusy && _stopTask is null && recordings is not null
+            && (_call?.State == CallState.Connected && state is LiveRecordingState.Idle or LiveRecordingState.Completed or LiveRecordingState.Failed
+                || _call?.State is CallState.Connected or CallState.Held && state == LiveRecordingState.Recording);
+        recordingStatus.Text = recordings is null ? "Aufnahme nicht verfügbar." : state switch
+        {
+            LiveRecordingState.Starting => "Aufnahme wird vorbereitet …",
+            LiveRecordingState.Recording => "Aufnahme läuft · beide Gesprächsseiten",
+            LiveRecordingState.Stopping => "Aufnahme wird abgeschlossen …",
+            LiveRecordingState.Completed => "Aufnahme gespeichert · Stereo: eigene Stimme links, Gegenstelle rechts.",
+            LiveRecordingState.Failed => "Aufnahme fehlgeschlagen. Audiosignal, Geräte und Speicher prüfen.",
+            _ => "Keine Aufnahme"
+        };
+        UiButtonSizing.Apply(recordingButton);
+    }
+    private async void Recording_Changed(object? sender, LiveRecordingChangedEventArgs e)
+    {
+        if (_disposed || _stopTask is not null || !IsHandleCreated || _call?.Id != e.Snapshot.CallId) return;
+        try { await InvokeAsync(UpdateRecording, _lifetime.Token); }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+    }
+    private async void Recording_Click(object? sender, EventArgs e) => await ToggleRecordingAsync();
+    internal Task ToggleRecordingAsync()
+    {
+        if (!recordingButton.Enabled || _call is null || _telephony is not ILiveCallRecordingService recordings) return Task.CompletedTask;
+        var id = _call.Id;
+        return _recordingOperation.RunAsync(async token =>
+        {
+            _recordingBusy = true; recordingButton.Enabled = false;
+            try
+            {
+                if (recordings.GetRecording(id).State == LiveRecordingState.Recording)
+                    await recordings.StopLiveRecordingAsync(id, token);
+                else await recordings.StartLiveRecordingAsync(id, token);
+            }
+            finally { _recordingBusy = false; UpdateRecording(); }
+        });
     }
     private async void Call_Changed(object? sender, CallChangedEventArgs e)
     {
@@ -105,15 +156,19 @@ public partial class CallControlPanel : XtraUserControl
     private async Task StopCoreAsync()
     {
         if (_telephony is not null) _telephony.CallChanged -= Call_Changed;
+        if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged -= Recording_Changed;
         await _lifetime.CancelAsync();
         UpdateButtons();
         await _operation.StopAsync();
+        await _recordingOperation.StopAsync();
     }
     private void DisposePage()
     {
         if (_disposed) return;
         _disposed = true;
         if (_telephony is not null) _telephony.CallChanged -= Call_Changed;
+        if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged -= Recording_Changed;
         _lifetime.Cancel(); _lifetime.Dispose(); _operation.Dispose();
+        _recordingOperation.Dispose();
     }
 }

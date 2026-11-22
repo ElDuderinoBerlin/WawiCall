@@ -969,10 +969,14 @@ nutzbar; bei einer persistenten Gesprächsaufnahme gibt es keinen stillen Rückf
 DI-Aufbau öffnet weder Datenbank noch Geräte. Gesprächsende und Host-Shutdown warten weiterhin auf
 den besessenen Aufnahmeabschluss einschließlich seiner Metadatenoperationen.
 
-Ein persistenter Auftrag benötigt `RecordingEpochUtc`: den vom Aufrufer bereits verifizierten
-UTC-Zeitpunkt zu Null auf derselben Aufnahmezeitachse wie die beiden RTP-Anker. Dies wird weder
-aus Gesprächsbeginn noch aus Paketankunft ermittelt. Nicht-UTC-, fehlende oder zukünftige Epochen
-werden zurückgewiesen. Der Resolver für NTP-Referenzen beschafft diese UTC-Korrelation nicht selbst.
+Ein persistenter Auftrag benötigt `RecordingEpochUtc`: den expliziten UTC-Zeitpunkt zu Null auf
+derselben Aufnahmezeitachse wie die beiden RTP-Anker. Die bisherige Basis `CallerSamplingReferences`
+setzt verifizierte Abtastzeitreferenzen des Aufrufers voraus; der NTP-Resolver beschafft diese nicht selbst.
+Seit 22.11.2026 verwendet die manuelle Live-Aufnahme ausdrücklich `LocalCodecObservation`:
+gemeinsame lokale monotone Epoche und erste Codecbeobachtung je Seite, danach reale RTP-Zähler.
+Das behauptet keine Synchronisierung entfernter Abtastuhren. Basis, vorbereitete Quellenidentität
+und Anker werden vor dem Journal geprüft. Nicht-UTC-, fehlende und zukünftige Epochen bleiben gesperrt.
+Details und Grenzen stehen unter [manuelle Live-Aufnahme](SIP-Einstellungen.md#manuelle-live-aufnahme-und-lokale-medienzeitachse-22112026).
 WAV-Ziele müssen lokal unter `ApplicationPaths.RecordingsDirectory` liegen; in der DB wird nur
 die relative Referenz gespeichert. Vorhandene Reparsepunkte im Zielpfad sind unzulässig. Die
 Pfadprüfung ist keine atomare Sperre gegen externe gleichzeitige Verzeichnisänderungen.

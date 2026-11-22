@@ -5,7 +5,7 @@ using System.Runtime.ExceptionServices;
 namespace WawiCallPro.Audio;
 
 internal sealed class PersistedDuplexPcmRecording(IDuplexPcmRecording inner, RecordingJournalWriter writer,
-    PcmRecordingRequest request, DateTimeOffset epoch, TimeProvider clock) : IDuplexPcmRecording, IRecordingPersistenceStatus
+    PcmRecordingRequest request, DateTimeOffset epoch, TimeProvider clock) : IDuplexPcmRecording, IRecordingPersistenceStatus, IRecordingInputDrain
 {
     private readonly object _gate = new();
     private Task<PcmRecordingResult>? _stop;
@@ -19,6 +19,8 @@ internal sealed class PersistedDuplexPcmRecording(IDuplexPcmRecording inner, Rec
         get { var code = Volatile.Read(ref _failure); return inner.Failure ?? (code != 0 ? (PcmRecordingFailure)code : null); }
     }
     public Task InputCompletion => inner.InputCompletion;
+    public Task<long> DrainInputAsync() => inner is IRecordingInputDrain drain ? drain.DrainInputAsync()
+        : throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
     public bool HasPendingPersistence => writer.HasPending;
     public Task RetryPersistenceAsync(CancellationToken cancellationToken = default) => writer.RetryAsync(cancellationToken);
 

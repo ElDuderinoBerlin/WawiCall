@@ -48,7 +48,7 @@ internal static class AppCompositionRoot
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
                 services.AddSingleton<WindowsSipMediaSessionFactory>();
-                services.AddSingleton<ISipMediaSessionFactory, PersistedSipMediaSessionFactory>();
+                services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
                 services.AddAudioConversion();
                 services.AddPersistedRecordings();
                 services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
@@ -60,6 +60,7 @@ internal static class AppCompositionRoot
                 services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Telephony.ITelephonyConnection>(provider => provider.GetRequiredService<AppTelephonyService>()));
                 services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Telephony.IDtmfReceiver>(provider => provider.GetRequiredService<AppTelephonyService>()));
                 services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Audio.ICallRecordingService>(provider => provider.GetRequiredService<AppTelephonyService>()));
+                services.Replace(ServiceDescriptor.Singleton<WawiCallPro.Interfaces.Audio.ILiveCallRecordingService>(provider => provider.GetRequiredService<AppTelephonyService>()));
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
                 if (!mode.SuppressNetwork) services.AddHostedService<MailStartupImport>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();

@@ -4,7 +4,7 @@ using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;
 
-internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingInputGuard
+internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingInputGuard, IPcmRecordingInputExtent
 {
     private readonly PcmRecordingRequest _request;
     private readonly IPcmSegmentSinkFactory _sinks;
@@ -20,6 +20,8 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
     // Ordinary states use their enum value; failures use 100 + failure. One atomic value
     // decides Stop versus callback rejection, so a late callback cannot invalidate a committed stop.
     private int _status;
+    private long _inputFrames;
+    public long InputFrameCount => Interlocked.Read(ref _inputFrames);
 
     internal PcmRecordingSession(PcmRecordingRequest request, IPcmSegmentSinkFactory sinks, IConversationWaveMixer mixer, CancellationToken token)
     {
@@ -57,7 +59,13 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
         if (outputEnd * channels * 2 > int.MaxValue - 44)
         { Fail(PcmRecordingFailure.InvalidBlock, capturingOnly: true); return false; }
         var block = new Block(side, start, sampleRate, samples.ToArray());
-        if (_queue.Writer.TryWrite(block)) return true;
+        if (_queue.Writer.TryWrite(block))
+        {
+            long previous;
+            do { previous = Interlocked.Read(ref _inputFrames); if (previous >= outputEnd) break; }
+            while (Interlocked.CompareExchange(ref _inputFrames, outputEnd, previous) != previous);
+            return true;
+        }
         if (Volatile.Read(ref _accepting) != 0) Fail(PcmRecordingFailure.BufferOverflow, capturingOnly: true);
         return false;
     }

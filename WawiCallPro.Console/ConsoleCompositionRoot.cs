@@ -18,7 +18,7 @@ internal static class ConsoleCompositionRoot
             if (loadPlugins) services.AddProductPluginRuntime();
             services.AddSingleton<IUiDispatcher, InlineUiDispatcher>();
             services.AddSingleton<WindowsSipMediaSessionFactory>();
-            services.AddSingleton<ISipMediaSessionFactory, PersistedSipMediaSessionFactory>();
+            services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
             services.AddAudioConversion();
             services.AddPersistedRecordings();
             services.AddSipTelephony(false);

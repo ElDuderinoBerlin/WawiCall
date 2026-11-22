@@ -2,7 +2,7 @@ using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Core.Audio;
 
-internal sealed class DuplexPcmRecording : IDuplexPcmRecording
+internal sealed class DuplexPcmRecording : IDuplexPcmRecording, IRecordingInputDrain
 {
     private readonly IPcmRecordingSession _session;
     private readonly IPcmRecordingInputGuard _guard;
@@ -15,6 +15,13 @@ internal sealed class DuplexPcmRecording : IDuplexPcmRecording
     private Task<PcmRecordingResult>? _stop;
     private Task? _dispose;
     private int _closing;
+    private Task? _detach;
+    public async Task<long> DrainInputAsync()
+    {
+        await DrainOnceAsync().ConfigureAwait(false);
+        return (_session as IPcmRecordingInputExtent)?.InputFrameCount
+            ?? throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+    }
     public PcmRecordingState State => Volatile.Read(ref _closing) != 0 && _session.State == PcmRecordingState.Capturing ? PcmRecordingState.Stopping : _session.State;
     public PcmRecordingFailure? Failure => _session.Failure;
     public Task InputCompletion { get; }
@@ -58,13 +65,14 @@ internal sealed class DuplexPcmRecording : IDuplexPcmRecording
     {
         try
         {
-            await DetachAsync().ConfigureAwait(false);
+            await DrainOnceAsync().ConfigureAwait(false);
             return await _session.StopAsync(duration, token).ConfigureAwait(false);
         }
         finally { await _session.DisposeAsync().ConfigureAwait(false); }
     }
 
-    private async Task DetachAsync()
+    private Task DrainOnceAsync() { lock (_gate) return _detach ??= DetachCoreAsync(); }
+    private async Task DetachCoreAsync()
     {
         try
         {
@@ -92,7 +100,7 @@ internal sealed class DuplexPcmRecording : IDuplexPcmRecording
     private static async Task AwaitStopAsync(Task<PcmRecordingResult> stopping) => await stopping.ConfigureAwait(false);
     private async Task AbortAsync()
     {
-        try { await DetachAsync().ConfigureAwait(false); }
+        try { await DrainOnceAsync().ConfigureAwait(false); }
         finally { await _session.DisposeAsync().ConfigureAwait(false); }
     }
 }

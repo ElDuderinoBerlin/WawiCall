@@ -49,7 +49,7 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         public void OnFailure() => guard.RejectInput(PcmRecordingFailure.TimelineConflict);
     }
 
-    private sealed class Recording : IDuplexPcmRecording
+    private sealed class Recording : IDuplexPcmRecording, IRecordingInputDrain
     {
         private readonly IPcmRecordingSession _session;
         private readonly ISentPcmRecordingBinding _sent;
@@ -59,6 +59,13 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         private readonly object _gate = new();
         private Task<PcmRecordingResult>? _stop;
         private Task? _dispose;
+        private Task? _detach;
+        public async Task<long> DrainInputAsync()
+        {
+            await DrainOnceAsync().ConfigureAwait(false);
+            return (_session as IPcmRecordingInputExtent)?.InputFrameCount
+                ?? throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+        }
         public PcmRecordingState State => _session.State;
         public PcmRecordingFailure? Failure => _session.Failure;
         public Task InputCompletion { get; }
@@ -90,7 +97,8 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
             }
         }
 
-        private async Task DetachAsync()
+        private Task DrainOnceAsync() { lock (_gate) return _detach ??= DetachCoreAsync(); }
+        private async Task DetachCoreAsync()
         {
             try { await _playback.DisposeAsync().ConfigureAwait(false); }
             finally { await _sent.DisposeAsync().ConfigureAwait(false); }
@@ -98,7 +106,7 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         }
         private async Task<PcmRecordingResult> StopCoreAsync(TimeSpan duration, CancellationToken token)
         {
-            try { await DetachAsync().ConfigureAwait(false); return await _session.StopAsync(duration, token).ConfigureAwait(false); }
+            try { await DrainOnceAsync().ConfigureAwait(false); return await _session.StopAsync(duration, token).ConfigureAwait(false); }
             finally { await _session.DisposeAsync().ConfigureAwait(false); }
         }
         public ValueTask DisposeAsync()
@@ -108,7 +116,7 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         private static async Task AwaitStopAsync(Task stop) => await stop.ConfigureAwait(false);
         private async Task AbortAsync()
         {
-            try { await DetachAsync().ConfigureAwait(false); }
+            try { await DrainOnceAsync().ConfigureAwait(false); }
             finally { await _session.DisposeAsync().ConfigureAwait(false); }
         }
     }

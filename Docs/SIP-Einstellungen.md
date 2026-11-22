@@ -208,3 +208,63 @@ geöffnet. Das Ausgabegerät war still: **0 beobachtete Pakete**, daher kein ech
 Dieser bleibt zusammen mit Wiedergabeprüfung und Geräteverlusttest in G1/Phase 9 offen.
 Logs `.loopback-*.log`, Bilder `.artifacts/app-shell/settings-ui/recording-source`,
 nativer Status `.artifacts/loopback/native-smoke-result.json`.
+
+## Manuelle Live-Aufnahme und lokale Medienzeitachse (22.11.2026)
+
+Im Anruferfenster und in den Gesprächsdetails steht **Aufnahme starten** zur Verfügung, sobald
+das Gespräch verbunden ist. Der Button wechselt zu **Aufnahme stoppen**. Status und Aufnahmebesitz
+liegen beim Gesprächsdienst, gemeinsam für alle geöffneten Ansichten. Ein weiterer ausdrücklicher
+Start nach Abschluss erzeugt einen neuen Abschnitt mit neuer Aufnahme-ID. Es gibt keine automatische
+Aufnahme. Die Aufnahme beginnt mit dem Startauftrag, bereits vorher gesprochenes Audio wird nicht nachgeladen.
+Bei ausgewähltem Loopback betrifft die Empfangsseite weiterhin alle Töne des festgehaltenen Ausgabegeräts.
+
+`ILiveCallRecordingService` wird in beiden Hosts mit derselben SIP-Instanz registriert; die App
+verwendet ihren bestehenden Zugriffsschutz. Beenden/Stoppen bleibt möglich, wenn später die Lizenz
+oder Wawi-Quelle nicht mehr verfügbar ist. Der COM-Vertrag bleibt unverändert; keine zusätzlichen
+COM-Methoden oder Registrierungen. `LivePersistedSipMediaSessionFactory` erzeugt pro Gespräch
+einen Besitzer, `LivePcmRecordingFactory` pro ausdrücklichem Start eine Vorbereitung/Sitzung.
+
+Die Zeitbasis heißt ausdrücklich **LocalCodecObservation**. `LiveRecordingPreparation` erfasst eine
+gemeinsame UTC-/monotone Epoche und je Seite den ersten tatsächlichen RTP-Zähler an der lokalen
+Codecbeobachtung. Nachfolgende Abstände ergeben sich aus RTP-Taktrate und Zählerdifferenzen,
+einschließlich Überläufen und Lücken. Empfangspufferung, Fehlergrenzen und CSCore-Resampling bleiben
+in den bisherigen Diensten. Erst nach beiden Referenzen bindet die bestehende Aufnahme-Pipeline an;
+die Anfangsblöcke werden bis dahin begrenzt gepuffert, nicht verworfen.
+
+**Das sind lokale Beobachtungsreferenzen, keine verifizierten Abtastzeitpaare entfernter Geräte.**
+Netz-/Codec-/Wiedergabelatenz ist nicht vermessen; anhaltende Gerätedrift wird nicht korrigiert.
+`IRtpRecordingAnchorResolver` bleibt unverändert für tatsächlich verifizierte RTP-/NTP-Referenzen.
+Es werden keine künstlichen NTP-Werte oder angenommen synchronen Uhr-IDs erzeugt.
+Die neue Basis gehört zum Aufnahmeantrag; das vorhandene DB-Schema erhält dafür keine neue Spalte.
+
+Vorbereitung: höchstens 5 Sekunden, 128 Blöcke und 524288 PCM16-Samples (1 MiB). Fehlende Seite,
+ungültige Metadaten oder Überlauf scheitern sichtbar. Vor dem Datenbankjournal müssen Basis,
+Epoche und beide Anker zur konkreten Vorbereitung passen. Es gibt keinen stillen Rückfall auf
+unpersistierte Dateien. Neue native Ressourcen werden weiterhin erst durch Aufnahmebeginn geöffnet.
+
+Stoppen koppelt Codecquelle, Empfangspuffer und gegebenenfalls Loopback vollständig ab und wartet
+auf laufende Callbacks. `IRecordingInputDrain` liefert danach die höchste tatsächlich übernommene
+Output-Frameposition; sie begrenzt die Dateidauer nach unten. Die monotone Uhr liefert die übrige
+Dauer. Liegt das Ende maximal 500 ms voraus, wird dieses Restfenster vor der UTC-Endbestätigung
+abgewartet; größere Zeitkonflikte scheitern. Dadurch werden weder der letzte Block abgeschnitten
+noch ein zukünftiges Medienende gespeichert. Grenzen für WAV-Größe und maximal acht Stunden bleiben bestehen.
+
+Lokales und entferntes Auflegen unterbrechen einen wartenden Start. Bei laufender Aufnahme
+finalisiert der Medienbesitzer WAV und Journal vor seiner Freigabe. Schließen nur einer Ansicht
+stoppt die besessene Gesprächsaufnahme nicht. Fehlgeschlagene oder ausstehende Abschlüsse werden
+nicht als gespeichert angezeigt; vorhandene Segmente und Wiederanlaufaufträge bleiben erhalten.
+Rollback: diese Anbindung und Hostregistrierungen gemeinsam zurücknehmen; keine Migration nötig,
+vorhandene Dateien, Journale und Aufträge erhalten und mit kompatiblen Diensten weiter bearbeiten.
+
+Je Edition bestanden: **44 App-/UI-/Aufnahme-/DI-, 99 Core-/Anker-, 215 Console-/RTP-/Mixer- und
+31 SIP-Runtime-Prüfungen** sowie **23 Persistenz-/Journaltests**. Enthalten: Stereo-WAV und SQLite-Historienverweis, echte lokale UDP-/Codec-
+Übertragung mit PCMA/PCMU/G.722, Zählerüberläufe, RTP-Lücken, unmittelbares Stoppen, mehrere Abschnitte,
+Abbruch/Quellenverlust und lokales/entferntes Auflegen während eines Starts. Beide regulären Builds
+Debug/Any CPU ohne Fehler/Warnungen, Pro zuletzt. 29 Designer-Dateitripel geprüft; Anruferfenster und
+Gesprächsdetails mit 10/16 pt, hellem/dunklem Skin und 150-%-Layoutsimulation ohne sichtbaren App-Start geprüft.
+Nachweise: `.live-recording-*.log`, `.artifacts/app-shell/settings-ui/live-recording`.
+
+**Offen:** echter FRITZ!Box-/Headset-Aufnahmetest, Hörprüfung beider Seiten, realer Geräteverlust
+und längerer Lauf. Headset und zweiter Anschluss sind vom Benutzer als bereit bestätigt.
+Nächster gemeinsamer Schritt ist die Prüfung von Pro-Profil, Mikrofon/Wiedergabe, Quellenwahl
+**RTP / Medienpfad** und SIP-Status; erst danach den angekündigten Anruf ausführen.
