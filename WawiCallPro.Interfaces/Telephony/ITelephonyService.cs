@@ -13,7 +13,11 @@ public enum RegistrationState
 }
 
 /// <summary>Status exposes a safe error code, never credentials or raw authentication headers.</summary>
-public sealed record RegistrationSnapshot(RegistrationState State, DateTimeOffset ChangedAtUtc, string? ErrorCode = null);
+public sealed record RegistrationSnapshot(RegistrationState State, DateTimeOffset ChangedAtUtc, string? ErrorCode = null)
+{
+    /// <summary>Saved profile used by this connection; later settings edits do not change it.</summary>
+    public Guid? SipProfileId { get; init; }
+}
 
 /// <summary>
 /// Asynchronous SIP operations implemented exclusively by SIPSorcery in phase 7.

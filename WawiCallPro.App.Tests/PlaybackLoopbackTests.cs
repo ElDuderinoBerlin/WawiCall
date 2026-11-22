@@ -185,7 +185,7 @@ public sealed class PlaybackLoopbackTests
         Assert.AreEqual(RecordingReceiveSource.Rtp, before.Options.Devices.RecordingReceiveSource);
         await store.SaveAsync(before.Options with { Devices = before.Options.Devices with { RecordingReceiveSource = RecordingReceiveSource.PlaybackLoopback } }, before);
         var after = await store.LoadAsync();
-        Assert.AreEqual(12, after.FormatVersion);
+        Assert.AreEqual(ConfigurationFormat.CurrentVersion, after.FormatVersion);
         Assert.AreEqual(RecordingReceiveSource.PlaybackLoopback, after.Options.Devices.RecordingReceiveSource);
         Assert.AreEqual("synthetic-render", after.Options.Devices.PlaybackDeviceId);
         Assert.Throws<ConfigurationException>(() => new ApplicationOptionsValidator(new WindowsUserSecretProtector()).Validate(

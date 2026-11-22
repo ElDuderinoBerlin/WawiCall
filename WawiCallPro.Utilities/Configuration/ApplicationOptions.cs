@@ -17,6 +17,8 @@ public sealed record ApplicationOptions
 {
     public ErpConnectionSettings Erp { get; init; } = new();
     public SipAccountOptions? SipAccount { get; init; }
+    public ImmutableArray<SipAccountProfile> SipProfiles { get; init; } = [];
+    public Guid? ActiveSipProfileId { get; init; }
     public UserSettings User { get; init; } = new();
     public AudioDeviceSettings Devices { get; init; } = new();
     public AutomaticMp3Settings AutomaticMp3 { get; init; } = new();

@@ -23,7 +23,13 @@ ohne Fenster/Telefonaktion, explizite View-/Kunden-/Lieferanten-/Telefonaktionen
 und Referenzfreigabe. Sieben native Pro-Clientprüfungen einschließlich x86/x64, PowerShell 5.1/7 und
 Fehlerpfaden bestanden; Unicode-Kontextdatei nach Fehler entfernt. Skripte in der Hauptsolution,
 Anleitung unter [COM-Automation](COM-Automation-Anleitung.md#vbs--und-powershell-testskripte).
-Kein neuer FinOffice- oder Echttelefonie-Nativnachweis. Mehrere gespeicherte SIP-Profile folgen separat.
+Kein neuer FinOffice- oder Echttelefonie-Nativnachweis.
+✅ Mehrere gespeicherte SIP-Profile umgesetzt: Auswahl, Namen, Hinzufügen/Entfernen und gemeinsames
+Speichern im SIP-Tab; bestehendes Konto als Standard, getrennte DPAPI-Kennwörter, erweiterte Optionen
+und Leitungsfirma. Eine aktive Registrierung bleibt beim Speichern unverändert. Interner Vertrag 13,
+portabler Import/Export erhält lokale Profile. Je Edition 104 gezielte Tests und reguläre Builds
+Debug/Any CPU erfolgreich; 29 Designer-Tripel und gezielte SIP-Renderbilder geprüft. Einzelheiten unten
+unter „SIP-Profile“ und in [SIP-Einstellungen](SIP-Einstellungen.md#mehrere-gespeicherte-sip-profile-22112026).
 G1-Wiederaufnahme vom 22.11.2026: ✅ manuelle Aufnahme-Start-/Stop-Bedienung und lokale Live-Medienzeitachse
 implementiert und isoliert geprüft. ✅ Headset und zweiter Anschluss vom Benutzer als bereit bestätigt.
 Nächster gemeinsamer Schritt: Pro-Profil, Geräte, RTP-Quellenwahl und SIP-Status prüfen; noch kein Echtanruf erfolgt.
@@ -762,7 +768,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; ✅ manuelle Gesprächsaufnahme mit gemeinsamem Status und lokaler Live-Medienzeitachse; ✅ granularer Splash-Fortschritt mit geladenem Plugin und Version; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ zentrale Mandantenladung aus dem aktiven Plugin und durchsuchbare Auswahl, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; ✅ manuelle Gesprächsaufnahme mit gemeinsamem Status und lokaler Live-Medienzeitachse; ✅ granularer Splash-Fortschritt mit geladenem Plugin und Version; ✅ mehrere gespeicherte SIP-Profile mit getrennter Leitungsfirma und geschützten Zugangsdaten; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ manuelle Live-Aufnahme mit lokaler Codec-/RTP-Zeitreferenzierung, quellenübergreifendem Drain und Abschluss vor Medienfreigabe; ✅ RTP/CSCore-Loopback auswählbar; ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, gerätegenaue Abtastuhr-Synchronisierung/Driftkorrektur, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmeautomatik, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -1816,6 +1822,41 @@ Abbruch vor Annahme, Gegenstelle legt auf, Registrierung schlägt fehl und Netzw
 App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
+
+#### SIP-Profile – Zusatzauftrag vom 22.11.2026 ✅
+
+- [x] ✅ Bis zu 16 benannte SIP-Profile mit durchsuchbarer Auswahl sowie Hinzufügen/Entfernen im
+  bestehenden Einstellungsdialog. Profilname, Standard-/Expertenfelder und bestätigte Leitungsfirma
+  gemeinsam als Entwurf bearbeiten und atomar speichern. Abbrechen erhält die Datei; Entfernen des
+  letzten Profils leert die Kontokonfiguration nach ausdrücklichem Speichern.
+- [x] ✅ Bisheriges Einzelkonto einschließlich Kennwort unverändert als Standard-Profil öffnen;
+  erst Speichern schreibt interne Version 13. Alte Formate bleiben lesbar. Das ausgewählte Profil
+  belegt das bestehende aktive Kontofeld; inaktive Profile erhalten getrennte DPAPI-Werte.
+  Neue Profile sind leer, Kennwort-Sichtbarkeit und leere Kennwortfelder bleiben auf ihr Profil begrenzt.
+- [x] ✅ Kein automatischer Verbindungswechsel beim Auswählen oder Speichern. Die aktuelle Registrierung
+  behält ihre Profilkennung, den Kontotransport und ihre Gespräche; erst ausdrücklich Abmelden/Anmelden
+  verwendet die neue Auswahl. Bestehende Anrufe verwenden ihren tatsächlichen Leitungskontext auch
+  bei bereits anders gespeicherter Profilauswahl; mehrdeutige identische Kontoadressen liefern keine
+  bestätigte Firmenzuordnung. Keine parallelen Profilregistrierungen eingeführt.
+- [x] ✅ Namen-/ID-/Mengen-/Vollständigkeitsgrenzen, inaktive Konten, DPAPI-Trennung, Format-12-Übernahme,
+  portable Ausschlüsse, Auswahl-/Löschentwürfe, Wiederladen und Konfliktschutz isoliert geprüft.
+  Je Edition 36 Konfigurations-/Import-/Profiltests, 36 gezielte App-/Zuordnungs-/Aufnahmequellentests
+  und 32 SIP-Laufzeittests bestanden (104 pro Edition). Lokaler UDP-Registrar bestätigt unveränderte
+  Sitzung nach Speichern und neue Profilkennung/Benutzeradresse erst nach Ab-/Anmelden; keine echten
+  Anlagenzugriffe oder Geräteöffnungen in diesen Prüfungen.
+- [x] ✅ Reguläre Solution-Builds Debug/Any CPU für FinOffice und anschließend Pro ohne Warnungen/Fehler.
+  29 Designer-Dateitripel mit Ressourcen/Konstruktoren/Syntax geprüft. Nur SIP-Tab/Profilbereich geändert
+  und gezielt im Hintergrund mit leeren/gefüllten synthetischen Konten, Basic/Office 2019 Black,
+  10-/16-Punkt-Schrift, kleinen/breiten Fenstern und zusätzlicher 150%-Layoutskalierung gerendert und
+  visuell geprüft. Inhaltsabhängige Mindesthöhe, kompakte Buttons nach versteckter Tab-Skalierung und
+  erreichbare Aktionen bei Monitorbegrenzung korrigiert. Das ist kein echter Monitor-DPI-Wechselnachweis.
+
+Nachweise: `.artifacts/sip-profiles/{build,utilities,app,sip}-{fin,pro}.log`,
+`.artifacts/sip-profiles/designer.log` und `.artifacts/app-shell/settings-ui/sip-{settings,profiles}`.
+Keine Datenbank-/Schemaänderung, keine echten Zugangsdaten geändert. G1 und die reale Audio-/Anrufabnahme
+bleiben offen. Das interne Format 13 benötigt bei Rückkehr zu alten Builds eine zuvor gesicherte lokale
+Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen.
+
 
 - [x] ✅ Zurück/Vorwärts zwischen besuchten Views nach LxTranslate ergänzt (Nutzerauftrag 15.11.2026):
   Kleine SVG-Pfeile ohne Text oben links in der Ribbon-Schnellzugriffsleiste, direkt nach dem App-Symbol.

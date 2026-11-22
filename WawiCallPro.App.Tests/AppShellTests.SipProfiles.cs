@@ -1,0 +1,91 @@
+using System.Reflection;
+using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
+using WawiCallPro.App.Views;
+using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Utilities.Configuration;
+
+namespace WawiCallPro.App.Tests;
+
+public partial class AppShellTests
+{
+    [TestMethod]
+    public Task SipProfilesKeepPasswordsAdvancedOptionsAndLinesSeparateWithoutReconnecting() => WithWorkspace(async (workspace, _, plugin) =>
+    {
+        var backend = (ComTelephonyFixture.Backend)workspace.Telephony!;
+        using var form = new FrmSettings(workspace);
+        form.PrepareForBackgroundRun();
+        form.Show();
+        var page = Field<SettingsPage>(form, "settingsPage");
+        await page.ReloadAsync();
+        form.SelectAutomationTab("settings-sip");
+        var selector = Field<LookUpEdit>(page, "sipProfileEdit");
+        var password = Field<ButtonEdit>(page, "passwordEdit");
+        var server = Field<TextEdit>(page, "serverEdit");
+        var user = Field<TextEdit>(page, "usernameEdit");
+        void Action(string method) => typeof(SettingsPage).GetMethod(method, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(page, [null, EventArgs.Empty]);
+        void Toggle() => typeof(SettingsPage).GetMethod("PasswordVisibility_Click", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(page, [password, new ButtonPressedEventArgs(password.Properties.Buttons[0])]);
+        Field<TextEdit>(page, "sipProfileNameEdit").Text = "Büro";
+        server.Text = "office.invalid"; user.Text = "office-user"; password.Text = "synthetic-office-secret";
+        var firstId = (Guid)selector.EditValue;
+        var advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
+        advanced.RegistrationExpirySeconds = 240;
+        var firstMapping = CallerLineConfiguration.Create(page.ReadOptions().SipAccount!, (await workspace.Directory.GetCompaniesAsync())[0].Key);
+        typeof(SettingsPage).GetField("_lineDraft", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(page, firstMapping);
+        Action("AddSipProfile_Click");
+        var secondId = (Guid)selector.EditValue;
+        Assert.AreNotEqual(firstId, secondId);
+        Assert.AreEqual("", server.Text); Assert.AreEqual("", user.Text); Assert.AreEqual("", password.Text);
+        Toggle(); Assert.AreEqual("", password.Text, "A new profile must not reveal the first profile's stored password.");
+        Field<TextEdit>(page, "sipProfileNameEdit").Text = "Außendienst";
+        server.Text = "mobile.invalid"; user.Text = "mobile-user"; password.Text = "synthetic-mobile-secret";
+        selector.EditValue = firstId;
+        Assert.AreEqual("office.invalid", server.Text); Assert.AreEqual("office-user", user.Text);
+        Assert.AreEqual("", password.Text); Assert.IsTrue(password.Properties.UseSystemPasswordChar);
+        advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
+        Assert.AreEqual(240, advanced.RegistrationExpirySeconds);
+        Assert.AreEqual(firstMapping, page.ReadOptions().CallerLineAssignment);
+        Toggle(); Assert.AreEqual("synthetic-office-secret", password.Text);
+        selector.EditValue = secondId;
+        Assert.AreEqual("", password.Text); Assert.IsTrue(password.Properties.UseSystemPasswordChar);
+        Toggle(); Assert.AreEqual("synthetic-mobile-secret", password.Text);
+        backend.Register(RegistrationState.Registered);
+        await page.SaveAsync(CancellationToken.None);
+        Assert.AreEqual(0, backend.Connects); Assert.AreEqual(0, backend.Disconnects);
+        Assert.AreEqual(RegistrationState.Registered, backend.Registration.State);
+        var saved = (await workspace.Settings.LoadAsync()).Options;
+        Assert.AreEqual(2, saved.SipProfiles.Length); Assert.AreEqual(secondId, saved.ActiveSipProfileId);
+        Assert.AreEqual("mobile.invalid", saved.SipAccount!.Server);
+        Assert.AreEqual(firstMapping, SipProfileCatalog.Read(saved).Single(profile => profile.Id == firstId).LineAssignment);
+        Application.DoEvents(); CheckTableBounds(form);
+        var directory = Path.Combine(RenderOutput(), "sip-profiles"); Directory.CreateDirectory(directory);
+        using (var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form)) image.Save(Path.Combine(directory, "two-profiles.png"));
+        await InvokeActionAsync(page, "SipDisconnect_Click");
+        await InvokeActionAsync(page, "SipConnect_Click");
+        Assert.AreEqual(1, backend.Connects); Assert.AreEqual(1, backend.Disconnects);
+        await form.StopAsync();
+    }, new ComTelephonyFixture.Backend());
+
+    [TestMethod]
+    public Task SipProfileDeletionStaysInDraftUntilSavedAndLastDeletionClearsAccount() => WithWorkspace(async (workspace, _, _) =>
+    {
+        using var form = new FrmSettings(workspace);
+        var page = Field<SettingsPage>(form, "settingsPage");
+        await page.ReloadAsync();
+        Field<TextEdit>(page, "serverEdit").Text = "deletion.invalid";
+        Field<TextEdit>(page, "usernameEdit").Text = "test-user";
+        Field<ButtonEdit>(page, "passwordEdit").Text = "synthetic-delete-secret";
+        await page.SaveAsync(CancellationToken.None);
+        void Remove() => typeof(SettingsPage).GetMethod("RemoveSipProfile_Click", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(page, [null, EventArgs.Empty]);
+        Remove();
+        Assert.IsNotNull((await workspace.Settings.LoadAsync()).Options.SipAccount, "Removing is only an unsaved draft.");
+        await page.ReloadAsync();
+        Assert.AreEqual("deletion.invalid", Field<TextEdit>(page, "serverEdit").Text);
+        Remove(); await page.SaveAsync(CancellationToken.None);
+        var after = (await workspace.Settings.LoadAsync()).Options;
+        Assert.IsNull(after.SipAccount); Assert.IsNull(after.ActiveSipProfileId); Assert.IsTrue(after.SipProfiles.IsEmpty);
+        Assert.AreEqual("", Field<ButtonEdit>(page, "passwordEdit").Text);
+        await form.StopAsync();
+    });
+}

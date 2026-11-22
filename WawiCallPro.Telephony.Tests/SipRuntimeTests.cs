@@ -395,6 +395,23 @@ public sealed partial class SipRuntimeTests
         }
         internal Task ReplyToLastRegistrationAsync() => ReplyAsync(Volatile.Read(ref _lastRegistration)!);
 
+        internal string? LastRegisteredUsername => Volatile.Read(ref _lastRegistration)?.Header.From.FromURI.User;
+
+        internal async Task SelectProfileAsync(Guid selected, Guid first, Guid second)
+        {
+            var snapshot = await _settings.LoadAsync();
+            var account = snapshot.Options.SipAccount!;
+            var profiles = snapshot.Options.SipProfiles.IsEmpty
+                ? System.Collections.Immutable.ImmutableArray.Create(new SipAccountProfile(first, "First", account),
+                    new SipAccountProfile(second, "Second", new SipAccountOptions
+                    {
+                        Server = account.Server, Port = account.Port, Username = "second-user", Password = account.Password,
+                        Connection = account.Connection
+                    }))
+                : SipProfileCatalog.Read(snapshot.Options);
+            await _settings.SaveAsync(SipProfileCatalog.Select(snapshot.Options, profiles, selected), snapshot);
+        }
+
         private async Task ReplyAsync(SIPRequest request)
         {
             var response = SIPResponse.GetResponse(request, RejectRegistration ? SIPResponseStatusCodesEnum.Forbidden : SIPResponseStatusCodesEnum.Ok, null);

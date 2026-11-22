@@ -49,6 +49,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     private SIPRegistrationUserAgent? _registrar;
     private IDisposable? _lease;
     private SipAccountOptions? _account;
+    private Guid? _sipProfileId;
     private AudioDeviceSettings _devices = new();
     private Agent? _agent;
     private bool _stopping;
@@ -90,6 +91,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             }
             var snapshot = await _settings.LoadAsync(cancellationToken).ConfigureAwait(false);
             var account = snapshot.Options.SipAccount ?? throw new TelephonyException("AccountMissing");
+            _sipProfileId = snapshot.Options.ActiveSipProfileId;
             _account = account; _devices = snapshot.Options.Devices; _stopping = false;
             _lease = _leases.Acquire(account);
             _connecting = true;
@@ -598,7 +600,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     {
         if (state == RegistrationState.Registered) Volatile.Write(ref _failure, null);
         if (code is not null) Failure(code);
-        lock (_gate) _registration = new(state, _clock.GetUtcNow(), code);
+        lock (_gate) _registration = new(state, _clock.GetUtcNow(), code) { SipProfileId = state == RegistrationState.Stopped ? null : _sipProfileId };
         Publish(RegistrationChanged, new(Registration));
     }
     private void Failure(string code) { Volatile.Write(ref _failure, code); _log.LogWarning("SIP operation: {Code}", code); }

@@ -26,6 +26,7 @@ public partial class SettingsPage : XtraUserControl
     internal event EventHandler? ContentSizeChanged;
     internal int GetMinimumWindowHeight()
     {
+        if (tabs.SelectedTabPage == sipTab) return GetRequiredGeneralHeight();
         var width = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal);
         var statusHeight = statusLabel.GetPreferredSize(new(Math.Max(1, width - statusLabel.Margin.Horizontal), 0)).Height;
         return layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left + Font.Height * 4
@@ -37,6 +38,10 @@ public partial class SettingsPage : XtraUserControl
         var content = Math.Max(generalLayout.GetPreferredSize(new(width, 0)).Height,
             Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
             + audioDevicesTab.Top + audioDevicesTab.Left);
+        if (tabs.SelectedTabPage == sipTab)
+            content = Math.Max(content, sipProfilesLayout.GetPreferredSize(new(width, 0)).Height
+                + Math.Max(sipLayout.GetPreferredSize(new(width, 0)).Height, lineLayout.GetPreferredSize(new(width, 0)).Height)
+                + sipStandard.Top + sipStandard.Left);
         if (tabs.SelectedTabPage == mailTab) content = Math.Max(content, mailSettingsPage.GetRequiredHeight());
         if (tabs.SelectedTabPage == wawiTab) content = Math.Max(content, wawiLayout.GetPreferredSize(new(width, 0)).Height);
         var statusWidth = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal - statusLabel.Margin.Horizontal);
@@ -56,6 +61,8 @@ public partial class SettingsPage : XtraUserControl
         tabs.SelectedPageChanged += SettingsTab_Changed;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
+        sipProfilesLayout.Layout += General_Layout;
+        sipLayout.Layout += General_Layout;
         UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
@@ -68,7 +75,11 @@ public partial class SettingsPage : XtraUserControl
         ArrangeButtons();
     }
     private void General_Layout(object? sender, LayoutEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
-    private void SettingsTab_Changed(object? sender, DevExpress.XtraTab.TabPageChangedEventArgs e) => ContentSizeChanged?.Invoke(this, EventArgs.Empty);
+    private void SettingsTab_Changed(object? sender, DevExpress.XtraTab.TabPageChangedEventArgs e)
+    {
+        ArrangeButtons();
+        ContentSizeChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     private void ButtonLayout_Changed(object? sender, EventArgs e) => ArrangeButtons();
     private void ArrangeButtons()
@@ -98,6 +109,8 @@ public partial class SettingsPage : XtraUserControl
                 button.Margin = new Padding(button.LogicalToDeviceUnits(4));
             }
             UiButtonSizing.Apply(loadLineButton, confirmLineButton, clearLineButton);
+            UiButtonSizing.Apply(sipConnectButton, sipDisconnectButton);
+            UiButtonSizing.Apply(addSipProfileButton, removeSipProfileButton);
             var cacheSize = UiButtonSizing.Apply(cacheButtons);
             var cellWidth = cacheSize.Width + loadCompaniesButton.Margin.Horizontal;
             var columns = Math.Clamp((cacheLayout.ClientSize.Width - cacheLayout.Padding.Horizontal) / Math.Max(1, cellWidth), 1, 3);
@@ -229,7 +242,6 @@ public partial class SettingsPage : XtraUserControl
         _snapshot = snapshot;
         ApplyPluginConnectionSnapshot(snapshot);
         var options = snapshot.Options;
-        ApplyCallerLine(options);
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
         directXEdit.Checked = options.User.UseDirectXRendering;
@@ -237,17 +249,7 @@ public partial class SettingsPage : XtraUserControl
         logDirectoryEdit.Text = options.User.LogDirectory ?? _workspace?.Paths.LogsDirectory ?? "";
         showWindowHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.ShowWindowHotkey);
         dialHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.DialHotkey);
-        sipEnabledEdit.Checked = options.SipAccount?.RegisterOnStartup == true;
-        _sipAdvanced = SipAdvancedSettings.From(options.SipAccount?.Connection ?? new());
-        sipProperties.SelectedObject = _sipAdvanced;
-        serverEdit.Text = options.SipAccount?.Server ?? "";
-        portEdit.Value = options.SipAccount?.Port ?? 5060;
-        transportEdit.SelectedIndex = (int)(options.SipAccount?.Transport ?? SipTransport.Udp) - 1;
-        usernameEdit.Text = options.SipAccount?.Username ?? "";
-        authUserEdit.Text = options.SipAccount?.AuthenticationUsername ?? "";
-        passwordEdit.Text = "";
-        passwordEdit.Properties.NullValuePrompt = options.SipAccount?.Password is null ? "Kennwort eingeben" : "Kennwort gespeichert";
-        SetSipPasswordVisibility(false);
+        ApplySipProfiles(options);
         ApplyDatabase(options.Database);
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
@@ -278,21 +280,11 @@ public partial class SettingsPage : XtraUserControl
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
             AutomaticMp3 = new() { Enabled = automaticMp3Edit.Checked,
                 SinceUtc = automaticMp3Edit.Checked ? old.AutomaticMp3.Enabled ? old.AutomaticMp3.SinceUtc : DateTimeOffset.UtcNow : null },
-            SipAccount = !sipEnabledEdit.Checked && string.IsNullOrWhiteSpace(serverEdit.Text) && string.IsNullOrWhiteSpace(usernameEdit.Text)
-                && string.IsNullOrWhiteSpace(authUserEdit.Text) && passwordEdit.Text.Length == 0 ? null : new SipAccountOptions
-            {
-                RegisterOnStartup = sipEnabledEdit.Checked, Connection = _sipAdvanced.Read(),
-                Server = serverEdit.Text.Trim(), Port = (int)portEdit.Value, Transport = (SipTransport)(transportEdit.SelectedIndex + 1),
-                Username = usernameEdit.Text.Trim(), AuthenticationUsername = string.IsNullOrWhiteSpace(authUserEdit.Text) ? null : authUserEdit.Text.Trim(),
-                Password = passwordEdit.Text.Length == 0 ? old.SipAccount?.Password : _workspace!.Secrets.Protect(passwordEdit.Text, SipAccountOptions.PasswordPurpose)
-            },
-
             Companies = ReadCompanySettings(old),
-            CallerLineAssignment = _lineDraft,
             MailAccounts = mailSettingsPage.ReadAccounts(),
             MailCache = mailSettingsPage.ReadCache()
         };
-        return ApplyPluginConnectionDraft(options);
+        return ApplyPluginConnectionDraft(ReadSipProfiles(options));
     }
 
     private ImmutableArray<CompanySettings> ReadCompanySettings(ApplicationOptions old)
@@ -376,23 +368,29 @@ public partial class SettingsPage : XtraUserControl
 
     internal async Task SaveAsync(CancellationToken token)
     {
-        var startWithWindows = autoStartEdit.Checked;
-        var options = ReadOptions();
-        await _workspace!.Settings.SaveAsync(options, _snapshot!, token);
-        Apply(await _workspace.Settings.LoadAsync(token));
-        if (_autoStartState is { CanChange: true } && startWithWindows != _autoStartState.Enabled)
+        sipContainer.Enabled = false;
+        try
         {
-            token.ThrowIfCancellationRequested();
-            try { _autoStartState = _workspace.AutoStart.Set(startWithWindows, _autoStartState); }
-            catch (AutoStartException exception)
+            var startWithWindows = autoStartEdit.Checked;
+            var options = ReadOptions();
+            await _workspace!.Settings.SaveAsync(options, _snapshot!, token);
+            Apply(await _workspace.Settings.LoadAsync(token));
+            if (_autoStartState is { CanChange: true } && startWithWindows != _autoStartState.Enabled)
             {
-                autoStartStatus.Text = exception.Message;
-                throw new AutoStartException("Allgemeine Einstellungen gespeichert. " + exception.Message);
+                token.ThrowIfCancellationRequested();
+                try { _autoStartState = _workspace.AutoStart.Set(startWithWindows, _autoStartState); }
+                catch (AutoStartException exception)
+                {
+                    autoStartStatus.Text = exception.Message;
+                    throw new AutoStartException("Allgemeine Einstellungen gespeichert. " + exception.Message);
+                }
+                LoadAutoStart();
             }
-            LoadAutoStart();
+            statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank, Geräte und Protokollierung werden beim nächsten Programmstart übernommen.";
         }
-        statusLabel.Text = "Einstellungen gespeichert. Konto, Datenbank, Geräte und Protokollierung werden beim nächsten Programmstart übernommen.";
+        finally { if (!IsDisposed) sipContainer.Enabled = true; }
     }
+
     private async void Save_Click(object? sender, EventArgs e)
     {
         if (_operation is null || _operation.IsRunning) return;

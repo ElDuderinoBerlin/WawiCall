@@ -80,7 +80,7 @@ Der eigene JSON-Vertrag Version 1 enthält ausschließlich allgemeine/logbezogen
 Tastenkürzel sowie Lautstärken und Mikrofon-Stummschaltung. Zugangsdaten, Datenbank-/ERP-/SIP-
 Verbindungen, aktive Plugins, Mandanten-/Leitungszuordnungen und Geräte-IDs sind nicht Teil dieses
 Formats und bleiben beim Import lokal erhalten. Windows-Autostart ist eine lokale Betriebssystemoption.
-Der interne Einstellungsvertrag Version 8 und dessen geschützte Werte werden unverändert beibehalten;
+Der interne Einstellungsvertrag hat inzwischen Version 13 mit benannten SIP-Profilen und geschützten Werten;
 die interne Datei `connection.local.json` ist kein Import-/Exportziel.
 
 `ConfigurationStore` übernimmt die Dateioperationen über den bereits injizierten Persistenzdienst.
@@ -91,6 +91,18 @@ Fehler lassen den gespeicherten Stand erhalten; Meldungen geben keine fremden Pf
 Der UI-Bearbeitungsstand wird nach erfolgreichem Import aktualisiert. Laufende Dienste behalten
 ihre Startkonfiguration; der Dialog bietet einen Neustart an. Prüfungen und Rendernachweise in
 [Phase 8](Neuaufbau-Plan.md#phase-8--app-und-erstes-vollständiges-kernprodukt-).
+
+### Benannte SIP-Profile (22.11.2026)
+
+Der zentrale SIP-Tab verwaltet bis zu 16 Profile mit getrennten Zugangsdaten, erweiterten Optionen
+und Leitungsfirma. Ein bestehendes Einzelkonto wird als Standard-Profil bearbeitet. Alle Änderungen
+bleiben bis Speichern im Dialogentwurf; nur ein Profil wird für die nächste Anmeldung ausgewählt.
+`SipProfileCatalog` bildet diesen Katalog auf das bestehende aktive `SipAccount` ab. Ein bereits
+registrierter SIP-Dienst behält Konto und Profilkennung bis zum ausdrücklichen Abmelden; kein
+Einstellungswechsel startet eine zusätzliche Registrierung oder schaltet ein Gespräch um.
+Die Anrufzuordnung verwendet das Profil zum tatsächlichen Leitungskontext statt der späteren Auswahl.
+DPAPI, atomarer Konkurrenzschutz und die Ausschlussliste des portablen Exports bleiben wirksam.
+Einrichtung und Formatbeschreibung: [SIP-Einstellungen](SIP-Einstellungen.md#mehrere-gespeicherte-sip-profile-22112026).
 
 ## Wawi-Einstellungen und Funktions-Interfaces
 

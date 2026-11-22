@@ -2457,6 +2457,13 @@ public sealed partial class AppShellTests
                     if (index == 0)
                     {
                         var server = Field<TextEdit>(page, "serverEdit");
+                        var accountButton = Field<SimpleButton>(page, "sipConnectButton");
+                        var profileButton = Field<SimpleButton>(page, "addSipProfileButton");
+                        Assert.AreEqual(profileButton.Height, accountButton.Height, "SIP actions must retain compact native heights after a hidden tab is scaled.");
+                        var viewport = Field<XtraScrollableControl>(page, "sipScroll");
+                        Assert.IsTrue(viewport.RectangleToScreen(viewport.ClientRectangle).Contains(server.RectangleToScreen(server.ClientRectangle)));
+                        Assert.IsTrue(viewport.RectangleToScreen(viewport.ClientRectangle).Contains(accountButton.RectangleToScreen(accountButton.ClientRectangle)));
+
                         Assert.AreEqual(server.Height, Field<ButtonEdit>(page, "passwordEdit").Height, "The eye icon must not increase the editor height.");
                         server.Text = "sip.example.invalid";
                         Field<TextEdit>(page, "usernameEdit").Text = "isolated-test-user";
@@ -2484,7 +2491,19 @@ public sealed partial class AppShellTests
                     }
                 }
                 Assert.IsInstanceOfType<SipAdvancedSettings>(Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject);
-                form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout(); CheckTableBounds(form);
+                form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout(); Application.DoEvents(); CheckTableBounds(form);
+                using (var scaledImage = WawiCallPro.App.Diagnostics.UiAudit.Capture(form))
+                    scaledImage.Save(Path.Combine(RenderOutput(), "sip-settings", $"Sip-{skin}-{fontSize}-scaled.png"), ImageFormat.Png);
+                sipPages.SelectedTabPageIndex = 0; form.PerformLayout(); Application.DoEvents();
+                using (var scaledStandard = WawiCallPro.App.Diagnostics.UiAudit.Capture(form))
+                    scaledStandard.Save(Path.Combine(RenderOutput(), "sip-settings", $"Sip-{skin}-{fontSize}-scaled-standard.png"), ImageFormat.Png);
+                var scaledViewport = Field<XtraScrollableControl>(page, "sipScroll");
+                var scaledButton = Field<SimpleButton>(page, "sipConnectButton");
+                if (scaledViewport.AutoScroll) scaledViewport.ScrollControlIntoView(scaledButton);
+                form.PerformLayout(); Application.DoEvents();
+                Assert.IsTrue(scaledViewport.RectangleToScreen(scaledViewport.ClientRectangle).Contains(scaledButton.RectangleToScreen(scaledButton.ClientRectangle)), "At monitor limits large-font content must remain reachable.");
+                using (var scaledActions = WawiCallPro.App.Diagnostics.UiAudit.Capture(form))
+                    scaledActions.Save(Path.Combine(RenderOutput(), "sip-settings", $"Sip-{skin}-{fontSize}-scaled-actions.png"), ImageFormat.Png);
                 await form.StopAsync();
             }
         }

@@ -17,6 +17,18 @@ public static class CallerLineConfiguration
             && mapping.Line.LineId == account.Username;
         return mapping with { IsVerified = mapping.IsVerified && matches };
     }
+
+    /// <summary>Uses the account bound to the call, even after another profile has been saved for the next login.</summary>
+    public static CallerLineAssignment? ResolveForLine(ApplicationOptions options, PhoneLineContext? line)
+    {
+        if (line is null) return null;
+        var profiles = SipProfileCatalog.Read(options).Where(profile => profile.Account is { } account
+            && Identity(account) == line.TelephonySystemId && account.Username == line.LineId).ToArray();
+        // Identical account addresses in several profiles cannot prove which company assignment was intended.
+        if (profiles.Length != 1) return null;
+        var profile = profiles[0];
+        return Resolve(options with { SipAccount = profile.Account, CallerLineAssignment = profile.LineAssignment });
+    }
     private static string Identity(SipAccountOptions account) =>
         "sip:" + account.Server?.ToLowerInvariant() + ":" + account.Port + ":" + account.Transport;
 }

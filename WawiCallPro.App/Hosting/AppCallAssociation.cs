@@ -91,7 +91,7 @@ internal sealed class AppCallAssociation(ITelephonyService phone, ICallHistorySe
         await index.RefreshAsync(token).ConfigureAwait(false);
         var result = index.Find(incoming, token);
         var options = (await settings.LoadAsync(token).ConfigureAwait(false)).Options;
-        var line = CallerLineConfiguration.Resolve(options);
+        var line = CallerLineConfiguration.ResolveForLine(options, entry.Line);
         if (line is not null) line = line with { IsVerified = line.IsVerified && entry.Line is { } bound
             && line.Line.TelephonySystemId == bound.TelephonySystemId && line.Line.LineId == bound.LineId };
         var decision = RespectDialCompany(decisions.Evaluate(result, new(entry.Call.Company, line)), entry.Call);

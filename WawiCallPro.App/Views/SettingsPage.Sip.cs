@@ -27,7 +27,7 @@ public partial class SettingsPage
     {
         if (!ReferenceEquals(e.Button, passwordVisibilityButton)) return;
         if (passwordEdit.Properties.UseSystemPasswordChar && passwordEdit.Text.Length == 0
-            && _snapshot?.Options.SipAccount?.Password is { } stored && _workspace is not null)
+            && CurrentSipProfile?.Account?.Password is { } stored && _workspace is not null)
         {
             try
             {
@@ -97,6 +97,13 @@ public partial class SettingsPage
             RegistrationState.Failed => "Anmeldung fehlgeschlagen. Konto und Verbindung prüfen.",
             _ => "Nicht angemeldet"
         };
+        if (state is RegistrationState.Registered or RegistrationState.Registering or RegistrationState.Reconnecting)
+        {
+            var profileId = registration?.SipProfileId;
+            var connectedName = _sipProfiles.FirstOrDefault(profile => profile.Id == profileId)?.Name ?? "bestehendes Konto";
+            sipStatus.Text += " · " + connectedName;
+            if (profileId != _editingSipProfileId) sipStatus.Text += " (anderes Profil für nächste Anmeldung ausgewählt)";
+        }
         sipConnectButton.Enabled = _workspace?.TelephonyConnection is not null && state is RegistrationState.Stopped or RegistrationState.Failed;
         sipDisconnectButton.Enabled = _workspace?.TelephonyConnection is not null && state != RegistrationState.Stopped;
     }

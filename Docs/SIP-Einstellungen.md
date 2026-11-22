@@ -8,6 +8,51 @@ Für die ursprüngliche Analyse wurden keine Verbindungen geöffnet. Die Impleme
 mit isolierten lokalen SIP-Endpunkten geprüft; Produktionsregistrierungen, Anrufe über die Telefonanlage und
 Geräteöffnungen wurden dabei nicht ausgeführt und keine Demozugangsdaten übernommen.
 
+## Mehrere gespeicherte SIP-Profile (22.11.2026)
+
+Unter **Einstellungen → SIP-Konto** ein Profil auswählen, den Profilnamen bearbeiten oder mit
+**Profil hinzufügen** ein leeres Konto anlegen. Bis zu 16 vollständig eingerichtete Profile mit
+unterschiedlichen Namen (höchstens 80 Zeichen) sind möglich. Die Änderungen aller bearbeiteten
+Profile werden gemeinsam mit **Speichern** übernommen; Abbrechen verwirft die Entwürfe.
+**Profil entfernen** wirkt ebenfalls erst nach Speichern. Beim Entfernen des letzten Profils bleibt
+eine leere Standard-Eingabe zurück; Speichern entfernt dann die Kontokonfiguration.
+
+Pro Profil bleiben Server, Port, Transport, Benutzer-/Authentifizierungsname, das unter diesem
+Windows-Benutzer und SIP-Zweck DPAPI-geschützte Kennwort, die Startautomatik, sämtliche erweiterten
+Verbindungs-/Medienoptionen und die ausdrücklich bestätigte Leitungsfirma erhalten. Ein leeres
+Kennwortfeld behält nur das Kennwort dieses Profils. Neue Profile übernehmen keine Zugangsdaten;
+der Sichtbarkeitsbutton zeigt ausschließlich das aktuell bearbeitete Kennwort auf ausdrücklichen Wunsch.
+Audiogeräte und Aufnahmequelle bleiben gemeinsame Arbeitsplatzoptionen.
+
+Genau ein gespeichertes Profil wird bei der nächsten Anmeldung verwendet. Auswahl und Speichern
+schalten eine bestehende Anmeldung oder ein Gespräch nicht um. Der Status benennt die tatsächlich
+verwendete Profilkennung über den gespeicherten Anzeigenamen beziehungsweise „bestehendes Konto“
+bei einer älteren Sitzung; eine abweichende Auswahl für die nächste Anmeldung wird kenntlich gemacht.
+Zum Wechseln ausdrücklich **Abmelden**, danach **Anmelden** verwenden. Abmelden beendet bestehende
+Gespräche nach dem vorhandenen Unterbrechungsablauf. Parallele Registrierungen mehrerer Profile
+sind damit nicht implementiert.
+
+Ein vorhandenes Einzelkonto erscheint ohne Dateiänderung als **Standard**. Erst beim ausdrücklichen
+Speichern entstehen Profilmetadaten im internen Format 13; ältere Formate 1–12 bleiben lesbar. Die
+interne Datei enthält `sipProfiles` und `activeSipProfileId`. Das aktive Konto und seine Leitungsfirma
+stehen weiterhin nur in `sipAccount` beziehungsweise `callerLineAssignment`; die entsprechende
+Profilzeile enthält dafür null, inaktive Profilzeilen ihre eigenen geschützten Werte. Damit bleiben
+bestehende Kontoleser eindeutig und es entstehen keine zwei konkurrierenden aktiven Kennwörter.
+Der portable JSON-Import/-Export enthält weiterhin keine Profile, Konten, Kennwörter oder Zuordnungen
+und erhält die lokalen Profile beim Import. Interne Format-13-Dateien nicht mit älteren Builds bearbeiten;
+zum Zurückrollen einen vor der Profilumstellung gesicherten lokalen Einstellungsstand verwenden.
+
+Für die automatische Anrufzuordnung gilt der tatsächliche Leitungskontext des Gesprächs. Wird bei
+angemeldetem Profil A bereits B für die nächste Anmeldung gespeichert, bleibt die Zuordnung von A
+verwendbar. Mehrere Profile mit derselben Konto-/Leitungsadresse sind für eine automatische Firmenwahl
+mehrdeutig und liefern keine bestätigte Zuordnung. Unbekannte oder entfernte Leitungen werden nicht
+auf die Firma des neu ausgewählten Profils umgebogen.
+
+Der SIP-Tab bemisst seine Mindesthöhe einschließlich Profilauswahl anhand des Inhalts. Nur wenn eine
+große Schrift-/DPI-Kombination die Monitorarbeitsfläche überschreitet, wird der vorhandene Inhaltsbereich
+scrollbar. Textbuttons bleiben über die zentrale Größenhilfe kompakt. Nachweise und verbleibende echte
+Telefonie-/Geräteabnahme stehen in [Phase 8](Neuaufbau-Plan.md#phase-8--app-und-erstes-vollständiges-kernprodukt-).
+
 ## Was die Demos tatsächlich einstellen
 
 | Einstellung | PlaySounds | RecordIncomingCall |

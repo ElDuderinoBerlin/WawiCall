@@ -45,6 +45,7 @@ public partial class FrmSettings : XtraForm
             var area = WindowWorkArea.GetArea(this);
             MinimumSize = WindowWorkArea.LimitMinimum(new Size(LogicalToDeviceUnits(680), height), area);
             WindowWorkArea.Constrain(this, area);
+            settingsPage.FitSipViewport(Height >= area.Height - LogicalToDeviceUnits(2));
         }
         finally { _sizingMinimum = false; }
     }

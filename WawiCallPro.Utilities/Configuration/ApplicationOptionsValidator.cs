@@ -13,6 +13,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         ArgumentNullException.ThrowIfNull(options);
         var issues = ImmutableArray.CreateBuilder<ConfigurationIssue>();
         if (options.SipAccount is { } account) ValidateSip(account, issues);
+        ValidateSipProfiles(options, issues);
         if (options.User is null) issues.Add(new("user", "Benutzereinstellungen dürfen nicht null sein."));
         if (options.User is { } user)
         {
@@ -47,6 +48,36 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
     }
 
     private static bool SafeLineText(string? value) => !string.IsNullOrWhiteSpace(value) && value.Length <= 512 && !value.Any(char.IsControl);
+
+    private void ValidateSipProfiles(ApplicationOptions options, ImmutableArray<ConfigurationIssue>.Builder issues)
+    {
+        var profiles = options.SipProfiles;
+        if (profiles.IsDefault || profiles.Length > SipProfileCatalog.MaximumProfiles || profiles.Any(profile => profile is null))
+        { issues.Add(new("sipProfiles", "Höchstens 16 gültige SIP-Profile speichern.")); return; }
+        if (profiles.IsEmpty)
+        {
+            if (options.ActiveSipProfileId is not null) issues.Add(new("sipProfiles", "Das ausgewählte SIP-Profil fehlt."));
+            return;
+        }
+        if (profiles.Select(profile => profile.Id).Distinct().Count() != profiles.Length
+            || profiles.Any(profile => profile.Id == Guid.Empty || string.IsNullOrWhiteSpace(profile.Name)
+                || profile.Name != profile.Name.Trim() || profile.Name.Length > 80 || profile.Name.Any(char.IsControl))
+            || profiles.Select(profile => profile.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != profiles.Length)
+            issues.Add(new("sipProfiles", "Unterschiedliche Profilnamen mit 1 bis 80 Zeichen und eindeutige Kennungen verwenden."));
+        var active = profiles.FirstOrDefault(profile => profile.Id == options.ActiveSipProfileId);
+        if (active is null || active.Account is not null || active.LineAssignment is not null || options.SipAccount is null)
+            issues.Add(new("sipProfiles", "Ein eingerichtetes SIP-Profil auswählen. Das aktive Konto wird ausschließlich im gemeinsamen Kontofeld gespeichert."));
+        foreach (var profile in profiles.Where(profile => profile.Id != options.ActiveSipProfileId))
+        {
+            if (profile.Account is null) issues.Add(new("sipProfiles", "Alle gespeicherten SIP-Profile müssen vollständig eingerichtet sein."));
+            else ValidateSip(profile.Account, issues);
+            if (profile.LineAssignment is { } mapping && (mapping.Company is null || mapping.Line is null
+                || !SafeLineText(mapping.DisplayName) || !SafeLineText(mapping.Line.TelephonySystemId) || !SafeLineText(mapping.Line.LineId)
+                || mapping.Line.DefaultRegion is not null && !IsValidRegion(mapping.Line.DefaultRegion)
+                || mapping.Line.LocalAreaCode is { } area && (area.Length is < 1 or > 16 || !area.All(char.IsAsciiDigit))))
+                issues.Add(new("sipProfiles", "Die Leitungszuordnung eines SIP-Profils ist ungültig."));
+        }
+    }
 
     private void ValidateMail(ImmutableArray<MailAccountSettings> accounts, ImmutableArray<ConfigurationIssue>.Builder issues)
     {
