@@ -30,6 +30,48 @@ Eine neuere oder andere gleich alte Installation wird nicht still durch eine alt
 Beim Umzug derselben Version zuerst die bisherige Installation regulär entfernen. Veraltete
 Deinstallationsaufrufe löschen die Registrierung der neueren Installation nicht.
 
+## VBS- und PowerShell-Testskripte
+
+Zusätzlich stehen [automation.vbs](../scripts/ComExamples/automation.vbs) und
+[automation.ps1](../scripts/ComExamples/automation.ps1) bereit. Vorgabe ist `smoke`: Aktivierung,
+begrenztes Warten auf Startbereitschaft, Status und verfügbarer Viewkatalog. Es wird kein Fenster
+geöffnet und keine Telefonaktion angefordert. Ein bereits laufender Benutzerbetrieb bleibt erhalten.
+Die Skripte registrieren nichts und ändern weder Zugangsdaten noch das aktive Profil.
+
+```powershell
+cscript.exe //nologo .\scripts\ComExamples\automation.vbs Pro
+& .\scripts\ComExamples\automation.ps1 -ProductLine Pro -ClientBitness 64
+& .\scripts\ComExamples\automation.ps1 -ProductLine Pro -ClientBitness 32 -Action status
+# Sichtbare Aktionen nur gezielt ausführen:
+cscript.exe //nologo .\scripts\ComExamples\automation.vbs Pro show
+& .\scripts\ComExamples\automation.ps1 -Action view -ViewId settings-audio
+& .\scripts\ComExamples\automation.ps1 -Action view -ViewId call -ContextJson '{"callId":"<callId>"}'
+& .\scripts\ComExamples\automation.ps1 -Action customer -CompanyKey '<companyKey>' -PartyNumber '00123'
+& .\scripts\ComExamples\automation.ps1 -Action supplier -CompanyKey '<companyKey>' -PartyNumber '00456'
+```
+
+Weitere Aktionen: `views`, `companies`, `connect`, `dial`, `hangup`, `call`. VBS verwendet dieselben
+Positionsargumente wie das JScript-Beispiel; `view <viewId> [contextJson]` erwartet JSON, keine rohe
+Mandantenkennung. PowerShell hat dafür `-ViewId`, `-ContextJson` bzw. `-CompanyKey`, `-PartyNumber`,
+`-Destination`, `-RequestId` und `-CallId`. Ohne `-RequestId` erzeugt ausschließlich die ausdrücklich
+gewählte Aktion `dial` eine GUID und zeigt sie vor dem Aufruf an. Bei unklarem Ausgang dieselbe ID
+aufbewahren und vorhandenen Auftrag prüfen; kein Skript wiederholt eine Telefonaktion automatisch.
+
+PowerShell 5.1 und 7 steuern den ausgewählten nativen VBS-WSH-Client. Das umgeht das beobachtete
+Problem beim direkten Marshaling der COM-Rückgabeobjekte in PowerShell 7; es ist kein Nachweis
+eines direkten PowerShell-COM-Binders. x86/x64 werden ausdrücklich über den WSH-Host gewählt.
+JSON-Kontext wird bei Bedarf über eine eigene Unicode-Temporärdatei transportiert und im `finally`
+entfernt, damit auch Windows PowerShell 5.1 Anführungszeichen und Unicode unverändert weitergibt.
+VBS gibt Referenzen mit `Set ... = Nothing` frei. Kein Server-Quit und kein erzwungener Server-GC.
+VBS-Exitcodes: 0 erfolgreich, 1 COM-/Auftrags-/Zeitfehler, 2 ungültige Argumente; PowerShell meldet
+einen nicht erfolgreichen Client-Exit als Fehler. Rohes Exception-Material wird nicht ausgegeben.
+
+Nachweis vom 22.11.2026: Pro nativ als normaler Benutzer per VBS x86/x64, PowerShell 7→WSH x86
+und Windows PowerShell 5.1→WSH x64 geprüft. Ungültige Call-ID und ungültiger JSON-Viewkontext
+scheitern ohne Fenster; eigene Kontextdatei danach entfernt. Kein echter Anruf, keine Anmeldung
+oder Kunden-/Lieferantenabfrage. FinOffice-Auswahl und Argumentsyntax vorhanden; kein neuer
+FinOffice-Nativlauf dieser Skripte behauptet. Lokale Nachweise `.artifacts/com-example-clients`.
+
 ## JavaScript-Beispiel
 
 Das mitgelieferte [Beispiel](../scripts/ComExamples/automation.js) führt nur die ausdrücklich genannte

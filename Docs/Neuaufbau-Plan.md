@@ -6,6 +6,12 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+Zusatzauftrag vom 22.11.2026: ✅ VBS-/PowerShell-Beispiele für die COM-Main-App ergänzt, Standard
+ohne Fenster/Telefonaktion, explizite View-/Kunden-/Lieferanten-/Telefonaktionen, begrenzte Auftragsabfrage
+und Referenzfreigabe. Sieben native Pro-Clientprüfungen einschließlich x86/x64, PowerShell 5.1/7 und
+Fehlerpfaden bestanden; Unicode-Kontextdatei nach Fehler entfernt. Skripte in der Hauptsolution,
+Anleitung unter [COM-Automation](COM-Automation-Anleitung.md#vbs--und-powershell-testskripte).
+Kein neuer FinOffice- oder Echttelefonie-Nativnachweis. Mehrere gespeicherte SIP-Profile folgen separat.
 G1-Wiederaufnahme vom 22.11.2026: ✅ manuelle Aufnahme-Start-/Stop-Bedienung und lokale Live-Medienzeitachse
 implementiert und isoliert geprüft. ✅ Headset und zweiter Anschluss vom Benutzer als bereit bestätigt.
 Nächster gemeinsamer Schritt: Pro-Profil, Geräte, RTP-Quellenwahl und SIP-Status prüfen; noch kein Echtanruf erfolgt.
