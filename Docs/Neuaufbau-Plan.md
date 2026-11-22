@@ -4,8 +4,11 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
-Stand: 21.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
+Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+G1-Wiederaufnahme vom 22.11.2026: beidseitiger Echtmitschnitt angefordert. Vorprüfung bestätigt noch
+fehlende Aufnahmebedienung und automatische Live-Zeitreferenzen; vor dem Aufnahmeanruf ergänzen.
+Der nächste gemeinsame Schritt ist die Geräte-/Testanschlussvorbereitung; noch kein Echtanruf erfolgt.
 Zusätzlicher UI-Auftrag vom 21.11.2026: ✅ [Entwurf für Plugin-UI-Registrierung und Tab „Lexware“](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md)
 erstellt. Das Plugin erhält eine optionale Windows-UI-Hostfähigkeit und registriert seinen vollständigen
 Einstellungs-Tab selbst. Pro/FinOffice stellen Zugang und Mandantenauswahl unter dem Titel „Lexware“
@@ -2801,6 +2804,33 @@ keine Zugangsdaten oder echte Kundeninhalte in Plan/Logs übernehmen.
 | [ ] **G6 – Reale Quellen und Belastung** | Mit vereinbarten Pro-/FinOffice-Testbeständen mehrere Mandanten, leeren Bestand, Quellenfehler und repräsentativ große Datenmengen durchspielen; Wechsel während laufender Suche und wiederholte Anrufe bedienen. | Kein falscher Geschäftspartner, kein verlorener Entwurf, keine blockierte Bedienung durch dauerhaft laufende Quelle. Laufzeit/Mengen protokollieren und Zielwerte anhand des vereinbarten Bestands beurteilen; keine unbelegte pauschale Lastfreigabe. |
 
 **G1 – vorbereiteter gemeinsamer Prüflauf (20.11.2026)**
+
+**Wiederaufnahme mit gewünschter beidseitiger Echtaufnahme (22.11.2026):**
+
+- [x] ✅ Vorprüfung des vorhandenen Aufnahme-Anschlusses: `CallControlPanel` bietet Annehmen,
+  Auflegen und Halten, aber noch keinen Aufnahmebeginn/-abschluss. `AppTelephonyService` reicht
+  `ICallRecordingService.StartRecordingAsync` an den SIP-Dienst durch; ein UI-Aufrufer fehlt.
+  `DuplexPcmRecordingRequest` benötigt gemeinsame Aufnahmeepoche und Sende-/Empfangsanker.
+  `IRtpRecordingAnchorResolver` prüft bereits gelieferte verifizierte Zeitreferenzen; er gewinnt
+  oder synchronisiert diese nicht selbst. Automatische Live-Zeitreferenzen bleiben offen.
+- [ ] Vor dem Aufnahmeanruf die fehlende manuelle Aufnahmebedienung einschließlich gültiger
+  Live-Zeitreferenzierung und Abschluss vor Medienfreigabe implementieren und prüfen. Keine
+  erfundenen RTP-/NTP-Anker oder Paketankunftszeiten als verifizierte Abtastzeit einsetzen.
+  Ein bereits vorhandener Mixer oder die Quellenwahl allein belegt keine benutzbare Live-Aufnahme.
+- [ ] Gemeinsamer nächster Schritt: Headset und zweiten erreichbaren Testanschluss für Pro
+  bereitstellen und Rückmeldung abwarten; noch keinen Anruf starten. Danach Profil/Geräte und
+  SIP-Status prüfen. Für den ersten beidseitigen Mitschnitt RTP verwenden; Loopback getrennt testen.
+- [ ] Erst mit verfügbarer und geprüfter Aufnahmebedienung anrufen, beide Seiten abwechselnd
+  mit unterscheidbaren Testmarkern sprechen lassen, Aufnahme beenden und WAV-Prüfung durchführen:
+  Gesprächszuordnung, Dauer, Kanalzahl, beide Kanalpegel und anschließende Hörprüfung. Beobachtungen
+  und Dateinachweis getrennt protokollieren; bisher kein Echtgespräch oder Aufnahmesignal bestätigt.
+
+Lesend erfasster regulärer Pro-Kandidat: `WawiCallPro.App/bin/Debug/net11.0-windows10.0.19041.0/`
+`WawiCallPro.App.Pro.exe`, Version **0.1.266**, DLL-SHA-256
+`C36D97CB3CCB192FA9EFFE0CEB185634C9F02BF17A54A139D2DD7173C29D3B09`.
+Beim Vorprüfen keine laufende WawiCallPro-Instanz gefunden; keine Anwendung gestartet,
+keine Audiogeräte geöffnet, keine Konfiguration geändert. Diese Dokumentationsprüfung erfordert
+keinen erneuten Build und schließt G1 oder Phase 9 nicht ab.
 
 - [x] ✅ Vorbereitung: tatsächliche Bedienpfade und lokale Builddateien geprüft; folgende Schritte und
   Ergebnisraster erstellt. Ausschließlich Quellen-/Datei-/Versionsprüfung, kein Start, keine SIP-Anmeldung,
