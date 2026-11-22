@@ -58,7 +58,7 @@ internal sealed class StartupSplash : IAsyncDisposable
             else form.LookAndFeel.SetSkinStyle(skin, palette);
             form.Font = font;
             if (hidden) form.PrepareForBackgroundRun();
-            form.SetStatus("Lizenz und Anwendungsdienste werden vorbereitet …", 1, 5);
+            form.SetStatus("Startanzeige wird vorbereitet …", 1, 100);
             form.Shown += (_, _) =>
             {
                 // Never access this control's Handle from the main thread.
@@ -77,11 +77,18 @@ internal sealed class StartupSplash : IAsyncDisposable
     }
 
     internal async Task UpdateAsync(string text, int step, CancellationToken cancellationToken = default)
+        => await UpdateDetailedAsync(text, Math.Clamp(step, 0, 5) * 20, null, cancellationToken);
+
+    internal async Task UpdateDetailedAsync(string text, int percent, string? plugins = null, CancellationToken cancellationToken = default)
     {
         if (_thread is null || Volatile.Read(ref _closeRequested) != 0) return;
         var form = await _ready.Task.WaitAsync(cancellationToken);
         if (!form.IsDisposed)
-            await form.InvokeAsync(() => form.SetStatus(text, step, 5), cancellationToken);
+            await form.InvokeAsync(() =>
+            {
+                form.SetStatus(text, percent, 100);
+                if (plugins is not null) form.SetLoadedPlugins(plugins);
+            }, cancellationToken);
     }
 
     internal Task CompleteAsync(Form mainForm) => StartupFocusHandoff.CompleteAsync(

@@ -21,6 +21,7 @@ partial class FrmStartupSplashScreen
         lblSubtitle = new DevExpress.XtraEditors.LabelControl();
         lblStatus = new DevExpress.XtraEditors.LabelControl();
         lblVersion = new DevExpress.XtraEditors.LabelControl();
+        lblPlugins = new DevExpress.XtraEditors.LabelControl();
         progressBar = new Quantarix.DevExpressExtensions.Controls.PulsingProgressBarControl();
         ((System.ComponentModel.ISupportInitialize)svgLogo).BeginInit();
         rootLayout.SuspendLayout();
@@ -44,7 +45,7 @@ partial class FrmStartupSplashScreen
         contentLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         contentLayout.ColumnCount = 1;
         contentLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        contentLayout.RowCount = 6;
+        contentLayout.RowCount = 7;
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -52,10 +53,12 @@ partial class FrmStartupSplashScreen
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.Controls.Add(lblTitle, 0, 0);
+        contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.Controls.Add(lblSubtitle, 0, 1);
         contentLayout.Controls.Add(progressBar, 0, 3);
         contentLayout.Controls.Add(lblStatus, 0, 4);
-        contentLayout.Controls.Add(lblVersion, 0, 5);
+        contentLayout.Controls.Add(lblPlugins, 0, 5);
+        contentLayout.Controls.Add(lblVersion, 0, 6);
         lblTitle.Name = "lblTitle";
         lblTitle.Text = "WawiCallPro";
         lblTitle.Appearance.FontSizeDelta = 8;
@@ -75,6 +78,12 @@ partial class FrmStartupSplashScreen
         lblStatus.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         lblStatus.Margin = new System.Windows.Forms.Padding(0, 0, 0, 12);
         lblVersion.Name = "lblVersion";
+        lblPlugins.Name = "lblPlugins";
+        lblPlugins.Text = "Geladene Plugins: noch keine";
+        lblPlugins.Appearance.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
+        lblPlugins.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        lblPlugins.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
+        lblPlugins.Margin = new System.Windows.Forms.Padding(0, 0, 0, 12);
         lblVersion.Text = "v…";
         lblVersion.Anchor = System.Windows.Forms.AnchorStyles.Right;
         lblVersion.Margin = new System.Windows.Forms.Padding(0, 0, 0, 0);
@@ -114,5 +123,6 @@ partial class FrmStartupSplashScreen
     private DevExpress.XtraEditors.LabelControl lblSubtitle;
     private DevExpress.XtraEditors.LabelControl lblStatus;
     private DevExpress.XtraEditors.LabelControl lblVersion;
+    private DevExpress.XtraEditors.LabelControl lblPlugins;
     private Quantarix.DevExpressExtensions.Controls.PulsingProgressBarControl progressBar;
 }

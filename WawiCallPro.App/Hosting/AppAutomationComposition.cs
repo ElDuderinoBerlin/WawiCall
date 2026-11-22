@@ -53,6 +53,7 @@ internal static class AppAutomationComposition
             })).ToArray(),
             foundation, provider.GetRequiredService<AppAutomationState>())
         {
+            Progress = (type, index, total, completed, token) => provider.GetRequiredService<StartupProgress>().ReportAsync(type, index, total, completed, token),
             RevalidateBeforeUserMode = token => ((LicenseStartupGate)provider.GetRequiredKeyedService<IHostedService>(keys[foundation - 1])).StartAsync(token),
             MetadataServices = [() => provider.GetRequiredService<WawiCallPro.Utilities.Plugins.ProductPluginRuntime>(),
                 () => provider.GetRequiredService<AppAutomationCatalog>(), () => provider.GetRequiredService<AppAutomationTelephony>(),

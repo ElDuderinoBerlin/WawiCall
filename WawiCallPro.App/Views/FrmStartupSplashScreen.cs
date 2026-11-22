@@ -45,6 +45,7 @@ public sealed partial class FrmStartupSplashScreen : XtraForm
         var total = Math.Max(1, totalSteps);
         progressBar.Position = (int)Math.Round(Math.Clamp(step, 0, total) * 100d / total);
     }
+    public void SetLoadedPlugins(string text) => lblPlugins.Text = text;
 
     private void LookAndFeel_StyleChanged(object? sender, EventArgs e) => ApplySplashPalette();
 
@@ -58,6 +59,7 @@ public sealed partial class FrmStartupSplashScreen : XtraForm
         BackColor = rootLayout.BackColor = contentLayout.BackColor = progressBar.BackColor = surface;
         SetLabelColor(lblTitle, text);
         SetLabelColor(lblStatus, text);
+        SetLabelColor(lblPlugins, Blend(surface, text, 0.78));
         SetLabelColor(lblSubtitle, Blend(surface, text, 0.78));
         SetLabelColor(lblVersion, Blend(surface, text, 0.58));
     }

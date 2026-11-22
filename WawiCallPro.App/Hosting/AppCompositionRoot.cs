@@ -68,6 +68,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IUiDispatcher>(_ => new SynchronizationContextUiDispatcher(uiContext));
                 services.AddSingleton<IHostLifetime, AppHostLifetime>();
                 services.AddAppAutomation(mode, identity);
+                services.AddStartupProgress(mode);
             })
             .Build();
 }

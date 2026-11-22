@@ -104,7 +104,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 }
 
                 // The context owns the form so DI can never dispose a WinForms control on a worker thread.
-                if (_splash is not null) await _splash.UpdateAsync("Hauptfenster wird vorbereitet …", 4, stoppingToken);
+                if (_splash is not null) await _splash.UpdateDetailedAsync("Hauptfenster wird vorbereitet …", 95, cancellationToken: stoppingToken);
                 _form = CreateMainForm();
                 _form.FormClosing += MainFormClosing;
                 if (_diagnostics || _host.Services.GetRequiredService<AppWindowOptions>().Hidden)
@@ -117,7 +117,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 _form.ShowAfterStartup(_splash?.ShouldPreserveForeground() == true);
                 if (_splash is not null)
                 {
-                    await _splash.UpdateAsync("WawiCallPro ist bereit.", 5, stoppingToken);
+                    await _splash.UpdateDetailedAsync("WawiCallPro ist bereit.", 100, cancellationToken: stoppingToken);
                     await _splash.CompleteAsync(_form);
                 }
                 _windowReady = true;

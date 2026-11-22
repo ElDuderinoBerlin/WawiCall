@@ -15,6 +15,7 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
     private bool _userModeValidated;
     internal Func<CancellationToken, Task>? RevalidateBeforeUserMode { get; init; }
     internal Func<IHostedService>[] MetadataServices { get; init; } = [];
+    internal Func<Type, int, int, bool, CancellationToken, Task>? Progress { get; init; }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -30,7 +31,13 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
                     cancellationToken.ThrowIfCancellationRequested();
                     var service = factory();
                     if (!_attempted.Contains(service)) _attempted.Add(service);
-                    if (!_started.Contains(service)) { await service.StartAsync(cancellationToken); _started.Add(service); }
+                    if (!_started.Contains(service))
+                    {
+                        var position = _started.Count;
+                        if (Progress is not null) await Progress(service.GetType(), position, factories.Length + MetadataServices.Length, false, cancellationToken);
+                        await service.StartAsync(cancellationToken); _started.Add(service);
+                        if (Progress is not null) await Progress(service.GetType(), position, factories.Length + MetadataServices.Length, true, cancellationToken);
+                    }
                 }
                 state.Ready();
             }
@@ -64,8 +71,10 @@ internal sealed class AppStartupPipeline(Func<IHostedService>[] factories, int f
                 if (!_attempted.Contains(service)) _attempted.Add(service);
                 if (!_started.Contains(service))
                 {
+                    if (Progress is not null) await Progress(service.GetType(), _next, factories.Length, false, token);
                     await service.StartAsync(token);
                     _started.Add(service);
+                    if (Progress is not null) await Progress(service.GetType(), _next, factories.Length, true, token);
                 }
                 _next++;
                 if (limit > foundationCount && _next == foundationCount) _userModeValidated = true;
