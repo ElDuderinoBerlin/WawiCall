@@ -7,10 +7,14 @@ using WawiCallPro.Interfaces.Parties;
 
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
-public sealed class ProBusinessDirectory(IProApiSession session, IProPropertyStore propertyStore, ProPartyDirectory parties) : IBusinessDirectory
+public sealed class ProBusinessDirectory(IProApiSession session, IProPropertyStore propertyStore, ProPartyDirectory parties)
+    : IBusinessDirectory, IBusinessDirectoryConnectionState
 {
+    public bool IsConnectionConfigured => session.IsConnectionConfigured;
     public async Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsConnectionConfigured) throw new ProAdapterException(ProFailure.ConfigurationRequired);
         var installation = await session.GetInstallationAsync(cancellationToken).ConfigureAwait(false);
         var authorized = await session.GetCompaniesAsync(cancellationToken).ConfigureAwait(false);
         var names = await propertyStore.ReadNamesAsync(installation.PropertyStorePath, cancellationToken).ConfigureAwait(false);

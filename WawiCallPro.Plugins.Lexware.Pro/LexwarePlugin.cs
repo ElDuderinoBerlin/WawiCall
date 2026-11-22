@@ -8,13 +8,14 @@ using WawiCallPro.Plugin.Windows;
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
 [PluginServices(typeof(ProPluginServices))]
-public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings
+public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings, IBusinessDirectoryConnectionState
 {
     private bool _initialized;
     private bool _configured;
     public string Name => "Lexware Pro";
     public Version Version { get; } = new(1, 0);
     public LexwareProductLine ProductLine => LexwareProductLine.Pro;
+    public bool IsConnectionConfigured => directory is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured;
     public IBusinessDirectory Directory => _configured ? directory : throw new InvalidOperationException("Plugin is not configured.");
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
     public void Configure(IWawiCallHostServices hostServices)

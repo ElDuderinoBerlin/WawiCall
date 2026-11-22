@@ -6,6 +6,19 @@ Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter techn
 
 Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
+COM-Katalogkorrektur vom 22.11.2026: ✅ Der tatsächliche Pro-Standardkonfiguration fehlt der
+Lexware-Zugang. Das Pro-Plugin exportiert jetzt einen rein lokalen Einrichtungsstatus über einen
+neutralen Fähigkeitsvertrag. Ohne Zugang keine Installationserkennung/Anmeldung/Mandantenabfrage
+für den COM-Katalog, sondern ein einmaliger Einrichtungshinweis; der Zugangstab bleibt erreichbar.
+Mandanten- und Viewfehler werden getrennt behandelt, Quellenfehler nach 30 Sekunden erneut versucht,
+identische Meldungen nicht wiederholt. Erfolgreiche Wiederherstellung gibt den aktuellen Katalog frei;
+Mandanten-/Plugin-/Lizenzgrenzen bleiben wirksam, rohe Providerfehler bleiben ausgeschlossen.
+Auf Nutzerwunsch zuerst Pro kompiliert: reguläre Solution Debug/Any CPU ohne Warnungen/Fehler,
+44 gezielte App-/COM-/Katalogprüfungen und 71 Pro-Adaptertests bestanden; die beiden Einrichtungs-/
+Wiederherstellungsfälle einschließlich periodischer Wiederholung zusätzlich bestätigt. Protokolle:
+`.artifacts/catalog-readiness`. Keine echte Anmeldung/Quellabfrage, keine Zugangsdaten geändert;
+die Einrichtung des tatsächlichen Zugangs und die Verlagerung der Mandantenauswahl in den Plugin-Tab
+folgen im nächsten Arbeitsschritt. FinOffice wurde für diesen Pro-Schritt nicht erneut gebaut.
 Absturzprüfung vom 22.11.2026: ✅ Windows-Ereignisse 1026 (acht Einträge, 10:09:34–10:43:10)
 mit temporären LxWebDesk-FinOffice-QA-Treibern abgeglichen. Letzte Einträge: PID 36428 um 10:42:53,
 fehlende `LxWebDesk.Web, Version=1.0.284.0`; PID 3184 um 10:43:10, unbehandelte Prüfausnahme

@@ -17,6 +17,23 @@ namespace WawiCallPro.Plugins.Lexware.Pro.Tests;
 [TestClass]
 public sealed class ProAdapterTests
 {
+    [TestMethod]
+    public async Task ConnectionReadinessIsLocalAndMissingCredentialsDoNotMakeHttpRequests()
+    {
+        var handler = DefaultHandler("{\"data\":{\"companies\":[]}}");
+        await using var missing = Build(handler, options: new ProConnectionOptions());
+        var directory = missing.GetRequiredService<IBusinessDirectory>();
+        Assert.IsFalse(((IBusinessDirectoryConnectionState)directory).IsConnectionConfigured);
+        Assert.IsFalse(new LexwarePlugin(null!, directory).IsConnectionConfigured);
+        Assert.IsEmpty(handler.Requests);
+        var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => directory.GetCompaniesAsync());
+        Assert.AreEqual(ProFailure.ConfigurationRequired, error.Failure);
+        Assert.IsEmpty(handler.Requests);
+        var readyHandler = DefaultHandler("{\"data\":{\"companies\":[]}}");
+        await using var ready = Build(readyHandler);
+        Assert.IsTrue(((IBusinessDirectoryConnectionState)ready.GetRequiredService<IBusinessDirectory>()).IsConnectionConfigured);
+        Assert.IsEmpty(readyHandler.Requests);
+    }
     private readonly string _root = Path.Combine(Path.GetTempPath(), "WawiCallPro-pro-adapter-" + Guid.NewGuid().ToString("N"));
     private static readonly Uri ApiUrl = new("http://isolated.invalid:9710");
     private static ProConnectionOptions Credentials { get; } = new()

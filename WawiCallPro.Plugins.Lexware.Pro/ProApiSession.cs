@@ -6,6 +6,7 @@ namespace WawiCallPro.Plugins.Lexware.Pro;
 
 public interface IProApiSession : IAsyncDisposable
 {
+    bool IsConnectionConfigured => true;
     Task<ProInstallation> GetInstallationAsync(CancellationToken cancellationToken);
     Task<List<GlobalCompany>> GetCompaniesAsync(CancellationToken cancellationToken);
 
@@ -18,6 +19,7 @@ public interface IProApiSession : IAsyncDisposable
 public sealed class ProApiSession(IProInstallationSource installations, IProApiConnectionFactory connections,
     TimeProvider clock) : IProApiSession, IDisposable
 {
+    public bool IsConnectionConfigured => connections.IsConnectionConfigured;
     private readonly SemaphoreSlim _gate = new(1);
     private ProInstallation? _installation;
     private IProApiConnection? _connection;

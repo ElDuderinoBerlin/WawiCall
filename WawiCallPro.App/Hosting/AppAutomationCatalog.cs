@@ -27,6 +27,8 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
     private readonly CancellationTokenSource _stopping = new();
     private Task? _watch;
     private string? _loadedPlugin;
+    private long _retryAtTicks;
+    private string? _lastNotice;
     private int _disposed;
     private string? PluginId => (runtime as IProductPluginSelection)?.ActivePluginId;
 
@@ -42,7 +44,7 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
         {
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
             while (await timer.WaitForNextTickAsync(_stopping.Token))
-                if (_loadedPlugin != PluginId) await RefreshAsync(_stopping.Token);
+                if (_loadedPlugin != PluginId || Volatile.Read(ref _retryAtTicks) is > 0 and var retry && DateTimeOffset.UtcNow.UtcTicks >= retry) await RefreshAsync(_stopping.Token);
         }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
     }
@@ -54,12 +56,16 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
         try
         {
             var pluginId = PluginId;
+            Volatile.Write(ref _retryAtTicks, 0);
+            var stage = "Views";
             state.PublishCatalog([], BaseViews, pluginId, false);
             try
             {
                 if (!runtime.IsLoaded || runtime is IProductPluginAvailability availability && !availability.CanUseActivePlugin) return;
-                var settingsTitle = await runtime.UseAsync((plugin, _) => Task.FromResult(
-                    plugin is IWawiCallPluginSettings { HasConnectionSettings: true } settings ? settings.ConnectionSettingsTitle : null), token);
+                var setup = await runtime.UseAsync((plugin, _) => Task.FromResult((
+                    Title: plugin is IWawiCallPluginSettings { HasConnectionSettings: true } settings ? settings.ConnectionSettingsTitle : null,
+                    Configured: plugin is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured)), token);
+                var settingsTitle = setup.Title;
                 var availableViews = BaseViews;
                 if (settingsTitle is not null)
                 {
@@ -70,11 +76,13 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
                 token.ThrowIfCancellationRequested();
                 if (pluginId != PluginId) return;
                 state.PublishCatalog([], availableViews, pluginId, false);
-                var companies = await directory.GetCompaniesAsync(token);
+                if (!setup.Configured)
+                {
+                    if (_lastNotice != pluginId + ":Setup") logs.LogNormal("Der Warenwirtschaftszugang ist noch nicht eingerichtet. Bitte den Zugang im Einstellungsdialog konfigurieren.");
+                    _lastNotice = pluginId + ":Setup";
+                    return;
+                }
                 var line = state.GetStatus().ProductLine;
-                if (companies.IsDefault || companies.Length > 1000 || companies.Any(company => company?.Key is null
-                    || company.Key.ProductLine != line || string.IsNullOrWhiteSpace(company.DisplayName) || company.DisplayName.Length > 256)
-                    || companies.Select(company => company.Key).Distinct().Count() != companies.Length) throw new InvalidOperationException("Invalid company catalog.");
                 var views = await runtime.UseAsync(async (plugin, cancellation) =>
                 {
                     if (plugin.ProductLine != line) throw new InvalidOperationException("Foreign product catalog.");
@@ -92,10 +100,25 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
                 if (views.Workspaces) result = result.Add(new("parties", "Kunden und Lieferanten"));
                 result = result.Add(new("caller", "Anrufersuche") { Context = "callId optional für ein aktives Gespräch" }).Add(new("dial", "Wähldialog") { Context = "companyKey" });
                 result = result.AddRange(views.Views.Select(view => new AutomationView("plugin:" + view.Id, view.DisplayName) { Context = "companyKey + customerNumber oder supplierNumber" }));
+                stage = "Companies";
+                var companies = await directory.GetCompaniesAsync(token);
+                if (companies.IsDefault || companies.Length > 1000 || companies.Any(company => company?.Key is null
+                    || company.Key.ProductLine != line || string.IsNullOrWhiteSpace(company.DisplayName) || company.DisplayName.Length > 256)
+                    || companies.Select(company => company.Key).Distinct().Count() != companies.Length) throw new InvalidOperationException("Invalid company catalog.");
+                token.ThrowIfCancellationRequested();
+                if (pluginId != PluginId) return;
                 state.PublishCatalog(companies, result, pluginId, true);
+                _lastNotice = null;
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch (Exception) { logs.LogWarning("Der COM-Mandanten- und Viewkatalog konnte nicht geladen werden. Verbindung und Plugin prüfen."); }
+            catch (Exception)
+            {
+                if (_lastNotice != pluginId + ":" + stage) logs.LogWarning(stage == "Companies"
+                    ? "Mandanten konnten nicht geladen werden. Bitte Warenwirtschaftszugang und Verbindung prüfen; der Abruf wird erneut versucht."
+                    : "Die Ansichten des Warenwirtschaftsplugins konnten nicht geladen werden. Bitte das aktive Plugin prüfen; der Abruf wird erneut versucht.");
+                _lastNotice = pluginId + ":" + stage;
+                Volatile.Write(ref _retryAtTicks, DateTimeOffset.UtcNow.AddSeconds(30).UtcTicks);
+            }
             finally { _loadedPlugin = pluginId; }
         }
         finally { _gate.Release(); }
