@@ -50,7 +50,9 @@ entsprechend angepasst. `test-plugin-deployment.ps1`, `test-plugin-native.ps1` u
 `-ProductLine`. Beide Editionen werden nacheinander gebaut und geprüft, nicht aus einem gemeinsamen
 Produktionsordner gleichzeitig gestartet.
 
-Normale lokale Builds verwenden die geprüfte Client-Key-Vorgabe wie LxTranslate, auch in Release.
+Nur Debug-Pro-Builds übernehmen `LexwareApiClientKeyPro` aus `Solution.props`: die Build-Aktion
+schreibt einen fehlenden Key verschlüsselt in die lokale Ausgabe-`appsettings.json`. Release
+übernimmt keine Vorgabe, auch nicht bei ausdrücklich aktiviertem Kompatibilitätsschalter.
 `WawiApplyBuildLexwareClientKeyDefault=false` schaltet sie ab; der bisherige Schalter
 `WawiIncludeBuildLexwareClientKeyDefault` bleibt als kompatibler Anschluss erhalten.
 Der Paket-Publish setzt `WawiUseVelopackAppSettings=true` und enthält daher keine eingebaute Vorgabe.
@@ -781,7 +783,7 @@ Die Datei muss für den gewählten Benutzer beschreibbar sein. Alternativ ohne F
 ```
 
 Exitcode 0: geschützt oder bereits geschützt, 1: Lese-/Schreib-/Keyfehler, 2: ungültige Argumente.
-Der Build provisioniert einen fehlenden Pro-Vorgabekey bereits verschlüsselt; vorhandene Werte bleiben
+Die Debug-Build-Aktion provisioniert einen fehlenden Pro-Vorgabekey bereits verschlüsselt; vorhandene Werte bleiben
 erhalten. DEBUG kann leere Lexware-Editoren aus der ignorierten Datei
 `.artifacts/developer-lexware-defaults.json` vorbelegen. Das Kennwort ist dort bereits DPAPI-geschützt;
 gespeicherte Zugänge werden nicht ersetzt, ungespeicherte Vorgaben melden sich nicht automatisch an.

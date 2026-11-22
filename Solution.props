@@ -28,10 +28,11 @@
         <!-- Aktueller Lizenzmodus fuer normale Builds. Wird unten in Praeprozessorkonstanten umgesetzt. -->
         <LicenseActivationMode Condition="'$(LicenseActivationMode)' == ''">Online</LicenseActivationMode>
 
-        <!-- Produktlinien-Defaults fuer normale App-Build-Ausgaben. VeloPack-Publish bleibt davon unberuehrt. -->
+        <!-- Entwickler-Key nur fuer Debug; keine Uebernahme in Release. -->
         <LexwareApiClientKeyFinOffice>{11111111-1111-1111-1111-111111111111}</LexwareApiClientKeyFinOffice>
         <LexwareApiClientKeyPro>{C6778DBF-FE9A-476D-8B86-FBCDEED40793}</LexwareApiClientKeyPro>
-        <WawiApplyBuildLexwareClientKeyDefault Condition="'$(WawiApplyBuildLexwareClientKeyDefault)' == ''">true</WawiApplyBuildLexwareClientKeyDefault>
+        <WawiApplyBuildLexwareClientKeyDefault Condition="'$(WawiApplyBuildLexwareClientKeyDefault)' == '' and '$(Configuration)' == 'Debug'">true</WawiApplyBuildLexwareClientKeyDefault>
+        <WawiApplyBuildLexwareClientKeyDefault Condition="'$(WawiApplyBuildLexwareClientKeyDefault)' == ''">false</WawiApplyBuildLexwareClientKeyDefault>
 
         <!-- Velopack-Releasepakete duerfen keine LexwareApi-Defaults oder Client-Keys enthalten. -->
         <WawiUseVelopackAppSettings Condition="'$(WawiUseVelopackAppSettings)' == ''">false</WawiUseVelopackAppSettings>

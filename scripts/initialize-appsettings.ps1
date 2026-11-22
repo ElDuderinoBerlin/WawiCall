@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 try {
     $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json -AsHashtable
-    if ($ProductLine -eq 'Pro' -and $IncludeClientKey -and [string]::IsNullOrWhiteSpace($settings.LexwareApi.ClientKey)) {
+    if ($Configuration -eq 'Debug' -and $ProductLine -eq 'Pro' -and $IncludeClientKey -and [string]::IsNullOrWhiteSpace($settings.LexwareApi.ClientKey)) {
         [xml]$props = Get-Content -LiteralPath $SolutionProps -Raw
         $value = [string]$props.Project.PropertyGroup.LexwareApiClientKeyPro
         $parsed = [guid]::Empty

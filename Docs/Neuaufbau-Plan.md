@@ -4,6 +4,12 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+Debug-Key-Korrektur vom 22.11.2026: ✅ Build-Aktion übernimmt `LexwareApiClientKeyPro`
+nur in Debug-Pro aus `Solution.props` und schreibt ihn verschlüsselt in Ausgabe-appsettings.
+Release übernimmt auch bei erzwungenem Schalter keinen Vorgabekey/Assembly-Metadatenkey.
+Regulärer Pro-Build Debug/Any CPU ohne Warnungen/Fehler; fünf Skript-/MSBuild-Grenzfälle
+und die tatsächliche Debug-appsettings geprüft. Benutzerkeys bleiben erhalten.
+
 Konfiguration vom 22.11.2026: ✅ Produkt-/Benutzer-appsettings mit expliziter Vererbung,
 Lesefallback auf bisherige Profile, Logging-Abschnitt und Schalter/Level/Pfad im zentralen Dialog.
 ✅ Lokaler Client-Key nach LxTranslate verschlüsselt, `--secure-settings` ohne Fenster und Nachfrage
