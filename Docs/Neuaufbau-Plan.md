@@ -4,6 +4,15 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+Leitungsfirma vom 22.11.2026: ✅ SIP-Untertab, zugehörige COM-View und bevorzugte automatische
+Firmenwahl entfernt. Mehrfachtreffer bleiben manuell; nur vollständige eindeutige Treffer werden
+automatisch übernommen. Alte Konfiguration und Gesprächshistorie bleiben lesbar; Profilspeichern
+entfernt veraltete Zuordnungen. Pro zuerst, FinOffice danach und abschließend Pro regulär in
+Debug/Any CPU ohne Warnungen/Fehler gebaut. 26 Core-/36 Konfigurationstests sowie je Edition
+19 gezielte App-/COM-/Designerprüfungen bestanden. Hintergrundbilder mit leerem/gefülltem Zustand,
+kleinem Fenster, 16-pt-Schrift, dunklem Skin und 150%-Layoutsimulation geprüft. Keine echte Telefonie.
+Nachweise: `.artifacts/remove-line-company`.
+
 Stand: 22.11.2026. Phasen 0–6 abgeschlossen und geprüft. Phase 7 ist implementiert und isoliert geprüft;
 die reale SIP-/Geräteabnahme steht aus. Phasen 8, 9, 11 und 14 sind teilweise umgesetzt und geprüft.
 Plugin-Mandantenauswahl vom 22.11.2026: ✅ Vollständiger Export eines Tabs „Lexware“ für Pro und
@@ -15,7 +24,7 @@ gezielte App-/Kontext-/Designerprüfungen und 15 Vertragstests, dazu 71 Pro-/46 
 bestanden. 31 Designer-Tripel und gezielte Hintergrund-Renderbilder geprüft. Quellzugriffe der Prüfungen
 synthetisch, keine echten Zugangsdaten verändert. Details und weiterhin offene Registry-Anbindung im
 [Plugin-UI-Plan](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md). Die echte Pro-Mandantenladung benötigt
-noch den gespeicherten Zugang im aktuellen Standardprofil. Entfernung der Leitungsfirma folgt separat.
+noch den gespeicherten Zugang im aktuellen Standardprofil. Die separate Entfernung der Leitungsfirma ist unten dokumentiert.
 COM-Katalogkorrektur vom 22.11.2026: ✅ Der tatsächliche Pro-Standardkonfiguration fehlt der
 Lexware-Zugang. Das Pro-Plugin exportiert jetzt einen rein lokalen Einrichtungsstatus über einen
 neutralen Fähigkeitsvertrag. Ohne Zugang keine Installationserkennung/Anmeldung/Mandantenabfrage
@@ -49,7 +58,7 @@ Anleitung unter [COM-Automation](COM-Automation-Anleitung.md#vbs--und-powershell
 Kein neuer FinOffice- oder Echttelefonie-Nativnachweis.
 ✅ Mehrere gespeicherte SIP-Profile umgesetzt: Auswahl, Namen, Hinzufügen/Entfernen und gemeinsames
 Speichern im SIP-Tab; bestehendes Konto als Standard, getrennte DPAPI-Kennwörter, erweiterte Optionen
-und Leitungsfirma. Eine aktive Registrierung bleibt beim Speichern unverändert. Interner Vertrag 13,
+ohne Leitungsfirmenzuordnung. Eine aktive Registrierung bleibt beim Speichern unverändert. Interner Vertrag 13,
 portabler Import/Export erhält lokale Profile. Je Edition 104 gezielte Tests und reguläre Builds
 Debug/Any CPU erfolgreich; 29 Designer-Tripel und gezielte SIP-Renderbilder geprüft. Einzelheiten unten
 unter „SIP-Profile“ und in [SIP-Einstellungen](SIP-Einstellungen.md#mehrere-gespeicherte-sip-profile-22112026).
@@ -791,7 +800,7 @@ Tabellen-/Spaltennamen von Beginn an konsistent kleinschreiben; providerabhängi
 | 5 | ✅ | Lexware-Pro-/Financial-Office-Adapter und Capability-Matrix | 3, 4 |
 | 6 | ✅ | Rufnummernindex und Geschäftspartnerzuordnung | 3, 5 |
 | 7 | 🟨 | ✅ SIP-Implementierung und isolierte Prüfungen; reale FRITZ!Box-/Geräteabnahme noch offen | 2, 3 |
-| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ plugin-eigene Mandantenauswahl im exportierten Tab „Lexware“ für Pro/FinOffice, Dock-Auswahl entfernt und Präferenz nach atomarem Speichern publiziert, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; ✅ manuelle Gesprächsaufnahme mit gemeinsamem Status und lokaler Live-Medienzeitachse; ✅ granularer Splash-Fortschritt mit geladenem Plugin und Version; ✅ mehrere gespeicherte SIP-Profile mit getrennter Leitungsfirma und geschützten Zugangsdaten; G1–G6 und Gesamtabschluss offen | 4–7 |
+| 8 | 🟨 | ✅ App-Basis mit Zurück/Vorwärts in der Ribbon-Schnellzugriffsleiste, freie Geschäftspartnersuche mit Plugin-Oberfläche und Stammdaten-Tab, Einstellungen mit JSON-Import/Export, direktem Datenbankassistenten und Serilog-/Logoptionen, SIP-Einstellungen, Wählen, Gesprächsbedienung, geschützte Gesprächs-/Historiennotizen, historische Zuordnung und Gesprächsende, Schließschutz, Benachrichtigungen, Autostartoption, Tray mit Zweitstart-Aktivierung, Shell-Tastenkürzel, Audio-Geräteauswahl und gezielte Renderprüfung; ✅ Quellenabgleich mit technischer Restliste A1–A4 und gemeinsamer Abnahme G1–G6; ✅ A1 isolierter Kernablauf mit frischem Host auf derselben DB, drei Gesprächsarten; ✅ A2 Historiengrenzen und Bedienzustände; ✅ A3 Plugin-/Mandantengrenzen und Installationssperren; ✅ A4 Designer-/Layoutmatrix einschließlich Mandantenauswahl und Pro-Zugangseditor nun 29 Oberflächen; ✅ plugin-eigener Pro-Zugang im zentralen Einstellungsdialog mit geschütztem atomarem Speichern und Neustart; ✅ plugin-eigene Mandantenauswahl im exportierten Tab „Lexware“ für Pro/FinOffice, Dock-Auswahl entfernt und Präferenz nach atomarem Speichern publiziert, Ressourcen-/Konstruktor- und isolierter Persistierungsprüfung; ✅ SIP-Eingaben mit freier Restspalte und DPI-/schriftabhängiger Breitenbegrenzung; ✅ DPI-R1–R4: kompakte Buttons, Arbeitsbereichsgrenzen, DPI-bezogene Umbrüche und versionierte Fensterwiederherstellung; ✅ manuelle Gesprächsaufnahme mit gemeinsamem Status und lokaler Live-Medienzeitachse; ✅ granularer Splash-Fortschritt mit geladenem Plugin und Version; ✅ mehrere gespeicherte SIP-Profile mit geschützten Zugangsdaten, ohne Leitungsfirmenzuordnung; G1–G6 und Gesamtabschluss offen | 4–7 |
 | 9 | 🟨 | ✅ manuelle Live-Aufnahme mit lokaler Codec-/RTP-Zeitreferenzierung, quellenübergreifendem Drain und Abschluss vor Medienfreigabe; ✅ RTP/CSCore-Loopback auswählbar; ✅ Tatsächliche Prozessabbrüche an fünf MP3-Grenzen mit SQLite und nativem Encoder; ✅ Verwaiste MP3-Versuche unter Aufnahmesperre als Interrupted bestätigen, geschützte Abschlüsse erhalten; ✅ Vorbereitete MP3-Veröffentlichung mit geschütztem Version-2-Auftrag und Prüfung vor/nach Umbenennung; ✅ Geschützte MP3-Abschlussaufträge mit Wiederzustellung beim Hoststart und Vorrang vor erneutem Start; explizite MP3-Sitzung mit Quell-/Ausgabesperren, Originalhash, reserviertem Versuch und wiederholbarer Abschlussbestätigung ohne erneute Kodierung; atomare MP3-Ziel-/Auftragsanlage und gemeinsame Statusbestätigung mit Paarwiederholung und Rollback; dauerhafte MP3-Auftragsmetadaten mit Migration 12, Schreibversionen und expliziten Versuchen/Wiederholungen; ✅ Hintergrundabgleich bestätigter WAV-/MP3-Artefakte mit Originalhash, Missing-/Available-Wiederherstellung und Log-Warnung; automatische WAV-Artefaktbestätigung mit geschützter Wiederholung; optionale WAV-/MP3-Artefaktmetadaten mit Migration 11; Wiederanlauf unterbrochener DB-Aufnahmen ohne WAV/Abschlussauftrag; geschützte dauerhafte Abschlussaufträge mit Wiederanlauf nach SIP-Gesprächsrecovery; automatische Aufnahmepersistenz mit atomarem Journal und wiederholbarer Metadatenbestätigung ohne erneuten Mix; Aufnahmeverlauf mit Migration 10, gezielte Recovery und Fünf-Engine-Nachweis; verifizierte Ankerberechnung, besitzender Duplex-Dienst mit Call-/Host-Cleanup, Sende-/Empfangskopplung, RTP-/CSCore-Pipeline, WAV-Mixer und MP3-Dienst; ✅ Pending-MP3-Worker mit Recovery-Freigabe, begrenzten Anforderungen und geordnetem Stop; ✅ idempotenter Einreihungsdienst für bestätigte WAVs; ✅ automatische MP3-Einreihung nach lokaler Aktivierung mit UTC-Grenze; freie Formatwahl, ✅ MP3-Prozessabbruchabnahme auf allen fünf Engines; ✅ lesende Ordnerinventur mit vollständigem lokalem Pfadkatalog; ✅ Inventur nach Recovery im Hintergrund mit verständlichen Logwarnungen; ✅ explizite Konsoleninventur mit optionaler relativer Prüfliste; ✅ Dienst zum geprüften Originalexport ohne Überschreiben; ✅ ausdrücklicher Konsolenexport; Desktop-Exportbedienung, Stromausfall-/Serverausfallabnahme, Prüfoberfläche und vollständige Auflösung unbestätigter/verwaister Dateien, gerätegenaue Abtastuhr-Synchronisierung/Driftkorrektur, DTMF/Halten, Wiedergabe-/Jitterregelung, Aufnahmeautomatik, Ansagen und echte Audioabnahme offen | 7, 8 |
 | 10 | ⬜ | Erweiterte Lexware-Kundenübersicht und Schreiboperationen | 5, 8 |
 | 11 | 🟨 | ✅ Outlook Desktop/Microsoft 365/Gmail lesend angebunden; ✅ zentrale Kontoeinrichtung und Google-Desktop-Clientimport; ✅ optionaler SQLite-Mailcache mit Aufbewahrung, Anhangs-BLOBs und sicherem Neuaufbau; ✅ vollständige Pro-/FinOffice-Kontaktwege und Kunden-/Lieferantenmails bei Anrufen einschließlich aller zugehörigen Kontakte; ✅ Cacheeinstellungen, Neuaufbau/Abbruch im Mail-Ribbon und neutrale Aktionssymbole. Native Kontoabnahmen sowie Office-Adressbuchkontakte und Termine noch offen | 3, 6, 8 |
@@ -1600,22 +1609,22 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   grafische Trefferauswahl, automatische Aktualisierungsauslöser und SIP-/Viewanbindung bleiben offen.
 - [x] ✅ Mehrfachtreffer firmenweise gruppieren, Kunden-/Lieferantenrollen und Kontaktpersonen zur Auswahl anbieten.
   Nur bei belastbarer Eindeutigkeit automatisch wählen; aktive Firma beeinflusst lediglich die Reihenfolge.
-  Konfigurierte Leitungszuordnung sichtbar berücksichtigen, Alternativen erhalten und widersprüchliche Treffer klären lassen.
+  Frühere Leitungszuordnungen werden seit 22.11.2026 auf Benutzerwunsch ignoriert; Alternativen bleiben sichtbar.
   Nachweis: ICallerMatchDecisionService als UI-/I/O-freier Singleton mit vollständigen Company-/PartyKeys,
   konservativer Eindeutigkeitsprüfung und festen Auswahlgründen. Vollnummern-, bestätigte Block- und
   positive Stammnummerntreffer bleiben von unbestätigten Vorschlägen getrennt. Kunden, Lieferanten und
   Kontakte gleicher Namen/Nummern bleiben getrennte Kandidaten; Kontaktbesitzer/-nummern sind enthalten.
-  Aktive Firma ändert nur die Reihenfolge. Verifizierte Leitungsfirma darf bei vollständiger Gesamtsuche
-  genau ihren eindeutigen positiven Datensatz bevorzugen, ohne andere Firmen zu entfernen.
-  Leitungswidersprüche, mehrere Parteien und Teilstände benötigen eine ausdrückliche Entscheidung.
+  Aktive Firma ändert nur die Reihenfolge. Nur ein eindeutiger positiver Treffer im vollständigen
+  Gesamtsuchumfang wird automatisch gewählt; mehrere Parteien und Teilstände benötigen eine
+  ausdrückliche Entscheidung. Alte Leitungsfirmen dürfen keine Treffer bevorzugen oder verhindern.
   Manuelle Auswahl bleibt bei erneuter Suche derselben Nummer erhalten; fällt der Kandidat weg,
   gibt es keinen automatischen Ersatz. Ersetzte/abgelaufene Speicherstände verhindern eine späte Übernahme.
   Start → Anrufzuordnung öffnet FrmCallerLookup mit eigenem Größen-/Positionszustand und designerfähigem
   CallerLookupPage: gruppierter GridView, eingebaute Suche, versioniertes Spaltenlayout, Suchfirmen-/Cache-
   und Herkunftsdetails. Suche, Abbruch und Schließen sind abwartbar; Hauptansichten bleiben erhalten.
-  Explizite Firmenzuordnung unter Einstellungen → SIP-Konto → Leitungsfirma mit durchsuchbarem Lookup,
-  Bestätigung und regulärem Speichern; an Server/Port/Transport/Benutzer gebunden und nach Kontoänderung
-  nicht mehr verlässlich. Persönliche Cacheauswahl/Berechtigungen werden dadurch nicht ersetzt.
+  Der frühere Untertab „Leitungsfirma“ wurde am 22.11.2026 entfernt. Persönliche Cacheauswahl und
+  Berechtigungen bleiben bestehen; alte gespeicherte Zuordnungen bleiben lesbar, beeinflussen neue
+  Anrufentscheidungen aber nicht. Historische Gesprächszuordnungen bleiben erhalten.
   Je Edition 128 Core-, 132 Utilities-, 25 Console-, 15 Interface- und sechs gezielte App-Prüfungen bestanden.
   Davon 26 neue Entscheidungs-, zwei Konfigurations- und fünf Bedienungs-/Abbruch-/Renderprüfungen;
   abschließend je 42 gezielte Core-Prüfungen sowie die sechs App-Prüfungen erneut erfolgreich.
@@ -1849,7 +1858,7 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 #### SIP-Profile – Zusatzauftrag vom 22.11.2026 ✅
 
 - [x] ✅ Bis zu 16 benannte SIP-Profile mit durchsuchbarer Auswahl sowie Hinzufügen/Entfernen im
-  bestehenden Einstellungsdialog. Profilname, Standard-/Expertenfelder und bestätigte Leitungsfirma
+  bestehenden Einstellungsdialog. Profilname und Standard-/Expertenfelder
   gemeinsam als Entwurf bearbeiten und atomar speichern. Abbrechen erhält die Datei; Entfernen des
   letzten Profils leert die Kontokonfiguration nach ausdrücklichem Speichern.
 - [x] ✅ Bisheriges Einzelkonto einschließlich Kennwort unverändert als Standard-Profil öffnen;

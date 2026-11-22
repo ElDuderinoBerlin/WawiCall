@@ -2015,7 +2015,7 @@ public sealed partial class AppShellTests
         Assert.IsNull(form.Page.Decision);
     });
     [TestMethod]
-    public Task CallerLineMappingIsConfiguredOnlyInSettingsAndUsedByActualLookup() => WithWorkspace(async (workspace, services, plugin) =>
+    public Task SipSettingsHaveNoLineCompanyAndLookupRequiresUnambiguousMatches() => WithWorkspace(async (workspace, services, plugin) =>
     {
         await SeedCallerCachesAsync(workspace, services);
         var companies = await workspace.Directory.GetCompaniesAsync();
@@ -2027,13 +2027,10 @@ public sealed partial class AppShellTests
             Field<TextEdit>(page, "serverEdit").Text = "fixture.invalid";
             Field<TextEdit>(page, "usernameEdit").Text = "test-account";
             Field<TextEdit>(page, "passwordEdit").Text = "synthetic-password";
-            await InvokeActionAsync(page, "LoadLineCompanies_Click");
-            Field<LookUpEdit>(page, "lineCompanyEdit").EditValue = companies[1].Key;
-            await InvokeActionAsync(page, "ConfirmLine_Click");
+            Assert.AreEqual(2, Field<XtraTabControl>(page, "sipPages").TabPages.Count);
             await InvokeActionAsync(page, "Save_Click");
             var saved = (await workspace.Settings.LoadAsync()).Options;
-            Assert.IsTrue(CallerLineConfiguration.Resolve(saved)!.IsVerified);
-            Assert.AreEqual(companies[1].Key, saved.CallerLineAssignment!.Company);
+            Assert.IsNull(saved.CallerLineAssignment);
             Assert.IsTrue(saved.Companies.All(company => company.IncludeInPhoneCache));
             await settings.StopAsync();
         }
@@ -2046,10 +2043,10 @@ public sealed partial class AppShellTests
         var lookup = form.OwnedForms.OfType<FrmCallerLookup>().Single().Page;
         Field<TextEdit>(lookup, "numberEdit").Text = "+49301234567";
         await InvokeActionAsync(lookup, "Search_Click");
-        Assert.AreEqual(CallerMatchDecisionKind.LineUnique, lookup.Decision!.Kind);
-        Assert.AreEqual(companies[1].Key, lookup.Decision.Selection!.Party.Company);
+        Assert.AreEqual(CallerMatchDecisionKind.Ambiguous, lookup.Decision!.Kind);
+        Assert.IsNull(lookup.Decision.Selection); Assert.IsNull(lookup.Decision.LineAssignment);
         Assert.HasCount(4, lookup.Decision.Groups.SelectMany(group => group.Candidates));
-        Assert.Contains("Leitung", Field<LabelControl>(lookup, "statusLabel").Text);
+        Assert.IsNull(typeof(CallerLookupPage).GetField("lineLabel", BindingFlags.Instance | BindingFlags.NonPublic));
         Assert.AreEqual(0, plugin.Created);
         await form.PrepareToCloseAsync();
     });
@@ -2118,7 +2115,7 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
-    public Task CallerLookupRendersOnlyItsChangedSurfaceWithEmptyFilledAndLineConflictStates() => WithWorkspace(async (workspace, services, plugin) =>
+    public Task CallerLookupRendersEmptyFilledAndIgnoredLegacyLineStates() => WithWorkspace(async (workspace, services, plugin) =>
     {
         AppUiStartup.Apply();
         await SeedCallerCachesAsync(workspace, services);
@@ -2169,29 +2166,7 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(1, buttons.Select(button => button.Size).Distinct().Count(), "Related actions need equal preferred sizes.");
                 foreach (var button in buttons) Assert.IsTrue(button.Width >= button.GetPreferredSize(Size.Empty).Width);
                 await form.StopAsync();
-                if (!filled)
-                {
-                    using var settings = new FrmSettings(workspace);
-                    settings.PrepareForBackgroundRun(); settings.Font = font; settings.MinimumSize = Size.Empty;
-                    settings.ClientSize = new(width, height); settings.Show(); Application.DoEvents();
-                    var settingsPage = Field<SettingsPage>(settings, "settingsPage");
-                    settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(settingsPage, "sipTab");
-                    Field<XtraTabControl>(settingsPage, "sipPages").SelectedTabPage = Field<XtraTabPage>(settingsPage, "lineTab");
-                    if (fontSize > 10F)
-                    {
-                        Field<TextEdit>(settingsPage, "serverEdit").Text = "fixture.invalid";
-                        Field<TextEdit>(settingsPage, "usernameEdit").Text = "fixture-account";
-                        await InvokeActionAsync(settingsPage, "LoadLineCompanies_Click");
-                        Field<LookUpEdit>(settingsPage, "lineCompanyEdit").EditValue = result.Index.Companies[0].Company;
-                        await InvokeActionAsync(settingsPage, "ConfirmLine_Click");
-                    }
-                    if (scale != 1F) settings.Scale(new SizeF(scale, scale));
-                    settings.PerformLayout(); Application.DoEvents();
-                    Assert.IsTrue(Field<TableLayoutPanel>(settingsPage, "lineButtons").Right <= Field<TableLayoutPanel>(settingsPage, "lineLayout").Width);
-                    using var settingsImage = UiAudit.Capture(settings);
-                    settingsImage.Save(Path.Combine(output, $"line-settings-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
-                    await settings.StopAsync();
-                }
+
             }
         }
         finally

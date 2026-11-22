@@ -19,7 +19,7 @@ internal sealed class AppAutomationCatalog(IProductPluginRuntime runtime, IBusin
         new("call", "Gesprächsdetails") { Context = "callId" }, new("database", "Datenbank einrichten"),
         new("settings", "Einstellungen"), new("settings-general", "Allgemein"), new("plugin", "Plugins"),
         new("settings-hotkeys", "Tastenkürzel"), new("settings-sip", "SIP-Konto"), new("settings-sip-advanced", "SIP – Erweitert"),
-        new("settings-line-company", "Leitungsfirma"), new("settings-database", "Datenbank"),
+        new("settings-database", "Datenbank"),
         new("settings-audio", "Audiogeräte"), new("settings-audio-levels", "Lautstärken und MP3"),
         new("settings-phone-cache", "Telefon-Cache"), new("settings-cache-sources", "Cachequellen"),
         new("settings-phone-matching", "Stammnummernabgleich"), new("number-diagnostics", "Nummerndiagnostik"), new("settings-mail", "Office / Mail") ];

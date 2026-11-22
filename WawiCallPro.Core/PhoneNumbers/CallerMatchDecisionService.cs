@@ -19,8 +19,7 @@ public sealed class CallerMatchDecisionService : ICallerMatchDecisionService
             || result.Candidates.Select(candidate => candidate.Party).Distinct().Count() != result.Candidates.Length)
             throw new ArgumentException("Candidates must belong to the observed company scope.", nameof(result));
         var groups = result.Index.Companies
-            .OrderBy(company => company.Company == context.LineAssignment?.Company && context.LineAssignment.IsVerified ? 0
-                : company.Company == context.ActiveCompany ? 1 : 2)
+            .OrderBy(company => company.Company == context.ActiveCompany ? 0 : 1)
             .ThenBy(company => company.DisplayName, StringComparer.CurrentCultureIgnoreCase)
             .ThenBy(company => company.Company.InstallationId, StringComparer.Ordinal)
             .ThenBy(company => company.Company.ExternalId, StringComparer.Ordinal)
@@ -33,7 +32,7 @@ public sealed class CallerMatchDecisionService : ICallerMatchDecisionService
         {
             var lookup = result.Lookup with { SelectionReason = choice?.Kind switch
             { CallerMatchSelectionKind.Unique => "unique", CallerMatchSelectionKind.ConfiguredLine => "configured-line", _ => null } };
-            return new(kind, groups, context.LineAssignment, choice is null ? null : choice with { Lookup = lookup }, lookup)
+            return new(kind, groups, null, choice is null ? null : choice with { Lookup = lookup }, lookup)
             { IndexGeneration = result.Index.Generation };
         }
         if (result.Index.State == PhoneSearchScopeState.NoSelection) return Decision(CallerMatchDecisionKind.NoSearchCompanies);
@@ -42,9 +41,6 @@ public sealed class CallerMatchDecisionService : ICallerMatchDecisionService
                 ? Choose(Decision(CallerMatchDecisionKind.Manual), previous.Party)
                 : Decision(CallerMatchDecisionKind.SelectionUnavailable);
         var positives = result.Candidates.Where(candidate => candidate.IsPositive).ToArray();
-        var line = context.LineAssignment is { IsVerified: true } mapping ? mapping : null;
-        var onLine = positives.Where(candidate => candidate.Party.Company == line?.Company).ToArray();
-        if (line is not null && onLine.Length == 0 && positives.Length > 0) return Decision(CallerMatchDecisionKind.LineConflict);
         var complete = result.Index.State == PhoneSearchScopeState.Ready && result.Index.IsComplete && result.Lookup.IsComplete
             && groups.Length > 0 && groups.All(group => group.Company.State == PhoneSearchCompanyState.Ready)
             && result.Lookup.SearchCompanies.Length == groups.Length
@@ -53,9 +49,7 @@ public sealed class CallerMatchDecisionService : ICallerMatchDecisionService
             && groups.All(group => group.Candidates.All(candidate => candidate.Evidence.All(item => item.Match.ParserVersion == result.Lookup.ParserVersion
                 && item.Match.CacheRevision == group.Company.CacheRevision && item.Match.RuleRevision == group.Company.RuleRevision)));
         if (!complete) return Decision(CallerMatchDecisionKind.Incomplete);
-        if (line is not null && onLine.Length == 1)
-            return Decision(CallerMatchDecisionKind.LineUnique, new(onLine[0].Party, CallerMatchSelectionKind.ConfiguredLine, false, result.Lookup));
-        if (line is null && positives.Length == 1)
+        if (positives.Length == 1)
             return Decision(CallerMatchDecisionKind.Unique, new(positives[0].Party, CallerMatchSelectionKind.Unique, false, result.Lookup));
         return Decision(result.Candidates.IsEmpty ? CallerMatchDecisionKind.NoMatch : CallerMatchDecisionKind.Ambiguous);
     }
@@ -69,7 +63,7 @@ public sealed class CallerMatchDecisionService : ICallerMatchDecisionService
             ?? throw new ArgumentException("Choose a candidate from this lookup.", nameof(party));
         var provisional = !decision.Lookup.IsComplete || !candidate.IsPositive || group!.Company.State != PhoneSearchCompanyState.Ready;
         var lookup = decision.Lookup with { SelectionReason = "manual" };
-        return decision with { Kind = CallerMatchDecisionKind.Manual, Lookup = lookup,
+        return decision with { Kind = CallerMatchDecisionKind.Manual, Lookup = lookup, LineAssignment = null,
             Selection = new(party, CallerMatchSelectionKind.Manual, provisional, lookup) };
     }
     private static int Rank(PhoneNumberMatchKind kind) => kind switch

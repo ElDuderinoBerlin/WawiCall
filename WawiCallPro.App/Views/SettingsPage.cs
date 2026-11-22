@@ -40,7 +40,7 @@ public partial class SettingsPage : XtraUserControl
             + audioDevicesTab.Top + audioDevicesTab.Left);
         if (tabs.SelectedTabPage == sipTab)
             content = Math.Max(content, sipProfilesLayout.GetPreferredSize(new(width, 0)).Height
-                + Math.Max(sipLayout.GetPreferredSize(new(width, 0)).Height, lineLayout.GetPreferredSize(new(width, 0)).Height)
+                + sipLayout.GetPreferredSize(new(width, 0)).Height
                 + sipStandard.Top + sipStandard.Left);
         if (tabs.SelectedTabPage == mailTab) content = Math.Max(content, mailSettingsPage.GetRequiredHeight());
         if (tabs.SelectedTabPage == wawiTab) content = Math.Max(content, wawiLayout.GetPreferredSize(new(width, 0)).Height);
@@ -68,7 +68,6 @@ public partial class SettingsPage : XtraUserControl
         FontChanged += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
         matchingLayout.SizeChanged += ButtonLayout_Changed;
-        lineLayout.SizeChanged += ButtonLayout_Changed;
         var appearance = LookAndFeel;
         appearance.StyleChanged += ButtonLayout_Changed;
         Disposed += (_, _) => appearance.StyleChanged -= ButtonLayout_Changed;
@@ -104,11 +103,6 @@ public partial class SettingsPage : XtraUserControl
                 button.Margin = new Padding(button.LogicalToDeviceUnits(4));
             }
             UiButtonSizing.Apply(loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton);
-            foreach (var button in new[] { loadLineButton, confirmLineButton, clearLineButton })
-            {
-                button.Margin = new Padding(button.LogicalToDeviceUnits(4));
-            }
-            UiButtonSizing.Apply(loadLineButton, confirmLineButton, clearLineButton);
             UiButtonSizing.Apply(sipConnectButton, sipDisconnectButton);
             UiButtonSizing.Apply(addSipProfileButton, removeSipProfileButton);
             var cacheSize = UiButtonSizing.Apply(cacheButtons);
@@ -172,13 +166,13 @@ public partial class SettingsPage : XtraUserControl
         tabs.SelectedTabPage = id switch
         {
             "plugin" => pluginTab, "settings-wawi" => wawiTab, "settings-hotkeys" => hotkeysTab,
-            "settings-sip" or "settings-sip-advanced" or "settings-line-company" => sipTab,
+            "settings-sip" or "settings-sip-advanced" => sipTab,
             "settings-database" => databaseTab, "settings-audio" or "settings-audio-levels" => audioTab,
             "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics" => cacheTab,
             "settings-mail" => mailTab, _ => generalTab
         };
-        if (id.StartsWith("settings-sip", StringComparison.Ordinal) || id == "settings-line-company")
-            sipPages.SelectedTabPage = id == "settings-line-company" ? lineTab : id == "settings-sip-advanced" ? sipAdvanced : sipStandard;
+        if (id.StartsWith("settings-sip", StringComparison.Ordinal))
+            sipPages.SelectedTabPage = id == "settings-sip-advanced" ? sipAdvanced : sipStandard;
         if (id is "settings-audio" or "settings-audio-levels") audioPages.SelectedTabPage = id == "settings-audio-levels" ? audioLevelsTab : audioDevicesTab;
         if (id is "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics")
             cachePages.SelectedTabPage = id == "number-diagnostics" ? diagnosticsTab : id == "settings-phone-matching" ? matchingTab : cacheSourcesTab;

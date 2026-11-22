@@ -94,13 +94,13 @@ ihre Startkonfiguration; der Dialog bietet einen Neustart an. Prüfungen und Ren
 
 ### Benannte SIP-Profile (22.11.2026)
 
-Der zentrale SIP-Tab verwaltet bis zu 16 Profile mit getrennten Zugangsdaten, erweiterten Optionen
-und Leitungsfirma. Ein bestehendes Einzelkonto wird als Standard-Profil bearbeitet. Alle Änderungen
+Der zentrale SIP-Tab verwaltet bis zu 16 Profile mit getrennten Zugangsdaten und erweiterten Optionen. Ein bestehendes Einzelkonto wird als Standard-Profil bearbeitet. Alle Änderungen
 bleiben bis Speichern im Dialogentwurf; nur ein Profil wird für die nächste Anmeldung ausgewählt.
 `SipProfileCatalog` bildet diesen Katalog auf das bestehende aktive `SipAccount` ab. Ein bereits
 registrierter SIP-Dienst behält Konto und Profilkennung bis zum ausdrücklichen Abmelden; kein
 Einstellungswechsel startet eine zusätzliche Registrierung oder schaltet ein Gespräch um.
-Die Anrufzuordnung verwendet das Profil zum tatsächlichen Leitungskontext statt der späteren Auswahl.
+Die Anrufzuordnung verwendet den vollständigen berechtigten Suchumfang; alte Leitungsfirmen werden
+ignoriert. Eindeutige Treffer werden automatisch, Mehrfachtreffer manuell zugeordnet.
 DPAPI, atomarer Konkurrenzschutz und die Ausschlussliste des portablen Exports bleiben wirksam.
 Einrichtung und Formatbeschreibung: [SIP-Einstellungen](SIP-Einstellungen.md#mehrere-gespeicherte-sip-profile-22112026).
 

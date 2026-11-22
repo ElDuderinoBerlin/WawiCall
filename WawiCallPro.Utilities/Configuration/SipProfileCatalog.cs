@@ -3,7 +3,7 @@ using WawiCallPro.Interfaces.PhoneNumbers;
 
 namespace WawiCallPro.Utilities.Configuration;
 
-/// <summary>A named account. The active row stores its account and line only in the existing root settings.</summary>
+/// <summary>A named account. The active row stores its account only in the existing root settings. LineAssignment remains readable for legacy files.</summary>
 public sealed record SipAccountProfile(Guid Id, string Name, SipAccountOptions? Account = null,
     CallerLineAssignment? LineAssignment = null)
 {
@@ -32,9 +32,9 @@ public static class SipProfileCatalog
             return options with { SipProfiles = [], ActiveSipProfileId = null, SipAccount = null, CallerLineAssignment = null };
         return options with
         {
-            SipAccount = selected.Account, CallerLineAssignment = selected.LineAssignment, ActiveSipProfileId = selectedId,
+            SipAccount = selected.Account, CallerLineAssignment = null, ActiveSipProfileId = selectedId,
             SipProfiles = drafts.Select(profile => profile.Id == selectedId
-                ? profile with { Account = null, LineAssignment = null } : profile).ToImmutableArray()
+                ? profile with { Account = null, LineAssignment = null } : profile with { LineAssignment = null }).ToImmutableArray()
         };
     }
 }

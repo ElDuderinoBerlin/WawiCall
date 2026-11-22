@@ -19,7 +19,7 @@ eine leere Standard-Eingabe zurück; Speichern entfernt dann die Kontokonfigurat
 
 Pro Profil bleiben Server, Port, Transport, Benutzer-/Authentifizierungsname, das unter diesem
 Windows-Benutzer und SIP-Zweck DPAPI-geschützte Kennwort, die Startautomatik, sämtliche erweiterten
-Verbindungs-/Medienoptionen und die ausdrücklich bestätigte Leitungsfirma erhalten. Ein leeres
+Verbindungs-/Medienoptionen erhalten. Eine Zuordnung der SIP-Leitung zu einer Firma entfällt. Ein leeres
 Kennwortfeld behält nur das Kennwort dieses Profils. Neue Profile übernehmen keine Zugangsdaten;
 der Sichtbarkeitsbutton zeigt ausschließlich das aktuell bearbeitete Kennwort auf ausdrücklichen Wunsch.
 Audiogeräte und Aufnahmequelle bleiben gemeinsame Arbeitsplatzoptionen.
@@ -34,19 +34,18 @@ sind damit nicht implementiert.
 
 Ein vorhandenes Einzelkonto erscheint ohne Dateiänderung als **Standard**. Erst beim ausdrücklichen
 Speichern entstehen Profilmetadaten im internen Format 13; ältere Formate 1–12 bleiben lesbar. Die
-interne Datei enthält `sipProfiles` und `activeSipProfileId`. Das aktive Konto und seine Leitungsfirma
-stehen weiterhin nur in `sipAccount` beziehungsweise `callerLineAssignment`; die entsprechende
-Profilzeile enthält dafür null, inaktive Profilzeilen ihre eigenen geschützten Werte. Damit bleiben
-bestehende Kontoleser eindeutig und es entstehen keine zwei konkurrierenden aktiven Kennwörter.
+interne Datei enthält `sipProfiles` und `activeSipProfileId`. Das aktive Konto steht nur in
+`sipAccount`; die entsprechende Profilzeile enthält dafür null, inaktive Profilzeilen ihre eigenen
+geschützten Werte. Frühere `callerLineAssignment`-/`LineAssignment`-Werte bleiben lesbar,
+werden bei der Anrufzuordnung ignoriert und beim ausdrücklichen Profilspeichern entfernt.
 Der portable JSON-Import/-Export enthält weiterhin keine Profile, Konten, Kennwörter oder Zuordnungen
 und erhält die lokalen Profile beim Import. Interne Format-13-Dateien nicht mit älteren Builds bearbeiten;
 zum Zurückrollen einen vor der Profilumstellung gesicherten lokalen Einstellungsstand verwenden.
 
-Für die automatische Anrufzuordnung gilt der tatsächliche Leitungskontext des Gesprächs. Wird bei
-angemeldetem Profil A bereits B für die nächste Anmeldung gespeichert, bleibt die Zuordnung von A
-verwendbar. Mehrere Profile mit derselben Konto-/Leitungsadresse sind für eine automatische Firmenwahl
-mehrdeutig und liefern keine bestätigte Zuordnung. Unbekannte oder entfernte Leitungen werden nicht
-auf die Firma des neu ausgewählten Profils umgebogen.
+Die automatische Anrufzuordnung prüft alle berechtigten Suchfirmen. Nur ein eindeutiger positiver
+Treffer bei vollständigem Suchstand wird automatisch gewählt. Mehrfachtreffer benötigen die
+manuelle Auswahl; der aktive Mandant bestimmt lediglich die Reihenfolge. Technische SIP-Leitungsdaten
+bleiben für Rufnummerninterpretation und Gesprächssteuerung erhalten.
 
 Der SIP-Tab bemisst seine Mindesthöhe einschließlich Profilauswahl anhand des Inhalts. Nur wenn eine
 große Schrift-/DPI-Kombination die Monitorarbeitsfläche überschreitet, wird der vorhandene Inhaltsbereich

@@ -10,7 +10,7 @@ namespace WawiCallPro.App.Tests;
 public partial class AppShellTests
 {
     [TestMethod]
-    public Task SipProfilesKeepPasswordsAdvancedOptionsAndLinesSeparateWithoutReconnecting() => WithWorkspace(async (workspace, _, plugin) =>
+    public Task SipProfilesKeepPasswordsAndAdvancedOptionsSeparateWithoutReconnecting() => WithWorkspace(async (workspace, _, plugin) =>
     {
         var backend = (ComTelephonyFixture.Backend)workspace.Telephony!;
         using var form = new FrmSettings(workspace);
@@ -31,8 +31,6 @@ public partial class AppShellTests
         var firstId = (Guid)selector.EditValue;
         var advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
         advanced.RegistrationExpirySeconds = 240;
-        var firstMapping = CallerLineConfiguration.Create(page.ReadOptions().SipAccount!, (await workspace.Directory.GetCompaniesAsync())[0].Key);
-        typeof(SettingsPage).GetField("_lineDraft", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(page, firstMapping);
         Action("AddSipProfile_Click");
         var secondId = (Guid)selector.EditValue;
         Assert.AreNotEqual(firstId, secondId);
@@ -45,7 +43,7 @@ public partial class AppShellTests
         Assert.AreEqual("", password.Text); Assert.IsTrue(password.Properties.UseSystemPasswordChar);
         advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
         Assert.AreEqual(240, advanced.RegistrationExpirySeconds);
-        Assert.AreEqual(firstMapping, page.ReadOptions().CallerLineAssignment);
+        Assert.IsNull(page.ReadOptions().CallerLineAssignment);
         Toggle(); Assert.AreEqual("synthetic-office-secret", password.Text);
         selector.EditValue = secondId;
         Assert.AreEqual("", password.Text); Assert.IsTrue(password.Properties.UseSystemPasswordChar);
@@ -57,7 +55,7 @@ public partial class AppShellTests
         var saved = (await workspace.Settings.LoadAsync()).Options;
         Assert.AreEqual(2, saved.SipProfiles.Length); Assert.AreEqual(secondId, saved.ActiveSipProfileId);
         Assert.AreEqual("mobile.invalid", saved.SipAccount!.Server);
-        Assert.AreEqual(firstMapping, SipProfileCatalog.Read(saved).Single(profile => profile.Id == firstId).LineAssignment);
+        Assert.IsTrue(SipProfileCatalog.Read(saved).All(profile => profile.LineAssignment is null));
         Application.DoEvents(); CheckTableBounds(form);
         var directory = Path.Combine(RenderOutput(), "sip-profiles"); Directory.CreateDirectory(directory);
         using (var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form)) image.Save(Path.Combine(directory, "two-profiles.png"));

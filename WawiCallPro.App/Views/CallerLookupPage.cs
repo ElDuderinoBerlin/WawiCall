@@ -21,7 +21,6 @@ public partial class CallerLookupPage : XtraUserControl
     private CallerMatchDecision? _decision;
     private string? _lastNumber;
     private bool _binding;
-    private bool _explicitContext;
     private bool _arrangingButtons;
     private Func<CallerMatchDecision, CancellationToken, Task>? _accept;
     private bool _callEnded;
@@ -56,15 +55,13 @@ public partial class CallerLookupPage : XtraUserControl
     internal void Bind(AppWorkspace workspace, AppUiState? state, CallerMatchContext? context = null)
     {
         _workspace = workspace; _state = state;
-        _explicitContext = context is not null;
-        _context = context ?? new(workspace.Companies.Current.Company?.Key, CallerLineConfiguration.Resolve(workspace.Configuration.Current.Options));
+        _context = (context ?? new(workspace.Companies.Current.Company?.Key)) with { LineAssignment = null };
         _operation = new(this, statusLabel);
         _state?.Restore(view, "CallerLookup-v1");
         view.ClearGrouping();
         groupColumn.GroupIndex = 0;
         groupColumn.Visible = false;
         searchButton.Enabled = workspace.CanUseBusinessDirectory;
-        ShowLine();
     }
     internal CallerMatchDecision? Decision => _decision;
     internal void BindNotes(CallNotesSession notes) { notesPanel.Bind(notes); notesTab.PageVisible = true; }
@@ -97,7 +94,7 @@ public partial class CallerLookupPage : XtraUserControl
             return;
         }
         var number = numberEdit.Text.Trim();
-        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _accept is null ? _context.LineAssignment?.Line : _boundLine);
+        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _boundLine);
         if (incoming.Kind != PhoneNumberAddressKind.Public)
         {
             _decision = null; grid.DataSource = Array.Empty<CandidateRow>();
@@ -120,11 +117,6 @@ public partial class CallerLookupPage : XtraUserControl
                 var result = await Task.Run(() => _workspace.PhoneSearch.Find(incoming, request.Token), request.Token);
                 request.Token.ThrowIfCancellationRequested();
                 _lastNumber = number;
-                if (!_explicitContext)
-                    _context = _context with { LineAssignment = CallerLineConfiguration.Resolve((await _workspace.Settings.LoadAsync(request.Token)).Options) };
-                if (_accept is not null && _context.LineAssignment is { } mapping)
-                    _context = _context with { LineAssignment = mapping with { IsVerified = mapping.IsVerified && _boundLine is { } line
-                        && mapping.Line.TelephonySystemId == line.TelephonySystemId && mapping.Line.LineId == line.LineId } };
                 var context = _context with { ActiveCompany = _workspace.Companies.Current.Company?.Key };
                 var decision = _workspace.CallerDecisions.Evaluate(result, context, previous);
                 Display(_boundCall is { } boundCall ? AppCallAssociation.RespectDialCompany(decision, boundCall) : decision);
@@ -178,18 +170,12 @@ public partial class CallerLookupPage : XtraUserControl
                     + (selection.IsProvisional ? ", vorläufig)" : ")")
                 : "Keine Zuordnung übernommen. Einen Datensatz markieren und ausdrücklich übernehmen.";
             if (decision.Selection is not null) statusLabel.Text = selectionLabel.Text + "\n" + statusLabel.Text;
-            if (decision.LineAssignment is { } line) statusLabel.Text = "Leitung „" + line.DisplayName + "“: " + statusLabel.Text;
             scopeLabel.Text = string.Join("\n", decision.Groups.Select(group => group.Company.DisplayName + ": " + CacheText(group.Company.State)));
-            _context = _context with { LineAssignment = decision.LineAssignment };
-            ShowLine();
         }
         finally { _binding = false; }
         UpdateFocusedDetails();
     }
-    private void ShowLine() => lineLabel.Text = _context.LineAssignment is { } line
-        ? "Leitung: " + line.DisplayName + " · " + (line.IsVerified ? "Verlässlich zugeordnete Firma: " : "Unbestätigte Firmenangabe: ")
-            + (_decision?.Groups.FirstOrDefault(group => group.Company.Company == line.Company)?.Company.DisplayName ?? "nicht im verfügbaren Suchstand")
-        : "Leitung: Keine verlässliche Firmenzuordnung hinterlegt.";
+
     private void View_FocusedRowChanged(object sender, FocusedRowChangedEventArgs e) { if (!_binding) UpdateFocusedDetails(); }
     private void View_CustomColumnDisplayText(object sender, CustomColumnDisplayTextEventArgs e)
     {
@@ -212,7 +198,7 @@ public partial class CallerLookupPage : XtraUserControl
         CallerMatchDecisionKind.Unique => "Ein belastbarer Treffer im vollständigen Suchstand wurde automatisch übernommen.",
         CallerMatchDecisionKind.LineUnique => "Eindeutiger Treffer der zugeordneten Leitung übernommen. Andere Firmen bleiben als Alternativen erhalten.",
         CallerMatchDecisionKind.Incomplete => "Suchstand unvollständig oder veraltet. Vorhandene Treffer können nur ausdrücklich übernommen werden.",
-        CallerMatchDecisionKind.LineConflict => "Leitungszuordnung und Rufnummerntreffer widersprechen sich. Bitte Firma und Datensatz ausdrücklich wählen.",
+        CallerMatchDecisionKind.LineConflict => "Gesprächsmandant und Rufnummerntreffer widersprechen sich. Bitte Firma und Datensatz ausdrücklich wählen.",
         CallerMatchDecisionKind.Manual => "Auswahl manuell übernommen.",
         CallerMatchDecisionKind.SelectionUnavailable => "Die manuelle Auswahl ist nicht mehr verfügbar. Bitte erneut entscheiden; es wurde kein Ersatz gewählt.",
         CallerMatchDecisionKind.NoMatch => "Kein Treffer im vollständigen Suchstand.",

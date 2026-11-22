@@ -10,7 +10,7 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class SipProfileTests
 {
     [TestMethod]
-    public async Task ProfilesRoundTripSeparateSecretsAndLinesAndOnlySelectedAccountRemainsAtRoot()
+    public async Task ProfilesRoundTripSeparateSecretsDiscardLegacyLinesAndKeepSelectedAccountAtRoot()
     {
         using var files = new Files();
         var drafts = files.Profiles();
@@ -25,17 +25,11 @@ public sealed class SipProfileTests
         var after = (await files.Store.LoadAsync()).Options;
         Assert.AreEqual(drafts[1].Id, after.ActiveSipProfileId);
         Assert.AreEqual("second.invalid", after.SipAccount!.Server);
-        Assert.AreEqual(drafts[1].LineAssignment, after.CallerLineAssignment);
-        Assert.AreEqual(drafts[0].LineAssignment, CallerLineConfiguration.ResolveForLine(after,
-            CallerLineConfiguration.ContextFor(drafts[0].Account!)));
-        Assert.IsNull(CallerLineConfiguration.ResolveForLine(after, null));
-        var duplicate = SipProfileCatalog.Select(after,
-            [drafts[0], drafts[1] with { Account = drafts[0].Account }], drafts[0].Id);
-        Assert.IsNull(CallerLineConfiguration.ResolveForLine(duplicate, CallerLineConfiguration.ContextFor(drafts[0].Account!)));
+        Assert.IsNull(after.CallerLineAssignment);
         var restored = SipProfileCatalog.Read(after);
         for (var index = 0; index < 2; index++)
         {
-            Assert.AreEqual(drafts[index].LineAssignment, restored[index].LineAssignment);
+            Assert.IsNull(restored[index].LineAssignment);
             using var secret = files.Protector.Unprotect(restored[index].Account!.Password!, SipAccountOptions.PasswordPurpose);
             Assert.AreEqual("synthetic-profile-secret-" + index, secret.Reveal());
         }

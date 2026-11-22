@@ -3,14 +3,20 @@ using System.Threading.Channels;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Telephony;
-using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Hosting;
 
 /// <summary>Persists detached caller decisions independently of forms. SIP remains the owner of call-state persistence.</summary>
-internal sealed class AppCallAssociation(ITelephonyService phone, ICallHistoryService history, IPhoneSearchIndexService index,
-    ICallerMatchDecisionService decisions, IPhoneNumberInterpreter interpreter, ICallAssociationService associations,
-    ConfigurationStore settings, AppTelephonyAccess access, ILogWindowService log, TimeProvider clock) : IHostedService, IAsyncDisposable
+internal sealed class AppCallAssociation(
+    ITelephonyService phone,
+    ICallHistoryService history,
+    IPhoneSearchIndexService index,
+    ICallerMatchDecisionService decisions,
+    IPhoneNumberInterpreter interpreter,
+    ICallAssociationService associations,
+    AppTelephonyAccess access,
+    ILogWindowService log,
+    TimeProvider clock) : IHostedService, IAsyncDisposable
 {
     private readonly object _gate = new();
     private readonly Dictionary<Guid, Work> _pending = [];
@@ -90,11 +96,7 @@ internal sealed class AppCallAssociation(ITelephonyService phone, ICallHistorySe
         await access.CheckLicenseAsync(token).ConfigureAwait(false); access.CheckBusinessSource();
         await index.RefreshAsync(token).ConfigureAwait(false);
         var result = index.Find(incoming, token);
-        var options = (await settings.LoadAsync(token).ConfigureAwait(false)).Options;
-        var line = CallerLineConfiguration.ResolveForLine(options, entry.Line);
-        if (line is not null) line = line with { IsVerified = line.IsVerified && entry.Line is { } bound
-            && line.Line.TelephonySystemId == bound.TelephonySystemId && line.Line.LineId == bound.LineId };
-        var decision = RespectDialCompany(decisions.Evaluate(result, new(entry.Call.Company, line)), entry.Call);
+        var decision = RespectDialCompany(decisions.Evaluate(result, new(entry.Call.Company)), entry.Call);
         var current = index.GetStatus();
         if (current.Generation != decision.IndexGeneration || decision.Selection is not null && !current.IsComplete) return false;
         await access.CheckLicenseAsync(token).ConfigureAwait(false); access.CheckBusinessSource();

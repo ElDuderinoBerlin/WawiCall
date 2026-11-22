@@ -81,8 +81,7 @@ public sealed partial class AppShellTests
                 var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 var release = new TaskCompletionSource<ImmutableArray<Company>>(TaskCreationOptions.RunContinuationsAsynchronously);
                 if (scenario == "cancel") f.Source.Catalog = _ => { entered.TrySetResult(); return release.Task; };
-                await using var matching = new AppCallAssociation(f.Service, history, index, decisions, interpreter, associations,
-                    settings, f.Access, new LogWindowService(), TimeProvider.System);
+                await using var matching = new AppCallAssociation(f.Service, history, index, decisions, interpreter, associations, f.Access, new LogWindowService(), TimeProvider.System);
                 await matching.StartAsync(default);
                 await AppComTelephonyTests.Done(h.App, h.App.ConnectTelephony());
                 Guid id;
@@ -115,9 +114,9 @@ public sealed partial class AppShellTests
                 await AppComTelephonyTests.Until(() => matching.PendingCount == 0);
                 var matched = (await history.GetCallAsync(id))!;
                 if (scenario is "incoming" or "outgoing" or "late-storage") Assert.AreEqual(f.A, matched.Parties.Single(party => party.IsSelected).Party.Company);
-                else if (scenario is "manual" or "line") Assert.AreEqual(f.B, matched.Parties.Single(party => party.IsSelected).Party.Company);
+                else if (scenario == "manual") Assert.AreEqual(f.B, matched.Parties.Single(party => party.IsSelected).Party.Company);
                 else Assert.IsFalse(matched.Parties.Any(party => party.IsSelected));
-                if (scenario == "ambiguous") Assert.AreEqual(2, matched.Parties.Length);
+                if (scenario is "ambiguous" or "line" or "wrong-line") Assert.AreEqual(2, matched.Parties.Length);
                 if (scenario == "foreign-outgoing") Assert.AreEqual(f.A, matched.Call.Company);
                 if (scenario is "withheld" or "cancel") Assert.IsNull(matched.Lookup);
                 else Assert.IsNotNull(matched.Lookup);

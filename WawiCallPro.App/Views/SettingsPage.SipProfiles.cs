@@ -45,7 +45,6 @@ public partial class SettingsPage
         passwordEdit.Text = "";
         passwordEdit.Properties.NullValuePrompt = account?.Password is null ? "Kennwort eingeben" : "Kennwort gespeichert";
         SetSipPasswordVisibility(false);
-        ApplyCallerLine((_snapshot?.Options ?? new()) with { SipAccount = account, CallerLineAssignment = profile?.LineAssignment });
         addSipProfileButton.Enabled = _sipProfiles.Count < SipProfileCatalog.MaximumProfiles;
         removeSipProfileButton.Enabled = profile is not null;
         UpdateSipStatus();
@@ -66,7 +65,6 @@ public partial class SettingsPage
             Password = passwordEdit.Text.Length == 0 ? profile.Account?.Password
                 : _workspace!.Secrets.Protect(passwordEdit.Text, SipAccountOptions.PasswordPurpose)
         };
-        profile.LineAssignment = _lineDraft;
     }
 
     private ApplicationOptions ReadSipProfiles(ApplicationOptions options)
@@ -145,7 +143,6 @@ public partial class SettingsPage
         public Guid Id { get; } = profile.Id;
         public string Name { get; set; } = profile.Name;
         internal SipAccountOptions? Account { get; set; } = profile.Account;
-        internal CallerLineAssignment? LineAssignment { get; set; } = profile.LineAssignment;
-        internal SipAccountProfile ToDraft() => new(Id, Name, Account, LineAssignment);
+        internal SipAccountProfile ToDraft() => new(Id, Name, Account);
     }
 }

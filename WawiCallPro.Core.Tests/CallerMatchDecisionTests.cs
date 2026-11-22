@@ -77,14 +77,14 @@ public sealed class CallerMatchDecisionTests
         Assert.AreEqual(inferred, result.Groups.Single(group => group.Company.Company == B).Candidates.Single());
     }
     [TestMethod]
-    public void VerifiedLineSelectsItsSinglePositiveWithoutRemovingAlternatives()
+    public void LegacyLineCannotResolveAmbiguityOrOverrideActiveOrdering()
     {
         var result = Policy.Evaluate(Result(Candidate(A), Candidate(B)), new(B, Line(A)));
-        Assert.AreEqual(CallerMatchDecisionKind.LineUnique, result.Kind);
-        Assert.AreEqual(A, result.Selection!.Party.Company);
-        Assert.AreEqual("configured-line", result.Lookup.SelectionReason);
+        Assert.AreEqual(CallerMatchDecisionKind.Ambiguous, result.Kind);
+        Assert.IsNull(result.Selection); Assert.IsNull(result.LineAssignment);
+        Assert.IsNull(result.Lookup.SelectionReason);
         Assert.HasCount(2, result.Groups.SelectMany(group => group.Candidates));
-        Assert.AreEqual(A, result.Groups[0].Company.Company);
+        Assert.AreEqual(B, result.Groups[0].Company.Company);
     }
     [TestMethod]
     public void UnverifiedLineCannotResolveAmbiguityOrOverrideActiveOrdering()
@@ -93,13 +93,13 @@ public sealed class CallerMatchDecisionTests
         Assert.IsNull(result.Selection); Assert.AreEqual(B, result.Groups[0].Company.Company);
     }
     [TestMethod]
-    public void VerifiedLineConflictAndMultiplePartiesOnLineRequireExplicitChoice()
+    public void LegacyLineCannotBlockUniqueMatchesOrResolveMultipleParties()
     {
-        Assert.AreEqual(CallerMatchDecisionKind.LineConflict, Policy.Evaluate(Result(Candidate(B)), new(null, Line(A))).Kind);
+        Assert.AreEqual(CallerMatchDecisionKind.Unique, Policy.Evaluate(Result(Candidate(B)), new(null, Line(A))).Kind);
         var ambiguous = Policy.Evaluate(Result(Candidate(A), Candidate(A, "02"), Candidate(B)), new(null, Line(A)));
         Assert.AreEqual(CallerMatchDecisionKind.Ambiguous, ambiguous.Kind); Assert.IsNull(ambiguous.Selection);
         var inferred = Policy.Evaluate(Result(Candidate(B), Candidate(A, kind: PhoneNumberMatchKind.InferredBlock)), new(null, Line(A)));
-        Assert.AreEqual(CallerMatchDecisionKind.LineConflict, inferred.Kind); Assert.IsNull(inferred.Selection);
+        Assert.AreEqual(CallerMatchDecisionKind.Unique, inferred.Kind); Assert.AreEqual(B, inferred.Selection!.Party.Company);
     }
     [TestMethod]
     [DataRow(PhoneSearchScopeState.Partial)]
