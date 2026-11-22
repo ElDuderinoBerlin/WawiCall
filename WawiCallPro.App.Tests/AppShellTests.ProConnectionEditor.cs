@@ -71,7 +71,7 @@ public sealed partial class AppShellTests
                     emptyPicture.Save(Path.Combine(output, "dialog-new-empty.png"), ImageFormat.Png);
                 }
                 Field<CheckEdit>(editor, "enabledEdit").Checked = true;
-                Field<TextEdit>(editor, "apiUrlEdit").Text = "https://lexware.example.invalid/api";
+                Assert.IsEmpty(editor.Controls.Find("apiUrlEdit", true));
                 Field<TextEdit>(editor, "usernameEdit").Text = "test-api";
                 if (firstEditor)
                 {
@@ -94,15 +94,6 @@ public sealed partial class AppShellTests
                 var clientKeyText = Field<TextEdit>(editor, "clientKeyEdit").Text;
                 Assert.IsNotNull(page.ReadOptions().Erp.Pro!.Password);
                 Field<TextEdit>(editor, "clientKeyEdit").Text = clientKeyText;
-                var oldEndpoint = Field<TextEdit>(editor, "apiUrlEdit").Text;
-                foreach (var endpoint in new[] { "invalid", "https://user:password@example.invalid", "https://example.invalid/?secret=hidden", "file:///local" })
-                {
-                    Field<TextEdit>(editor, "apiUrlEdit").Text = endpoint;
-                    var error = Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions());
-                    Assert.AreEqual(PluginSettingsIssue.InvalidEndpoint, error.Issue);
-                    Assert.DoesNotContain(endpoint, error.Message);
-                }
-                Field<TextEdit>(editor, "apiUrlEdit").Text = oldEndpoint;
                 Field<TextEdit>(editor, "usernameEdit").Text = "white space";
                 Assert.AreEqual(PluginSettingsIssue.UsernameRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
                 Field<TextEdit>(editor, "usernameEdit").Text = "test-api";

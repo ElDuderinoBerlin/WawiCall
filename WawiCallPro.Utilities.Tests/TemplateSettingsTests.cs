@@ -42,6 +42,8 @@ public sealed class TemplateSettingsTests
             application.LogInformation(new InvalidOperationException("synthetic-private-exception"), "synthetic-private-message");
             var file = Directory.GetFiles(runtime.Directory, "*.log").Single(); var text = await File.ReadAllTextAsync(file);
             Assert.Contains("FrameworkMessage", text); Assert.DoesNotContain("synthetic-private", text);
+            var structured = await File.ReadAllTextAsync(Directory.GetFiles(runtime.Directory, "operations-*.jsonl").Single());
+            Assert.Contains("FrameworkMessage", structured); Assert.DoesNotContain("synthetic-private", structured);
             var foreign = Path.Combine(runtime.Directory, "WawiCallPro-foreign.log"); await File.WriteAllTextAsync(foreign, "retain");
             for (var i = 0; i < 3; i++)
                 await File.WriteAllTextAsync(Path.Combine(runtime.Directory, "WawiCallPro-20000101-1-" + Guid.NewGuid().ToString("N") + ".log"), "old");

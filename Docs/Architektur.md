@@ -135,12 +135,14 @@ Bindung erneut gegen das aktive Plugin und dessen Zugriffssperre geprüft. Keine
 werden dem Plugin gegeben. Die ausdrückliche Tabregistrierung des separaten Phasenplans ist damit noch
 nicht an die tatsächliche Pluginsitzung angeschlossen; der Viewexport verwendet den bestehenden Leasevertrag.
 
-Mandanten werden ausschließlich aus dem berechtigten Plugin-Katalog ausgewählt, nur ihr Name ist sichtbar.
-Kein automatischer erster Treffer. Speichern prüft eine geänderte Auswahl erneut gegen den aktuellen
-Katalog, speichert `User.PreferredCompany` atomar und veröffentlicht erst danach den Laufzeitkontext.
-Abbrechen, Validierungs-/Konkurrenzfehler und abgebrochene Abrufe erhalten ihn. Beim Start wird eine
-vorhandene Präferenz nur bei weiterhin gültiger Berechtigung wiederhergestellt. Die Quellenwahl des
-Telefon-Caches bleibt davon unabhängig. Geänderte Pro-Zugangsdaten gelten nach erfolgreichem
+Die Plugin-Seite lädt den berechtigten Mandantenkatalog beim Öffnen automatisch asynchron.
+Mehrere Mandanten werden über die eingebaute Checkbox-Auswahl des GridView gewählt; sichtbar sind
+nur Namen. Kein automatischer erster Treffer. Die Auswahl ist der gemeinsame Telefon-/Mail-Suchumfang
+und wird atomar als `Companies.IncludeInPhoneCache` gespeichert. Eine erneute Katalogprüfung schützt
+geänderte Auswahlen; Abbrechen, Berechtigungs-/Konkurrenzfehler und Abrufabbruch erhalten den alten
+Stand. Bestehende Mandantenregeln bleiben erhalten. Konkrete Gespräche und Fachviews behalten ihren
+eindeutigen Mandantenkontext; die Mehrfachauswahl setzt keinen willkürlichen globalen Mandanten.
+Die frühere `User.PreferredCompany` bleibt für vorhandene Profile/konkrete Kontexte kompatibel. Geänderte Pro-Zugangsdaten gelten nach erfolgreichem
 Speichern ohne Neustart. „Mandanten laden“ prüft die aktuellen Editorwerte in einer separaten
 Plugin-Sitzung; Abbrechen erhält den aktiven Zugang. Neu eingetippte Daten lösen keinen verdeckten
 Anmeldeversuch aus. Alte Abrufe werden vor Sitzungswechsel beendet und veraltete Ergebnisse verworfen. Ein Pro-Plugin ohne Zugang meldet
@@ -2895,3 +2897,26 @@ Details: [Fachverträge](Vertraege.md), [Umsetzungsplan](Neuaufbau-Plan.md),
 
 Die appsettings-Schichten, Client-Key-Verschlüsselung, CLI und Logging-Optionen sind unter
 [Build und Konfiguration](Build.md#zwei-appsettings-dateien-client-key-und-logging-22112026) beschrieben.
+
+
+### Asynchrone Mandantenliste und Einstellungsprotokoll (22.11.2026)
+
+Die komplette Mehrfachauswahl gehört weiterhin dem Pro-/FinOffice-Plugin. Der Host stellt nur
+Dialogentwurf, Layoutpersistierung und eine geschlossene Status-Enum bereit. Laden erhält Wartecursor,
+Abbruch und eine Prüfung der Plugin-Generation vor/nach dem Abruf. Nicht mehr verfügbare gewählte
+Mandanten bleiben als solche sichtbar; fehlgeschlagene Abrufe löschen keine gespeicherten Quellen.
+Strg+F toggelt die eingebaute Suche, Spaltenlayout liegt unter `PluginCompanies-v2` in HKCU.
+Der Telefon-Cache-Tab zeigt bei diesem Plugin die Quellen/Ergebnisse; die Auswahl erfolgt in „Lexware“.
+
+Die separate Statuszeile des Einstellungsdialogs entfällt. Lade-, Speicher-, Auswahl-, Import-/Export-
+und Fehlerzustände gehen über `OperationEvents` an UI-Logger und sicheren Serilog-Dateipfad, unter
+Beachtung der eingestellten Dateiprotokollierung. Texte kommen aus einer festen Allowlist, ohne
+Kennwörter, Quellfehler oder Mandantennamen. Die vorhandenen fachlichen SIP-/Audiozustände bleiben
+an ihren Bedienelementen. Fehlgeschlagene Validierung schließt den Dialog weiterhin nicht.
+
+Pro verwendet ausschließlich den neuen `Quantarix.Lexware.APIService.LexwareApiUrlResolver` mit
+injizierbaren Registry-/Dateizugriffen: Service-Installation, Service-Programmverzeichnis, localhost:9710.
+Einzelne nicht lesbare Registry-/Dateiquellen verhindern den nächsten Fallback nicht. Die API-URL-Textbox
+entfällt; alte gespeicherte URL-Overrides beeinflussen diesen Resolver nicht. API-Client und
+Mandantenvorschau verwenden dieselbe Quelle. Installations-/Berechtigungssperren bleiben zusätzlich
+wirksam. FinOffice liest weiterhin über PCFK. Neutrale Velopack-Ausgaben entfernen LexwareApi komplett.

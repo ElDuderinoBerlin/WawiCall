@@ -20,7 +20,7 @@ public sealed partial class AppShellTests
         var running = workspace.Configuration.Current; await page.ImportSettingsAsync(path);
         Assert.AreEqual(LogLevel.Critical, page.ReadOptions().User.LogLevel); Assert.AreEqual(42, page.ReadOptions().Devices.PlaybackVolumePercent);
         Assert.AreEqual(LogLevel.Critical, (await workspace.Settings.LoadAsync()).Options.User.LogLevel); Assert.AreSame(running, workspace.Configuration.Current);
-        Assert.Contains("importiert und gespeichert", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.Contains("importiert und gespeichert", page.LastSettingsNoticeText);
         await page.SaveAsync(CancellationToken.None); // Import refreshed the expected on-disk revision.
         await form.StopAsync();
     });
@@ -35,7 +35,7 @@ public sealed partial class AppShellTests
         var before = (await workspace.Settings.LoadAsync()).Options; var path = Path.Combine(workspace.Paths.RootDirectory, "invalid-import.json");
         await File.WriteAllTextAsync(path, "{\"private-detail\":1}"); await page.ImportSettingsAsync(path);
         Assert.AreEqual(LogLevel.Trace, page.ReadOptions().User.LogLevel); Assert.AreEqual(before.User.LogLevel, (await workspace.Settings.LoadAsync()).Options.User.LogLevel);
-        Assert.Contains("keine gültige", Field<LabelControl>(page, "statusLabel").Text); Assert.AreEqual(DialogResult.None, form.DialogResult);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed, page.LastSettingsNotice); Assert.AreEqual(DialogResult.None, form.DialogResult);
         await form.StopAsync();
     });
 }

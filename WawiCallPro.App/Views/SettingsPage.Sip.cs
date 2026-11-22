@@ -36,7 +36,7 @@ public partial class SettingsPage
             }
             catch (WawiCallPro.Utilities.Security.SecretProtectionException)
             {
-                statusLabel.Text = "Das gespeicherte Kennwort konnte nicht gelesen werden. Bitte erneut eingeben.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed);
                 return;
             }
         }

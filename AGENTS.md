@@ -334,6 +334,19 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Fachansichten des aktiven Warenwirtschaftsplugins bleiben im Hauptarbeitsbereich. Die Pluginverwaltung
   verwendet weiterhin die gemeinsame Quantarix-Laufzeit und hält zu jeder Zeit höchstens eine Sitzung aktiv.
 
+### Mandanten, Status und Debug-Vorgaben (Nutzerauftrag 22.11.2026)
+
+- Der Lexware-Plugin-Tab lädt Mandanten automatisch asynchron und bietet die eingebaute GridView-
+  Checkbox-Mehrfachauswahl für den gemeinsamen Telefon-/Mail-Quellumfang. Konkrete Gespräche und
+  Datensatzviews behalten ihren eindeutigen Mandantenkontext; keine erste Firma automatisch aktivieren.
+- Im Einstellungsfooter keine Statuszeile anzeigen. Einstellungsstatus über die geschlossenen
+  Ereignisse an Log-Fenster und Logdatei schreiben; Quellfehler, Zugangsdaten und Mandantennamen auslassen.
+- Pro nutzt `Quantarix.Lexware.APIService.LexwareApiUrlResolver`; keine API-URL-Textbox und keinen
+  parallelen Resolver implementieren. Service-Installation, Service-Programmverzeichnis, localhost-Fallback.
+- `LexwareApiClientKeyPro` ausschließlich per Debug-Pro-Build-Aktion aus `Solution.props` verschlüsselt
+  in Ausgabe-appsettings übernehmen. Release provisioniert keinen Build-Key; neutrale Velopack-Ausgabe
+  entfernt LexwareApi vollständig. Andere Vorlagenabschnitte und ausdrücklich gesetzte Benutzerkeys erhalten.
+
 ### Datenbank und Migrationen
 
 - Datenbankabfragen und Datenänderungen immer über Dapper ausführen, einschließlich Infrastruktur-

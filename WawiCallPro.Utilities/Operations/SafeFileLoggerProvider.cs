@@ -46,12 +46,13 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
         if (_settings.IsEnabledForCategory(level, category))
         {
             // Only allowlisted metadata enters Serilog. It never receives foreign state, scopes or exceptions.
-            _serilog.Write(new LogEvent(DateTimeOffset.UtcNow, RuntimeLoggingSettings.ToSerilog(level), null, Template,
+            _serilog.Write(new LogEvent(DateTimeOffset.Now, RuntimeLoggingSettings.ToSerilog(level), null, SettingsMessages.Get(operation) is null ? Template : new MessageTemplateParser().Parse("{StatusMessage}"),
             [
                 new LogEventProperty("Event", new ScalarValue(operation.ToString())),
                 new LogEventProperty("EventId", new ScalarValue(id.Id)),
                 new LogEventProperty("Level", new ScalarValue(level.ToString())),
-                new LogEventProperty("ExceptionType", new ScalarValue(exception?.GetType().Name))
+                new LogEventProperty("ExceptionType", new ScalarValue(exception?.GetType().Name)),
+                new LogEventProperty("StatusMessage", new ScalarValue(SettingsMessages.Get(operation)))
             ]));
         }
         // Failure propagation is independent of the selected display/file threshold, including None.
@@ -89,7 +90,7 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
                 var prefix = configured is null ? null : Path.GetFileNameWithoutExtension(configured);
                 var extension = configured is null ? null : Path.GetExtension(configured);
                 var fileName = configured is null ? $"operations-{Environment.ProcessId}-{_runId:N}.jsonl"
-                    : $"{prefix}{DateTime.UtcNow:yyyyMMdd}-{Environment.ProcessId}-{_runId:N}{extension}";
+                    : $"{prefix}{DateTime.Now:yyyyMMdd}-{Environment.ProcessId}-{_runId:N}{extension}";
                 var filePath = Path.Combine(directory, fileName);
                 if (configured is not null)
                 {
@@ -103,6 +104,15 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
                 if (stream.Length + bytes.Length + 1 > _maximumBytes) throw OperationException.LogUnavailable();
                 stream.Write(bytes);
                 stream.WriteByte((byte)'\n');
+                if (configured is not null)
+                {
+                    // Keep the console's existing structured diagnostic stream alongside the configured text sink.
+                    var structured = JsonSerializer.SerializeToUtf8Bytes(entry);
+                    var metadataPath = Path.Combine(directory, $"operations-{Environment.ProcessId}-{_runId:N}.jsonl");
+                    using var metadata = new FileStream(metadataPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+                    if (metadata.Length + structured.Length + 1 > _maximumBytes) throw OperationException.LogUnavailable();
+                    metadata.Write(structured); metadata.WriteByte((byte)'\n');
+                }
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationException)
             {

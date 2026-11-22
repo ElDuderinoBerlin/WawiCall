@@ -4,12 +4,13 @@ param(
     [ValidateSet('Pro','FinOffice')][string]$ProductLine,
     [string]$Configuration,
     [string]$DebugDefaults,
-    [int]$IncludeClientKey = 1
+    [int]$IncludeClientKey = 1,
+    [int]$NeutralLexwareApi = 0
 )
 $ErrorActionPreference = 'Stop'
 try {
     $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json -AsHashtable
-    if ($Configuration -eq 'Debug' -and $ProductLine -eq 'Pro' -and $IncludeClientKey -and [string]::IsNullOrWhiteSpace($settings.LexwareApi.ClientKey)) {
+    if (!$NeutralLexwareApi -and $Configuration -eq 'Debug' -and $ProductLine -eq 'Pro' -and $IncludeClientKey -and [string]::IsNullOrWhiteSpace($settings.LexwareApi.ClientKey)) {
         [xml]$props = Get-Content -LiteralPath $SolutionProps -Raw
         $value = [string]$props.Project.PropertyGroup.LexwareApiClientKeyPro
         $parsed = [guid]::Empty
@@ -25,8 +26,9 @@ try {
             $settings.LexwareApi.ClientKey = [Convert]::ToBase64String([byte[]]($aes.IV + $cipher))
         } finally { $aes.Dispose() }
     }
+    if ($NeutralLexwareApi) { $settings.Remove('LexwareApi') | Out-Null }
     $settings.Remove('DebugLexware') | Out-Null
-    if ($ProductLine -eq 'Pro' -and $Configuration -eq 'Debug' -and (Test-Path -LiteralPath $DebugDefaults)) {
+    if (!$NeutralLexwareApi -and $ProductLine -eq 'Pro' -and $Configuration -eq 'Debug' -and (Test-Path -LiteralPath $DebugDefaults)) {
         $settings.DebugLexware = Get-Content -LiteralPath $DebugDefaults -Raw | ConvertFrom-Json -AsHashtable
     }
     $settings | ConvertTo-Json -Depth 24 | Set-Content -LiteralPath $SettingsPath -Encoding utf8

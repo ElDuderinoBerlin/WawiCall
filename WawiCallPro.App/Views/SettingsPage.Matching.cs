@@ -33,7 +33,7 @@ public partial class SettingsPage
     {
         _matchingProfile = null;
         matchingEnabledEdit.Checked = false; matchingWidthEdit.Value = 5;
-        statusLabel.Text = "Bitte eine Firmenregel laden. Die Firma muss im Cache registriert sein.";
+        ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged);
         SetMatchingBusy(false);
     }
     private void SetMatchingBusy(bool busy)
@@ -57,12 +57,12 @@ public partial class SettingsPage
                 _matchingProfile = profile;
                 matchingEnabledEdit.Checked = profile.Settings.StemMatchingEnabled;
                 matchingWidthEdit.Value = profile.Settings.StartWidth;
-                statusLabel.Text = $"Regelrevision {profile.RuleRevision} geladen.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsRuleLoaded);
             }
             catch (RepositoryConflictException exception) when (exception.Kind == RepositoryConflictKind.MissingRecord)
             {
                 _matchingProfile = null;
-                statusLabel.Text = "Für diesen Mandanten zuerst unter „Cachequellen“ den Telefon-Cache aktualisieren.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged);
             }
             finally { SetMatchingBusy(false); }
         });
@@ -78,11 +78,11 @@ public partial class SettingsPage
             try
             {
                 _matchingProfile = await _workspace.PhoneMatching.SaveProfileAsync(settings, profile.Version, token);
-                statusLabel.Text = $"Regelrevision {_matchingProfile.RuleRevision} gespeichert.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsRuleSaved);
             }
             catch (RepositoryConflictException exception) when (exception.Kind is RepositoryConflictKind.VersionMismatch or RepositoryConflictKind.AlreadyExists)
             {
-                statusLabel.Text = "Die Abgleichregel wurde zwischenzeitlich geändert. Bitte „Regel laden“ wählen und erneut bearbeiten.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed);
             }
             finally { SetMatchingBusy(false); }
         });

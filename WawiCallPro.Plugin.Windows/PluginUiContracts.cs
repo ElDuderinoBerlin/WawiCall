@@ -59,6 +59,8 @@ public interface IPluginCompanySelectionDraft
 {
     CompanyKey? SelectedCompany { get; }
     void StageSelection(CompanyKey? company);
+    IReadOnlyList<Company> SelectedCompanies => Array.Empty<Company>();
+    void StageSelections(IReadOnlyList<Company> companies) => throw new NotSupportedException();
 }
 
 /// <summary>Host-side publication after a successful save and current plugin authorization.</summary>
@@ -67,8 +69,13 @@ public interface IPluginCompanySelectionPublisher
     Task PublishAsync(CompanyKey? company, CancellationToken cancellationToken = default);
 }
 
+public enum PluginSettingsNotice { Loading, Loaded, Empty, Unavailable, Failed, SelectionChanged }
+
 public interface IPluginSettingsPresentation
 {
+    void Report(PluginSettingsNotice notice) { }
+    void RestoreCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) { }
+    void SaveCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) { }
     IDisposable BeginWait(Control owner);
     void SizeButtons(params SimpleButton[] buttons);
 }

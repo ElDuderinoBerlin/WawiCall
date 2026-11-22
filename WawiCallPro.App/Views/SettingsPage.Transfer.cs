@@ -47,14 +47,14 @@ public partial class SettingsPage
             dialog.DefaultExt = "json"; dialog.AddExtension = true; dialog.CheckPathExists = true;
             dialog.ValidateNames = true; dialog.RestoreDirectory = true;
             dialog.StartPosition = FormStartPosition.CenterParent;
-            if (dialog.ShowDialog(owner) != DialogResult.OK) { statusLabel.Text = "Vorgang abgebrochen."; return; }
+            if (dialog.ShowDialog(owner) != DialogResult.OK) { ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCancelled); return; }
             path = dialog.FileName;
         }
         if (import && XtraMessageBox.Show(owner,
             "Die allgemeinen Einstellungen und Audiooptionen werden importiert. Ungespeicherte Eingaben in diesem Dialog werden verworfen.\n\n" +
             "Zugangsdaten, Datenbank-/ERP-/SIP-Verbindungen, Geräte-IDs und Mandanten-/Leitungszuordnungen bleiben lokal erhalten.\n\nFortfahren?",
             "Einstellungen importieren", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
-        { statusLabel.Text = "Import abgebrochen."; return; }
+        { ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCancelled); return; }
         using (new UiWaitCursor(owner))
         {
             if (import) await ImportSettingsCoreAsync(path, token);
@@ -71,13 +71,13 @@ public partial class SettingsPage
     private async Task ExportSettingsCoreAsync(string path, CancellationToken token)
     {
         await _workspace!.Settings.ExportPortableAsync(path, token);
-        statusLabel.Text = "Gespeicherte Einstellungen als JSON exportiert. Zugangsdaten, Verbindungen und lokale Zuordnungen sind nicht enthalten.";
+        ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsExported);
     }
     private async Task ImportSettingsCoreAsync(string path, CancellationToken token)
     {
         RequireCleanPluginDraft();
         Apply(await _workspace!.Settings.ImportPortableAsync(path, _snapshot!, token));
         LoadAutoStart();
-        statusLabel.Text = "Einstellungen importiert und gespeichert. Lokale Verbindungen und Zuordnungen bleiben erhalten. Bitte WawiCallPro neu starten.";
+        ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsImported);
     }
 }

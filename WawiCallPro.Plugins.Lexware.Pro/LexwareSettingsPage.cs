@@ -31,12 +31,11 @@ public partial class LexwareSettingsPage : XtraUserControl
             () => true, describeFailure: DescribeFailure);
     }
     internal void ApplyChanges(IPluginConnectionEditContext context) => connectionPage.ApplyChanges(context);
-    internal Task LoadAsync(CancellationToken token) => connectionPage.HasChanges() ? Task.CompletedTask : companyPage.LoadAsync(token);
+    internal Task LoadAsync(CancellationToken token) => companyPage.LoadAsync(token);
     internal async Task ValidateAsync(CancellationToken token)
     {
-        await companyPage.ValidateAsync(token);
-        if (_context?.Companies.SelectedCompany is { } company && (connectionPage.HasChanges() || companyPage.HasUnsavedChanges))
-            if (await ResolveCompanyAsync(company, token) is null) throw new InvalidOperationException("Selected company is unavailable.");
+        if (connectionPage.HasChanges()) await companyPage.ValidateCurrentScopeAsync(token);
+        else await companyPage.ValidateAsync(token);
     }
     internal async Task<WawiCallPro.Interfaces.Companies.Company?> ResolveCompanyAsync(WawiCallPro.Interfaces.Companies.CompanyKey company, CancellationToken token)
     {

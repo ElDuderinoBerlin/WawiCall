@@ -468,21 +468,39 @@ public sealed class ProAdapterTests
     {
         var install = Path.Combine(_root, "install"); var program = Path.Combine(_root, "program");
         Directory.CreateDirectory(install); Directory.CreateDirectory(program);
-        File.WriteAllText(Path.Combine(install, "appsettings.json"), """{"Urls":"http://+:9710;https://localhost:9711"}""");
+        File.WriteAllText(Path.Combine(install, "appsettings.json"), """{"Urls":"http://localhost:9710;https://localhost:9711"}""");
         File.WriteAllText(Path.Combine(program, "appsettings.json"), """{"Urls":"http://localhost:9999"}""");
         var registry = new FakeRegistry(new ProRegistryPaths(_root, install, program));
         var detected = new ProInstallationSource(registry, new ProConnectionOptions()).Detect();
         Assert.AreEqual("http://localhost:9710/", detected.ApiUrl.AbsoluteUri);
         Assert.AreEqual(Path.Combine(_root, "PropertyStore"), detected.PropertyStorePath);
         Assert.AreEqual(detected.Id, new ProInstallationSource(registry, new ProConnectionOptions { ApiUrl = new Uri("http://127.0.0.1:9710/") }).Detect().Id);
-        Assert.AreNotEqual(detected.Id, new ProInstallationSource(registry, new ProConnectionOptions { ApiUrl = new Uri("http://localhost:9711/") }).Detect().Id);
+        Assert.AreEqual(detected.Id, new ProInstallationSource(registry, new ProConnectionOptions { ApiUrl = new Uri("http://localhost:9711/") }).Detect().Id);
+        File.WriteAllText(Path.Combine(install, "appsettings.json"), "invalid-json");
+        Assert.AreEqual("http://localhost:9999/", new ProInstallationSource(registry, new()).Detect().ApiUrl.AbsoluteUri);
     }
 
     [TestMethod]
-    public void MissingInstallationHasNoInventedLocalhostFallback()
+    public void MissingServiceConfigUsesSharedResolverLocalhostFallback()
     {
-        var error = Assert.ThrowsExactly<ProAdapterException>(() => new ProInstallationSource(new FakeRegistry(new(null, null, null)), new ProConnectionOptions()).Detect());
-        Assert.AreEqual(ProFailure.InstallationUnavailable, error.Failure);
+        var detected = new ProInstallationSource(new FakeRegistry(new(null, null, null)), new ProConnectionOptions()).Detect();
+        Assert.AreEqual("http://localhost:9710/", detected.ApiUrl.AbsoluteUri);
+    }
+
+    [TestMethod]
+    public void SharedUrlResolverStillTriesProgramDirectoryWhenInstallRegistryReadFails()
+    {
+        var program = Path.Combine(_root, "program-only"); Directory.CreateDirectory(program);
+        File.WriteAllText(Path.Combine(program, "appsettings.json"), """{"Urls":"https://service.example.invalid:9443;http://localhost:9710"}""");
+        var found = new ProInstallationSource(new PartialRegistry(program), new()).Detect();
+        Assert.AreEqual("https://service.example.invalid:9443/", found.ApiUrl.AbsoluteUri);
+    }
+    private sealed class PartialRegistry(string program) : IProRegistry
+    {
+        public ProRegistryPaths ReadPaths() => throw new InvalidOperationException();
+        public string? ReadApiInstallationDirectory() => throw new UnauthorizedAccessException();
+        public string? ReadApiProgramDirectory() => program;
+        public string? ReadDataDirectory() => null;
     }
 
     private const string PartyCustomer = """

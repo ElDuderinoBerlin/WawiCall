@@ -18,7 +18,8 @@ public partial class SettingsPage
     {
         if (_workspace is null) return;
         _pluginEditContext = _workspace.Settings.BeginPluginConnectionEdit(snapshot, _workspace.Secrets);
-        _pluginPageContext = new(_pluginEditContext, _workspace, snapshot.Options.User.PreferredCompany) { CompanyValidation = _pluginSettings };
+        _pluginPageContext = new(_pluginEditContext, _workspace, snapshot.Options.User.PreferredCompany) { CompanyValidation = _pluginSettings, LayoutState = _state };
+        _pluginPageContext.InitializeScope(snapshot.Options);
         if (_pluginSettings is not null && _pluginSettingsId == (_workspace.Plugins as IProductPluginSelection)?.ActivePluginId)
             _pluginSettings.Reload(_pluginPageContext);
     }
@@ -32,7 +33,7 @@ public partial class SettingsPage
 
     private void RequireCleanPluginDraft()
     {
-        if (_pluginSettings?.HasUnsavedChanges == true || _pluginPageContext?.HasSelectionChanges == true)
+        if (_pluginSettings?.HasUnsavedChanges == true || _pluginPageContext?.HasSelectionChanges == true || _pluginPageContext?.HasScopeChanges == true)
             throw new PluginSettingsValidationException(PluginSettingsIssue.UnsavedChanges);
     }
 
@@ -61,6 +62,7 @@ public partial class SettingsPage
             wawiTab.Text = editor.Title;
             tabs.TabPages.Insert(2, wawiTab);
             _pluginSettings = editor; editor = null;
+            if (_pluginSettings.SupportsCompanyValidation) cacheView.OptionsSelection.MultiSelect = false;
             if (_pluginPageContext is not null) _pluginPageContext.CompanyValidation = _pluginSettings;
             wawiHintLabel.Visible = false;
             if (_selectPluginConnectionOnLoad) { tabs.SelectedTabPage = wawiTab; _selectPluginConnectionOnLoad = false; }

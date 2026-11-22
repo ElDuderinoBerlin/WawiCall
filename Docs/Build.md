@@ -813,7 +813,8 @@ AppUi steuert Schriftfamilie, Punktgröße und anfängliche Startseite. Der Benu
 ältere Profile bleiben lesbar. LicenseServer und CrashReporting konfigurieren die bestehenden Dienste
 mit getrennten Endpunkten und Crash-Zeitlimit; explizite alte startup.local.json bleibt vorrangig.
 Serilog berücksichtigt Default/Override-Level, File-Pfad, tägliche Dateien, Aufbewahrungsanzahl und
-OutputTemplate. Prozess-/Sitzungszusätze verhindern konkurrierende Dateischreiber; Bereinigung erfasst
+OutputTemplate. Der strukturierte JSONL-Strom für die vorhandene Konsolendiagnose bleibt daneben erhalten.
+Prozess-/Sitzungszusätze verhindern konkurrierende Dateischreiber; Bereinigung erfasst
 nur eigene, exakt benannte Dateien. Die vorhandene Metadaten-Allowlist bleibt erhalten: fremde
 Formatierer, Scopes, Meldungen und Ausnahmetexte gelangen auch mit FromLogContext nicht in Dateien.
 
@@ -821,3 +822,10 @@ Help-/Druck-/Artikeltransfer-/Updater-Werte bleiben vollständig in der Produktd
 Fachmodule erhalten. WawiCallPro besitzt derzeit weder den LxTranslate-Druckformularübersetzer noch
 dessen Artikeltransfer-/Hilfeindex oder einen aktiven Velopack-Updateclient; die Dateiübernahme allein
 ist kein Funktionsnachweis dieser Module. Hilfe-Cachewerte erhalten keine Settings-Dialogfelder.
+
+
+Neutrale Velopack-Ausgabe: `WawiUseVelopackAppSettings=true` entfernt `LexwareApi` und
+`DebugLexware` in der Build-Aktion; die übrigen Vorlagenabschnitte bleiben erhalten. Die Service-URL
+wird ausschließlich über den gemeinsamen `LexwareApiUrlResolver` der referenzierten Bibliothek
+ermittelt. Ein API-URL-Eingabefeld oder ein Überschreiben des installierten Dienstendpunkts durch die
+WawiCallPro-Profildatei ist dafür nicht vorgesehen.

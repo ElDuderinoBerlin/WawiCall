@@ -25,7 +25,29 @@ public enum OperationEvent
     RecordingConversionInterrupted,
     RecordingConversionQueueIncomplete,
     RecordingDirectoryReviewRequired,
-    RecordingDirectoryInventoryIncomplete
+    RecordingDirectoryInventoryIncomplete,
+    SettingsWaiting,
+    SettingsLoaded,
+    SettingsDefaultsLoaded,
+    SettingsSaved,
+    SettingsCancelled,
+    SettingsFailed,
+    SettingsValidationFailed,
+    SettingsCompaniesLoading,
+    SettingsCompaniesLoaded,
+    SettingsCompaniesEmpty,
+    SettingsCompaniesUnavailable,
+    SettingsCompaniesFailed,
+    SettingsSelectionChanged,
+    SettingsCacheUpdating,
+    SettingsCacheUpdated,
+    SettingsCacheCancelled,
+    SettingsImported,
+    SettingsExported,
+    SettingsDatabaseConfigured,
+    SettingsRestartRequired,
+    SettingsRuleLoaded,
+    SettingsRuleSaved
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -34,7 +56,8 @@ public static class OperationEvents
     public static void Write(ILogger logger, OperationEvent operation, Exception? exception = null)
     {
         if (!Enum.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
-        var level = operation is OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
+        var level = operation is OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
+            or OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
             or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete ? LogLevel.Warning
             : exception is null ? LogLevel.Information : LogLevel.Error;

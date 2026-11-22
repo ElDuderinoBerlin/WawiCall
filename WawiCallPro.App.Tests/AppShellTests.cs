@@ -2230,13 +2230,13 @@ public sealed partial class AppShellTests
             width.Value = 7;
             await InvokeActionAsync(page, "SaveMatchingRule_Click");
             Assert.AreEqual(6, (await workspace.PhoneMatching.GetProfileAsync(companies[1].Key)).Settings.StartWidth);
-            Assert.Contains("Regel laden", Field<LabelControl>(page, "statusLabel").Text);
+            Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed, page.LastSettingsNotice);
             await InvokeActionAsync(page, "LoadMatchingRule_Click"); Assert.AreEqual(6m, width.Value);
             Assert.IsEmpty((await workspace.Settings.LoadAsync()).Options.Companies, "Saving a shared rule never changes the user's cache selection.");
             companyEdit.Properties.DataSource = new[] { new { Key = new CompanyKey(companies[0].Key.ProductLine, "not-cached", "01"), Mandant = "Noch nicht im Cache" } };
             companyEdit.EditValue = new CompanyKey(companies[0].Key.ProductLine, "not-cached", "01");
             await InvokeActionAsync(page, "LoadMatchingRule_Click");
-            Assert.Contains("Cachequellen", Field<LabelControl>(page, "statusLabel").Text);
+            Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged, page.LastSettingsNotice);
             Assert.IsFalse(Field<SimpleButton>(page, "saveMatchingRuleButton").Enabled);
             await form.StopAsync();
         }
@@ -3207,7 +3207,7 @@ public sealed partial class AppShellTests
         var cache = services.GetRequiredService<IPartyCacheRepository>();
         Assert.AreEqual(1, (await cache.GetStateAsync(selected.Company)).Revision);
         Assert.AreEqual("+49301234567", (await cache.GetAsync(new(selected.Company, PartyKind.Customer, "01")))!.Phones.Single().E164);
-        Assert.Contains("1 von 1", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCacheUpdated, page.LastSettingsNotice);
         Assert.Contains("1 Nummern", view.GetRowCellValue(0, "CacheStatus").ToString()!);
         Assert.IsNull(workspace.Companies.Current.Company);
 
@@ -3238,7 +3238,7 @@ public sealed partial class AppShellTests
         Assert.IsTrue(Field<SimpleButton>(page, "saveButton").Enabled);
         Assert.IsTrue(Field<GridControl>(page, "cacheGrid").Enabled);
         Assert.IsFalse(Field<SimpleButton>(page, "cancelCacheButton").Enabled);
-        Assert.Contains("abgebrochen", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCancelled, page.LastSettingsNotice);
     });
 
     [TestMethod]
@@ -3580,7 +3580,7 @@ public sealed partial class AppShellTests
             try
             {
                 var page = Field<SettingsPage>(dialog, "settingsPage");
-                using var operation = new PageOperation(page, Field<LabelControl>(page, "statusLabel"));
+                using var operation = new PageOperation(page, _ => { });
                 typeof(SettingsPage).GetField("_operation", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, operation);
                 var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 var work = pendingWork ? operation.RunAsync(async token =>

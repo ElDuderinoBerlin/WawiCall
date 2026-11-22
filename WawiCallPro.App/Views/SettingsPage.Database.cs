@@ -45,13 +45,13 @@ public partial class SettingsPage
             _databaseDialog = dialog;
             if (await showDialog(dialog) != DialogResult.OK)
             {
-                statusLabel.Text = "Datenbankeinrichtung abgebrochen. Einstellungen bleiben erhalten.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCancelled);
                 return;
             }
             _snapshot = await _workspace.Settings.LoadAsync(token);
             // Only update the committed database values. Editors on the other tabs keep their current drafts.
             ApplyDatabase(_snapshot.Options.Database);
-            statusLabel.Text = "Datenbankverbindung gespeichert. Bitte WawiCallPro neu starten, um sie in allen Arbeitsbereichen zu verwenden.";
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsDatabaseConfigured);
         }
         finally
         {

@@ -33,7 +33,6 @@ public partial class ProConnectionSettingsPage : XtraUserControl
     {
         _saved = context.ReadPro();
         enabledEdit.Checked = _saved.Configured || _saved.InitialPassword is not null;
-        apiUrlEdit.Text = _saved.ApiUrl?.AbsoluteUri ?? "";
         usernameEdit.Text = _saved.Username ?? "";
         passwordEdit.Text = _saved.InitialPassword ?? "";
         clientKeyEdit.Text = "";
@@ -45,7 +44,7 @@ public partial class ProConnectionSettingsPage : XtraUserControl
     internal ProConnectionEditorChange ReadChanges() => ProConnectionEditorRules.Read(ReadInput(), _saved);
     private ProConnectionEditorInput ReadInput() => new()
     {
-        Enabled = enabledEdit.Checked, Endpoint = apiUrlEdit.Text, InstallationId = _saved.InstallationId ?? "",
+        Enabled = enabledEdit.Checked, Endpoint = "", InstallationId = _saved.InstallationId ?? "",
         Username = usernameEdit.Text, Password = passwordEdit.Text, ClientKey = clientKeyEdit.Text,
         UseDefaultClientKey = clientKeyEdit.Text.Length == 0 && !_saved.ClientKeyStored && _saved.DefaultClientKeyAvailable,
         TimeoutSeconds = _saved.TimeoutSeconds, TokenTimeoutSeconds = _saved.TokenTimeoutSeconds
@@ -54,7 +53,7 @@ public partial class ProConnectionSettingsPage : XtraUserControl
     internal bool HasChanges()
     {
         if (!enabledEdit.Checked) return _saved.Configured;
-        return !_saved.Configured || apiUrlEdit.Text.Trim() != (_saved.ApiUrl?.AbsoluteUri ?? "")
+        return !_saved.Configured
             || usernameEdit.Text.Trim() != (_saved.Username ?? "") || passwordEdit.Text.Length > 0 || clientKeyEdit.Text.Length > 0;
     }
 
@@ -62,7 +61,7 @@ public partial class ProConnectionSettingsPage : XtraUserControl
     private void UpdateEnabled()
     {
         var enabled = enabledEdit.Checked;
-        apiUrlEdit.Enabled = usernameEdit.Enabled = passwordEdit.Enabled = clientKeyEdit.Enabled = enabled;
+        usernameEdit.Enabled = passwordEdit.Enabled = clientKeyEdit.Enabled = enabled;
     }
 
     private void DisposePage() { if (!IsDisposed) passwordEdit.Text = clientKeyEdit.Text = ""; }

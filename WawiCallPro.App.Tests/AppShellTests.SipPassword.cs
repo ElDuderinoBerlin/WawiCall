@@ -69,7 +69,7 @@ public partial class AppShellTests
         backend.Register(RegistrationState.Failed);
         Application.DoEvents();
         Assert.AreEqual(draft, password.Text);
-        Assert.IsFalse(Field<LabelControl>(page, "statusLabel").Text.Contains(draft, StringComparison.Ordinal));
+        Assert.IsFalse(page.LastSettingsNoticeText.Contains(draft, StringComparison.Ordinal));
         await settings.StopAsync();
         Assert.AreEqual("", password.Text);
         Assert.IsTrue(password.Properties.UseSystemPasswordChar);

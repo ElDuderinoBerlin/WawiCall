@@ -52,7 +52,6 @@ partial class SettingsPage
         wawiTab = new DevExpress.XtraTab.XtraTabPage();
         wawiLayout = new System.Windows.Forms.TableLayoutPanel();
         wawiHintLabel = new DevExpress.XtraEditors.LabelControl();
-        statusLabel = new DevExpress.XtraEditors.LabelControl();
         saveButton = new DevExpress.XtraEditors.SimpleButton();
         footer = new System.Windows.Forms.TableLayoutPanel();
         transferActions = new System.Windows.Forms.TableLayoutPanel();
@@ -162,10 +161,9 @@ partial class SettingsPage
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         layout.ColumnCount = 1;
-        layout.RowCount = 3;
+        layout.RowCount = 2;
         layout.Padding = new System.Windows.Forms.Padding(12);
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0F));
-        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         footer.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -936,11 +934,6 @@ partial class SettingsPage
         saveButton.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         saveButton.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         saveButton.Click += Save_Click;
-        statusLabel.Name = "statusLabel";
-        statusLabel.Text = "Einstellungen noch nicht geladen.";
-        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
-        statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        statusLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         cacheLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         cacheLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         cacheLayout.ColumnCount = 1;
@@ -1032,8 +1025,7 @@ partial class SettingsPage
         cacheView.OptionsSelection.MultiSelectMode = DevExpress.XtraGrid.Views.Grid.GridMultiSelectMode.CheckBoxRowSelect;
         cacheView.OptionsSelection.CheckBoxSelectorField = "Selected";
         layout.Controls.Add(tabs, 0, 0);
-        layout.Controls.Add(footer, 0, 2);
-        layout.Controls.Add(statusLabel, 0, 1);
+        layout.Controls.Add(footer, 0, 1);
         matchingLayout.AutoSize = true;
         matchingLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         matchingLayout.Dock = System.Windows.Forms.DockStyle.Top;
@@ -1225,7 +1217,6 @@ partial class SettingsPage
     private DevExpress.XtraTab.XtraTabControl tabs;
     private DevExpress.XtraTab.XtraTabPage pluginTab;
     private WawiCallPro.App.Views.PluginPage pluginPage;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.SimpleButton saveButton;
     private System.Windows.Forms.TableLayoutPanel footer;
     private DevExpress.XtraTab.XtraTabPage wawiTab;

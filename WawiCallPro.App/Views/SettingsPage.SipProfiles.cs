@@ -83,10 +83,10 @@ public partial class SettingsPage
             _editingSipProfileId = id;
             ShowSipProfile();
         }
-        catch (Exception error)
+        catch (Exception)
         {
             sipProfileEdit.EditValue = _editingSipProfileId;
-            statusLabel.Text = Hosting.PageOperation.Describe(error);
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed);
         }
         finally { _applyingSipProfile = false; }
     }
@@ -117,7 +117,7 @@ public partial class SettingsPage
             ShowSipProfile();
             sipProfileNameEdit.Focus();
         }
-        catch (Exception error) { statusLabel.Text = Hosting.PageOperation.Describe(error); }
+        catch (Exception) { ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed); }
         finally { _applyingSipProfile = false; }
     }
 
@@ -133,7 +133,7 @@ public partial class SettingsPage
             _editingSipProfileId = _sipProfiles[Math.Min(index, _sipProfiles.Count - 1)].Id;
             sipProfileEdit.EditValue = _editingSipProfileId;
             ShowSipProfile();
-            statusLabel.Text = "Profil im Entwurf entfernt. Erst „Speichern“ übernimmt die Änderung; die laufende Verbindung bleibt bestehen.";
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged);
         }
         finally { _applyingSipProfile = false; }
     }

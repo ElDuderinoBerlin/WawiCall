@@ -333,3 +333,14 @@ Erfolgreiches Speichern erhöht die Zugangsrevision; neue Anfragen ersetzen die 
 veraltete Antworten werden verworfen. Die vollständige Plugin-View und die gemeinsame atomare
 Auswahlprüfung bleiben erhalten. Isolierte Pro-Adapter-, Konfigurations-, App- und Renderprüfungen
 siehe [Neuaufbau](Neuaufbau-Plan.md). Echte Mandantenabnahme und formale Registry-Anbindung bleiben offen.
+
+
+### ✅ Ergänzung 22.11.2026 – Mehrfachauswahl statt Einzelpräferenz
+
+Der exportierte Lexware-Tab lädt beim Öffnen asynchron und bietet eine native GridView-Checkbox-
+Mehrfachauswahl. Der Host persistiert denselben vorhandenen Telefon-/Mail-Quellumfang; konkrete
+Datensatz-/Gesprächskontexte bleiben eindeutig. Quellen-/Mandantengrenzen, Abbrechen, veraltete
+Auswahl, Wiederöffnen und Abbruch beim Schließen werden isoliert geprüft. Statusmeldungen gehen
+über einen engen Enum-Vertrag in Log-Fenster und Datei, die eigene Statuszeile entfällt. Pro nutzt
+den gemeinsamen Bibliotheksresolver für die API-Adresse und besitzt dafür kein Eingabefeld.
+Die formale Tabregistrierung aus späteren Phasen bleibt separat offen.

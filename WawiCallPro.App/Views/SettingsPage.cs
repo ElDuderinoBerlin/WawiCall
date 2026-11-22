@@ -20,6 +20,10 @@ public partial class SettingsPage : XtraUserControl
     private Func<Task>? _beforePluginSwitch;
     private bool _arrangingButtons;
     private AutoStartState? _autoStartState;
+    internal WawiCallPro.Utilities.Operations.OperationEvent? LastSettingsNotice { get; private set; }
+    internal string LastSettingsNoticeText => LastSettingsNotice is { } notice ? WawiCallPro.Utilities.Operations.SettingsMessages.Get(notice) ?? "" : "";
+    private void ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent notice)
+    { LastSettingsNotice = notice; _workspace?.ReportSettings(notice); }
     internal event EventHandler? RestartRequested;
     internal event EventHandler? SaveCompleted;
     internal event EventHandler? CloseRequested;
@@ -28,9 +32,9 @@ public partial class SettingsPage : XtraUserControl
     {
         if (tabs.SelectedTabPage == sipTab || tabs.SelectedTabPage == generalTab) return GetRequiredGeneralHeight();
         var width = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal);
-        var statusHeight = statusLabel.GetPreferredSize(new(Math.Max(1, width - statusLabel.Margin.Horizontal), 0)).Height;
+
         return layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left + Font.Height * 4
-            + footer.GetPreferredSize(new(width, 0)).Height + footer.Margin.Vertical + statusHeight + statusLabel.Margin.Vertical;
+            + footer.GetPreferredSize(new(width, 0)).Height + footer.Margin.Vertical;
     }
     internal int GetRequiredGeneralHeight()
     {
@@ -44,11 +48,10 @@ public partial class SettingsPage : XtraUserControl
                 + sipStandard.Top + sipStandard.Left);
         if (tabs.SelectedTabPage == mailTab) content = Math.Max(content, mailSettingsPage.GetRequiredHeight());
         if (tabs.SelectedTabPage == wawiTab) content = Math.Max(content, wawiLayout.GetPreferredSize(new(width, 0)).Height);
-        var statusWidth = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal - statusLabel.Margin.Horizontal);
+
         // Hidden pages may retain an old Height. Derive chrome from content and stable header/border offsets instead.
         return content + layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left
-            + footer.GetPreferredSize(new(layout.ClientSize.Width, 0)).Height + footer.Margin.Vertical
-            + statusLabel.GetPreferredSize(new(statusWidth, 0)).Height + statusLabel.Margin.Vertical;
+            + footer.GetPreferredSize(new(layout.ClientSize.Width, 0)).Height + footer.Margin.Vertical;
     }
     public SettingsPage()
     {
@@ -124,7 +127,7 @@ public partial class SettingsPage : XtraUserControl
         databaseSetupButton.Enabled = true;
         if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
         UpdateSipStatus();
-        _operation = new PageOperation(this, statusLabel);
+        _operation = new PageOperation(this, ReportSettingsNotice);
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
         Apply(workspace.Configuration.Current);
         LoadAutoStart();
@@ -203,7 +206,7 @@ public partial class SettingsPage : XtraUserControl
         }
         finally
         {
-            _operation?.Dispose(); _operation = new PageOperation(this, statusLabel);
+            _operation?.Dispose(); _operation = new PageOperation(this, ReportSettingsNotice);
             _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
             saveButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
@@ -257,7 +260,7 @@ public partial class SettingsPage : XtraUserControl
             .Select(company => new CacheCompanyRow(company.Company, company.DisplayName ?? "Gespeicherter Mandant", company.IncludeInPhoneCache, false)));
         foreach (var row in _cacheCompanies) row.Selected = options.FindCompanySettings(row.Key)?.IncludeInPhoneCache == true;
         BindCompanyRows();
-        statusLabel.Text = snapshot.FileFound ? "Gespeicherte Einstellungen geladen." : "Vorgaben geladen. Es wurden noch keine Einstellungen gespeichert.";
+        ReportSettingsNotice(snapshot.FileFound ? WawiCallPro.Utilities.Operations.OperationEvent.SettingsLoaded : WawiCallPro.Utilities.Operations.OperationEvent.SettingsDefaultsLoaded);
     }
 
     internal ApplicationOptions ReadOptions()
@@ -307,7 +310,7 @@ public partial class SettingsPage : XtraUserControl
             _cacheCompanies = companies.Select(company => new CacheCompanyRow(company.Key, company.DisplayName,
                 selection.TryGetValue(company.Key, out var selected) ? selected : _snapshot!.Options.FindCompanySettings(company.Key)?.IncludeInPhoneCache == true)).Concat(missing).ToList();
             BindCompanyRows();
-            statusLabel.Text = companies.IsEmpty ? "Keine freigegebenen Mandanten gefunden. Gespeicherte Zuordnungen bleiben erhalten." : "Mandanten für den Telefon-Cache auswählen und Einstellungen speichern.";
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesLoaded);
         });
     }
 
@@ -385,7 +388,7 @@ public partial class SettingsPage : XtraUserControl
                 }
                 LoadAutoStart();
             }
-            statusLabel.Text = "Einstellungen gespeichert. Der Lexware-Zugang ist übernommen. Datenbank-, Geräte- und Protokollierungsänderungen benötigen gegebenenfalls einen Neustart.";
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSaved);
         }
         finally { if (!IsDisposed) sipContainer.Enabled = true; }
     }
@@ -421,7 +424,7 @@ public partial class SettingsPage : XtraUserControl
             };
             if (dialog.ShowDialog(owner) == DialogResult.OK) logDirectoryEdit.Text = dialog.SelectedPath;
         }
-        catch (Exception exception) { statusLabel.Text = PageOperation.Describe(exception); }
+        catch (Exception) { ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed); }
     }
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {
@@ -430,7 +433,7 @@ public partial class SettingsPage : XtraUserControl
         var saved = _snapshot.Options.User;
         var restartNeeded = RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User);
         if (restartNeeded)
-            statusLabel.Text = "Einstellungen gespeichert. Geänderte Darstellung oder Tastenkürzel werden nach einem Neustart wirksam.";
+            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsRestartRequired);
         if (RestartSettingsDiffer(saved, previous) && restartNeeded && confirm())
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
@@ -452,7 +455,7 @@ public partial class SettingsPage : XtraUserControl
                 {
                     if (IsDisposed || !ReferenceEquals(_cacheCancellation, cancellation) || cancellation.IsCancellationRequested) return;
                     var phase = value.Phase switch { PhoneCacheRefreshPhase.Reading => "Daten lesen", PhoneCacheRefreshPhase.Normalizing => "Rufnummern verarbeiten", _ => "Cache speichern" };
-                    statusLabel.Text = $"{value.CompanyNumber}/{value.CompanyCount}: {value.CompanyName} – {phase} ({value.PartyCount} Geschäftspartner)";
+                    ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCacheUpdating);
                 });
                 var result = await _workspace!.PhoneCache.RefreshAsync(progress, cancellation.Token);
                 foreach (var row in _cacheCompanies)
@@ -460,12 +463,11 @@ public partial class SettingsPage : XtraUserControl
                         row.CacheStatus = DescribeCacheResult(company);
                 cacheGrid.RefreshDataSource();
                 var updated = result.Companies.Count(company => company.State == PhoneCacheRefreshState.Updated);
-                statusLabel.Text = result.Companies.IsEmpty ? "Keine Cache-Mandanten ausgewählt."
-                    : $"Cache aktualisiert: {updated} von {result.Companies.Length} Mandanten. Einzelheiten stehen in der Mandantenliste.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCacheUpdated);
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
             {
-                statusLabel.Text = "Cacheaktualisierung abgebrochen. Bereits abgeschlossene Mandanten bleiben gespeichert; der laufende Mandant behält seinen bisherigen Cache.";
+                ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsCancelled);
             }
             finally
             {

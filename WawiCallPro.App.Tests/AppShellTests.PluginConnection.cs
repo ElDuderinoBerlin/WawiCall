@@ -39,7 +39,7 @@ public sealed partial class AppShellTests
         Assert.DoesNotContain(password, json); Assert.DoesNotContain(key, json); Assert.Contains("dpapi-user-v1:", json);
         Assert.IsNotNull(workspace.Configuration.Current.Options.Erp.Pro, "Committed ERP settings are available without restarting.");
         Assert.IsTrue(editor.Snapshot.PasswordStored); Assert.IsTrue(editor.Snapshot.ClientKeyStored); Assert.IsFalse(editor.HasUnsavedChanges);
-        Assert.Contains("Neustart", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsSaved, page.LastSettingsNotice);
         var export = Path.Combine(workspace.Paths.RootDirectory, "portable.json");
         await workspace.Settings.ExportPortableAsync(export);
         var portable = await File.ReadAllTextAsync(export);
@@ -116,9 +116,9 @@ public sealed partial class AppShellTests
         await Assert.ThrowsExactlyAsync<PluginSettingsValidationException>(() => (Task)method.Invoke(page, ["Test.Dummy", CancellationToken.None])!);
         Assert.AreEqual(previousPlugin, ((IProductPluginSelection)workspace.Plugins).ActivePluginId); Assert.IsFalse(editor.Disposed);
         await page.ReloadAsync(); Assert.IsTrue(editor.HasUnsavedChanges);
-        Assert.Contains("ungespeicherten", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed, page.LastSettingsNotice);
         await page.ImportSettingsAsync(Path.Combine(workspace.Paths.RootDirectory, "not-read.json"));
-        Assert.Contains("ungespeicherten", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed, page.LastSettingsNotice);
         await page.StopAsync();
     });
 

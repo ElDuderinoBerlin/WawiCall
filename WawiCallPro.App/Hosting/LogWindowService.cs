@@ -49,6 +49,8 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
         {
             if (!IsEnabled(logLevel)) return;
             var operation = OperationEvents.TryGetEvent(state, out var value) ? value : OperationEvent.FrameworkMessage;
+            if (SettingsMessages.Get(operation) is { } status)
+            { logs.Append(logLevel, status); return; }
             var message = operation switch
             {
                 OperationEvent.HostStarting => "Anwendungsdienste werden gestartet.",

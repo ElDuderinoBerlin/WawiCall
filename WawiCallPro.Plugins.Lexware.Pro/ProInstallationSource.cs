@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
+using Quantarix.Lexware.APIService;
 using Quantarix.Lexware.Core.Registry;
 
 namespace WawiCallPro.Plugins.Lexware.Pro;
@@ -10,10 +10,16 @@ public sealed record ProRegistryPaths(string? Data, string? ApiInstall, string? 
 public interface IProRegistry
 {
     ProRegistryPaths ReadPaths();
+    string? ReadApiInstallationDirectory() => ReadPaths().ApiInstall;
+    string? ReadApiProgramDirectory() => ReadPaths().ApiProgram;
+    string? ReadDataDirectory() => ReadPaths().Data;
 }
 
 public sealed class ProRegistry : IProRegistry
 {
+    public string? ReadApiInstallationDirectory() => LexwareRegistry.GetApiServiceInstallPath();
+    public string? ReadApiProgramDirectory() => LexwareRegistry.GetApiServicePath();
+    public string? ReadDataDirectory() => LexwareRegistry.GetDatenPath();
     public ProRegistryPaths ReadPaths() => new(LexwareRegistry.GetDatenPath(),
         LexwareRegistry.GetApiServiceInstallPath(), LexwareRegistry.GetApiServicePath());
 }
@@ -32,9 +38,10 @@ public sealed class ProInstallationSource(IProRegistry registry, ProConnectionOp
     {
         try
         {
-            var paths = registry.ReadPaths();
-            var url = options.ApiUrl ?? ReadUrl(paths.ApiInstall) ?? ReadUrl(paths.ApiProgram)
-                ?? throw new ProAdapterException(ProFailure.InstallationUnavailable);
+            var resolver = new LexwareApiUrlResolver(registry.ReadApiInstallationDirectory, registry.ReadApiProgramDirectory, File.ReadAllText);
+            var url = new Uri(resolver.Resolve(), UriKind.Absolute);
+            string? data;
+            try { data = registry.ReadDataDirectory(); } catch { data = null; }
             if (!url.IsAbsoluteUri || url.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(url.UserInfo)
                 || !string.IsNullOrEmpty(url.Query) || !string.IsNullOrEmpty(url.Fragment))
                 throw new ProAdapterException(ProFailure.ConfigurationRequired);
@@ -47,30 +54,10 @@ public sealed class ProInstallationSource(IProRegistry registry, ProConnectionOp
             var id = options.InstallationId;
             if (string.IsNullOrWhiteSpace(id))
                 id = "lexware-pro/" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical.Uri.AbsoluteUri)));
-            var propertyStore = string.IsNullOrWhiteSpace(paths.Data) ? null : Path.Combine(paths.Data, "PropertyStore");
+            var propertyStore = string.IsNullOrWhiteSpace(data) ? null : Path.Combine(data, "PropertyStore");
             return new ProInstallation(id, new Uri(url.AbsoluteUri.TrimEnd('/')), propertyStore);
         }
         catch (ProAdapterException) { throw; }
         catch { throw new ProAdapterException(ProFailure.InstallationUnavailable); }
-    }
-
-    private static Uri? ReadUrl(string? directory)
-    {
-        if (string.IsNullOrWhiteSpace(directory)) return null;
-        var path = Path.Combine(directory, "appsettings.json");
-        if (!File.Exists(path)) return null;
-        using var document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions
-        {
-            AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip
-        });
-        if (!document.RootElement.TryGetProperty("Urls", out var value)) return null;
-        var first = value.GetString()?.Split(';', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
-        first = first?.Replace("://+:", "://localhost:", StringComparison.Ordinal)
-            .Replace("://*:", "://localhost:", StringComparison.Ordinal);
-        if (!Uri.TryCreate(first, UriKind.Absolute, out var url))
-            throw new ProAdapterException(ProFailure.InstallationUnavailable);
-        if (url.Host is "0.0.0.0" or "[::]") url = new UriBuilder(url) { Host = "localhost" }.Uri;
-        return url;
     }
 }

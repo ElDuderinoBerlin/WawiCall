@@ -7,8 +7,13 @@ using WawiCallPro.Utilities.Security;
 namespace WawiCallPro.App.Hosting;
 
 /// <summary>Tracks one page action so shutdown can cancel and await work before its controls are disposed.</summary>
-internal sealed class PageOperation(Control owner, LabelControl status) : IDisposable
+internal sealed class PageOperation : IDisposable
 {
+    private readonly Control owner;
+    private readonly LabelControl? status;
+    private readonly Action<WawiCallPro.Utilities.Operations.OperationEvent>? report;
+    internal PageOperation(Control owner, LabelControl status) { this.owner = owner; this.status = status; }
+    internal PageOperation(Control owner, Action<WawiCallPro.Utilities.Operations.OperationEvent> report) { this.owner = owner; this.report = report; }
     private readonly CancellationTokenSource _stopping = new();
     private Task _running = Task.CompletedTask;
     private bool _disposed;
@@ -24,12 +29,18 @@ internal sealed class PageOperation(Control owner, LabelControl status) : IDispo
     private async Task RunCoreAsync(Func<CancellationToken, Task> operation)
     {
         using var waiting = new UiWaitCursor(owner);
-        status.Text = "Bitte warten …";
+        if (report is not null) report(WawiCallPro.Utilities.Operations.OperationEvent.SettingsWaiting);
+        else status!.Text = "Bitte warten …";
         try { await operation(_stopping.Token); }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
         catch (Exception exception)
         {
-            if (!owner.IsDisposed) status.Text = Describe(exception);
+            if (!owner.IsDisposed)
+            {
+                if (report is not null) report(exception is ConfigurationException or WawiCallPro.Interfaces.Plugins.PluginSettingsValidationException
+                    ? WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed : WawiCallPro.Utilities.Operations.OperationEvent.SettingsFailed);
+                else status!.Text = Describe(exception);
+            }
         }
     }
 

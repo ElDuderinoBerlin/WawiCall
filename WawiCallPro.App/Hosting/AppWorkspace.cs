@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WawiCallPro.Core.Companies;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
@@ -45,8 +46,14 @@ public sealed class AppWorkspace(
     IPhoneNumberDiagnostics numberDiagnostics,
     CallNotesSessionFactory callNotes,
     IAppAutoStart autoStart,
-    MailApplication mail)
+    MailApplication mail,
+    ILogger<AppWorkspace>? settingsLogger)
 {
+    public void ReportSettings(OperationEvent notice)
+    {
+        if (SettingsMessages.Get(notice) is null) throw new ArgumentOutOfRangeException(nameof(notice));
+        if (settingsLogger is not null) OperationEvents.Write(settingsLogger, notice);
+    }
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;

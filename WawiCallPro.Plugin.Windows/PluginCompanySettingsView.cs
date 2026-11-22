@@ -16,6 +16,9 @@ public sealed class PluginCompanySettingsView : IPluginSettingsView
         Reload(context);
     }
     public Control View => _page;
+    public bool SupportsCompanyValidation => true;
+    public async Task<Company?> ResolveCompanyAsync(CompanyKey company, CancellationToken token = default)
+        => (await _directory.GetCompaniesAsync(token)).SingleOrDefault(item => item.Key == company);
     public bool HasUnsavedChanges => _page.HasUnsavedChanges;
     public void Reload(IPluginConnectionEditContext context) => _page.Bind(context as IPluginSettingsPageContext, _directory, _line,
         () => _directory is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured);
