@@ -28,17 +28,20 @@ public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirec
     public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context)
     {
         if (!_configured) throw new InvalidOperationException("Plugin is not configured.");
-        var page = new ProConnectionSettingsPage();
-        try { page.Reload(context); return new SettingsView(page); }
+        var page = new LexwareSettingsPage();
+        try { page.Reload(context, directory, () => IsConnectionConfigured); return new SettingsView(page, directory, () => IsConnectionConfigured); }
         catch { page.Dispose(); throw; }
     }
-    public string ConnectionSettingsTitle => "Lexware-Pro-Zugang";
-    private sealed class SettingsView(ProConnectionSettingsPage page) : IPluginSettingsView
+    public string ConnectionSettingsTitle => "Lexware";
+    private sealed class SettingsView(LexwareSettingsPage page, IBusinessDirectory directory, Func<bool> connectionReady) : IPluginSettingsView
     {
         public System.Windows.Forms.Control View => page;
-        public bool HasUnsavedChanges => page.HasChanges();
-        public void Reload(IPluginConnectionEditContext context) => page.Reload(context);
+        public bool HasUnsavedChanges => page.HasChanges;
+        public void Reload(IPluginConnectionEditContext context) => page.Reload(context, directory, connectionReady);
         public void ApplyChanges(IPluginConnectionEditContext context) => page.ApplyChanges(context);
+        public Task LoadAsync(CancellationToken cancellationToken = default) => page.LoadAsync(cancellationToken);
+        public Task ValidateAsync(CancellationToken cancellationToken = default) => page.ValidateAsync(cancellationToken);
+        public Task StopAsync(CancellationToken cancellationToken = default) => page.StopAsync(cancellationToken);
         public void Dispose() => page.Dispose();
     }
     public void Execute() => throw new NotSupportedException("Fachoperationen werden über den Datenadapter ausgeführt.");

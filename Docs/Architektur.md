@@ -113,13 +113,33 @@ Einstellungsdialog bettet das Control ein und besitzt dessen Lease bis zum Schli
 Ohne bereitgestellte View erscheint kein Platzhaltertab. Der Host baut keine einzelnen Lexware-Felder
 zusammen. Allgemeine Einstellungen, Pluginverwaltung, SIP und Audio bleiben gemeinsame Hostseiten.
 
-Erster Anschluss: `IWawiCallPluginSettings` liefert `ProConnectionSettingsPage` samt Titel
-„Lexware-Pro-Zugang“. `IPluginSettingsView`/`IPluginSettingsHandle` regeln Entwurf, Übernahme und
-Freigabe; `IPluginConnectionEditContext` verbindet den Plugin-Entwurf mit der gemeinsamen geschützten
-Speicherung. Der Host speichert atomar und erhält Geheimnisse bei leeren Eingaben, während Pro-
-Validierung, automatische Quellerkennung, Anmeldung und Firmenabruf im Pro-Plugin bleiben. COM-ID
-`settings-wawi` ist eine optionale Fähigkeit des aktiven Plugins und vor dessen erster Anmeldung
-verfügbar. Nicht unterstützte Plugins bieten diese View nicht an.
+Stand 22.11.2026: `IWawiCallPluginSettings` exportiert für beide Lexware-Produktlinien den Tab
+**„Lexware“**. Pro liefert die vollständige `LexwareSettingsPage` mit eigenem Zugangseditor und
+Mandantenauswahl; FinOffice exportiert die vollständige Mandantenseite ohne Pro-API-Felder.
+Die gemeinsame pluginseitige `PluginCompanySettingsPage` enthält nur die Darstellung und
+produktneutrale Auswahlprüfung. Das jeweilige Plugin liefert seinen `IBusinessDirectory` samt
+Einrichtungsstatus und bei Pro der festen Übersetzung seiner Quellfehler. Erkennung, Anmeldung,
+berechtigter Firmenkatalog und alle produktabhängigen Zugriffe bleiben in den Datenadaptern der Plugins.
+Der frühere Mandantenbereich im Navigationsdock wird nicht mehr erzeugt.
+
+`IPluginSettingsView`/`IPluginSettingsHandle` umfassen nun asynchrones Laden, Validieren und Stoppen.
+Controls entstehen auf dem UI-Thread; Laden beginnt nach Freigabe des Erzeugungs-Callbacks, sodass
+kein Runtime-Reentry-Deadlock entsteht. Schließen bricht Abrufe ab und wartet vor Dispose auf ihr Ende.
+`PluginSettingsPageContext` verbindet den vorhandenen Zugangsentwurf mit einem reinen
+Mandantenauswahlentwurf und den zentralen Größen-/Wartecursorhilfen. Die Quelle wird vor Zugriff und
+Bindung erneut gegen das aktive Plugin und dessen Zugriffssperre geprüft. Keine Container-/Formreferenzen
+werden dem Plugin gegeben. Die ausdrückliche Tabregistrierung des separaten Phasenplans ist damit noch
+nicht an die tatsächliche Pluginsitzung angeschlossen; der Viewexport verwendet den bestehenden Leasevertrag.
+
+Mandanten werden ausschließlich aus dem berechtigten Plugin-Katalog ausgewählt, nur ihr Name ist sichtbar.
+Kein automatischer erster Treffer. Speichern prüft eine geänderte Auswahl erneut gegen den aktuellen
+Katalog, speichert `User.PreferredCompany` atomar und veröffentlicht erst danach den Laufzeitkontext.
+Abbrechen, Validierungs-/Konkurrenzfehler und abgebrochene Abrufe erhalten ihn. Beim Start wird eine
+vorhandene Präferenz nur bei weiterhin gültiger Berechtigung wiederhergestellt. Die Quellenwahl des
+Telefon-Caches bleibt davon unabhängig. Geänderte Pro-Zugangsdaten benötigen weiterhin einen Neustart;
+neu eingetippte Daten lösen keinen verdeckten Anmeldeversuch aus. Ein Pro-Plugin ohne Zugang meldet
+Einrichtungsbedarf, statt den COM-Katalog erfolglos abzufragen. `settings-wawi` bleibt vor der Anmeldung
+als COM-ID erreichbar. Prüfungen und offene Live-Abnahme stehen im [Plugin-UI-Plan](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md).
 
 Fachfunktionen werden über kleine Funktions-Interfaces angeboten; bestehend sind insbesondere
 `IBusinessDirectory`, `IWawiCallPluginWorkspaces` und `IWawiCallPluginViews`. Der gemeinsame Host nutzt

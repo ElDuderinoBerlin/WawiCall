@@ -42,12 +42,13 @@ public interface IPluginConnectionEditContext
 public enum PluginSettingsIssue
 {
     InvalidEndpoint, InvalidInstallationId, UsernameRequired, PasswordRequired,
-    ClientKeyRequired, InvalidClientKey, DefaultClientKeyUnavailable, InvalidTimeout, UnsavedChanges
+    ClientKeyRequired, InvalidClientKey, DefaultClientKeyUnavailable, InvalidTimeout, UnsavedChanges, ConnectionRestartRequired
 }
 
 /// <summary>Only fixed, application-defined validation text may cross the plugin/UI boundary.</summary>
 public sealed class PluginSettingsValidationException(PluginSettingsIssue issue) : Exception(issue switch
 {
+    PluginSettingsIssue.ConnectionRestartRequired => "Geänderte Lexware-Zugangsdaten zuerst speichern und neu starten. Danach den Mandanten auswählen.",
     PluginSettingsIssue.InvalidEndpoint => "Die API-Adresse muss eine absolute HTTP-/HTTPS-Adresse ohne Zugangsdaten, Query oder Fragment sein.",
     PluginSettingsIssue.InvalidInstallationId => "Die optionale Installationskennung ist ungültig.",
     PluginSettingsIssue.UsernameRequired => "Einen gültigen API-Benutzernamen eingeben.",

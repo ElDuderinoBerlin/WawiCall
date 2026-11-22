@@ -27,7 +27,7 @@ public sealed partial class AppShellTests
             "CallerLookupPage", "CallNotesPanel", "CompanySelector", "FrmCallerLookup", "FrmDatabaseSetup", "FrmDial", "FrmSettings",
             "FrmStartupSplashScreen", "HistoryPage", "HomeDashboard", "LogPanel", "MailPage", "MailSettingsPage",
             "PhoneNumberDiagnosticsPage", "PluginPage", "SettingsPage", "StartPage", "UcDbStep1DbType", "UcDbStep2Connection",
-            "UcDbStep3Migration", "UcConMyPg", "UcConSqlite", "UcConSqlServer", "PartySearchPage" }, surfaces.Select(type => type.Name).ToArray(),
+            "UcDbStep3Migration", "UcConMyPg", "UcConSqlite", "UcConSqlServer", "PartySearchPage", "PluginCompanySettingsPage" }, surfaces.Select(type => type.Name).ToArray(),
             "Neue direkte oder indirekte Oberflächen auch in die Nachweismatrix aufnehmen.");
         foreach (var type in surfaces.OrderBy(type => type.Name))
         {

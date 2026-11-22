@@ -3,17 +3,21 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Plugin.Windows;
 
 namespace WawiCallPro.Plugins.Lexware.FinOffice;
 
 [PluginServices(typeof(FinOfficePluginServices))]
-public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces
+public sealed class LexwarePlugin(IWawiCallHostServices services, IBusinessDirectory directory) : IWawiCallPlugin, IWawiCallPluginWorkspaces, IWawiCallPluginSettings
 {
     private bool _initialized;
     private bool _configured;
     public string Name => "Lexware Financial Office";
     public Version Version { get; } = new(1, 0);
     public LexwareProductLine ProductLine => LexwareProductLine.FinOffice;
+    public string ConnectionSettingsTitle => "Lexware";
+    public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context) => _configured
+        ? new PluginCompanySettingsView(directory, ProductLine, context) : throw new InvalidOperationException("Plugin is not configured.");
     public IBusinessDirectory Directory => _configured ? directory : throw new InvalidOperationException("Plugin is not configured.");
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
     public void Configure(IWawiCallHostServices hostServices)

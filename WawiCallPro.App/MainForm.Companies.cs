@@ -2,34 +2,50 @@ namespace WawiCallPro.App;
 
 public partial class MainForm
 {
-    private bool _companySelectorBound;
-    private bool _sizingCompanyNavigation;
-    private void CompanySelector_Layout(object? sender, LayoutEventArgs e)
-    {
-        if (_sizingCompanyNavigation || IsDisposed) return;
-        _sizingCompanyNavigation = true;
-        try
-        {
-            var width = companySelector.GetMinimumContentWidth() + Math.Max(0, navigationDock.Width - navigationContainer.ClientSize.Width);
-            if (navigationDock.MinimumSize.Width != width) navigationDock.MinimumSize = new Size(width, 0);
-            if (navigationDock.Width < width) navigationDock.Width = width;
-        }
-        finally { _sizingCompanyNavigation = false; }
-    }
     internal Task ReloadCompaniesAsync()
     {
         if (_workspace is null || _closing) return Task.CompletedTask;
-        if (!_companySelectorBound)
-        {
-            companySelector.Bind(_workspace.Directory, _workspace.Companies, _workspace.Plugins,
-                _workspace.Application.ProductLine == "Pro" ? Interfaces.Companies.LexwareProductLine.Pro : Interfaces.Companies.LexwareProductLine.FinOffice);
-            companySelector.LoadFailed += CompanyCatalog_LoadFailed;
-            _companySelectorBound = true;
-        }
-        return companySelector.ReloadAsync();
+        return !_companyRestore.IsCompleted ? _companyRestore : _companyRestore = RestoreCompanyAsync();
     }
-    private void CompanyCatalog_LoadFailed(object? sender, EventArgs e) =>
-        AppendOutput("Mandanten konnten nicht geladen werden. Wawi-Zugang und aktives Plugin prüfen.");
+    private CancellationTokenSource _companyRestoreStopping = new();
+    private Task _companyRestore = Task.CompletedTask;
+    private bool _companyRestoreDisposed;
+    private async Task RestoreCompanyAsync()
+    {
+        var token = _companyRestoreStopping.Token;
+        try
+        {
+            var options = (await _workspace!.Settings.LoadAsync(token)).Options;
+            var key = _workspace.Companies.Current.Company?.Key ?? options.User.PreferredCompany;
+            if (key is null) return;
+            var pluginId = (_workspace.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId;
+            if (!_workspace.CanUseBusinessDirectory) { await _workspace.Companies.SelectAsync(null); return; }
+            var configured = await _workspace.Plugins.UseAsync((plugin, _) => Task.FromResult(
+                plugin is not WawiCallPro.Interfaces.Directory.IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured), token);
+            if (!configured) { await _workspace.Companies.SelectAsync(null); return; }
+            var companies = await _workspace.Directory.GetCompaniesAsync(token);
+            token.ThrowIfCancellationRequested();
+            if (_closing || pluginId != (_workspace.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId) return;
+            var selected = companies.SingleOrDefault(company => company.Key == key);
+            if (_workspace.Companies.Current.Company != selected) await _workspace.Companies.SelectAsync(selected);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch { if (!_closing) AppendOutput("Der gespeicherte Mandant ist nicht verfügbar. Bitte unter Einstellungen → Lexware prüfen."); }
+    }
+    private async Task StopCompanyRestoreAsync()
+    {
+        if (_companyRestoreDisposed) return;
+        await _companyRestoreStopping.CancelAsync();
+        await _companyRestore;
+        if (!_closing) { _companyRestoreStopping.Dispose(); _companyRestoreStopping = new(); }
+    }
+    private void DisposeCompanyRestore()
+    {
+        if (_companyRestoreDisposed) return;
+        _companyRestoreDisposed = true; _closing = true;
+        _companyRestoreStopping.Cancel(); _companyRestoreStopping.Dispose();
+    }
+
     private async void CompanySettings_Closed(object? sender, FormClosedEventArgs e)
     {
         if (sender is Views.FrmSettings { RestartRequested: true }) return;

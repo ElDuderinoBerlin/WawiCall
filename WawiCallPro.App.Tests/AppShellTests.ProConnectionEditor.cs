@@ -46,8 +46,11 @@ public sealed partial class AppShellTests
                 form.PrepareForBackgroundRun(); form.Font = font; form.Show();
                 var page = Field<SettingsPage>(form, "settingsPage"); await page.ReloadAsync();
                 form.SelectAutomationTab("settings-wawi"); Application.DoEvents();
-                Assert.AreEqual("Lexware-Pro-Zugang", page.SettingsTabs.SelectedTabPage.Text);
-                var editor = Field<Control?>(page, "_pluginSettingsControl"); Assert.IsNotNull(editor);
+                Assert.AreEqual("Lexware", page.SettingsTabs.SelectedTabPage.Text);
+                var exported = Field<Control?>(page, "_pluginSettingsControl"); Assert.IsNotNull(exported);
+                Assert.AreEqual("LexwareSettingsPage", exported.GetType().Name);
+                Assert.IsNotNull(Field<PluginCompanySettingsPage>(exported, "companyPage"));
+                var editor = Field<Control>(exported, "connectionPage");
                 var output = Path.Combine(RenderOutput(), "pro-connection-editor"); Directory.CreateDirectory(output);
                 Assert.IsTrue(typeof(XtraUserControl).IsAssignableFrom(editor.GetType()), "Default-context DevExpress type identity must be preserved.");
                 Assert.AreEqual(skin, ((XtraUserControl)editor).LookAndFeel.ActiveSkinName);
@@ -69,6 +72,12 @@ public sealed partial class AppShellTests
                     Assert.AreEqual(PluginSettingsIssue.PasswordRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
                     Field<TextEdit>(editor, "passwordEdit").Text = "isolated-only-secret";
                     Assert.AreEqual(PluginSettingsIssue.ClientKeyRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
+                    var context = Field<WawiCallPro.App.Hosting.PluginSettingsPageContext>(page, "_pluginPageContext");
+                    context.StageSelection((await workspace.Directory.GetCompaniesAsync())[0].Key);
+                    var combined = await Assert.ThrowsExactlyAsync<PluginSettingsValidationException>(() => page.SaveAsync(CancellationToken.None));
+                    Assert.AreEqual(PluginSettingsIssue.ConnectionRestartRequired, combined.Issue);
+                    Assert.IsNull(workspace.Companies.Current.Company);
+                    context.StageSelection(null);
                     firstEditor = false;
                 }
                 Field<TextEdit>(editor, "passwordEdit").Text = "isolated-only-secret";
@@ -99,9 +108,9 @@ public sealed partial class AppShellTests
                 Field<TextEdit>(editor, "clientKeyEdit").Text = Guid.NewGuid().ToString("B");
                 form.ClientSize = new Size(900, 740); form.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(editor);
-                using (var picture = new Bitmap(editor.Width, editor.Height))
+                using (var picture = new Bitmap(exported.Width, exported.Height))
                 {
-                    editor.DrawToBitmap(picture, editor.ClientRectangle);
+                    exported.DrawToBitmap(picture, exported.ClientRectangle);
                     picture.Save(Path.Combine(output, $"editor-{skin.Replace(' ', '-')}-{fontSize}.png"), ImageFormat.Png);
                 }
                 foreach (var name in new[] { "saveButton", "cancelButton", "importButton", "exportButton" })

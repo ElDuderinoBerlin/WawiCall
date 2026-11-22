@@ -188,7 +188,7 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
-        var stopCompanies = companySelector.StopAsync();
+        var stopCompanies = StopCompanyRestoreAsync();
         var stopParties = StopPartyOpeningAsync();
         await Task.WhenAll(stopCompanies, stopParties);
         await StopMailOperationAsync();
@@ -311,7 +311,7 @@ public partial class MainForm : RibbonForm
     private async Task PreparePluginSwitchAsync()
     {
         EnsureViewsCanClose();
-        var resetCompanies = companySelector.ResetAsync();
+        var resetCompanies = StopCompanyRestoreAsync();
         var stopParties = StopPartyOpeningAsync();
         await Task.WhenAll(resetCompanies, stopParties);
         foreach (var dial in OwnedForms.OfType<FrmDial>().ToArray()) { await dial.StopAsync(); dial.Close(); }
@@ -372,7 +372,7 @@ public partial class MainForm : RibbonForm
         mailCacheRebuildItem.ImageOptions.SvgImage = RibbonIconHelper.Load("MailCacheRebuild");
         mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
     }
-    private void DisposePage() { DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
+    private void DisposePage() { DisposeCompanyRestore(); DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {

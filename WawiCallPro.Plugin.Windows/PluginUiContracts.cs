@@ -48,6 +48,12 @@ public interface IPluginSettingsPageContext
     IPluginSettingsPresentation Presentation { get; }
 }
 
+/// <summary>Optional source authorization bound to the dialog's plugin generation; never exposes the host container.</summary>
+public interface IPluginSettingsSourceAccess
+{
+    Task EnsureSourceAccessAsync(CancellationToken cancellationToken = default);
+}
+
 /// <summary>Selection changes affect only the dialog draft, never the live company context.</summary>
 public interface IPluginCompanySelectionDraft
 {

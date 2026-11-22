@@ -15,6 +15,9 @@ public interface IPluginSettingsView : IPluginViewLease
     bool HasUnsavedChanges { get; }
     void Reload(IPluginConnectionEditContext context);
     void ApplyChanges(IPluginConnectionEditContext context);
+    Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    Task ValidateAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 /// <summary>The shared runtime owns the handle; the dialog releases its editor before switching plugins.</summary>
@@ -23,4 +26,7 @@ public interface IPluginSettingsHandle : IPluginViewHandle
     string Title { get; }
     void Reload(IPluginConnectionEditContext context);
     void ApplyChanges(IPluginConnectionEditContext context);
+    Task LoadAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    Task ValidateAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

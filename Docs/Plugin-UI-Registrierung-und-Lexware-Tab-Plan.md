@@ -1,6 +1,9 @@
 # Plugin-UI-Registrierung und Tab „Lexware“
 
-Stand: 21.11.2026. ✅ Entwurf und Phase 1 implementiert und geprüft. Hostanbindung und sichtbare Umstellung folgen in Phasen 2–5.
+Stand: 22.11.2026. ✅ Entwurf und Phase 1 geprüft. ✅ Auf ausdrücklichen Zusatzauftrag komplette
+Plugin-Views für Mandant/Zugang im Tab „Lexware“ exportiert und bisherigen Dock-Selector entfernt.
+Die formale sitzungsgebundene Tabregistrierung aus Phase 2 ist weiterhin offen; die sichtbare
+Teilumstellung verwendet den bestehenden optionalen View-/Leasevertrag.
 
 ## Ziel und Entscheidung
 
@@ -214,9 +217,9 @@ COM-Aufträge und ändert keine Telefon-Cachequellen.
 | 0 – Bestand und Entwurf | Ist-Pfade gelesen, Host-/Plugin-Verantwortung und gewünschter Tab festgelegt; dieses Dokument geprüft und in der Hauptsolution aufgenommen. | ✅ Entwurf abgeschlossen |
 | 1 – Verträge und Registrierungsmodell | Windows-Hostfähigkeit, sitzungsgebundene Fassade, Deskriptoren, Factory-/View-/Registrierungs-Leases. | ✅ Implementiert und geprüft |
 | 2 – Host und Pluginsitzung | Desktopadapter, korrekte DI-Identität, vorgemerkte Registrierung, Runtime-Ressourcen und geordnete Freigabe; Konsole ohne UI. | ⬜ Offen |
-| 3 – Lexware-Views | Pro und FinOffice registrieren je ihren vollständigen Tab „Lexware“; Zugang und Mandantenauswahl liegen im Plugin. | ⬜ Offen |
-| 4 – Einstellungsdialog und Umstellung | Generisches Einbetten, gemeinsames Speichern/Abbrechen, Mandantenpräferenz, COM-ID erhalten; alten Dock-Selector nach erfolgreicher Umstellung entfernen. | ⬜ Offen |
-| 5 – Prüfung und Abnahme | Lebensdauer, Schutzgrenzen, Designer/Layout und beide regulären Hosts nachweisen; erst danach Umsetzung abhaken. | ⬜ Offen |
+| 3 – Lexware-Views | ✅ Vollständige Views mit Titel „Lexware“ für Pro/FinOffice exportiert; Quelle und Produktlogik im Plugin. Registrierung über Phase 2 noch offen. | 🟨 Teilweise umgesetzt |
+| 4 – Einstellungsdialog und Umstellung | ✅ Vollständige Controls generisch eingebettet; gemeinsames Speichern/Abbrechen, Mandantenpräferenz, COM-ID, geordneter Stop und Dock-Entfernung geprüft. Anbindung an die neue Registry offen. | 🟨 Teilweise umgesetzt |
+| 5 – Prüfung und Abnahme | ✅ Gezielt geprüfte Auswahl-/Abbruch-/Freigabe-/Designer-/Layoutpfade und reguläre Builds beider Editionen. Registry-Integration und echte gemeinsame Anmeldung/Mandantenabnahme offen. | 🟨 Teilweise geprüft |
 
 Jede Phase einzeln implementieren, prüfen, im Plan abhaken und separat committen.
 Für reine Dokumentation jetzt keine Builds oder GUI-Läufe starten. Bei späteren Codeänderungen
@@ -230,7 +233,8 @@ Pluginseite sieht ausschließlich `IPluginHostUi.RegisterSettingsTab`; Aktivieru
 Sitzungsgeneration werden vom Hostmodell verwaltet. Seitenkontext enthält den vorhandenen
 Zugangsentwurf, einen reinen Mandanten-Auswahlentwurf und typisierte Darstellungs-/Wartecursorhilfen.
 Die getrennte Veröffentlichungsschnittstelle ändert den Laufzeitkontext erst nach erfolgreichem Speichern.
-Die Context-/Publisher-Implementierungen und UI-Erzeugung sind noch nicht angeschlossen.
+Der Dialogkontext und die UI-Erzeugung sind seit dem Zusatzauftrag vom 22.11. angeschlossen.
+Die separate Publisher-/Registry-Anbindung an die tatsächliche Pluginsitzung bleibt Phase 2.
 
 Modell: [PluginSettingsRegistry.cs](../WawiCallPro.Plugin.Windows/PluginSettingsRegistry.cs).
 `CreateScope(pluginId)` erzeugt eine hostseitige Sitzung mit eigener und unveränderlicher ID.
@@ -264,13 +268,43 @@ Logs `.plugin-ui-phase1-{build,tests,host}-{fin,pro}.log`. Keine Controls erzeug
 keine echten Quell-/SIP-Zugriffe und keine gespeicherten Einstellungen verändert.
 
 Phase 2 bindet dieses Modell erst an die Composition Roots und die tatsächliche Pluginsitzung an.
-Die bisherige Mandantenauswahl und der bisherige Zugangstab sind deshalb weiterhin sichtbar;
-deren Umstellung und der Titel „Lexware“ gehören zu Phase 3/4. Rücknahme von Phase 1 entfernt
+Die sichtbare Umstellung wurde mit dem Zusatzauftrag vom 22.11. über den bestehenden Viewvertrag
+vorgezogen; die formale Tabregistrierung und vollständige Phasenabnahme bleiben offen. Rücknahme von Phase 1 entfernt
 nur die neuen Verträge, das noch nicht verdrahtete Modell und seine Tests.
+
+### ✅ Zusatzauftrag: Mandantenauswahl als exportierte Plugin-View (22.11.2026)
+
+Pro exportiert `LexwareSettingsPage` als vollständiges Control mit seinem bestehenden Zugangseditor
+und einer gemeinsamen pluginseitigen Mandantenkomponente. FinOffice exportiert dieselbe reine
+Mandantendarstellung mit seinem eigenen Verzeichnisdienst, ohne Pro-Zugangsfelder. Beide Titel sind
+„Lexware“. Der Host erstellt keine Einzelcontrols und keine produktspezifischen Abfragen. Der Dock-
+Selector wird in `MainForm.Designer` nicht mehr erzeugt. Die generische Wiederherstellung einer bereits
+gespeicherten Präferenz ersetzt ihn nicht durch eine andere Mandantenoberfläche im Host.
+
+Der Dialogkontext implementiert den neutralen Auswahlentwurf und die RAII-/Button-Präsentationshilfen.
+Neue Auswahl wird erst nach erneuter Katalogfreigabe und erfolgreichem atomarem Speichern publiziert.
+Die View-Leases unterstützen Laden/Validieren/Stoppen, wobei Laden außerhalb des Runtime-Erzeugungs-
+Callbacks erfolgt. Abrufabbruch, wartende Freigabe, wiederholtes Stop/Dispose und veraltete Auswahl sind
+geprüft. Pro-Einrichtungsbedarf startet keine Anmeldung; geänderte Zugangsdaten und eine neue Auswahl
+müssen getrennt über Speichern/Neustart übernommen werden.
+
+Nachweise: zuerst Pro auf ausdrücklichen Nutzerwunsch, anschließend FinOffice und zum Schluss erneut
+Pro regulär Debug/Any CPU ohne Warnungen/Fehler gebaut. Je Edition 58 gezielte App-/Plugin-/Kontext-/
+Registry-/Designerprüfungen und 15 Vertragsprüfungen, außerdem 71 Pro- und 46 FinOffice-Adaptertests
+bestanden. Echte Pluginfabriken und gemeinsame UI-Typidentität geprüft; FinOffice-Factory ohne Quellaufruf.
+31 Designer-Dateitripel geprüft. Nur geänderte Plugin-/Settings- und Navigationsbereiche im Hintergrund
+mit leeren/gefüllten synthetischen Werten, Basic/dunklem Skin, kleiner/größerer Schrift und zusätzlicher
+150%-Layoutskalierung gerendert und visuell geprüft. Das ist kein realer Monitor-DPI-Wechsel.
+Protokolle: `.artifacts/plugin-company-settings`; Bilder `.artifacts/app-shell/settings-ui/plugin-companies`
+und `pro-connection-editor`. Keine echten Mandanten oder Zugangsdaten abgefragt/geändert. Die tatsächliche
+Pro-Anmeldung benötigt weiterhin den im aktuellen Standardprofil noch fehlenden gespeicherten Zugang.
+
+Die noch ausstehende Registry-Anbindung wird durch diesen funktionalen Viewexport ausdrücklich nicht
+als abgeschlossen markiert. Keine neue COM-Schnittstelle, TLB-/Maschinenregistrierung oder DB-Migration.
 
 ### Erforderliche Prüffälle für Phase 5
 
-- ⬜ Pro/FinOffice: genau ein Tab „Lexware“, vollständige Plugin-View, keine Mandantenauswahl im Dock.
+- ✅ Pro/FinOffice: Titel „Lexware“, vollständiger Plugin-Viewexport und keine Mandantenauswahl im Dock (isoliert geprüft); formale Registrierung noch offen.
 - ⬜ Plugin ohne UI-Fähigkeit, Konsole und fensterloser COM-Start erzeugen keine Controls/Handles/Dialogs.
 - ⬜ Doppelte/ungültige Registrierung, fehlgeschlagenes `Configure`, mehrfaches Öffnen/Schließen und
   Pluginwechsel hinterlassen keine Factory-/Controlreferenzen oder Anmeldungen der alten Sitzung.

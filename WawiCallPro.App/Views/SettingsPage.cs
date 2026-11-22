@@ -372,9 +372,13 @@ public partial class SettingsPage : XtraUserControl
         try
         {
             var startWithWindows = autoStartEdit.Checked;
+            if (_pluginSettings is not null) await _pluginSettings.ValidateAsync(token);
+            var publishCompany = _pluginPageContext?.HasSelectionChanges == true;
+            var company = _pluginPageContext is null ? null : await _pluginPageContext.ValidateSelectionAsync(token);
             var options = ReadOptions();
             await _workspace!.Settings.SaveAsync(options, _snapshot!, token);
             Apply(await _workspace.Settings.LoadAsync(token));
+            if (publishCompany) await _workspace.Companies.SelectAsync(company);
             if (_autoStartState is { CanChange: true } && startWithWindows != _autoStartState.Enabled)
             {
                 token.ThrowIfCancellationRequested();

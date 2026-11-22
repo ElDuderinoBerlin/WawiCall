@@ -120,26 +120,20 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
-    public Task MainCompanySelectorRefreshesAfterPluginSettingsCloseAndClearsBeforeSwitch() => WithWorkspace(async (workspace, _, _) =>
+    public Task MainCompanySelectionRestoresSavedKeyWithoutNavigationControlAndClearsBeforeSwitch() => WithWorkspace(async (workspace, _, _) =>
     {
         using var form = new MainForm(workspace.Application, workspace.Configuration, workspace,
             new AppUiState(new ApplicationDescriptor("Company selector test", "CompanySelector-" + Guid.NewGuid().ToString("N")), new StartupExecutionMode(true)));
         form.PrepareForBackgroundRun(); form.Show();
         await form.ReloadCompaniesAsync();
-        var selector = Field<CompanySelector>(form, "companySelector");
-        var edit = Field<LookUpEdit>(selector, "companyEdit");
-        edit.EditValue = ((Company[])edit.Properties.DataSource)[0].Key; await Task.Yield();
-        using var settings = form.CreateSettingsDialog();
+        Assert.IsEmpty(form.Controls.Find("companySelector", true), "The main navigation must not own product-specific company settings.");
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { PreferredCompany = companies[1].Key } }, snapshot);
+        await form.ReloadCompaniesAsync();
+        Assert.AreEqual(companies[1].Key, workspace.Companies.Current.Company?.Key);
         await (Task)typeof(MainForm).GetMethod("PreparePluginSwitchAsync", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(form, null)!;
-        Assert.IsNull(workspace.Companies.Current.Company); Assert.AreEqual(0, ((Company[])edit.Properties.DataSource).Length);
-        await form.ReloadCompaniesAsync(); Assert.AreEqual(2, ((Company[])edit.Properties.DataSource).Length);
-        var remaining = ((Company[])edit.Properties.DataSource)[1];
-        ((TestDirectory)workspace.Directory).ReadCatalog = _ => Task.FromResult(ImmutableArray.Create(remaining));
-        settings.PrepareForBackgroundRun(); settings.Show(form);
-        settings.Close();
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (((Company[])edit.Properties.DataSource).Length != 1 && DateTime.UtcNow < deadline) await Task.Delay(10);
-        Assert.AreEqual(remaining.Key, ((Company[])edit.Properties.DataSource).Single().Key);
+        Assert.IsNull(workspace.Companies.Current.Company);
         await form.PrepareToCloseAsync();
     });
 
@@ -182,10 +176,9 @@ public sealed partial class AppShellTests
                 new AppUiState(new ApplicationDescriptor("Company selector render", "CompanySelectorRender-" + Guid.NewGuid().ToString("N")), new StartupExecutionMode(true)));
             main.PrepareForBackgroundRun(); main.Font = font; main.Show(); main.ClientSize = new Size(900, 700);
             await main.ReloadCompaniesAsync(); main.PerformLayout(); Application.DoEvents();
-            var mainSelector = Field<CompanySelector>(main, "companySelector");
-            CheckTableBounds(mainSelector);
+            Assert.IsEmpty(main.Controls.Find("companySelector", true));
             var container = Field<DevExpress.XtraBars.Docking.ControlContainer>(main, "navigationContainer");
-            Assert.IsTrue(container.ClientRectangle.Contains(container.RectangleToClient(mainSelector.RectangleToScreen(mainSelector.ClientRectangle))), "Company selection must fit the actual navigation dock.");
+            CheckTableBounds(container);
             using var mainBitmap = new Bitmap(main.ClientSize.Width, main.ClientSize.Height);
             main.DrawToBitmap(mainBitmap, main.ClientRectangle);
             mainBitmap.Save(Path.Combine(RenderOutput(), "company-selector", $"MainForm-{skin.Replace(' ', '-')}-{fontSize}.png"), ImageFormat.Png);

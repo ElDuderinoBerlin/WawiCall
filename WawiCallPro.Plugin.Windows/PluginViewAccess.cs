@@ -45,12 +45,24 @@ public sealed class PluginViewAccess(IProductPluginRuntime runtime, IUiDispatche
         public bool HasUnsavedChanges => _view?.HasUnsavedChanges == true;
         public void Reload(IPluginConnectionEditContext context) => (_view ?? throw new ObjectDisposedException(nameof(SettingsHandle))).Reload(context);
         public void ApplyChanges(IPluginConnectionEditContext context) => (_view ?? throw new ObjectDisposedException(nameof(SettingsHandle))).ApplyChanges(context);
+        public Task LoadAsync(CancellationToken cancellationToken = default) => InvokeViewAsync(view => view.LoadAsync(cancellationToken), cancellationToken);
+        public Task ValidateAsync(CancellationToken cancellationToken = default) => InvokeViewAsync(view => view.ValidateAsync(cancellationToken), cancellationToken);
+        public Task StopAsync(CancellationToken cancellationToken = default) => InvokeViewAsync(view => view.StopAsync(cancellationToken), cancellationToken);
+        private async Task InvokeViewAsync(Func<IPluginSettingsView, Task> operation, CancellationToken token)
+        {
+            Task? pending = null;
+            await dispatcher.InvokeAsync(() => pending = operation(_view ?? throw new ObjectDisposedException(nameof(SettingsHandle))), token).ConfigureAwait(false);
+            await pending!.ConfigureAwait(false);
+        }
         public async ValueTask DisposeAsync()
         {
             await _gate.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_view is not { } current) return;
+                Task? stopping = null;
+                await dispatcher.InvokeAsync(() => stopping = current.StopAsync()).ConfigureAwait(false);
+                await stopping!.ConfigureAwait(false);
                 await dispatcher.InvokeAsync(current.Dispose).ConfigureAwait(false);
                 _view = null;
             }

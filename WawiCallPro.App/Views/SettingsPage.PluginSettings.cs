@@ -9,6 +9,7 @@ public partial class SettingsPage
     private IPluginSettingsHandle? _pluginSettings;
     private Control? _pluginSettingsControl;
     private PluginConnectionEditContext? _pluginEditContext;
+    private Hosting.PluginSettingsPageContext? _pluginPageContext;
     private string? _pluginSettingsId;
     private bool _pluginSettingsLoaded;
     private bool _selectPluginConnectionOnLoad;
@@ -20,20 +21,21 @@ public partial class SettingsPage
     {
         if (_workspace is null) return;
         _pluginEditContext = _workspace.Settings.BeginPluginConnectionEdit(snapshot, _workspace.Secrets);
+        _pluginPageContext = new(_pluginEditContext, _workspace, snapshot.Options.User.PreferredCompany);
         if (_pluginSettings is not null && _pluginSettingsId == (_workspace.Plugins as IProductPluginSelection)?.ActivePluginId)
-            _pluginSettings.Reload(_pluginEditContext);
+            _pluginSettings.Reload(_pluginPageContext);
     }
 
     private ApplicationOptions ApplyPluginConnectionDraft(ApplicationOptions options)
     {
         if (_pluginEditContext is null) return options;
-        _pluginSettings?.ApplyChanges(_pluginEditContext);
-        return _pluginEditContext.ApplyTo(options);
+        _pluginSettings?.ApplyChanges(_pluginPageContext ?? (IPluginConnectionEditContext)_pluginEditContext);
+        return _pluginPageContext?.ApplyTo(options) ?? _pluginEditContext.ApplyTo(options);
     }
 
     private void RequireCleanPluginDraft()
     {
-        if (_pluginSettings?.HasUnsavedChanges == true)
+        if (_pluginSettings?.HasUnsavedChanges == true || _pluginPageContext?.HasSelectionChanges == true)
             throw new PluginSettingsValidationException(PluginSettingsIssue.UnsavedChanges);
     }
 
@@ -50,7 +52,7 @@ public partial class SettingsPage
         IPluginSettingsHandle? editor = null;
         try
         {
-            editor = await _workspace.Views.OpenSettingsAsync(_pluginEditContext, token);
+            editor = await _workspace.Views.OpenSettingsAsync(_pluginPageContext ?? (IPluginConnectionEditContext)_pluginEditContext, token);
             token.ThrowIfCancellationRequested();
             if (id != (_workspace.Plugins as IProductPluginSelection)?.ActivePluginId) return;
             _pluginSettingsLoaded = true; _pluginSettingsId = id;
@@ -64,6 +66,7 @@ public partial class SettingsPage
             _pluginSettings = editor; editor = null;
             wawiHintLabel.Visible = false;
             if (_selectPluginConnectionOnLoad) { tabs.SelectedTabPage = wawiTab; _selectPluginConnectionOnLoad = false; }
+            await _pluginSettings.LoadAsync(token);
             ContentSizeChanged?.Invoke(this, EventArgs.Empty);
         }
         finally { if (editor is not null) await editor.DisposeAsync(); }
@@ -79,6 +82,6 @@ public partial class SettingsPage
             wawiLayout.Controls.Remove(_pluginSettingsControl);
             _pluginSettingsControl = null;
         }
-        if (editor is not null) await editor.DisposeAsync();
+        if (editor is not null) { await editor.StopAsync(); await editor.DisposeAsync(); }
     }
 }
