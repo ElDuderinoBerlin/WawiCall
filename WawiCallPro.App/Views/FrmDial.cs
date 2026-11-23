@@ -29,6 +29,8 @@ public partial class FrmDial : XtraForm
     {
         InitializeComponent();
         UiButtonSizing.Attach(this);
+        UiButtonSizing.Apply(plusButton, eraseButton);
+        dialKeypad.DigitPressed += InsertDigit;
         AppIconHelper.Apply(this);
         _operation = new(this, statusLabel);
         UpdateAvailability();
@@ -96,10 +98,33 @@ public partial class FrmDial : XtraForm
         companyEdit.ToolTip = companyEdit.Text;
         UpdateAvailability();
     }
+    private void Plus_Click(object? sender, EventArgs e) => InsertDigit('+');
+    private void InsertDigit(char digit)
+    {
+        if (!"0123456789*#+".Contains(digit) || !destinationEdit.Enabled
+            || (destinationEdit.Text.Length >= destinationEdit.Properties.MaxLength && destinationEdit.SelectionLength == 0)) return;
+        var index = destinationEdit.SelectionStart;
+        destinationEdit.Text = destinationEdit.Text.Remove(index, destinationEdit.SelectionLength).Insert(index, digit.ToString());
+        destinationEdit.SelectionStart = index + 1;
+        destinationEdit.SelectionLength = 0;
+    }
+
+    private void Erase_Click(object? sender, EventArgs e)
+    {
+        var index = destinationEdit.SelectionStart;
+        var length = destinationEdit.SelectionLength;
+        if (length == 0 && index > 0) { index--; length = 1; }
+        if (length == 0) return;
+        destinationEdit.Text = destinationEdit.Text.Remove(index, length);
+        destinationEdit.SelectionStart = index;
+        destinationEdit.SelectionLength = 0;
+    }
+
     private void SetBusy(bool busy)
     {
         _busy = busy;
         companyEdit.Enabled = destinationEdit.Enabled = !_busy && !_stopping;
+        dialKeypad.Enabled = editActions.Enabled = destinationEdit.Enabled;
         UpdateAvailability(false);
     }
     private void UpdateAvailability(bool message = true)

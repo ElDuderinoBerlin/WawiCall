@@ -1845,6 +1845,12 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
 
 ### Phase 7 – SIP und Gesprächsablauf 🟨
 
+- [x] ✅ Nummerndialog mit Tastenfeld und Tonwahl im verbundenen Gespräch.
+  Die drei DTMF-Projekte aus der alten Solution sind auf .NET 11 portiert. Die
+  [DTMF-Portierung](DTMF-Portierung.md) dokumentiert Herkunft, Korrekturen und Konsolenaufrufe.
+  Pro und FinOffice bauen ohne Warnungen. Je 18 App-Tests und der bidirektionale RTP-DTMF-Test
+  bestanden. Der Konsolendetektor erkennt synthetische Stereo-WAVs bei 8 und 48 kHz.
+
 - [x] ✅ DI-basierte SIP-Laufzeit mit SIPSorcery 10.0.17 und vorhandener CallStateMachine
   angebunden: eigene Interfaces/Factories für Transport, Konto-Lease, Zustand, Persistenz
   und Medien. Registrierung, Wiederanmeldung, explizites Abmelden, eingehende/ausgehende

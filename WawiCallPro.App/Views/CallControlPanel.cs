@@ -12,6 +12,9 @@ public partial class CallControlPanel : XtraUserControl
     private CallSnapshot? _call;
     private readonly PageOperation _operation;
     private readonly PageOperation _recordingOperation;
+    private readonly PageOperation _dtmfOperation;
+    private readonly Queue<char> _dtmfQueue = new();
+    private bool _dtmfOpen;
     private bool _recordingBusy;
     private LiveRecordingState _displayedRecordingState;
     private readonly CancellationTokenSource _lifetime = new();
@@ -25,6 +28,8 @@ public partial class CallControlPanel : XtraUserControl
         UiButtonSizing.Attach(this);
         _operation = new(this, statusLabel);
         _recordingOperation = new(this, recordingStatus);
+        _dtmfOperation = new(this, dtmfStatus);
+        dtmfKeypad.DigitPressed += DtmfDigit_Pressed;
         UpdateButtons();
     }
 
@@ -69,7 +74,42 @@ public partial class CallControlPanel : XtraUserControl
             || _call.State is CallState.Connected or CallState.Held);
         holdButton.Text = _call?.State == CallState.Held ? "Fortsetzen" : "Halten";
         holdButton.Enabled = available && (_call!.State is CallState.Connected or CallState.Held);
+        if (!CanSendDtmf) _dtmfQueue.Clear();
+        dtmfButton.Enabled = dtmfKeypad.Enabled = CanSendDtmf;
         UpdateRecording();
+    }
+
+    private bool CanSendDtmf => !_disposed && _stopTask is null && !_lifetime.IsCancellationRequested
+        && _telephony is not null && _call?.State == CallState.Connected;
+
+    private void Dtmf_Click(object? sender, EventArgs e)
+    {
+        if (!CanSendDtmf) return;
+        _dtmfOpen = !_dtmfOpen;
+        dtmfKeypad.Visible = dtmfStatus.Visible = _dtmfOpen;
+        if (_dtmfOpen) dtmfKeypad.FocusFirstKey();
+    }
+
+    private async void DtmfDigit_Pressed(char digit) => await SendDtmfAsync(digit);
+
+    internal Task SendDtmfAsync(char digit)
+    {
+        if (!CanSendDtmf || !_dtmfOpen || _dtmfQueue.Count >= 32 || !"0123456789*#ABCD".Contains(digit))
+            return Task.CompletedTask;
+        _dtmfQueue.Enqueue(digit);
+        if (_dtmfOperation.IsRunning) return Task.CompletedTask;
+        var callId = _call!.Id;
+        var service = _telephony!;
+        return _dtmfOperation.RunAsync(async token =>
+        {
+            try
+            {
+                while (CanSendDtmf && _call?.Id == callId && _dtmfQueue.TryDequeue(out var next))
+                    await service.SendDtmfAsync(callId, next, token);
+                dtmfStatus.Text = "";
+            }
+            finally { _dtmfQueue.Clear(); }
+        });
     }
     private void UpdateRecording()
     {
@@ -170,8 +210,7 @@ public partial class CallControlPanel : XtraUserControl
         if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged -= Recording_Changed;
         await _lifetime.CancelAsync();
         UpdateButtons();
-        await _operation.StopAsync();
-        await _recordingOperation.StopAsync();
+        await Task.WhenAll(_operation.StopAsync(), _recordingOperation.StopAsync(), _dtmfOperation.StopAsync());
     }
     private void DisposePage()
     {
@@ -181,5 +220,6 @@ public partial class CallControlPanel : XtraUserControl
         if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged -= Recording_Changed;
         _lifetime.Cancel(); _lifetime.Dispose(); _operation.Dispose();
         _recordingOperation.Dispose();
+        _dtmfOperation.Dispose();
     }
 }

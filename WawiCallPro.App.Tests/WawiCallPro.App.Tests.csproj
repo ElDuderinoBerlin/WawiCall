@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\WawiCallPro.App\WawiCallPro.App.csproj" />
+    <ProjectReference Include="..\ThirdParty\DtmfDetection\DtmfDetection.CSCore\DtmfDetection.CSCore.csproj" />
     <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />
     <PackageReference Update="MSTest.TestFramework" Version="4.5.2" />
   </ItemGroup>

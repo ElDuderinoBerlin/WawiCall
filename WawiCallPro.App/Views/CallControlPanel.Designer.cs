@@ -21,10 +21,15 @@ partial class CallControlPanel
         recordingActions = new System.Windows.Forms.TableLayoutPanel();
         recordingButton = new DevExpress.XtraEditors.SimpleButton();
         recordingStatus = new DevExpress.XtraEditors.LabelControl();
+        dtmfButton = new DevExpress.XtraEditors.SimpleButton();
+        dtmfKeypad = new DialKeypad();
+        dtmfStatus = new DevExpress.XtraEditors.LabelControl();
         SuspendLayout();
         layout.ColumnCount = 1;
-        layout.RowCount = 4;
+        layout.RowCount = 6;
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -72,8 +77,9 @@ partial class CallControlPanel
         actions.Controls.Add(holdButton, 2, 0);
         layout.Controls.Add(actions, 0, 0);
         layout.Controls.Add(statusLabel, 0, 1);
-        recordingActions.ColumnCount = 2;
+        recordingActions.ColumnCount = 3;
         recordingActions.RowCount = 1;
+        recordingActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         recordingActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         recordingActions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         recordingActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -88,6 +94,13 @@ partial class CallControlPanel
         recordingButton.TabIndex = 3;
         recordingButton.Click += Recording_Click;
         recordingActions.Controls.Add(recordingButton, 0, 0);
+        dtmfButton.Name = "dtmfButton";
+        dtmfButton.Text = "Tonwahl";
+        dtmfButton.ToolTip = "Tasten für das Sprachmenü der Gegenstelle";
+        dtmfButton.Margin = new System.Windows.Forms.Padding(4);
+        dtmfButton.TabIndex = 4;
+        dtmfButton.Click += Dtmf_Click;
+        recordingActions.Controls.Add(dtmfButton, 1, 0);
         recordingStatus.Name = "recordingStatus";
         recordingStatus.Text = "Keine Aufnahme";
         recordingStatus.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
@@ -95,6 +108,15 @@ partial class CallControlPanel
         recordingStatus.Margin = new System.Windows.Forms.Padding(4);
         layout.Controls.Add(recordingActions, 0, 2);
         layout.Controls.Add(recordingStatus, 0, 3);
+        dtmfKeypad.Name = "dtmfKeypad";
+        dtmfKeypad.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        dtmfKeypad.Visible = false;
+        dtmfKeypad.TabIndex = 5;
+        layout.Controls.Add(dtmfKeypad, 0, 4);
+        dtmfStatus.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
+        dtmfStatus.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        dtmfStatus.Visible = false;
+        layout.Controls.Add(dtmfStatus, 0, 5);
         Controls.Add(layout);
         AutoSize = true;
         AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
@@ -114,4 +136,7 @@ partial class CallControlPanel
     private System.Windows.Forms.TableLayoutPanel recordingActions;
     private DevExpress.XtraEditors.SimpleButton recordingButton;
     private DevExpress.XtraEditors.LabelControl recordingStatus;
+    private DevExpress.XtraEditors.SimpleButton dtmfButton;
+    private DialKeypad dtmfKeypad;
+    private DevExpress.XtraEditors.LabelControl dtmfStatus;
 }

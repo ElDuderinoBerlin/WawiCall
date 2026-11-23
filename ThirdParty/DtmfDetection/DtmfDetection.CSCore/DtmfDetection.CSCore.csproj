@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows10.0.19041.0</TargetFramework>
+    <Copyright>Copyright © 2020</Copyright>
+    <PackageLicenseExpression>LGPL-3.0-only</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DtmfDetection\DtmfDetection.csproj" />
+    <PackageReference Include="CSCore" Version="1.2.1.5" />
+  </ItemGroup>
+</Project>

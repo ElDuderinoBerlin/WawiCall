@@ -76,6 +76,7 @@ public sealed partial class AppShellTests
     {
         using var form = new FrmSettings(workspace) { Cursor = Cursors.Cross };
         form.PrepareForBackgroundRun(); CreateHandles(form);
+        Assert.IsTrue(await form.PrepareAsync());
         var page = Field<SettingsPage>(form, "settingsPage");
         var visited = false;
         await page.SetupDatabaseAsync(dialog =>

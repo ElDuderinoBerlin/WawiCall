@@ -1232,6 +1232,8 @@ public sealed partial class AppShellTests
         public ImmutableArray<CallSnapshot> GetCalls() => Current is null ? [] : [Current];
         internal void Publish(CallSnapshot call) { Current = call; _calls?.Invoke(this, new(call)); }
         private Task Run(string command, Guid id, CancellationToken token) { Commands.Add((command, id)); return Execute?.Invoke(command, token) ?? Task.CompletedTask; }
+        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default) =>
+            Run("Dtmf:" + digit, callId, cancellationToken);
         public Task AnswerAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Answer", callId, cancellationToken);
         public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Reject", callId, cancellationToken);
         public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default) => Run("HangUp", callId, cancellationToken);
@@ -1239,7 +1241,6 @@ public sealed partial class AppShellTests
         public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => Run("Resume", callId, cancellationToken);
         public Task<Guid> DialAsync(CompanyKey company, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task TransferAsync(Guid callId, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     [TestMethod]
@@ -1344,7 +1345,8 @@ public sealed partial class AppShellTests
         typeof(MainForm).GetField("_databaseBusy", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(form, false);
         await Task.Run(() => update.Invoke(workspace.Telephony, [RegistrationState.Registered, null]));
         await WaitForDialStateAsync(() => status.Caption == "SIP: Angemeldet");
-        Assert.AreEqual("SIP-Konto angemeldet.", feedback.Text);
+        Assert.AreEqual("SIP-Konto angemeldet.", status.Hint);
+        Assert.AreEqual("Sicherung läuft …", feedback.Text, "SIP updates must not overwrite the database feedback.");
         await form.PrepareToCloseAsync();
         Assert.IsFalse(Field<SimpleButton>(dial, "dialButton").Enabled);
     });
