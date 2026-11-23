@@ -51,7 +51,9 @@ public partial class SettingsPage
             _snapshot = await _workspace.Settings.LoadAsync(token);
             // Only update the committed database values. Editors on the other tabs keep their current drafts.
             ApplyDatabase(_snapshot.Options.Database);
-            ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsDatabaseConfigured);
+            ReportSettingsNotice(dialog.AppliedToActiveDatabase
+                ? WawiCallPro.Utilities.Operations.OperationEvent.SettingsDatabaseReady
+                : WawiCallPro.Utilities.Operations.OperationEvent.SettingsDatabaseConfigured);
         }
         finally
         {

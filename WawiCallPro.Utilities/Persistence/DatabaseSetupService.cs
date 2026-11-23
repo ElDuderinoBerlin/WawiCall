@@ -42,11 +42,13 @@ public interface IDatabaseSetupService
     Task<DatabaseMigrationStatus> InitializeAsync(DatabaseSetupDraft draft, bool approveEmpty,
         IProgress<DatabaseMigrationProgress>? progress = null, CancellationToken cancellationToken = default);
     Task SaveAsync(DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default);
+    bool UsesActiveDatabase(DatabaseSetupDraft draft) => false;
 }
 
 /// <summary>Wizard workflow using existing ownership checks and migrations. No schema definition or SQL lives in the UI.</summary>
 public sealed class DatabaseSetupService(ConfigurationStore settings, ApplicationPaths paths, ISecretProtector secrets,
-    DatabaseFactory connections, ICommunicationDatabaseFactory databases, IWorkstationIdentity workstation) : IDatabaseSetupService
+    DatabaseFactory connections, ICommunicationDatabaseFactory databases, IWorkstationIdentity workstation,
+    ApplicationConfigurationService? active = null, ActiveDatabaseReady? ready = null) : IDatabaseSetupService
 {
     public Task<ConfigurationSnapshot> LoadAsync(CancellationToken cancellationToken = default) => settings.LoadAsync(cancellationToken);
     public DatabaseSetupDraft ReadDraft(ConfigurationSnapshot snapshot)
@@ -91,13 +93,27 @@ public sealed class DatabaseSetupService(ConfigurationStore settings, Applicatio
                 await database.CreateAndMigrateAsync(progress, cancellationToken).ConfigureAwait(false),
             _ => await database.MigrateAsync(approveEmpty, progress, cancellationToken).ConfigureAwait(false)
         };
-        if (status.State == DatabaseSchemaState.Current) await workstation.InitializeAsync(cancellationToken).ConfigureAwait(false);
+        if (status.State == DatabaseSchemaState.Current)
+        {
+            await workstation.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            if (UsesActiveDatabase(draft)) ready?.Notify();
+        }
         return status;
     }
+    public bool UsesActiveDatabase(DatabaseSetupDraft draft)
+    {
+        if (active is null || (DatabaseType)active.Current.Options.Database.Provider != draft.Type) return false;
+        var running = ReadDraft(active.Current);
+        return draft.Type == DatabaseType.Sqlite
+            ? Path.IsPathFullyQualified(draft.SqlitePath ?? "") &&
+              string.Equals(Path.GetFullPath(draft.SqlitePath!), running.SqlitePath, StringComparison.OrdinalIgnoreCase)
+            : string.Equals(draft.ConnectionString, running.ConnectionString, StringComparison.Ordinal);
+    }
+
     public Task SaveAsync(DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default)
     {
         _ = Target(draft);
-        var database = draft.Type == DatabaseType.Sqlite
+        var database = UsesActiveDatabase(draft) ? active!.Current.Options.Database : draft.Type == DatabaseType.Sqlite
             ? new CommunicationDatabaseSettings { Provider = CommunicationDatabaseProvider.Sqlite, SqliteFileName = Path.GetFullPath(draft.SqlitePath!) }
             : new CommunicationDatabaseSettings { Provider = (CommunicationDatabaseProvider)draft.Type,
                 ConnectionString = secrets.Protect(draft.ConnectionString!, CommunicationDatabaseSettings.ConnectionStringPurpose) };

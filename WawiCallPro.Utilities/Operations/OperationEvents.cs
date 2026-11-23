@@ -78,7 +78,8 @@ public enum OperationEvent
     SipRegistrationAccountInUse,
     SipRegistrationRetry,
     SipRegistrationFailed,
-    SipRegistrationConnectionFailed
+    SipRegistrationConnectionFailed,
+    SettingsDatabaseReady
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>

@@ -6,7 +6,7 @@ public static class RecordingConversionMessages
     public static string? Get(OperationEvent operation) => operation switch
     {
         OperationEvent.RecordingConversionSchemaUpdateRequired =>
-            "Die Prüfung früherer Aufnahmekonvertierungen wartet auf ein Datenbankupdate. Öffnen Sie im Ribbon „Datenbank → Datenbank einrichten“ und aktualisieren Sie das Schema der vorhandenen Kommunikationsdatenbank. Starten Sie WawiCallPro anschließend neu.",
+            "Die Prüfung früherer Aufnahmekonvertierungen wartet auf ein Datenbankupdate. Öffnen Sie im Ribbon „Datenbank → Datenbank einrichten“ und aktualisieren Sie das Schema der vorhandenen Kommunikationsdatenbank.",
         OperationEvent.RecordingConversionNewerSchema =>
             "Die Kommunikationsdatenbank verwendet ein neueres Schema. Aktualisieren Sie WawiCallPro, damit die Prüfung früherer Aufnahmekonvertierungen wieder möglich ist.",
         OperationEvent.RecordingConversionDatabaseUnavailable =>

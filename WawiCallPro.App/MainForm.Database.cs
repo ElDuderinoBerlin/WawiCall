@@ -66,7 +66,9 @@ public partial class MainForm
         if (_backgroundRun) dialog.PrepareForBackgroundRun();
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
-            connectionLabel.Text = "Datenbankverbindung gespeichert. Bitte WawiCallPro neu starten, um sie in allen Arbeitsbereichen zu verwenden.";
+            connectionLabel.Text = dialog.AppliedToActiveDatabase
+                ? "Die Kommunikationsdatenbank ist betriebsbereit."
+                : "Das neue Datenbankziel ist gespeichert. WawiCallPro neu starten, um dorthin zu wechseln.";
         }
     }
 

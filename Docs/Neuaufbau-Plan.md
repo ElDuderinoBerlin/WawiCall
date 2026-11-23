@@ -3578,7 +3578,15 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Anmeldefehlern. Nach erfolgreichem Speichern erscheint dafür keine allgemeine Einstellungen-Warnung.
   In Pro und FinOffice je 22 App-, 61 Wiederanlauf-/Logging- und 6 SIP-Prüfungen bestanden.
   Pro 0.1.293 zeigte am regulären Profil die Schema-Warnung mit Menüpfad im Startlog.
-  Das Schema-Update und die echte SIP-Anmeldung stehen für die gemeinsame G1-Prüfung noch aus.
+  Die reguläre Pro-Datenbank wurde inzwischen lesend auf Schema 15 bestätigt. Die echte SIP-Anmeldung
+  steht für G1 noch aus.
+- [x] ✅ Einrichtung der verwendeten Datenbank im laufenden Prozess abschließen (23.11.2026).
+  Der Assistent vergleicht das Ziel mit der aktiven Verbindung. Beim Schema-Update derselben Datenbank
+  bleibt die aktive Konfiguration erhalten, und die Aufnahmewiederherstellung prüft erneut. Nur bei
+  einem Wechsel des Datenbankziels weist der Assistent auf den Neustart hin.
+  Mit isoliertem SQLite die Migration 14 → 15 und die erneute Aufnahmeprüfung im selben Prozess
+  nachgewiesen. Ein anderes Ziel aktiviert diesen Ablauf nicht. Je Edition 24 App- und 31
+  Persistenzprüfungen sowie reguläre Debug-/Any-CPU-Builds ohne Warnungen und Fehler bestanden.
 - [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
   **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
   Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;

@@ -2297,7 +2297,11 @@ public sealed partial class AppShellTests
         Assert.IsTrue(Field<SimpleButton>(form, "btnFinish").Enabled);
         Field<SimpleButton>(form, "btnFinish").PerformClick(); await form.CurrentOperation;
         Assert.AreEqual(DialogResult.OK, form.DialogResult);
-        Assert.AreEqual(Path.Combine(workspace.Paths.RootDirectory, "communications.db"), (await workspace.Settings.LoadAsync()).Options.Database.SqliteFileName);
+        Assert.IsTrue(form.AppliedToActiveDatabase);
+        Assert.AreEqual(DatabaseSchemaState.Current, (await workspace.Database.GetStatusAsync()).State);
+        var saved = await workspace.Settings.LoadAsync();
+        Assert.AreEqual(Path.Combine(workspace.Paths.RootDirectory, "communications.db"), workspace.DatabaseSetup.ReadDraft(saved).SqlitePath);
+        Assert.AreEqual(workspace.Configuration.Current.Options.Database, saved.Options.Database);
     });
 
     [TestMethod]

@@ -45,6 +45,7 @@ public partial class FrmDatabaseSetup : XtraForm
         get { var value = base.CreateParams; if (_backgroundRun) value.ExStyle |= 0x08000000; return value; }
     }
     internal Task CurrentOperation => _task;
+    internal bool AppliedToActiveDatabase { get; private set; }
     internal async Task StopAsync()
     {
         if (!_resourcesDisposed) await _lifetime.CancelAsync();
@@ -146,9 +147,10 @@ public partial class FrmDatabaseSetup : XtraForm
             _ready = status.State == DatabaseSchemaState.Current;
             if (_ready) _preparedDraft = draft;
             setupMessage.Text = _ready ? "Einrichtung abgeschlossen. Mit „Übernehmen“ speichern." : "Die Datenbank ist noch nicht betriebsbereit.";
-            _ucStep3.ShowResult(_ready, _ready
-                ? "Das Schema ist aktuell. „Übernehmen“ speichert diese Verbindung. Anschließend WawiCallPro neu starten, damit alle Arbeitsbereiche die ausgewählte Datenbank verwenden."
-                : "Verbindung und Schema prüfen. Über „Zurück“ können Sie die Eingaben korrigieren.");
+            var result = !_ready ? "Verbindung und Schema prüfen. Über „Zurück“ können Sie die Eingaben korrigieren."
+                : _service.UsesActiveDatabase(draft) ? "Das Schema ist aktuell. Die verwendete Datenbank ist sofort wieder einsatzbereit."
+                : "Das Schema ist aktuell. „Übernehmen“ speichert das neue Datenbankziel. WawiCallPro neu starten, um zu diesem Ziel zu wechseln.";
+            _ucStep3.ShowResult(_ready, result);
         });
     }
     private async void BtnTestConnection_Click(object? sender, EventArgs e)
@@ -164,6 +166,7 @@ public partial class FrmDatabaseSetup : XtraForm
         await RunAsync(async token =>
         {
             await _service.SaveAsync(_preparedDraft, _snapshot, token);
+            AppliedToActiveDatabase = _service.UsesActiveDatabase(_preparedDraft);
             _canClose = true;
             DialogResult = DialogResult.OK;
             Close();
