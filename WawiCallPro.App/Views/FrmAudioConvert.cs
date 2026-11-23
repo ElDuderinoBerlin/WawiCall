@@ -50,13 +50,12 @@ public partial class FrmAudioConvert : XtraForm
     {
         if (!IsHandleCreated) return;
         static int RequiredWidth(Control control) => control.PreferredSize.Width + control.Margin.Horizontal;
-        var filesWidth = Math.Max(RequiredWidth(sourceLabel), RequiredWidth(targetLabel))
+        var filesWidth = new[] { sourceLabel, targetLabel, rateLabel, channelLabel, volumeLabel }.Max(RequiredWidth)
             + Math.Max(sourceBrowse.Width, targetBrowse.Width) + sourceBrowse.Margin.Horizontal
             + Math.Max(sourcePlay.Width, resultPlay.Width) + sourcePlay.Margin.Horizontal + LogicalToDeviceUnits(210);
         var actionsWidth = convertButton.Width + cancelButton.Width + closeButton.Width + 3 * closeButton.Margin.Horizontal;
         var width = Math.Max(LogicalToDeviceUnits(610), Math.Max(filesWidth, actionsWidth) + layout.Padding.Horizontal);
         var body = filesLayout.GetPreferredSize(new Size(width, 0)).Height
-            + optionsLayout.GetPreferredSize(new Size(width, 0)).Height
             + actions.GetPreferredSize(new Size(width, 0)).Height + Font.Height * 4 + layout.Padding.Vertical;
         var area = WindowWorkArea.GetArea(this);
         MinimumSize = WindowWorkArea.LimitMinimum(new Size(width + Width - ClientSize.Width, body + Height - ClientSize.Height), area);
@@ -195,7 +194,8 @@ public partial class FrmAudioConvert : XtraForm
     private void UpdateActions()
     {
         var available = _audio is not null && _request is null && !_closing;
-        sourceEdit.Enabled = targetEdit.Enabled = sourceBrowse.Enabled = targetBrowse.Enabled = optionsLayout.Enabled = available;
+        sourceEdit.Enabled = targetEdit.Enabled = sourceBrowse.Enabled = targetBrowse.Enabled = available;
+        rateEdit.Enabled = channelEdit.Enabled = volumeEdit.Enabled = available;
         sourcePlay.Enabled = available && !string.IsNullOrWhiteSpace(sourceEdit.Text);
         resultPlay.Enabled = available && _result is not null;
         convertButton.Enabled = sourcePlay.Enabled && !string.IsNullOrWhiteSpace(targetEdit.Text);

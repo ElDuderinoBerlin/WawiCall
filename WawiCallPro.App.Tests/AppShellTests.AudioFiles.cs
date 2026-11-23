@@ -153,6 +153,14 @@ public sealed partial class AppShellTests
                 capture.PerformLayout();
                 Application.DoEvents();
                 CheckTableBounds(capture);
+                var path = Field<TextEdit>(capture, "sourceEdit");
+                foreach (var name in new[] { "targetEdit", "rateEdit", "channelEdit", "volumeEdit" })
+                {
+                    var editor = Field<BaseEdit>(capture, name);
+                    Assert.AreSame(path.Parent, editor.Parent);
+                    Assert.AreEqual(path.Left, editor.Left, name);
+                }
+                Assert.IsTrue(Field<SpinEdit>(capture, "volumeEdit").Width < path.Width);
                 Assert.IsTrue(capture.Width < 1200, "Minimum width must not grow to the entire monitor.");
                 using var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(capture);
                 image.Save(Path.Combine(folder, $"{edition}-{size:0}-{scale:0.0}.png"), System.Drawing.Imaging.ImageFormat.Png);

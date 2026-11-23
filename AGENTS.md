@@ -260,6 +260,14 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Bündige Eingabefelder in Dialogen
+
+- Zusammengehörige Beschriftungen und Eingabefelder eines Dialogs in einem gemeinsamen
+  `System.Windows.Forms.TableLayoutPanel` anordnen. Alle Edit-Controls beginnen links bündig in
+  derselben Eingabespalte, auch wenn manche Felder wie Dateipfade breiter sind. Keine getrennten
+  Labelspalten mit unabhängig berechneten Breiten für diese Zeilen. Kurze Editoren links ankern
+  und passend zum Inhalt begrenzen. Browse- und Aktionsbuttons in eigene Spalten setzen.
+
 ### Implementierungsreferenz LxTranslate
 
 - Verbindliches Implementierungsbeispiel für den Aufbau der Desktop-App ist

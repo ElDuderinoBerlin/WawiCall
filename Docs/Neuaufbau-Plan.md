@@ -3537,6 +3537,8 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
   Pro und FinOffice bauen ohne Warnungen. Je acht gezielte Prüfungen für Formate, PCM-Ausgabe,
   Vorschau mit Testausgabe, Abbruch und Designer bestanden. Die drei Historienprüfungen
   bestanden im separaten Wiederholungslauf in beiden Editionen.
+  Datei- und Formatfelder beginnen in einer gemeinsamen Eingabespalte. Die bündige Ausrichtung
+  und die schmaleren Formateditoren sind bei kleiner Fensterbreite, größerer Schrift und 150 % geprüft.
 
 Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
 Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die echte Geräteabnahme bleibt erforderlich.

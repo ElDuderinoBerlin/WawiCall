@@ -13,7 +13,6 @@ partial class FrmAudioConvert
     {
         layout = new System.Windows.Forms.TableLayoutPanel();
         filesLayout = new System.Windows.Forms.TableLayoutPanel();
-        optionsLayout = new System.Windows.Forms.TableLayoutPanel();
         actions = new System.Windows.Forms.TableLayoutPanel();
         sourceLabel = new DevExpress.XtraEditors.LabelControl();
         targetLabel = new DevExpress.XtraEditors.LabelControl();
@@ -37,10 +36,9 @@ partial class FrmAudioConvert
         SuspendLayout();
         layout.SuspendLayout();
         layout.ColumnCount = 1;
-        layout.RowCount = 6;
+        layout.RowCount = 5;
         layout.Margin = new System.Windows.Forms.Padding(0);
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -50,7 +48,7 @@ partial class FrmAudioConvert
         layout.Padding = new System.Windows.Forms.Padding(12);
         filesLayout.SuspendLayout();
         filesLayout.ColumnCount = 4;
-        filesLayout.RowCount = 2;
+        filesLayout.RowCount = 5;
         filesLayout.Margin = new System.Windows.Forms.Padding(0);
         filesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         filesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -58,22 +56,12 @@ partial class FrmAudioConvert
         filesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         filesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         filesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        filesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        filesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        filesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         filesLayout.AutoSize = true;
         filesLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         filesLayout.Dock = System.Windows.Forms.DockStyle.Top;
-        optionsLayout.SuspendLayout();
-        optionsLayout.ColumnCount = 3;
-        optionsLayout.RowCount = 3;
-        optionsLayout.Margin = new System.Windows.Forms.Padding(0);
-        optionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
-        optionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
-        optionsLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        optionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        optionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        optionsLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        optionsLayout.AutoSize = true;
-        optionsLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        optionsLayout.Dock = System.Windows.Forms.DockStyle.Top;
         actions.SuspendLayout();
         actions.ColumnCount = 4;
         actions.RowCount = 1;
@@ -86,7 +74,6 @@ partial class FrmAudioConvert
         actions.AutoSize = true;
         actions.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         actions.Dock = System.Windows.Forms.DockStyle.Top;
-        optionsLayout.Padding = new System.Windows.Forms.Padding(0, 10, 0, 6);
         sourceLabel.Text = "Quelle";
         sourceLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         sourceLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
@@ -95,6 +82,7 @@ partial class FrmAudioConvert
         targetLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         rateLabel.Text = "Abtastrate (Hz)";
         rateLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        rateLabel.Margin = new System.Windows.Forms.Padding(3, 13, 3, 3);
         rateLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         channelLabel.Text = "Kanäle";
         channelLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -110,10 +98,13 @@ partial class FrmAudioConvert
         targetEdit.EditValueChanged += File_Changed;
         rateEdit.AccessibleName = "Abtastrate in Hertz";
         rateEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
-        rateEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        rateEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        rateEdit.Margin = new System.Windows.Forms.Padding(3, 13, 3, 3);
+        rateEdit.Width = 144;
         channelEdit.AccessibleName = "Anzahl der Audiokanäle";
         channelEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
-        channelEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        channelEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        channelEdit.Width = 144;
         rateEdit.Properties.Items.Add("8000");
         rateEdit.Properties.Items.Add("11025");
         rateEdit.Properties.Items.Add("16000");
@@ -130,7 +121,8 @@ partial class FrmAudioConvert
         volumeEdit.Properties.IsFloatValue = false;
         volumeEdit.Properties.MaxValue = 100M;
         volumeEdit.EditValue = 100M;
-        volumeEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        volumeEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        volumeEdit.Width = 144;
         sourceBrowse.Text = "Durchsuchen";
         sourceBrowse.Anchor = System.Windows.Forms.AnchorStyles.Left;
         sourceBrowse.Click += SourceBrowse_Click;
@@ -162,12 +154,12 @@ partial class FrmAudioConvert
         filesLayout.Controls.Add(targetEdit, 1, 1);
         filesLayout.Controls.Add(targetBrowse, 2, 1);
         filesLayout.Controls.Add(resultPlay, 3, 1);
-        optionsLayout.Controls.Add(rateLabel, 0, 0);
-        optionsLayout.Controls.Add(rateEdit, 1, 0);
-        optionsLayout.Controls.Add(channelLabel, 0, 1);
-        optionsLayout.Controls.Add(channelEdit, 1, 1);
-        optionsLayout.Controls.Add(volumeLabel, 0, 2);
-        optionsLayout.Controls.Add(volumeEdit, 1, 2);
+        filesLayout.Controls.Add(rateLabel, 0, 2);
+        filesLayout.Controls.Add(rateEdit, 1, 2);
+        filesLayout.Controls.Add(channelLabel, 0, 3);
+        filesLayout.Controls.Add(channelEdit, 1, 3);
+        filesLayout.Controls.Add(volumeLabel, 0, 4);
+        filesLayout.Controls.Add(volumeEdit, 1, 4);
         actions.Controls.Add(convertButton, 1, 0);
         actions.Controls.Add(cancelButton, 2, 0);
         actions.Controls.Add(closeButton, 3, 0);
@@ -177,10 +169,9 @@ partial class FrmAudioConvert
         status.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         status.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         layout.Controls.Add(filesLayout, 0, 0);
-        layout.Controls.Add(optionsLayout, 0, 1);
-        layout.Controls.Add(progress, 0, 2);
-        layout.Controls.Add(status, 0, 3);
-        layout.Controls.Add(actions, 0, 5);
+        layout.Controls.Add(progress, 0, 1);
+        layout.Controls.Add(status, 0, 2);
+        layout.Controls.Add(actions, 0, 4);
         Controls.Add(layout);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -195,7 +186,6 @@ partial class FrmAudioConvert
         DpiChanged += Appearance_DpiChanged;
         FormClosing += AudioConvert_FormClosing;
         actions.ResumeLayout(false);
-        optionsLayout.ResumeLayout(false);
         filesLayout.ResumeLayout(false);
         layout.ResumeLayout(false);
         ResumeLayout(false);
@@ -204,7 +194,6 @@ partial class FrmAudioConvert
 
     private System.Windows.Forms.TableLayoutPanel layout;
     private System.Windows.Forms.TableLayoutPanel filesLayout;
-    private System.Windows.Forms.TableLayoutPanel optionsLayout;
     private System.Windows.Forms.TableLayoutPanel actions;
     private DevExpress.XtraEditors.LabelControl sourceLabel;
     private DevExpress.XtraEditors.LabelControl targetLabel;
