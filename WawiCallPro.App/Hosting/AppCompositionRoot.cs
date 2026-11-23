@@ -22,7 +22,7 @@ internal static class AppCompositionRoot
         StartupExecutionMode mode, IAppInstanceGuard instance) => Build(uiContext, exceptions, mode, instance, null);
 
     internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
-        StartupExecutionMode mode, IAppInstanceGuard instance, AppComIdentity? identity) =>
+        StartupExecutionMode mode, IAppInstanceGuard instance, AppComIdentity? identity, CrashReportQueue? reportQueue = null) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
@@ -50,6 +50,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IAppHotkeyBackend, WindowsAppHotkeyBackend>();
                 services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
                 services.AddAppStartupServices(mode);
+                if (reportQueue is not null) services.AddSingleton(reportQueue);
                 services.AddProductPluginRuntime();
                 services.AddSingleton(new FunctionPluginLocation(Path.Combine(AppContext.BaseDirectory, "function-plugins")));
                 services.AddSingleton<FunctionPluginRuntime>();

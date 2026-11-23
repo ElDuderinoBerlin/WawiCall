@@ -155,6 +155,37 @@ public sealed class ProductLicenseTests
     }
 
     [TestMethod]
+    public async Task NewCrashWakesUploaderBeforeItsNextScheduledRetry()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var posting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new Handler((request, _) =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/activate") return Task.FromResult(ActivationResponse(CreateXml()));
+            Assert.AreEqual("/api/v1/crash", request.RequestUri.AbsolutePath);
+            posting.TrySetResult();
+            return Task.FromResult(Json(HttpStatusCode.OK, "{}"));
+        });
+        var license = CreateService(handler);
+        await license.ActivateAsync("SYNTHETIC", timeout.Token);
+        var queue = new CrashReportQueue(Paths);
+        using var uploader = new CrashReportUploader(queue, license, Settings with { CrashFlushIntervalSeconds = 3600 },
+            new HttpFactory(handler), new StartupExecutionMode());
+        await uploader.StartAsync(timeout.Token);
+        try
+        {
+            await Task.Delay(50, timeout.Token);
+            var report = new CrashReporter(queue, new ApplicationDescriptor("WawiCallPro", "Pro"), new("test", "test"), _clock)
+                .Capture(new Exception("synthetic sensitive text"), CrashOrigin.UiThread);
+            Assert.IsTrue(report.Stored);
+            await posting.Task.WaitAsync(timeout.Token);
+        }
+        finally { await uploader.StopAsync(timeout.Token); }
+        Assert.IsEmpty(queue.GetPendingFiles());
+        Assert.IsTrue(handler.Bodies.Skip(1).All(body => !body.Contains("synthetic sensitive text", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
     public void MissingTrustAndUnsafeDeploymentSettingsAreRejectedWithoutUsingForeignProducts()
     {
         Assert.ThrowsExactly<LicenseAccessException>(() => new CompiledLicenseKeys().GetPublicKey("synthetic"));

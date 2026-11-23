@@ -49,12 +49,23 @@ public sealed class CrashReportUploader(CrashReportQueue queue, IProductLicenseS
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!settings.UploadCrashReports || mode.SuppressNetwork) return;
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(settings.CrashFlushIntervalSeconds));
-        do
+        while (!stoppingToken.IsCancellationRequested)
         {
             try { await FlushAsync(stoppingToken).ConfigureAwait(false); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch { /* Preserve the queue for the next bounded attempt; upload failure is not a process crash. */ }
-        } while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
+            await queue.WaitForArrivalOrRetryAsync(TimeSpan.FromSeconds(settings.CrashFlushIntervalSeconds), stoppingToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        if (ExecuteTask is null || !settings.UploadCrashReports || mode.SuppressNetwork) return;
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(2));
+        try { await FlushAsync(deadline.Token).ConfigureAwait(false); }
+        catch { /* The next instance can retry anything that was not acknowledged. */ }
     }
 }

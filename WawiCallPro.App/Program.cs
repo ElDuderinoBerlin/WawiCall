@@ -112,7 +112,7 @@ internal static class Program
                 }
                 else { instance.RequestExistingInstanceActivation(); return 0; }
             }
-            var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance, identity);
+            var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance, identity, bootstrap.GetRequiredService<CrashReportQueue>());
             using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();

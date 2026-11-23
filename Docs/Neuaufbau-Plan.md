@@ -5152,6 +5152,10 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   Lizenzstatus. Bei Online-Aktivierung erhält der aktuelle Benutzer eine DPAPI-geschützte Kopie der
   Lizenznummer, gebunden an die Lizenz-ID. Der Dialog kopiert Lizenzdaten und Machine Key auf Anforderung.
   Pro und FinOffice mit synthetischer Lizenz, Designer-Prüfung und Layout in hellem/dunklem Skin geprüft.
+- [x] ✅ Crash-Reporting nach LxTranslate um sofortigen Uploadversuch nach lokaler Speicherung
+  und einen begrenzten letzten Versuch beim Beenden ergänzt. Bootstrap und Host nutzen dieselbe Queue.
+  Berichte bleiben bis zur Bestätigung durch den Server erhalten. Authentifizierung, Unterdrückung
+  vertraulicher Inhalte und der Uploadpfad sind mit synthetischer Lizenz und Testtransport geprüft.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

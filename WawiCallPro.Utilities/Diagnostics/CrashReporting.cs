@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading.Channels;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Operations;
 
@@ -24,6 +25,7 @@ public sealed record CrashReport(Guid ReportId, DateTimeOffset TimestampUtc, str
 public sealed class CrashReportQueue(ApplicationPaths paths)
 {
     private readonly object _gate = new();
+    private readonly Channel<byte> _arrivals = Channel.CreateBounded<byte>(1);
     public string DirectoryPath { get; } = Path.Combine(paths.RootDirectory, "crash-reports");
     public const int MaximumReports = 64;
     public const int MaximumReportBytes = 128 * 1024;
@@ -51,6 +53,15 @@ public sealed class CrashReportQueue(ApplicationPaths paths)
             var pending = GetPendingFiles();
             foreach (var stale in pending.Take(Math.Max(0, pending.Length - MaximumReports))) File.Delete(stale);
         }
+        _arrivals.Writer.TryWrite(0);
+    }
+
+    internal async Task WaitForArrivalOrRetryAsync(TimeSpan interval, CancellationToken token)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(interval);
+        try { await _arrivals.Reader.ReadAsync(deadline.Token).ConfigureAwait(false); }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested) { }
     }
 
     public string[] GetPendingFiles() => !Directory.Exists(DirectoryPath) ? []
