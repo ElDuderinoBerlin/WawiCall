@@ -43,10 +43,9 @@ public partial class FunctionPluginsPage
         pluginsView.OptionsSelection.CheckBoxSelectorField = "Enabled";
         pluginsView.OptionsSelection.ResetSelectionClickOutsideCheckboxSelector = false;
         pluginsView.OptionsSelection.ShowCheckBoxSelectorChangesSelectionNavigation = DevExpress.Utils.DefaultBoolean.False;
-        pluginsView.OptionsSelection.ShowCheckBoxSelectorInColumnHeader = DevExpress.Utils.DefaultBoolean.False;
+        pluginsView.OptionsSelection.ShowCheckBoxSelectorInColumnHeader = DevExpress.Utils.DefaultBoolean.True;
         pluginsView.OptionsView.ShowGroupPanel = false;
         pluginsView.OptionsView.ShowIndicator = false;
-        pluginsView.CustomDrawColumnHeader += Plugins_CustomDrawColumnHeader;
         pluginsView.FocusedRowChanged += Plugins_FocusedRowChanged;
         pluginsView.SelectionChanged += Plugins_SelectionChanged;
         pluginsView.KeyDown += Plugins_KeyDown;

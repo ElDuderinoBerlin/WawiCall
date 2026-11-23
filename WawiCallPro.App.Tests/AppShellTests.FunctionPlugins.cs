@@ -5,6 +5,7 @@ using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
+using DevExpress.XtraGrid.Views.Grid.ViewInfo;
 using DevExpress.XtraTab;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
@@ -45,6 +46,11 @@ public sealed partial class AppShellTests
         var grid = Field<GridControl>(page, "pluginsGrid");
         var view = Field<GridView>(page, "pluginsView");
         grid.ForceInitialize();
+        async Task WaitForToggleAsync()
+        {
+            await Task.Yield();
+            await WaitForOperationAsync(page);
+        }
         Assert.AreEqual(2, view.DataRowCount);
         CollectionAssert.AreEquivalent(new[] { "Dummy – Statusmeldung", "Dummy – Uhrzeit" },
             Enumerable.Range(0, view.DataRowCount).Select(handle => view.GetRowCellDisplayText(handle, "Name")).ToArray());
@@ -56,17 +62,17 @@ public sealed partial class AppShellTests
         var runtimeProbe = (FunctionPluginActivationProbe)services.GetRequiredService<IFunctionPluginRuntime>();
         runtimeProbe.RejectNextChange = true;
         view.SelectRow(0);
-        await WaitForOperationAsync(page);
+        await WaitForToggleAsync();
         Assert.AreEqual(OperationEvent.SettingsFunctionPluginActivationFailed, settingsPage.LastSettingsNotice);
         Assert.IsFalse(view.IsRowSelected(0), "A failed activation must restore the unchecked state.");
         Assert.IsTrue((await runtime.ListAsync()).All(plugin => !plugin.Enabled));
 
         view.SelectRow(0);
-        await WaitForOperationAsync(page);
+        await WaitForToggleAsync();
         Assert.AreEqual(OperationEvent.SettingsFunctionPluginEnabled, settingsPage.LastSettingsNotice);
         Assert.IsFalse(execute.Enabled, "Execute follows the focused row, not the last checked row.");
         view.SelectRow(1);
-        await WaitForOperationAsync(page);
+        await WaitForToggleAsync();
         Assert.AreEqual(OperationEvent.SettingsFunctionPluginEnabled, settingsPage.LastSettingsNotice);
         Assert.IsTrue((await runtime.ListAsync()).All(plugin => plugin.Enabled));
         Assert.IsTrue(execute.Enabled);
@@ -76,13 +82,31 @@ public sealed partial class AppShellTests
         Assert.IsFalse(page.Controls.Find("status", true).Any());
         await runtime.ExecuteAsync(clock);
 
+        Assert.AreEqual(DefaultBoolean.True, view.OptionsSelection.ShowCheckBoxSelectorInColumnHeader);
+        var selector = ((GridViewInfo)view.GetViewInfo()).ColumnsInfo.Single(column => column.Column?.FieldName == "Enabled");
+        Assert.IsNotEmpty(selector.InnerElements);
+        view.ClearSelection();
+        await WaitForToggleAsync();
+        Assert.IsEmpty(view.GetSelectedRows());
+        Assert.IsTrue((await runtime.ListAsync()).All(plugin => !plugin.Enabled));
+
+        runtimeProbe.RejectNextChange = true;
+        view.SelectAll();
+        await WaitForToggleAsync();
+        CollectionAssert.AreEqual(new[] { 1 }, view.GetSelectedRows(), "A failed item in a bulk change must revert independently.");
+        Assert.IsFalse((await runtime.ListAsync()).Single(plugin => plugin.Id == status).Enabled);
+        Assert.IsTrue((await runtime.ListAsync()).Single(plugin => plugin.Id == clock).Enabled);
+        view.SelectAll();
+        await WaitForToggleAsync();
+        Assert.IsTrue((await runtime.ListAsync()).All(plugin => plugin.Enabled));
+
         var wawi = (IProductPluginSelection)workspace.Plugins;
         await wawi.SwitchAsync("Test.Dummy");
         Assert.IsTrue((await runtime.ListAsync()).All(plugin => plugin.Enabled));
         await wawi.SwitchAsync("Test.Lexware");
         CaptureFunctionPlugins(settings, workspace.Application.ProductLine, normalFont, largeFont);
         view.UnselectRow(1);
-        await WaitForOperationAsync(page);
+        await WaitForToggleAsync();
         Assert.AreEqual(OperationEvent.SettingsFunctionPluginDisabled, settingsPage.LastSettingsNotice);
         Assert.IsFalse(execute.Enabled);
         Assert.IsTrue(view.IsRowSelected(0));
@@ -134,7 +158,6 @@ public sealed partial class AppShellTests
         Directory.CreateDirectory(output);
         try
         {
-            var previousWidth = 0;
             foreach (var (skin, font, size) in new[] { ("Basic", normalFont, new Size(1100, 760)), ("Office 2019 Black", largeFont, new Size(780, 640)) })
             {
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
@@ -144,10 +167,8 @@ public sealed partial class AppShellTests
                 settings.PerformLayout();
                 CheckTableBounds(settings);
                 var width = view.OptionsSelection.CheckBoxSelectorColumnWidth;
-                Assert.IsGreaterThan(previousWidth, width, "The checkbox column should grow with the header font.");
-                if (ReferenceEquals(font, normalFont))
-                    Assert.IsLessThan(page.LogicalToDeviceUnits(64), width, "The checkbox column should stay compact at the default font.");
-                previousWidth = width;
+                Assert.IsGreaterThan(0, width);
+                Assert.IsLessThan(page.LogicalToDeviceUnits(42), width, "The header contains only a checkbox.");
                 using var shot = UiAudit.Capture(settings);
                 shot.Save(Path.Combine(output, $"{edition}-{font.Size:0}.png"), ImageFormat.Png);
                 if (ReferenceEquals(font, largeFont))

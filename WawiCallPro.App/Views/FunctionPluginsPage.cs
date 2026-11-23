@@ -2,8 +2,6 @@ using DevExpress.XtraEditors;
 using DevExpress.Data;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Base;
-using DevExpress.XtraGrid.Views.Grid;
-using System.ComponentModel;
 using System.IO;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Utilities.Operations;
@@ -14,7 +12,6 @@ namespace WawiCallPro.App.Views;
 public partial class FunctionPluginsPage : XtraUserControl
 {
     private const string GridLayoutKey = "FunctionPlugins-v1";
-    private const string ActiveColumnCaption = "Aktiv";
     private IFunctionPluginRuntime? _runtime;
     private PageOperation? _operation;
     private Action<OperationEvent>? _report;
@@ -29,12 +26,7 @@ public partial class FunctionPluginsPage : XtraUserControl
         UiButtonSizing.Attach(this);
         UiButtonSizing.Apply(executeButton);
         pluginsGrid.HandleCreated += FitActiveColumn;
-        pluginsGrid.FontChanged += FitActiveColumn;
         pluginsGrid.DpiChangedAfterParent += FitActiveColumn;
-        pluginsView.Appearance.HeaderPanel.Changed += FitActiveColumn;
-        var appearance = LookAndFeel;
-        appearance.StyleChanged += FitActiveColumn;
-        Disposed += (_, _) => appearance.StyleChanged -= FitActiveColumn;
         FitActiveColumn(this, EventArgs.Empty);
         UpdateActions();
     }
@@ -95,19 +87,9 @@ public partial class FunctionPluginsPage : XtraUserControl
     private void FitActiveColumn(object? sender, EventArgs e)
     {
         if (pluginsGrid.IsDisposed) return;
-        var captionWidth = TextRenderer.MeasureText(ActiveColumnCaption, pluginsView.Appearance.HeaderPanel.Font, Size.Empty,
-            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
-        var width = Math.Max(pluginsGrid.LogicalToDeviceUnits(24), captionWidth + pluginsGrid.LogicalToDeviceUnits(10));
+        var width = pluginsGrid.LogicalToDeviceUnits(28);
         if (pluginsView.OptionsSelection.CheckBoxSelectorColumnWidth != width)
             pluginsView.OptionsSelection.CheckBoxSelectorColumnWidth = width;
-    }
-
-    private static void Plugins_CustomDrawColumnHeader(object sender, ColumnHeaderCustomDrawEventArgs e)
-    {
-        if (e.Column?.FieldName != nameof(Row.Enabled)) return;
-        e.Info.Caption = ActiveColumnCaption;
-        e.DefaultDraw();
-        e.Handled = true;
     }
 
     private void Plugins_FocusedRowChanged(object sender, FocusedRowChangedEventArgs e) => UpdateActions();
@@ -119,30 +101,39 @@ public partial class FunctionPluginsPage : XtraUserControl
 
     private async void Plugins_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_bindingCatalog || _busy || _stopping || e.Action == CollectionChangeAction.Refresh
-            || pluginsView.GetRow(e.ControllerRow) is not Row row) return;
-        var enable = e.Action == CollectionChangeAction.Add;
-        if (row.Plugin.Enabled == enable) return;
+        if (_bindingCatalog || _busy || _stopping || pluginsGrid.DataSource is not Row[] rows) return;
+        // The header checkbox may update several bound rows during the same grid event.
+        await Task.Yield();
+        if (IsDisposed || _busy || _stopping || !ReferenceEquals(pluginsGrid.DataSource, rows)) return;
+        var requested = rows.Where(row => row.Enabled != row.Plugin.Enabled)
+            .Select(row => (Row: row, Enabled: row.Enabled)).ToArray();
+        if (requested.Length == 0) return;
+
         await RunAsync(async (runtime, token) =>
         {
-            await Task.Yield(); // Let the grid finish updating its bound checkbox before changing it.
             try
             {
-                await runtime.SetEnabledAsync(row.Plugin.Id, enable, token);
-                row.Plugin = row.Plugin with { Enabled = enable };
-                _report?.Invoke(enable ? OperationEvent.SettingsFunctionPluginEnabled : OperationEvent.SettingsFunctionPluginDisabled);
-            }
-            catch (Exception error) when (error is FunctionPluginException or IOException or UnauthorizedAccessException)
-            {
-                _report?.Invoke(OperationEvent.SettingsFunctionPluginActivationFailed);
+                foreach (var (row, enabled) in requested)
+                {
+                    token.ThrowIfCancellationRequested();
+                    try
+                    {
+                        await runtime.SetEnabledAsync(row.Plugin.Id, enabled, token);
+                        row.Plugin = row.Plugin with { Enabled = enabled };
+                        _report?.Invoke(enabled ? OperationEvent.SettingsFunctionPluginEnabled : OperationEvent.SettingsFunctionPluginDisabled);
+                    }
+                    catch (Exception error) when (error is FunctionPluginException or IOException or UnauthorizedAccessException)
+                    {
+                        _report?.Invoke(OperationEvent.SettingsFunctionPluginActivationFailed);
+                    }
+                }
             }
             finally
             {
-                if (!IsDisposed && pluginsView.GetRow(e.ControllerRow) == row && pluginsView.IsRowSelected(e.ControllerRow) != row.Plugin.Enabled)
-                {
-                    if (row.Plugin.Enabled) pluginsView.SelectRow(e.ControllerRow);
-                    else pluginsView.UnselectRow(e.ControllerRow);
-                }
+                if (!IsDisposed && !_stopping && ReferenceEquals(pluginsGrid.DataSource, rows)
+                    && rows.Any(row => row.Enabled != row.Plugin.Enabled))
+                    ApplyCatalog(rows.Select(row => new Row(row.Plugin)).ToArray(),
+                        (pluginsView.GetFocusedRow() as Row)?.Plugin.Id);
             }
         });
     }

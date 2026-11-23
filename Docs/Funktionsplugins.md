@@ -4,8 +4,9 @@ Ein Wawi-Plugin stellt Mandanten und Geschäftspartner für die aktive Warenwirt
 Funktionsplugins laufen daneben. In **Einstellungen → Plugins → Funktionsplugins** lassen sich
 mehrere installierte Funktionen einzeln aktivieren, ausführen und deaktivieren. Beim Wawi-Wechsel
 bleiben die Funktionsplugins aktiv. Die App startet mit den zuvor aktivierten Funktionen.
-Die Checkbox in der Spalte **Aktiv** schaltet das Plugin ein oder aus. Änderungen werden sofort
-gespeichert. **Ausführen** verwendet das aktive Plugin in der fokussierten Zeile. Meldungen erscheinen
+Die Checkbox in jeder Zeile schaltet das Plugin ein oder aus. Die Checkbox im Spaltenkopf
+schaltet alle angezeigten Plugins gemeinsam. Änderungen werden sofort gespeichert.
+**Ausführen** verwendet das aktive Plugin in der fokussierten Zeile. Meldungen erscheinen
 im Log-Fenster und werden bei aktivierter Protokollierung in die Logdatei geschrieben.
 
 ## Projekt und Vertrag
@@ -38,7 +39,7 @@ in die Ausgabe der Anwendung. Sie werden mit Pro und FinOffice ausgeliefert und 
    ```
 
 3. WawiCallPro starten und unter **Einstellungen → Plugins → Funktionsplugins** das Häkchen
-   in der Spalte **Aktiv** setzen.
+   in der Zeile des neuen Plugins setzen.
    Die App erkennt die Pakete über den Ordner und die gleichnamige DLL. Diese Dateistruktur
    dient als Registrierung. Die Aktivierung wird in `function-plugins.json` im lokalen
    WawiCallPro-Profil gespeichert.
