@@ -41,6 +41,25 @@ internal sealed class PluginSettingsPageContext(PluginConnectionEditContext conn
         PluginSettingsNotice.Failed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesFailed,
         _ => WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged
     });
+    public void ReportCompanyFailure(PluginCompanyFailure failure) => workspace.ReportSettings(failure switch
+    {
+        PluginCompanyFailure.ConfigurationRequired => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesConfigurationRequired,
+        PluginCompanyFailure.SourceAccess => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesSourceAccess,
+        PluginCompanyFailure.InstallationUnavailable => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesInstallationUnavailable,
+        PluginCompanyFailure.AuthenticationFailed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesAuthenticationFailed,
+        PluginCompanyFailure.ClientKeyMissing => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientKeyMissing,
+        PluginCompanyFailure.ClientKeyUnknown => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientKeyUnknown,
+        PluginCompanyFailure.ClientKeyUnauthorized => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientKeyUnauthorized,
+        PluginCompanyFailure.PermissionDenied => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesPermissionDenied,
+        PluginCompanyFailure.ClientConfigurationExpired => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientConfigurationExpired,
+        PluginCompanyFailure.ClientConfigurationMissing => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientConfigurationMissing,
+        PluginCompanyFailure.ClientConfigurationInvalid => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesClientConfigurationInvalid,
+        PluginCompanyFailure.ApiUnavailable => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesApiUnavailable,
+        PluginCompanyFailure.Timeout => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesTimeout,
+        PluginCompanyFailure.InvalidResponse => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesInvalidResponse,
+        PluginCompanyFailure.CompanyNames => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesCompanyNames,
+        _ => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesFailed
+    });
     public IPluginConnectionEditContext Connection => connection;
     public IPluginCompanySelectionDraft Companies => this;
     public IPluginSettingsPresentation Presentation => this;

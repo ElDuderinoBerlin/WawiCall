@@ -12,7 +12,8 @@ try {
     $settings = Get-Content -LiteralPath $SettingsPath -Raw | ConvertFrom-Json -AsHashtable
     if (!$NeutralLexwareApi -and $Configuration -eq 'Debug' -and $ProductLine -eq 'Pro' -and $IncludeClientKey -and [string]::IsNullOrWhiteSpace($settings.LexwareApi.ClientKey)) {
         [xml]$props = Get-Content -LiteralPath $SolutionProps -Raw
-        $value = [string]$props.Project.PropertyGroup.LexwareApiClientKeyPro
+        # The XML adapter preserves surrounding indentation; never encrypt it as part of the credential.
+        $value = ([string]$props.Project.PropertyGroup.LexwareApiClientKeyPro).Trim()
         $parsed = [guid]::Empty
         if (![guid]::TryParseExact($value, 'B', [ref]$parsed) -or $parsed -eq [guid]::Empty) { throw 'Invalid client-key default.' }
         $aes = [Security.Cryptography.Aes]::Create()

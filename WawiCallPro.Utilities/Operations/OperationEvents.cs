@@ -47,7 +47,22 @@ public enum OperationEvent
     SettingsDatabaseConfigured,
     SettingsRestartRequired,
     SettingsRuleLoaded,
-    SettingsRuleSaved
+    SettingsRuleSaved,
+    SettingsCompaniesConfigurationRequired,
+    SettingsCompaniesSourceAccess,
+    SettingsCompaniesInstallationUnavailable,
+    SettingsCompaniesAuthenticationFailed,
+    SettingsCompaniesClientKeyMissing,
+    SettingsCompaniesClientKeyUnknown,
+    SettingsCompaniesClientKeyUnauthorized,
+    SettingsCompaniesPermissionDenied,
+    SettingsCompaniesClientConfigurationExpired,
+    SettingsCompaniesClientConfigurationMissing,
+    SettingsCompaniesClientConfigurationInvalid,
+    SettingsCompaniesApiUnavailable,
+    SettingsCompaniesTimeout,
+    SettingsCompaniesInvalidResponse,
+    SettingsCompaniesCompanyNames
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -56,7 +71,14 @@ public static class OperationEvents
     public static void Write(ILogger logger, OperationEvent operation, Exception? exception = null)
     {
         if (!Enum.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
-        var level = operation is OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
+        var level = operation is OperationEvent.SettingsCompaniesConfigurationRequired or OperationEvent.SettingsCompaniesSourceAccess
+            or OperationEvent.SettingsCompaniesInstallationUnavailable or OperationEvent.SettingsCompaniesAuthenticationFailed
+            or OperationEvent.SettingsCompaniesClientKeyMissing or OperationEvent.SettingsCompaniesClientKeyUnknown
+            or OperationEvent.SettingsCompaniesClientKeyUnauthorized or OperationEvent.SettingsCompaniesPermissionDenied
+            or OperationEvent.SettingsCompaniesClientConfigurationExpired or OperationEvent.SettingsCompaniesClientConfigurationMissing
+            or OperationEvent.SettingsCompaniesClientConfigurationInvalid or OperationEvent.SettingsCompaniesApiUnavailable
+            or OperationEvent.SettingsCompaniesTimeout or OperationEvent.SettingsCompaniesInvalidResponse or OperationEvent.SettingsCompaniesCompanyNames
+            or OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
             or OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
             or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete ? LogLevel.Warning

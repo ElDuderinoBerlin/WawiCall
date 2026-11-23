@@ -55,14 +55,19 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         using var waiting = context.Presentation.BeginWait(this);
         refreshButton.Enabled = companyGrid.Enabled = clearButton.Enabled = false;
         context.Presentation.Report(PluginSettingsNotice.Loading);
+        var stage = PluginCompanyFailure.ConfigurationRequired;
         try
         {
             if (_connectionReady?.Invoke() != true) throw new InvalidOperationException("Connection not configured.");
+            stage = PluginCompanyFailure.SourceAccess;
             if (context is IPluginSettingsSourceAccess access) await access.EnsureSourceAccessAsync(token);
+            stage = PluginCompanyFailure.Unknown;
             var companies = await directory.GetCompaniesAsync(token);
             token.ThrowIfCancellationRequested();
             if (_stopped || revision != _revision) return;
+            stage = PluginCompanyFailure.SourceAccess;
             if (context is IPluginSettingsSourceAccess current) await current.EnsureSourceAccessAsync(token);
+            stage = PluginCompanyFailure.InvalidResponse;
             CheckCatalog(companies);
             _companies = companies.OrderBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase).ToImmutableArray();
             BindRows();
@@ -71,10 +76,13 @@ public partial class PluginCompanySettingsPage : XtraUserControl
                     ? PluginSettingsNotice.Unavailable : PluginSettingsNotice.Loaded);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception)
+        catch (Exception error)
         {
             if (_stopped || revision != _revision) return;
-            _companies = []; BindRows(); context.Presentation.Report(PluginSettingsNotice.Failed);
+            _companies = []; BindRows();
+            var failure = error is IPluginCompanyFailure source ? source.CompanyFailure
+                : error is WawiCallPro.Interfaces.Plugins.PluginSettingsValidationException ? PluginCompanyFailure.ConfigurationRequired : stage;
+            context.Presentation.ReportCompanyFailure(Enum.IsDefined(failure) ? failure : PluginCompanyFailure.Unknown);
         }
         finally
         {

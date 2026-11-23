@@ -27,6 +27,21 @@ public static class SettingsMessages
         OperationEvent.SettingsRestartRequired => "Einstellungen gespeichert. Die geänderten Startoptionen werden nach einem Neustart wirksam.",
         OperationEvent.SettingsRuleLoaded => "Mandantenbezogene Abgleichregel geladen.",
         OperationEvent.SettingsRuleSaved => "Mandantenbezogene Abgleichregel gespeichert.",
+        OperationEvent.SettingsCompaniesConfigurationRequired => "Mandantenladung fehlgeschlagen: Zugang fehlt oder ist ungültig. API-Benutzer, Kennwort und Client-Key prüfen.",
+        OperationEvent.SettingsCompaniesSourceAccess => "Mandantenladung fehlgeschlagen: Plugin-Sitzung oder Installationsfreigabe ist nicht mehr gültig. Aktives Plugin prüfen.",
+        OperationEvent.SettingsCompaniesInstallationUnavailable => "Mandantenladung fehlgeschlagen: Lexware-Pro-Installation konnte nicht ermittelt werden.",
+        OperationEvent.SettingsCompaniesAuthenticationFailed => "Mandantenladung fehlgeschlagen: API-Anmeldung wurde abgelehnt. Benutzer und Kennwort prüfen.",
+        OperationEvent.SettingsCompaniesClientKeyMissing => "Mandantenladung fehlgeschlagen: API meldet: Client-Key fehlt (2001).",
+        OperationEvent.SettingsCompaniesClientKeyUnknown => "Mandantenladung fehlgeschlagen: API meldet: unbekannter Client-Key (2002). Schreibweise und äußere Leerzeichen des Schlüssels prüfen.",
+        OperationEvent.SettingsCompaniesClientKeyUnauthorized => "Mandantenladung fehlgeschlagen: API meldet: Client-Key ist für diesen Zugriff nicht autorisiert (2003/3003).",
+        OperationEvent.SettingsCompaniesPermissionDenied => "Mandantenladung fehlgeschlagen: API meldet: Berechtigung für den Zugriff fehlt (1010/2004).",
+        OperationEvent.SettingsCompaniesClientConfigurationExpired => "Mandantenladung fehlgeschlagen: API meldet: Client-Key-Konfiguration ist abgelaufen (2005).",
+        OperationEvent.SettingsCompaniesClientConfigurationMissing => "Mandantenladung fehlgeschlagen: API meldet: serverseitige Client-Key-Konfigurationsdatei fehlt (2006).",
+        OperationEvent.SettingsCompaniesClientConfigurationInvalid => "Mandantenladung fehlgeschlagen: API meldet: serverseitige Client-Key-Konfiguration ist nicht lesbar (2007).",
+        OperationEvent.SettingsCompaniesApiUnavailable => "Mandantenladung fehlgeschlagen: API-Dienst ist nicht erreichbar oder meldet einen HTTP-/Dienstfehler.",
+        OperationEvent.SettingsCompaniesTimeout => "Mandantenladung fehlgeschlagen: Zeitlimit beim API-Aufruf überschritten.",
+        OperationEvent.SettingsCompaniesInvalidResponse => "Mandantenladung fehlgeschlagen: API-Antwort oder Mandantenkatalog hat ein ungültiges Format oder enthält einen nicht zugeordneten API-Fehler.",
+        OperationEvent.SettingsCompaniesCompanyNames => "Mandantenladung fehlgeschlagen: Lokale Lexware-Mandantennamen konnten nicht gelesen werden.",
         _ => null
     };
 }

@@ -13,6 +13,24 @@ public sealed partial class AppShellTests
 {
 #if !LX_PRO
     [TestMethod]
+    public Task PluginCompanyFailureReachesTheHostAsAClosedCode() => WithWorkspace(async (workspace, _, plugin) =>
+    {
+        ((TestDirectory)workspace.Directory).ReadCatalog = _ => throw new PrivateCompanyFailure();
+        plugin.SettingsFactory = context => new PluginCompanySettingsView(workspace.Directory,
+            Enum.Parse<LexwareProductLine>(workspace.Application.ProductLine), context);
+        using var page = new SettingsPage(); page.Bind(workspace); await page.ReloadAsync();
+        var structured = string.Join("\n", Directory.GetFiles(workspace.Paths.LogsDirectory, "*.jsonl").Select(File.ReadAllText));
+        Assert.Contains("SettingsCompaniesClientKeyUnknown", structured);
+        Assert.DoesNotContain("synthetic-private-password-token-key", structured);
+        Assert.IsNull(workspace.Companies.Current.Company);
+        await page.StopAsync();
+    });
+    private sealed class PrivateCompanyFailure() : Exception("synthetic-private-password-token-key"), IPluginCompanyFailure
+    {
+        public PluginCompanyFailure CompanyFailure => PluginCompanyFailure.ClientKeyUnknown;
+    }
+
+    [TestMethod]
     public Task RealFinOfficeSettingsFactoryExportsWholeUserControlWithoutOpeningSource() => WithWorkspace(async (workspace, services, _) =>
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);

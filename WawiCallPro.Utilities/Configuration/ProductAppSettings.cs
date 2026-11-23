@@ -28,7 +28,8 @@ public sealed class ProductAppSettings(string path)
         catch (InvalidOperationException) { throw ConfigurationException.FileError("Der lokale Lexware-Client-Key ist ungültig oder nicht lesbar."); }
         if (string.IsNullOrEmpty(raw)) return null;
         if (ValidKey(raw)) return raw;
-        if (ClientKeyEncryptor.TryDecrypt(raw, out var plaintext) && ValidKey(plaintext)) return plaintext;
+        // Guid parsing permits surrounding whitespace. The API compares the actual credential string.
+        if (ClientKeyEncryptor.TryDecrypt(raw, out var plaintext) && ValidKey(plaintext)) return plaintext.Trim();
         throw ConfigurationException.FileError("Der lokale Lexware-Client-Key ist ungültig oder nicht lesbar.");
     }
     public bool HasPlaintextClientKey() => ValidKey(Read()["LexwareApi"]?["ClientKey"]?.GetValue<string>());

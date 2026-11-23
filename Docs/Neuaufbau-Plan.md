@@ -4,6 +4,22 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+Mandantenladefehler vom 23.11.2026: ✅ Konkrete, geschlossene Fehlerklassifikation vom Plugin
+bis Log-Fenster sowie Text-/JSONL-Dateilog. Authentifizierung, dokumentierte Client-Key-Fehler,
+Berechtigungen, Plugin-Freigabe, Installation, Verbindung, Zeitlimit und ungültige Kataloge werden
+unterschieden; keine Quellmeldungen, Antworttexte, Zugangsdaten oder Mandantennamen protokollieren.
+✅ Ursache real reproduziert: HTTP 200 mit API-Code 2002 (unbekannter Client-Key); XML-Einlesen
+hat zwölf äußere Leerzeichen mit dem Build-Key verschlüsselt. Build-Aktion trimmt vor dem
+Verschlüsseln; Lesen bereits verschlüsselter Keys trimmt ebenfalls, ohne die Schreibweise zu ändern.
+✅ Echter schreibfreier Pro-Abruf mit dem regulären Ausgabeprofil zweimal erfolgreich: jeweils
+18 Mandanten; Produkt-Key verschlüsselt, entschlüsselter Wert exakt gleich Solution.props.
+Keine Profiländerung, kein Quellschreibzugriff und kein Telefonat durch die Prüfung.
+Debug/Any CPU/Pro regulär ohne Warnungen/Fehler gebaut; 83 Pro-Adapter-, 20 Konfigurations-/
+Build-Key- und 9 App-/Loggingfälle bestanden. Einschließlich eingerückter XML-Vorgabe, verschlüsseltem
+Altwert, Erhalt anderer Keys, Release-/FinOffice-/Velopack-Grenzen, Wiederholbarkeit, Abbruch und
+Fehlerweitergabe ohne private Ausnahmeinhalte. Nachweise: `.artifacts/company-failure`.
+Keine Layoutänderung; echte Telefonie-/Audioabnahme G1 bleibt offen.
+
 Mandanten-/Statuskorrektur vom 22.11.2026: ✅ Automatisch asynchron geladene Plugin-Mandantenliste
 mit eingebauter Checkbox-Mehrfachauswahl. Gemeinsamer Telefon-/Mail-Quellumfang wird atomar gespeichert;
 konkrete Gespräche/Datensatzviews behalten ihren Mandanten. Gespeicherte Auswahl nach Wiederöffnen,

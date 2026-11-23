@@ -71,8 +71,23 @@ public interface IPluginCompanySelectionPublisher
 
 public enum PluginSettingsNotice { Loading, Loaded, Empty, Unavailable, Failed, SelectionChanged }
 
+/// <summary>Closed failure vocabulary. Never carries source text, credentials or response bodies.</summary>
+public enum PluginCompanyFailure
+{
+    Unknown, ConfigurationRequired, SourceAccess, InstallationUnavailable, AuthenticationFailed,
+    ClientKeyMissing, ClientKeyUnknown, ClientKeyUnauthorized, PermissionDenied, ClientConfigurationExpired,
+    ClientConfigurationMissing, ClientConfigurationInvalid, ApiUnavailable, Timeout, InvalidResponse, CompanyNames
+}
+
+/// <summary>Optional plugin classification of a source exception without exposing its message.</summary>
+public interface IPluginCompanyFailure
+{
+    PluginCompanyFailure CompanyFailure { get; }
+}
+
 public interface IPluginSettingsPresentation
 {
+    void ReportCompanyFailure(PluginCompanyFailure failure) => Report(PluginSettingsNotice.Failed);
     void Report(PluginSettingsNotice notice) { }
     void RestoreCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) { }
     void SaveCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) { }

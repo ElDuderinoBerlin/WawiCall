@@ -18,6 +18,42 @@ namespace WawiCallPro.Plugins.Lexware.Pro.Tests;
 public sealed class ProAdapterTests
 {
     [TestMethod]
+    [DataRow(2001, ProFailure.ClientKeyMissing)]
+    [DataRow(2002, ProFailure.ClientKeyUnknown)]
+    [DataRow(2003, ProFailure.ClientKeyUnauthorized)]
+    [DataRow(2004, ProFailure.PermissionDenied)]
+    [DataRow(2005, ProFailure.ClientConfigurationExpired)]
+    [DataRow(2006, ProFailure.ClientConfigurationMissing)]
+    [DataRow(2007, ProFailure.ClientConfigurationInvalid)]
+    [DataRow(1005, ProFailure.AuthenticationFailed)]
+    [DataRow(1006, ProFailure.AuthenticationFailed)]
+    [DataRow(987654, ProFailure.InvalidResponse)]
+    public async Task TokenFailuresKeepOnlyDocumentedClassificationAndNeverQueryCompanies(int code, ProFailure expected)
+    {
+        var handler = new ScriptedHandler((_, _) => Task.FromResult(Json(JsonSerializer.Serialize(new {
+            data = new { token = (string?)null }, errors = new[] { new { message = "synthetic-private-password-token-client-key", extensions = new { code } } }
+        }))));
+        await using var provider = Build(handler);
+        var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetCompaniesAsync());
+        Assert.AreEqual(expected, error.Failure); Assert.AreEqual(1, handler.Requests.Count);
+        Assert.DoesNotContain("synthetic-private", error.ToString());
+        Assert.AreNotEqual(WawiCallPro.Plugin.Windows.PluginCompanyFailure.Unknown, error.CompanyFailure);
+    }
+
+    [TestMethod]
+    public async Task ConnectionFailureAndTimeoutAreNotMisreportedAsBadCredentials()
+    {
+        foreach (var timeout in new[] { false, true })
+        {
+            var handler = new ScriptedHandler((_, _) => throw (timeout ? new TaskCanceledException("synthetic-private") : new HttpRequestException("synthetic-private")));
+            await using var provider = Build(handler);
+            var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetCompaniesAsync());
+            Assert.AreEqual(timeout ? ProFailure.Timeout : ProFailure.ApiUnavailable, error.Failure);
+            Assert.DoesNotContain("synthetic-private", error.ToString());
+        }
+    }
+
+    [TestMethod]
     public async Task ConnectionReadinessIsLocalAndMissingCredentialsDoNotMakeHttpRequests()
     {
         var handler = DefaultHandler("{\"data\":{\"companies\":[]}}");
@@ -311,7 +347,7 @@ public sealed class ProAdapterTests
         var handler = DefaultHandler("""{"errors":[{"message":"private-server-secret","extensions":{"code":"2001"}}]}""");
         await using var provider = Build(handler, store);
         var error = await Assert.ThrowsExactlyAsync<ProAdapterException>(() => provider.GetRequiredService<IBusinessDirectory>().GetCompaniesAsync());
-        Assert.AreEqual(ProFailure.InvalidResponse, error.Failure);
+        Assert.AreEqual(ProFailure.ClientKeyMissing, error.Failure);
         Assert.AreEqual(2, handler.Requests.Count);
     }
 
