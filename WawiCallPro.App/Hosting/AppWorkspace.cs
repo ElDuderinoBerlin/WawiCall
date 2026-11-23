@@ -48,7 +48,8 @@ public sealed class AppWorkspace(
     IAppAutoStart autoStart,
     MailApplication mail,
     ILogger<AppWorkspace>? settingsLogger,
-    WawiCallPro.Audio.IHistoryRecordingPlayback? recordingPlayback = null)
+    WawiCallPro.Audio.IHistoryRecordingPlayback? recordingPlayback = null,
+    HistoryRecordingFiles? recordingFiles = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
@@ -56,6 +57,7 @@ public sealed class AppWorkspace(
         if (settingsLogger is not null) OperationEvents.Write(settingsLogger, notice);
     }
     internal WawiCallPro.Audio.IHistoryRecordingPlayback? RecordingPlayback => recordingPlayback;
+    internal HistoryRecordingFiles? RecordingFiles => recordingFiles;
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;

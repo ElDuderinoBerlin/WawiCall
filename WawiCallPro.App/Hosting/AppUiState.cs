@@ -91,6 +91,26 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
         form.FormClosed += (_, _) => SaveWindow(form, name);
     }
 
+    internal DialogResult ShowSaveDialog(XtraSaveFileDialog dialog, Control owner, string name)
+    {
+        if (!Enabled) return dialog.ShowDialog(owner);
+
+        // The DevExpress component creates its form inside the modal loop.
+        using var attach = new System.Windows.Forms.Timer { Interval = 25 };
+        attach.Tick += (_, _) =>
+        {
+            var window = System.Windows.Forms.Application.OpenForms.Cast<Form>().FirstOrDefault(form =>
+                form.Text == dialog.Title && form.GetType().FullName == "DevExpress.XtraEditors.SaveFileDialogForm");
+            if (window is null) return;
+            attach.Stop();
+            WindowWorkArea.Attach(window);
+            RestoreWindow(window, name);
+            window.FormClosed += (_, _) => SaveWindow(window, name);
+        };
+        attach.Start();
+        return dialog.ShowDialog(owner);
+    }
+
     internal void RestoreWindow(Form form, string name)
     {
         if (!Enabled) return;

@@ -15,6 +15,7 @@ public partial class HistoryPage : XtraUserControl
 {
     private ICallHistoryService? _history;
     private IHistoryRecordingPlayback? _playback;
+    private HistoryRecordingFiles? _recordingFiles;
     private IReadOnlySet<Guid> _playable = new HashSet<Guid>();
     private Guid? _playingCall;
     private CancellationTokenSource? _playbackCancellation;
@@ -80,6 +81,7 @@ public partial class HistoryPage : XtraUserControl
             fromEdit.MinimumSize = toEdit.MinimumSize = new Size(editorWidth, 0);
             UiButtonSizing.Apply(refreshButton);
             UiButtonSizing.Apply(saveNoteButton);
+            UiButtonSizing.Apply(exportRecordingButton, convertRecordingButton);
             FitColumns();
             var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal + editorWidth + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;
             var toWidth = toLabel.GetPreferredSize(Size.Empty).Width + toLabel.Margin.Horizontal + editorWidth + toEdit.Margin.Horizontal + toGroup.Margin.Horizontal;
@@ -125,6 +127,7 @@ public partial class HistoryPage : XtraUserControl
     {
         _state = state;
         _playback = workspace.RecordingPlayback;
+        _recordingFiles = workspace.RecordingFiles;
         BindHistory(workspace.History, workspace.CallNotes);
         _state?.Restore(view, "CallHistory-v2");
         FitColumns();
@@ -132,6 +135,10 @@ public partial class HistoryPage : XtraUserControl
     public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
     internal HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory, IHistoryRecordingPlayback playback)
         : this(history, notesFactory) => _playback = playback;
+
+    internal HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory,
+        IHistoryRecordingPlayback playback, HistoryRecordingFiles recordingFiles)
+        : this(history, notesFactory, playback) => _recordingFiles = recordingFiles;
 
     private void BindHistory(ICallHistoryService history, CallNotesSessionFactory notesFactory)
     {
@@ -271,6 +278,7 @@ public partial class HistoryPage : XtraUserControl
     private async void View_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
     {
         if (_binding || _operation is null) return;
+        UpdateRecordingActions();
         _selected = null;
         ActivateNotes(null);
         saveNoteButton.Enabled = false;
@@ -280,6 +288,7 @@ public partial class HistoryPage : XtraUserControl
     }
     private async Task LoadFocusedDetailsAsync(CancellationToken token)
     {
+        UpdateRecordingActions();
         while (!_stopping && view.GetFocusedRow() is HistoryRow row)
         {
             token.ThrowIfCancellationRequested();

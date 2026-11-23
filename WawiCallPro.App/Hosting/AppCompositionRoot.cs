@@ -57,6 +57,7 @@ internal static class AppCompositionRoot
                 services.AddPersistedRecordings();
                 services.AddSingleton<WawiCallPro.Database.Repositories.RecordingPlaybackCatalog>();
                 services.AddSingleton<IHistoryRecordingPlayback, HistoryRecordingPlayback>();
+                services.AddSingleton<HistoryRecordingFiles>();
                 services.AddSingleton<WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog, WindowsAudioDeviceCatalog>();
                 services.AddSipTelephony(!mode.SuppressNetwork);
                 services.AddSingleton<AppTelephonyAccess>();
