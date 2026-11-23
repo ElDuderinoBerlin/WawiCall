@@ -388,6 +388,15 @@ public sealed partial class SipRuntimeTests
                 new ProtectedSipCallOutbox(new ApplicationPaths(new ConfigurationLocation(_root)), protector, new("test", "Pro")),
                 new OriginProvider(Persistence), _configuration);
         }
+        internal async Task SetAutomaticRecordingAsync(bool enabled)
+        {
+            var saved = await _settings.LoadAsync();
+            await _settings.SaveAsync(saved.Options with
+            {
+                Devices = saved.Options.Devices with { RecordConnectedCallsAutomatically = enabled }
+            }, saved);
+        }
+
         internal async Task RestartAsync()
         {
             await Runtime.DisposeAsync();

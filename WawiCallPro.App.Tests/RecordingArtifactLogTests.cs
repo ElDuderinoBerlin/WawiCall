@@ -15,6 +15,10 @@ public sealed class RecordingArtifactLogTests
     [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "Konvertierungsabschlüsse")]
     [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene Aufnahmekonvertierungen")]
     [DataRow(OperationEvent.RecordingConversionQueueIncomplete, "Konvertierungswarteschlange")]
+    [DataRow(OperationEvent.LiveRecordingSignalMissing, "Audiosignal fehlt")]
+    [DataRow(OperationEvent.LiveRecordingInputFailed, "Audiofehler")]
+    [DataRow(OperationEvent.LiveRecordingStorageFailed, "Kommunikationsdatenbank")]
+    [DataRow(OperationEvent.LiveRecordingUnavailable, "Aufnahmequelle")]
     public void AuditWarningsAreUnderstandableInTheExistingLogWindow(OperationEvent operation, string expected)
     {
         var logs = new LogWindowService(); using var provider = new UiLogProvider(logs);

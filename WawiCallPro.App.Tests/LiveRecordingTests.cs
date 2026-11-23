@@ -65,6 +65,49 @@ public sealed class LiveRecordingTests
     }
 
     [TestMethod]
+    public async Task LiveRecordingMissingSecondSignalTimesOutAndReleasesTheInput()
+    {
+        using var fixture = new Fixture();
+        var native = new NativeMedia(fixture.Source);
+        var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root));
+        await using var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, paths);
+        var start = media.StartLiveAsync(Guid.NewGuid(), CancellationToken.None);
+        fixture.Source.Send(1000, 300);
+        await Assert.ThrowsExactlyAsync<TimeoutException>(() => start);
+        Assert.AreEqual(LiveRecordingState.Failed, media.RecordingStatus.State);
+        Assert.AreEqual(LiveRecordingFailure.SignalMissing, media.RecordingStatus.Failure);
+        Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.AreEqual(0, native.Disposals);
+        Assert.IsFalse(Directory.Exists(paths.RecordingsDirectory));
+    }
+
+    [TestMethod]
+    public async Task LiveRecordingInputFailureRetiresCaptureWhileKeepingMediaOpen()
+    {
+        using var fixture = new Fixture();
+        var native = new NativeMedia(fixture.Source);
+        var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root));
+        Directory.CreateDirectory(paths.RecordingsDirectory);
+        await using var media = new LiveRecordingMediaSession(native, fixture.Persisted, fixture.Factory, paths);
+        var failure = new TaskCompletionSource<LiveRecordingSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        media.RecordingChanged += (_, args) =>
+        {
+            if (args.Snapshot.State == LiveRecordingState.Failed) failure.TrySetResult(args.Snapshot);
+        };
+        var start = media.StartLiveAsync(Guid.NewGuid(), CancellationToken.None);
+        fixture.Source.Send(1000, 100);
+        fixture.Source.Receive(1, 2000, 200);
+        await start;
+        fixture.Clock.Advance(40);
+        fixture.Source.Fail();
+        var status = await failure.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.AreEqual(LiveRecordingFailure.InputFailed, status.Failure);
+        Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.AreEqual(0, native.Disposals);
+        Assert.IsFalse(Directory.EnumerateFiles(paths.RecordingsDirectory, "*.wav").Any());
+    }
+
+    [TestMethod]
     public async Task MultipleExplicitSegmentsUseDifferentIdsAndDoNotDisposeTheConversation()
     {
         using var fixture = new Fixture(); var native = new NativeMedia(fixture.Source);

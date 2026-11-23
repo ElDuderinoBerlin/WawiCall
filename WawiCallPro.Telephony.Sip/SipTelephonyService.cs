@@ -176,6 +176,8 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             {
                 // SIPUserAgent raises OnCallHungup synchronously for our own Hangup, too.
                 agent.ShutdownRequested = true;
+                agent.Stopping.Cancel();
+                (agent.Media as ISipLiveRecordingMediaSession)?.CancelPendingStart();
                 if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
                 else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
                 else agent.UserAgent.Cancel();
@@ -231,7 +233,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             using var registration = cancellationToken.Register(() => agent.UserAgent.Hangup());
             if (!await agent.UserAgent.Answer(agent.Incoming, agent.Media.Session).ConfigureAwait(false)) throw new TelephonyException("AnswerFailed");
             agent.Media.ApplyPlaybackSettings();
-            await EnqueueAsync(() => ChangeAsync(agent, CallState.Connected)).ConfigureAwait(false);
+            await EnqueueAsync(() => CompleteMediaConnectionAsync(agent)).ConfigureAwait(false);
         }
         catch
         {
@@ -341,6 +343,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         agent.UserAgent.ClientCallFailed += (_, _, response) => agent.FailureStatus = response?.Status;
         agent.UserAgent.OnCallHungup += _ =>
         {
+            agent.Stopping.Cancel();
             (agent.Media as ISipLiveRecordingMediaSession)?.CancelPendingStart();
             Queue(() => ChangeAsync(agent,
                 agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
@@ -415,7 +418,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             if (connected)
             {
                 agent.Media.ApplyPlaybackSettings();
-                await EnqueueAsync(() => ChangeAsync(agent, CallState.Connected)).ConfigureAwait(false);
+                await EnqueueAsync(() => CompleteMediaConnectionAsync(agent)).ConfigureAwait(false);
             }
             else
             {
@@ -461,9 +464,10 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         var now = _clock.GetUtcNow();
         if (now < current.StateChangedAtUtc) now = current.StateChangedAtUtc;
         if (agent.State.Apply(new(current.Revision + 1, state, now, reason)) != CallChangeResult.Applied) return;
+        var terminal = state is CallState.Ended or CallState.Failed;
+        if (terminal) agent.Stopping.Cancel();
         await PublishAsync(agent).ConfigureAwait(false);
-        if (state is not (CallState.Ended or CallState.Failed)) return;
-        agent.Stopping.Cancel();
+        if (!terminal) return;
         var media = Interlocked.Exchange(ref agent.Media, null);
         try
         {
@@ -657,6 +661,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         internal ICallStateSession? State;
         internal SIPServerUserAgent? Incoming;
         internal ISipMediaSession? Media;
+        internal Task? AutomaticRecordingStart;
         internal SIPResponseStatusCodesEnum? FailureStatus;
         internal volatile bool TransferAccepted;
         internal volatile bool ShutdownRequested;

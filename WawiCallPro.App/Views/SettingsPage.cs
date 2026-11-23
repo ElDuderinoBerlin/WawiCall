@@ -252,6 +252,7 @@ public partial class SettingsPage : XtraUserControl
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
+        automaticRecordingEdit.Checked = options.Devices.RecordConnectedCallsAutomatically;
         recordingFormatEdit.SelectedIndex = (int)options.GetRecordingOutput().Format - 1;
         recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
@@ -279,6 +280,7 @@ public partial class SettingsPage : XtraUserControl
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
                 DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
+                RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
             RecordingOutput = output,
             AutomaticMp3 = new(),

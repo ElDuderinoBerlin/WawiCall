@@ -14,10 +14,11 @@ public sealed class PortableSettingsTests
     public async Task ExportUsesSavedPreferencesAndContainsNoConnectionsCredentialsOrLocalIdentities()
     {
         using var files = new Files(); var snapshot = await files.Store.LoadAsync();
-        var options = LocalOptions(files.Protector) with { User = new() { LogLevel = LogLevel.Debug, ActivePluginId = "local-plugin", PreferredCompany = Company, DialHotkey = "Ctrl+Alt+F3" } };
+        var options = LocalOptions(files.Protector) with { User = new() { LogLevel = LogLevel.Debug, ActivePluginId = "local-plugin", PreferredCompany = Company, DialHotkey = "Ctrl+Alt+F3" },
+            Devices = new() { RecordConnectedCallsAutomatically = true } };
         await files.Store.SaveAsync(options, snapshot); await files.Store.ExportPortableAsync(files.Export);
         var json = await File.ReadAllTextAsync(files.Export);
-        foreach (var forbidden in new[] { "synthetic-secret", "synthetic-user", "private.invalid", "local-device", "local-plugin", "private-installation", "sipAccount", "password", "connectionString", "companies", "callerLineAssignment", "activePluginId", "preferredCompany" })
+        foreach (var forbidden in new[] { "synthetic-secret", "synthetic-user", "private.invalid", "local-device", "local-plugin", "private-installation", "sipAccount", "password", "connectionString", "companies", "callerLineAssignment", "activePluginId", "preferredCompany", "recordConnectedCallsAutomatically" })
             Assert.DoesNotContain(forbidden, json);
         var document = JsonNode.Parse(json)!; Assert.AreEqual(2, (int)document["formatVersion"]!); Assert.AreEqual("WawiCallPro", (string)document["application"]!);
         Assert.AreEqual("Debug", (string)document["user"]!["logLevel"]!); Assert.AreEqual("Ctrl+Alt+F3", (string)document["user"]!["dialHotkey"]!);
@@ -32,11 +33,14 @@ public sealed class PortableSettingsTests
             ShowCallNotifications = false, ShowWindowHotkey = "Ctrl+Alt+F1", DialHotkey = "Ctrl+Alt+F2", LogDirectory = Path.Combine(source.Root, "logs") },
             Devices = new() { PlaybackVolumePercent = 35, RingVolumePercent = 65, MicrophoneMuted = true } });
         await source.Store.ExportPortableAsync(source.Export);
-        await target.Store.SaveAsync(LocalOptions(target.Protector)); var before = await target.Store.LoadAsync();
+        var local = LocalOptions(target.Protector);
+        await target.Store.SaveAsync(local with { Devices = local.Devices with { RecordConnectedCallsAutomatically = true } });
+        var before = await target.Store.LoadAsync();
         var after = await target.Store.ImportPortableAsync(source.Export, before); var options = after.Options;
         Assert.AreEqual(LogLevel.Trace, options.User.LogLevel); Assert.IsTrue(options.User.StartMinimized); Assert.IsFalse(options.User.UseDirectXRendering);
         Assert.IsFalse(options.User.ShowCallNotifications); Assert.AreEqual(35, options.Devices.PlaybackVolumePercent); Assert.AreEqual(65, options.Devices.RingVolumePercent); Assert.IsTrue(options.Devices.MicrophoneMuted);
         Assert.AreEqual(before.Options.User.ActivePluginId, options.User.ActivePluginId); Assert.AreEqual(before.Options.User.PreferredCompany, options.User.PreferredCompany);
+        Assert.IsTrue(options.Devices.RecordConnectedCallsAutomatically);
         Assert.AreEqual(before.Options.Devices.CaptureDeviceId, options.Devices.CaptureDeviceId); Assert.AreEqual(before.Options.Devices.PlaybackDeviceId, options.Devices.PlaybackDeviceId); Assert.AreEqual(before.Options.Devices.RingDeviceId, options.Devices.RingDeviceId);
         Assert.AreEqual(before.Options.Database.SqliteFileName, options.Database.SqliteFileName); Assert.AreEqual(before.Options.Erp.FinOfficeInstallationId, options.Erp.FinOfficeInstallationId);
         Assert.AreEqual(before.Options.SipAccount!.Server, options.SipAccount!.Server); Assert.AreEqual(before.Options.SipAccount.Username, options.SipAccount.Username);

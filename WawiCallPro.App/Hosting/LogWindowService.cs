@@ -74,6 +74,11 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.RecordingConversionRecoveryIncomplete => "Ausstehende Konvertierungsabschlüsse konnten nicht vollständig bestätigt werden. Aufträge und Dateien bleiben für eine erneute Prüfung erhalten.",
                 OperationEvent.RecordingConversionInterrupted => "Unterbrochene Aufnahmekonvertierungen wurden als fehlgeschlagen markiert. Die WAV-Aufnahmen und vorhandene temporäre Dateien bleiben erhalten.",
                 OperationEvent.RecordingConversionQueueIncomplete => "Die Konvertierungswarteschlange konnte nicht alle Aufträge abschließen. Nicht gestartete Aufträge und geschützte Abschlüsse bleiben erhalten; fehlgeschlagene Aufträge werden nicht automatisch erneut eingereiht.",
+                OperationEvent.LiveRecordingSignalMissing => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.SignalMissing),
+                OperationEvent.LiveRecordingInputFailed => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.InputFailed),
+                OperationEvent.LiveRecordingStorageFailed => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.StorageFailed),
+                OperationEvent.LiveRecordingUnavailable => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.Unavailable),
+                OperationEvent.LiveRecordingFailed => LiveRecordingMessages.Failure(null),
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);

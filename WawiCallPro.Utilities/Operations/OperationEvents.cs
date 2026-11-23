@@ -62,7 +62,12 @@ public enum OperationEvent
     SettingsCompaniesApiUnavailable,
     SettingsCompaniesTimeout,
     SettingsCompaniesInvalidResponse,
-    SettingsCompaniesCompanyNames
+    SettingsCompaniesCompanyNames,
+    LiveRecordingSignalMissing,
+    LiveRecordingInputFailed,
+    LiveRecordingStorageFailed,
+    LiveRecordingUnavailable,
+    LiveRecordingFailed
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -81,7 +86,9 @@ public static class OperationEvents
             or OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
             or OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
-            or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete ? LogLevel.Warning
+            or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete
+            or OperationEvent.LiveRecordingSignalMissing or OperationEvent.LiveRecordingInputFailed
+            or OperationEvent.LiveRecordingStorageFailed or OperationEvent.LiveRecordingUnavailable or OperationEvent.LiveRecordingFailed ? LogLevel.Warning
             : exception is null ? LogLevel.Information : LogLevel.Error;
         logger.Log(level, new EventId((int)operation), new SafeOperationRecord(operation), exception, static (record, _) => record.Event.ToString());
     }

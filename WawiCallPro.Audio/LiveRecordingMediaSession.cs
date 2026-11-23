@@ -25,9 +25,9 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
     public void ApplyPlaybackSettings() => inner.ApplyPlaybackSettings();
     public LiveRecordingSnapshot RecordingStatus => Volatile.Read(ref _status);
     public event EventHandler<LiveRecordingChangedEventArgs>? RecordingChanged;
-    private void SetStatus(LiveRecordingState state)
+    private void SetStatus(LiveRecordingState state, LiveRecordingFailure? failure = null)
     {
-        var value = _status with { State = state }; Volatile.Write(ref _status, value);
+        var value = _status with { State = state, Failure = failure }; Volatile.Write(ref _status, value);
         foreach (var handler in RecordingChanged?.GetInvocationList() ?? [])
             try { ((EventHandler<LiveRecordingChangedEventArgs>)handler)(this, new(value)); } catch { }
     }
@@ -42,25 +42,24 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
             linked.Token.ThrowIfCancellationRequested();
             if (_recording is { State: PcmRecordingState.Capturing or PcmRecordingState.Stopping }) throw new TelephonyException("RecordingAlreadyActive");
             if (_legacyRecording is { State: PcmRecordingState.Capturing or PcmRecordingState.Stopping }) throw new TelephonyException("RecordingAlreadyActive");
-            if (inner.PcmSource is not IConversationPcmFailureSource source) throw new TelephonyException("RecordingUnavailable");
             if (_recording is { } previous)
             {
                 try { await previous.DisposeAsync().ConfigureAwait(false); }
                 catch (PcmRecordingException) when (!previous.HasPendingPersistence) { }
                 _recording = null;
             }
-            await _watch.ConfigureAwait(false);
             var id = Guid.NewGuid(); _status = new(callId, id, LiveRecordingState.Starting); SetStatus(LiveRecordingState.Starting);
             try
             {
+                if (inner.PcmSource is not IConversationPcmFailureSource source) throw new TelephonyException("RecordingUnavailable");
                 _recording = await live.StartAsync(source, new(callId, id, paths.ResolveRecordingPath(id.ToString("N") + ".wav")), linked.Token).ConfigureAwait(false);
                 linked.Token.ThrowIfCancellationRequested();
                 SetStatus(LiveRecordingState.Recording);
                 _watch = WatchInputAsync(_recording, _closing.Token);
             }
-            catch
+            catch (Exception error)
             {
-                SetStatus(LiveRecordingState.Failed);
+                SetStatus(LiveRecordingState.Failed, ClassifyFailure(error));
                 if (_recording is { } late) { _recording = null; await late.DisposeAsync().ConfigureAwait(false); }
                 throw;
             }
@@ -76,8 +75,19 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
                 && RecordingStatus.State == LiveRecordingState.Recording)
                 await Task.Delay(100, closing).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (closing.IsCancellationRequested) { }
-        if (ReferenceEquals(_recording, recording) && recording.State == PcmRecordingState.Failed) SetStatus(LiveRecordingState.Failed);
+        catch (OperationCanceledException) when (closing.IsCancellationRequested) { return; }
+        if (recording.State != PcmRecordingState.Failed) return;
+        // Persist the input failure and retire its subscription promptly, while the conversation stays connected.
+        await _commands.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (ReferenceEquals(_recording, recording))
+            {
+                try { await StopCoreAsync().ConfigureAwait(false); }
+                catch (Exception) { } // StopCore reports the failure through RecordingChanged.
+            }
+        }
+        finally { _commands.Release(); }
     }
     public async Task StopLiveAsync(CancellationToken cancellationToken)
     {
@@ -89,10 +99,31 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
     {
         if (_recording is not { } recording) return;
         SetStatus(LiveRecordingState.Stopping);
-        try { await recording.StopAsync().ConfigureAwait(false); await recording.DisposeAsync().ConfigureAwait(false); SetStatus(LiveRecordingState.Completed); }
-        catch { SetStatus(LiveRecordingState.Failed); throw; }
-        finally { try { await recording.DisposeAsync().ConfigureAwait(false); } finally { _recording = null; } }
+        try
+        {
+            try { await recording.StopAsync().ConfigureAwait(false); }
+            finally { await recording.DisposeAsync().ConfigureAwait(false); }
+            SetStatus(LiveRecordingState.Completed);
+        }
+        catch (Exception error)
+        {
+            SetStatus(LiveRecordingState.Failed, ClassifyFailure(error));
+            throw;
+        }
+        finally { _recording = null; }
     }
+    private static LiveRecordingFailure ClassifyFailure(Exception error) => error switch
+    {
+        OperationCanceledException => LiveRecordingFailure.Cancelled,
+        TimeoutException => LiveRecordingFailure.SignalMissing,
+        PcmRecordingException { Failure: PcmRecordingFailure.FileFailure or PcmRecordingFailure.MixingFailed }
+            or WawiCallPro.Database.DatabaseOperationException or WawiCallPro.Database.Contracts.RepositoryConflictException
+            or RecordingPersistenceException or IOException or UnauthorizedAccessException => LiveRecordingFailure.StorageFailed,
+        PcmRecordingException => LiveRecordingFailure.InputFailed,
+        TelephonyException { Code: "RecordingUnavailable" } => LiveRecordingFailure.Unavailable,
+        _ => LiveRecordingFailure.Unexpected
+    };
+
     public async Task<IDuplexPcmRecording> StartRecordingAsync(DuplexPcmRecordingRequest request, CancellationToken cancellationToken = default)
     {
         await _commands.WaitAsync(cancellationToken).ConfigureAwait(false);

@@ -59,6 +59,34 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task LiveRecordingStorageFailurePreservesCallAndWritesFailedCaptureWithoutWave() => WithWorkspace(async (workspace, services, _) =>
+    {
+        await workspace.Database.CreateAndMigrateAsync();
+        var now = DateTimeOffset.UtcNow;
+        var call = await services.GetRequiredService<ISipCallPersistence>().SaveAsync(CommandCall() with
+        { State = CallState.Connected, StartedAtUtc = now.AddSeconds(-1), StateChangedAtUtc = now, AnsweredAtUtc = now });
+        using var audio = new ServiceCollection().AddAudioConversion().BuildServiceProvider();
+        var persisted = new PersistedDuplexPcmRecordingFactory(audio.GetRequiredService<IDuplexPcmRecordingFactory>(),
+            services.GetRequiredService<IRecordingJournal>(), workspace.Paths, TimeProvider.System);
+        var source = new LiveRecordingSourceDouble();
+        var native = new LiveRecordingTests.NativeMedia(source);
+        await using var media = new LiveRecordingMediaSession(native, persisted, new LivePcmRecordingFactory(persisted, TimeProvider.System), workspace.Paths);
+        await File.WriteAllTextAsync(workspace.Paths.RecordingsDirectory, "synthetic path blocker");
+        var start = media.StartLiveAsync(call.Id, CancellationToken.None);
+        source.Send(1000, 100);
+        source.Receive(1, 2000, 200);
+        await Assert.ThrowsAsync<PcmRecordingException>(() => start);
+        Assert.AreEqual(LiveRecordingFailure.StorageFailed, media.RecordingStatus.Failure);
+        Assert.AreEqual(0, source.Subscribers);
+        Assert.AreEqual(0, native.Disposals);
+        var history = (await workspace.History.GetCallAsync(call.Id))!;
+        var failed = history.Recordings.Single();
+        Assert.AreEqual(RecordingAvailability.Failed, failed.Availability);
+        Assert.AreEqual(CallState.Connected, history.Call.State);
+        Assert.IsFalse(File.Exists(workspace.Paths.ResolveRecordingPath(failed.RelativePath)));
+    });
+
+    [TestMethod]
     public Task LiveRecordingButtonsShareCallStateAcrossViewsAndKeepHangupAvailableDuringPreparation() => RunStaAsync(async () =>
     {
         var call = CommandCall() with { State = CallState.Connected };
@@ -67,9 +95,10 @@ public sealed partial class AppShellTests
         first.Bind(service, call); second.Bind(service, call);
         service.StartRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var start = first.ToggleRecordingAsync();
-        await WaitForDialStateAsync(() => !Field<SimpleButton>(second, "recordingButton").Enabled);
+        await WaitForDialStateAsync(() => Field<SimpleButton>(second, "recordingButton").Text == "Aufnahme abbrechen");
         Assert.IsTrue(Field<SimpleButton>(first, "endButton").Enabled);
-        await second.ToggleRecordingAsync(); Assert.AreEqual(1, service.Starts);
+        Assert.IsTrue(Field<SimpleButton>(second, "recordingButton").Enabled);
+        Assert.AreEqual(1, service.Starts);
         service.StartRelease.SetResult(); await start;
         await WaitForDialStateAsync(() => Field<SimpleButton>(second, "recordingButton").Text == "Aufnahme stoppen");
         await second.ToggleRecordingAsync();
@@ -99,14 +128,17 @@ public sealed partial class AppShellTests
         try
         {
             foreach (var (size, skin, scale) in new[] { (10F, "Basic", 1F), (16F, "Office 2019 Black", 1F), (10F, "Basic", 1.5F) })
-            foreach (var state in new[] { LiveRecordingState.Idle, LiveRecordingState.Recording, LiveRecordingState.Completed, LiveRecordingState.Failed })
+            foreach (var state in new[] { LiveRecordingState.Idle, LiveRecordingState.Starting, LiveRecordingState.Recording, LiveRecordingState.Completed, LiveRecordingState.Failed })
             {
                 look.SetSkinStyle(skin); using var font = new Font("Segoe UI", size);
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var dialog = new FrmCallerLookup(); dialog.PrepareForBackgroundRun(); dialog.Font = font; dialog.ClientSize = new(760, 700);
                 var call = CommandCall() with { State = state == LiveRecordingState.Completed ? CallState.Ended : CallState.Connected };
                 dialog.BindCall(call, (_, _) => Task.CompletedTask); var service = new RecordingTelephony(call);
-                service.Publish(new(call.Id, Guid.NewGuid(), state));
+                service.Publish(new(call.Id, Guid.NewGuid(), state)
+                {
+                    Failure = state == LiveRecordingState.Failed ? LiveRecordingFailure.StorageFailed : null
+                });
                 var panel = Field<CallControlPanel>(dialog, "callControls"); panel.Bind(service, call);
                 dialog.Show(); if (scale != 1F) dialog.Scale(new SizeF(scale, scale)); dialog.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(dialog);

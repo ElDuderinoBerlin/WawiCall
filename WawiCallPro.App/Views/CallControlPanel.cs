@@ -13,6 +13,7 @@ public partial class CallControlPanel : XtraUserControl
     private readonly PageOperation _operation;
     private readonly PageOperation _recordingOperation;
     private bool _recordingBusy;
+    private LiveRecordingState _displayedRecordingState;
     private readonly CancellationTokenSource _lifetime = new();
     private Task? _stopTask;
     private bool _busy;
@@ -74,18 +75,25 @@ public partial class CallControlPanel : XtraUserControl
     {
         if (_disposed) return;
         var recordings = _telephony as ILiveCallRecordingService;
-        var state = _call is null ? LiveRecordingState.Idle : recordings?.GetRecording(_call.Id).State ?? LiveRecordingState.Idle;
-        recordingButton.Text = state == LiveRecordingState.Recording ? "Aufnahme stoppen" : "Aufnahme starten";
+        var snapshot = _call is null ? null : recordings?.GetRecording(_call.Id);
+        var state = snapshot?.State ?? LiveRecordingState.Idle;
+        _displayedRecordingState = state;
+        recordingButton.Text = state switch
+        {
+            LiveRecordingState.Starting => "Aufnahme abbrechen",
+            LiveRecordingState.Recording => "Aufnahme stoppen",
+            _ => "Aufnahme starten"
+        };
         recordingButton.Enabled = !_recordingBusy && _stopTask is null && recordings is not null
             && (_call?.State == CallState.Connected && state is LiveRecordingState.Idle or LiveRecordingState.Completed or LiveRecordingState.Failed
-                || _call?.State is CallState.Connected or CallState.Held && state == LiveRecordingState.Recording);
+                || _call?.State is CallState.Connected or CallState.Held && state is LiveRecordingState.Starting or LiveRecordingState.Recording);
         recordingStatus.Text = recordings is null ? "Aufnahme nicht verfügbar." : state switch
         {
             LiveRecordingState.Starting => "Aufnahme wird vorbereitet …",
             LiveRecordingState.Recording => "Aufnahme läuft · beide Gesprächsseiten",
             LiveRecordingState.Stopping => "Aufnahme wird abgeschlossen …",
             LiveRecordingState.Completed => "Aufnahme gespeichert · Stereo: eigene Stimme links, Gegenstelle rechts.",
-            LiveRecordingState.Failed => "Aufnahme fehlgeschlagen. Audiosignal, Geräte und Speicher prüfen.",
+            LiveRecordingState.Failed => WawiCallPro.Utilities.Operations.LiveRecordingMessages.Failure(snapshot?.Failure),
             _ => "Keine Aufnahme"
         };
         UiButtonSizing.Apply(recordingButton);
@@ -102,14 +110,17 @@ public partial class CallControlPanel : XtraUserControl
     {
         if (!recordingButton.Enabled || _call is null || _telephony is not ILiveCallRecordingService recordings) return Task.CompletedTask;
         var id = _call.Id;
+        var stop = _displayedRecordingState is LiveRecordingState.Starting or LiveRecordingState.Recording;
         return _recordingOperation.RunAsync(async token =>
         {
             _recordingBusy = true; recordingButton.Enabled = false;
             try
             {
-                if (recordings.GetRecording(id).State == LiveRecordingState.Recording)
+                var current = recordings.GetRecording(id).State;
+                if (stop && current is (LiveRecordingState.Starting or LiveRecordingState.Recording))
                     await recordings.StopLiveRecordingAsync(id, token);
-                else await recordings.StartLiveRecordingAsync(id, token);
+                else if (!stop && current is (LiveRecordingState.Idle or LiveRecordingState.Completed or LiveRecordingState.Failed))
+                    await recordings.StartLiveRecordingAsync(id, token);
             }
             finally { _recordingBusy = false; UpdateRecording(); }
         });
