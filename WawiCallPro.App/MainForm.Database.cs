@@ -31,7 +31,6 @@ public partial class MainForm
             if (!IsDisposed)
             {
                 UpdateDatabaseActions();
-                AppendOutput(connectionLabel.Text);
             }
         }
     }
@@ -68,7 +67,6 @@ public partial class MainForm
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
             connectionLabel.Text = "Datenbankverbindung gespeichert. Bitte WawiCallPro neu starten, um sie in allen Arbeitsbereichen zu verwenden.";
-            AppendOutput(connectionLabel.Text);
         }
     }
 

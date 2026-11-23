@@ -3288,6 +3288,8 @@ public sealed partial class AppShellTests
         await workspace.Database.CreateAndMigrateAsync();
         await ClickRibbonAsync(database, "databaseStatusItem");
         Assert.Contains("betriebsbereit", Field<LabelControl>(database, "connectionLabel").Text);
+        Assert.IsFalse(Field<LabelControl>(database, "connectionLabel").Visible);
+        Assert.AreEqual(1, Field<TableLayoutPanel>(database, "contentLayout").RowCount);
         Assert.AreEqual(1, Field<DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView>(database, "tabbedView").Documents.Count);
         Assert.IsTrue(Field<DevExpress.XtraBars.BarButtonItem>(database, "databaseBackupItem").Enabled);
         Assert.AreEqual(DatabaseSchemaState.Current, (await workspace.Database.GetStatusAsync()).State);

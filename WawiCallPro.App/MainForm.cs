@@ -258,6 +258,11 @@ public partial class MainForm : RibbonForm
         ribbon.Minimized = DpiLayoutMetrics.MinimizeRibbon(ClientSize.Height, Font.Size, DeviceDpi);
     }
     private void MainForm_DpiChanged(object? sender, DpiChangedEventArgs e) => MainForm_SizeChanged(sender, e);
+    private void ConnectionStatus_Changed(object? sender, EventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(connectionLabel.Text)) AppendOutput(connectionLabel.Text);
+    }
+
     private void AppendOutput(string message) => logPanel.Append(message);
     private void Home_Click(object sender, ItemClickEventArgs e) => Navigate("home");
     private void History_Click(object sender, ItemClickEventArgs e) => Navigate("history");

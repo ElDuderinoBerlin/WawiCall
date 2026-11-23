@@ -83,7 +83,6 @@ public partial class MainForm
             _ => "SIP: Nicht angemeldet"
         };
         telephonyStatusItem.Hint = text;
-        if (!_databaseBusy) connectionLabel.Text = text;
         foreach (var document in _documents.Values)
             if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
                 dashboard.RefreshStatus();

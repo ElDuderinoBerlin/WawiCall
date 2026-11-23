@@ -319,7 +319,8 @@ partial class MainForm
         helpNav.Style = DevExpress.XtraBars.Navigation.ElementStyle.Item;
         helpNav.Click += HelpNavigation_Click;
         connectionLabel.Name = "connectionLabel";
-        connectionLabel.Text = "Keine Verbindung konfiguriert.";
+        connectionLabel.Visible = false;
+        connectionLabel.TextChanged += ConnectionStatus_Changed;
         connectionLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         connectionLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         connectionLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
@@ -393,6 +394,7 @@ partial class MainForm
         outputDock.Size = new System.Drawing.Size(900, 200);
         outputDock.Controls.Add(outputContainer);
         outputContainer.Controls.Add(contentLayout);
+        outputContainer.Controls.Add(connectionLabel);
         outputContainer.Dock = System.Windows.Forms.DockStyle.Fill;
         contentLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         helpDock.Name = "helpDock";
@@ -409,12 +411,10 @@ partial class MainForm
         helpMemo.Properties.ReadOnly = true;
         helpMemo.Text = "Die Datenbankfunktionen finden Sie oben im Ribbon-Tab Datenbank. Plugins verwalten Sie ausschließlich im Einstellungsdialog unter Plugins. Die Mandanten für den Telefon-Cache werden ausschließlich in den Einstellungen ausgewählt. Fachansichten stellt das aktive Warenwirtschaftsplugin bereit.";
         contentLayout.ColumnCount = 1;
-        contentLayout.RowCount = 2;
+        contentLayout.RowCount = 1;
         contentLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         contentLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        contentLayout.Controls.Add(connectionLabel, 0, 0);
-        contentLayout.Controls.Add(logPanel, 0, 1);
+        contentLayout.Controls.Add(logPanel, 0, 0);
         logPanel.Dock = System.Windows.Forms.DockStyle.Fill;
         documentManager.ContainerControl = this;
         documentManager.View = tabbedView;
