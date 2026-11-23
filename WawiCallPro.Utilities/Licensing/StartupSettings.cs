@@ -10,6 +10,8 @@ namespace WawiCallPro.Utilities.Licensing;
 
 public sealed record LicenseProductIdentity(string ProductCode, Guid ApplicationGuid, string Version, bool Required)
 {
+    public bool OnlineActivation { get; init; } = true;
+    public bool Demo { get; init; }
     public const string ProApplicationId = "65c66e82-4607-4c4e-b7db-c9d9abf1ede2";
     public const string FinOfficeApplicationId = "df533b52-a06c-48a5-ad60-9f69fd94a4a9";
     public static LicenseProductIdentity FromAssembly(Assembly assembly)
@@ -19,8 +21,14 @@ public sealed record LicenseProductIdentity(string ProductCode, Guid Application
         var pro = line == "Pro";
         var rawRequired = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().SingleOrDefault(item => item.Key == "WawiLicenseRequired")?.Value;
         var required = !bool.TryParse(rawRequired, out var configuredRequired) || configuredRequired;
+        var activationMode = assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .SingleOrDefault(item => item.Key == "WawiLicenseActivationMode")?.Value;
         return new(pro ? "WAWICALLPRO_PRO" : "WAWICALLPRO_FINOFFICE", new Guid(pro ? ProApplicationId : FinOfficeApplicationId),
-            assembly.GetName().Version?.ToString() ?? "0.0", required);
+            assembly.GetName().Version?.ToString() ?? "0.0", required)
+        {
+            OnlineActivation = activationMode is null or "Online",
+            Demo = assembly.GetName().Name?.EndsWith(".Demo", StringComparison.Ordinal) == true
+        };
     }
 }
 

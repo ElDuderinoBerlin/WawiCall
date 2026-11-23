@@ -55,6 +55,47 @@ public sealed class LicenseStartupGateTests
         Assert.AreEqual(LicenseStatus.Revoked, denied.Status);
     }
 
+    [TestMethod]
+    public async Task OnlineActivationCanRetryWithThePreviousInput()
+    {
+        var license = new LicenseProbe
+        {
+            Activate = key => key == "second" ? new(LicenseStatus.Valid) : throw new LicenseAccessException(LicenseStatus.Invalid)
+        };
+        var prompt = new Prompt { Request = () => "first", Retry = (key, status) =>
+        {
+            Assert.AreEqual("first", key);
+            Assert.AreEqual(LicenseStatus.Invalid, status);
+            return "second";
+        } };
+        var gate = new LicenseStartupGate(license, Product, new StartupSettings { LicenseServerUrl = new Uri("https://isolated.invalid") },
+            new StartupExecutionMode(), prompt);
+        await gate.StartAsync(default);
+        Assert.AreEqual(2, license.ActivationAttempts);
+    }
+
+    [TestMethod]
+    public async Task OfflineBuildNeverPromptsForOnlineActivation()
+    {
+        var license = new LicenseProbe();
+        var gate = new LicenseStartupGate(license, Product with { OnlineActivation = false },
+            new StartupSettings { LicenseServerUrl = new Uri("https://isolated.invalid") }, new StartupExecutionMode(), new Prompt());
+        var denied = await Assert.ThrowsExactlyAsync<LicenseAccessException>(() => gate.StartAsync(default));
+        Assert.AreEqual(LicenseStatus.Missing, denied.Status);
+        Assert.AreEqual(1, license.Calls);
+    }
+
+    [TestMethod]
+    public async Task ExpiredDemoStopsBeforeActivation()
+    {
+        var licenses = new LicenseProbe { Local = new(LicenseStatus.DemoExpired) };
+        var gate = new LicenseStartupGate(licenses, Product with { Required = false, Demo = true },
+            new StartupSettings(), new StartupExecutionMode(), new Prompt());
+        var denied = await Assert.ThrowsExactlyAsync<LicenseAccessException>(() => gate.StartAsync(default));
+        Assert.AreEqual(LicenseStatus.DemoExpired, denied.Status);
+        Assert.AreEqual(0, licenses.ActivationAttempts);
+    }
+
     private static LicenseProductIdentity Product { get; } = new("WAWICALLPRO_PRO", new Guid(LicenseProductIdentity.ProApplicationId), "test", true);
     [TestMethod]
     public async Task ActivationPromptAwaitsUiDispatcherAndObservesCancellationBeforeShowingAnything()
@@ -85,15 +126,27 @@ public sealed class LicenseStartupGateTests
         public Task StartAsync(CancellationToken cancellationToken) { Started = true; return Task.CompletedTask; }
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
-    private sealed class Prompt : IAppLicensePrompt { public Task<string?> RequestKeyAsync(string machineId,
-        CancellationToken cancellationToken) => throw new AssertFailedException("Unexpected visible dialog."); }
+    private sealed class Prompt : IAppLicensePrompt
+    {
+        public Func<string?> Request { get; init; } = () => throw new AssertFailedException("Unexpected activation prompt.");
+        public Func<string, LicenseStatus, string?> Retry { get; init; } = (_, _) => throw new AssertFailedException("Unexpected retry prompt.");
+        public Task<string?> RequestKeyAsync(string machineId, CancellationToken cancellationToken) => Task.FromResult(Request());
+        public Task<string?> RetryKeyAsync(string machineId, string previousKey, LicenseStatus status, CancellationToken cancellationToken) =>
+            Task.FromResult(Retry(previousKey, status));
+    }
     private sealed class LicenseProbe : IProductLicenseService
     {
         public int Calls { get; private set; }
+        public int ActivationAttempts { get; private set; }
         public ProductLicenseSnapshot Local { get; init; } = new(LicenseStatus.Missing);
         public Func<ProductLicenseSnapshot> Online { get; set; } = () => new(LicenseStatus.Valid);
         public Task<ProductLicenseSnapshot> ValidateAsync(CancellationToken cancellationToken) { Calls++; return Task.FromResult(Local); }
-        public Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken cancellationToken) => throw new AssertFailedException("Unexpected activation.");
+        public Func<string, ProductLicenseSnapshot> Activate { get; init; } = _ => throw new AssertFailedException("Unexpected activation.");
+        public Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken cancellationToken)
+        {
+            ActivationAttempts++;
+            return Task.FromResult(Activate(licenseKey));
+        }
         public Task<ProductLicenseSnapshot> RefreshAsync(CancellationToken cancellationToken) { Calls++; return Task.FromResult(Online()); }
         public string GetMachineId() => "test";
         public Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken cancellationToken) => Task.FromResult<string?>(null);

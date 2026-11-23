@@ -28,6 +28,8 @@ internal static class AppStartupServices
         services.AddSingleton<LicenseGuard>();
         services.AddSingleton<IStartupHttpClientFactory, StartupHttpClientFactory>();
         services.AddSingleton<ILicenseServerSessionFactory, LicenseServerSessionFactory>();
+        services.AddSingleton<IDemoTrialStateStore, DemoTrialStateStore>();
+        services.AddSingleton<DemoTrialService>();
         services.AddSingleton<IProductLicenseService, ProductLicenseService>();
         services.AddSingleton<IAppLicensePrompt, AppLicensePrompt>();
         services.AddSingleton<StartupSplash>();

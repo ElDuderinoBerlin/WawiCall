@@ -56,6 +56,40 @@ public sealed class ProductLicenseTests
     }
 
     [TestMethod]
+    public void DemoTrialSurvivesOneMissingCopyAndRejectsRollbackOrExpiry()
+    {
+        var store = new TrialStore();
+        var trial = new DemoTrialService(store, new DpapiLocalLicenseProtector(), new Machine(), _product, _clock);
+        var started = _clock.Now;
+        var first = trial.Check();
+        Assert.AreEqual(30, first.Trial!.RemainingDays);
+        Assert.AreEqual(LicenseStatus.Valid, first.Status);
+        store.Copies.RemoveAt(0);
+        _clock.Now = started.AddDays(3);
+        var reopened = new DemoTrialService(store, new DpapiLocalLicenseProtector(), new Machine(), _product, _clock).Check();
+        Assert.AreEqual(started, reopened.Trial!.StartUtc);
+        Assert.AreEqual(27, reopened.Trial.RemainingDays);
+        _clock.Now = started;
+        Assert.AreEqual(LicenseStatus.DemoInvalid, trial.Check().Status);
+        _clock.Now = started.AddDays(30);
+        Assert.AreEqual(LicenseStatus.DemoExpired, trial.Check().Status);
+    }
+
+    [TestMethod]
+    public void DemoTrialRejectsTamperedOrForeignProductState()
+    {
+        var store = new TrialStore();
+        var protector = new DpapiLocalLicenseProtector();
+        var trial = new DemoTrialService(store, protector, new Machine(), _product, _clock);
+        Assert.AreEqual(LicenseStatus.Valid, trial.Check().Status);
+        var foreign = new DemoTrialService(store, protector, new Machine(),
+            _product with { ProductCode = "WAWICALLPRO_FINOFFICE" }, _clock);
+        Assert.AreEqual(LicenseStatus.DemoInvalid, foreign.Check().Status);
+        store.Copies[0] = [1, 2, 3];
+        Assert.AreEqual(LicenseStatus.DemoInvalid, trial.Check().Status);
+    }
+
+    [TestMethod]
     [DataRow("product")]
     [DataRow("application")]
     [DataRow("machine")]
@@ -225,6 +259,18 @@ public sealed class ProductLicenseTests
     private static HttpResponseMessage Json(HttpStatusCode status, string body) => new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
     private sealed class Clock : TimeProvider { public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow; public override DateTimeOffset GetUtcNow() => Now; }
     private sealed class Machine : IMachineIdProvider { public MachineIdInfo GetMachineId() => new() { Value = "machine-test", Source = "test" }; public string GetMachineIdHash() => "machine-test"; }
+    private sealed class TrialStore : IDemoTrialStateStore
+    {
+        public List<byte[]> Copies { get; } = [];
+        public IReadOnlyList<byte[]> Read() => Copies;
+        public bool Save(byte[] bytes)
+        {
+            Copies.Clear();
+            Copies.Add(bytes);
+            Copies.Add(bytes);
+            return true;
+        }
+    }
     private sealed class HttpFactory(Handler handler) : IStartupHttpClientFactory { public HttpClient Create() => new(handler, false) { BaseAddress = Settings.LicenseServerUrl }; }
     private sealed class Handler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> execute) : HttpMessageHandler
     {

@@ -48,7 +48,7 @@ public sealed partial class FrmUeber : XtraForm
         linkLicenseNumber.Visible = _licenseId.HasValue;
         linkLicenseNumber.Enabled = !string.IsNullOrWhiteSpace(number);
         linkLicenseNumber.Text = linkLicenseNumber.Enabled ? $"Lizenznummer: {number}" : "Lizenznummer: nicht gespeichert";
-        linkMachineKey.Visible = true;
+        linkMachineKey.Visible = license.Trial is null && license.Status is not (LicenseStatus.DemoInvalid or LicenseStatus.DemoExpired);
     }
 
     private void FitContents(object? sender, EventArgs e)
@@ -59,15 +59,17 @@ public sealed partial class FrmUeber : XtraForm
         MinimumSize = WindowWorkArea.LimitMinimum(new Size(LogicalToDeviceUnits(440), height), WindowWorkArea.GetArea(this));
     }
 
-    private static string FormatLicense(ProductLicenseSnapshot license) => license.Status switch
+    private static string FormatLicense(ProductLicenseSnapshot license) => license switch
     {
-        LicenseStatus.Development => "Lizenz: Entwicklungsmodus",
-        LicenseStatus.Valid when license.ValidUntilUtc is { } until => $"Lizenz: gültig bis {until.LocalDateTime:d}",
-        LicenseStatus.Valid => "Lizenz: gültig",
-        LicenseStatus.Expired => "Lizenz: abgelaufen",
-        LicenseStatus.OnlineCheckRequired => "Lizenz: Online-Prüfung erforderlich",
-        LicenseStatus.Revoked => "Lizenz: gesperrt",
-        LicenseStatus.Missing => "Lizenz: keine Lizenz hinterlegt",
+        { Status: LicenseStatus.Valid, Trial: { } trial } =>
+            $"Demo-Testzeitraum: {DemoTrialService.DurationDays} Tage (Start {trial.StartUtc.LocalDateTime:d}, Ende {trial.EndUtc.LocalDateTime:d}, verbleibende Tage: {trial.RemainingDays})",
+        { Status: LicenseStatus.Development } => "Lizenz: Entwicklungsmodus",
+        { Status: LicenseStatus.Valid, ValidUntilUtc: { } until } => $"Lizenz: gültig bis {until.LocalDateTime:d}",
+        { Status: LicenseStatus.Valid } => "Lizenz: gültig",
+        { Status: LicenseStatus.Expired or LicenseStatus.DemoExpired } => "Lizenz: abgelaufen",
+        { Status: LicenseStatus.OnlineCheckRequired } => "Lizenz: Online-Prüfung erforderlich",
+        { Status: LicenseStatus.Revoked } => "Lizenz: gesperrt",
+        { Status: LicenseStatus.Missing } => "Lizenz: keine Lizenz hinterlegt",
         _ => "Lizenzstatus konnte nicht ermittelt werden."
     };
 

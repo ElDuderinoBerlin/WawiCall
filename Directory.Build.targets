@@ -122,6 +122,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App'">
     <AssemblyMetadata Include="WawiLicenseRequired" Value="$(WawiLicenseRequired)" />
+    <AssemblyMetadata Include="WawiLicenseActivationMode" Value="$(LicenseActivationMode)" />
   </ItemGroup>
   <Target Name="ValidateLexwareProductLine" BeforeTargets="_GenerateRestoreGraphProjectEntry;PrepareForBuild">
     <Error Condition="'$(LexwareProductLine)' != 'Pro' and '$(LexwareProductLine)' != 'FinOffice'"

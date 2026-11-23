@@ -5156,6 +5156,12 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   und einen begrenzten letzten Versuch beim Beenden ergänzt. Bootstrap und Host nutzen dieselbe Queue.
   Berichte bleiben bis zur Bestätigung durch den Server erhalten. Authentifizierung, Unterdrückung
   vertraulicher Inhalte und der Uploadpfad sind mit synthetischer Lizenz und Testtransport geprüft.
+- [x] ✅ Online-Aktivierung über den Quantarix-Lizenznummerndialog mit Wiederholung nach Fehlern,
+  erneuter Eingabe und Abbruch. Offline-Builds prüfen die lokale Lizenz ohne Online-Aktivierung.
+  Demo-Builds prüfen einen 30-Tage-Zeitraum vor dem Hoststart und während des Betriebs. Der Status
+  ist maschinen- und produktgebunden. Profil und HKCU speichern getrennte DPAPI-geschützte Kopien.
+  Erster Start, fehlende Kopie, Fremdprodukt, Manipulation, Zeitrückstellung und Ablauf wurden isoliert
+  geprüft. Der Über-Dialog zeigt den verbleibenden Testzeitraum.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

@@ -11,8 +11,11 @@ using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Licensing;
 
-public enum LicenseStatus { Development, NotChecked, Valid, Missing, Invalid, Expired, OnlineCheckRequired, Revoked, ConfigurationMissing, ServerUnavailable }
-public sealed record ProductLicenseSnapshot(LicenseStatus Status, Guid? LicenseId = null, DateTimeOffset? ValidUntilUtc = null, bool Online = false);
+public enum LicenseStatus { Development, NotChecked, Valid, Missing, Invalid, Expired, OnlineCheckRequired, Revoked, ConfigurationMissing, ServerUnavailable, DemoExpired, DemoInvalid }
+public sealed record ProductLicenseSnapshot(LicenseStatus Status, Guid? LicenseId = null, DateTimeOffset? ValidUntilUtc = null, bool Online = false)
+{
+    public DemoTrialPeriod? Trial { get; init; }
+}
 public sealed class LicenseAccessException(LicenseStatus status) : Exception($"WawiCallPro-Lizenz: {status}.")
 {
     public LicenseStatus Status { get; } = status;
@@ -35,7 +38,7 @@ public interface IProductLicenseService
 /// <summary>Owns one serialized product/profile license context. All server XML is verified before replacing a license.</summary>
 public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProductIdentity product, StartupSettings settings,
     LicenseFileValidator validator, LicenseGuard guard, ILocalLicenseProtector protector, IMachineIdProvider machine,
-    ILicenseServerSessionFactory clients, TimeProvider clock) : IProductLicenseService
+    ILicenseServerSessionFactory clients, TimeProvider clock, DemoTrialService? demoTrial = null) : IProductLicenseService
 {
     private readonly SemaphoreSlim _gate = new(1);
     private string LicenseFile => Path.Combine(paths.RootDirectory, "license", "license.xlic");
@@ -53,6 +56,7 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
 
     private ProductLicenseSnapshot Validate()
     {
+        if (product.Demo) return demoTrial?.Check() ?? new(LicenseStatus.DemoInvalid);
         if (!File.Exists(LicenseFile)) return new(product.Required ? LicenseStatus.Missing : LicenseStatus.Development);
         try
         {
@@ -80,6 +84,7 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
 
     public async Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken cancellationToken)
     {
+        if (product.Demo || !product.OnlineActivation) throw new LicenseAccessException(LicenseStatus.ConfigurationMissing);
         ArgumentException.ThrowIfNullOrWhiteSpace(licenseKey);
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -98,7 +103,13 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
             if (File.Exists(BlockFile)) File.Delete(BlockFile);
             var snapshot = Validate();
             if (snapshot.Status == LicenseStatus.Valid && snapshot.LicenseId == validated.LicenseId)
-                Store(JsonSerializer.Serialize(new StoredSecret(validated.LicenseId, licenseKey)), NumberFile);
+            {
+                try { Store(JsonSerializer.Serialize(new StoredSecret(validated.LicenseId, licenseKey)), NumberFile); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+                {
+                    // The verified license remains usable if the optional local number could not be kept.
+                }
+            }
             return snapshot;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

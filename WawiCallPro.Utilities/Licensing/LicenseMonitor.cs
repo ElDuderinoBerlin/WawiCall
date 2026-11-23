@@ -10,13 +10,13 @@ public sealed class LicenseMonitor(IProductLicenseService licenses, LicenseProdu
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!product.Required || mode.SuppressNetwork) return;
+        if (mode.SuppressNetwork || !product.Required && !product.Demo) return;
         var nextOnlineCheck = clock.GetUtcNow().AddSeconds(settings.LicenseCheckIntervalSeconds);
         using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1), clock);
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
             var snapshot = await licenses.ValidateAsync(stoppingToken).ConfigureAwait(false);
-            if (snapshot.Status is LicenseStatus.Valid or LicenseStatus.Expired or LicenseStatus.OnlineCheckRequired && snapshot.Online
+            if (product.OnlineActivation && snapshot.Status is LicenseStatus.Valid or LicenseStatus.Expired or LicenseStatus.OnlineCheckRequired && snapshot.Online
                 && settings.LicenseServerUrl is not null && (clock.GetUtcNow() >= nextOnlineCheck || snapshot.Status != LicenseStatus.Valid))
             {
                 nextOnlineCheck = clock.GetUtcNow().AddSeconds(settings.LicenseCheckIntervalSeconds);

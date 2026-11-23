@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Licensing;
 using WawiCallPro.Database;
 using WawiCallPro.Database.Contracts;
 
@@ -26,8 +27,13 @@ public static class StartupFailureMessage
     /// <summary>Allowlisted configuration messages are safe to show; all other failures are summarized by type only.</summary>
     public static string Format(Exception exception)
     {
-        if (exception is WawiCallPro.Utilities.Licensing.LicenseAccessException license)
-            return $"Die WawiCallPro-Lizenz konnte nicht bestätigt werden ({license.Status}). Bitte Lizenz oder Lizenzserver-Einrichtung prüfen.";
+        if (exception is LicenseAccessException license)
+            return license.Status switch
+            {
+                LicenseStatus.DemoExpired => "Der 30-Tage-Testzeitraum von WawiCallPro ist abgelaufen.",
+                LicenseStatus.DemoInvalid => "Der Demo-Testzeitraum konnte nicht bestätigt werden. Bitte Windows-Uhrzeit und lokale Testdaten prüfen.",
+                _ => $"Die WawiCallPro-Lizenz konnte nicht bestätigt werden ({license.Status}). Bitte Lizenz oder Lizenzserver-Einrichtung prüfen."
+            };
         var configurationFailure = exception as ConfigurationException;
         if (exception is AggregateException aggregate)
             configurationFailure = aggregate.Flatten().InnerExceptions.OfType<ConfigurationException>().FirstOrDefault();
