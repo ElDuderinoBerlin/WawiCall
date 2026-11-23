@@ -3,10 +3,12 @@ using DevExpress.XtraBars.Navigation;
 using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraGrid.Views.Items;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Plugin.Windows;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Tests;
 
@@ -16,13 +18,26 @@ public sealed partial class AppShellTests
     public Task PluginShellSwitchReplacesRibbonNavigationAndClosesTheOldWorkspace() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var selection = (IProductPluginSelection)workspace.Plugins;
+        var configuration = typeof(MainForm).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var repository = Directory.GetParent(RenderOutput())!.Parent!.Parent!.FullName;
+        var lexwareDirectory = Path.Combine(repository, "WawiCallPro.App", "bin", configuration, "net11.0-windows10.0.19041.0",
+            "plugins", $"WawiCallPro.Plugins.Lexware.{workspace.Application.ProductLine}");
+        await using var lexwarePackage = services.GetRequiredService<IPluginSessionFactory>().CreateTrusted();
+        await ((ISelectedPluginSession)lexwarePackage).LoadSelectedAsync(lexwareDirectory);
+        var productionPlugin = lexwarePackage.GetPlugins().Single();
+        Assert.StartsWith("Lexware ", productionPlugin.Name);
+        var lexwareShell = (IWawiCallPluginShell)productionPlugin;
         IPluginShellUi? borrowed = null;
         plugin.ShellRegistration = ui =>
         {
             borrowed = ui;
-            var dummy = selection.ActivePluginId == "Test.Dummy";
-            ui.RegisterGroup(new("search", dummy ? "Testbetrieb" : "Stammdaten"));
-            ui.RegisterNavigation(new("search", dummy ? "Testkunden suchen" : "Kunden und Lieferanten",
+            if (selection.ActivePluginId != "Test.Dummy")
+            {
+                lexwareShell.RegisterShell(ui);
+                return;
+            }
+            ui.RegisterGroup(new("search", "Testbetrieb"));
+            ui.RegisterNavigation(new("search", "Testkunden suchen",
                 "Geschäftspartnersuche öffnen.", PluginShellIcon.Parties, PluginNavigationTarget.PartySearch));
             ui.RegisterButton(new("search", "search", "search"));
         };
@@ -41,7 +56,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual(BarItemVisibility.Never, Field<BarButtonItem>(main, "partiesItem").Visibility);
         Assert.IsFalse(Field<AccordionControlElement>(main, "partiesNav").Visible);
 
-        var search = Field<List<BarButtonItem>>(main, "_pluginRibbonButtons").Single();
+        var search = Field<List<BarButtonItem>>(main, "_pluginRibbonButtons").Single(button => button.Name == "pluginButton_geschaeftspartner");
         Assert.IsNotNull(search.ImageOptions.SvgImage);
         Assert.IsFalse(string.IsNullOrWhiteSpace(search.Hint));
         search.PerformClick();
@@ -64,7 +79,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual("Test.Dummy", selection.ActivePluginId);
         Assert.IsTrue(firstView.IsDisposed);
         Assert.IsFalse(lexware.IsActive);
-        Assert.IsFalse(main.InvokePluginNavigation(lexware, lexware.Navigation.Single()));
+        Assert.IsFalse(main.InvokePluginNavigation(lexware, lexware.Navigation.Single(entry => entry.Target == PluginNavigationTarget.PartySearch)));
         Assert.AreEqual("Testbetrieb", Field<RibbonPage>(main, "_pluginRibbonPage").Groups[0].Text);
         Assert.AreEqual("Testkunden suchen", Field<List<AccordionControlElement>>(main, "_pluginNavigationItems").Single().Text);
         Assert.AreSame(Field<RibbonPage>(main, "_pluginRibbonPage"), ribbon.SelectedPage);
@@ -84,7 +99,10 @@ public sealed partial class AppShellTests
         Assert.AreEqual("Test.Lexware", selection.ActivePluginId);
         Assert.IsFalse(dummy.IsActive);
         Assert.AreEqual("Stammdaten", Field<RibbonPage>(main, "_pluginRibbonPage").Groups[0].Text);
-        Assert.AreEqual("Kunden und Lieferanten", Field<List<AccordionControlElement>>(main, "_pluginNavigationItems").Single().Text);
+        var lexwareNavigation = Field<List<AccordionControlElement>>(main, "_pluginNavigationItems");
+        CollectionAssert.AreEqual(new[] { "Kunden und Lieferanten suchen",
+            workspace.Application.ProductLine == "Pro" ? "Lexware-Zugang und Mandanten" : "Lexware-Mandanten" },
+            lexwareNavigation.Select(item => item.Text).ToArray());
         Assert.AreEqual(1, ribbon.Pages.Cast<RibbonPage>().Count(entry => entry.Name == "activePluginRibbon"));
         CapturePluginShell(main, workspace.Application.ProductLine, "lexware");
 

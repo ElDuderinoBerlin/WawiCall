@@ -354,7 +354,7 @@ Beim Umschalten verschwinden die Beiträge und Ansichten der alten Sitzung. Der 
 und links in der Navigation die Beiträge der neuen Sitzung an.
 
 - Dummy zeigt „Testkunden suchen“ in der Gruppe „Testbetrieb“.
-- Lexware Pro und FinOffice zeigen „Kunden und Lieferanten“ sowie den Einstieg in ihre Lexware-Einstellungen.
+- Lexware Pro und FinOffice zeigen „Kunden und Lieferanten suchen“ sowie den Einstieg in ihre Lexware-Einstellungen.
 - Die isolierten App-Tests decken den Hin- und Rückwechsel, Ribbon-Klicks, Zurück/Vorwärts,
   ungültige Registrierungen und die Freigabe der alten Sitzung ab. Die Renderprüfung erfasst den Wechsel
   bei unterschiedlichen Fenster- und Schriftgrößen mit hellem und dunklem Skin in beiden Editionen.

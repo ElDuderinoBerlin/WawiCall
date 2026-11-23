@@ -31,7 +31,7 @@ public sealed class LexwarePlugin(
     {
         host.RegisterGroup(new("stammdaten", "Stammdaten"));
         host.RegisterGroup(new("lexware-einrichtung", "Lexware-Einrichtung"));
-        host.RegisterNavigation(new("geschaeftspartner", "Kunden und Lieferanten",
+        host.RegisterNavigation(new("geschaeftspartner", "Kunden und Lieferanten suchen",
             "Kunden und Lieferanten im aktiven Lexware-Plugin suchen.", PluginShellIcon.Parties, PluginNavigationTarget.PartySearch));
         host.RegisterNavigation(new("lexware-einrichtung", "Lexware-Zugang und Mandanten",
             "Den Lexware-Bereich im Einstellungsdialog öffnen.", PluginShellIcon.Settings, PluginNavigationTarget.PluginSettings));
