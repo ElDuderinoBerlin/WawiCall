@@ -141,6 +141,8 @@ public partial class SettingsPage : XtraUserControl
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
         pluginPage.Bind(workspace, _state);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
+        if (workspace.FunctionPlugins is { } functions) functionPluginsPage.Bind(functions);
+        else functionPluginsTab.PageVisible = false;
         numberDiagnosticsPage.Bind(workspace.NumberDiagnostics, _state);
         if (deferInitialBinding)
         {
@@ -169,6 +171,7 @@ public partial class SettingsPage : XtraUserControl
         SetSipPasswordVisibility(false);
         await ClosePluginConnectionEditorAsync();
         await pluginPage.StopAsync();
+        await functionPluginsPage.StopAsync();
         await numberDiagnosticsPage.StopAsync();
         await mailSettingsPage.StopAsync();
     }
@@ -370,7 +373,7 @@ public partial class SettingsPage : XtraUserControl
         }
         try
         {
-            await Task.WhenAll(catalog, LoadAudioDevicesAsync(token), LoadPluginConnectionEditorAsync(token));
+            await Task.WhenAll(catalog, LoadAudioDevicesAsync(token), LoadPluginConnectionEditorAsync(token), functionPluginsPage.LoadAsync(token));
             token.ThrowIfCancellationRequested();
             _settingsLoaded = true;
         }

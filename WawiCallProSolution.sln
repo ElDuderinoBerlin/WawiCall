@@ -6,6 +6,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{74B66E10-C
 		AGENTS.md = AGENTS.md
 		Docs\Neuaufbau-Plan.md = Docs\Neuaufbau-Plan.md
 		Docs\Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md = Docs\Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md
+		Docs\Funktionsplugins.md = Docs\Funktionsplugins.md
 		Docs\COM-Automation-Studie-und-Phasenplan.md = Docs\COM-Automation-Studie-und-Phasenplan.md
 		Docs\COM-Automation-Anleitung.md = Docs\COM-Automation-Anleitung.md
 		Docs\COM-Automation-Phase8-Abnahme.md = Docs\COM-Automation-Phase8-Abnahme.md
@@ -192,6 +193,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Automation", "WawiCallPro.Automation\WawiCallPro.Automation.csproj", "{ECD74D95-9209-4172-A587-A49351566C0B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Automation.Tests", "WawiCallPro.Automation.Tests\WawiCallPro.Automation.Tests.csproj", "{CEC3B718-DFE8-4BD1-A560-B64F4001D7FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Functions.DummyStatus", "WawiCallPro.Functions.DummyStatus\WawiCallPro.Functions.DummyStatus.csproj", "{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Functions.DummyClock", "WawiCallPro.Functions.DummyClock\WawiCallPro.Functions.DummyClock.csproj", "{C8DEA17F-B982-46E9-B770-C71F6668FA1E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -791,6 +796,30 @@ Global
 		{CEC3B718-DFE8-4BD1-A560-B64F4001D7FD}.Release|x64.Build.0 = Release|Any CPU
 		{CEC3B718-DFE8-4BD1-A560-B64F4001D7FD}.Release|x86.ActiveCfg = Release|Any CPU
 		{CEC3B718-DFE8-4BD1-A560-B64F4001D7FD}.Release|x86.Build.0 = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|x64.Build.0 = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Debug|x86.Build.0 = Debug|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|x64.ActiveCfg = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|x64.Build.0 = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|x86.ActiveCfg = Release|Any CPU
+		{CFBE11A8-B6BA-4EDE-97B6-D62CA9A1DAC6}.Release|x86.Build.0 = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|x64.Build.0 = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Debug|x86.Build.0 = Debug|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|x64.ActiveCfg = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|x64.Build.0 = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|x86.ActiveCfg = Release|Any CPU
+		{C8DEA17F-B982-46E9-B770-C71F6668FA1E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -56,6 +56,8 @@
     <ItemGroup>
       <_WawiDeploymentFiles Include="$(TargetDir)**\*">
         <PluginName>$(AssemblyName)</PluginName>
+        <PluginRoot Condition="$([System.String]::Copy('$(AssemblyName)').StartsWith('WawiCallPro.Functions.'))">function-plugins</PluginRoot>
+        <PluginRoot Condition="!$([System.String]::Copy('$(AssemblyName)').StartsWith('WawiCallPro.Functions.'))">plugins</PluginRoot>
       </_WawiDeploymentFiles>
     </ItemGroup>
     <ItemGroup>
@@ -101,17 +103,17 @@
   </Target>
   <Target Name="DeployWawiPlugins" AfterTargets="Build" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <ItemGroup>
-      <_WawiPluginProject Include="@(ProjectReference)" Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('WawiCallPro.Plugins.'))" />
+      <_WawiPluginProject Include="@(ProjectReference)" Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('WawiCallPro.Plugins.')) or $([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('WawiCallPro.Functions.'))" />
     </ItemGroup>
     <MSBuild Projects="@(_WawiPluginProject)" Targets="GetWawiPluginDeploymentFiles" RemoveProperties="TargetFramework;RuntimeIdentifier;SelfContained;PublishDir" Properties="Configuration=$(Configuration);LexwareProductLine=$(LexwareProductLine)">
       <Output TaskParameter="TargetOutputs" ItemName="_WawiPluginFiles" />
     </MSBuild>
-    <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(TargetDir)plugins\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(TargetDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
     <Delete Files="@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
     <Delete Files="@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
   </Target>
   <Target Name="PublishWawiPlugins" AfterTargets="Publish" DependsOnTargets="DeployWawiPlugins" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
-    <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(PublishDir)plugins\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(PublishDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
     <Delete Files="@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
     <Delete Files="@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
   </Target>

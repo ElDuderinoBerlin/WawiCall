@@ -51,6 +51,10 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
                 services.AddAppStartupServices(mode);
                 services.AddProductPluginRuntime();
+                services.AddSingleton(new FunctionPluginLocation(Path.Combine(AppContext.BaseDirectory, "function-plugins")));
+                services.AddSingleton<FunctionPluginRuntime>();
+                services.AddSingleton<IFunctionPluginRuntime>(provider => provider.GetRequiredService<FunctionPluginRuntime>());
+                services.AddHostedService(provider => provider.GetRequiredService<FunctionPluginRuntime>());
                 services.AddSingleton<WindowsSipMediaSessionFactory>();
                 services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
                 services.AddAudioConversion();

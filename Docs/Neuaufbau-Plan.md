@@ -1987,6 +1987,10 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
   zwischen Dummy und Lexware in Pro und FinOffice mit Austausch der Einträge, Schließen der alten
   Plugin-Ansicht und Nutzung der bestehenden Vor-/Zurück-Navigation.
   [Plugin-UI-Plan](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md)
+- [x] ✅ Mehrere Funktionsplugins parallel zum Wawi-Plugin aktivieren und ausführen. Zwei mitgelieferte
+  Dummy-Funktionen und eine [Anleitung zur Registrierung und Bereitstellung](Funktionsplugins.md).
+  Isolierte App-Prüfung für gemeinsames Aktivieren, Ausführen, Wawi-Hin- und Rückwechsel, Profil-Neustart
+  und gezieltes Deaktivieren. Die Designerprüfung umfasst jetzt 30 Oberflächen.
 
 #### SIP-Profile – Zusatzauftrag vom 22.11.2026 ✅
 

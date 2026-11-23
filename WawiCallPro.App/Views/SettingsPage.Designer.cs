@@ -48,6 +48,8 @@ partial class SettingsPage
         mailTab = new DevExpress.XtraTab.XtraTabPage();
         mailSettingsPage = new WawiCallPro.App.Views.MailSettingsPage();
         pluginTab = new DevExpress.XtraTab.XtraTabPage();
+        functionPluginsTab = new DevExpress.XtraTab.XtraTabPage();
+        functionPluginsPage = new FunctionPluginsPage();
         pluginPage = new WawiCallPro.App.Views.PluginPage();
         wawiTab = new DevExpress.XtraTab.XtraTabPage();
         wawiLayout = new System.Windows.Forms.TableLayoutPanel();
@@ -188,6 +190,12 @@ partial class SettingsPage
         generalTab.Text = "Allgemein";
         tabs.TabPages.Add(generalTab);
         tabs.TabPages.Add(pluginTab);
+        functionPluginsTab.Text = "Funktionsplugins";
+        functionPluginsTab.Name = "functionPluginsTab";
+        functionPluginsPage.Name = "functionPluginsPage";
+        functionPluginsPage.Dock = System.Windows.Forms.DockStyle.Fill;
+        functionPluginsTab.Controls.Add(functionPluginsPage);
+        tabs.TabPages.Add(functionPluginsTab);
         wawiTab.Name = "wawiTab";
         wawiTab.Text = "Zugang";
         wawiTab.AutoScroll = true;
@@ -1234,6 +1242,8 @@ partial class SettingsPage
     private System.Windows.Forms.TableLayoutPanel layout;
     private DevExpress.XtraTab.XtraTabControl tabs;
     private DevExpress.XtraTab.XtraTabPage pluginTab;
+    private DevExpress.XtraTab.XtraTabPage functionPluginsTab;
+    private FunctionPluginsPage functionPluginsPage;
     private WawiCallPro.App.Views.PluginPage pluginPage;
     private DevExpress.XtraEditors.SimpleButton saveButton;
     private System.Windows.Forms.TableLayoutPanel footer;

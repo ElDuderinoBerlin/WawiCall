@@ -49,7 +49,8 @@ public sealed class AppWorkspace(
     MailApplication mail,
     ILogger<AppWorkspace>? settingsLogger,
     WawiCallPro.Audio.IHistoryRecordingPlayback? recordingPlayback = null,
-    HistoryRecordingFiles? recordingFiles = null)
+    HistoryRecordingFiles? recordingFiles = null,
+    WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? functionPlugins = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
@@ -68,6 +69,7 @@ public sealed class AppWorkspace(
     public IDatabaseSetupService DatabaseSetup { get; } = databaseSetup;
     public IBusinessDirectory Directory { get; } = directory;
     public IProductPluginRuntime Plugins { get; } = plugins;
+    public WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? FunctionPlugins { get; } = functionPlugins;
     public bool CanUseBusinessDirectory => Plugins.IsLoaded && (Plugins is not IProductPluginAvailability availability || availability.CanUseActivePlugin);
     public CompanyContext Companies { get; } = companies;
     public ICallHistoryService History { get; } = history;
