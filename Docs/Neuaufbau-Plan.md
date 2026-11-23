@@ -4,6 +4,14 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ Gesprächshistorie mit festen Grid-Spalten und automatischem Laden beim Öffnen. Die Einträge
+kommen über den bestehenden Historiendienst aus der Kommunikationsdatenbank. Beginn, Richtung,
+Rufnummer, Zustand und Dauer stehen auch bei leerem Zeitraum als Spalten bereit. Die technische ID
+bleibt verborgen. Das Spaltenlayout startet mit dem neuen Registry-Schlüssel `CallHistory-v2`.
+Debug/Any CPU für Pro und FinOffice ohne Warnungen gebaut. Automatisches Laden über das Hauptfenster,
+gefilterte Zeiträume mit bis zu 501 Einträgen, Details und Notizspeicherung mit isolierter SQLite
+geprüft. Leere und gefüllte Ansicht bei unterschiedlichen Schriftgrößen und Skins gerendert.
+
 ✅ Lexware-Tab bündig ausgerichtet. Die TableLayoutPanels der Mandantenauswahl und des Pro-Zugangs
 verwenden eine gemeinsame Eingabekante und gleich breite, adaptive Felder bis 300 logische Pixel.
 DPI-/Schriftskalierung, helle und dunkle Darstellung und die gemeinsame Eingabekante geprüft.

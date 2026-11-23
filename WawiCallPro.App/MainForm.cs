@@ -149,6 +149,7 @@ public partial class MainForm : RibbonForm
         _documents.Add(id, document);
         ActivateDocument(document);
         AppendOutput(caption + " geöffnet.");
+        if (content is HistoryPage historyPage) _ = historyPage.LoadAsync();
     }
 
     internal async Task OpenPartyAsync(PartyKey party, CancellationToken token = default)

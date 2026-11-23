@@ -38,11 +38,8 @@ public partial class HistoryPage : XtraUserControl
         _binding = true;
         try
         {
-            grid.DataSource = new[] { new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
-                call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call), "") };
+            grid.DataSource = new[] { ToRow(call) };
             grid.ForceInitialize();
-            if (view.Columns[nameof(HistoryRow.Id)] is { } identity) identity.Visible = false;
-            _state?.Restore(view, "CallHistory");
             view.FocusedRowHandle = 0;
         }
         finally { _binding = false; }
@@ -51,6 +48,7 @@ public partial class HistoryPage : XtraUserControl
     public HistoryPage()
     {
         InitializeComponent();
+        grid.DataSource = Array.Empty<HistoryRow>();
         UiButtonSizing.Attach(this);
         fromEdit.DateTime = DateTime.Today.AddDays(-30);
         toEdit.DateTime = DateTime.Today;
@@ -75,6 +73,7 @@ public partial class HistoryPage : XtraUserControl
             fromEdit.MinimumSize = toEdit.MinimumSize = new Size(editorWidth, 0);
             UiButtonSizing.Apply(refreshButton);
             UiButtonSizing.Apply(saveNoteButton);
+            FitColumns();
             var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal + editorWidth + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;
             var toWidth = toLabel.GetPreferredSize(Size.Empty).Width + toLabel.Margin.Horizontal + editorWidth + toEdit.Margin.Horizontal + toGroup.Margin.Horizontal;
             var required = fromWidth + toWidth + refreshButton.GetPreferredSize(Size.Empty).Width + LogicalToDeviceUnits(8);
@@ -97,10 +96,29 @@ public partial class HistoryPage : XtraUserControl
         }
         finally { filters.ResumeLayout(true); _arranging = false; }
     }
+    private void FitColumns()
+    {
+        SetMinimum(startedColumn, new DateTime(2000, 12, 28, 23, 59, 0).ToString("g"));
+        SetMinimum(directionColumn, "Ausgehend");
+        SetMinimum(numberColumn, "+49 30 123456789");
+        SetMinimum(stateColumn, "Verbunden");
+        SetMinimum(durationColumn, "00:00:00");
+
+        void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
+        {
+            var header = TextRenderer.MeasureText(column.Caption, view.Appearance.HeaderPanel.Font).Width;
+            var cell = TextRenderer.MeasureText(sample, view.Appearance.Row.Font).Width;
+            column.MinWidth = Math.Max(header, cell) + LogicalToDeviceUnits(24);
+            if (column.Width < column.MinWidth) column.Width = column.MinWidth;
+        }
+    }
+
     internal void Bind(AppWorkspace workspace, AppUiState? state)
     {
         _state = state;
         BindHistory(workspace.History, workspace.CallNotes);
+        _state?.Restore(view, "CallHistory-v2");
+        FitColumns();
     }
     public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
     private void BindHistory(ICallHistoryService history, CallNotesSessionFactory notesFactory)
@@ -125,7 +143,7 @@ public partial class HistoryPage : XtraUserControl
         foreach (var notes in _notes.Values) { notes.Changed -= Notes_Changed; notes.Dispose(); }
         _notes.Clear(); _activeNotes = null;
         _operation?.Dispose();
-        if (view.Columns.Count != 0) _state?.Save(view, "CallHistory");
+        if (view.Columns.Count != 0) _state?.Save(view, "CallHistory-v2");
     }
 
     private async Task LoadCallsAsync(CancellationToken token)
@@ -162,11 +180,7 @@ public partial class HistoryPage : XtraUserControl
             detailsEdit.Text = "";
             ActivateNotes(null);
             saveNoteButton.Enabled = false;
-            grid.DataSource = calls.Select(call => new HistoryRow(call.Id, call.StartedAtUtc.LocalDateTime,
-                call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
-                call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "")).ToArray();
-            view.Columns[nameof(HistoryRow.Id)].Visible = false;
-            _state?.Restore(view, "CallHistory");
+            grid.DataSource = calls.Select(ToRow).ToArray();
             if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
                 view.FocusedRowHandle = handle;
             statusLabel.Text = calls.Count == 0 ? "Keine Gespräche im gewählten Zeitraum." : $"{calls.Count} Gespräche · Alle Mandanten. Zeiten werden lokal angezeigt.";
@@ -175,11 +189,10 @@ public partial class HistoryPage : XtraUserControl
         await LoadFocusedDetailsAsync(token);
     }
 
-    private async void Refresh_Click(object? sender, EventArgs e)
-    {
-        if (_operation is null || _operation.IsRunning) return;
-        await _operation.RunAsync(LoadCallsAsync);
-    }
+    internal Task LoadAsync() => _operation?.RunAsync(LoadCallsAsync) ?? Task.CompletedTask;
+
+    private async void Refresh_Click(object? sender, EventArgs e) => await LoadAsync();
+
     private async void View_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e)
     {
         if (_binding || _operation is null) return;
@@ -315,6 +328,10 @@ public partial class HistoryPage : XtraUserControl
             UpdateNotes();
         });
     }
+
+    private static HistoryRow ToRow(CallSnapshot call) => new(call.Id, call.StartedAtUtc.LocalDateTime,
+        call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
+        call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "");
 
     private static string DisplayNumber(CallAddress address) => address.Presentation == NumberPresentation.Withheld ? "Unterdrückt" : address.OriginalValue ?? address.E164 ?? "Unbekannt";
     private static string StateName(CallState state) => state switch { CallState.Created => "Angelegt", CallState.Dialing => "Wählt", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" };

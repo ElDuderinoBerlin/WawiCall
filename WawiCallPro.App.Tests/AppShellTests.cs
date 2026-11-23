@@ -3298,9 +3298,13 @@ public sealed partial class AppShellTests
             LocalAddress = new(NumberPresentation.Available, "100"), RemoteAddress = new(NumberPresentation.Available, "+49301234567"),
             StartedAtUtc = now, StateChangedAtUtc = now
         });
-        using var history = new HistoryPage(); history.Bind(workspace, services.GetRequiredService<AppUiState>());
-        await InvokeActionAsync(history, "Refresh_Click");
-        Assert.AreEqual(1, ((Array)Field<GridControl>(history, "grid").DataSource).Length);
+        database.Navigate("history");
+        var history = ((Panel)Field<Dictionary<string, DevExpress.XtraBars.Docking2010.Views.BaseDocument>>(database, "_documents")
+            ["history"].Control).Controls.OfType<HistoryPage>().Single();
+        await WaitForOperationAsync(history);
+        var historyView = Field<DevExpress.XtraGrid.Views.Grid.GridView>(history, "view");
+        Assert.AreEqual(1, historyView.DataRowCount);
+        Assert.AreEqual("+49301234567", historyView.GetRowCellValue(0, "Rufnummer"));
         Assert.Contains("+49301234567", Field<MemoEdit>(history, "detailsEdit").Text);
         Field<MemoEdit>(history, "noteEdit").Text = "Isolierte UI-Notiz";
         await InvokeActionAsync(history, "SaveNote_Click");
@@ -3364,6 +3368,9 @@ public sealed partial class AppShellTests
                     await InvokeActionAsync(page, "Refresh_Click");
                     Assert.AreEqual(populated ? 501 : 0, ((Array)Field<GridControl>(page, "grid").DataSource).Length);
                     var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
+                    CollectionAssert.AreEqual(new[] { "Beginn", "Richtung", "Rufnummer", "Zustand", "Dauer" },
+                        view.VisibleColumns.Select(column => column.FieldName).ToArray());
+                    Assert.AreEqual(populated ? 501 : 0, view.DataRowCount);
                     Assert.AreEqual("Bis", Field<LabelControl>(page, "toLabel").Text);
                     Assert.IsFalse(view.OptionsFind.AlwaysVisible);
                     Assert.IsFalse(view.IsFindPanelVisible);
