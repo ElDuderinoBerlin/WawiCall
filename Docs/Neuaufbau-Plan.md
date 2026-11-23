@@ -3569,6 +3569,16 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   In der gemeinsamen G1-Abnahme ein echtes ein- und ausgehendes Gespräch mit aktivierter Option prüfen.
   Bei beiden die Wiedergabe der zwei Stimmen kontrollieren. Anschließend beim nächsten Gespräch die
   deaktivierte Option prüfen und einen Gerätewechsel während der Aufnahme nachvollziehen.
+- [x] ✅ Verständliche Start- und SIP-Warnungen für die G1-Fortsetzung (23.11.2026).
+  Pro 0.1.292 meldete ausstehende Konvertierungsabschlüsse, obwohl keine Aufträge oder Abschlussdateien
+  vorhanden waren. Die lesend geprüfte lokale Kommunikationsdatenbank stand auf 14. Der Build
+  erwartete 15. Die Startprüfung unterscheidet jetzt eine erforderliche Schemamigration, eine neuere
+  beziehungsweise nicht betriebsbereite Datenbank und tatsächlich betroffene Konvertierungsaufträge.
+  Der SIP-Anmeldeschritt meldet fehlende Datenbankvoraussetzungen getrennt von Transport- und
+  Anmeldefehlern. Nach erfolgreichem Speichern erscheint dafür keine allgemeine Einstellungen-Warnung.
+  In Pro und FinOffice je 22 App-, 61 Wiederanlauf-/Logging- und 6 SIP-Prüfungen bestanden.
+  Pro 0.1.293 zeigte am regulären Profil die Schema-Warnung mit Menüpfad im Startlog.
+  Das Schema-Update und die echte SIP-Anmeldung stehen für die gemeinsame G1-Prüfung noch aus.
 - [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
   **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
   Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;

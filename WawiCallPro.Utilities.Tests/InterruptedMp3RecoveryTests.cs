@@ -38,7 +38,10 @@ public sealed class InterruptedMp3RecoveryTests
         Assert.AreEqual(before, await ready.Jobs.GetAsync(ready.Pair.Conversion.Job.Id));
         Assert.AreEqual(ready.Pair.Target, await ready.File.Artifacts.GetAsync(ready.Pair.Target.Artifact.Id));
         if (guard == "output") CollectionAssert.AreEqual(new byte[] { 31, 37 }, File.ReadAllBytes(ready.Output));
-        if (guard is not ("foreign" or "live")) CollectionAssert.Contains(log.Events, OperationEvent.RecordingConversionRecoveryIncomplete);
+        if (guard == "identity")
+            CollectionAssert.AreEqual(new[] { OperationEvent.RecordingConversionWorkstationMissing }, log.Events);
+        else if (guard is not ("foreign" or "live"))
+            CollectionAssert.Contains(log.Events, OperationEvent.RecordingConversionRecoveryIncomplete);
     }
 
     [TestMethod]

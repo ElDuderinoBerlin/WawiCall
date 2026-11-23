@@ -67,7 +67,18 @@ public enum OperationEvent
     LiveRecordingInputFailed,
     LiveRecordingStorageFailed,
     LiveRecordingUnavailable,
-    LiveRecordingFailed
+    LiveRecordingFailed,
+    RecordingConversionSchemaUpdateRequired,
+    RecordingConversionNewerSchema,
+    RecordingConversionDatabaseUnavailable,
+    RecordingConversionCheckFailed,
+    RecordingConversionWorkstationMissing,
+    SipRegistrationDatabaseNotReady,
+    SipRegistrationAccountMissing,
+    SipRegistrationAccountInUse,
+    SipRegistrationRetry,
+    SipRegistrationFailed,
+    SipRegistrationConnectionFailed
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -88,7 +99,13 @@ public static class OperationEvents
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
             or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete
             or OperationEvent.LiveRecordingSignalMissing or OperationEvent.LiveRecordingInputFailed
-            or OperationEvent.LiveRecordingStorageFailed or OperationEvent.LiveRecordingUnavailable or OperationEvent.LiveRecordingFailed ? LogLevel.Warning
+            or OperationEvent.LiveRecordingStorageFailed or OperationEvent.LiveRecordingUnavailable or OperationEvent.LiveRecordingFailed
+            or OperationEvent.RecordingConversionSchemaUpdateRequired or OperationEvent.RecordingConversionNewerSchema
+            or OperationEvent.RecordingConversionDatabaseUnavailable or OperationEvent.RecordingConversionCheckFailed
+            or OperationEvent.RecordingConversionWorkstationMissing
+            or OperationEvent.SipRegistrationDatabaseNotReady or OperationEvent.SipRegistrationAccountMissing
+            or OperationEvent.SipRegistrationAccountInUse or OperationEvent.SipRegistrationRetry
+            or OperationEvent.SipRegistrationFailed or OperationEvent.SipRegistrationConnectionFailed ? LogLevel.Warning
             : exception is null ? LogLevel.Information : LogLevel.Error;
         logger.Log(level, new EventId((int)operation), new SafeOperationRecord(operation), exception, static (record, _) => record.Event.ToString());
     }

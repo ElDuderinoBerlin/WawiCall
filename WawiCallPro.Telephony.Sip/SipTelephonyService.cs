@@ -9,6 +9,7 @@ using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Security;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Telephony.Sip;
 
@@ -603,7 +604,11 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     private void SetRegistration(RegistrationState state, string? code = null)
     {
         if (state == RegistrationState.Registered) Volatile.Write(ref _failure, null);
-        if (code is not null) Failure(code);
+        if (code is not null)
+        {
+            Volatile.Write(ref _failure, code);
+            OperationEvents.Write(_log, SipRegistrationMessages.ForCode(code));
+        }
         lock (_gate) _registration = new(state, _clock.GetUtcNow(), code) { SipProfileId = state == RegistrationState.Stopped ? null : _sipProfileId };
         Publish(RegistrationChanged, new(Registration));
     }

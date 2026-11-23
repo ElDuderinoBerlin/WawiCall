@@ -2,6 +2,7 @@ using WawiCallPro.Interfaces.Telephony;
 using DevExpress.XtraEditors.Controls;
 using DevExpress.Utils.Svg;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.App.Views;
 
@@ -60,7 +61,14 @@ public partial class SettingsPage
                     SetSipPasswordVisibility(false);
                 }
             }
-            await _workspace.TelephonyConnection.ConnectAsync(token);
+            try { await _workspace.TelephonyConnection.ConnectAsync(token); }
+            catch (TelephonyException error)
+            {
+                // The backend already logged the registration failure. Keep the reason beside the SIP controls.
+                UpdateSipStatus();
+                sipStatus.Text = SipRegistrationMessages.Get(SipRegistrationMessages.ForCode(error.Code));
+                return;
+            }
             UpdateSipStatus();
         });
     }
@@ -91,10 +99,8 @@ public partial class SettingsPage
         {
             RegistrationState.Registering => "Anmeldung läuft …",
             RegistrationState.Registered => "Angemeldet",
-            RegistrationState.Reconnecting => "Verbindung unterbrochen; erneute Anmeldung …",
-            RegistrationState.Failed when registration?.ErrorCode == "DatabaseNotReady" =>
-                "Anmeldung nicht gestartet: Kommunikationsdatenbank und Arbeitsplatz prüfen.",
-            RegistrationState.Failed => "Anmeldung fehlgeschlagen. Konto und Verbindung prüfen.",
+            RegistrationState.Reconnecting => SipRegistrationMessages.Get(OperationEvent.SipRegistrationRetry),
+            RegistrationState.Failed => SipRegistrationMessages.Get(SipRegistrationMessages.ForCode(registration?.ErrorCode ?? "RegistrationFailed")),
             _ => "Nicht angemeldet"
         };
         if (state is RegistrationState.Registered or RegistrationState.Registering or RegistrationState.Reconnecting)

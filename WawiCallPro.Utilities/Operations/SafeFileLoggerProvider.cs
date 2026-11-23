@@ -46,13 +46,14 @@ public sealed class SafeFileLoggerProvider : ILoggerProvider
         if (_settings.IsEnabledForCategory(level, category))
         {
             // Only allowlisted metadata enters Serilog. It never receives foreign state, scopes or exceptions.
-            _serilog.Write(new LogEvent(DateTimeOffset.Now, RuntimeLoggingSettings.ToSerilog(level), null, SettingsMessages.Get(operation) is null ? Template : new MessageTemplateParser().Parse("{StatusMessage}"),
+            var statusMessage = SettingsMessages.Get(operation) ?? RecordingConversionMessages.Get(operation) ?? SipRegistrationMessages.Get(operation);
+            _serilog.Write(new LogEvent(DateTimeOffset.Now, RuntimeLoggingSettings.ToSerilog(level), null, statusMessage is null ? Template : new MessageTemplateParser().Parse("{StatusMessage}"),
             [
                 new LogEventProperty("Event", new ScalarValue(operation.ToString())),
                 new LogEventProperty("EventId", new ScalarValue(id.Id)),
                 new LogEventProperty("Level", new ScalarValue(level.ToString())),
                 new LogEventProperty("ExceptionType", new ScalarValue(exception?.GetType().Name)),
-                new LogEventProperty("StatusMessage", new ScalarValue(SettingsMessages.Get(operation)))
+                new LogEventProperty("StatusMessage", new ScalarValue(statusMessage))
             ]));
         }
         // Failure propagation is independent of the selected display/file threshold, including None.

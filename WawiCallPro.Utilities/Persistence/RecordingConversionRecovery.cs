@@ -20,10 +20,12 @@ public sealed class RecordingConversionRecovery(IRecordingConversionOutbox pendi
     public async Task<RecordingConversionRecoveryResult> RecoverAsync(CancellationToken cancellationToken = default)
     {
         var delivered = 0; var deferred = 0; var failed = 0;
+        var pendingCount = 0;
         try
         {
             cancellationToken.ThrowIfCancellationRequested(); var entries = pending.GetPending();
-            if (entries.Count == 0) return new(0, 0, 0);
+            pendingCount = entries.Count;
+            if (pendingCount == 0) return new(0, 0, 0);
             var local = await workstation.GetAsync(cancellationToken).ConfigureAwait(false);
             if (local is null) deferred = entries.Count;
             else foreach (var id in entries)
@@ -54,7 +56,8 @@ public sealed class RecordingConversionRecovery(IRecordingConversionOutbox pendi
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception) { failed++; }
-        if (deferred > 0 || failed > 0) OperationEvents.Write(log, OperationEvent.RecordingConversionRecoveryIncomplete);
+        if (deferred > 0 || failed > 0)
+            OperationEvents.Write(log, pendingCount == 0 ? OperationEvent.RecordingConversionCheckFailed : OperationEvent.RecordingConversionRecoveryIncomplete);
         return new(delivered, deferred, failed);
     }
 }

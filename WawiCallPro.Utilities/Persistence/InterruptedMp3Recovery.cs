@@ -22,18 +22,18 @@ public sealed class InterruptedMp3Recovery(IInterruptedRecordingConversionQuery 
     private const int MaximumPerPass = 4096;
     public async Task<InterruptedMp3RecoveryResult> RecoverAsync(CancellationToken cancellationToken = default)
     {
-        var recovered = 0; var deferred = 0; var failed = 0; var hasMore = false;
+        var recovered = 0; var deferred = 0; var failed = 0; var visited = 0; var hasMore = false;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var local = await workstation.GetAsync(cancellationToken).ConfigureAwait(false);
             if (local is null)
             {
-                OperationEvents.Write(log, OperationEvent.RecordingConversionRecoveryIncomplete);
+                OperationEvents.Write(log, OperationEvent.RecordingConversionWorkstationMissing);
                 return new(0, 1, 0);
             }
             _ = pending.GetPending(); // Malformed protected storage must not look empty.
-            Guid? after = null; var visited = 0;
+            Guid? after = null;
             while (true)
             {
                 var page = await candidates.GetPageAsync(local.Value, after, Math.Min(100, MaximumPerPass - visited), cancellationToken).ConfigureAwait(false);
@@ -79,7 +79,8 @@ public sealed class InterruptedMp3Recovery(IInterruptedRecordingConversionQuery 
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception) { failed++; }
         if (recovered > 0) OperationEvents.Write(log, OperationEvent.RecordingConversionInterrupted);
-        if (deferred > 0 || failed > 0 || hasMore) OperationEvents.Write(log, OperationEvent.RecordingConversionRecoveryIncomplete);
+        if (deferred > 0 || failed > 0 || hasMore)
+            OperationEvents.Write(log, visited == 0 ? OperationEvent.RecordingConversionCheckFailed : OperationEvent.RecordingConversionRecoveryIncomplete);
         return new(recovered, deferred, failed, hasMore);
     }
 }

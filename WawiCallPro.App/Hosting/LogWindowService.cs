@@ -49,7 +49,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
         {
             if (!IsEnabled(logLevel)) return;
             var operation = OperationEvents.TryGetEvent(state, out var value) ? value : OperationEvent.FrameworkMessage;
-            if (SettingsMessages.Get(operation) is { } status)
+            if ((SettingsMessages.Get(operation) ?? RecordingConversionMessages.Get(operation) ?? SipRegistrationMessages.Get(operation)) is { } status)
             { logs.Append(logLevel, status); return; }
             var message = operation switch
             {
@@ -71,7 +71,6 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.RecordingArtifactAuditIncomplete => "Der Abgleich der Aufnahme-Dateien konnte nicht vollständig bestätigt werden. Betroffene Einträge und ausstehende Abschlussaufträge bleiben zur erneuten Prüfung erhalten.",
                 OperationEvent.RecordingDirectoryReviewRequired => "Im Aufnahmeordner wurden Dateien ohne Zuordnung im lokalen Datenbankstand, temporäre Dateien oder übersprungene Verknüpfungen gefunden. Sie können zu laufenden Aufnahmen oder anderen Arbeitsplätzen gehören und müssen geprüft werden. Dateien wurden weder übernommen noch gelöscht.",
                 OperationEvent.RecordingDirectoryInventoryIncomplete => "Die Bestandsaufnahme des Aufnahmeordners konnte nicht vollständig durchgeführt werden. Eine vollständige Zuordnung der Dateien ist damit nicht bestätigt. Die Bestandsaufnahme verändert keine Dateien oder Datenbankeinträge.",
-                OperationEvent.RecordingConversionRecoveryIncomplete => "Ausstehende Konvertierungsabschlüsse konnten nicht vollständig bestätigt werden. Aufträge und Dateien bleiben für eine erneute Prüfung erhalten.",
                 OperationEvent.RecordingConversionInterrupted => "Unterbrochene Aufnahmekonvertierungen wurden als fehlgeschlagen markiert. Die WAV-Aufnahmen und vorhandene temporäre Dateien bleiben erhalten.",
                 OperationEvent.RecordingConversionQueueIncomplete => "Die Konvertierungswarteschlange konnte nicht alle Aufträge abschließen. Nicht gestartete Aufträge und geschützte Abschlüsse bleiben erhalten; fehlgeschlagene Aufträge werden nicht automatisch erneut eingereiht.",
                 OperationEvent.LiveRecordingSignalMissing => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.SignalMissing),

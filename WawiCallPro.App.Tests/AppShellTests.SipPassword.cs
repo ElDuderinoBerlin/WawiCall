@@ -28,7 +28,9 @@ public partial class AppShellTests
         await InvokeActionAsync(page, "SipConnect_Click");
         Application.DoEvents();
         var status = Field<LabelControl>(page, "sipStatus");
-        Assert.AreEqual("Anmeldung nicht gestartet: Kommunikationsdatenbank und Arbeitsplatz prüfen.", status.Text);
+        StringAssert.Contains(status.Text, "Die SIP-Anmeldung wurde nicht gestartet");
+        StringAssert.Contains(status.Text, "Datenbank → Datenbank einrichten");
+        Assert.AreNotEqual(WawiCallPro.Utilities.Operations.SettingsMessages.Get(WawiCallPro.Utilities.Operations.OperationEvent.SettingsFailed), page.LastSettingsNoticeText);
         Assert.AreEqual("isolated-database-test-secret", password.Text);
         Assert.IsTrue(password.Properties.UseSystemPasswordChar);
         Assert.IsTrue(Field<SimpleButton>(page, "sipConnectButton").Enabled);

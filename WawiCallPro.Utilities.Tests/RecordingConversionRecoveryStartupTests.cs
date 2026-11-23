@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using WawiCallPro.Database;
 using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Utilities.Persistence;
 
@@ -64,18 +65,49 @@ public sealed class RecordingConversionRecoveryStartupTests
         await worker.StartAsync(default); await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.AreEqual(state == "ready" ? 1 : 0, queue.Requests);
     }
+    [TestMethod]
+    [DataRow(DatabaseSchemaState.MigrationRequired, OperationEvent.RecordingConversionSchemaUpdateRequired)]
+    [DataRow(DatabaseSchemaState.NewerSchema, OperationEvent.RecordingConversionNewerSchema)]
+    [DataRow(DatabaseSchemaState.MissingDatabase, OperationEvent.RecordingConversionDatabaseUnavailable)]
+    [DataRow(DatabaseSchemaState.ConnectionFailed, OperationEvent.RecordingConversionDatabaseUnavailable)]
+    public async Task AnUnreadyDatabaseReportsItsCauseWithoutCheckingForPendingJobs(DatabaseSchemaState state, OperationEvent expected)
+    {
+        var log = new StartupLog(expected);
+        var queue = new Queue(() => Assert.Fail("An unready database cannot start conversions."));
+        await using var worker = new RecordingConversionRecoveryStartup(
+            new Recovery(_ => throw new AssertFailedException("Recovery must not touch the outbox.")), log,
+            new Interrupted(_ => throw new AssertFailedException("Recovery must not query recording jobs.")), queue, new Database(state));
+        await worker.StartAsync(default);
+        await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreEqual(1, log.Warnings);
+        Assert.AreEqual(0, queue.Requests);
+    }
+
+    private sealed class Database(DatabaseSchemaState state) : ICommunicationDatabase
+    {
+        public Task<DatabaseMigrationStatus> GetStatusAsync(CancellationToken token = default) =>
+            Task.FromResult(new DatabaseMigrationStatus(DatabaseType.Sqlite, state, [14], [15], 15));
+
+        public Task<DatabaseMigrationStatus> CreateAndMigrateAsync(IProgress<DatabaseMigrationProgress>? progress = null, CancellationToken token = default) =>
+            throw new AssertFailedException("Startup checks must not change the database.");
+        public Task<DatabaseMigrationStatus> MigrateAsync(bool approveEmpty = false, IProgress<DatabaseMigrationProgress>? progress = null, CancellationToken token = default) =>
+            throw new AssertFailedException("Startup checks must not change the database.");
+        public Task BackupSqliteAsync(string destination, CancellationToken token = default) => throw new NotSupportedException();
+        public Task RestoreSqliteNewAsync(string backup, CancellationToken token = default) => throw new NotSupportedException();
+    }
+
     private sealed class Queue(Action requested) : IRecordingConversionQueue
     { internal int Requests; public void Request() { requested(); Requests++; } }
     private sealed class Interrupted(Func<CancellationToken, Task<InterruptedMp3RecoveryResult>> recover) : IInterruptedMp3Recovery
     { public Task<InterruptedMp3RecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
     private sealed class Recovery(Func<CancellationToken, Task<RecordingConversionRecoveryResult>> recover) : IRecordingConversionRecovery
     { public Task<RecordingConversionRecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
-    private sealed class StartupLog : ILogger<RecordingConversionRecoveryStartup>
+    private sealed class StartupLog(OperationEvent expected = OperationEvent.RecordingConversionCheckFailed) : ILogger<RecordingConversionRecoveryStartup>
     {
         internal int Warnings;
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel level) => true;
         public void Log<TState>(LogLevel level, EventId id, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        { Assert.IsNull(exception); Assert.IsTrue(OperationEvents.TryGetEvent(state, out var operation)); Assert.AreEqual(OperationEvent.RecordingConversionRecoveryIncomplete, operation); Warnings++; }
+        { Assert.IsNull(exception); Assert.IsTrue(OperationEvents.TryGetEvent(state, out var operation)); Assert.AreEqual(expected, operation); Warnings++; }
     }
 }
