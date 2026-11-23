@@ -49,6 +49,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
         {
             if (!IsEnabled(logLevel)) return;
             var operation = OperationEvents.TryGetEvent(state, out var value) ? value : OperationEvent.FrameworkMessage;
+            if (operation == OperationEvent.PluginMessage && logLevel < LogLevel.Warning) return;
             if ((SettingsMessages.Get(operation) ?? RecordingConversionMessages.Get(operation) ?? SipRegistrationMessages.Get(operation)) is { } status)
             { logs.Append(logLevel, status); return; }
             var message = operation switch
@@ -62,7 +63,8 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.UiFailed => "Eine Oberflächenaktion ist fehlgeschlagen.",
                 OperationEvent.CancellationRequested => "Abbruch angefordert.",
                 OperationEvent.ShutdownDeadlineExceeded => "Das Beenden dauert länger als vorgesehen.",
-                OperationEvent.PluginMessage => "Meldung aus der Plugin-Laufzeit.",
+                OperationEvent.PluginMessage when logLevel >= LogLevel.Error => "Die Plugin-Laufzeit meldet einen Fehler.",
+                OperationEvent.PluginMessage => "Die Plugin-Laufzeit meldet eine Warnung.",
                 OperationEvent.LexwareMissing => "Lexware Pro und Financial Office wurden nicht erkannt. Lexware-abhängige Funktionen sind deaktiviert.",
                 OperationEvent.LexwareCheckFailed => "Die Lexware-Installationsprüfung ist fehlgeschlagen. Lexware-abhängige Funktionen bleiben gesperrt.",
                 OperationEvent.GlobalHotkeyUnavailable => "Ein globales Tastenkürzel ist nicht verfügbar und bleibt deaktiviert. Es ist möglicherweise bereits belegt. Unter Einstellungen → Tastenkürzel eine andere Kombination wählen und neu starten.",

@@ -3172,6 +3172,25 @@ public sealed partial class AppShellTests
         Assert.AreEqual(2000, count);
     }
 
+    [TestMethod]
+    public void LogWindowSkipsRoutinePluginMessagesButShowsWarningsAndErrors()
+    {
+        var logs = new LogWindowService();
+        using var factory = LoggerFactory.Create(builder => builder.AddProvider(new UiLogProvider(logs)));
+        var plugin = new QuantarixLogAdapter(factory);
+        plugin.LogInfo("synthetic plugin startup");
+        plugin.LogInfo("synthetic plugin discovery");
+        plugin.LogInfo("synthetic plugin ready");
+        plugin.LogWarning("synthetic confidential message");
+        plugin.LogError("synthetic confidential message", new IOException("synthetic confidential exception"));
+        OperationEvents.Write(factory.CreateLogger("Host"), OperationEvent.HostStarted);
+
+        var entries = logs.Drain();
+        CollectionAssert.AreEqual(new[] { LogLevel.Warning, LogLevel.Error, LogLevel.Information }, entries.Select(entry => entry.Level).ToArray());
+        Assert.AreEqual("Anwendungsdienste sind bereit.", entries[2].Message);
+        Assert.IsFalse(entries.Any(entry => entry.Message.Contains("synthetic", StringComparison.Ordinal)));
+    }
+
     private static string RenderOutput([CallerFilePath] string source = "") => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(source))!, ".artifacts", "app-shell", "settings-ui");
     private static void CreateHandles(Control control)
     {
