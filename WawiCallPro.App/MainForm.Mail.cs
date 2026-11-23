@@ -93,12 +93,5 @@ public partial class MainForm
         if (_mailDisposed) return;
         _mailDisposed = true; _mailStopping.Cancel(); _mailStopping.Dispose();
     }
-    private async void MailSettings_Click(object sender, ItemClickEventArgs e)
-    {
-        using var waiting = new UiWaitCursor(this);
-        using var settings = CreateSettingsDialog(); settings.SelectMailTab();
-        settings.ShowDialog(this);
-        if (settings.RestartRequested) { RestartRequested = true; Close(); return; }
-        await UpdateMailActionsAsync();
-    }
+    private void MailSettings_Click(object sender, ItemClickEventArgs e) => OpenSettings(selectedTab: "settings-mail");
 }

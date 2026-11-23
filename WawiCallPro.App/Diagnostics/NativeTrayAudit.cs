@@ -82,6 +82,7 @@ internal sealed class NativeTrayAudit(string directory)
                     catch (Exception exception) { failure = exception; }
                     finally { modal.Close(); }
                 };
+                await modal.PrepareAsync(token);
                 modal.ShowDialog(form);
                 if (failure is not null) throw failure;
             }

@@ -44,11 +44,12 @@ public partial class MainForm
         if (id.StartsWith("plugin:", StringComparison.Ordinal) || id is "customer" or "supplier") throw new AutomationFault(AutomationFailure.InvalidArgument);
         if (settings)
         {
-            await ShowAutomationModalAsync(() => { var dialog = CreateSettingsDialog(); dialog.SelectAutomationTab(id); return dialog; }, dialog =>
-            {
-                if (dialog is FrmSettings { RestartRequested: true }) { RestartRequested = true; Close(); }
-                UpdateBusinessActions(); UpdateDatabaseActions();
-            });
+            if (_settingsDialog is not null) throw new AutomationFault(AutomationFailure.Busy);
+            var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var presentation = ShowSettingsAsync(id, () => shown.TrySetResult(), token);
+            await Task.WhenAny(shown.Task, presentation).WaitAsync(token);
+            if (!shown.Task.IsCompleted)
+                throw new AutomationFault(_closing ? AutomationFailure.Stopping : AutomationFailure.ProviderUnavailable);
             return;
         }
         if (id == "database")

@@ -190,6 +190,7 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
+        if (_settingsDialog is { Visible: false } preparingSettings) await preparingSettings.StopAsync();
         await StopPluginShellAsync();
         var stopCompanies = StopCompanyRestoreAsync();
         var stopParties = StopPartyOpeningAsync();
@@ -309,6 +310,7 @@ public partial class MainForm : RibbonForm
     internal FrmSettings CreateSettingsDialog(bool plugins = false)
     {
         var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync, () => ReloadPluginShellAsync(selectRibbon: true));
+        if (_backgroundRun) settings.PrepareForBackgroundRun();
         settings.ConfigureLayoutPersistence(_state);
         settings.FormClosed += MailSettingsClosed;
         settings.FormClosed += CompanySettings_Closed;
@@ -328,20 +330,54 @@ public partial class MainForm : RibbonForm
         await ClosePluginPagesAsync();
         await StopPluginShellAsync();
     }
-    private void OpenSettings(bool plugins = false, string? selectedTab = null)
+    private FrmSettings? _settingsDialog;
+
+    private void OpenSettings(bool plugins = false, string? selectedTab = null) =>
+        _ = ShowSettingsAsync(selectedTab ?? (plugins ? "plugin" : "settings"));
+
+    internal async Task<bool> ShowSettingsAsync(string selectedTab, Action? shown = null, CancellationToken token = default)
     {
-        using var waiting = new UiWaitCursor(this);
-        using var settings = CreateSettingsDialog(plugins);
-        if (selectedTab is not null) settings.SelectAutomationTab(selectedTab);
-        settings.ShowDialog(this);
-        if (settings.RestartRequested) { RestartRequested = true; Close(); return; }
-        foreach (var document in _documents.Values)
-            if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
-                dashboard.RefreshStatus();
-        UpdateDatabaseActions();
-        statusItem.Caption = (_application?.ProductLine ?? _workspace?.Application.ProductLine ?? "") + " · "
-            + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
-        UpdateBusinessActions();
+        if (_closing || IsDisposed || _settingsDialog is not null || FindModalWindow() is not null) return false;
+        try
+        {
+            using var waiting = new UiWaitCursor(this);
+            using var settings = CreateSettingsDialog();
+            _settingsDialog = settings;
+            try
+            {
+                settings.SelectAutomationTab(selectedTab);
+                await Task.Yield();
+                token.ThrowIfCancellationRequested();
+                if (!await settings.PrepareAsync(token) || _closing || IsDisposed || !Visible || FindModalWindow() is not null)
+                    return false;
+                if (shown is not null) settings.Shown += (_, _) => shown();
+                waiting.Dispose();
+                settings.ShowDialog(this);
+            }
+            finally
+            {
+                try { await settings.StopAsync(); }
+                finally { _settingsDialog = null; }
+            }
+            if (_closing || IsDisposed) return true;
+            if (settings.RestartRequested) { RestartRequested = true; Close(); return true; }
+            foreach (var document in _documents.Values)
+                if (document.Control is Panel { Controls.Count: > 0 } host && host.Controls[0] is HomeDashboard dashboard)
+                    dashboard.RefreshStatus();
+            UpdateDatabaseActions();
+            statusItem.Caption = (_application?.ProductLine ?? _workspace?.Application.ProductLine ?? "") + " · "
+                + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
+            UpdateBusinessActions();
+            if (selectedTab == "settings-mail") await UpdateMailActionsAsync();
+            return true;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { return false; }
+        catch (Exception)
+        {
+            if (!_closing && !IsDisposed)
+                AppendOutput("Der Einstellungsdialog konnte nicht geöffnet oder abgeschlossen werden.");
+            return false;
+        }
     }
     private void UpdateBusinessActions()
     {

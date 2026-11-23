@@ -9,6 +9,7 @@ public partial class FrmSettings : XtraForm
     private bool _closing;
     private bool _backgroundRun;
     private bool _sizingMinimum;
+    private Task? _stopTask;
     internal void PrepareForBackgroundRun()
     {
         _backgroundRun = true;
@@ -62,7 +63,12 @@ public partial class FrmSettings : XtraForm
     internal void SelectAutomationTab(string id) => settingsPage.SelectAutomationTab(id);
     internal void ConfigureAudioDevices(WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog catalog) => settingsPage.ConfigureAudioDevices(catalog);
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
-    internal Task StopAsync() => settingsPage.StopAsync();
+    internal async Task<bool> PrepareAsync(CancellationToken token = default)
+    {
+        await settingsPage.ReloadAsync().WaitAsync(token);
+        return settingsPage.HasLoadedSettings;
+    }
+    internal Task StopAsync() => _stopTask ??= settingsPage.StopAsync();
     internal void ConfigureLayoutPersistence(AppUiState? state)
     {
         settingsPage.ConfigureLayoutPersistence(state);
@@ -70,13 +76,7 @@ public partial class FrmSettings : XtraForm
     }
     private void Settings_CloseRequested(object? sender, EventArgs e) { DialogResult = DialogResult.Cancel; Close(); }
     private void Settings_SaveCompleted(object? sender, EventArgs e) { DialogResult = DialogResult.OK; Close(); }
-    private async void Settings_Shown(object? sender, EventArgs e)
-    {
-        // Paint the skinned tabs before reading settings or opening a plugin view.
-        Update();
-        await settingsPage.ReloadAsync();
-        ContentSize_Changed(this, EventArgs.Empty);
-    }
+    private void Settings_Shown(object? sender, EventArgs e) => ContentSize_Changed(this, EventArgs.Empty);
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (_canClose) return;

@@ -21,6 +21,7 @@ public partial class SettingsPage : XtraUserControl
     private Func<Task>? _afterPluginSwitch;
     private bool _arrangingButtons;
     private bool _initialBindingPending;
+    private bool _settingsLoaded;
     private int _cacheActionColumns;
     private int _cacheActionCellWidth;
     private AutoStartState? _autoStartState;
@@ -349,6 +350,7 @@ public partial class SettingsPage : XtraUserControl
         BindMatchingCompanies();
     }
 
+    internal bool HasLoadedSettings => _workspace is null || _settingsLoaded;
     internal Task ReloadAsync() => _operation?.RunAsync(async token =>
     {
         RequireCleanPluginDraft();
@@ -366,7 +368,12 @@ public partial class SettingsPage : XtraUserControl
             tabs.Enabled = true;
             catalog = pluginPage.RefreshCatalogAsync(token);
         }
-        try { await Task.WhenAll(catalog, LoadAudioDevicesAsync(token), LoadPluginConnectionEditorAsync(token)); }
+        try
+        {
+            await Task.WhenAll(catalog, LoadAudioDevicesAsync(token), LoadPluginConnectionEditorAsync(token));
+            token.ThrowIfCancellationRequested();
+            _settingsLoaded = true;
+        }
         finally
         {
             if (initial && !IsDisposed && !token.IsCancellationRequested)

@@ -99,7 +99,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                         }, stoppingToken);
                         return;
                     }
-                    UiAudit.Render(_auditDirectory, CreateMainForm);
+                    await UiAudit.Render(_auditDirectory, CreateMainForm);
                     return;
                 }
 

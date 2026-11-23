@@ -7,12 +7,9 @@ namespace WawiCallPro.App.Diagnostics;
 
 internal static class UiAudit
 {
-    internal static void Render(string outputDirectory)
-    {
-        Render(outputDirectory, () => new MainForm());
-    }
+    internal static Task Render(string outputDirectory) => Render(outputDirectory, () => new MainForm());
 
-    internal static void Render(string outputDirectory, Func<MainForm> createForm)
+    internal static async Task Render(string outputDirectory, Func<MainForm> createForm)
     {
         var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
         var surfaces = new[] { ("MainForm", "home"), ("PartySearchPage", "parties"), ("FrmSettings", "settings"), ("PluginPage", "plugins"), ("MailSettingsPage", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("MailPage", "mail"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
@@ -77,6 +74,7 @@ internal static class UiAudit
                         if (surface == "MailSettingsPage") settings.SelectMailTab();
                         settings.PrepareForBackgroundRun(); settings.Font = font;
                         settings.MinimumSize = Size.Empty; settings.ClientSize = size;
+                        await settings.PrepareAsync();
                         settings.Show(); Application.DoEvents();
                         CreateHandles(settings); settings.PerformLayout();
                         using var shot = Capture(settings);
@@ -89,6 +87,7 @@ internal static class UiAudit
                         settings.Font = font;
                         settings.MinimumSize = Size.Empty;
                         settings.ClientSize = size;
+                        await settings.PrepareAsync();
                         foreach (DevExpress.XtraTab.XtraTabPage tab in settings.SettingsTabs.TabPages)
                         {
                             settings.SettingsTabs.SelectedTabPage = tab;
