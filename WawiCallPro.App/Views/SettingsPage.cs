@@ -19,6 +19,9 @@ public partial class SettingsPage : XtraUserControl
     private CancellationTokenSource? _cacheCancellation;
     private Func<Task>? _beforePluginSwitch;
     private bool _arrangingButtons;
+    private bool _initialBindingPending;
+    private int _cacheActionColumns;
+    private int _cacheActionCellWidth;
     private AutoStartState? _autoStartState;
     internal WawiCallPro.Utilities.Operations.OperationEvent? LastSettingsNotice { get; private set; }
     internal string LastSettingsNoticeText => LastSettingsNotice is { } notice ? WawiCallPro.Utilities.Operations.SettingsMessages.Get(notice) ?? "" : "";
@@ -111,17 +114,22 @@ public partial class SettingsPage : XtraUserControl
             var cacheSize = UiButtonSizing.Apply(cacheButtons);
             var cellWidth = cacheSize.Width + loadCompaniesButton.Margin.Horizontal;
             var columns = Math.Clamp((cacheLayout.ClientSize.Width - cacheLayout.Padding.Horizontal) / Math.Max(1, cellWidth), 1, 3);
-            cacheActions.ColumnCount = columns; cacheActions.RowCount = (3 + columns - 1) / columns;
-            cacheActions.ColumnStyles.Clear(); cacheActions.RowStyles.Clear();
-            for (var i = 0; i < columns; i++) cacheActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cellWidth));
-            for (var i = 0; i < cacheActions.RowCount; i++) cacheActions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            for (var i = 0; i < cacheButtons.Length; i++) cacheActions.SetCellPosition(cacheButtons[i], new(i % columns, i / columns));
+            if (columns != _cacheActionColumns || cellWidth != _cacheActionCellWidth)
+            {
+                _cacheActionColumns = columns;
+                _cacheActionCellWidth = cellWidth;
+                cacheActions.ColumnCount = columns; cacheActions.RowCount = (cacheButtons.Length + columns - 1) / columns;
+                cacheActions.ColumnStyles.Clear(); cacheActions.RowStyles.Clear();
+                for (var i = 0; i < columns; i++) cacheActions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, cellWidth));
+                for (var i = 0; i < cacheActions.RowCount; i++) cacheActions.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                for (var i = 0; i < cacheButtons.Length; i++) cacheActions.SetCellPosition(cacheButtons[i], new(i % columns, i / columns));
+            }
             footer.ResumeLayout(true); cacheActions.ResumeLayout(true); matchingButtons.ResumeLayout(true);
         }
         finally { _arrangingButtons = false; }
     }
 
-    internal void Bind(AppWorkspace workspace)
+    internal void Bind(AppWorkspace workspace, bool deferInitialBinding = false)
     {
         _workspace = workspace;
         databaseSetupButton.Enabled = true;
@@ -129,12 +137,18 @@ public partial class SettingsPage : XtraUserControl
         UpdateSipStatus();
         _operation = new PageOperation(this, ReportSettingsNotice);
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
-        Apply(workspace.Configuration.Current);
-        LoadAutoStart();
         pluginPage.Bind(workspace, _state);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
-        pluginPage.RefreshCatalog();
         numberDiagnosticsPage.Bind(workspace.NumberDiagnostics, _state);
+        if (deferInitialBinding)
+        {
+            _initialBindingPending = true;
+            tabs.Enabled = saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
+            return;
+        }
+        Apply(workspace.Configuration.Current);
+        LoadAutoStart();
+        pluginPage.RefreshCatalog();
         cacheTab.PageEnabled = workspace.CanUseBusinessDirectory;
     }
     internal async Task StopAsync()
@@ -330,10 +344,26 @@ public partial class SettingsPage : XtraUserControl
     internal Task ReloadAsync() => _operation?.RunAsync(async token =>
     {
         RequireCleanPluginDraft();
-        Apply(await _workspace!.Settings.LoadAsync(token));
+        var workspace = _workspace!;
+        var snapshot = await Task.Run(() => workspace.Settings.LoadAsync(token), token);
+        token.ThrowIfCancellationRequested();
+        Apply(snapshot);
         LoadAutoStart();
-        await LoadAudioDevicesAsync(token);
-        await LoadPluginConnectionEditorAsync(token);
+        var initial = _initialBindingPending;
+        var catalog = Task.CompletedTask;
+        if (initial)
+        {
+            _initialBindingPending = false;
+            cacheTab.PageEnabled = workspace.CanUseBusinessDirectory;
+            tabs.Enabled = true;
+            catalog = pluginPage.RefreshCatalogAsync(token);
+        }
+        try { await Task.WhenAll(catalog, LoadAudioDevicesAsync(token), LoadPluginConnectionEditorAsync(token)); }
+        finally
+        {
+            if (initial && !IsDisposed && !token.IsCancellationRequested)
+                saveButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
+        }
     }) ?? Task.CompletedTask;
     private async Task ReloadMailSettingsAsync(CancellationToken token)
     {

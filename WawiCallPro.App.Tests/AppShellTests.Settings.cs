@@ -38,6 +38,7 @@ public sealed partial class AppShellTests
     {
         using var form = new FrmSettings(workspace);
         var page = Field<SettingsPage>(form, "settingsPage");
+        await page.ReloadAsync();
         var level = Field<ComboBoxEdit>(page, "logLevelEdit");
         var directory = Field<TextEdit>(page, "logDirectoryEdit");
         var enabled = Field<CheckEdit>(page, "loggingEnabledEdit");

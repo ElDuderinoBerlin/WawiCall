@@ -32,7 +32,7 @@ public partial class FrmSettings : XtraForm
         settingsPage.CloseRequested += Settings_CloseRequested;
         settingsPage.SaveCompleted += Settings_SaveCompleted;
         settingsPage.RestartRequested += Settings_RestartRequested; settingsPage.ContentSizeChanged += ContentSize_Changed;
-        SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; DpiChanged += ContentSize_DpiChanged; Load += Settings_Load;
+        SizeChanged += ContentSize_Changed; FontChanged += ContentSize_Changed; DpiChanged += ContentSize_DpiChanged; Shown += Settings_Shown;
     }
     private void ContentSize_Changed(object? sender, EventArgs e)
     {
@@ -54,7 +54,7 @@ public partial class FrmSettings : XtraForm
     private void Settings_RestartRequested(object? sender, EventArgs e) { RestartRequested = true; Close(); }
     public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
     {
-        settingsPage.Bind(workspace);
+        settingsPage.Bind(workspace, deferInitialBinding: true);
         settingsPage.ConfigurePluginSwitch(beforePluginSwitch);
     }
     internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
@@ -70,10 +70,12 @@ public partial class FrmSettings : XtraForm
     }
     private void Settings_CloseRequested(object? sender, EventArgs e) { DialogResult = DialogResult.Cancel; Close(); }
     private void Settings_SaveCompleted(object? sender, EventArgs e) { DialogResult = DialogResult.OK; Close(); }
-    private async void Settings_Load(object? sender, EventArgs e)
+    private async void Settings_Shown(object? sender, EventArgs e)
     {
-        using var waiting = new UiWaitCursor(this);
-        await settingsPage.ReloadAsync(); ContentSize_Changed(this, EventArgs.Empty);
+        // Paint the skinned tabs before reading settings or opening a plugin view.
+        Update();
+        await settingsPage.ReloadAsync();
+        ContentSize_Changed(this, EventArgs.Empty);
     }
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {

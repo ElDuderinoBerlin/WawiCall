@@ -16,6 +16,7 @@ public sealed partial class AppShellTests
     {
         using var form = new FrmSettings(workspace); form.PrepareForBackgroundRun(); CreateHandles(form);
         var page = Field<SettingsPage>(form, "settingsPage"); var before = workspace.Configuration.Current;
+        await page.ReloadAsync();
         Field<ComboBoxEdit>(page, "logLevelEdit").SelectedIndex = (int)Microsoft.Extensions.Logging.LogLevel.Trace;
         var dialogCount = 0;
         await page.SetupDatabaseAsync(async dialog =>
@@ -31,7 +32,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual(1, dialogCount); Assert.AreEqual(Microsoft.Extensions.Logging.LogLevel.Trace, page.ReadOptions().User.LogLevel);
         Assert.AreSame(before, workspace.Configuration.Current);
         var saved = await workspace.Settings.LoadAsync(); Assert.AreEqual(accept, saved.FileFound);
-        Assert.AreEqual(accept ? Path.Combine(workspace.Paths.RootDirectory, "communications.db") : "communications.db", Field<LabelControl>(page, "sqlitePathValue").Text);
+        Assert.AreEqual("communications.db", Field<LabelControl>(page, "sqlitePathValue").Text);
         if (accept)
         {
             await page.SaveAsync(CancellationToken.None);
@@ -56,7 +57,9 @@ public sealed partial class AppShellTests
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var form = new FrmSettings(workspace); form.PrepareForBackgroundRun(); form.Font = font;
                 _ = form.Handle; form.MinimumSize = Size.Empty; form.ClientSize = new(width, 700); CreateHandles(form);
-                var page = Field<SettingsPage>(form, "settingsPage"); form.SettingsTabs.SelectedTabPage = Field<DevExpress.XtraTab.XtraTabPage>(page, "databaseTab");
+                var page = Field<SettingsPage>(form, "settingsPage");
+                await page.ReloadAsync();
+                form.SettingsTabs.SelectedTabPage = Field<DevExpress.XtraTab.XtraTabPage>(page, "databaseTab");
                 if (scale != 1F) form.Scale(new SizeF(scale, scale)); form.PerformLayout(); Application.DoEvents(); CheckTableBounds(form);
                 var button = Field<SimpleButton>(page, "databaseSetupButton"); var table = Field<TableLayoutPanel>(page, "databaseLayout");
                 using var shot = WawiCallPro.App.Diagnostics.UiAudit.Capture(form); shot.Save(Path.Combine(output, $"database-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);

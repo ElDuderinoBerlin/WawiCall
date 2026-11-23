@@ -82,13 +82,28 @@ public partial class PluginPage : XtraUserControl
     }
     internal void ConfigureSelection(Func<string, CancellationToken, Task> activate) => _activate = activate;
     internal void ConfigureLayoutPersistence(AppUiState? state) => _state = state;
-    internal void RefreshCatalog()
+    internal void RefreshCatalog() => ApplyCatalog(ReadCatalog());
+
+    internal async Task RefreshCatalogAsync(CancellationToken token)
     {
-        if (_workspace?.Plugins is not IProductPluginSelection selection) { catalogGrid.DataSource = Array.Empty<PluginRow>(); return; }
+        var rows = await Task.Run(ReadCatalog, token);
+        token.ThrowIfCancellationRequested();
+        ApplyCatalog(rows);
+    }
+
+    private PluginRow[] ReadCatalog()
+    {
+        var plugins = _workspace?.Plugins;
+        if (plugins is not IProductPluginSelection selection) return [];
+        return selection.GetAvailablePlugins().Select(choice => new PluginRow(choice.Id, choice.DisplayName,
+            choice.Version, choice.Id == selection.ActivePluginId && plugins.IsLoaded,
+            plugins is not IProductPluginAvailability availability || availability.CanActivate(choice.Id))).ToArray();
+    }
+
+    private void ApplyCatalog(PluginRow[] catalog)
+    {
         var focused = (catalogView.GetFocusedRow() as PluginRow)?.Id;
-        catalogGrid.DataSource = selection.GetAvailablePlugins().Select(choice => new PluginRow(choice.Id, choice.DisplayName,
-            choice.Version, choice.Id == selection.ActivePluginId && _workspace.Plugins.IsLoaded,
-            _workspace.Plugins is not IProductPluginAvailability availability || availability.CanActivate(choice.Id))).ToArray();
+        catalogGrid.DataSource = catalog;
         catalogView.PopulateColumns();
         if (catalogGrid.DataSource is PluginRow[] rows)
         {

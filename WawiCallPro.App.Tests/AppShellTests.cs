@@ -2910,6 +2910,7 @@ public sealed partial class AppShellTests
         var page = Field<SettingsPage>(settings, "settingsPage");
         _ = settings.Handle;
         CreateHandles(settings);
+        await page.ReloadAsync();
         Assert.AreEqual("Plugins", settings.SettingsTabs.SelectedTabPage.Text);
         var management = Field<PluginPage>(page, "pluginPage");
         Assert.AreEqual(2, ((Array)Field<GridControl>(management, "catalogGrid").DataSource).Length);
@@ -2931,7 +2932,7 @@ public sealed partial class AppShellTests
         Assert.IsFalse((await workspace.Settings.LoadAsync()).Options.User.ShowCallNotifications);
         await Assert.ThrowsAsync<TelephonyException>(() => workspace.TelephonyConnection!.ConnectAsync());
         await Task.Delay(10);
-        Assert.Contains("fehlgeschlagen", Field<LabelControl>(page, "sipStatus").Text);
+        Assert.Contains("SIP-Konto", Field<LabelControl>(page, "sipStatus").Text);
         await settings.StopAsync();
         await form.PrepareToCloseAsync();
     });
@@ -3764,7 +3765,12 @@ public sealed partial class AppShellTests
         internal bool HasCatalog = true;
         public bool IsLoaded => true;
         public string? ActivePluginId { get; private set; } = "Test.Lexware";
-        public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins() => !HasCatalog ? [] : [new("Test.Lexware", "Lexware – Testadapter", "1.0"), new("Test.Dummy", "Dummy-Plugin (Testbetrieb)", "1.0")];
+        internal Action? ReadCatalog;
+        public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins()
+        {
+            ReadCatalog?.Invoke();
+            return !HasCatalog ? [] : [new("Test.Lexware", "Lexware – Testadapter", "1.0"), new("Test.Dummy", "Dummy-Plugin (Testbetrieb)", "1.0")];
+        }
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }

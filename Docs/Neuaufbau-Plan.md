@@ -3587,6 +3587,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Mit isoliertem SQLite die Migration 14 → 15 und die erneute Aufnahmeprüfung im selben Prozess
   nachgewiesen. Ein anderes Ziel aktiviert diesen Ablauf nicht. Je Edition 24 App- und 31
   Persistenzprüfungen sowie reguläre Debug-/Any-CPU-Builds ohne Warnungen und Fehler bestanden.
+- [x] ✅ Erste Darstellung des Einstellungsdialogs entlastet (23.11.2026).
+  Der sichtbare Dialog bindet beim Öffnen einmal das frisch geladene Profil. Das erste Zeichnen der
+  Oberfläche erfolgt vor dem Laden. Profil und Plugin-Katalog werden außerhalb des UI-Threads gelesen.
+  Geräteerkennung und Plugin-Editor können parallel zum Katalog laden. Das Layout der Cache-Aktionen
+  wird nur bei geänderter Breite oder Spaltenzahl neu aufgebaut.
+  Der Regressionstest blockiert den Plugin-Katalog und prüft, dass „Allgemein“ bereits die gespeicherten
+  Werte zeigt und die Geräteabfrage beginnt. Je 106 App-Prüfungen in Pro und FinOffice bestanden. Der sichtbare Schwarzblitz wird beim nächsten Öffnen auf
+  dem Benutzerdesktop geprüft.
 - [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
   **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
   Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;
