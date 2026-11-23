@@ -3,15 +3,8 @@ namespace WawiCallPro.Plugins.Lexware.Pro;
 
 partial class LexwareSettingsPage
 {
-    private System.ComponentModel.IContainer components;
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing && components != null) components.Dispose();
-        base.Dispose(disposing);
-    }
     private void InitializeComponent()
     {
-        components = new System.ComponentModel.Container();
         layout = new System.Windows.Forms.TableLayoutPanel();
         companyPage = new WawiCallPro.Plugin.Windows.PluginCompanySettingsPage();
         connectionPage = new WawiCallPro.Plugins.Lexware.Pro.ProConnectionSettingsPage();
