@@ -44,6 +44,7 @@ internal sealed class ComTelephonyFixture : IAsyncDisposable
         public Task<ProductLicenseSnapshot> ActivateAsync(string key, CancellationToken token) => throw new AssertFailedException("No activation expected.");
         public Task<ProductLicenseSnapshot> RefreshAsync(CancellationToken token) => throw new AssertFailedException("No online request expected.");
         public string GetMachineId() => "synthetic";
+        public Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
         public Task<CrashAuthentication?> GetCrashAuthenticationAsync(CancellationToken token) => Task.FromResult<CrashAuthentication?>(null);
     }
     internal sealed class InstallationProbe : ILexwareInstallation

@@ -96,6 +96,7 @@ public sealed class LicenseStartupGateTests
         public Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken cancellationToken) => throw new AssertFailedException("Unexpected activation.");
         public Task<ProductLicenseSnapshot> RefreshAsync(CancellationToken cancellationToken) { Calls++; return Task.FromResult(Online()); }
         public string GetMachineId() => "test";
+        public Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
         public Task<CrashAuthentication?> GetCrashAuthenticationAsync(CancellationToken cancellationToken) => Task.FromResult<CrashAuthentication?>(null);
     }
 }

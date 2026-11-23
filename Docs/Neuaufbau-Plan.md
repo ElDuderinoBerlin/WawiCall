@@ -5148,6 +5148,10 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   Keine fremden Schlüssel/Serveradressen übernommen oder echten Aktivierungen/Uploads ausgelöst.
   Nachprüfung: Aktivierungsdialog explizit über IUiDispatcher aufrufen und abwarten, da der Host
   Startdienste auf einem Workerthread fortsetzen kann. Abbruch vor Anzeige geprüft; jetzt je acht App-Tests.
+- [x] ✅ Über-Dialog nach LxTranslate mit Produkt, App- und DevExpress-Version und lokal geprüftem
+  Lizenzstatus. Bei Online-Aktivierung erhält der aktuelle Benutzer eine DPAPI-geschützte Kopie der
+  Lizenznummer, gebunden an die Lizenz-ID. Der Dialog kopiert Lizenzdaten und Machine Key auf Anforderung.
+  Pro und FinOffice mit synthetischer Lizenz, Designer-Prüfung und Layout in hellem/dunklem Skin geprüft.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

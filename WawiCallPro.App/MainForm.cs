@@ -32,6 +32,7 @@ public partial class MainForm : RibbonForm
     private bool _backgroundRun;
     private bool _startupWithoutActivation;
     private bool _removingDocument;
+    private bool _openingAbout;
     private bool _loaded;
     private bool _closing;
     [System.ComponentModel.Browsable(false)]
@@ -288,10 +289,28 @@ public partial class MainForm : RibbonForm
     }
     private void Settings_Click(object sender, ItemClickEventArgs e) => OpenSettings();
     private void Help_Click(object sender, ItemClickEventArgs e) => ToggleHelp();
-    private void About_Click(object sender, ItemClickEventArgs e) => XtraMessageBox.Show(this,
-        "WawiCallPro " + ApplicationVersion.Display + "\nProduktlinie: "
-        + (_application?.ProductLine ?? ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly).ProductLine),
-        "Über WawiCallPro", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    private async void About_Click(object sender, ItemClickEventArgs e)
+    {
+        if (_closing || FindModalWindow() is not null || _openingAbout) return;
+        _openingAbout = true;
+        try
+        {
+            using var dialog = new FrmUeber();
+            if (_backgroundRun) dialog.PrepareForBackgroundRun();
+            _state?.AttachWindow(dialog, "FrmUeber");
+            if (_workspace?.Licenses is { } licenses)
+            {
+                using var waiting = new UiWaitCursor(this);
+                await dialog.LoadLicenseAsync(licenses, CancellationToken.None);
+            }
+            if (!_closing && !IsDisposed && FindModalWindow() is null) dialog.ShowDialog(this);
+        }
+        catch (Exception)
+        {
+            if (!_closing && !IsDisposed) AppendOutput("Der Über-Dialog konnte nicht geöffnet werden.");
+        }
+        finally { _openingAbout = false; }
+    }
     private void ToggleHelp()
     {
         if (helpDock.Visibility == DockVisibility.Visible) helpDock.Hide();

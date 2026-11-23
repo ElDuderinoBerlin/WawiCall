@@ -28,6 +28,7 @@ public interface IProductLicenseService
     Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken cancellationToken);
     Task<ProductLicenseSnapshot> RefreshAsync(CancellationToken cancellationToken);
     string GetMachineId();
+    Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken cancellationToken);
     Task<CrashAuthentication?> GetCrashAuthenticationAsync(CancellationToken cancellationToken);
 }
 
@@ -40,6 +41,7 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
     private string LicenseFile => Path.Combine(paths.RootDirectory, "license", "license.xlic");
     private string SecretFile => Path.Combine(paths.RootDirectory, "license", "activation.bin");
     private string BlockFile => Path.Combine(paths.RootDirectory, "license", "blocked.bin");
+    private string NumberFile => Path.Combine(paths.RootDirectory, "license", "number.bin");
     public string GetMachineId() => machine.GetMachineIdHash();
 
     public async Task<ProductLicenseSnapshot> ValidateAsync(CancellationToken cancellationToken)
@@ -94,7 +96,10 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
             if (!string.IsNullOrWhiteSpace(response.ActivationSecret))
                 Store(JsonSerializer.Serialize(new StoredSecret(validated.LicenseId, response.ActivationSecret)), SecretFile);
             if (File.Exists(BlockFile)) File.Delete(BlockFile);
-            return Validate();
+            var snapshot = Validate();
+            if (snapshot.Status == LicenseStatus.Valid && snapshot.LicenseId == validated.LicenseId)
+                Store(JsonSerializer.Serialize(new StoredSecret(validated.LicenseId, licenseKey)), NumberFile);
+            return snapshot;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (LicenseAccessException) { throw; }
@@ -147,6 +152,22 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
             var license = Validate();
             if (license.Status != LicenseStatus.Valid || license.LicenseId is not { } id || LoadSecret(id) is not { } secret) return null;
             return new(id, GetMachineId(), secret);
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (!File.Exists(NumberFile) || new FileInfo(NumberFile).Length > 32 * 1024) return null;
+            var stored = JsonSerializer.Deserialize<StoredSecret>(protector.UnprotectFromFile(NumberFile, LocalLicenseProtectionScope.CurrentUser));
+            return stored?.LicenseId == licenseId ? stored.Value : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or System.Security.Cryptography.CryptographicException)
+        {
+            return null;
         }
         finally { _gate.Release(); }
     }

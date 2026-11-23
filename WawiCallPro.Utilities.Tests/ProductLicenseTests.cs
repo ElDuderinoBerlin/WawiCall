@@ -39,6 +39,8 @@ public sealed class ProductLicenseTests
         var activated = await license.ActivateAsync("SYNTHETIC-TEST-KEY", CancellationToken.None);
         Assert.AreEqual(LicenseStatus.Valid, activated.Status);
         Assert.AreEqual(_licenseId, activated.LicenseId);
+        Assert.AreEqual("SYNTHETIC-TEST-KEY", await CreateService(handler).GetStoredLicenseNumberAsync(_licenseId, CancellationToken.None));
+        Assert.IsNull(await license.GetStoredLicenseNumberAsync(Guid.NewGuid(), CancellationToken.None));
         var authentication = await license.GetCrashAuthenticationAsync(CancellationToken.None);
         Assert.AreEqual("synthetic-activation-secret", authentication!.ActivationSecret);
         Assert.DoesNotContain(authentication.ActivationSecret, authentication.ToString());

@@ -52,7 +52,8 @@ public sealed class AppWorkspace(
     HistoryRecordingFiles? recordingFiles = null,
     WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? functionPlugins = null,
     IPartySearch? partySearch = null,
-    WawiCallPro.Audio.IAudioFileConversion? audioFiles = null)
+    WawiCallPro.Audio.IAudioFileConversion? audioFiles = null,
+    WawiCallPro.Utilities.Licensing.IProductLicenseService? licenses = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
@@ -72,6 +73,7 @@ public sealed class AppWorkspace(
     public IBusinessDirectory Directory { get; } = directory;
     public IPartySearch? PartySearch { get; } = partySearch;
     internal WawiCallPro.Audio.IAudioFileConversion? AudioFiles { get; } = audioFiles;
+    internal WawiCallPro.Utilities.Licensing.IProductLicenseService? Licenses => licenses;
     public IProductPluginRuntime Plugins { get; } = plugins;
     public WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? FunctionPlugins { get; } = functionPlugins;
     public bool CanUseBusinessDirectory => Plugins.IsLoaded && (Plugins is not IProductPluginAvailability availability || availability.CanUseActivePlugin);
