@@ -14,6 +14,8 @@ public partial class FrmAudioConvert : XtraForm
     private string? _result;
     private bool _closing;
     private bool _backgroundRun;
+    private int _pcmRateIndex;
+    private int _pcmChannelIndex;
 
     public FrmAudioConvert()
     {
@@ -50,9 +52,9 @@ public partial class FrmAudioConvert : XtraForm
     {
         if (!IsHandleCreated) return;
         static int RequiredWidth(Control control) => control.PreferredSize.Width + control.Margin.Horizontal;
-        var filesWidth = new[] { sourceLabel, targetLabel, rateLabel, channelLabel, volumeLabel }.Max(RequiredWidth)
+        var filesWidth = new[] { formatLabel, rateLabel, channelLabel, volumeLabel }.Max(RequiredWidth)
             + Math.Max(sourceBrowse.Width, targetBrowse.Width) + sourceBrowse.Margin.Horizontal
-            + Math.Max(sourcePlay.Width, resultPlay.Width) + sourcePlay.Margin.Horizontal + LogicalToDeviceUnits(210);
+            + Math.Max(sourcePlay.Width, resultPlay.Width) + sourcePlay.Margin.Horizontal + RequiredWidth(formatEdit);
         var actionsWidth = convertButton.Width + cancelButton.Width + closeButton.Width + 3 * closeButton.Margin.Horizontal;
         var width = Math.Max(LogicalToDeviceUnits(610), Math.Max(filesWidth, actionsWidth) + layout.Padding.Horizontal);
         var body = filesLayout.GetPreferredSize(new Size(width, 0)).Height
@@ -70,6 +72,8 @@ public partial class FrmAudioConvert : XtraForm
 
     private void Appearance_Changed(object? sender, EventArgs e)
     {
+        formatEdit.Width = formatEdit.Properties.Items.Cast<string>()
+            .Max(text => TextRenderer.MeasureText(text, formatEdit.Font).Width) + LogicalToDeviceUnits(32);
         SizeActions();
         AdjustMinimum();
     }
@@ -112,14 +116,35 @@ public partial class FrmAudioConvert : XtraForm
         UpdateActions();
     }
 
+    private bool UseALaw => formatEdit.SelectedIndex == 1;
+
+    private void Format_Changed(object? sender, EventArgs e)
+    {
+        if (UseALaw)
+        {
+            _pcmRateIndex = rateEdit.SelectedIndex;
+            _pcmChannelIndex = channelEdit.SelectedIndex;
+            rateEdit.SelectedIndex = 1;
+            channelEdit.SelectedIndex = 1;
+        }
+        else
+        {
+            rateEdit.SelectedIndex = _pcmRateIndex;
+            channelEdit.SelectedIndex = _pcmChannelIndex;
+        }
+        File_Changed(sender, e);
+    }
+
     private async void Convert_Click(object? sender, EventArgs e) => await ConvertAsync();
     internal Task ConvertAsync()
     {
         if (!convertButton.Enabled) return Task.CompletedTask;
         var source = sourceEdit.Text.Trim();
         var destination = targetEdit.Text.Trim();
-        var options = new AudioWaveOptions(int.Parse(rateEdit.Text, System.Globalization.CultureInfo.InvariantCulture),
-            channelEdit.SelectedIndex + 1, (int)volumeEdit.Value);
+        int? sampleRate = int.TryParse(rateEdit.Text, System.Globalization.CultureInfo.InvariantCulture, out var rate) ? rate : null;
+        int? channels = channelEdit.SelectedIndex > 0 ? channelEdit.SelectedIndex : null;
+        var options = new AudioWaveOptions(sampleRate, channels, (int)volumeEdit.Value,
+            UseALaw ? AudioWaveEncoding.ALaw : AudioWaveEncoding.Pcm16);
         return StartAsync(async token =>
         {
             using var waiting = new UiWaitCursor(this);
@@ -195,7 +220,8 @@ public partial class FrmAudioConvert : XtraForm
     {
         var available = _audio is not null && _request is null && !_closing;
         sourceEdit.Enabled = targetEdit.Enabled = sourceBrowse.Enabled = targetBrowse.Enabled = available;
-        rateEdit.Enabled = channelEdit.Enabled = volumeEdit.Enabled = available;
+        formatEdit.Enabled = volumeEdit.Enabled = available;
+        rateEdit.Enabled = channelEdit.Enabled = available && !UseALaw;
         sourcePlay.Enabled = available && !string.IsNullOrWhiteSpace(sourceEdit.Text);
         resultPlay.Enabled = available && _result is not null;
         convertButton.Enabled = sourcePlay.Enabled && !string.IsNullOrWhiteSpace(targetEdit.Text);

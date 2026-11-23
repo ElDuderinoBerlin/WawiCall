@@ -3540,6 +3540,16 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
   Datei- und Formatfelder beginnen in einer gemeinsamen Eingabespalte. Die bündige Ausrichtung
   und die schmaleren Formateditoren sind bei kleiner Fensterbreite, größerer Schrift und 150 % geprüft.
 
+- [x] ✅ Ansagenkonverter nach dem Vorbild des alten Dialogs erweitert. Quelle und Ziel haben
+  getrennte Bereiche mit gemeinsamer Eingabespalte im `TableLayoutPanel`. WAV, MP3, Ogg/Vorbis
+  und WMA lassen sich nach PCM16-WAV oder G.711-A-law-WAV konvertieren. PCM kann Abtastrate
+  und Kanalzahl der Quelle behalten. A-law verwendet 8 kHz und Mono. Beim Wechsel zurück zu
+  PCM erscheinen die zuletzt gewählten PCM-Werte.
+  In Pro und FinOffice jeweils sieben gezielte Tests bestanden. Beide WAV-Ziele wurden dekodiert
+  und mit stummgeschaltetem WASAPI-Ausgabegerät abgespielt. Layout bei kleinem Fenster,
+  größerer Schrift, dunklem Skin
+  und simulierter 150-%-Skalierung geprüft.
+
 Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
 Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die echte Geräteabnahme bleibt erforderlich.
 
