@@ -262,6 +262,7 @@ public partial class SettingsPage : XtraUserControl
         _state = state;
         _state?.Restore(cacheView, "CacheSources");
         pluginPage.ConfigureLayoutPersistence(state);
+        functionPluginsPage.ConfigureLayoutPersistence(state);
         numberDiagnosticsPage.ConfigureLayoutPersistence(state);
         mailSettingsPage.ConfigureLayoutPersistence(state);
     }

@@ -3,6 +3,8 @@ using System.Reflection;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using DevExpress.XtraGrid;
+using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraTab;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
@@ -40,16 +42,36 @@ public sealed partial class AppShellTests
         Assert.IsTrue(await settings.PrepareAsync());
         settings.Show();
         var page = settings.Controls.Find("functionPluginsPage", true).OfType<FunctionPluginsPage>().Single();
-        var list = Field<ListBoxControl>(page, "plugins");
-        Assert.AreEqual(2, ((Array)list.DataSource).Length);
-        CollectionAssert.AreEquivalent(new[] { "Dummy – Statusmeldung · Inaktiv", "Dummy – Uhrzeit · Inaktiv" },
-            Enumerable.Range(0, list.ItemCount).Select(list.GetItemText).ToArray());
-        list.SelectedIndex = 0;
-        await page.RunAsync(execute: false);
-        list.SelectedIndex = 1;
-        await page.RunAsync(execute: false);
+        var grid = Field<GridControl>(page, "pluginsGrid");
+        var view = Field<GridView>(page, "pluginsView");
+        grid.ForceInitialize();
+        Assert.AreEqual(2, view.DataRowCount);
+        CollectionAssert.AreEquivalent(new[] { "Dummy – Statusmeldung", "Dummy – Uhrzeit" },
+            Enumerable.Range(0, view.DataRowCount).Select(handle => view.GetRowCellDisplayText(handle, "Name")).ToArray());
+        CollectionAssert.AreEqual(Array.Empty<int>(), view.GetSelectedRows());
+        view.FocusedRowHandle = 1;
+        CollectionAssert.AreEqual(Array.Empty<int>(), view.GetSelectedRows(), "Moving focus must not activate a plugin.");
+        var execute = Field<SimpleButton>(page, "executeButton");
+        Assert.IsFalse(execute.Enabled);
+        var runtimeProbe = (FunctionPluginActivationProbe)services.GetRequiredService<IFunctionPluginRuntime>();
+        runtimeProbe.RejectNextChange = true;
+        view.SelectRow(0);
+        await WaitForOperationAsync(page);
+        Assert.AreEqual(OperationEvent.SettingsFunctionPluginActivationFailed, settingsPage.LastSettingsNotice);
+        Assert.IsFalse(view.IsRowSelected(0), "A failed activation must restore the unchecked state.");
+        Assert.IsTrue((await runtime.ListAsync()).All(plugin => !plugin.Enabled));
+
+        view.SelectRow(0);
+        await WaitForOperationAsync(page);
+        Assert.AreEqual(OperationEvent.SettingsFunctionPluginEnabled, settingsPage.LastSettingsNotice);
+        Assert.IsFalse(execute.Enabled, "Execute follows the focused row, not the last checked row.");
+        view.SelectRow(1);
+        await WaitForOperationAsync(page);
+        Assert.AreEqual(OperationEvent.SettingsFunctionPluginEnabled, settingsPage.LastSettingsNotice);
         Assert.IsTrue((await runtime.ListAsync()).All(plugin => plugin.Enabled));
-        await page.RunAsync(execute: true);
+        Assert.IsTrue(execute.Enabled);
+        execute.PerformClick();
+        await WaitForOperationAsync(page);
         Assert.AreEqual(OperationEvent.SettingsFunctionPluginExecuted, settingsPage.LastSettingsNotice);
         Assert.IsFalse(page.Controls.Find("status", true).Any());
         await runtime.ExecuteAsync(clock);
@@ -59,13 +81,17 @@ public sealed partial class AppShellTests
         Assert.IsTrue((await runtime.ListAsync()).All(plugin => plugin.Enabled));
         await wawi.SwitchAsync("Test.Lexware");
         CaptureFunctionPlugins(settings, workspace.Application.ProductLine, normalFont, largeFont);
+        view.UnselectRow(1);
+        await WaitForOperationAsync(page);
+        Assert.AreEqual(OperationEvent.SettingsFunctionPluginDisabled, settingsPage.LastSettingsNotice);
+        Assert.IsFalse(execute.Enabled);
+        Assert.IsTrue(view.IsRowSelected(0));
+        Assert.IsFalse(view.IsRowSelected(1));
         await settings.StopAsync();
         await runtime.StopAsync(default);
 
         await using var restarted = ActivatorUtilities.CreateInstance<FunctionPluginRuntime>(services);
         await restarted.StartAsync(default);
-        Assert.IsTrue((await restarted.ListAsync()).All(plugin => plugin.Enabled));
-        await restarted.SetEnabledAsync(clock, false);
         Assert.IsFalse((await restarted.ListAsync()).Single(plugin => plugin.Id == clock).Enabled);
         Assert.IsTrue((await restarted.ListAsync()).Single(plugin => plugin.Id == status).Enabled);
         await restarted.ExecuteAsync(status);
@@ -77,8 +103,22 @@ public sealed partial class AppShellTests
         services.AddSingleton(new FunctionPluginLocation(Path.Combine(repository, "WawiCallPro.App", "bin", configuration,
             "net11.0-windows10.0.19041.0", "function-plugins")));
         services.AddSingleton<FunctionPluginRuntime>();
-        services.AddSingleton<IFunctionPluginRuntime>(provider => provider.GetRequiredService<FunctionPluginRuntime>());
+        services.AddSingleton<IFunctionPluginRuntime, FunctionPluginActivationProbe>();
     });
+
+    private sealed class FunctionPluginActivationProbe(FunctionPluginRuntime inner) : IFunctionPluginRuntime
+    {
+        public bool RejectNextChange { get; set; }
+        public Task<IReadOnlyList<FunctionPluginChoice>> ListAsync(CancellationToken token) => inner.ListAsync(token);
+        public Task ExecuteAsync(string id, CancellationToken token) => inner.ExecuteAsync(id, token);
+
+        public Task SetEnabledAsync(string id, bool enabled, CancellationToken token)
+        {
+            if (!RejectNextChange) return inner.SetEnabledAsync(id, enabled, token);
+            RejectNextChange = false;
+            throw new FunctionPluginException();
+        }
+    }
 
     private static void CaptureFunctionPlugins(FrmSettings settings, string edition, Font normalFont, Font largeFont)
     {
