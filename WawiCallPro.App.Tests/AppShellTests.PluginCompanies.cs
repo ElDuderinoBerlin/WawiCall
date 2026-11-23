@@ -1,5 +1,5 @@
-using DevExpress.XtraGrid;
-using DevExpress.XtraGrid.Views.Grid;
+using DevExpress.XtraEditors.Controls;
+using DevExpress.XtraEditors.Repository;
 using System.Collections.Immutable;
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
@@ -92,7 +92,7 @@ public sealed partial class AppShellTests
             {
                 ((TestDirectory)workspace.Directory).ReadCatalog = _ => Task.FromResult(filled ? ImmutableArray.Create(company) : ImmutableArray<Company>.Empty);
                 await view.LoadAsync();
-                if (filled) { CreateHandles(exported); FindCompanyView(exported).SelectRow(0); }
+                if (filled) { CreateHandles(exported); SelectCompanies(FindCompanyEdit(exported), (await workspace.Directory.GetCompaniesAsync()).Take(1)); }
                 form.PerformLayout(); Application.DoEvents(); CheckTableBounds(exported);
                 Assert.AreEqual(Field<SimpleButton>(page, "saveButton").Height, Find<SimpleButton>(exported, "refreshButton").Height,
                     "Plugin buttons use the host's compact skin/DPI sizing after scaling.");
@@ -124,16 +124,31 @@ public sealed partial class AppShellTests
         Assert.IsInstanceOfType<PluginCompanySettingsPage>(exported);
         Assert.AreEqual(2, Field<TableLayoutPanel>(page, "layout").Controls.Count);
         CreateHandles(exported);
-        var view = FindCompanyView(exported);
-        Assert.AreEqual(2, view.DataRowCount); Assert.AreEqual(0, view.SelectedRowsCount);
-        Assert.IsTrue(view.OptionsSelection.MultiSelect);
-        Assert.AreEqual(GridMultiSelectMode.CheckBoxRowSelect, view.OptionsSelection.MultiSelectMode);
-        Assert.HasCount(1, view.Columns); Assert.AreEqual("Name", view.Columns[0].FieldName);
-        view.SelectRow(0); view.SelectRow(1);
-        view.FindFilterText = "Firma A"; Application.DoEvents();
+        var edit = FindCompanyEdit(exported);
+        var companies = await workspace.Directory.GetCompaniesAsync();
+        Assert.HasCount(2, (Array)edit.Properties.DataSource);
+        Assert.HasCount(0, SelectedKeys(edit));
+        Assert.AreEqual(LookUpEditValueType.ValueList, edit.Properties.EditValueType);
+        Assert.AreEqual(SearchMode.AutoSearch, edit.Properties.SearchMode);
+        Assert.IsFalse(edit.Properties.ShowHeader || edit.Properties.ShowFooter);
+        Assert.AreEqual(DevExpress.Utils.DefaultBoolean.False, edit.Properties.ShowPopupButtons);
+        Assert.HasCount(1, edit.Properties.Buttons);
+        Assert.AreEqual(ButtonPredefines.Combo, edit.Properties.Buttons[0].Kind);
+        Assert.AreEqual(2, edit.Properties.Columns.Count);
+        Assert.IsNotNull(edit.Properties.Columns["Name"]);
+        SelectCompanies(edit, companies);
+        CollectionAssert.AreEquivalent(companies.Select(item => item.Key).ToArray(), SelectedKeys(edit));
+        Assert.AreEqual("2 Mandanten ausgewählt", edit.Text);
+        var searched = false;
+        edit.AutoSearch += (_, _) => searched = true;
+        edit.StartAutoSearch("Firma A", false);
+        Application.DoEvents();
+        Assert.IsTrue(searched);
         Assert.AreEqual(2, Field<PluginSettingsPageContext>(page, "_pluginPageContext").SelectedCompanies.Count);
-        view.FindFilterText = ""; Application.DoEvents();
-        Assert.AreEqual(2, view.SelectedRowsCount);
+        edit.ResetAutoSearch();
+        edit.CancelPopup();
+        await Field<IPluginSettingsHandle>(page, "_pluginSettings").LoadAsync();
+        CollectionAssert.AreEquivalent(companies.Select(item => item.Key).ToArray(), SelectedKeys(edit));
         Assert.IsNull(workspace.Companies.Current.Company);
         Assert.IsEmpty((await workspace.Settings.LoadAsync()).Options.Companies);
         await page.SaveAsync(CancellationToken.None);
@@ -146,7 +161,7 @@ public sealed partial class AppShellTests
         await workspace.Settings.SaveAsync(saved.Options with { User = saved.Options.User with { PreferredCompany = legacyPreference } }, saved);
         using var reopened = new SettingsPage(); reopened.Bind(workspace); await reopened.ReloadAsync();
         var again = Field<Control>(reopened, "_pluginSettingsControl"); CreateHandles(again);
-        Assert.AreEqual(2, FindCompanyView(again).SelectedRowsCount);
+        Assert.HasCount(2, SelectedKeys(FindCompanyEdit(again)));
         typeof(PluginCompanySettingsPage).GetMethod("Clear_Click", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .Invoke(again, [null, EventArgs.Empty]);
         Assert.HasCount(2, (await workspace.Settings.LoadAsync()).Options.Companies.Where(item => item.IncludeInPhoneCache).ToArray());
@@ -166,7 +181,7 @@ public sealed partial class AppShellTests
         var file = Path.Combine(workspace.Paths.RootDirectory, "appsettings.json"); var before = await File.ReadAllBytesAsync(file);
         using var page = new SettingsPage(); page.Bind(workspace); await page.ReloadAsync();
         var exported = Field<Control>(page, "_pluginSettingsControl"); CreateHandles(exported);
-        FindCompanyView(exported).SelectRow(0);
+        SelectCompanies(FindCompanyEdit(exported), (await workspace.Directory.GetCompaniesAsync()).Take(1));
         ((TestDirectory)workspace.Directory).ReadCatalog = _ => Task.FromResult(ImmutableArray<Company>.Empty);
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => page.SaveAsync(CancellationToken.None));
         Assert.IsNull(workspace.Companies.Current.Company);
@@ -212,8 +227,8 @@ public sealed partial class AppShellTests
         plugin.SettingsFactory = context => new PluginCompanySettingsView(workspace.Directory, line, context);
         using var page = new SettingsPage(); page.Bind(workspace); await page.ReloadAsync();
         var exported = Field<Control>(page, "_pluginSettingsControl");
-        Assert.AreEqual(0, FindCompanyView(exported).SelectedRowsCount);
-        Assert.IsFalse(Find<GridControl>(exported, "companyGrid").Enabled);
+        Assert.HasCount(0, SelectedKeys(FindCompanyEdit(exported)));
+        Assert.IsFalse(FindCompanyEdit(exported).Enabled);
         Assert.DoesNotContain("synthetic-upstream-secret", page.LastSettingsNoticeText);
         Assert.IsEmpty(exported.Controls.Find("statusLabel", true));
         Assert.IsNull(workspace.Companies.Current.Company);
@@ -230,15 +245,19 @@ public sealed partial class AppShellTests
         var file = Path.Combine(workspace.Paths.RootDirectory, "appsettings.json"); var before = await File.ReadAllBytesAsync(file);
         using var page = new SettingsPage(); page.Bind(workspace); await page.ReloadAsync();
         var exported = Field<Control>(page, "_pluginSettingsControl"); CreateHandles(exported);
-        FindCompanyView(exported).SelectAll();
+        SelectCompanies(FindCompanyEdit(exported), companies);
         ((TestDirectory)workspace.Directory).ReadCatalog = _ => throw new InvalidOperationException("synthetic-private-source");
         await Field<IPluginSettingsHandle>(page, "_pluginSettings").LoadAsync();
-        Assert.IsFalse(Find<GridControl>(exported, "companyGrid").Enabled);
+        Assert.IsFalse(FindCompanyEdit(exported).Enabled);
         await page.StopAsync();
         CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(file));
         Assert.IsNull(workspace.Companies.Current.Company);
     });
 
-    private static GridView FindCompanyView(Control control) => (GridView)Find<GridControl>(control, "companyGrid").MainView;
+    private static LookUpEdit FindCompanyEdit(Control control) => Find<LookUpEdit>(control, "companyEdit");
+    private static CompanyKey[] SelectedKeys(LookUpEdit edit) =>
+        (edit.EditValue as List<object> ?? []).Cast<CompanyKey>().ToArray();
+    private static void SelectCompanies(LookUpEdit edit, IEnumerable<Company> companies) =>
+        edit.EditValue = companies.Select(company => (object)company.Key).ToList();
 
 }

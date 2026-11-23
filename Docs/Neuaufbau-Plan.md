@@ -4,6 +4,14 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ Kompakte Mandantenauswahl im Lexware-Tab (23.11.2026). Pro und FinOffice verwenden ein einzeiliges
+DevExpress LookUpEdit. Die Dropdownliste zeigt Checkboxen und Firmennamen, die Eingabe bietet Namenssuche
+und zeigt bei mehreren gewählten Mandanten deren Anzahl. Die Mandanten laden weiter automatisch.
+Die Auswahl bleibt beim Suchen und Aktualisieren erhalten und wird über „Speichern“ übernommen.
+Debug/Any CPU für beide Editionen ohne Warnungen und Fehler gebaut. 14 Pro- und 15 FinOffice-Prüfungen
+bestanden. Leere und befüllte Auswahl in hellem und dunklem Skin mit größerer Schrift und
+150-%-Layoutskalierung gerendert. Die gemeinsame Live-Abnahme G1 bleibt offen.
+
 Mandantenladefehler vom 23.11.2026: ✅ Konkrete, geschlossene Fehlerklassifikation vom Plugin
 bis Log-Fenster sowie Text-/JSONL-Dateilog. Authentifizierung, dokumentierte Client-Key-Fehler,
 Berechtigungen, Plugin-Freigabe, Installation, Verbindung, Zeitlimit und ungültige Kataloge werden

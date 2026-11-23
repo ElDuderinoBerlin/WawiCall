@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 
@@ -18,9 +19,13 @@ public partial class PluginCompanySettingsPage : XtraUserControl
     private ImmutableArray<Company> _companies = [];
     private CompanyKey[] _savedScope = [];
     private CompanyKey? _savedSelection;
-    private bool _binding, _sizing, _stopped, _disposed, _layoutRestored;
+    private bool _binding, _sizing, _stopped, _disposed;
     private int _revision;
-    public PluginCompanySettingsPage() => InitializeComponent();
+    public PluginCompanySettingsPage()
+    {
+        InitializeComponent();
+        companyEdit.Properties.AddCheckBoxSelectorColumn();
+    }
     public override Size GetPreferredSize(Size proposedSize)
     {
         if (layout is null) return base.GetPreferredSize(proposedSize);
@@ -36,10 +41,8 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         _context = context; _directory = directory; _productLine = line; _connectionReady = connectionReady;
         _savedScope = context?.Companies.SelectedCompanies.Select(item => item.Key).ToArray() ?? [];
         _savedSelection = context?.Companies.SelectedCompany; _revision++;
-        if (!_layoutRestored && context is not null) { context.Presentation.RestoreCompanyLayout(companyView); _layoutRestored = true; }
         BindRows();
         refreshButton.Enabled = clearButton.Enabled = context is not null && !_stopped;
-        context?.Presentation.SizeButtons(refreshButton, clearButton);
     }
     public Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -53,7 +56,7 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stopping.Token);
         var token = linked.Token;
         using var waiting = context.Presentation.BeginWait(this);
-        refreshButton.Enabled = companyGrid.Enabled = clearButton.Enabled = false;
+        refreshButton.Enabled = companyEdit.Enabled = clearButton.Enabled = false;
         context.Presentation.Report(PluginSettingsNotice.Loading);
         var stage = PluginCompanyFailure.ConfigurationRequired;
         try
@@ -87,7 +90,7 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         finally
         {
             if (!_stopped && revision == _revision)
-            { refreshButton.Enabled = clearButton.Enabled = true; companyGrid.Enabled = !_companies.IsEmpty; }
+            { refreshButton.Enabled = clearButton.Enabled = true; companyEdit.Enabled = !_companies.IsEmpty; }
         }
     }
     private void CheckCatalog(ImmutableArray<Company> companies)
@@ -103,11 +106,12 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         try
         {
             var selected = _context.Companies.SelectedCompanies.ToDictionary(item => item.Key);
-            var rows = _companies.Select(item => new CompanyRow(item, selected.ContainsKey(item.Key), true))
-                .Concat(selected.Values.Where(item => !_companies.Any(source => source.Key == item.Key)).Select(item => new CompanyRow(item, true, false))).ToArray();
-            companyGrid.DataSource = rows; companyGrid.RefreshDataSource();
-            companyView.ClearSelection();
-            for (var i = 0; i < companyView.DataRowCount; i++) if (companyView.GetRow(i) is CompanyRow row && selected.ContainsKey(row.Company.Key)) companyView.SelectRow(i);
+            var availableKeys = _companies.Select(item => item.Key).ToHashSet();
+            var rows = _companies.Select(item => new CompanyRow(item, true))
+                .Concat(selected.Values.Where(item => !availableKeys.Contains(item.Key)).Select(item => new CompanyRow(item, false)))
+                .ToArray();
+            companyEdit.Properties.DataSource = rows;
+            companyEdit.EditValue = selected.Keys.Cast<object>().ToList();
             CompanySize_Changed(this, EventArgs.Empty);
         }
         finally { _binding = false; }
@@ -134,7 +138,6 @@ public partial class PluginCompanySettingsPage : XtraUserControl
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         if (_disposed) return;
-        if (!_stopped) _context?.Presentation.SaveCompanyLayout(companyView);
         _stopped = true; await _stopping.CancelAsync(); await _loading;
     }
     private async void Refresh_Click(object? sender, EventArgs e) => await LoadAsync();
@@ -144,18 +147,34 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         _context.Companies.StageSelections(Array.Empty<Company>()); BindRows();
         _context.Presentation.Report(PluginSettingsNotice.SelectionChanged);
     }
-    private void Company_Changed(object? sender, DevExpress.Data.SelectionChangedEventArgs e)
+    private void Company_Changed(object? sender, EventArgs e)
     {
-        if (_binding || _stopped || _context is null) return;
-        var selected = companyView.GetSelectedRows().Select(handle => companyView.GetRow(handle)).OfType<CompanyRow>().ToArray();
-        if (selected.Any(item => !item.Available && !_savedScope.Contains(item.Company.Key))) return;
-        _context.Companies.StageSelections(selected.Select(item => item.Company).ToArray());
+        if (_binding || _stopped || _context is null || !companyEdit.Enabled) return;
+        if (companyEdit.EditValue is not List<object> values) return;
+        var keys = values.OfType<CompanyKey>().ToHashSet();
+        if (keys.Count != values.Count || companyEdit.Properties.DataSource is not CompanyRow[] rows) return;
+        // Use the complete catalog, including selections hidden by the current search.
+        var selected = rows.Where(row => keys.Contains(row.Key)).Select(row => row.Company).ToArray();
+        if (selected.Length != keys.Count) return;
+        _context.Companies.StageSelections(selected);
         _context.Presentation.Report(PluginSettingsNotice.SelectionChanged);
     }
+
+    private void Company_CustomDisplayText(object? sender, CustomDisplayTextEventArgs e)
+    {
+        if (e.Value is not List<object> values) return;
+        if (values.Count == 0) e.DisplayText = companyEdit.Properties.NullText;
+        else if (values.Count > 1) e.DisplayText = $"{values.Count} Mandanten ausgewählt";
+    }
+
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == (Keys.Control | Keys.F))
-        { if (companyView.IsFindPanelVisible) companyView.HideFindPanel(); else companyView.ShowFindPanel(); return true; }
+        if (keyData == (Keys.Control | Keys.F) && companyEdit.Enabled)
+        {
+            companyEdit.Focus();
+            companyEdit.ShowPopup();
+            return true;
+        }
         return base.ProcessCmdKey(ref msg, keyData);
     }
     private void CompanySize_Changed(object? sender, EventArgs e)
@@ -165,17 +184,17 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         try
         {
             _context?.Presentation.SizeButtons(refreshButton, clearButton);
-            companyView.OptionsSelection.CheckBoxSelectorColumnWidth = LogicalToDeviceUnits(32);
-            companyGrid.Height = (Math.Clamp(companyView.DataRowCount, 2, 6) + 2) * (Font.Height + LogicalToDeviceUnits(8));
+            var occupiedWidth = layout.Padding.Horizontal + companyLabel.GetPreferredSize(Size.Empty).Width
+                + companyLabel.Margin.Horizontal + companyEdit.Margin.Horizontal + actions.GetPreferredSize(Size.Empty).Width;
+            companyEdit.Width = Math.Clamp(ClientSize.Width - occupiedWidth, 1, LogicalToDeviceUnits(420));
         }
         finally { _sizing = false; }
     }
-    private sealed class CompanyRow(Company company, bool selected, bool available)
+    private sealed class CompanyRow(Company company, bool available)
     {
         public Company Company { get; } = company;
-        public bool Selected { get; set; } = selected;
-        public bool Available { get; } = available;
-        public string Name => Available ? Company.DisplayName : Company.DisplayName + " (nicht verfügbar)";
+        public CompanyKey Key => Company.Key;
+        public string Name => available ? Company.DisplayName : Company.DisplayName + " (nicht verfügbar)";
     }
     private void DisposePage()
     {

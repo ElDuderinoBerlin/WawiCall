@@ -336,8 +336,8 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ### Mandanten, Status und Debug-Vorgaben (Nutzerauftrag 22.11.2026)
 
-- Der Lexware-Plugin-Tab lädt Mandanten automatisch asynchron und bietet die eingebaute GridView-
-  Checkbox-Mehrfachauswahl für den gemeinsamen Telefon-/Mail-Quellumfang. Konkrete Gespräche und
+- Der Lexware-Plugin-Tab lädt Mandanten automatisch asynchron und bietet ein kompaktes LookUpEdit
+  mit eingebauter Checkbox-Mehrfachauswahl für den gemeinsamen Telefon-/Mail-Quellumfang. Konkrete Gespräche und
   Datensatzviews behalten ihren eindeutigen Mandantenkontext; keine erste Firma automatisch aktivieren.
 - Im Einstellungsfooter keine Statuszeile anzeigen. Einstellungsstatus über die geschlossenen
   Ereignisse an Log-Fenster und Logdatei schreiben; Quellfehler, Zugangsdaten und Mandantennamen auslassen.
