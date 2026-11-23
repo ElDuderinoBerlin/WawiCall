@@ -40,7 +40,7 @@ public sealed partial class AppShellTests
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 look.SetSkinStyle(skin);
                 inventory.Read = _ => Task.FromResult(new RecordingDirectoryInventoryResult(4, 1, 1, 1,
-                    [new("recordings/z.wav", false), new("recordings/a.tmp", false), new("recordings/link", true)]));
+                    [new("recordings/z.wav", false), new("recordings/a.tmp", false), new("recordings/link", true), new("recordings/pending.wav", false, true)]));
                 using var dialog = main.CreateRecordingInventoryDialog();
                 dialog.Font = font;
                 dialog.ClientSize = new Size(width, 440);
@@ -50,10 +50,11 @@ public sealed partial class AppShellTests
                 await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
                 await WaitForOperationAsync(dialog);
                 var view = Field<GridView>(dialog, "reviewView");
-                Assert.AreEqual(3, view.DataRowCount);
+                Assert.AreEqual(4, view.DataRowCount);
                 Assert.AreEqual("recordings/a.tmp", view.GetRowCellDisplayText(0, "RelativePath"));
                 Assert.AreEqual("Temporäre Datei ohne Zuordnung", view.GetRowCellDisplayText(0, "Reason"));
                 Assert.AreEqual("Link übersprungen", view.GetRowCellDisplayText(1, "Reason"));
+                Assert.AreEqual("WAV-Abschluss ausstehend", view.GetRowCellDisplayText(2, "Reason"));
                 Assert.IsFalse(view.OptionsBehavior.Editable);
                 Assert.Contains("4 mit lokaler Zuordnung", Field<LabelControl>(dialog, "summaryLabel").Text);
                 CheckTableBounds(dialog);

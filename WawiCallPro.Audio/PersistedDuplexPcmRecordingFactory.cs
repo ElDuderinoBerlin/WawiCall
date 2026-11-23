@@ -2,11 +2,12 @@ using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Persistence;
 
 namespace WawiCallPro.Audio;
 
 public sealed class PersistedDuplexPcmRecordingFactory(IDuplexPcmRecordingFactory recordings, IRecordingJournal journal,
-    ApplicationPaths paths, TimeProvider clock) : IPersistedDuplexPcmRecordingFactory
+    ApplicationPaths paths, TimeProvider clock, IPreparedWaveOutbox? preparedWaves = null) : IPersistedDuplexPcmRecordingFactory
 {
     public async Task<IDuplexPcmRecording> StartAsync(IConversationPcmFailureSource source, DuplexPcmRecordingRequest request, CancellationToken cancellationToken = default)
     {
@@ -46,7 +47,15 @@ public sealed class PersistedDuplexPcmRecordingFactory(IDuplexPcmRecordingFactor
             try { Directory.CreateDirectory(Path.GetDirectoryName(item.WavePath)!); _ = RelativePath(item.WavePath); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
             { throw new PcmRecordingException(PcmRecordingFailure.FileFailure); }
-            inner = await recordings.StartAsync(source, request, cancellationToken).ConfigureAwait(false);
+            var persistedRequest = request with
+            {
+                Recording = item with
+                {
+                    StageWaveAsync = preparedWaves is null ? null : (path, wave, token) =>
+                        writer.PrepareWaveAsync(preparedWaves, path, wave, token)
+                }
+            };
+            inner = await recordings.StartAsync(source, persistedRequest, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return new PersistedDuplexPcmRecording(inner, writer, item, epoch, clock);
         }

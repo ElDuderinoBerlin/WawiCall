@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Database.Repositories;
 using WawiCallPro.Interfaces.Audio;
+using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Persistence;
 
@@ -14,9 +15,21 @@ public sealed class RecordingJournalRecovery(
     ICallRepository calls,
     IWorkstationIdentity workstation,
     ILogger<RecordingJournalRecovery> log,
-    IRecordingCompletionPublisher completions) : IRecordingJournalRecovery
+    IRecordingCompletionPublisher completions,
+    IRecordingRepository recordings,
+    IRecordingCaptureRepository captures) : IRecordingJournalRecovery
 {
+    private readonly SemaphoreSlim _pass = new(1);
+
     public async Task<RecordingJournalRecoveryResult> RecoverAsync(CancellationToken cancellationToken = default)
+    {
+        // Host startup and SIP registration share the same delivery pass.
+        await _pass.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await RecoverPendingAsync(cancellationToken).ConfigureAwait(false); }
+        finally { _pass.Release(); }
+    }
+
+    private async Task<RecordingJournalRecoveryResult> RecoverPendingAsync(CancellationToken cancellationToken)
     {
         IReadOnlyList<Guid> entries; Guid? local;
         try
@@ -39,6 +52,11 @@ public sealed class RecordingJournalRecovery(
                 if (call?.History.Call.Origin?.WorkstationId != local || call.History.Call.State is not (CallState.Ended or CallState.Failed))
                 { deferred++; continue; }
                 completions.Validate(delivery, cancellationToken);
+                if (delivery.NeedsWavePublication)
+                {
+                    await VerifyPreparedOwnerAsync(delivery, cancellationToken).ConfigureAwait(false);
+                    await delivery.PublishPreparedWaveAsync(cancellationToken).ConfigureAwait(false);
+                }
                 await journal.WriteAsync(delivery.Recording, delivery.Capture, cancellationToken).ConfigureAwait(false);
                 await completions.PublishAsync(delivery, cancellationToken).ConfigureAwait(false);
                 delivery.Acknowledge(); delivered++;
@@ -48,5 +66,21 @@ public sealed class RecordingJournalRecovery(
             catch (Exception) { failed++; log.LogWarning("Recording recovery: {Code}", "PendingCompletionNotConfirmed"); }
         }
         return new(delivered, deferred, failed);
+    }
+
+    private async Task VerifyPreparedOwnerAsync(IRecordingJournalDelivery delivery, CancellationToken token)
+    {
+        var file = delivery.Recording.Recording;
+        var completed = delivery.Capture.Capture;
+        var recording = await recordings.GetAsync(file.Id, token).ConfigureAwait(false);
+        var capture = await captures.GetAsync(file.Id, token).ConfigureAwait(false);
+        if (recording is null || capture is null ||
+            recording.Version != delivery.Recording.ExpectedVersion || capture.Version != delivery.Capture.ExpectedVersion ||
+            recording.Recording != file with { Availability = RecordingAvailability.Pending, Duration = null } ||
+            capture.Capture.CallId != file.CallId || capture.Capture.StartedAtUtc != completed.StartedAtUtc ||
+            capture.Capture.SampleRate != completed.SampleRate || capture.Capture.Channels != completed.Channels ||
+            capture.Capture.State is not (PcmRecordingState.Capturing or PcmRecordingState.Stopping) ||
+            recording.UpdatedAtUtc > delivery.Recording.ChangedAtUtc || capture.UpdatedAtUtc > delivery.Capture.ChangedAtUtc)
+            throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);
     }
 }

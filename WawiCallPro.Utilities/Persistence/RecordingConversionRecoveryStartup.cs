@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using WawiCallPro.Database;
+using WawiCallPro.Database.Contracts;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Persistence;
@@ -14,14 +16,21 @@ public sealed class RecordingConversionRecoveryStartup(
     private readonly IRecordingConversionQueue? _queue;
     private readonly ICommunicationDatabase? _database;
     private readonly ActiveDatabaseReady? _databaseReady;
+    private readonly IRecordingJournalRecovery? _waves;
+    private readonly IRecordingArtifactAuditScheduler? _audit;
+    private readonly IWorkstationIdentity? _workstation;
 
     public RecordingConversionRecoveryStartup(IRecordingConversionRecovery recovery, ILogger<RecordingConversionRecoveryStartup> log,
-        IInterruptedMp3Recovery interrupted, IRecordingConversionQueue queue, ICommunicationDatabase? database = null, ActiveDatabaseReady? databaseReady = null)
+        IInterruptedMp3Recovery interrupted, IRecordingConversionQueue queue, ICommunicationDatabase? database = null, ActiveDatabaseReady? databaseReady = null,
+        IRecordingJournalRecovery? waves = null, IRecordingArtifactAuditScheduler? audit = null, IWorkstationIdentity? workstation = null)
         : this(recovery, log, interrupted)
     {
         _queue = queue;
         _database = database;
         _databaseReady = databaseReady;
+        _waves = waves;
+        _audit = audit;
+        _workstation = workstation;
     }
     private int _disposed;
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -55,6 +64,9 @@ public sealed class RecordingConversionRecoveryStartup(
                     return;
                 }
             }
+            if (_waves is not null) await _waves.RecoverAsync(stoppingToken).ConfigureAwait(false);
+            if (_audit is not null && _workstation is not null && await _workstation.GetAsync(stoppingToken).ConfigureAwait(false) is not null)
+                _audit.Request();
             var delivered = await recovery.RecoverAsync(stoppingToken).ConfigureAwait(false);
             stoppingToken.ThrowIfCancellationRequested();
             var recovered = await interrupted.RecoverAsync(stoppingToken).ConfigureAwait(false);

@@ -33,10 +33,10 @@ public static class AudioConversionServices
     }
 
     /// <summary>Hosts opt into call persistence after registering the shared database journal and application paths.</summary>
-    public static IServiceCollection AddPersistedRecordings(this IServiceCollection services)
+    public static IServiceCollection AddPersistedRecordings(this IServiceCollection services, bool startRecovery = true)
     {
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IPersistedMp3ConversionFactory, WawiCallPro.Utilities.Persistence.PersistedMp3ConversionFactory>();
-        services.AddHostedService<WawiCallPro.Utilities.Persistence.RecordingConversionRecoveryStartup>();
+        if (startRecovery) services.AddHostedService<WawiCallPro.Utilities.Persistence.RecordingConversionRecoveryStartup>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionBatch, WawiCallPro.Utilities.Persistence.RecordingConversionBatch>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingConversionRequests, WawiCallPro.Utilities.Persistence.RecordingConversionRequests>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IAutomaticRecordingConversions, WawiCallPro.Utilities.Persistence.AutomaticRecordingConversions>();

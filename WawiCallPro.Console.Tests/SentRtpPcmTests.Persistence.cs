@@ -114,8 +114,9 @@ public sealed partial class SentRtpPcmTests
             _id = Guid.NewGuid(); return new(new(call.Id, _id, Output, fixture.Format.ClockRate), Anchor(fixture),
                 new(fixture.RemoteSsrc, 100, 5000, 8000, TimeSpan.FromMilliseconds(10))) { RecordingEpochUtc = epoch };
         }
-        internal RecordingSipMediaSession Media(Fixture fixture, IRecordingJournal? journal = null) => new(
-            new PcmSipMediaSession(new RecordingNativeMedia(fixture.Media), fixture.Tap, fixture.Bridge), new PersistedDuplexPcmRecordingFactory(DuplexFactory(), journal ?? Journal, Paths, TimeProvider.System));
+        internal RecordingSipMediaSession Media(Fixture fixture, IRecordingJournal? journal = null, WawiCallPro.Utilities.Persistence.IPreparedWaveOutbox? prepared = null) => new(
+            new PcmSipMediaSession(new RecordingNativeMedia(fixture.Media), fixture.Tap, fixture.Bridge),
+            new PersistedDuplexPcmRecordingFactory(DuplexFactory(), journal ?? Journal, Paths, TimeProvider.System, prepared));
         internal Task<StoredRecording?> Recording() => new DapperRecordingRepository(new(_target, new())).GetAsync(_id);
         internal Task<StoredRecordingCapture?> Capture() => new DapperRecordingCaptureRepository(new(_target, new())).GetAsync(_id);
         internal Task<IReadOnlyList<StoredRecordingArtifact>> Artifacts() => new DapperRecordingArtifactRepository(new(_target, new())).GetForRecordingAsync(_id);

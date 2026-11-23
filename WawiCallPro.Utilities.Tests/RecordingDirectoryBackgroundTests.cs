@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class RecordingDirectoryBackgroundTests
 {
     [TestMethod]
-    [DataRow("unknown")][DataRow("temporary")][DataRow("link")][DataRow("clean")][DataRow("failure")]
+    [DataRow("unknown")][DataRow("temporary")][DataRow("link")][DataRow("unconfirmed")][DataRow("clean")][DataRow("failure")]
     public async Task InventoryRunsAfterAuditAndLogsOnlyClosedEvents(string mode)
     {
         var audit = new Audit(); var inventory = new Inventory(audit, mode); var log = new InventoryLog();
@@ -65,7 +65,7 @@ public sealed class RecordingDirectoryBackgroundTests
             token.ThrowIfCancellationRequested(); Calls++; Assert.AreEqual(Calls, audit.Calls); Completed.TrySetResult();
             if (mode == "failure") throw new IOException("private-path-and-database-details");
             return Task.FromResult(new RecordingDirectoryInventoryResult(2, mode == "unknown" ? 1 : 0, mode == "temporary" ? 1 : 0, mode == "link" ? 1 : 0,
-                [new("private-recording.wav", mode == "link")]));
+                mode == "clean" ? [] : [new("private-recording.wav", mode == "link", mode == "unconfirmed")]));
         }
     }
     private sealed class PausedInventory : IRecordingDirectoryInventory

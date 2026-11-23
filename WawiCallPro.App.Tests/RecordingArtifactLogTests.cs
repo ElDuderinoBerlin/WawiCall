@@ -10,7 +10,7 @@ public sealed class RecordingArtifactLogTests
     [TestMethod]
     [DataRow(OperationEvent.RecordingArtifactUnavailable, "bestätigte Aufnahmedatei")]
     [DataRow(OperationEvent.RecordingArtifactAuditIncomplete, "Abgleich")]
-    [DataRow(OperationEvent.RecordingDirectoryReviewRequired, "ohne Zuordnung")]
+    [DataRow(OperationEvent.RecordingDirectoryReviewRequired, "ohne lokale Zuordnung")]
     [DataRow(OperationEvent.RecordingDirectoryInventoryIncomplete, "nicht vollständig")]
     [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "ausstehende Aufnahmekonvertierungen")]
     [DataRow(OperationEvent.RecordingConversionSchemaUpdateRequired, "Datenbank → Datenbank einrichten")]

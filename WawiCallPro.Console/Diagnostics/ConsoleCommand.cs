@@ -12,6 +12,8 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
     internal bool UsesRecordingInventory => Name == "--recordings-inventory";
     internal Guid? RecordingArtifactId { get; init; }
     internal bool UsesRecordingExport => Name == "--recording-export";
+    internal string? ReviewWavePath { get; init; }
+    internal bool UsesRecordingDiagnostics => UsesRecordingInventory || UsesRecordingExport || ReviewWavePath is not null;
     internal bool UsesPhoneMatching => Name is "--phone-rule" or "--phone-match";
     internal bool UsesDatabase => Name.StartsWith("--db-", StringComparison.Ordinal) || UsesPhoneMatching;
     internal static ConsoleCommand Parse(string[] arguments) => arguments switch
@@ -19,6 +21,9 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
         [] => new("--status"),
         ["--recordings-inventory"] => new(arguments[0]),
         ["--recordings-inventory", "--details"] => new(arguments[0]) { ShowRecordingPaths = true },
+        ["--recording-recover-wave", var relative, var destination]
+            when relative.Length > 0 && !Path.IsPathRooted(relative) && Path.IsPathFullyQualified(destination)
+            => new(arguments[0], destination) { ReviewWavePath = relative },
         ["--recording-export", var identifier, var destination]
             when Guid.TryParseExact(identifier, "D", out var artifactId) && artifactId != Guid.Empty && Path.IsPathFullyQualified(destination)
             => new(arguments[0], destination) { RecordingArtifactId = artifactId },

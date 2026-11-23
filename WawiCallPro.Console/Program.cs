@@ -13,7 +13,9 @@ try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
     var command = ConsoleCommand.Parse(args);
-    var host = ConsoleCompositionRoot.Build(loadPlugins: !command.UsesDatabase && !command.UsesRecordingInventory && !command.UsesRecordingExport && command.Name is not ("--workstation-init" or "--erp-configure"));
+    var host = ConsoleCompositionRoot.Build(
+        loadPlugins: !command.UsesDatabase && !command.UsesRecordingDiagnostics && command.Name is not ("--workstation-init" or "--erp-configure"),
+        startRecordingRecovery: !command.UsesRecordingDiagnostics);
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {
@@ -41,6 +43,8 @@ try
                 table = await RecordingInventoryCommands.ExecuteAsync(command, host.Services.GetRequiredService<IRecordingDirectoryInventory>(), stoppingToken);
             else if (command.UsesRecordingExport)
                 table = await RecordingExportCommands.ExecuteAsync(command, host.Services.GetRequiredService<IRecordingExport>(), stoppingToken);
+            else if (command.ReviewWavePath is { } reviewPath)
+                table = await RecordingInventoryCommands.CopyWaveAsync(reviewPath, command.File!, host.Services.GetRequiredService<IRecordingReviewExport>(), stoppingToken);
             else if (command.UsesDatabase)
                 table = await DatabaseCommands.ExecuteAsync(command, host.Services.GetRequiredService<ICommunicationDatabase>(), stoppingToken);
             else if (command.Name == "--erp-configure")

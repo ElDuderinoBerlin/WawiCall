@@ -50,6 +50,7 @@ public sealed class RecordingInventoryCommandTests
     public async Task RealConsoleUsesIsolatedReadOnlyInventoryWithoutPluginOrInteractiveInput()
     {
         var root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "wcp-inventory-command-" + Guid.NewGuid().ToString("N")));
+        var rescuedWave = root + "-rescued.wav";
         Directory.CreateDirectory(root);
         try
         {
@@ -71,6 +72,21 @@ public sealed class RecordingInventoryCommandTests
             Assert.DoesNotContain(root, details.Output); Assert.DoesNotContain("N/P/G/Q", details.Output);
             CollectionAssert.AreEqual(before, File.ReadAllBytes(database)); CollectionAssert.AreEqual(identity, File.ReadAllBytes(Path.Combine(root, "workstation.local.json")));
             foreach (var path in Directory.EnumerateFiles(recordings)) CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, File.ReadAllBytes(path));
+
+            var original = Path.Combine(recordings, "orphan.wav");
+            using (var writer = new CSCore.Codecs.WAV.WaveWriter(original, new CSCore.WaveFormat(8000, 16, 1)))
+                writer.Write(new byte[320], 0, 320);
+            var rejected = await Run(root, "--recording-recover-wave", "synthetic-000.wav", rescuedWave);
+            Assert.AreEqual(1, rejected.Exit);
+            Assert.DoesNotContain(root, rejected.Error);
+            Assert.IsFalse(File.Exists(rescuedWave));
+            var rescued = await Run(root, "--recording-recover-wave", "orphan.wav", rescuedWave);
+            Assert.AreEqual(0, rescued.Exit, rescued.Error);
+            var bytes = File.ReadAllBytes(original);
+            CollectionAssert.AreEqual(bytes, File.ReadAllBytes(rescuedWave));
+            Assert.AreEqual(1, (await Run(root, "--recording-recover-wave", "orphan.wav", rescuedWave)).Exit);
+            CollectionAssert.AreEqual(bytes, File.ReadAllBytes(rescuedWave));
+            CollectionAssert.AreEqual(before, File.ReadAllBytes(database));
         }
         finally
         {
@@ -78,6 +94,7 @@ public sealed class RecordingInventoryCommandTests
             if (!resolved.StartsWith(Path.GetFullPath(Path.GetTempPath()), StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(resolved).StartsWith("wcp-inventory-command-", StringComparison.Ordinal))
                 throw new AssertFailedException("Unexpected fixture cleanup target.");
             Directory.Delete(resolved, true);
+            File.Delete(rescuedWave);
         }
     }
 

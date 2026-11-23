@@ -4,7 +4,7 @@ using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Utilities.Persistence;
 
-public sealed record RecordingDirectoryEntry(string RelativePath, bool IsLink)
+public sealed record RecordingDirectoryEntry(string RelativePath, bool IsLink, bool AwaitingConfirmation = false)
 { public override string ToString() => nameof(RecordingDirectoryEntry); }
 public interface IRecordingDirectoryEntries
 {
@@ -49,7 +49,7 @@ public interface IRecordingDirectoryInventory
 
 /// <summary>Reports paths absent from the observed local catalog, not proven orphan files. No adoption or deletion.</summary>
 public sealed class RecordingDirectoryInventory(IRecordingFileCatalogQuery catalog, IWorkstationIdentity workstation,
-    IRecordingDirectoryEntries directory, ApplicationPaths paths) : IRecordingDirectoryInventory
+    IRecordingDirectoryEntries directory, ApplicationPaths paths, IInterruptedRecordingQuery? unfinished = null) : IRecordingDirectoryInventory
 {
     public async Task<RecordingDirectoryInventoryResult> ReadAsync(CancellationToken cancellationToken = default)
     {
@@ -70,6 +70,7 @@ public sealed class RecordingDirectoryInventory(IRecordingFileCatalogQuery catal
             if (after is { } old && StringComparer.Ordinal.Compare(DatabaseId.Encode(next), DatabaseId.Encode(old)) <= 0) throw new RecordingOutboxException();
             after = next;
         }
+        var unconfirmed = await ReadUnconfirmedPathsAsync(local, cancellationToken).ConfigureAwait(false);
         var known = 0; var unregistered = 0; var temporary = 0; var links = 0; var files = 0;
         var review = ImmutableArray.CreateBuilder<RecordingDirectoryEntry>();
         foreach (var entry in directory.Read(cancellationToken))
@@ -77,10 +78,37 @@ public sealed class RecordingDirectoryInventory(IRecordingFileCatalogQuery catal
             cancellationToken.ThrowIfCancellationRequested(); if (++files > 100000) throw new RecordingOutboxException();
             _ = paths.ResolveRecordingPath(entry.RelativePath);
             if (entry.IsLink) { links++; review.Add(entry); }
-            else if (registered.Contains(Normalize(entry.RelativePath))) known++;
+            else if (registered.Contains(Normalize(entry.RelativePath)))
+            {
+                known++;
+                if (unconfirmed.Contains(Normalize(entry.RelativePath))) review.Add(entry with { AwaitingConfirmation = true });
+            }
             else { if (Path.GetExtension(entry.RelativePath).Equals(".tmp", StringComparison.OrdinalIgnoreCase)) temporary++; else unregistered++; review.Add(entry); }
         }
         return new(known, unregistered, temporary, links, review.ToImmutable());
+    }
+
+    private async Task<HashSet<string>> ReadUnconfirmedPathsAsync(Guid local, CancellationToken token)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (unfinished is null) return result;
+        Guid? after = null;
+        var count = 0;
+        while (true)
+        {
+            var page = await unfinished.GetPageAsync(local, after, 100, token).ConfigureAwait(false);
+            if (page.Items.IsDefault || page.Items.Length > 100 || page.HasMore && page.Items.IsEmpty) throw new RecordingOutboxException();
+            foreach (var row in page.Items)
+            {
+                token.ThrowIfCancellationRequested();
+                if (++count > 100000) throw new RecordingOutboxException();
+                result.Add(Normalize(row.Journal.Recording.Recording.RelativePath));
+            }
+            if (!page.HasMore) return result;
+            var next = page.Items[^1].Journal.Recording.Recording.Id;
+            if (after is { } old && StringComparer.Ordinal.Compare(DatabaseId.Encode(next), DatabaseId.Encode(old)) <= 0) throw new RecordingOutboxException();
+            after = next;
+        }
     }
     private static string Normalize(string relative) => relative.Replace('\\', '/');
 }

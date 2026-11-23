@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using WawiCallPro.Core.Threading;
+using WawiCallPro.Database.Contracts;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
@@ -14,6 +16,29 @@ namespace WawiCallPro.Utilities.Tests;
 [TestClass]
 public sealed class RecordingConversionRecoveryStartupTests
 {
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task StartupReplaysWaveReceiptsWithoutSipAndAuditsOnlyAnEstablishedWorkstation(bool hasIdentity)
+    {
+        var wavePassCompleted = false;
+        var auditRequests = 0;
+        var conversions = new Recovery(_ =>
+        {
+            Assert.IsTrue(wavePassCompleted);
+            Assert.AreEqual(hasIdentity ? 1 : 0, auditRequests);
+            return Task.FromResult(new RecordingConversionRecoveryResult(0, 0, 0));
+        });
+        await using var worker = new RecordingConversionRecoveryStartup(conversions, new StartupLog(),
+            new Interrupted(_ => Task.FromResult(new InterruptedMp3RecoveryResult(0, 0, 0))), new Queue(() => { }),
+            new Database(DatabaseSchemaState.Current), waves: new WaveRecovery(() => wavePassCompleted = true),
+            audit: new Audit(() => auditRequests++), workstation: new Identity(hasIdentity ? Guid.NewGuid() : null));
+        await worker.StartAsync(default);
+        await worker.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsTrue(wavePassCompleted);
+        Assert.AreEqual(hasIdentity ? 1 : 0, auditRequests);
+    }
+
     [TestMethod]
     public async Task AsyncDisposalCancelsAndAwaitsTheSingleOwnedPass()
     {
@@ -165,6 +190,18 @@ public sealed class RecordingConversionRecoveryStartupTests
     { public Task<InterruptedMp3RecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
     private sealed class Recovery(Func<CancellationToken, Task<RecordingConversionRecoveryResult>> recover) : IRecordingConversionRecovery
     { public Task<RecordingConversionRecoveryResult> RecoverAsync(CancellationToken token = default) => recover(token); }
+    private sealed class WaveRecovery(Action complete) : IRecordingJournalRecovery
+    {
+        public Task<RecordingJournalRecoveryResult> RecoverAsync(CancellationToken cancellationToken = default)
+        { complete(); return Task.FromResult(new RecordingJournalRecoveryResult(1, 0, 0)); }
+    }
+    private sealed class Audit(Action requested) : IRecordingArtifactAuditScheduler
+    { public void Request() => requested(); }
+    private sealed class Identity(Guid? value) : IWorkstationIdentity
+    {
+        public Task<Guid?> GetAsync(CancellationToken cancellationToken = default) => Task.FromResult(value);
+        public Task<Guid> InitializeAsync(CancellationToken cancellationToken = default) => throw new AssertFailedException();
+    }
     private sealed class StartupLog(OperationEvent expected = OperationEvent.RecordingConversionCheckFailed, Action? logged = null) : ILogger<RecordingConversionRecoveryStartup>
     {
         internal int Warnings;

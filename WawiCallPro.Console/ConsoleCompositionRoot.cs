@@ -12,7 +12,7 @@ namespace WawiCallPro.ConsoleApp;
 
 internal static class ConsoleCompositionRoot
 {
-    internal static IHost Build(bool loadPlugins = true) => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
+    internal static IHost Build(bool loadPlugins = true, bool startRecordingRecovery = true) => WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
         .ConfigureServices(services =>
         {
             if (loadPlugins) services.AddProductPluginRuntime();
@@ -20,7 +20,7 @@ internal static class ConsoleCompositionRoot
             services.AddSingleton<WindowsSipMediaSessionFactory>();
             services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
             services.AddAudioConversion();
-            services.AddPersistedRecordings();
+            services.AddPersistedRecordings(startRecordingRecovery);
             services.AddSipTelephony(false);
             services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
         })

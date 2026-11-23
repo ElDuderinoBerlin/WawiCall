@@ -9,10 +9,10 @@ public sealed class ConversationWaveMixer(IConversationWaveRenderer renderer) : 
     public Task<ConversationWaveMixResult> MixAsync(ConversationWaveMixRequest request, CancellationToken cancellationToken = default)
     {
         ConversationWaveMixValidation.Validate(request);
-        return Task.Run(() => Mix(request, cancellationToken), cancellationToken);
+        return Task.Run(() => MixAsyncCore(request, cancellationToken), cancellationToken);
     }
 
-    private ConversationWaveMixResult Mix(ConversationWaveMixRequest request, CancellationToken token)
+    private async Task<ConversationWaveMixResult> MixAsyncCore(ConversationWaveMixRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var destination = Path.GetFullPath(request.WavePath);
@@ -38,6 +38,12 @@ public sealed class ConversationWaveMixer(IConversationWaveRenderer renderer) : 
                 output.Flush(flushToDisk: true);
             }
             token.ThrowIfCancellationRequested();
+            if (request.StageWaveAsync is { } stage)
+            {
+                await stage(temporary, result, token).ConfigureAwait(false);
+                created = false;
+                return result;
+            }
             try { File.Move(temporary, destination, overwrite: false); }
             catch (IOException) { throw new ConversationWaveMixException(ConversationWaveMixFailure.DestinationUnavailable); }
             catch (UnauthorizedAccessException) { throw new ConversationWaveMixException(ConversationWaveMixFailure.DestinationUnavailable); }

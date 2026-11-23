@@ -11,6 +11,13 @@ public interface IRecordingJournalOutbox
     IRecordingArtifactAuditLease AcquireInspection(Guid recordingId);
 }
 
+/// <summary>Records the verified mix before the filesystem publishes its canonical WAV name.</summary>
+public interface IPreparedWaveOutbox
+{
+    Task StagePreparedWaveAsync(RecordingWrite recording, RecordingCaptureWrite capture, string temporaryPath,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IRecordingArtifactAuditLease : IAsyncDisposable
 {
     bool HasPending { get; }
@@ -25,6 +32,8 @@ public interface IRecordingJournalDelivery : IAsyncDisposable
     Stream? Wave { get; }
     /// <summary>Original protected SHA-256 for a completed WAV; null for failure/abort deliveries.</summary>
     string? WaveSha256 { get; }
+    bool NeedsWavePublication => false;
+    Task PublishPreparedWaveAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     void Acknowledge();
 }
 

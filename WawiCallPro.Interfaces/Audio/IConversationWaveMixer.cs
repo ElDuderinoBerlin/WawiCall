@@ -15,6 +15,8 @@ public sealed record ConversationWaveSegment(string WavePath, ConversationAudioS
 public sealed record ConversationWaveMixRequest(Guid CallId, Guid RecordingId, ImmutableArray<ConversationWaveSegment> Segments,
     string WavePath, int SampleRate, TimeSpan Duration, ConversationWaveLayout Layout = ConversationWaveLayout.SeparatedStereo)
 {
+    /// <summary>On success takes ownership of the flushed temporary WAV and its eventual publication.</summary>
+    public Func<string, ConversationWaveMixResult, CancellationToken, Task>? StageWaveAsync { get; init; }
     public override string ToString() => nameof(ConversationWaveMixRequest);
 }
 

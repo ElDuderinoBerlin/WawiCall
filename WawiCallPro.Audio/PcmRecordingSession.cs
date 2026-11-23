@@ -95,7 +95,7 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
             ThrowIfFailed();
             _abort.Token.ThrowIfCancellationRequested();
             var wave = await _mixer.MixAsync(new(_request.CallId, _request.RecordingId, segments, _request.WavePath,
-                _request.SampleRate, duration, _request.Layout), _abort.Token).ConfigureAwait(false);
+                _request.SampleRate, duration, _request.Layout) { StageWaveAsync = _request.StageWaveAsync }, _abort.Token).ConfigureAwait(false);
             SetTerminalState(PcmRecordingState.Completed);
             return new(wave, segments);
         }

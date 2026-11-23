@@ -47,7 +47,7 @@ public sealed class RecordingArtifactAuditScheduler(IRecordingArtifactReconcilia
         {
             var result = await _inventory!.ReadAsync(token).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
-            if (result.WithoutLocalReference > 0 || result.TemporaryWithoutLocalReference > 0 || result.LinksSkipped > 0)
+            if (!result.Review.IsEmpty)
                 OperationEvents.Write(log, OperationEvent.RecordingDirectoryReviewRequired);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }

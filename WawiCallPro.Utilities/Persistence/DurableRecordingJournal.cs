@@ -24,6 +24,7 @@ public sealed class DurableRecordingJournal(
         await using (var delivery = await pending.StageAsync(recording, capture, cancellationToken).ConfigureAwait(false))
         {
             completions.Validate(delivery, cancellationToken);
+            await delivery.PublishPreparedWaveAsync(cancellationToken).ConfigureAwait(false);
             result = await inner.WriteAsync(delivery.Recording, delivery.Capture, cancellationToken).ConfigureAwait(false);
             await completions.PublishAsync(delivery, cancellationToken).ConfigureAwait(false);
             delivery.Acknowledge();

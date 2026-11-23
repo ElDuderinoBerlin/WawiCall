@@ -22,6 +22,101 @@ namespace WawiCallPro.Console.Tests;
 public sealed partial class SentRtpPcmTests
 {
     [TestMethod]
+    [DataRow("normal")]
+    [DataRow("staged")]
+    [DataRow("published")]
+    [DataRow("conflict")]
+    [DataRow("tampered")]
+    [DataRow("version")]
+    [DataRow("foreign")]
+    public async Task PreparedWaveIsRecoveredOnlyFromAProtectedMixAndLocalMatchingJournal(string state)
+    {
+        await using var fixture = new Fixture();
+        await fixture.Connect();
+        using var files = new PersistedFiles();
+        var request = await files.Initialize(fixture);
+        var outbox = await Pending(files);
+        var interrupted = state != "normal";
+        var media = files.Media(fixture,
+            new DurableRecordingJournal(Backend(new SwitchTarget(files.Target)), interrupted ? new FailBeforePublishing(outbox) : outbox, Publisher(files)),
+            outbox);
+        try
+        {
+            var recording = await media.StartRecordingAsync(request);
+            fixture.Capture(Samples(fixture.Format.ClockRate / 50, 0));
+            await fixture.Packets(1);
+            if (interrupted) await Assert.ThrowsExactlyAsync<RecordingPersistenceException>(() => recording.StopAsync(TimeSpan.FromMilliseconds(40)));
+            else await recording.StopAsync(TimeSpan.FromMilliseconds(40));
+        }
+        finally { try { await media.DisposeAsync(); } catch (RecordingPersistenceException) when (interrupted) { } }
+
+        if (!interrupted)
+        {
+            Assert.IsTrue(File.Exists(files.Output));
+            Assert.AreEqual(0, outbox.GetPending().Count);
+            Assert.AreEqual(RecordingAvailability.Available, (await files.Artifacts()).Single().Artifact.Availability);
+            return;
+        }
+
+        Assert.IsFalse(File.Exists(files.Output));
+        Assert.AreEqual(1, outbox.GetPending().Count);
+        var prepared = Directory.GetFiles(files.Paths.RecordingsDirectory, ".wawi-mix-*.tmp").Single();
+        byte[] unrelated = [4, 2, 7];
+        var orphan = Path.Combine(files.Paths.RecordingsDirectory, "unrelated.wav");
+        File.WriteAllBytes(orphan, unrelated);
+        if (state == "conflict") File.WriteAllBytes(files.Output, unrelated);
+        if (state == "tampered")
+        {
+            var bytes = File.ReadAllBytes(prepared);
+            bytes[^1] ^= 1;
+            File.WriteAllBytes(prepared, bytes);
+        }
+        var expected = File.ReadAllBytes(prepared);
+        if (state == "published") File.Move(prepared, files.Output);
+        var calls = new DapperCallRepository(new(files.Target, new()));
+        var origin = (await calls.GetAsync(request.Recording.CallId))!.History.Call.Origin!;
+        var recovery = Recovery(files, await Pending(files, false), new Identity(state == "foreign" ? Guid.NewGuid() : origin.WorkstationId));
+        if (state is "staged" or "published")
+            Assert.AreEqual(new RecordingJournalRecoveryResult(0, 1, 0), await recovery.RecoverAsync());
+        await new SipCallPersistence(calls, new Origin(origin), TimeProvider.System).RecoverAsync();
+        if (state == "published")
+        {
+            var context = new DatabaseRepositoryContext(files.Target, new());
+            var inventory = new RecordingDirectoryInventory(new DapperRecordingFileCatalogQuery(context), new Identity(origin.WorkstationId),
+                new LocalRecordingDirectoryEntries(files.Paths), files.Paths, new DapperInterruptedRecordingQuery(context));
+            var review = await inventory.ReadAsync();
+            Assert.IsTrue(review.Review.Any(entry => entry.RelativePath == "captured.wav" && entry.AwaitingConfirmation));
+        }
+        if (state == "version")
+        {
+            var old = (await files.Recording())!;
+            await new DapperRecordingRepository(new(files.Target, new())).WriteAsync(new(old.Recording, old.Version, old.UpdatedAtUtc.AddSeconds(1)));
+        }
+        var result = await recovery.RecoverAsync();
+        if (state is "staged" or "published")
+        {
+            Assert.AreEqual(new RecordingJournalRecoveryResult(1, 0, 0), result);
+            Assert.IsFalse(File.Exists(prepared));
+            CollectionAssert.AreEqual(expected, File.ReadAllBytes(files.Output));
+            Assert.AreEqual(2L, (await files.Capture())!.Version);
+            Assert.AreEqual(2L, (await files.Artifacts()).Single().Version);
+            Assert.AreEqual(new RecordingJournalRecoveryResult(0, 0, 0), await recovery.RecoverAsync());
+        }
+        else
+        {
+            Assert.AreEqual(0, result.Delivered);
+            Assert.AreEqual(1, result.Deferred + result.Failed);
+            CollectionAssert.AreEqual(expected, File.ReadAllBytes(prepared));
+            if (state == "conflict") CollectionAssert.AreEqual(unrelated, File.ReadAllBytes(files.Output));
+            else Assert.IsFalse(File.Exists(files.Output));
+            Assert.AreEqual(PcmRecordingState.Capturing, (await files.Capture())!.Capture.State);
+            Assert.AreEqual(0, (await files.Artifacts()).Count);
+            Assert.AreEqual(1, outbox.GetPending().Count);
+        }
+        CollectionAssert.AreEqual(unrelated, File.ReadAllBytes(orphan));
+    }
+
+    [TestMethod]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMA, false)]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMU, false)]
     [DataRow(SDPWellKnownMediaFormatsEnum.G722, false)]
@@ -138,7 +233,9 @@ public sealed partial class SentRtpPcmTests
     }
     private static DapperRecordingJournal Backend(SwitchTarget target) => new(new DatabaseRepositoryContext(target, new(), new DatabaseMigrationEngineFactory(), new DatabaseMigrationLock()));
     private static RecordingJournalRecovery Recovery(PersistedFiles files, IRecordingJournalOutbox pending, IWorkstationIdentity identity, ILogger<RecordingJournalRecovery>? log = null) =>
-        new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity, log ?? NullLogger<RecordingJournalRecovery>.Instance, Publisher(files));
+        new(pending, new DapperRecordingJournal(new(files.Target, new())), new DapperCallRepository(new(files.Target, new())), identity,
+            log ?? NullLogger<RecordingJournalRecovery>.Instance, Publisher(files),
+            new DapperRecordingRepository(new(files.Target, new())), new DapperRecordingCaptureRepository(new(files.Target, new())));
     private static RecordingWaveArtifactPublisher Publisher(PersistedFiles files) => new(new DapperRecordingArtifactRepository(new(files.Target, new())));
     private sealed class AuditRequest(Action request) : IRecordingArtifactAuditScheduler { public void Request() => request(); }
     private sealed class ConversionRequest(Action request) : IRecordingConversionQueue { public void Request() => request(); }
@@ -156,6 +253,15 @@ public sealed partial class SentRtpPcmTests
         public void Log<TState>(LogLevel level, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         { if (level >= LogLevel.Warning) Warnings++; Text += formatter(state, exception); Assert.IsNull(exception); }
     }
+    private sealed class FailBeforePublishing(IRecordingJournalOutbox inner) : IRecordingJournalOutbox
+    {
+        public IReadOnlyList<Guid> GetPending() => inner.GetPending();
+        public IRecordingArtifactAuditLease AcquireInspection(Guid id) => inner.AcquireInspection(id);
+        public Task<IRecordingJournalDelivery> OpenAsync(Guid id, CancellationToken token = default) => inner.OpenAsync(id, token);
+        public Task<IRecordingJournalDelivery> StageAsync(RecordingWrite recording, RecordingCaptureWrite capture, CancellationToken token = default) =>
+            throw new RecordingOutboxException();
+    }
+
     private sealed class FailedAcknowledgement(IRecordingJournalOutbox inner) : IRecordingJournalOutbox
     {
         public IReadOnlyList<Guid> GetPending() => inner.GetPending();

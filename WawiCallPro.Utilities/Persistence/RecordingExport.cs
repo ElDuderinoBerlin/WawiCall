@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using WawiCallPro.Core.Audio;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
@@ -12,11 +13,55 @@ public interface IRecordingExport
     Task ExportAsync(Guid artifactId, string destination, CancellationToken cancellationToken = default);
 }
 
+public interface IRecordingReviewExport
+{
+    /// <summary>Copies a playable WAV from the review list without attaching it to a call.</summary>
+    Task CopyWaveAsync(string relativePath, string destination, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Explicit export under the recording lease and source read lock. No metadata changes or transcoding.</summary>
 public sealed class RecordingExport(IRecordingArtifactRepository artifacts, ICallRepository calls, IWorkstationIdentity workstation,
     IRecordingJournalOutbox pending, IRecordingConversionOutbox conversions, IRecordingConversionRepository jobs,
-    IRecordingArtifactFileInspector inspector, ApplicationPaths paths) : IRecordingExport
+    IRecordingArtifactFileInspector inspector, ApplicationPaths paths, IRecordingDirectoryInventory? inventory = null,
+    IRecordingFileProbe? files = null) : IRecordingExport, IRecordingReviewExport
 {
+    public async Task CopyWaveAsync(string relativePath, string destination, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var target = ValidateDestination(destination, RecordingArtifactFormat.Wave);
+        var name = Path.GetFileName(relativePath);
+        if (files is null || inventory is null || !(name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith(".wawi-mix-", StringComparison.Ordinal) && name.EndsWith(".tmp", StringComparison.Ordinal)))
+            throw new RecordingOutboxException();
+        var review = await inventory.ReadAsync(cancellationToken).ConfigureAwait(false);
+        if (!review.Review.Any(entry => !entry.IsLink && string.Equals(entry.RelativePath, relativePath, StringComparison.OrdinalIgnoreCase)) ||
+            files.IsAbsent(relativePath))
+            throw new RecordingOutboxException();
+
+        await using var source = new FileStream(paths.ResolveRecordingPath(relativePath), FileMode.Open, FileAccess.Read, FileShare.Read, 65536, true);
+        if (source.Length is < 44 or > int.MaxValue || PcmWaveHeader.Read(source, cancellationToken).DataLength == 0)
+            throw new RecordingOutboxException();
+        source.Position = 0;
+        var temporary = Path.Combine(Path.GetDirectoryName(target)!, ".wcp-export-" + Guid.NewGuid().ToString("N") + ".tmp");
+        var created = false;
+        try
+        {
+            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true))
+            {
+                created = true;
+                await source.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+                await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+                output.Flush(true);
+                if (output.Length != source.Length) throw new RecordingOutboxException();
+            }
+            _ = ValidateDestination(target, RecordingArtifactFormat.Wave);
+            cancellationToken.ThrowIfCancellationRequested();
+            File.Move(temporary, target, overwrite: false);
+            created = false;
+        }
+        finally { if (created) File.Delete(temporary); }
+    }
+
     public async Task ExportAsync(Guid artifactId, string destination, CancellationToken cancellationToken = default)
     {
         _ = DatabaseId.Encode(artifactId); cancellationToken.ThrowIfCancellationRequested();

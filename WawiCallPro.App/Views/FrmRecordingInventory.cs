@@ -77,8 +77,9 @@ public sealed partial class FrmRecordingInventory : XtraForm
     }
 
     private static string GetReason(RecordingDirectoryEntry entry) =>
-        entry.IsLink ? "Link übersprungen" : Path.GetExtension(entry.RelativePath).Equals(".tmp", StringComparison.OrdinalIgnoreCase)
-            ? "Temporäre Datei ohne Zuordnung" : "Ohne lokale Zuordnung";
+        entry.IsLink ? "Link übersprungen" : entry.AwaitingConfirmation ? "WAV-Abschluss ausstehend" :
+            Path.GetExtension(entry.RelativePath).Equals(".tmp", StringComparison.OrdinalIgnoreCase)
+                ? "Temporäre Datei ohne Zuordnung" : "Ohne lokale Zuordnung";
 
     private async void Inventory_Shown(object? sender, EventArgs e) => await RefreshAsync();
     private async void Refresh_Click(object? sender, EventArgs e) => await RefreshAsync();

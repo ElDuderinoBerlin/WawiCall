@@ -6,6 +6,8 @@ namespace WawiCallPro.Interfaces.Audio;
 public sealed record PcmRecordingRequest(Guid CallId, Guid RecordingId, string WavePath, int SampleRate = 16000,
     ConversationWaveLayout Layout = ConversationWaveLayout.SeparatedStereo, int QueueCapacity = 64)
 {
+    /// <summary>Optional durable publication of a verified sibling file, used by persisted recording.</summary>
+    public Func<string, ConversationWaveMixResult, CancellationToken, Task>? StageWaveAsync { get; init; }
     public override string ToString() => nameof(PcmRecordingRequest);
 }
 
