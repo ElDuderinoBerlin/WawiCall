@@ -11,6 +11,17 @@
     <ForceDesignerDpiUnaware>false</ForceDesignerDpiUnaware>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="MainForm.resx">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../WawiCallPro.Automation/WawiCallPro.Automation.csproj" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="../WawiCallPro.Plugin.Windows/WawiCallPro.Plugin.Windows.csproj" />
