@@ -128,10 +128,13 @@ public sealed partial class AppShellTests
         var originalFont = settings.Font;
         var originalDefaultFont = WindowsFormsSettings.DefaultFont;
         var originalAppearance = AppearanceObject.DefaultFont;
+        var page = Find<FunctionPluginsPage>(settings, "functionPluginsPage");
+        var view = Field<GridView>(page, "pluginsView");
         var output = Path.Combine(RenderOutput(), "function-plugins");
         Directory.CreateDirectory(output);
         try
         {
+            var previousWidth = 0;
             foreach (var (skin, font, size) in new[] { ("Basic", normalFont, new Size(1100, 760)), ("Office 2019 Black", largeFont, new Size(780, 640)) })
             {
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
@@ -140,6 +143,11 @@ public sealed partial class AppShellTests
                 settings.ClientSize = size;
                 settings.PerformLayout();
                 CheckTableBounds(settings);
+                var width = view.OptionsSelection.CheckBoxSelectorColumnWidth;
+                Assert.IsGreaterThan(previousWidth, width, "The checkbox column should grow with the header font.");
+                if (ReferenceEquals(font, normalFont))
+                    Assert.IsLessThan(page.LogicalToDeviceUnits(64), width, "The checkbox column should stay compact at the default font.");
+                previousWidth = width;
                 using var shot = UiAudit.Capture(settings);
                 shot.Save(Path.Combine(output, $"{edition}-{font.Size:0}.png"), ImageFormat.Png);
                 if (ReferenceEquals(font, largeFont))

@@ -14,6 +14,7 @@ namespace WawiCallPro.App.Views;
 public partial class FunctionPluginsPage : XtraUserControl
 {
     private const string GridLayoutKey = "FunctionPlugins-v1";
+    private const string ActiveColumnCaption = "Aktiv";
     private IFunctionPluginRuntime? _runtime;
     private PageOperation? _operation;
     private Action<OperationEvent>? _report;
@@ -27,6 +28,14 @@ public partial class FunctionPluginsPage : XtraUserControl
         InitializeComponent();
         UiButtonSizing.Attach(this);
         UiButtonSizing.Apply(executeButton);
+        pluginsGrid.HandleCreated += FitActiveColumn;
+        pluginsGrid.FontChanged += FitActiveColumn;
+        pluginsGrid.DpiChangedAfterParent += FitActiveColumn;
+        pluginsView.Appearance.HeaderPanel.Changed += FitActiveColumn;
+        var appearance = LookAndFeel;
+        appearance.StyleChanged += FitActiveColumn;
+        Disposed += (_, _) => appearance.StyleChanged -= FitActiveColumn;
+        FitActiveColumn(this, EventArgs.Empty);
         UpdateActions();
     }
 
@@ -41,6 +50,7 @@ public partial class FunctionPluginsPage : XtraUserControl
     {
         _state = state;
         state?.Restore(pluginsView, GridLayoutKey);
+        FitActiveColumn(this, EventArgs.Empty);
     }
 
     internal async Task LoadAsync(CancellationToken token)
@@ -82,10 +92,20 @@ public partial class FunctionPluginsPage : XtraUserControl
         return _operation?.StopAsync() ?? Task.CompletedTask;
     }
 
+    private void FitActiveColumn(object? sender, EventArgs e)
+    {
+        if (pluginsGrid.IsDisposed) return;
+        var captionWidth = TextRenderer.MeasureText(ActiveColumnCaption, pluginsView.Appearance.HeaderPanel.Font, Size.Empty,
+            TextFormatFlags.NoPadding | TextFormatFlags.SingleLine).Width;
+        var width = Math.Max(pluginsGrid.LogicalToDeviceUnits(24), captionWidth + pluginsGrid.LogicalToDeviceUnits(10));
+        if (pluginsView.OptionsSelection.CheckBoxSelectorColumnWidth != width)
+            pluginsView.OptionsSelection.CheckBoxSelectorColumnWidth = width;
+    }
+
     private static void Plugins_CustomDrawColumnHeader(object sender, ColumnHeaderCustomDrawEventArgs e)
     {
         if (e.Column?.FieldName != nameof(Row.Enabled)) return;
-        e.Info.Caption = "Aktiv";
+        e.Info.Caption = ActiveColumnCaption;
         e.DefaultDraw();
         e.Handled = true;
     }
