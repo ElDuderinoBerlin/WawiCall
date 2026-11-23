@@ -23,6 +23,7 @@ public partial class FrmDial : XtraForm
     private bool _disposed;
     private bool _backgroundRun;
     private bool _arranging;
+    private readonly Queue<char> _tones = new();
     internal Guid? CallId { get; private set; }
 
     public FrmDial()
@@ -30,7 +31,9 @@ public partial class FrmDial : XtraForm
         InitializeComponent();
         UiButtonSizing.Attach(this);
         UiButtonSizing.Apply(plusButton, eraseButton);
-        dialKeypad.DigitPressed += InsertDigit;
+        UiButtonSizing.Apply(dtmfToggle);
+        UiButtonSizing.Apply(choosePhoneButton);
+        dialKeypad.DigitPressed += DialKey_Pressed;
         AppIconHelper.Apply(this);
         _operation = new(this, statusLabel);
         UpdateAvailability();
@@ -99,9 +102,49 @@ public partial class FrmDial : XtraForm
         UpdateAvailability();
     }
     private void Plus_Click(object? sender, EventArgs e) => InsertDigit('+');
+    private async void DialKey_Pressed(char digit)
+    {
+        if (dtmfToggle.Checked && CurrentConnectedCall() is { } call)
+        {
+            await SendToneAsync(call, digit);
+            return;
+        }
+        InsertDigit(digit);
+    }
+
+    private Guid? CurrentConnectedCall()
+    {
+        if (_telephony is null) return null;
+        var calls = _telephony.GetCalls().Where(call => call.State == CallState.Connected).Take(2).ToArray();
+        return calls.Length == 1 && (CallId is null || CallId == calls[0].Id) ? calls[0].Id : null;
+    }
+
+    private Task SendToneAsync(Guid call, char digit)
+    {
+        if (_stopping || !dtmfToggle.Checked || _tones.Count >= 32 || !"0123456789*#ABCD".Contains(digit))
+            return Task.CompletedTask;
+        _tones.Enqueue(digit);
+        return _operation.RunAsync(async token =>
+        {
+            try
+            {
+                while (dtmfToggle.Checked && CurrentConnectedCall() == call && _tones.TryDequeue(out var next))
+                    await _telephony!.SendDtmfAsync(call, next, token);
+                UpdateAvailability();
+            }
+            finally { _tones.Clear(); }
+        });
+    }
+
+    private void DtmfMode_Changed(object? sender, EventArgs e)
+    {
+        dtmfToggle.Text = dtmfToggle.Checked ? "Tonwahl an" : "Tonwahl aus";
+        UiButtonSizing.Apply(dtmfToggle);
+        UpdateAvailability();
+    }
     private void InsertDigit(char digit)
     {
-        if (!"0123456789*#+".Contains(digit) || !destinationEdit.Enabled
+        if (!"0123456789*#+".Contains(digit) || !destinationEdit.Enabled || CallId.HasValue
             || (destinationEdit.Text.Length >= destinationEdit.Properties.MaxLength && destinationEdit.SelectionLength == 0)) return;
         var index = destinationEdit.SelectionStart;
         destinationEdit.Text = destinationEdit.Text.Remove(index, destinationEdit.SelectionLength).Insert(index, digit.ToString());
@@ -111,6 +154,7 @@ public partial class FrmDial : XtraForm
 
     private void Erase_Click(object? sender, EventArgs e)
     {
+        if (CallId.HasValue) return;
         var index = destinationEdit.SelectionStart;
         var length = destinationEdit.SelectionLength;
         if (length == 0 && index > 0) { index--; length = 1; }
@@ -123,15 +167,24 @@ public partial class FrmDial : XtraForm
     private void SetBusy(bool busy)
     {
         _busy = busy;
-        companyEdit.Enabled = destinationEdit.Enabled = !_busy && !_stopping;
-        dialKeypad.Enabled = editActions.Enabled = destinationEdit.Enabled;
         UpdateAvailability(false);
     }
     private void UpdateAvailability(bool message = true)
     {
+        var connected = !_stopping && !_busy && CurrentConnectedCall().HasValue;
+        if (!connected || !dtmfToggle.Checked) _tones.Clear();
+        companyEdit.Enabled = destinationEdit.Enabled = !_busy && !_stopping && !CallId.HasValue;
+        editActions.Enabled = destinationEdit.Enabled;
+        dtmfToggle.Enabled = !_busy && !_stopping;
+        dialKeypad.Enabled = connected ? dtmfToggle.Checked : destinationEdit.Enabled;
         dialButton.Enabled = !_busy && !_stopping && !CallId.HasValue && CanDial()
             && _companies.Any(company => company.Key == companyEdit.EditValue as CompanyKey) && !string.IsNullOrWhiteSpace(destinationEdit.Text);
         if (!message || _busy || _stopping) return;
+        if (connected)
+        {
+            statusLabel.Text = dtmfToggle.Checked ? "Verbunden · Tonwahl aktiv" : "Verbunden · Tonwahl einschalten, um Ziffern zu senden.";
+            return;
+        }
         statusLabel.Text = _telephony?.Registration.State switch
         {
             RegistrationState.Registered when !CanDial() => "Es ist bereits ein Gespräch aktiv.",
@@ -144,11 +197,18 @@ public partial class FrmDial : XtraForm
         };
     }
     private async void Registration_Changed(object? sender, RegistrationChangedEventArgs e) => await RefreshFromTelephonyAsync();
-    private async void Call_Changed(object? sender, CallChangedEventArgs e) => await RefreshFromTelephonyAsync();
-    private async Task RefreshFromTelephonyAsync()
+    private async void Call_Changed(object? sender, CallChangedEventArgs e) => await RefreshFromTelephonyAsync(e.Call);
+    private async Task RefreshFromTelephonyAsync(CallSnapshot? observed = null)
     {
         if (_stopping || IsDisposed || !IsHandleCreated) return;
-        try { await InvokeAsync(() => UpdateAvailability(), _lifetime.Token); }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (observed is { State: CallState.Ended or CallState.Failed } && CallId == observed.Id) CallId = null;
+                UpdateAvailability();
+            }, _lifetime.Token);
+        }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }
     }
@@ -156,7 +216,6 @@ public partial class FrmDial : XtraForm
     private async void Dial_Click(object? sender, EventArgs e)
     {
         await DialAsync();
-        if (CallId.HasValue && !_stopping) Close();
     }
     private void Cancel_Click(object? sender, EventArgs e) => Close();
     internal async Task StopAsync()
@@ -164,6 +223,8 @@ public partial class FrmDial : XtraForm
         if (!_stopping)
         {
             _stopping = true;
+            phoneSearchTimer.Stop();
+            CancelPhoneSearch();
             if (_telephony is not null)
             {
                 _telephony.RegistrationChanged -= Registration_Changed;
@@ -172,7 +233,7 @@ public partial class FrmDial : XtraForm
             await _lifetime.CancelAsync();
         }
         SetBusy(_busy);
-        await _operation.StopAsync();
+        await Task.WhenAll(_operation.StopAsync(), Task.WhenAll(_phoneSearchTasks));
     }
     private async void Dial_FormClosing(object? sender, FormClosingEventArgs e)
     {
@@ -192,8 +253,11 @@ public partial class FrmDial : XtraForm
         {
             var preferred = layout.GetPreferredSize(new Size(ClientSize.Width, 0));
             // DevExpress draws its own caption; use the actual frame rather than WinForms' native caption estimate.
-            MinimumSize = new Size(LogicalToDeviceUnits(380) + Width - ClientSize.Width,
-                Math.Max(preferred.Height, layout.Height) + Height - ClientSize.Height);
+            var companyHeight = companyLayout.GetPreferredSize(new Size(ClientSize.Width, 0)).Height;
+            var commandHeight = dtmfToggle.Height + dtmfToggle.Margin.Vertical;
+            var tabChrome = Math.Max(LogicalToDeviceUnits(30), dialTabs.Height - dialTabs.DisplayRectangle.Height);
+            MinimumSize = new Size(LogicalToDeviceUnits(400) + Width - ClientSize.Width,
+                Math.Max(preferred.Height, layout.Height) + commandHeight + companyHeight + tabChrome + Height - ClientSize.Height);
         }
         finally { _arranging = false; }
     }
@@ -201,6 +265,9 @@ public partial class FrmDial : XtraForm
     {
         if (_disposed) return;
         _disposed = true;
+        phoneSearchTimer.Stop();
+        CancelPhoneSearch();
+        _searchLayoutState?.Save(searchView, "DialPhoneSearch_v1");
         if (_telephony is not null)
         {
             _telephony.RegistrationChanged -= Registration_Changed;

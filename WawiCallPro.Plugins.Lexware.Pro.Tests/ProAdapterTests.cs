@@ -816,6 +816,9 @@ public sealed class ProAdapterTests
         Assert.AreEqual("101", address.ExternalId);
         Assert.IsEmpty(address.Phones);
         Assert.AreEqual("Lager", address.CompanyName);
+        var found = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            contact.Key.Company, new PageRequest(), "01711", PartyKind.CustomerContact));
+        Assert.AreEqual(contact.Key, found.Page.Items.Single().Key);
     }
 
     [TestMethod]

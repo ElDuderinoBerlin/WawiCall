@@ -10,6 +10,7 @@ public partial class MainForm
         var dialog = _workspace?.Telephony is { } telephony
             ? new FrmDial(_workspace.Directory, telephony, _workspace.Companies.Current.Company?.Key) : new FrmDial();
         _state?.AttachWindow(dialog, "FrmDial");
+        dialog.ConfigurePhoneSearch(_workspace?.PartySearch, _state);
         return dialog;
     }
     private void Dial_Click(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
@@ -20,6 +21,7 @@ public partial class MainForm
         { existing.Show(); if (!_backgroundRun) existing.Activate(); return; }
         using var waiting = new Hosting.UiWaitCursor(this);
         var dial = CreateDialDialog();
+        dial.SelectPhoneSearch();
         if (_backgroundRun) dial.PrepareForBackgroundRun();
         dial.Show(this);
     }

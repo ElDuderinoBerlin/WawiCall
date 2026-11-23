@@ -1,11 +1,16 @@
 # Nummerndialog und DTMF
 
-Im Ribbon öffnet **Anrufen** den kompakten Nummerndialog. Die Zifferntasten bearbeiten
-die Rufnummer an der Eingabeposition. Mandant, frei eingegebene SIP-Adresse und die
-explizite Aktion **Anrufen** bleiben erhalten. Die Gesprächsansicht bietet **Tonwahl**,
-sobald das Gespräch verbunden ist. Die Tasten werden in Eingabereihenfolge als
+Im Ribbon öffnet **Anrufen** das Wählfenster im Reiter **Suche**. Dort lassen sich
+Telefonnummern und Namen der Kunden, Lieferanten und Kontakte im gewählten Mandanten
+suchen. **Nummer übernehmen** wechselt zum Reiter **Wählen**. Dort können auch eine
+Rufnummer oder SIP-Adresse direkt eingegeben werden.
+
+Der Reiter **Wählen** bleibt beim Rufaufbau offen. **Tonwahl an/aus** ist oberhalb der
+Reiter erreichbar. Die Zifferntasten bearbeiten vor dem Anruf weiterhin die Rufnummer. Sobald das
+Gespräch verbunden ist, werden sie bei eingeschalteter Tonwahl in Eingabereihenfolge als
 RTP-`telephone-event` über SIPSorcery gesendet. Beim Halten oder Gesprächsende
-verfallen noch nicht gesendete Tasten. DTMF-Zeichen erscheinen nicht im App-Log.
+verfallen noch nicht gesendete Tasten. Die Gesprächsansicht bietet ebenfalls **Tonwahl**.
+DTMF-Zeichen erscheinen nicht im App-Log.
 
 ## Projekte aus der alten Solution
 

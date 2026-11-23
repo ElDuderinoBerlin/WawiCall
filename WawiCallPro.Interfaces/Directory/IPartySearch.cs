@@ -31,7 +31,7 @@ public sealed record PartySearchResult(PartySearchQuery Query, ImmutableArray<Pa
     public override string ToString() => nameof(PartySearchResult);
 }
 
-/// <summary>Searches names, business numbers and email addresses through the active source adapter.</summary>
+/// <summary>Searches names, business numbers, phone numbers and email addresses through the active source adapter.</summary>
 public interface IPartySearch
 {
     Task<PartySearchResult> SearchAsync(PartySearchQuery query, CancellationToken cancellationToken = default);

@@ -186,7 +186,7 @@ partial class MainForm
         ribbon.Items.Add(callerItem);
         telephonyGroup.ItemLinks.Add(callerItem);
         dialItem.Caption = "Anrufen";
-        dialItem.Hint = "Mandant und Rufnummer oder SIP-Adresse für einen ausgehenden Anruf auswählen.";
+        dialItem.Hint = "Rufnummern und Kontakte suchen oder eine Nummer direkt wählen.";
         dialItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
         dialItem.ItemClick += Dial_Click;
         ribbon.Items.Add(dialItem);

@@ -37,7 +37,8 @@ public sealed class ProPartyDirectory(IProApiSession session)
         cancellationToken.ThrowIfCancellationRequested();
         var filtered = parties.Where(party => (query.Kind is null || party.Key.Kind == query.Kind)
             && (string.IsNullOrEmpty(query.SearchText) || Contains(party.DisplayName, query.SearchText)
-                || Contains(party.Number, query.SearchText) || Contains(party.Email, query.SearchText)))
+                || Contains(party.Number, query.SearchText) || Contains(party.Email, query.SearchText)
+                || PartyPhoneSearch.Matches(party, query.SearchText)))
             .OrderBy(party => party.Key.Kind).ThenBy(party => party.Key.OwnerExternalId, StringComparer.Ordinal)
             .ThenBy(party => party.Key.ExternalId, StringComparer.Ordinal)
             .Skip(query.Page.Offset).Take(query.Page.Limit + 1).ToImmutableArray();

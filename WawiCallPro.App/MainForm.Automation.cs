@@ -92,6 +92,7 @@ public partial class MainForm
             var dial = new FrmDial(_workspace.Directory, _workspace.Telephony!, request.Company);
             _state?.AttachWindow(dial, "FrmDial"); dial.SetAutomationNumber(number);
             _automationDials.Add(dial, (request.Company, number));
+            dial.ConfigurePhoneSearch(_workspace.PartySearch, _state);
             dial.FormClosed += (_, _) => _automationDials.Remove(dial);
             dial.Show(this); return;
         }

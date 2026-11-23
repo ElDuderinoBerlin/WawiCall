@@ -57,12 +57,14 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
         var matches = (query.Kind is null or PartyKind.Customer) && (string.IsNullOrEmpty(query.SearchText)
             || party.DisplayName.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase)
             || party.Number?.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase) == true
-            || party.Email?.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase) == true);
+            || party.Email?.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase) == true
+            || PartyPhoneSearch.Matches(party, query.SearchText));
         return Task.FromResult(new PartyPage(query.Company, new Page<Party>(matches && query.Page.Offset == 0 ? [party] : [], false)));
     }
     public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default)
     { CheckCompany(key.Company, cancellationToken); return Task.FromResult<Party?>(key == CreateParty().Key ? CreateParty() : null); }
-    private Party CreateParty() => new() { Key = new(Company, PartyKind.Customer, "dummy-customer"), DisplayName = "Dummy – Beispielkunde", Number = "TEST-001" };
+    private Party CreateParty() => new() { Key = new(Company, PartyKind.Customer, "dummy-customer"), DisplayName = "Dummy – Beispielkunde", Number = "TEST-001",
+        Phones = [new("0123 456789", PhoneKind.Telephone, new("Dummy", "dummy-customer", "Telefon"))] };
     private void Check(CancellationToken token) { token.ThrowIfCancellationRequested(); if (!_configured) throw new InvalidOperationException("Plugin is not configured."); }
     private void CheckCompany(CompanyKey company, CancellationToken token) { Check(token); if (company != Company) throw new InvalidOperationException("Fremder Dummy-Mandant."); }
 }

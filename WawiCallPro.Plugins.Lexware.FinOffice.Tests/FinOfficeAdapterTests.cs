@@ -488,6 +488,10 @@ public sealed class FinOfficeAdapterTests
             Assert.AreEqual(new SourceField("fk_kontaktperson", "77", "szMobil"), contact.Phones.Single(phone => phone.Kind == PhoneKind.Mobile).Source);
             Assert.IsEmpty(contact.Addresses);
         }
+        var found = await provider.GetRequiredService<IBusinessDirectory>().GetPartiesAsync(new PartyQuery(
+            result.Company, new PageRequest(), "0302"));
+        CollectionAssert.AreEquivalent(contacts.Select(contact => contact.Key).ToArray(),
+            found.Page.Items.Select(contact => contact.Key).ToArray());
     }
 
     [TestMethod]

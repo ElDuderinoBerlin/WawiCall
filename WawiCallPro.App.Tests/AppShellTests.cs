@@ -1414,8 +1414,11 @@ public sealed partial class AppShellTests
         Assert.IsTrue(button.Enabled);
         telephony.Failure = null;
         button.PerformClick();
-        await WaitForDialStateAsync(() => dialog.IsDisposed);
+        await WaitForDialStateAsync(() => dialog.CallId.HasValue);
+        Assert.IsTrue(dialog.Visible, "Keep the dial window available for connected-call tone selection.");
         Assert.AreEqual(telephony.CallId, dialog.CallId);
+        dialog.Close();
+        await WaitForDialStateAsync(() => dialog.IsDisposed);
         Assert.AreEqual(0, telephony.Subscribers);
     });
 
@@ -1526,6 +1529,7 @@ public sealed partial class AppShellTests
         internal Guid CallId = Guid.NewGuid();
         internal Exception? Failure;
         internal Func<CancellationToken, Task>? BeforeDial;
+        internal readonly List<(Guid CallId, char Digit)> Tones = [];
         public event EventHandler<RegistrationChangedEventArgs>? RegistrationChanged { add => _registrations += value; remove => _registrations -= value; }
         public event EventHandler<CallChangedEventArgs>? CallChanged { add => _calls += value; remove => _calls -= value; }
         public ImmutableArray<CallSnapshot> GetCalls() => _active;
@@ -1553,7 +1557,11 @@ public sealed partial class AppShellTests
         public Task HoldAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task TransferAsync(Guid callId, string destination, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task SendDtmfAsync(Guid callId, char digit, CancellationToken cancellationToken = default)
+        {
+            Tones.Add((callId, digit));
+            return Task.CompletedTask;
+        }
     }
 
     [TestMethod]

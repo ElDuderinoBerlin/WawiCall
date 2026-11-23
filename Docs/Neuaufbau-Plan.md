@@ -1850,6 +1850,11 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   [DTMF-Portierung](DTMF-Portierung.md) dokumentiert Herkunft, Korrekturen und Konsolenaufrufe.
   Pro und FinOffice bauen ohne Warnungen. Je 18 App-Tests und der bidirektionale RTP-DTMF-Test
   bestanden. Der Konsolendetektor erkennt synthetische Stereo-WAVs bei 8 und 48 kHz.
+- [x] ✅ Wählfenster nach dem Vorbild der Alt-App mit **Suche** und **Wählen**. Der Ribbon-Einstieg
+  öffnet die Suche nach Rufnummern im aktuellen Mandanten. Treffer aus Kunden, Lieferanten und
+  Kontakten werden mit ihrer Rufnummer übernommen. Das Fenster bleibt für den Tonwahl-Schalter
+  beim Rufaufbau offen. Der Schalter bleibt oberhalb beider Reiter sichtbar. Das Senden beginnt
+  erst nach beobachteter SIP-Verbindung. App- und Lexware-Adapterprüfungen für Pro und FinOffice bestanden.
 
 - [x] ✅ DI-basierte SIP-Laufzeit mit SIPSorcery 10.0.17 und vorhandener CallStateMachine
   angebunden: eigene Interfaces/Factories für Transport, Konto-Lease, Zustand, Persistenz
