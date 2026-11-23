@@ -22,14 +22,14 @@ public interface IRecordingArtifactFileInspector
     Task<IRecordingArtifactObservation> InspectAsync(RecordingArtifact artifact, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Checks registered WAV/MP3 original bytes under a read lock. WAVs also require a valid PCM header; no decoder is needed for MP3 identity.</summary>
+/// <summary>Checks registered recording bytes under a read lock. WAVs also require a valid PCM header.</summary>
 public sealed class RecordingArtifactFileInspector(ApplicationPaths paths, IRecordingFileProbe probe) : IRecordingArtifactFileInspector
 {
     public async Task<IRecordingArtifactObservation> InspectAsync(RecordingArtifact artifact, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(artifact); cancellationToken.ThrowIfCancellationRequested();
-        if (artifact.Format is not (RecordingArtifactFormat.Wave or RecordingArtifactFormat.Mp3) || artifact.Availability is not (RecordingAvailability.Available or RecordingAvailability.Missing))
-            throw new ArgumentException("Only confirmed WAV/MP3 artifacts can be inspected.");
+        if (artifact.Availability is not (RecordingAvailability.Available or RecordingAvailability.Missing))
+            throw new ArgumentException("Only confirmed recording artifacts can be inspected.");
         if (probe.IsAbsent(artifact.RelativePath)) return new Observation(RecordingArtifactFileState.Missing, null);
         FileStream? stream = null;
         try

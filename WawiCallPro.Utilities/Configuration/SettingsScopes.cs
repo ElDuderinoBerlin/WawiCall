@@ -29,6 +29,9 @@ public sealed record AutomaticMp3Settings
     public DateTimeOffset? SinceUtc { get; init; }
 }
 
+/// <summary>Local format preference and the starting boundary for automatic conversion.</summary>
+public sealed record RecordingOutputSettings(Database.Contracts.RecordingArtifactFormat Format, DateTimeOffset? SinceUtc);
+
 public enum RecordingReceiveSource { Rtp, PlaybackLoopback }
 
 /// <summary>Local CSCore/MMDevice endpoint IDs, never enumeration indexes. Null selects the system default later.</summary>

@@ -8,7 +8,7 @@ namespace WawiCallPro.Database.Repositories;
 public sealed class RecordingPlaybackCatalog(DatabaseRepositoryContext context)
 {
     public Task<IReadOnlyDictionary<Guid, RecordingArtifact>> FindAsync(Guid workstationId, IReadOnlyCollection<Guid> callIds,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, RecordingArtifactFormat preferredFormat = RecordingArtifactFormat.Wave)
     {
         var workstation = DatabaseId.Encode(workstationId);
         var ids = callIds.Distinct().Select(DatabaseId.Encode).ToArray();
@@ -23,10 +23,9 @@ public sealed class RecordingPlaybackCatalog(DatabaseRepositoryContext context)
                 var rows = await db.RowsAsync(
                     $"SELECT a.*, r.callid FROM {db.T("recordingartifacts")} a JOIN {db.T("recordings")} r ON r.id=a.recordingid " +
                     $"JOIN {db.T("phonecalls")} c ON c.id=r.callid WHERE c.workstationid=@workstation AND {db.In("r.callid", "@ids")} " +
-                    "AND c.state IN (@ended,@failed) AND a.availability=@available AND a.format IN (@wave,@mp3) ORDER BY a.format, a.id",
+                    "AND c.state IN (@ended,@failed) AND a.availability=@available ORDER BY CASE WHEN a.format=@preferred THEN 0 ELSE 1 END, a.format, a.id",
                     new { workstation, ids = batch, ended = (int)CallState.Ended, failed = (int)CallState.Failed,
-                        available = (int)RecordingAvailability.Available, wave = (int)RecordingArtifactFormat.Wave,
-                        mp3 = (int)RecordingArtifactFormat.Mp3 }).ConfigureAwait(false);
+                        available = (int)RecordingAvailability.Available, preferred = (int)preferredFormat }).ConfigureAwait(false);
                 foreach (var row in rows)
                 {
                     var artifact = DapperRecordingArtifactRepository.Read(row).Artifact;

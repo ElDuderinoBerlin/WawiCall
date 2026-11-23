@@ -53,7 +53,7 @@ public sealed class InterruptedMp3Recovery(IInterruptedRecordingConversionQuery 
                         var target = await artifacts.GetAsync(saved.Job.TargetArtifactId, cancellationToken).ConfigureAwait(false) ?? throw new RecordingConversionOutboxException();
                         var call = await calls.GetAsync(source.Artifact.CallId, cancellationToken).ConfigureAwait(false);
                         if (call?.History.Call.Origin?.WorkstationId != local || call.History.Call.State is not (CallState.Ended or CallState.Failed) ||
-                            source.Artifact.Format != RecordingArtifactFormat.Wave || target.Artifact.Format != RecordingArtifactFormat.Mp3 ||
+                            source.Artifact.Format != RecordingArtifactFormat.Wave || target.Artifact.Format == RecordingArtifactFormat.Wave ||
                             source.Artifact.RecordingId != target.Artifact.RecordingId || source.Artifact.CallId != target.Artifact.CallId ||
                             target.Artifact.Availability != RecordingAvailability.Pending || !probe.IsAbsent(target.Artifact.RelativePath))
                         { deferred++; continue; }

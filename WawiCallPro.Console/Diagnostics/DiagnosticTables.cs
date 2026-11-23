@@ -47,7 +47,7 @@ internal static class DiagnosticTables
         new("--status (Vorgabe)", "Geprüfter Einrichtungsstatus; keine Netzwerkverbindung"),
         new("--paths", "Betriebspfade des aktuellen Benutzers und der Produktlinie"),
         new("--recordings-inventory [--details]", "Aufnahmeordner lesend prüfen; Anzahlen, mit --details auch relative Prüfpfade. Keine Übernahme oder Löschung; bestehende Datenbank und Arbeitsplatzkennung erforderlich."),
-        new("--recording-export <Artefakt-GUID> <absoluter Pfad>", "Bestätigtes lokales WAV-/MP3-Original als neue Datei exportieren; passende Endung, kein Überschreiben, keine Konvertierung."),
+        new("--recording-export <Artefakt-GUID> <absoluter Pfad>", "Bestätigte lokale WAV-, MP3-, Ogg/Vorbis- oder WMA-Datei bytegleich unter einem neuen Namen exportieren."),
         new("--logs", "Snapshot aller abgeschlossenen JSONL-Einträge; offene Dateiende(n) werden gezählt"),
         new("--diagnostics", "Ein JSON-Dokument nach erfolgreichem Host-Stop; keine Zugangsdaten"),
         new("--help", "Diese Hilfe"),

@@ -7,7 +7,7 @@ using WawiCallPro.Utilities.Operations;
 namespace WawiCallPro.Utilities.Persistence;
 
 public sealed record RecordingArtifactReconciliationResult(int MarkedMissing, int Restored, int Unchanged, int Deferred, int Failed);
-/// <summary>Audits registered local WAV/MP3 originals without adopting files. Per-entry failures retain metadata.</summary>
+/// <summary>Audits registered local recording artifacts without adopting files. Per-entry failures retain metadata.</summary>
 public interface IRecordingArtifactReconciliation
 {
     Task<RecordingArtifactReconciliationResult> ReconcileAsync(CancellationToken cancellationToken = default);
@@ -46,7 +46,7 @@ public sealed class RecordingArtifactReconciliation(IRecordingArtifactAuditQuery
                         if (protectedIds.Contains(item.RecordingId)) { deferred++; continue; }
                         await using var lease = pending.AcquireInspection(item.RecordingId);
                         if (lease.HasPending) { deferred++; continue; }
-                        if (item.Format == RecordingArtifactFormat.Mp3)
+                        if (item.Format != RecordingArtifactFormat.Wave)
                         {
                             if (_conversions is null || _jobs is null) { deferred++; continue; }
                             var protectedCompletion = false;

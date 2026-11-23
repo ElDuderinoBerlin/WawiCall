@@ -34,6 +34,10 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("user.activePluginId", "Die Plugin-Kennung ist ungültig."));
         ValidateErp(options.Erp, issues, options.ProductClientKeyAvailable || options.ProductClientKeyEdit is not null);
         ValidateDevices(options.Devices, issues);
+        if (options.RecordingOutput is { } output &&
+            (!Enum.IsDefined(output.Format) || (output.Format == Database.Contracts.RecordingArtifactFormat.Wave) != (output.SinceUtc is null) ||
+             output.SinceUtc is { Offset: var offset } && offset != TimeSpan.Zero))
+            issues.Add(new("recordingOutput", "Das Aufnahmeformat oder der Startzeitpunkt ist ungültig."));
         if (options.AutomaticMp3 is null || options.AutomaticMp3.Enabled && options.AutomaticMp3.SinceUtc is null ||
             options.AutomaticMp3?.SinceUtc is { } since && since.Offset != TimeSpan.Zero)
             issues.Add(new("automaticMp3", "Automatische MP3-Konvertierung benötigt einen gültigen Aktivierungszeitpunkt in UTC."));

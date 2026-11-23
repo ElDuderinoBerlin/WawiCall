@@ -365,16 +365,16 @@ Start-/Endzeiten. Pfad, Format und Dateiverfügbarkeit bleiben in `recordings`; 
 | `writeversion` | Ganzzahl 64 Bit | Nein | Eigene optimistische Schreibversion ab 1; unabhängig von Gesprächsrevision und Aufnahme-Dateimetadaten. |
 | `updatedatutc` | UTC-Ticks | Nein | Zeitpunkt des zuletzt bestätigten Metadatenstands; nicht vor bekanntem Aufnahmebeginn/-ende. |
 
-## recordingartifacts – Getrennte WAV- und MP3-Dateimetadaten
+## recordingartifacts – Getrennte Dateimetadaten je Aufnahmeformat
 
 Optionale Ergänzung ab Migration 11. Je Aufnahme ist höchstens ein kanonisches Artefakt pro Format
-zulässig; WAV und MP3 erhalten getrennte IDs, Pfade, Verfügbarkeit und Schreibversionen. Bestehende
+zulässig. Migration 15 ergänzt Ogg/Vorbis und WMA. Jedes Artefakt besitzt eigene ID, Pfad, Verfügbarkeit und Schreibversion. Bestehende
 Aufnahmeverweise und Verläufe werden nicht verändert und erhalten keine automatisch erfundenen Artefakte.
 Die Call-ID wird über `recordings` gelesen. Das Repository prüft keine Audiodateien und berechnet
 keine Hashes. Die WAV-Abschlusszustellung bestätigt diese Werte anhand der lesegesperrten Datei und
-des geschützten Originalhashs. Explizite MP3-Konvertierungssitzungen bestätigen die eigene Ausgabe
+des geschützten Originalhashs. Explizite Konvertierungssitzungen bestätigen die eigene Ausgabe
 gegen den vor Veröffentlichung berechneten Originalhash, während die Datei lesend gesperrt bleibt.
-Abgelegte MP3-Abschlussaufträge werden beim Hoststart zugestellt. Version-2-Aufträge sichern bereits
+Abgelegte Konvertierungsabschlüsse werden beim Hoststart zugestellt. Version-2-Aufträge sichern bereits
 die finalisierte temporäre Datei vor der Umbenennung; Wiederaufnahme prüft Originalhash, Versuch und
 aktuelle Katalogversionen vor Veröffentlichung. Verwaiste Running-Versuche ohne solchen Auftrag werden
 unter Aufnahmesperre kontrolliert als Failed/Interrupted bestätigt. Vollständiger Dateiabgleich und
@@ -386,7 +386,7 @@ Aufnahme-/Capture- und Artefaktstände bleiben dabei erhalten beziehungsweise we
 |---|---|---|---|
 | `id` | Kanonische GUID (32) | Nein | Stabile Primärschlüssel-ID dieses Dateiartefakts; bei Wiederholungen und erneutem Versuch wiederverwenden. |
 | `recordingid` | Kanonische GUID (32) | Nein | Fremdschlüssel auf die übergeordnete Aufnahme in `recordings`; zusammen mit `format` eindeutig. |
-| `format` | Ganzzahl 32 Bit | Nein | 1 = WAV, 2 = MP3. Je Aufnahme maximal ein Eintrag pro Format; Format und Identität bleiben nach dem Anlegen unverändert. |
+| `format` | Ganzzahl 32 Bit | Nein | 1 = WAV, 2 = MP3, 3 = Ogg/Vorbis, 4 = WMA. Je Aufnahme maximal ein Eintrag pro Format; Format und Identität bleiben nach dem Anlegen unverändert. |
 | `relativepath` | Unicode-Text (1024) | Nein | Stabiler relativer Pfad unter dem Aufnahmeverzeichnis mit passender Dateiendung; keine Quellmaschinenpfade. Die Pfadidentität ist nach dem Anlegen unveränderlich. |
 | `availability` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = als verfügbar bestätigt, 2 = bestätigte Originaldatei fehlt oder ihr Inhalt stimmt nicht mehr überein, 3 = Erstellung fehlgeschlagen. Der WAV-Abgleich bestätigt Größe, Header und Originalhash; das Repository selbst führt keine Dateisystemprüfung aus. |
 | `bytelength` | Ganzzahl 64 Bit | Ja | Positive bestätigte Dateigröße in Bytes bei Verfügbarkeit 1 oder 2. Bei 0 oder 3 unbekannt; nach erster Bestätigung unveränderlich. |
@@ -399,24 +399,24 @@ Ein ausstehendes Artefakt kann verfügbar oder fehlgeschlagen werden. Ein fehlge
 unter derselben ID wieder ausstehend werden. Verfügbare und fehlende Artefakte wechseln ausschließlich
 zwischen diesen beiden Zuständen und behalten Größe/Prüfsumme. Dies ist keine Konvertierungsjobverwaltung.
 
-## recordingconversions – Dauerhafte MP3-Konvertierungsaufträge
+## recordingconversions – Dauerhafte Aufnahmekonvertierungen
 
 Optionale Tabelle ab Migration 12; keine automatische Anlage für Bestandsaufnahmen. Ein Auftrag
-verbindet das kanonische WAV mit dem kanonischen MP3 derselben abgeschlossenen Aufnahme. Beide
+verbindet das kanonische WAV mit einem komprimierten Zielformat derselben abgeschlossenen Aufnahme. Beide
 Artefakte müssen beim Auftragsschreiben registriert sein. Das Konvertierungsjournal legt ein neues
-MP3-Ziel und seinen Auftrag gemeinsam in einer Transaktion an; das Quell-WAV ist vorher bestätigt.
+Zielartefakt und Auftrag gemeinsam in einer Transaktion an; das Quell-WAV ist vorher bestätigt.
 Die Repositories und das Journal prüfen Metadaten, keine Dateien oder Encoder.
-Je Quelle und Ziel höchstens ein Auftrag; Wiederholungen verwenden dieselbe Auftrags-/Artefaktidentität.
+Je Ziel existiert höchstens ein Auftrag. Seit Migration 15 kann ein Quell-WAV je einen Auftrag für MP3, Ogg/Vorbis und WMA besitzen. Wiederholungen verwenden dieselbe Auftrags- und Artefaktidentität.
 
 | Spalte | Datentyp / Höchstlänge | NULL erlaubt | Bedeutung |
 |---|---|---|---|
 | `id` | Kanonische GUID (32) | Nein | Stabile Auftrags-ID; bei Neustart und erneutem Konvertierungsversuch erhalten. |
-| `sourceartifactid` | Kanonische GUID (32) | Nein | Eindeutiger Fremdschlüssel auf das bestätigte WAV-Artefakt in `recordingartifacts`; bei Anlage und Start verfügbar. |
-| `targetartifactid` | Kanonische GUID (32) | Nein | Eindeutiger Fremdschlüssel auf das bereits registrierte MP3-Ziel derselben Aufnahme; unveränderlich und verschieden von der Quelle. |
-| `samplerate` | Ganzzahl 32 Bit | Nein | Gewünschte Abtastrate in Hz: 8000, 16000, 32000, 44100 oder 48000; muss dem abgeschlossenen Capture entsprechen. |
+| `sourceartifactid` | Kanonische GUID (32) | Nein | Fremdschlüssel auf das bestätigte WAV-Artefakt in `recordingartifacts`; bei Anlage und Start verfügbar. |
+| `targetartifactid` | Kanonische GUID (32) | Nein | Eindeutiger Fremdschlüssel auf das bereits registrierte komprimierte Zielartefakt derselben Aufnahme; unveränderlich und verschieden von der Quelle. |
+| `samplerate` | Ganzzahl 32 Bit | Nein | Abtastrate des Quell-WAV in Hz. Zulässig sind 8000, 16000, 32000, 44100 oder 48000; muss dem abgeschlossenen Capture entsprechen. |
 | `channels` | Ganzzahl 32 Bit | Nein | Gewünschte Kanalzahl 1 oder 2; muss dem abgeschlossenen Capture entsprechen. |
-| `bitrate` | Ganzzahl 32 Bit | Nein | Gewünschte MP3-Bitrate in Bit/s, 8000–320000 und durch 1000 teilbar. Die tatsächliche Encoderunterstützung ist vor Ausführung zusätzlich zu prüfen. |
-| `state` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = laufender Versuch, 2 = abgeschlossen, 3 = fehlgeschlagener/unterbrochener Versuch. Abschluss verlangt bereits bestätigtes verfügbares MP3. |
+| `bitrate` | Ganzzahl 32 Bit | Nein | Encoderparameter in Bit/s, 8000–320000 und durch 1000 teilbar. Für MP3 und WMA die gewünschte Bitrate. Ogg/Vorbis verwendet eine feste Qualitätsstufe mit variabler Bitrate. |
+| `state` | Ganzzahl 32 Bit | Nein | 0 = ausstehend, 1 = laufender Versuch, 2 = abgeschlossen, 3 = fehlgeschlagener/unterbrochener Versuch. Abschluss verlangt bereits bestätigtes verfügbares Zielartefakt. |
 | `attempts` | Ganzzahl 32 Bit | Nein | Anzahl gestarteter Versuche ab 0; steigt ausschließlich beim Übergang ausstehend → laufend um 1. Beim erneuten Einreihen erhalten. |
 | `attemptid` | Kanonische GUID (32) | Ja | Vom Aufrufer neu erzeugte Versuchs-ID bei laufend, abgeschlossen oder fehlgeschlagen; beim ausstehenden Auftrag NULL. Ergebnis und Fehler gehören zu diesem Versuch. |
 | `failure` | Ganzzahl 32 Bit | Ja | Nur bei Status 3 gesetzt: 1 Encoder fehlt, 2 Format nicht unterstützt, 3 WAV ungültig, 4 Quelle nicht verfügbar, 5 Ziel nicht verfügbar, 6 Kodierung fehlgeschlagen, 7 Bereinigung fehlgeschlagen, 8 abgebrochen, 9 unterbrochen. Aktueller Fehlercode ohne native Meldungen oder Pfade; beim erneuten Einreihen gelöscht. |
@@ -427,18 +427,17 @@ Je Quelle und Ziel höchstens ein Auftrag; Wiederholungen verwenden dieselbe Auf
 Erlaubt sind ausstehend → laufend → abgeschlossen/fehlgeschlagen sowie fehlgeschlagen → ausstehend.
 Ein Neustart allein beendet keinen laufenden Versuch. Erst nach nachgewiesenem Ende seines Besitzers
 darf er ausdrücklich mit passender Schreibversion als unterbrochen markiert werden. Das Konvertierungsjournal
-bestätigt Abschluss, Fehler oder erneutes Einreihen zusammen mit dem passenden MP3-Artefaktstatus.
+bestätigt Abschluss, Fehler oder erneutes Einreihen zusammen mit dem passenden Zielartefaktstatus.
 Beide Schreibversionen müssen passen; nur ein vollständiges identisches Paar ist wiederholbar.
-Explizite Konvertierungssitzungen können die eigene Ausgabe bestätigen. Das geschützte MP3-Journal
+Explizite Konvertierungssitzungen können die eigene Ausgabe bestätigen. Das geschützte Konvertierungsjournal
 legt terminale Paare vor DB-Zustellung ab und stellt sie beim Hoststart ohne erneute Kodierung zu.
-Originaldatei, Binding, Arbeitsplatz und Schreibversionen müssen weiterhin passen. Automatisches
-Einreihen bleibt offen. Das Fenster vor der Dateiumbenennung wird durch einen geschützten Version-2-Auftrag
+Originaldatei, Binding, Arbeitsplatz und Schreibversionen müssen weiterhin passen. Das gewählte Format wird für neue lokale Aufnahmen automatisch eingereiht. Das Fenster vor der Dateiumbenennung wird durch einen geschützten Version-2-Auftrag
 mit dem unveränderten Abschluss-/Artefaktpaar abgesichert. Verwaiste Versuche vor dauerhafter Vorbereitung
-werden wie folgt behandelt. Dies ergänzt keine Tabellen oder Spalten; Schema 12 bleibt bestehen.
-Für Running-Versuche ohne geschützten Abschluss und ohne kanonische MP3 kann der Startdienst nach
+werden wie folgt behandelt. Migration 15 erhält vorhandene WAV- und MP3-Einträge und Auftragsversionen.
+Für Running-Versuche ohne geschützten Abschluss und ohne kanonische Zieldatei kann der Startdienst nach
 Erwerb der exklusiven Aufnahmesperre das unveränderte Artefakt-/Versuchspaar als Failed/Interrupted
 bestätigen. Versuch-ID und Zähler bleiben erhalten; Teildateien werden weder gelesen noch entfernt.
-Aktive Besitzer, offene WAV-Abschlüsse und geschützte MP3-Aufträge haben Vorrang. Ein neuer Versuch
+Aktive Besitzer, offene WAV-Abschlüsse und geschützte Konvertierungsabschlüsse haben Vorrang. Ein neuer Versuch
 wird erst ausdrücklich eingereiht, danach mit neuer Versuch-ID reserviert. Verzeichnisabgleich bleibt offen.
 
 ## versioninfo – Technische Migrationsverwaltung
@@ -546,7 +545,7 @@ Aufnahmeverweise haben eigene Schreibversionen; sie verändern nicht den fachlic
 Ein fehlender Verlauf alter Aufnahmen bleibt unbekannt; unbekannte Medienendzeiten werden nicht ergänzt.
 `recordingartifacts` ergänzt optionale Dateimetadaten je Aufnahme und Format, ohne den alten Aufnahmeverweis
 umzudeuten. Fingerprints und Pfadidentität bleiben nach ihrer Bestätigung erhalten.
-`recordingconversions` verbindet optional das WAV mit dem MP3 derselben abgeschlossenen Aufnahme;
+`recordingconversions` verbindet das WAV mit einem komprimierten Zielformat derselben abgeschlossenen Aufnahme.
 Fremdschlüssel verhindern das Löschen referenzierter Artefakte. Ein Auftrag ist keine Audiodatei.
 
 Die beiden Quellherkunftsspalten an `parties` und die drei an `partyaddresses` werden jeweils vollständig
@@ -556,7 +555,7 @@ Die Adresse `orderAddress` eines Lieferanten sowie Telefonnummern aus verschiede
 
 ## Abgleich mit dem tatsächlichen Schema
 
-Die Spaltenliste wird gegen eine durch die echten Migrationen 1–13 angelegte SQLite-Datenbank abgeglichen;
+Die Spaltenliste wird gegen eine durch die echten Migrationen 1–15 angelegte SQLite-Datenbank abgeglichen;
 die nur für MySQL/MariaDB berechnete Auswahlspalte ist zusätzlich aufgeführt. Der Abgleich verlangt zu
 jeder tatsächlichen Spalte genau eine Beschreibungszeile. Der native Providerlauf prüft unabhängig davon
 Neuaufbau, gefülltes Upgrade, Constraints und Repositoryzugriffe auf allen fünf Engines.

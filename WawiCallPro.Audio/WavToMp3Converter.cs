@@ -5,14 +5,25 @@ using WawiCallPro.Interfaces.Audio;
 namespace WawiCallPro.Audio;
 
 /// <summary>Stateless file orchestration. A unique sibling file is published by a non-overwriting rename.</summary>
-public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Converter
+public sealed class WavToMp3Converter : IMp3Converter
 {
+    private readonly IMp3EncodingBackend _backend;
+    private readonly string _extension;
+
+    public WavToMp3Converter(IMp3EncodingBackend backend) : this(backend, ".mp3") { }
+
+    internal WavToMp3Converter(IMp3EncodingBackend backend, string extension)
+    {
+        _backend = backend;
+        _extension = extension;
+    }
+
     public Task<ImmutableArray<Mp3EncodingFormat>> GetSupportedFormatsAsync(CancellationToken cancellationToken = default) =>
         Task.Run(() =>
         {
             try
             {
-                var formats = backend.GetSupportedFormats(cancellationToken);
+                var formats = _backend.GetSupportedFormats(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return formats;
             }
@@ -26,7 +37,7 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Format);
         ValidatePath(request.WavePath, ".wav");
-        ValidatePath(request.Mp3Path, ".mp3");
+        ValidatePath(request.Mp3Path, _extension);
         var source = Path.GetFullPath(request.WavePath);
         var destination = Path.GetFullPath(request.Mp3Path);
         return Task.Run(() => Convert(source, destination, request.Format, cancellationToken, request.Publication), cancellationToken);
@@ -50,7 +61,7 @@ public sealed class WavToMp3Converter(IMp3EncodingBackend backend) : IMp3Convert
             using (var output = OpenDestination(temporary))
             {
                 created = true;
-                duration = backend.Encode(input, output, format, token);
+                duration = _backend.Encode(input, output, format, token);
                 token.ThrowIfCancellationRequested();
                 if (duration <= TimeSpan.Zero || output.Length == 0)
                     throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed);

@@ -22,7 +22,18 @@ public sealed class DapperRecordingConversionRepository(DatabaseRepositoryContex
         var source = DatabaseId.Encode(sourceArtifactId);
         return context.RunAsync(false, async db =>
         {
-            var row = await db.OneAsync($"SELECT * FROM {db.T("recordingconversions")} WHERE sourceartifactid=@source", new { source }).ConfigureAwait(false);
+            var row = await db.OneAsync($"SELECT j.* FROM {db.T("recordingconversions")} j JOIN {db.T("recordingartifacts")} a ON a.id=j.targetartifactid WHERE j.sourceartifactid=@source AND a.format=@format",
+                new { source, format = (int)RecordingArtifactFormat.Mp3 }).ConfigureAwait(false);
+            return row is null ? null : Read(row);
+        }, cancellationToken);
+    }
+
+    public Task<StoredRecordingConversion?> GetForTargetAsync(Guid targetArtifactId, CancellationToken cancellationToken = default)
+    {
+        var target = DatabaseId.Encode(targetArtifactId);
+        return context.RunAsync(false, async db =>
+        {
+            var row = await db.OneAsync($"SELECT * FROM {db.T("recordingconversions")} WHERE targetartifactid=@target", new { target }).ConfigureAwait(false);
             return row is null ? null : Read(row);
         }, cancellationToken);
     }
@@ -76,26 +87,26 @@ public sealed class DapperRecordingConversionRepository(DatabaseRepositoryContex
             RepositoryData.Chronology(write.ChangedAtUtc, previous.UpdatedAtUtc);
         }
         var source = DatabaseId.Encode(item.SourceArtifactId); var target = DatabaseId.Encode(item.TargetArtifactId);
-        var duplicates = await db.RowsAsync($"SELECT id FROM {db.T("recordingconversions")} WHERE sourceartifactid=@source OR targetartifactid=@target", new { source, target }).ConfigureAwait(false);
+        var duplicates = await db.RowsAsync($"SELECT id FROM {db.T("recordingconversions")} WHERE targetartifactid=@target", new { target }).ConfigureAwait(false);
         if (duplicates.Any(duplicate => duplicate.Id("id") != item.Id)) throw new RepositoryConflictException(RepositoryConflictKind.AlreadyExists);
         var sourceRow = await db.OneAsync($"SELECT a.*, r.callid FROM {db.T("recordingartifacts")} a JOIN {db.T("recordings")} r ON r.id=a.recordingid WHERE a.id=@source", new { source }).ConfigureAwait(false)
                         ?? throw new RepositoryConflictException(RepositoryConflictKind.MissingRecord);
         var targetRow = await db.OneAsync($"SELECT a.*, r.callid FROM {db.T("recordingartifacts")} a JOIN {db.T("recordings")} r ON r.id=a.recordingid WHERE a.id=@target", new { target }).ConfigureAwait(false)
                         ?? throw new RepositoryConflictException(RepositoryConflictKind.MissingRecord);
-        var wave = DapperRecordingArtifactRepository.Read(sourceRow); var mp3 = DapperRecordingArtifactRepository.Read(targetRow);
-        if (wave.Artifact.RecordingId != mp3.Artifact.RecordingId || wave.Artifact.Format != RecordingArtifactFormat.Wave || mp3.Artifact.Format != RecordingArtifactFormat.Mp3)
+        var wave = DapperRecordingArtifactRepository.Read(sourceRow); var destination = DapperRecordingArtifactRepository.Read(targetRow);
+        if (wave.Artifact.RecordingId != destination.Artifact.RecordingId || wave.Artifact.Format != RecordingArtifactFormat.Wave || destination.Artifact.Format == RecordingArtifactFormat.Wave)
             throw new RepositoryConflictException(RepositoryConflictKind.OwnershipMismatch);
         var recording = DatabaseId.Encode(wave.Artifact.RecordingId);
         var capture = await db.OneAsync($"SELECT * FROM {db.T("recordingcaptures")} WHERE id=@recording", new { recording }).ConfigureAwait(false)
                       ?? throw new RepositoryConflictException(RepositoryConflictKind.MissingRecord);
         if (capture.Long("state") != (int)PcmRecordingState.Completed || capture.Long("samplerate") != item.Format.SampleRate || capture.Long("channels") != item.Format.Channels) Conflict();
         if (item.State is RecordingConversionState.Pending or RecordingConversionState.Running && wave.Artifact.Availability != RecordingAvailability.Available) Conflict();
-        if (item.State == RecordingConversionState.Completed ? mp3.Artifact.Availability != RecordingAvailability.Available :
-                mp3.Artifact.Availability != RecordingAvailability.Pending && !(item.State == RecordingConversionState.Failed && mp3.Artifact.Availability == RecordingAvailability.Failed)) Conflict();
+        if (item.State == RecordingConversionState.Completed ? destination.Artifact.Availability != RecordingAvailability.Available :
+                destination.Artifact.Availability != RecordingAvailability.Pending && !(item.State == RecordingConversionState.Failed && destination.Artifact.Availability == RecordingAvailability.Failed)) Conflict();
         RepositoryData.Chronology(write.ChangedAtUtc, wave.CreatedAtUtc);
-        RepositoryData.Chronology(write.ChangedAtUtc, mp3.CreatedAtUtc);
+        RepositoryData.Chronology(write.ChangedAtUtc, destination.CreatedAtUtc);
         RepositoryData.Chronology(write.ChangedAtUtc, capture.Utc("updatedatutc"));
-        if (item.State == RecordingConversionState.Completed) RepositoryData.Chronology(write.ChangedAtUtc, mp3.UpdatedAtUtc);
+        if (item.State == RecordingConversionState.Completed) RepositoryData.Chronology(write.ChangedAtUtc, destination.UpdatedAtUtc);
         var version = previous is null ? 1 : RepositorySession.Next(previous.Version);
         var created = previous?.CreatedAtUtc ?? write.ChangedAtUtc;
         var values = new Dictionary<string, object?>

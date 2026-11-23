@@ -3638,7 +3638,7 @@ public sealed partial class AppShellTests
         public Task SaveAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default) => inner.SaveAsync(draft, expected, cancellationToken);
     }
 
-    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, ITelephonyService? telephony = null) => RunStaAsync(async () =>
+    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, ITelephonyService? telephony = null, Action<IServiceCollection>? configure = null) => RunStaAsync(async () =>
     {
         var root = Path.Combine(Path.GetTempPath(), "WawiCallPro-shell-" + Guid.NewGuid().ToString("N"));
         var plugin = new TestPlugin();
@@ -3664,6 +3664,7 @@ public sealed partial class AppShellTests
                 services.AddSipTelephony(false);
             if (telephony is not null) services.AddSingleton(telephony);
             if (telephony is ITelephonyConnection connection) services.AddSingleton(connection);
+            configure?.Invoke(services);
         }).Build();
         try
         {

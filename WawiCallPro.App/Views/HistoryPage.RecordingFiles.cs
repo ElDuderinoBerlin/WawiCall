@@ -20,7 +20,10 @@ public partial class HistoryPage
             Title = "Gesprächsaufnahme exportieren",
             FileName = "Gesprächsaufnahme",
             Filter = string.Join("|", choices.Select(choice =>
-                choice.Format == RecordingArtifactFormat.Wave ? "WAV-Aufnahme (*.wav)|*.wav" : "MP3-Aufnahme (*.mp3)|*.mp3")),
+            {
+                var extension = choice.Format.Extension();
+                return $"{extension.ToUpperInvariant()}-Aufnahme (*.{extension})|*.{extension}";
+            })),
             FilterIndex = 1,
             AddExtension = true,
             OverwritePrompt = false,
@@ -32,7 +35,7 @@ public partial class HistoryPage
         if (result != DialogResult.OK) return "Export abgebrochen.";
         var index = dialog.FilterIndex - 1;
         if ((uint)index >= choices.Count) throw new HistoryRecordingFileException("Das ausgewählte Exportformat ist ungültig.");
-        var extension = choices[index].Format == RecordingArtifactFormat.Wave ? ".wav" : ".mp3";
+        var extension = "." + choices[index].Format.Extension();
         if (!string.Equals(Path.GetExtension(dialog.FileName), extension, StringComparison.OrdinalIgnoreCase))
             throw new HistoryRecordingFileException("Die Dateiendung muss zum gewählten Aufnahmeformat passen.");
         if (File.Exists(dialog.FileName)) throw new HistoryRecordingFileException("Die Zieldatei existiert bereits. Bitte einen neuen Namen wählen.");

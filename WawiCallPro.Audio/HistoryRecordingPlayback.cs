@@ -1,8 +1,6 @@
 using CSCore;
 using CSCore.CoreAudioAPI;
-using CSCore.MediaFoundation;
 using CSCore.SoundOut;
-using WawiCallPro.Core.Audio;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Database.Repositories;
 using WawiCallPro.Interfaces.Telephony;
@@ -18,9 +16,15 @@ public interface IHistoryRecordingPlayback
     Task PlayAsync(Guid callId, CancellationToken token);
 }
 
+/// <summary>Consumes decoded PCM on the configured audio endpoint.</summary>
+public interface IHistoryRecordingOutput
+{
+    void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token);
+}
+
 public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, IWorkstationIdentity workstation,
     IRecordingJournalOutbox pending, IRecordingConversionOutbox conversions, IRecordingConversionRepository jobs,
-    IRecordingArtifactFileInspector inspector, ApplicationConfigurationService configuration) : IHistoryRecordingPlayback
+    IRecordingArtifactFileInspector inspector, ApplicationConfigurationService configuration, ConfigurationStore settings, IHistoryRecordingOutput output) : IHistoryRecordingPlayback
 {
     private readonly SemaphoreSlim _playing = new(1, 1);
 
@@ -37,13 +41,14 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
             throw new InvalidOperationException("Eine Aufnahme wird bereits wiedergegeben.");
         try
         {
+            var preferred = (await settings.LoadAsync(token).ConfigureAwait(false)).Options.GetRecordingOutput().Format;
             if (await workstation.GetAsync(token).ConfigureAwait(false) is not { } id
-                || !(await catalog.FindAsync(id, [callId], token).ConfigureAwait(false)).TryGetValue(callId, out var artifact))
+                || !(await catalog.FindAsync(id, [callId], token, preferred).ConfigureAwait(false)).TryGetValue(callId, out var artifact))
                 throw new InvalidOperationException("Für dieses Gespräch ist keine bestätigte lokale Aufnahme verfügbar.");
 
             await using var lease = pending.AcquireInspection(artifact.RecordingId);
             if (lease.HasPending) throw new RecordingOutboxException();
-            if (artifact.Format == RecordingArtifactFormat.Mp3)
+            if (artifact.Format != RecordingArtifactFormat.Wave)
             {
                 foreach (var jobId in conversions.GetPending())
                 {
@@ -54,18 +59,21 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
             await using var observed = await inspector.InspectAsync(artifact, token).ConfigureAwait(false);
             if (observed.VerifiedStream is not { } stream) throw new RecordingOutboxException();
             var devices = configuration.Current.Options.Devices;
-            await Task.Run(() => Play(stream, artifact.Format, devices, token), token).ConfigureAwait(false);
+            await Task.Run(() =>
+            {
+                using var source = RecordingFormatConverters.OpenPlayback(stream, artifact.Format, token);
+                output.Play(source, devices, token);
+            }, token).ConfigureAwait(false);
         }
         finally { _playing.Release(); }
     }
 
-    private static void Play(Stream stream, RecordingArtifactFormat format, AudioDeviceSettings settings, CancellationToken token)
+}
+
+internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
+{
+    public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
     {
-        token.ThrowIfCancellationRequested();
-        stream.Position = 0;
-        using IWaveSource source = format == RecordingArtifactFormat.Wave
-            ? new VerifiedPcmSource(stream, PcmWaveHeader.Read(stream, token))
-            : new MediaFoundationDecoder(stream);
         using var enumerator = new MMDeviceEnumerator();
         using var device = settings.PlaybackDeviceId is { } deviceId ? enumerator.GetDevice(deviceId)
             : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);

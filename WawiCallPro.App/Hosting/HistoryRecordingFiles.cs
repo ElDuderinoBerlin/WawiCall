@@ -34,7 +34,12 @@ public sealed class HistoryRecordingFiles(RecordingPlaybackCatalog catalog, IWor
     {
         var source = await FindAsync(callId, token).ConfigureAwait(false);
         if (source is null) throw new HistoryRecordingFileException("Für dieses Gespräch ist keine bestätigte Aufnahme verfügbar.");
-        if (source.Format == RecordingArtifactFormat.Mp3) return RecordingConversionState.Completed;
+        if (source.Format != RecordingArtifactFormat.Wave)
+        {
+            if ((await GetExportChoicesAsync(callId, token).ConfigureAwait(false)).Any(choice => choice.Format == RecordingArtifactFormat.Mp3))
+                return RecordingConversionState.Completed;
+            throw new HistoryRecordingFileException("Für die MP3-Erstellung ist die bestätigte WAV-Aufnahme erforderlich.");
+        }
 
         var existing = await jobs.GetForSourceAsync(source.Id, token).ConfigureAwait(false);
         var format = existing?.Job.Format;

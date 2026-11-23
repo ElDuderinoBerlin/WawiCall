@@ -1,5 +1,7 @@
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.History;
+using WawiCallPro.Interfaces.Audio;
+using System.Collections.Immutable;
 using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Utilities.Persistence;
@@ -12,17 +14,18 @@ public interface IAutomaticRecordingConversions
 /// <summary>Opt-in discovery of newly confirmed local WAVs. Never resets an existing job or adopts unknown files.</summary>
 public sealed class AutomaticRecordingConversions(ConfigurationStore settings, ApplicationConfigurationService active,
     IWorkstationIdentity workstation, IRecordingArtifactAuditQuery candidates, IRecordingConversionRepository jobs,
-    IRecordingCaptureRepository captures, IRecordingConversionRequests requests) : IAutomaticRecordingConversions
+    IRecordingCaptureRepository captures, IRecordingConversionRequests requests, IRecordingFormatConverters? encoders = null, IRecordingArtifactRepository? artifactCatalog = null) : IAutomaticRecordingConversions
 {
     public async Task<int> PrepareAsync(CancellationToken cancellationToken = default)
     {
         var snapshot = await settings.LoadAsync(cancellationToken).ConfigureAwait(false);
-        var policy = snapshot.Options.AutomaticMp3;
-        if (!policy.Enabled) return 0;
+        var policy = snapshot.Options.GetRecordingOutput();
+        if (policy.Format == RecordingArtifactFormat.Wave) return 0;
         if (!PhoneCacheMetadata.SameDatabase(snapshot.Options.Database, active.Current.Options.Database)) throw new RecordingOutboxException();
         var local = await workstation.GetAsync(cancellationToken).ConfigureAwait(false);
         if (local is null) return 0;
         var failed = 0; Guid? after = null;
+        ImmutableArray<Mp3EncodingFormat>? allowed = null;
         while (true)
         {
             var page = await candidates.GetPageAsync(local.Value, after, 100, cancellationToken).ConfigureAwait(false);
@@ -32,13 +35,30 @@ public sealed class AutomaticRecordingConversions(ConfigurationStore settings, A
                 cancellationToken.ThrowIfCancellationRequested(); var wave = row.Artifact;
                 if (wave.Format != RecordingArtifactFormat.Wave || wave.Availability != RecordingAvailability.Available || row.CreatedAtUtc < policy.SinceUtc) continue;
                 var current = (await settings.LoadAsync(cancellationToken).ConfigureAwait(false)).Options;
-                if (current.AutomaticMp3 != policy || !PhoneCacheMetadata.SameDatabase(current.Database, active.Current.Options.Database)) return failed;
+                if (current.GetRecordingOutput() != policy || !PhoneCacheMetadata.SameDatabase(current.Database, active.Current.Options.Database)) return failed;
                 try
                 {
-                    if (await jobs.GetForSourceAsync(wave.Id, cancellationToken).ConfigureAwait(false) is not null) continue;
+                    if (policy.Format == RecordingArtifactFormat.Mp3)
+                    {
+                        if (await jobs.GetForSourceAsync(wave.Id, cancellationToken).ConfigureAwait(false) is not null) continue;
+                    }
+                    else if (artifactCatalog is not null && (await artifactCatalog.GetForRecordingAsync(wave.RecordingId, cancellationToken).ConfigureAwait(false))
+                        .Any(item => item.Artifact.Format == policy.Format)) continue;
                     var capture = await captures.GetAsync(wave.RecordingId, cancellationToken).ConfigureAwait(false);
                     if (capture is null) { failed++; continue; }
-                    await requests.EnqueueAsync(wave.RecordingId, new(capture.Capture.SampleRate, capture.Capture.Channels, 128000), cancellationToken).ConfigureAwait(false);
+                    var requested = new Mp3EncodingFormat(capture.Capture.SampleRate, capture.Capture.Channels, 128000);
+                    if (encoders is not null)
+                    {
+                        allowed ??= await encoders.GetConverter(policy.Format).GetSupportedFormatsAsync(cancellationToken).ConfigureAwait(false);
+                        var compatible = allowed.Value.Where(item => item.SampleRate == requested.SampleRate && item.Channels == requested.Channels)
+                            .OrderBy(item => Math.Abs(item.BitRate - requested.BitRate)).ThenBy(item => item.BitRate).FirstOrDefault();
+                        if (compatible is null) { failed++; continue; }
+                        requested = compatible;
+                    }
+                    if (policy.Format == RecordingArtifactFormat.Mp3)
+                        await requests.EnqueueAsync(wave.RecordingId, requested, cancellationToken).ConfigureAwait(false);
+                    else
+                        await requests.EnqueueAsync(wave.RecordingId, requested, policy.Format, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
                 catch (Exception) { failed++; }

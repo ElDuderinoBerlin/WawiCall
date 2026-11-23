@@ -24,6 +24,12 @@ public sealed record ApplicationOptions
     public UserSettings User { get; init; } = new();
     public AudioDeviceSettings Devices { get; init; } = new();
     public AutomaticMp3Settings AutomaticMp3 { get; init; } = new();
+    public RecordingOutputSettings? RecordingOutput { get; init; }
+
+    public RecordingOutputSettings GetRecordingOutput() => RecordingOutput
+        ?? (AutomaticMp3.Enabled
+            ? new(WawiCallPro.Database.Contracts.RecordingArtifactFormat.Mp3, AutomaticMp3.SinceUtc)
+            : new(WawiCallPro.Database.Contracts.RecordingArtifactFormat.Wave, null));
     public CommunicationDatabaseSettings Database { get; init; } = new();
     public ImmutableArray<CompanySettings> Companies { get; init; } = [];
     public CallerLineAssignment? CallerLineAssignment { get; init; }

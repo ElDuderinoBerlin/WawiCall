@@ -2,7 +2,19 @@ using WawiCallPro.Interfaces.History;
 
 namespace WawiCallPro.Database.Contracts;
 
-public enum RecordingArtifactFormat { Wave = 1, Mp3 = 2 }
+public enum RecordingArtifactFormat { Wave = 1, Mp3 = 2, OggVorbis = 3, Wma = 4 }
+
+public static class RecordingArtifactFormats
+{
+    public static string Extension(this RecordingArtifactFormat format) => format switch
+    {
+        RecordingArtifactFormat.Wave => "wav",
+        RecordingArtifactFormat.Mp3 => "mp3",
+        RecordingArtifactFormat.OggVorbis => "ogg",
+        RecordingArtifactFormat.Wma => "wma",
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+}
 
 /// <summary>One canonical file per recording/format. Fingerprint metadata describes a verified file;
 /// constructing or persisting this value never reads or creates that file.</summary>
@@ -13,7 +25,7 @@ public sealed record RecordingArtifact
     {
         _ = DatabaseId.Encode(recordingId);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
-        var extension = format == RecordingArtifactFormat.Wave ? "wav" : "mp3";
+        var extension = format.Extension();
         StorageContract.Recording(new(id, callId, relativePath, extension, null, availability));
         if (!relativePath.EndsWith("." + extension, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Artifact format and extension must agree.");
         if (availability is RecordingAvailability.Available or RecordingAvailability.Missing)
@@ -55,7 +67,7 @@ public sealed record StoredRecordingArtifact(RecordingArtifact Artifact, long Ve
 public interface IRecordingArtifactRepository
 {
     Task<StoredRecordingArtifact?> GetAsync(Guid artifactId, CancellationToken cancellationToken = default);
-    /// <summary>At most one WAV and one MP3; no audio contents are loaded.</summary>
+    /// <summary>At most one artifact per supported format; no audio contents are loaded.</summary>
     Task<IReadOnlyList<StoredRecordingArtifact>> GetForRecordingAsync(Guid recordingId, CancellationToken cancellationToken = default);
     Task<StoredRecordingArtifact> WriteAsync(RecordingArtifactWrite write, CancellationToken cancellationToken = default);
 }

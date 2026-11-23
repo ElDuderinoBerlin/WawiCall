@@ -48,7 +48,7 @@ public sealed class RecordingArtifactTests
             if (invalid == "uppercase") digest = new string('A', 64);
             if (invalid == "short") digest = new string('a', 63);
             var artifact = new RecordingArtifact(invalid == "id" ? Guid.Empty : Guid.NewGuid(), invalid == "recording" ? Guid.Empty : Guid.NewGuid(),
-                invalid == "call" ? Guid.Empty : Guid.NewGuid(), invalid == "format" ? (RecordingArtifactFormat)3 : RecordingArtifactFormat.Wave,
+                invalid == "call" ? Guid.Empty : Guid.NewGuid(), invalid == "format" ? (RecordingArtifactFormat)5 : RecordingArtifactFormat.Wave,
                 invalid == "path" ? "../outside.wav" : invalid == "extension" ? "file.mp3" : "file.wav", availability, length, digest);
             _ = new RecordingArtifactWrite(artifact, invalid == "version" ? 0 : null,
                 invalid == "utc" ? RepositoryAcceptance.Time.ToOffset(TimeSpan.FromHours(1)) : RepositoryAcceptance.Time);
@@ -135,7 +135,7 @@ public static class RecordingArtifactAcceptance
         var legacy = new WawiCallPro.Interfaces.History.Recording(Guid.NewGuid(), initial.Recording.Recording.CallId, "legacy.mp3", "mp3", TimeSpan.FromSeconds(3), RecordingAvailability.Available);
         var oldLegacy = await new DapperRecordingRepository(context).WriteAsync(new(legacy, null, Time));
         var current = new FluentMigratorEngine(target.Type);
-        var status = await new DatabaseMigrator(factory, current).MigrateAsync(target); Assert.AreEqual(14L, status.AppliedVersions.Last());
+        var status = await new DatabaseMigrator(factory, current).MigrateAsync(target); Assert.AreEqual(15L, status.AppliedVersions.Last());
         var upgraded = new DatabaseRepositoryContext(target, factory);
         Assert.AreEqual(initial.Recording, await new DapperRecordingRepository(upgraded).GetAsync(initial.Recording.Recording.Id));
         Assert.AreEqual(initial.Capture, await new DapperRecordingCaptureRepository(upgraded).GetAsync(initial.Recording.Recording.Id));
@@ -152,7 +152,7 @@ public static class RecordingArtifactAcceptance
         await using var db = new DatabaseFactory().CreateConnection(target); await db.OpenAsync(); var table = DatabaseSql.Table(target.Type, "recordingartifacts");
         foreach (var (column, value) in new (string, object?)[]
         {
-            ("format", 3), ("availability", 5), ("bytelength", 0L), ("bytelength", -1L), ("bytelength", null),
+            ("format", 5), ("availability", 5), ("bytelength", 0L), ("bytelength", -1L), ("bytelength", null),
             ("sha256", null), ("sha256", new string('A', 64)), ("sha256", new string('a', 63)), ("writeversion", 0L),
             ("createdatutc", -1L), ("updatedatutc", Time.AddTicks(-1).Ticks), ("relativepath", "../outside.wav"),
             ("relativepath", "C:/outside.wav"), ("relativepath", "nested\\outside.wav"), ("relativepath", "wrong.mp3"),

@@ -146,16 +146,36 @@ public static class RecordingConversionAcceptance
         var old = new VersionElevenEngine(target.Type); await new DatabaseMigrator(factory, old).MigrateAsync(target, creation: creation);
         var oldContext = new DatabaseRepositoryContext(new FixedTarget(target), factory, new VersionElevenFactory(old), new DatabaseMigrationLock());
         var seed = await SeedAsync(oldContext, registerTarget: true); var oldArtifacts = await new DapperRecordingArtifactRepository(oldContext).GetForRecordingAsync(seed.Recording.Recording.Id);
+        var preFormatUpgrade = new VersionElevenEngine(target.Type, 14);
+        await new DatabaseMigrator(factory, preFormatUpgrade).MigrateAsync(target);
+        var priorContext = new DatabaseRepositoryContext(new FixedTarget(target), factory,
+            new VersionElevenFactory(preFormatUpgrade), new DatabaseMigrationLock());
+        var priorJobs = new DapperRecordingConversionRepository(priorContext);
+        Assert.AreEqual(0, (await priorJobs.GetPageAsync(seed.Workstation)).Items.Length);
+        var originalJob = await priorJobs.WriteAsync(new(Job(seed), null, Changed));
         var migrator = new DatabaseMigrator(factory, new FluentMigratorEngine(target.Type));
-        var status = await migrator.MigrateAsync(target); Assert.AreEqual(14L, status.AppliedVersions.Last());
+        var status = await migrator.MigrateAsync(target); Assert.AreEqual(15L, status.AppliedVersions.Last());
         var context = new DatabaseRepositoryContext(target, factory);
         Assert.AreEqual(seed.Recording, await new DapperRecordingRepository(context).GetAsync(seed.Recording.Recording.Id));
         Assert.AreEqual(seed.Capture, await new DapperRecordingCaptureRepository(context).GetAsync(seed.Recording.Recording.Id));
         CollectionAssert.AreEqual(oldArtifacts.ToArray(), (await new DapperRecordingArtifactRepository(context).GetForRecordingAsync(seed.Recording.Recording.Id)).ToArray());
-        Assert.AreEqual(0, (await new DapperRecordingConversionRepository(context).GetPageAsync(seed.Workstation)).Items.Length);
+        var jobs = new DapperRecordingConversionRepository(context);
+        Assert.AreEqual(originalJob, (await jobs.GetPageAsync(seed.Workstation)).Items.Single());
         CollectionAssert.AreEqual(status.AppliedVersions.ToArray(), (await migrator.MigrateAsync(target)).AppliedVersions.ToArray());
         await Assert.ThrowsExactlyAsync<DatabaseOperationException>(() => new DapperRecordingArtifactRepository(oldContext).GetAsync(seed.Wave.Id));
-        await new DapperRecordingConversionRepository(context).WriteAsync(new(Job(seed), null, Changed));
+        var artifacts = new DapperRecordingArtifactRepository(context);
+        foreach (var format in new[] { RecordingArtifactFormat.OggVorbis, RecordingArtifactFormat.Wma })
+        {
+            var artifact = new RecordingArtifact(Guid.NewGuid(), seed.Wave.RecordingId, seed.Wave.CallId, format,
+                Path.ChangeExtension(seed.Wave.RelativePath, format.Extension()), RecordingAvailability.Pending);
+            await artifacts.WriteAsync(new(artifact, null, Changed));
+            var job = new RecordingConversionJob(Guid.NewGuid(), seed.Wave.Id, artifact.Id, originalJob.Job.Format, RecordingConversionState.Pending);
+            var stored = await jobs.WriteAsync(new(job, null, Changed));
+            Assert.AreEqual(stored, await jobs.GetForTargetAsync(artifact.Id));
+        }
+        Assert.AreEqual(4, (await artifacts.GetForRecordingAsync(seed.Wave.RecordingId)).Count);
+        Assert.AreEqual(3, (await jobs.GetPageAsync(seed.Workstation)).Items.Length);
+        Assert.AreEqual(originalJob, await jobs.GetForSourceAsync(seed.Wave.Id));
     }
 
     internal static async Task<Seed> SeedAsync(DatabaseRepositoryContext context,
@@ -201,10 +221,10 @@ public static class RecordingConversionAcceptance
     }
     internal sealed record Seed(StoredRecording Recording, StoredRecordingCapture Capture, RecordingArtifact Wave, RecordingArtifact Mp3, Guid Workstation);
     private sealed class FixedTarget(DatabaseTarget target) : IDatabaseTargetSource { public DatabaseTarget GetTarget() => target; }
-    private sealed class VersionElevenEngine(DatabaseType type) : IDatabaseMigrationEngine
+    private sealed class VersionElevenEngine(DatabaseType type, int version = 11) : IDatabaseMigrationEngine
     {
         private readonly FluentMigratorEngine _inner = new(type);
-        public DatabaseMigrationCatalog Catalog { get; } = new(Enumerable.Range(1, 11).Select(value => (long)value));
+        public DatabaseMigrationCatalog Catalog { get; } = new(Enumerable.Range(1, version).Select(value => (long)value));
         public void MigrateUp(DatabaseTarget target, long version) => _inner.MigrateUp(target, version);
     }
     private sealed class VersionElevenFactory(IDatabaseMigrationEngine engine) : IDatabaseMigrationEngineFactory

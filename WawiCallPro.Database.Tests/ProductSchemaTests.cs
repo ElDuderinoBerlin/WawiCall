@@ -33,7 +33,7 @@ public sealed class ProductSchemaTests
         var migrator = new DatabaseMigrator(new(), engine);
         var status = await migrator.MigrateAsync(target);
         Assert.AreEqual(DatabaseSchemaState.Current, status.State);
-        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 }, status.AppliedVersions.ToArray());
+        CollectionAssert.AreEqual(new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, status.AppliedVersions.ToArray());
         using (var db = Open(target))
         {
             Assert.AreEqual("callevents,calllookups,callnotes,callparties,companies,mailaccounts,mailaddresses,mailmemberships,mailmessages,mailsyncstate,numberparselogs,parties,partyaddresses,partyemails,partyphones,phonecalls,phonematchsettings,phonenumberblockrules,recordingartifacts,recordingcaptures,recordingconversions,recordings,versioninfo,wawicallpro_metadata",
@@ -57,8 +57,8 @@ public sealed class ProductSchemaTests
         var target = Target();
         await new DatabaseProvisioner(new()).CreateAsync(target);
         var engine = new FluentMigratorEngine(DatabaseType.Sqlite);
-        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15, 15, 15, 16, 17, 18, 23, 24];
-        for (var version = 1; version <= 14; version++)
+        int[] tableCounts = [3, 6, 10, 11, 12, 15, 15, 15, 15, 16, 17, 18, 23, 24, 24];
+        for (var version = 1; version <= 15; version++)
         {
             engine.MigrateUp(target, version);
             using var db = Open(target);

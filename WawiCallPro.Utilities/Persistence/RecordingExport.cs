@@ -65,7 +65,7 @@ public sealed class RecordingExport(IRecordingArtifactRepository artifacts, ICal
     }
     private async Task CheckCompletionAsync(RecordingArtifact artifact, CancellationToken token)
     {
-        if (artifact.Format != RecordingArtifactFormat.Mp3) return;
+        if (artifact.Format == RecordingArtifactFormat.Wave) return;
         foreach (var id in conversions.GetPending())
         {
             var job = await jobs.GetAsync(id, token).ConfigureAwait(false);
@@ -79,7 +79,7 @@ public sealed class RecordingExport(IRecordingArtifactRepository artifacts, ICal
         var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(paths.RootDirectory));
         if (target.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || target.Equals(root, StringComparison.OrdinalIgnoreCase))
             throw new RecordingOutboxException();
-        var extension = format switch { RecordingArtifactFormat.Wave => ".wav", RecordingArtifactFormat.Mp3 => ".mp3", _ => throw new RecordingOutboxException() };
+        var extension = "." + format.Extension();
         var name = Path.GetFileName(target);
         if (name.Contains(':') || name.EndsWith(' ') || name.EndsWith('.') || !Path.GetExtension(target).Equals(extension, StringComparison.OrdinalIgnoreCase))
             throw new RecordingOutboxException();

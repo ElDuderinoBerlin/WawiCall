@@ -246,7 +246,7 @@ public sealed class ProtectedRecordingConversionOutbox(ApplicationPaths paths, I
     {
         ArgumentNullException.ThrowIfNull(target); ArgumentNullException.ThrowIfNull(conversion);
         var artifact = target.Artifact; var job = conversion.Job;
-        if (artifact.Id != job.TargetArtifactId || artifact.Format != RecordingArtifactFormat.Mp3 || target.ChangedAtUtc != conversion.ChangedAtUtc ||
+        if (artifact.Id != job.TargetArtifactId || artifact.Format == RecordingArtifactFormat.Wave || target.ChangedAtUtc != conversion.ChangedAtUtc ||
             target.ExpectedVersion is null || conversion.ExpectedVersion is null || job.State is not (RecordingConversionState.Completed or RecordingConversionState.Failed) ||
             artifact.Availability != (job.State == RecordingConversionState.Completed ? RecordingAvailability.Available : RecordingAvailability.Failed))
             throw new RecordingConversionOutboxException();

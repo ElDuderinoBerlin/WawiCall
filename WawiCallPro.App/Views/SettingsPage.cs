@@ -252,7 +252,7 @@ public partial class SettingsPage : XtraUserControl
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeEdit.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
-        automaticMp3Edit.Checked = options.AutomaticMp3.Enabled;
+        recordingFormatEdit.SelectedIndex = (int)options.GetRecordingOutput().Format - 1;
         recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
@@ -267,6 +267,10 @@ public partial class SettingsPage : XtraUserControl
     {
         sipProperties.CloseEditor();
         var old = _snapshot!.Options;
+        var previousOutput = old.GetRecordingOutput();
+        var selectedFormat = (WawiCallPro.Database.Contracts.RecordingArtifactFormat)(recordingFormatEdit.SelectedIndex + 1);
+        var output = selectedFormat == previousOutput.Format ? previousOutput
+            : new RecordingOutputSettings(selectedFormat, recordingFormatEdit.SelectedIndex == 0 ? null : DateTimeOffset.UtcNow);
         var options = old with
         {
             User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
@@ -276,8 +280,8 @@ public partial class SettingsPage : XtraUserControl
                 DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit) },
-            AutomaticMp3 = new() { Enabled = automaticMp3Edit.Checked,
-                SinceUtc = automaticMp3Edit.Checked ? old.AutomaticMp3.Enabled ? old.AutomaticMp3.SinceUtc : DateTimeOffset.UtcNow : null },
+            RecordingOutput = output,
+            AutomaticMp3 = new(),
             Companies = ReadCompanySettings(old),
             MailAccounts = mailSettingsPage.ReadAccounts(),
             MailCache = mailSettingsPage.ReadCache()

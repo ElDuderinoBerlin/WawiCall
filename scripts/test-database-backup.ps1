@@ -50,7 +50,7 @@ foreach(var item in configurations)
             Console.WriteLine(item.Engine + ": " + connection.ServerVersion);
         }
         await ProviderCompatibilityAcceptance.RunAsync(target);
-        Console.WriteLine(item.Engine + ": migrations 1-14, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
+        Console.WriteLine(item.Engine + ": migrations 1-15, populated upgrade, source metadata, Unicode, field limits, diagnostic codes, queries and repeated migration passed.");
     }
     if(full) await PhaseThreeAcceptance.RunAsync(target, receipt, args[1]);
     else
@@ -86,7 +86,7 @@ foreach(var item in configurations)
     Console.WriteLine(item.Engine + ": owned MP3 attempt, source/output locks, exact completion retry before/after uncertain DB acknowledgement and retained WAV passed.");
     Console.WriteLine(item.Engine + ": atomic MP3 artifact/job enqueue, completion, interrupted retry, rollback, pair replay and competing writers passed.");
     await RecordingConversionAcceptance.UpgradeAsync(RecordingCaptureAcceptance.UpgradeTarget(target));
-    Console.WriteLine(item.Engine + ": durable MP3 job restart, CAS claims, interrupted retry, unique artifacts, constraints and populated v11 upgrade passed.");
+    Console.WriteLine(item.Engine + ": durable MP3 job restart, CAS claims, interrupted retry, unique artifacts, constraints and populated v11/v14 upgrades with independent format jobs passed.");
     await RecordingWaveArtifactAcceptance.RunAsync(target);
     await RecordingArtifactAuditQueryAcceptance.RunAsync(target);
     Console.WriteLine(item.Engine + ": playback catalog batching and local confirmed audio scope passed.");

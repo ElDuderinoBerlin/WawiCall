@@ -8,13 +8,13 @@ namespace WawiCallPro.App.Tests;
 public sealed class RecordingArtifactLogTests
 {
     [TestMethod]
-    [DataRow(OperationEvent.RecordingArtifactUnavailable, "WAV-/MP3-Aufnahme")]
+    [DataRow(OperationEvent.RecordingArtifactUnavailable, "bestätigte Aufnahmedatei")]
     [DataRow(OperationEvent.RecordingArtifactAuditIncomplete, "Abgleich")]
     [DataRow(OperationEvent.RecordingDirectoryReviewRequired, "ohne Zuordnung")]
     [DataRow(OperationEvent.RecordingDirectoryInventoryIncomplete, "nicht vollständig")]
-    [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "MP3")]
-    [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene MP3")]
-    [DataRow(OperationEvent.RecordingConversionQueueIncomplete, "MP3-Warteschlange")]
+    [DataRow(OperationEvent.RecordingConversionRecoveryIncomplete, "Konvertierungsabschlüsse")]
+    [DataRow(OperationEvent.RecordingConversionInterrupted, "Unterbrochene Aufnahmekonvertierungen")]
+    [DataRow(OperationEvent.RecordingConversionQueueIncomplete, "Konvertierungswarteschlange")]
     public void AuditWarningsAreUnderstandableInTheExistingLogWindow(OperationEvent operation, string expected)
     {
         var logs = new LogWindowService(); using var provider = new UiLogProvider(logs);

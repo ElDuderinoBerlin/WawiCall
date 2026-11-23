@@ -20,7 +20,8 @@ public sealed class PersistedMp3ConversionFactory(
     IMp3Converter converter,
     IRecordingConversionJournal journal,
     TimeProvider clock,
-    IRecordingConversionOutbox conversions) : IPersistedMp3ConversionFactory
+    IRecordingConversionOutbox conversions,
+    IRecordingFormatConverters? encoders = null) : IPersistedMp3ConversionFactory
 {
     public async Task<IPersistedMp3Conversion> StartAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
@@ -30,7 +31,7 @@ public sealed class PersistedMp3ConversionFactory(
         if (job.State != RecordingConversionState.Pending || job.Attempts == int.MaxValue) Conflict();
         var source = await artifacts.GetAsync(job.SourceArtifactId, cancellationToken).ConfigureAwait(false) ?? throw new RepositoryConflictException(RepositoryConflictKind.MissingRecord);
         var target = await artifacts.GetAsync(job.TargetArtifactId, cancellationToken).ConfigureAwait(false) ?? throw new RepositoryConflictException(RepositoryConflictKind.MissingRecord);
-        if (source.Artifact.Format != RecordingArtifactFormat.Wave || target.Artifact.Format != RecordingArtifactFormat.Mp3 ||
+        if (source.Artifact.Format != RecordingArtifactFormat.Wave || target.Artifact.Format == RecordingArtifactFormat.Wave ||
             source.Artifact.RecordingId != target.Artifact.RecordingId || source.Artifact.CallId != target.Artifact.CallId ||
             source.Artifact.Availability != RecordingAvailability.Available || target.Artifact.Availability != RecordingAvailability.Pending) Conflict();
         var call = await calls.GetAsync(source.Artifact.CallId, cancellationToken).ConfigureAwait(false);
@@ -57,14 +58,16 @@ public sealed class PersistedMp3ConversionFactory(
             var output = paths.ResolveRecordingPath(target.Artifact.RelativePath);
             if (!probe.IsAbsent(target.Artifact.RelativePath) || !Directory.Exists(Path.GetDirectoryName(output)))
                 throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable);
-            var formats = await converter.GetSupportedFormatsAsync(cancellationToken).ConfigureAwait(false);
+            var selectedEncoder = target.Artifact.Format == RecordingArtifactFormat.Mp3 ? converter
+                : encoders?.GetConverter(target.Artifact.Format) ?? throw new Mp3ConversionException(Mp3ConversionFailure.EncoderUnavailable);
+            var formats = await selectedEncoder.GetSupportedFormatsAsync(cancellationToken).ConfigureAwait(false);
             if (!formats.Contains(job.Format)) throw new Mp3ConversionException(formats.IsEmpty ? Mp3ConversionFailure.EncoderUnavailable : Mp3ConversionFailure.UnsupportedFormat);
             cancellationToken.ThrowIfCancellationRequested();
             var attempt = new RecordingConversionJob(job.Id, job.SourceArtifactId, job.TargetArtifactId, job.Format, RecordingConversionState.Running, job.Attempts + 1, Guid.NewGuid());
             var changed = clock.GetUtcNow(); if (changed < saved.UpdatedAtUtc) changed = saved.UpdatedAtUtc;
             var claimed = await jobs.WriteAsync(new(attempt, saved.Version, changed), cancellationToken).ConfigureAwait(false);
             return new PersistedMp3Conversion(claimed, target, header.Duration, new(paths.ResolveRecordingPath(source.Artifact.RelativePath), output, job.Format),
-                wave, lease, converter, journal, paths, probe, clock, conversions);
+                wave, lease, selectedEncoder, journal, paths, probe, clock, conversions);
         }
         catch (Exception error)
         {

@@ -23,6 +23,7 @@ public static class ConfigurationFormat
             new JsonStringEnumConverter<Microsoft.Extensions.Logging.LogLevel>(allowIntegerValues: false),
             new JsonStringEnumConverter<SipTransport>(allowIntegerValues: false),
             new JsonStringEnumConverter<RecordingReceiveSource>(allowIntegerValues: false),
+            new JsonStringEnumConverter<Database.Contracts.RecordingArtifactFormat>(allowIntegerValues: false),
             new JsonStringEnumConverter<CommunicationDatabaseProvider>(allowIntegerValues: false),
             new JsonStringEnumConverter<LexwareProductLine>(allowIntegerValues: false),
             new JsonStringEnumConverter<WawiCallPro.Interfaces.Office.MailProviderKind>(allowIntegerValues: false)

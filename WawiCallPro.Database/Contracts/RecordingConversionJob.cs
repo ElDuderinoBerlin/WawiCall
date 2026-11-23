@@ -12,7 +12,7 @@ public enum RecordingConversionFailure
     EncodingFailed, CleanupFailed, Cancelled, Interrupted
 }
 
-/// <summary>One durable MP3 job for an existing canonical WAV/MP3 pair. Does not access files or run an encoder.</summary>
+/// <summary>One durable conversion job for a WAV and a canonical compressed target. Does not access files or run an encoder.</summary>
 public sealed record RecordingConversionJob
 {
     public RecordingConversionJob(Guid id, Guid sourceArtifactId, Guid targetArtifactId, Mp3EncodingFormat format,
@@ -63,7 +63,10 @@ public sealed record StoredRecordingConversion(RecordingConversionJob Job, long 
 public interface IRecordingConversionRepository
 {
     Task<StoredRecordingConversion?> GetAsync(Guid jobId, CancellationToken cancellationToken = default);
+    /// <summary>Looks up the MP3 job for a WAV, regardless of other targets.</summary>
     Task<StoredRecordingConversion?> GetForSourceAsync(Guid sourceArtifactId, CancellationToken cancellationToken = default);
+    Task<StoredRecordingConversion?> GetForTargetAsync(Guid targetArtifactId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
     Task<Page<StoredRecordingConversion>> GetPageAsync(Guid workstationId, Guid? afterJobId = null, int limit = 100, CancellationToken cancellationToken = default);
     /// <summary>Requires existing canonical artifacts of the same completed capture. Initial state is Pending,
     /// each Running transition owns a fresh attempt ID. Completion requires an already confirmed MP3 artifact.</summary>

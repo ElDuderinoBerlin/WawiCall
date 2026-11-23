@@ -26,4 +26,4 @@ public interface IRecordingConversionDelivery : IAsyncDisposable
     void Acknowledge();
 }
 
-public sealed class RecordingConversionOutboxException() : Exception("Der geschützte MP3-Abschluss konnte nicht bestätigt werden. Auftrag und Dateien bleiben erhalten.");
+public sealed class RecordingConversionOutboxException() : Exception("Der geschützte Konvertierungsabschluss konnte nicht bestätigt werden. Auftrag und Dateien bleiben erhalten.");

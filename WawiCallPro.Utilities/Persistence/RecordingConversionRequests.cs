@@ -9,6 +9,8 @@ public interface IRecordingConversionRequests
 {
     /// <summary>Enqueues one verified local WAV or returns its existing matching job without requeueing it.</summary>
     Task<StoredRecordingConversionJournal> EnqueueAsync(Guid recordingId, Mp3EncodingFormat format, CancellationToken cancellationToken = default);
+    Task<StoredRecordingConversionJournal> EnqueueAsync(Guid recordingId, Mp3EncodingFormat format, RecordingArtifactFormat targetFormat,
+        CancellationToken cancellationToken = default) => throw new NotSupportedException();
 }
 
 /// <summary>Creates the canonical target/job pair under the recording lease. Signals the worker only after releasing file/recording locks.</summary>
@@ -17,8 +19,14 @@ public sealed class RecordingConversionRequests(IRecordingArtifactRepository art
     IWorkstationIdentity workstation, IRecordingJournalOutbox recordings, IRecordingConversionOutbox conversions,
     IRecordingArtifactFileInspector files, IRecordingFileProbe probe, IRecordingConversionQueue queue, TimeProvider clock) : IRecordingConversionRequests
 {
-    public async Task<StoredRecordingConversionJournal> EnqueueAsync(Guid recordingId, Mp3EncodingFormat format, CancellationToken cancellationToken = default)
+    public Task<StoredRecordingConversionJournal> EnqueueAsync(Guid recordingId, Mp3EncodingFormat format, CancellationToken cancellationToken = default) =>
+        EnqueueAsync(recordingId, format, RecordingArtifactFormat.Mp3, cancellationToken);
+
+    public async Task<StoredRecordingConversionJournal> EnqueueAsync(Guid recordingId, Mp3EncodingFormat format,
+        RecordingArtifactFormat targetFormat, CancellationToken cancellationToken = default)
     {
+        var extension = targetFormat.Extension();
+        if (targetFormat == RecordingArtifactFormat.Wave) throw new ArgumentOutOfRangeException(nameof(targetFormat));
         _ = DatabaseId.Encode(recordingId); ArgumentNullException.ThrowIfNull(format); cancellationToken.ThrowIfCancellationRequested();
         StoredRecordingConversionJournal result;
         await using (var lease = recordings.AcquireInspection(recordingId))
@@ -36,11 +44,13 @@ public sealed class RecordingConversionRequests(IRecordingArtifactRepository art
             if (wave.Availability != RecordingAvailability.Available || capture is null || capture.Capture.State != PcmRecordingState.Completed ||
                 capture.Capture.CallId != wave.CallId || capture.Capture.SampleRate != format.SampleRate || capture.Capture.Channels != format.Channels)
                 throw new RepositoryConflictException(RepositoryConflictKind.SnapshotMismatch);
-            var existing = await jobs.GetForSourceAsync(wave.Id, cancellationToken).ConfigureAwait(false);
+            var target = catalog.SingleOrDefault(item => item.Artifact.Format == targetFormat);
+            var existing = targetFormat == RecordingArtifactFormat.Mp3
+                ? await jobs.GetForSourceAsync(wave.Id, cancellationToken).ConfigureAwait(false)
+                : target is null ? null : await jobs.GetForTargetAsync(target.Artifact.Id, cancellationToken).ConfigureAwait(false);
             if (existing is not null)
             {
-                var target = catalog.SingleOrDefault(item => item.Artifact.Id == existing.Job.TargetArtifactId);
-                if (existing.Job.Format != format || target is null || target.Artifact.Format != RecordingArtifactFormat.Mp3 || target.Artifact.CallId != wave.CallId)
+                if (existing.Job.Format != format || target is null || target.Artifact.Id != existing.Job.TargetArtifactId || target.Artifact.CallId != wave.CallId)
                     throw new RepositoryConflictException(RepositoryConflictKind.OwnershipMismatch);
                 if (conversions.HasPending(existing.Job.Id)) throw new RecordingConversionOutboxException();
                 if (existing.Job.State == RecordingConversionState.Pending)
@@ -53,18 +63,18 @@ public sealed class RecordingConversionRequests(IRecordingArtifactRepository art
             }
             else
             {
-                if (catalog.Any(item => item.Artifact.Format == RecordingArtifactFormat.Mp3))
+                if (target is not null)
                     throw new RepositoryConflictException(RepositoryConflictKind.AlreadyExists);
-                var path = Path.ChangeExtension(wave.RelativePath, ".mp3");
+                var path = Path.ChangeExtension(wave.RelativePath, extension);
                 if (!probe.IsAbsent(path)) throw new Mp3ConversionException(Mp3ConversionFailure.DestinationUnavailable);
                 await using var original = await files.InspectAsync(wave, cancellationToken).ConfigureAwait(false);
                 if (original.State != RecordingArtifactFileState.Matches) throw new Mp3ConversionException(Mp3ConversionFailure.SourceUnavailable);
-                var target = new RecordingArtifact(Guid.NewGuid(), recordingId, wave.CallId, RecordingArtifactFormat.Mp3, path, RecordingAvailability.Pending);
-                var job = new RecordingConversionJob(Guid.NewGuid(), wave.Id, target.Id, format, RecordingConversionState.Pending);
+                var requested = new RecordingArtifact(Guid.NewGuid(), recordingId, wave.CallId, targetFormat, path, RecordingAvailability.Pending);
+                var job = new RecordingConversionJob(Guid.NewGuid(), wave.Id, requested.Id, format, RecordingConversionState.Pending);
                 var changed = clock.GetUtcNow();
                 if (changed < source.UpdatedAtUtc) changed = source.UpdatedAtUtc;
                 if (changed < capture.UpdatedAtUtc) changed = capture.UpdatedAtUtc;
-                result = await journal.BeginAsync(new(target, null, changed), new(job, null, changed), cancellationToken).ConfigureAwait(false);
+                result = await journal.BeginAsync(new(requested, null, changed), new(job, null, changed), cancellationToken).ConfigureAwait(false);
             }
         }
         if (result.Conversion.Job.State == RecordingConversionState.Pending) queue.Request();

@@ -21,7 +21,7 @@ public sealed class DapperRecordingConversionJournal(DatabaseRepositoryContext c
             RecordingConversionState.Failed => RecordingAvailability.Failed,
             _ => throw new ArgumentException("Ein laufender Versuch wird separat über die Auftragsversion gestartet.")
         };
-        if (artifact.Format != RecordingArtifactFormat.Mp3 || artifact.Id != job.TargetArtifactId || artifact.Availability != availability ||
+        if (artifact.Format == RecordingArtifactFormat.Wave || artifact.Id != job.TargetArtifactId || artifact.Availability != availability ||
             target.ChangedAtUtc != conversion.ChangedAtUtc ||
             begin && (target.ExpectedVersion is not null || conversion.ExpectedVersion is not null || job.State != RecordingConversionState.Pending || job.Attempts != 0) ||
             !begin && (target.ExpectedVersion is null || conversion.ExpectedVersion is null))
