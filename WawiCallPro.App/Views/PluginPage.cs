@@ -9,6 +9,7 @@ using System.Net;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.App.Views;
 
@@ -17,15 +18,8 @@ public partial class PluginPage : XtraUserControl
     private AppWorkspace? _workspace;
     private AppUiState? _state;
     private PageOperation? _operation;
+    private Action<OperationEvent>? _report;
     private Func<string, CancellationToken, Task>? _activate;
-    private bool _switching;
-    internal void ReportSwitchStatus(string text)
-    {
-        if (!_switching) return;
-        statusLabel.Text = text;
-        layout.PerformLayout();
-        statusLabel.Update();
-    }
     private readonly HtmlTemplate _activeCard = new();
     private readonly HtmlTemplate _unavailableCard = new();
     private static readonly Lazy<SvgImage> PluginIcon = new(() => LoadIcon("Plugin"));
@@ -74,11 +68,12 @@ public partial class PluginPage : XtraUserControl
     }
     private static Color Blend(Color first, Color second, double amount) => Color.FromArgb(
         (int)(first.R + (second.R - first.R) * amount), (int)(first.G + (second.G - first.G) * amount), (int)(first.B + (second.B - first.B) * amount));
-    internal void Bind(AppWorkspace workspace, AppUiState? state)
+    internal void Bind(AppWorkspace workspace, AppUiState? state, Action<OperationEvent> report)
     {
         _workspace = workspace;
         _state = state;
-        _operation = new PageOperation(this, statusLabel);
+        _report = report;
+        _operation = new PageOperation(this, report);
     }
     internal void ConfigureSelection(Func<string, CancellationToken, Task> activate) => _activate = activate;
     internal void ConfigureLayoutPersistence(AppUiState? state) => _state = state;
@@ -105,12 +100,8 @@ public partial class PluginPage : XtraUserControl
         var focused = (catalogView.GetFocusedRow() as PluginRow)?.Id;
         catalogGrid.DataSource = catalog;
         catalogView.PopulateColumns();
-        if (catalogGrid.DataSource is PluginRow[] rows)
-        {
-            var index = Array.FindIndex(rows, row => row.Id == focused);
-            catalogView.FocusedRowHandle = index >= 0 ? index : Array.FindIndex(rows, row => row.IsActive);
-            detailsLabel.Text = rows.Length == 0 ? "Keine Plugins installiert." : "Warenwirtschaftsplugin auswählen";
-        }
+        var index = Array.FindIndex(catalog, row => row.Id == focused);
+        catalogView.FocusedRowHandle = index >= 0 ? index : Array.FindIndex(catalog, row => row.IsActive);
         UpdateActivation();
     }
     private void Catalog_FocusedRowChanged(object sender, DevExpress.XtraGrid.Views.Base.FocusedRowChangedEventArgs e) => UpdateActivation();
@@ -167,10 +158,9 @@ public partial class PluginPage : XtraUserControl
         if (_operation is null || _activate is null || !row.IsAvailable) return;
         await _operation.RunAsync(async token =>
         {
-            _switching = true;
             switchProgress.Visible = true;
             catalogGrid.Enabled = false; capabilitiesButton.Enabled = false; refreshButton.Enabled = false;
-            ReportSwitchStatus("Wechsel zu " + row.Name + " wird vorbereitet …");
+            _report?.Invoke(OperationEvent.SettingsProductPluginChanging);
             switchProgress.Update();
             try
             {
@@ -180,12 +170,18 @@ public partial class PluginPage : XtraUserControl
                 capabilitiesTab.PageVisible = false;
                 detailsTab.PageVisible = false;
                 pluginTabs.SelectedTabPage = installedTab;
-                await UpdateStatusAsync(token);
-                statusLabel.Text = "Plugin gewechselt und Auswahl gespeichert.";
+                _report?.Invoke(OperationEvent.SettingsProductPluginChanged);
+            }
+            catch (ActiveCallCloseException)
+            {
+                _report?.Invoke(OperationEvent.SettingsProductPluginActiveCall);
+            }
+            catch (Exception error) when (error is Plugin.Windows.UnsavedPluginChangesException or UnsavedCallNotesException)
+            {
+                _report?.Invoke(OperationEvent.SettingsProductPluginUnsavedChanges);
             }
             finally
             {
-                _switching = false;
                 switchProgress.Visible = false;
                 RefreshCatalog(); catalogGrid.Enabled = true; refreshButton.Enabled = true; UpdateActivation();
             }
@@ -201,20 +197,9 @@ public partial class PluginPage : XtraUserControl
     private async void Refresh_Click(object? sender, EventArgs e)
     {
         if (_operation is null) return;
-        await _operation.RunAsync(async token =>
-        {
-            RefreshCatalog();
-            await UpdateStatusAsync(token);
-        });
+        await _operation.RunAsync(RefreshCatalogAsync);
     }
-    private async Task UpdateStatusAsync(CancellationToken token)
-    {
-        if (_workspace?.Plugins.IsLoaded != true) { detailsLabel.Text = "Kein Plugin aktiv. Bitte einen Listeneintrag aktivieren."; return; }
-        if (!_workspace.CanUseBusinessDirectory) { statusLabel.Text = "Lexware-Funktionen sind gesperrt. Details stehen im Log-Fenster."; return; }
-        var plugin = await _workspace.GetPluginAsync(token);
-        detailsLabel.Text = $"Aktiv: {plugin.Name}";
-        statusLabel.Text = "Plugins verwalten Sie hier. Fachansichten gehören zum Arbeitsbereich des aktiven Plugins.";
-    }
+
     private async void Capabilities_Click(object? sender, EventArgs e)
     {
         if (_operation is null || catalogView.GetFocusedRow() is not PluginRow { IsActive: true, IsAvailable: true }) return;
@@ -225,7 +210,7 @@ public partial class PluginPage : XtraUserControl
             var companies = settings.Options.Companies.Where(company => company.IncludeInPhoneCache && authorized.Contains(company.Company)).ToArray();
             if (companies.Length == 0)
             {
-                statusLabel.Text = "Bitte zuerst in den Einstellungen Mandanten für den Telefon-Cache auswählen.";
+                _report?.Invoke(OperationEvent.SettingsPluginCapabilitiesCompanyRequired);
                 return;
             }
             var rows = new List<CapabilityRow>();
@@ -239,7 +224,7 @@ public partial class PluginPage : XtraUserControl
             capabilitiesTab.PageVisible = true;
             pluginTabs.SelectedTabPage = capabilitiesTab;
             _state?.Restore(view, "PluginCapabilities");
-            statusLabel.Text = "Fähigkeiten der konfigurierten Cache-Mandanten gelesen.";
+            _report?.Invoke(OperationEvent.SettingsPluginCapabilitiesLoaded);
         });
     }
 

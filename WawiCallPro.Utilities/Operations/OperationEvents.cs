@@ -79,7 +79,20 @@ public enum OperationEvent
     SipRegistrationRetry,
     SipRegistrationFailed,
     SipRegistrationConnectionFailed,
-    SettingsDatabaseReady
+    SettingsDatabaseReady,
+    SettingsProductPluginChanging,
+    SettingsProductPluginChanged,
+    SettingsProductPluginActiveCall,
+    SettingsProductPluginUnsavedChanges,
+    SettingsPluginCapabilitiesCompanyRequired,
+    SettingsPluginCapabilitiesLoaded,
+    SettingsFunctionPluginsListFailed,
+    SettingsFunctionPluginsEmpty,
+    SettingsFunctionPluginEnabled,
+    SettingsFunctionPluginDisabled,
+    SettingsFunctionPluginExecuted,
+    SettingsFunctionPluginActivationFailed,
+    SettingsFunctionPluginExecutionFailed
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -96,6 +109,9 @@ public static class OperationEvents
             or OperationEvent.SettingsCompaniesClientConfigurationInvalid or OperationEvent.SettingsCompaniesApiUnavailable
             or OperationEvent.SettingsCompaniesTimeout or OperationEvent.SettingsCompaniesInvalidResponse or OperationEvent.SettingsCompaniesCompanyNames
             or OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
+            or OperationEvent.SettingsFunctionPluginsListFailed or OperationEvent.SettingsFunctionPluginActivationFailed
+            or OperationEvent.SettingsFunctionPluginExecutionFailed
+            or OperationEvent.SettingsProductPluginActiveCall or OperationEvent.SettingsProductPluginUnsavedChanges
             or OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
             or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete

@@ -29,8 +29,6 @@ partial class PluginPage
         detailsGroup = new DevExpress.XtraEditors.GroupControl();
         pluginDetailLabel = new DevExpress.XtraEditors.LabelControl();
         layout = new System.Windows.Forms.TableLayoutPanel();
-        detailsLabel = new DevExpress.XtraEditors.LabelControl();
-        statusLabel = new DevExpress.XtraEditors.LabelControl();
         refreshButton = new DevExpress.XtraEditors.SimpleButton();
         capabilitiesButton = new DevExpress.XtraEditors.SimpleButton();
         pluginTabs = new DevExpress.XtraTab.XtraTabControl();
@@ -47,18 +45,12 @@ partial class PluginPage
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.ColumnCount = 1;
-        layout.RowCount = 4;
+        layout.RowCount = 3;
         layout.Padding = new System.Windows.Forms.Padding(8);
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        detailsLabel.Name = "detailsLabel";
-        detailsLabel.Text = "Es ist immer nur ein Warenwirtschaftsplugin aktiv.";
-        detailsLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
-        detailsLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        detailsLabel.Margin = new System.Windows.Forms.Padding(3, 0, 3, 2);
         pluginTabs.Dock = System.Windows.Forms.DockStyle.Fill;
         pluginTabs.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
         pluginTabs.BorderStylePage = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
@@ -153,11 +145,6 @@ partial class PluginPage
         capabilitiesButton.Click += Capabilities_Click;
 
 
-        statusLabel.Name = "statusLabel";
-        statusLabel.Text = "Installiertes Plugin auswählen und aktivieren.";
-        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
-        statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        statusLabel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 0);
         headerLayout.AutoSize = true;
         headerLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         headerLayout.Dock = System.Windows.Forms.DockStyle.Top;
@@ -166,20 +153,18 @@ partial class PluginPage
         headerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         headerLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         headerLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        headerLayout.Controls.Add(detailsLabel, 0, 0);
         headerLayout.Controls.Add(refreshButton, 1, 0);
         layout.Controls.Add(headerLayout, 0, 0);
         layout.Controls.Add(pluginTabs, 0, 1);
 
         switchProgress.Name = "switchProgress";
         switchProgress.AutoHeight = true;
-        switchProgress.Caption = "Plugin wird gewechselt";
+        switchProgress.ShowCaption = false;
         switchProgress.ShowDescription = false;
         switchProgress.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         switchProgress.Visible = false;
         switchProgress.Margin = new System.Windows.Forms.Padding(6);
         layout.Controls.Add(switchProgress, 0, 2);
-        layout.Controls.Add(statusLabel, 0, 3);
         Controls.Add(layout);
         Size = new System.Drawing.Size(860, 540);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -200,8 +185,6 @@ partial class PluginPage
     private DevExpress.XtraEditors.GroupControl detailsGroup;
     private DevExpress.XtraEditors.LabelControl pluginDetailLabel;
     private System.Windows.Forms.TableLayoutPanel layout;
-    private DevExpress.XtraEditors.LabelControl detailsLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.SimpleButton refreshButton;
     private DevExpress.XtraEditors.SimpleButton capabilitiesButton;
     private DevExpress.XtraTab.XtraTabControl pluginTabs;

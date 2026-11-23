@@ -1,6 +1,7 @@
 using DevExpress.XtraEditors;
 using System.IO;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Views;
@@ -9,6 +10,7 @@ public partial class FunctionPluginsPage : XtraUserControl
 {
     private IFunctionPluginRuntime? _runtime;
     private PageOperation? _operation;
+    private Action<OperationEvent>? _report;
     private bool _busy;
     private bool _stopping;
 
@@ -20,10 +22,11 @@ public partial class FunctionPluginsPage : XtraUserControl
         UpdateActions();
     }
 
-    internal void Bind(IFunctionPluginRuntime runtime)
+    internal void Bind(IFunctionPluginRuntime runtime, Action<OperationEvent> report)
     {
         _runtime = runtime;
-        _operation = new PageOperation(this, status);
+        _report = report;
+        _operation = new PageOperation(this, report);
     }
 
     internal async Task LoadAsync(CancellationToken token)
@@ -35,7 +38,7 @@ public partial class FunctionPluginsPage : XtraUserControl
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or FunctionPluginException)
         {
             plugins.DataSource = null;
-            status.Text = "Funktionsplugins konnten nicht geladen werden. Bitte den Plugin-Ordner prüfen.";
+            _report?.Invoke(OperationEvent.SettingsFunctionPluginsListFailed);
             UpdateActions();
             return;
         }
@@ -44,7 +47,7 @@ public partial class FunctionPluginsPage : XtraUserControl
         plugins.DataSource = rows;
         plugins.SelectedIndex = Array.FindIndex(rows, row => row.Plugin.Id == selected);
         if (plugins.SelectedIndex < 0 && rows.Length != 0) plugins.SelectedIndex = 0;
-        status.Text = rows.Length == 0 ? "Keine Funktionsplugins installiert." : "";
+        if (rows.Length == 0) _report?.Invoke(OperationEvent.SettingsFunctionPluginsEmpty);
         UpdateActions();
     }
 
@@ -73,15 +76,20 @@ public partial class FunctionPluginsPage : XtraUserControl
                     if (execute)
                     {
                         await _runtime.ExecuteAsync(row.Plugin.Id, token);
-                        status.Text = "Funktion ausgeführt.";
+                        _report?.Invoke(OperationEvent.SettingsFunctionPluginExecuted);
                     }
                     else
                     {
-                        await _runtime.SetEnabledAsync(row.Plugin.Id, !row.Plugin.Enabled, token);
+                        var enable = !row.Plugin.Enabled;
+                        await _runtime.SetEnabledAsync(row.Plugin.Id, enable, token);
+                        _report?.Invoke(enable ? OperationEvent.SettingsFunctionPluginEnabled : OperationEvent.SettingsFunctionPluginDisabled);
                         await LoadAsync(token);
                     }
                 }
-                catch (FunctionPluginException error) { status.Text = error.Message; }
+                catch (FunctionPluginException)
+                {
+                    _report?.Invoke(execute ? OperationEvent.SettingsFunctionPluginExecutionFailed : OperationEvent.SettingsFunctionPluginActivationFailed);
+                }
             });
         }
         finally

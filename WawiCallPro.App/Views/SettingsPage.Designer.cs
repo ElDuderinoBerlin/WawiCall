@@ -48,6 +48,8 @@ partial class SettingsPage
         mailTab = new DevExpress.XtraTab.XtraTabPage();
         mailSettingsPage = new WawiCallPro.App.Views.MailSettingsPage();
         pluginTab = new DevExpress.XtraTab.XtraTabPage();
+        pluginPages = new DevExpress.XtraTab.XtraTabControl();
+        productPluginsTab = new DevExpress.XtraTab.XtraTabPage();
         functionPluginsTab = new DevExpress.XtraTab.XtraTabPage();
         functionPluginsPage = new FunctionPluginsPage();
         pluginPage = new WawiCallPro.App.Views.PluginPage();
@@ -185,8 +187,16 @@ partial class SettingsPage
         footer.Dock = System.Windows.Forms.DockStyle.Top;
         pluginTab.Text = "Plugins";
         pluginTab.Name = "pluginTab";
+        pluginPages.Name = "pluginPages";
+        pluginPages.Dock = System.Windows.Forms.DockStyle.Fill;
+        pluginPages.BorderStyle = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+        pluginPages.BorderStylePage = DevExpress.XtraEditors.Controls.BorderStyles.NoBorder;
+        productPluginsTab.Text = "Warenwirtschaft";
+        productPluginsTab.Name = "productPluginsTab";
         pluginPage.Dock = System.Windows.Forms.DockStyle.Fill;
-        pluginTab.Controls.Add(pluginPage);
+        productPluginsTab.Controls.Add(pluginPage);
+        pluginPages.TabPages.Add(productPluginsTab);
+        pluginTab.Controls.Add(pluginPages);
         generalTab.Text = "Allgemein";
         tabs.TabPages.Add(generalTab);
         tabs.TabPages.Add(pluginTab);
@@ -195,7 +205,7 @@ partial class SettingsPage
         functionPluginsPage.Name = "functionPluginsPage";
         functionPluginsPage.Dock = System.Windows.Forms.DockStyle.Fill;
         functionPluginsTab.Controls.Add(functionPluginsPage);
-        tabs.TabPages.Add(functionPluginsTab);
+        pluginPages.TabPages.Add(functionPluginsTab);
         wawiTab.Name = "wawiTab";
         wawiTab.Text = "Zugang";
         wawiTab.AutoScroll = true;
@@ -1242,6 +1252,8 @@ partial class SettingsPage
     private System.Windows.Forms.TableLayoutPanel layout;
     private DevExpress.XtraTab.XtraTabControl tabs;
     private DevExpress.XtraTab.XtraTabPage pluginTab;
+    private DevExpress.XtraTab.XtraTabControl pluginPages;
+    private DevExpress.XtraTab.XtraTabPage productPluginsTab;
     private DevExpress.XtraTab.XtraTabPage functionPluginsTab;
     private FunctionPluginsPage functionPluginsPage;
     private WawiCallPro.App.Views.PluginPage pluginPage;

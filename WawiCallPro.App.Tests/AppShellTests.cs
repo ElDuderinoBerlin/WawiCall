@@ -898,7 +898,7 @@ public sealed partial class AppShellTests
             var management = Field<PluginPage>(settingsPage, "pluginPage");
             await management.HandleCardActionAsync("activate", 1);
             Assert.AreEqual("Test.Lexware", ((TestRuntime)workspace.Plugins).ActivePluginId);
-            Assert.AreEqual(new ActiveCallCloseException().Message, Field<LabelControl>(management, "statusLabel").Text);
+            Assert.AreEqual(new ActiveCallCloseException().Message, settingsPage.LastSettingsNoticeText);
             Assert.IsTrue(Field<SimpleButton>(settingsPage, "saveButton").Enabled);
             Assert.AreNotEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
             Assert.IsEmpty(telephony.Commands);
@@ -2588,8 +2588,9 @@ public sealed partial class AppShellTests
                     Assert.IsFalse(Field<SimpleButton>(page, "saveButton").Enabled);
                     Assert.IsFalse(Field<SimpleButton>(page, "importButton").Enabled);
                     Assert.IsFalse(Field<SimpleButton>(management, "refreshButton").Enabled);
+                    Assert.IsFalse(Field<XtraTabPage>(page, "functionPluginsTab").PageEnabled);
                     Assert.IsTrue(Field<DevExpress.XtraWaitForm.ProgressPanel>(management, "switchProgress").Visible);
-                    Assert.Contains("Vorgänge", Field<LabelControl>(management, "statusLabel").Text);
+                    Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsProductPluginChanging, page.LastSettingsNotice);
                     settings.PerformLayout(); CheckTableBounds(settings);
                     var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "plugin-cards");
                     Directory.CreateDirectory(output);
@@ -2599,6 +2600,7 @@ public sealed partial class AppShellTests
                 finally { release.TrySetResult(); await switching; }
                 Assert.IsFalse(Field<DevExpress.XtraWaitForm.ProgressPanel>(management, "switchProgress").Visible);
                 Assert.IsTrue(Field<SimpleButton>(page, "saveButton").Enabled);
+                Assert.IsTrue(Field<XtraTabPage>(page, "functionPluginsTab").PageEnabled);
                 Assert.AreEqual("Test.Dummy", selection.ActivePluginId);
                 await settings.StopAsync();
             }
@@ -2615,7 +2617,7 @@ public sealed partial class AppShellTests
     public Task PluginCardActivationIsSingleFlightAndClosingCancelsThePendingSwitch() => WithWorkspace(async (workspace, services, plugin) =>
     {
         using var page = new PluginPage();
-        page.Bind(workspace, null);
+        page.Bind(workspace, null, workspace.ReportSettings);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var calls = 0;
         var cancelled = false;
@@ -2928,7 +2930,8 @@ public sealed partial class AppShellTests
         var catalog = Field<DevExpress.XtraGrid.Views.Items.ItemsView>(management, "catalogView");
         catalog.FocusedRowHandle = 1;
         await management.HandleCardActionAsync("activate", 1);
-        Assert.AreEqual("Plugin gewechselt und Auswahl gespeichert.", Field<LabelControl>(management, "statusLabel").Text);
+        Assert.AreEqual(WawiCallPro.Utilities.Operations.OperationEvent.SettingsProductPluginChanged, page.LastSettingsNotice);
+        Assert.IsEmpty(management.Controls.Find("statusLabel", true));
         Assert.AreEqual(2, plugin.Disposed);
         Assert.IsNull(workspace.Companies.Current.Company);
         Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);

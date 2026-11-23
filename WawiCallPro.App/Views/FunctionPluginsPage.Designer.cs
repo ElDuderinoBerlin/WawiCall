@@ -15,22 +15,19 @@ public partial class FunctionPluginsPage
         plugins = new DevExpress.XtraEditors.ListBoxControl();
         toggleButton = new DevExpress.XtraEditors.SimpleButton();
         executeButton = new DevExpress.XtraEditors.SimpleButton();
-        status = new DevExpress.XtraEditors.LabelControl();
         ((System.ComponentModel.ISupportInitialize)plugins).BeginInit();
         layout.SuspendLayout();
         actions.SuspendLayout();
         SuspendLayout();
         layout.ColumnCount = 1;
-        layout.RowCount = 3;
+        layout.RowCount = 2;
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.Padding = new System.Windows.Forms.Padding(10);
         layout.Controls.Add(plugins, 0, 0);
         layout.Controls.Add(actions, 0, 1);
-        layout.Controls.Add(status, 0, 2);
         actions.ColumnCount = 3;
         actions.RowCount = 1;
         actions.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -49,8 +46,6 @@ public partial class FunctionPluginsPage
         toggleButton.Click += Toggle_Click;
         executeButton.Text = "Ausführen";
         executeButton.Click += Execute_Click;
-        status.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
-        status.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
         Controls.Add(layout);
         ((System.ComponentModel.ISupportInitialize)plugins).EndInit();
@@ -64,5 +59,4 @@ public partial class FunctionPluginsPage
     private DevExpress.XtraEditors.ListBoxControl plugins;
     private DevExpress.XtraEditors.SimpleButton toggleButton;
     private DevExpress.XtraEditors.SimpleButton executeButton;
-    private DevExpress.XtraEditors.LabelControl status;
 }

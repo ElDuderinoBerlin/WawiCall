@@ -139,9 +139,9 @@ public partial class SettingsPage : XtraUserControl
         UpdateSipStatus();
         _operation = new PageOperation(this, ReportSettingsNotice);
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
-        pluginPage.Bind(workspace, _state);
+        pluginPage.Bind(workspace, _state, ReportSettingsNotice);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
-        if (workspace.FunctionPlugins is { } functions) functionPluginsPage.Bind(functions);
+        if (workspace.FunctionPlugins is { } functions) functionPluginsPage.Bind(functions, ReportSettingsNotice);
         else functionPluginsTab.PageVisible = false;
         numberDiagnosticsPage.Bind(workspace.NumberDiagnostics, _state);
         if (deferInitialBinding)
@@ -180,9 +180,18 @@ public partial class SettingsPage : XtraUserControl
         _beforePluginSwitch = beforeSwitch;
         _afterPluginSwitch = afterSwitch;
     }
-    internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
+    internal void SelectPluginsTab()
+    {
+        tabs.SelectedTabPage = pluginTab;
+        pluginPages.SelectedTabPage = productPluginsTab;
+    }
     internal void SelectAutomationTab(string id)
     {
+        if (id == "plugin")
+        {
+            SelectPluginsTab();
+            return;
+        }
         if (id == "settings-wawi")
         {
             if (tabs.TabPages.Contains(wawiTab)) tabs.SelectedTabPage = wawiTab;
@@ -191,7 +200,7 @@ public partial class SettingsPage : XtraUserControl
         }
         tabs.SelectedTabPage = id switch
         {
-            "plugin" => pluginTab, "settings-wawi" => wawiTab, "settings-hotkeys" => hotkeysTab,
+            "settings-wawi" => wawiTab, "settings-hotkeys" => hotkeysTab,
             "settings-sip" or "settings-sip-advanced" => sipTab,
             "settings-database" => databaseTab, "settings-audio" or "settings-audio-levels" => audioTab,
             "settings-phone-cache" or "settings-cache-sources" or "settings-phone-matching" or "number-diagnostics" => cacheTab,
@@ -211,18 +220,16 @@ public partial class SettingsPage : XtraUserControl
         RequireCleanPluginDraft();
         saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
+        functionPluginsTab.PageEnabled = false;
         var switchPrepared = false;
         try
         {
-            pluginPage.ReportSwitchStatus("Offene Ansichten und Vorgänge werden beendet …");
             if (_operation is not null) await _operation.StopAsync();
             await ClosePluginConnectionEditorAsync();
             if (_beforePluginSwitch is not null) await _beforePluginSwitch();
             switchPrepared = true;
             await _workspace.Companies.SelectAsync(null);
-            pluginPage.ReportSwitchStatus("Bisheriges Plugin wird entladen, neues Plugin wird geladen …");
             await selection.SwitchAsync(id, token);
-            pluginPage.ReportSwitchStatus("Plugin ist bereit. Auswahl wird gespeichert …");
             var previous = _snapshot!;
             await _workspace.Settings.SaveAsync(previous.Options with { User = previous.Options.User with { ActivePluginId = id } }, previous, token);
             _snapshot = await _workspace.Settings.LoadAsync(token);
@@ -235,6 +242,7 @@ public partial class SettingsPage : XtraUserControl
             _cacheCompanies.Clear(); BindCompanyRows(); ClearMatchingProfile();
             saveButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
+            functionPluginsTab.PageEnabled = true;
             cacheTab.PageEnabled = _workspace.CanUseBusinessDirectory;
             if (switchPrepared && _afterPluginSwitch is not null) await _afterPluginSwitch();
         }

@@ -1,10 +1,11 @@
 # Funktionsplugins in WawiCallPro
 
 Ein Wawi-Plugin stellt Mandanten und Geschäftspartner für die aktive Warenwirtschaft bereit.
-Funktionsplugins laufen daneben. In **Einstellungen → Funktionsplugins** lassen sich beliebig
+Funktionsplugins laufen daneben. In **Einstellungen → Plugins → Funktionsplugins** lassen sich
 mehrere installierte Funktionen einzeln aktivieren, ausführen und deaktivieren. Beim Wawi-Wechsel
 bleiben die Funktionsplugins aktiv. Die App startet mit den zuvor aktivierten Funktionen.
-Aktivieren und Deaktivieren werden sofort gespeichert.
+Aktivieren und Deaktivieren werden sofort gespeichert. Meldungen zu den Aktionen erscheinen
+im Log-Fenster und werden bei aktivierter Protokollierung in die Logdatei geschrieben.
 
 ## Projekt und Vertrag
 
@@ -35,7 +36,7 @@ in die Ausgabe der Anwendung. Sie werden mit Pro und FinOffice ausgeliefert und 
          WawiCallPro.Functions.MeinPlugin.deps.json
    ```
 
-3. WawiCallPro starten und unter **Einstellungen → Funktionsplugins** auf **Aktivieren** klicken.
+3. WawiCallPro starten und unter **Einstellungen → Plugins → Funktionsplugins** auf **Aktivieren** klicken.
    Die App erkennt die Pakete über den Ordner und die gleichnamige DLL. Diese Dateistruktur
    dient als Registrierung. Die Aktivierung wird in `function-plugins.json` im lokalen
    WawiCallPro-Profil gespeichert.
