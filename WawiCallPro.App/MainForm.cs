@@ -438,6 +438,7 @@ public partial class MainForm : RibbonForm
         mailCacheRebuildItem.ImageOptions.SvgImage = RibbonIconHelper.Load("MailCacheRebuild");
         mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
         audioConvertItem.ImageOptions.SvgImage = RibbonIconHelper.Load("AudioConvert");
+        recordingInventoryItem.ImageOptions.SvgImage = RibbonIconHelper.Load("DatabaseCheck");
     }
     private void DisposePage() { DisposeCompanyRestore(); DisposePluginShell(); DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;

@@ -42,6 +42,7 @@ partial class MainForm
         audioRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
         audioToolsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         audioConvertItem = new DevExpress.XtraBars.BarButtonItem();
+        recordingInventoryItem = new DevExpress.XtraBars.BarButtonItem();
         mailActionsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         mailCacheGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         telephonyGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -143,6 +144,12 @@ partial class MainForm
         audioConvertItem.ItemClick += AudioConvert_Click;
         ribbon.Items.Add(audioConvertItem);
         audioToolsGroup.ItemLinks.Add(audioConvertItem);
+        recordingInventoryItem.Caption = "Aufnahmeordner prüfen";
+        recordingInventoryItem.Hint = "Dateien im Aufnahmeordner mit dem lokalen Datenbankkatalog abgleichen.";
+        recordingInventoryItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        recordingInventoryItem.ItemClick += RecordingInventory_Click;
+        ribbon.Items.Add(recordingInventoryItem);
+        audioToolsGroup.ItemLinks.Add(recordingInventoryItem);
         audioRibbon.Groups.Add(audioToolsGroup);
         ribbon.Pages.Add(audioRibbon);
         databaseRibbon.Text = "Datenbank";
@@ -488,6 +495,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPage audioRibbon;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup audioToolsGroup;
     private DevExpress.XtraBars.BarButtonItem audioConvertItem;
+    private DevExpress.XtraBars.BarButtonItem recordingInventoryItem;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailActionsGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailCacheGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup telephonyGroup;

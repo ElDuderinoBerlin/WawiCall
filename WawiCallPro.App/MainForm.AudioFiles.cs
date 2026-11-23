@@ -21,4 +21,20 @@ public partial class MainForm
         using var dialog = CreateAudioConvertDialog();
         dialog.ShowDialog(this);
     }
+
+    internal FrmRecordingInventory CreateRecordingInventoryDialog()
+    {
+        var dialog = new FrmRecordingInventory(_workspace?.RecordingInventory, _state);
+        _state?.AttachWindow(dialog, "RecordingInventory-v1");
+        if (_backgroundRun) dialog.PrepareForBackgroundRun();
+        return dialog;
+    }
+
+    private void RecordingInventory_Click(object sender, ItemClickEventArgs e)
+    {
+        if (_closing || _workspace?.RecordingInventory is null || FindModalWindow() is not null) return;
+        using var waiting = new UiWaitCursor(this);
+        using var dialog = CreateRecordingInventoryDialog();
+        dialog.ShowDialog(this);
+    }
 }

@@ -53,7 +53,8 @@ public sealed class AppWorkspace(
     WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? functionPlugins = null,
     IPartySearch? partySearch = null,
     WawiCallPro.Audio.IAudioFileConversion? audioFiles = null,
-    WawiCallPro.Utilities.Licensing.IProductLicenseService? licenses = null)
+    WawiCallPro.Utilities.Licensing.IProductLicenseService? licenses = null,
+    IRecordingDirectoryInventory? recordingInventory = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
@@ -63,6 +64,7 @@ public sealed class AppWorkspace(
     internal WawiCallPro.Audio.IHistoryRecordingPlayback? RecordingPlayback => recordingPlayback;
     internal HistoryRecordingFiles? RecordingFiles => recordingFiles;
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
+    internal IRecordingDirectoryInventory? RecordingInventory => recordingInventory;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;
     public ApplicationConfigurationService Configuration { get; } = configuration;
