@@ -5162,6 +5162,11 @@ erneuter Import verdoppelt keine Daten. Der Betrieb erfolgt ausschließlich übe
   ist maschinen- und produktgebunden. Profil und HKCU speichern getrennte DPAPI-geschützte Kopien.
   Erster Start, fehlende Kopie, Fremdprodukt, Manipulation, Zeitrückstellung und Ablauf wurden isoliert
   geprüft. Der Über-Dialog zeigt den verbleibenden Testzeitraum.
+- [x] ✅ Signierte Offline-Lizenz per `--import-license <absoluter Pfad>` übernehmen.
+  Produkt, Anwendungs-ID, Version, Rechner und Gültigkeit werden vor dem Ersetzen geprüft.
+  `--reset-license` entfernt die lokale Lizenz und die lizenzbezogenen Nachweise bei beendeter
+  Anwendung. Demo-Zustand, Produktkonfiguration und Crashberichte bleiben erhalten.
+  Synthetische Offline-Lizenz, Fremdrechner und Rücksetzen sind isoliert geprüft.
 - [ ] Plugins, private/native DLLs, Audioressourcen und erforderliche Laufzeitkomponenten in Paketen nachweisen.
 - [ ] Update mit existierender Datenbank, vorheriger Sicherung und neuem Schema sowie Wiederherstellungsweg prüfen.
 - [ ] Einstellungen und Benutzeraufnahmen bei Update erhalten; Datenhaltung für Deinstallation explizit festlegen.

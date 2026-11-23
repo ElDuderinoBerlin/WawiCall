@@ -46,6 +46,8 @@ internal static class Program
         }
         if (start.Kind == AppStartKind.ActivateExisting)
             return ActivateExisting(start.ToInteractiveArguments());
+        if (start.Kind is AppStartKind.ImportLicense or AppStartKind.ResetLicense)
+            return AppLicenseMaintenance.Run(start);
         var result = RunApplication(args);
         if (result != AppRestartLauncher.RestartRequestedExitCode) return result;
         try { AppRestartLauncher.Start(); return 0; }

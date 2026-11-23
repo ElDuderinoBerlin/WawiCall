@@ -18,6 +18,10 @@ public sealed class AppStartArgumentsTests
     public void InteractiveAndDiagnosticArgumentsRetainTheirMeaning()
     {
         Assert.AreEqual(AppStartKind.Interactive, AppStartArguments.Parse([]).Kind);
+        Assert.AreEqual(AppStartKind.ResetLicense, AppStartArguments.Parse(["--reset-license"]).Kind);
+        Assert.AreEqual(new AppStartArguments(AppStartKind.ImportLicense, @"D:\test license.xml"),
+            AppStartArguments.Parse(["--import-license", @"D:\test license.xml"]));
+        Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(["--import-license", "relative.xml"]));
         CollectionAssert.AreEqual(new[] { "--diagnostics" }, AppStartArguments.Parse(["--DIAGNOSTICS"]).ToInteractiveArguments());
         CollectionAssert.AreEqual(new[] { "--ui-audit", "audit directory" }, AppStartArguments.Parse(["--UI-AUDIT", "audit directory"]).ToInteractiveArguments());
         CollectionAssert.AreEqual(new[] { "--activate-existing", @"D:\isolated profile" }, AppStartArguments.Parse(["--ACTIVATE-EXISTING", @"D:\isolated profile"]).ToInteractiveArguments());

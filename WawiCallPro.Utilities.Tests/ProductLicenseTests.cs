@@ -90,6 +90,31 @@ public sealed class ProductLicenseTests
     }
 
     [TestMethod]
+    public async Task OfflineImportValidatesBeforeReplacingAndResetLeavesOtherProfileFilesIntact()
+    {
+        var handler = new Handler((_, _) => throw new AssertFailedException("Offline maintenance must not call the network."));
+        var license = CreateService(handler);
+        Directory.CreateDirectory(_root);
+        var incoming = Path.Combine(_root, "signed-license.xml");
+        await File.WriteAllTextAsync(incoming, CreateXml(offline: true));
+        await license.ImportOfflineAsync(incoming, default);
+        var installed = await license.ValidateAsync(default);
+        Assert.AreEqual(LicenseStatus.Valid, installed.Status);
+        Assert.IsFalse(installed.Online);
+        Assert.IsNull(await license.GetCrashAuthenticationAsync(default));
+        var localLicensePath = Path.Combine(_root, "license", "license.xlic");
+        var before = await File.ReadAllBytesAsync(localLicensePath);
+
+        await File.WriteAllTextAsync(incoming, CreateXml("machine", offline: true));
+        await Assert.ThrowsExactlyAsync<LicenseAccessException>(() => license.ImportOfflineAsync(incoming, default));
+        CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(localLicensePath));
+        await license.ResetAsync(default);
+        Assert.AreEqual(LicenseStatus.Missing, (await license.ValidateAsync(default)).Status);
+        Assert.IsTrue(File.Exists(incoming));
+        Assert.IsEmpty(Directory.GetFiles(Path.GetDirectoryName(localLicensePath)!));
+    }
+
+    [TestMethod]
     [DataRow("product")]
     [DataRow("application")]
     [DataRow("machine")]
@@ -240,16 +265,18 @@ public sealed class ProductLicenseTests
         var guard = new LicenseGuard(keys, new DpapiLicenseClockStateStore(protector), validator);
         return new ProductLicenseService(Paths, _product, Settings, validator, guard, protector, new Machine(), new LicenseServerSessionFactory(new HttpFactory(handler)), _clock);
     }
-    private string CreateXml(string? mismatch = null)
+    private string CreateXml(string? mismatch = null, bool offline = false)
     {
         var document = new LicenseDocument
         {
             LicenseId = _licenseId, KeyId = "synthetic",
             Product = new LicenseProduct { Code = mismatch == "product" ? "LXTRANSLATE_PRO" : _product.ProductCode,
                 ApplicationGuid = mismatch == "application" ? Guid.NewGuid() : _product.ApplicationGuid },
-            Activation = new LicenseActivation { Mode = ActivationMode.Online, MachineIdHash = mismatch == "machine" ? "other-machine" : "machine-test" },
+            Activation = new LicenseActivation { Mode = offline ? ActivationMode.Offline : ActivationMode.Online,
+                MachineIdHash = mismatch == "machine" ? "other-machine" : "machine-test" },
             Validity = new LicenseValidity { IssuedAtUtc = _clock.Now, ValidFromUtc = _clock.Now.AddDays(-5),
-                ValidToUtc = mismatch == "expired" ? _clock.Now.AddDays(-1) : _clock.Now.AddDays(30), MaxOfflineDays = 2, LastOnlineCheckUtc = _clock.Now }
+                ValidToUtc = mismatch == "expired" ? _clock.Now.AddDays(-1) : _clock.Now.AddDays(30),
+                MaxOfflineDays = offline ? null : 2, LastOnlineCheckUtc = offline ? null : _clock.Now }
         };
         if (mismatch == "signature") { using var other = RSA.Create(2048); return new LicenseXmlSigner().Sign(document, other); }
         return new LicenseXmlSigner().Sign(document, _signer);

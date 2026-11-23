@@ -2,7 +2,7 @@ using System.IO;
 
 namespace WawiCallPro.App.Hosting;
 
-internal enum AppStartKind { Interactive, Diagnostics, UiAudit, ActivateExisting, Com }
+internal enum AppStartKind { Interactive, Diagnostics, UiAudit, ActivateExisting, Com, ImportLicense, ResetLicense }
 
 /// <summary>Validates the complete command line before loading configuration or creating controls.</summary>
 internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
@@ -23,6 +23,7 @@ internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
         {
             if (EqualsOption(arguments[0], "-Embedding")) return new(AppStartKind.Com);
             if (EqualsOption(arguments[0], "--diagnostics")) return new(AppStartKind.Diagnostics);
+            if (EqualsOption(arguments[0], "--reset-license")) return new(AppStartKind.ResetLicense);
         }
         if (arguments.Length == 2)
         {
@@ -30,6 +31,8 @@ internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
                 return new(AppStartKind.UiAudit, arguments[1]);
             if (EqualsOption(arguments[0], "--activate-existing") && System.IO.Path.IsPathFullyQualified(arguments[1]))
                 return new(AppStartKind.ActivateExisting, arguments[1]);
+            if (EqualsOption(arguments[0], "--import-license") && System.IO.Path.IsPathFullyQualified(arguments[1]))
+                return new(AppStartKind.ImportLicense, arguments[1]);
         }
         throw new ArgumentException("Ungültige oder widersprüchliche Startargumente.");
     }

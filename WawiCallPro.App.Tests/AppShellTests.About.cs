@@ -35,6 +35,7 @@ public sealed partial class AppShellTests
                 Assert.StartsWith("WawiCallPro", product.Text);
                 Assert.Contains("DevExpress", Field<LabelControl>(dialog, "lblVersion").Text);
                 Assert.Contains("gültig", Field<LabelControl>(dialog, "lblLicenseInfo").Text);
+                Assert.Contains("Not for resale (NFR)", Field<LabelControl>(dialog, "lblLicenseInfo").Text);
                 Assert.AreEqual("Lizenznummer: SYNTHETIC-ABOUT-NUMBER", Field<HyperlinkLabelControl>(dialog, "linkLicenseNumber").Text);
                 Assert.IsTrue(Field<HyperlinkLabelControl>(dialog, "linkMachineKey").Visible);
                 CheckTableBounds(dialog);
@@ -56,7 +57,8 @@ public sealed partial class AppShellTests
     {
         private readonly Guid _licenseId = Guid.NewGuid();
         public Task<ProductLicenseSnapshot> ValidateAsync(CancellationToken token) =>
-            Task.FromResult(new ProductLicenseSnapshot(LicenseStatus.Valid, _licenseId));
+            Task.FromResult(new ProductLicenseSnapshot(LicenseStatus.Valid, _licenseId, Online: true)
+            { ProductLabel = "WawiCallPro", Type = Quantarix.License.Core.Models.LicenseType.NFR, ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30), GraceDays = 7 });
         public Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken token) =>
             Task.FromResult(licenseId == _licenseId ? "SYNTHETIC-ABOUT-NUMBER" : null);
         public Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken token) => throw new AssertFailedException("Unexpected activation.");

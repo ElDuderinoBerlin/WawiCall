@@ -15,6 +15,10 @@ public enum LicenseStatus { Development, NotChecked, Valid, Missing, Invalid, Ex
 public sealed record ProductLicenseSnapshot(LicenseStatus Status, Guid? LicenseId = null, DateTimeOffset? ValidUntilUtc = null, bool Online = false)
 {
     public DemoTrialPeriod? Trial { get; init; }
+    public string? ProductLabel { get; init; }
+    public LicenseType? Type { get; init; }
+    public DateTimeOffset? ExpiresUtc { get; init; }
+    public int GraceDays { get; init; }
 }
 public sealed class LicenseAccessException(LicenseStatus status) : Exception($"WawiCallPro-Lizenz: {status}.")
 {
@@ -35,16 +39,23 @@ public interface IProductLicenseService
     Task<CrashAuthentication?> GetCrashAuthenticationAsync(CancellationToken cancellationToken);
 }
 
+public interface IProductLicenseMaintenance
+{
+    Task ImportOfflineAsync(string path, CancellationToken cancellationToken);
+    Task ResetAsync(CancellationToken cancellationToken);
+}
+
 /// <summary>Owns one serialized product/profile license context. All server XML is verified before replacing a license.</summary>
 public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProductIdentity product, StartupSettings settings,
     LicenseFileValidator validator, LicenseGuard guard, ILocalLicenseProtector protector, IMachineIdProvider machine,
-    ILicenseServerSessionFactory clients, TimeProvider clock, DemoTrialService? demoTrial = null) : IProductLicenseService
+    ILicenseServerSessionFactory clients, TimeProvider clock, DemoTrialService? demoTrial = null) : IProductLicenseService, IProductLicenseMaintenance
 {
     private readonly SemaphoreSlim _gate = new(1);
     private string LicenseFile => Path.Combine(paths.RootDirectory, "license", "license.xlic");
     private string SecretFile => Path.Combine(paths.RootDirectory, "license", "activation.bin");
     private string BlockFile => Path.Combine(paths.RootDirectory, "license", "blocked.bin");
     private string NumberFile => Path.Combine(paths.RootDirectory, "license", "number.bin");
+    private string ClockFile => Path.Combine(paths.RootDirectory, "license", "clock.bin");
     public string GetMachineId() => machine.GetMachineIdHash();
 
     public async Task<ProductLicenseSnapshot> ValidateAsync(CancellationToken cancellationToken)
@@ -60,23 +71,23 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
         if (!File.Exists(LicenseFile)) return new(product.Required ? LicenseStatus.Missing : LicenseStatus.Development);
         try
         {
-            var result = guard.ValidateFile(new LicenseGuardOptions
-            {
-                ProductCode = product.ProductCode, ApplicationGuid = product.ApplicationGuid, ApplicationVersion = product.Version,
-                UseEntryAssemblyGuid = false, UseEntryAssemblyVersion = false, RequireMachineBinding = true,
-                LicenseFilePath = LicenseFile, ClockStateFilePath = Path.Combine(paths.RootDirectory, "license", "clock.bin"),
-                ProtectionScope = LocalLicenseProtectionScope.CurrentUser, NowUtc = clock.GetUtcNow()
-            });
+            var result = guard.ValidateFile(GuardOptions(LicenseFile));
             if (!result.IsValid || result.License is null)
                 return new(result.ErrorCode == "online_check_required" ? LicenseStatus.OnlineCheckRequired
                     : result.ErrorCode == "expired" ? LicenseStatus.Expired : LicenseStatus.Invalid,
                     result.ErrorCode is "online_check_required" or "expired" ? result.License?.LicenseId : null,
                     Online: result.License?.Activation.Mode is ActivationMode.Online or ActivationMode.OfflineOrOnline);
             var license = result.License;
-            if (File.Exists(BlockFile) && protector.UnprotectFromFile(BlockFile, LocalLicenseProtectionScope.CurrentUser) == license.LicenseId.ToString("D"))
+            if (IsRevoked(license.LicenseId))
                 return new(LicenseStatus.Revoked, license.LicenseId);
             return new(LicenseStatus.Valid, license.LicenseId, license.Validity.ValidToUtc?.AddDays(license.Validity.GraceDays),
-                license.Activation.Mode != ActivationMode.Offline);
+                license.Activation.Mode != ActivationMode.Offline)
+            {
+                ProductLabel = string.IsNullOrWhiteSpace(license.Product.Name) ? license.Product.Code : license.Product.Name,
+                Type = license.Product.LicenseType,
+                ExpiresUtc = license.Validity.ValidToUtc,
+                GraceDays = license.Validity.GraceDays
+            };
         }
         catch (LicenseAccessException exception) { return new(exception.Status); }
         catch { return new(LicenseStatus.Invalid); }
@@ -161,7 +172,8 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
         try
         {
             var license = Validate();
-            if (license.Status != LicenseStatus.Valid || license.LicenseId is not { } id || LoadSecret(id) is not { } secret) return null;
+            if (license.Status != LicenseStatus.Valid || !license.Online
+                || license.LicenseId is not { } id || LoadSecret(id) is not { } secret) return null;
             return new(id, GetMachineId(), secret);
         }
         finally { _gate.Release(); }
@@ -192,6 +204,56 @@ public sealed class ProductLicenseService(ApplicationPaths paths, LicenseProduct
         });
         return result.IsValid && result.License is { } license ? license : throw new LicenseAccessException(LicenseStatus.Invalid);
     }
+
+    public async Task ImportOfflineAsync(string path, CancellationToken cancellationToken)
+    {
+        if (product.Demo) throw new LicenseAccessException(LicenseStatus.ConfigurationMissing);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var source = File.OpenRead(path);
+            if (source.Length is 0 or > 256 * 1024) throw new LicenseAccessException(LicenseStatus.Invalid);
+            using var reader = new StreamReader(source);
+            var xml = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            var license = ValidateXml(xml);
+            if (license.Activation.Mode != ActivationMode.Offline) throw new LicenseAccessException(LicenseStatus.Invalid);
+            if (IsRevoked(license.LicenseId)) throw new LicenseAccessException(LicenseStatus.Revoked);
+            var candidate = LicenseFile + "." + Guid.NewGuid().ToString("N") + ".candidate";
+            try
+            {
+                Store(xml, candidate);
+                if (!guard.ValidateFile(GuardOptions(candidate)).IsValid) throw new LicenseAccessException(LicenseStatus.Invalid);
+                cancellationToken.ThrowIfCancellationRequested();
+                File.Move(candidate, LicenseFile, overwrite: true);
+            }
+            finally { if (File.Exists(candidate)) File.Delete(candidate); }
+        }
+        finally { _gate.Release(); }
+    }
+
+    public async Task ResetAsync(CancellationToken cancellationToken)
+    {
+        if (product.Demo) throw new LicenseAccessException(LicenseStatus.ConfigurationMissing);
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var file in new[] { LicenseFile, SecretFile, NumberFile, BlockFile, ClockFile })
+                if (File.Exists(file)) File.Delete(file);
+        }
+        finally { _gate.Release(); }
+    }
+
+    private LicenseGuardOptions GuardOptions(string path) => new()
+    {
+        ProductCode = product.ProductCode, ApplicationGuid = product.ApplicationGuid, ApplicationVersion = product.Version,
+        UseEntryAssemblyGuid = false, UseEntryAssemblyVersion = false, RequireMachineBinding = true,
+        LicenseFilePath = path, ClockStateFilePath = ClockFile,
+        ProtectionScope = LocalLicenseProtectionScope.CurrentUser, NowUtc = clock.GetUtcNow()
+    };
+
+    private bool IsRevoked(Guid id) => File.Exists(BlockFile)
+        && protector.UnprotectFromFile(BlockFile, LocalLicenseProtectionScope.CurrentUser) == id.ToString("D");
 
     private string? LoadSecret(Guid id)
     {

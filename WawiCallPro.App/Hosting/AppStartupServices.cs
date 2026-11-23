@@ -16,6 +16,19 @@ internal static class AppStartupServices
     internal static void AddAppStartupServices(this IServiceCollection services, StartupExecutionMode mode)
     {
         services.AddSingleton(mode);
+        services.AddProductLicensing();
+        services.AddSingleton<IAppLicensePrompt, AppLicensePrompt>();
+        services.AddSingleton<StartupSplash>();
+        services.AddHostedService<AppUiStartup>();
+        services.AddHostedService<StartupSplashHost>();
+        services.AddHostedService<LicenseStartupGate>();
+        services.AddHostedService<LicenseMonitor>();
+        services.AddHostedService<CrashReportUploader>();
+        services.AddSingleton<CrashReportQueue>();
+    }
+
+    internal static void AddProductLicensing(this IServiceCollection services)
+    {
         services.AddSingleton(LicenseProductIdentity.FromAssembly(Assembly.GetExecutingAssembly()));
         services.AddSingleton(provider => StartupSettings.LoadApplicationSettings(provider.GetRequiredService<ApplicationPaths>(),
             provider.GetRequiredService<WawiCallPro.Utilities.Configuration.ConfigurationLocation>()));
@@ -30,14 +43,8 @@ internal static class AppStartupServices
         services.AddSingleton<ILicenseServerSessionFactory, LicenseServerSessionFactory>();
         services.AddSingleton<IDemoTrialStateStore, DemoTrialStateStore>();
         services.AddSingleton<DemoTrialService>();
-        services.AddSingleton<IProductLicenseService, ProductLicenseService>();
-        services.AddSingleton<IAppLicensePrompt, AppLicensePrompt>();
-        services.AddSingleton<StartupSplash>();
-        services.AddHostedService<AppUiStartup>();
-        services.AddHostedService<StartupSplashHost>();
-        services.AddHostedService<LicenseStartupGate>();
-        services.AddHostedService<LicenseMonitor>();
-        services.AddHostedService<CrashReportUploader>();
-        services.AddSingleton<CrashReportQueue>();
+        services.AddSingleton<ProductLicenseService>();
+        services.AddSingleton<IProductLicenseService>(provider => provider.GetRequiredService<ProductLicenseService>());
+        services.AddSingleton<IProductLicenseMaintenance>(provider => provider.GetRequiredService<ProductLicenseService>());
     }
 }

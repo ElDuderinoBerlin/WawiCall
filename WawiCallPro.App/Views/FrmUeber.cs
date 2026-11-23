@@ -44,7 +44,8 @@ public sealed partial class FrmUeber : XtraForm
         var license = await licenses.ValidateAsync(token);
         lblLicenseInfo.Text = FormatLicense(license);
         _licenseId = license.LicenseId;
-        var number = _licenseId is { } id ? await licenses.GetStoredLicenseNumberAsync(id, token) : null;
+        var number = license.Online && _licenseId is { } id
+            ? await licenses.GetStoredLicenseNumberAsync(id, token) : null;
         linkLicenseNumber.Visible = _licenseId.HasValue;
         linkLicenseNumber.Enabled = !string.IsNullOrWhiteSpace(number);
         linkLicenseNumber.Text = linkLicenseNumber.Enabled ? $"Lizenznummer: {number}" : "Lizenznummer: nicht gespeichert";
@@ -59,19 +60,32 @@ public sealed partial class FrmUeber : XtraForm
         MinimumSize = WindowWorkArea.LimitMinimum(new Size(LogicalToDeviceUnits(440), height), WindowWorkArea.GetArea(this));
     }
 
-    private static string FormatLicense(ProductLicenseSnapshot license) => license switch
+    private static string FormatLicense(ProductLicenseSnapshot license)
     {
-        { Status: LicenseStatus.Valid, Trial: { } trial } =>
-            $"Demo-Testzeitraum: {DemoTrialService.DurationDays} Tage (Start {trial.StartUtc.LocalDateTime:d}, Ende {trial.EndUtc.LocalDateTime:d}, verbleibende Tage: {trial.RemainingDays})",
-        { Status: LicenseStatus.Development } => "Lizenz: Entwicklungsmodus",
-        { Status: LicenseStatus.Valid, ValidUntilUtc: { } until } => $"Lizenz: gültig bis {until.LocalDateTime:d}",
-        { Status: LicenseStatus.Valid } => "Lizenz: gültig",
-        { Status: LicenseStatus.Expired or LicenseStatus.DemoExpired } => "Lizenz: abgelaufen",
-        { Status: LicenseStatus.OnlineCheckRequired } => "Lizenz: Online-Prüfung erforderlich",
-        { Status: LicenseStatus.Revoked } => "Lizenz: gesperrt",
-        { Status: LicenseStatus.Missing } => "Lizenz: keine Lizenz hinterlegt",
-        _ => "Lizenzstatus konnte nicht ermittelt werden."
-    };
+        if (license is { Status: LicenseStatus.Valid, Trial: { } trial })
+            return $"Demo-Testzeitraum {DemoTrialService.DurationDays} Tage (Start {trial.StartUtc.LocalDateTime:d}, Ende {trial.EndUtc.LocalDateTime:d}, noch {trial.RemainingDays} Tage)";
+        var status = license.Status switch
+        {
+            LicenseStatus.Development => "Entwicklungsmodus",
+            LicenseStatus.Valid => "gültig",
+            LicenseStatus.Expired or LicenseStatus.DemoExpired => "abgelaufen",
+            LicenseStatus.OnlineCheckRequired => "Online-Prüfung erforderlich",
+            LicenseStatus.Revoked => "gesperrt",
+            LicenseStatus.Missing => "keine Lizenz hinterlegt",
+            _ => "Status konnte nicht ermittelt werden"
+        };
+        var lines = new List<string> { $"Lizenz: {status}" };
+        if (license.LicenseId is { } id) lines.Add($"Lizenz-ID: {id:D}");
+        if (!string.IsNullOrWhiteSpace(license.ProductLabel)) lines.Add($"Produkt: {license.ProductLabel}");
+        if (license.Type is { } type) lines.Add($"Typ: {(type == Quantarix.License.Core.Models.LicenseType.NFR ? "Not for resale (NFR)" : type.ToString())}");
+        if (license.Status == LicenseStatus.Valid)
+        {
+            var term = license.ExpiresUtc is { } end ? $"gültig bis {end.LocalDateTime:d}" : "ohne Ablaufdatum";
+            if (license.GraceDays > 0) term += $" + {license.GraceDays} Tage Kulanz";
+            lines.Add($"Laufzeit: {term}");
+        }
+        return string.Join(Environment.NewLine, lines);
+    }
 
     private async void LicenseNumber_Click(object? sender, HyperlinkClickEventArgs e)
     {
