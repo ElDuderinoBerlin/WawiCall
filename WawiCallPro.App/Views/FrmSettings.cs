@@ -29,6 +29,7 @@ public partial class FrmSettings : XtraForm
     public FrmSettings()
     {
         InitializeComponent(); UiButtonSizing.Attach(this); AppIconHelper.Apply(this);
+        Opacity = 0;
         WindowWorkArea.Attach(this);
         settingsPage.CloseRequested += Settings_CloseRequested;
         settingsPage.SaveCompleted += Settings_SaveCompleted;
@@ -76,7 +77,21 @@ public partial class FrmSettings : XtraForm
     }
     private void Settings_CloseRequested(object? sender, EventArgs e) { DialogResult = DialogResult.Cancel; Close(); }
     private void Settings_SaveCompleted(object? sender, EventArgs e) { DialogResult = DialogResult.OK; Close(); }
-    private void Settings_Shown(object? sender, EventArgs e) => ContentSize_Changed(this, EventArgs.Empty);
+    private void Settings_Shown(object? sender, EventArgs e)
+    {
+        // The native tab handles and restored window placement are available only once the modal is shown.
+        try
+        {
+            ContentSize_Changed(this, EventArgs.Empty);
+            PerformLayout();
+            settingsPage.PerformLayout();
+            Refresh();
+        }
+        finally
+        {
+            if (!_backgroundRun && !IsDisposed) Opacity = 1;
+        }
+    }
     private async void Settings_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (_canClose) return;

@@ -11,6 +11,8 @@ public sealed partial class AppShellTests
     [TestMethod]
     public Task SettingsOpensWithLoadedValuesAndKeepsItsOwnerResponsiveWhilePreparing() => WithWorkspace(async (workspace, services, _) =>
     {
+        using (var unopened = new FrmSettings())
+            Assert.AreEqual(0d, unopened.Opacity, "The first native paint must take place before the dialog is revealed.");
         var saved = await workspace.Settings.LoadAsync();
         var showNotifications = !saved.Options.User.ShowCallNotifications;
         await workspace.Settings.SaveAsync(saved.Options with
@@ -51,6 +53,7 @@ public sealed partial class AppShellTests
             {
                 var page = Field<SettingsPage>(dialog, "settingsPage");
                 Assert.IsTrue(dialog.Modal && dialog.Visible);
+                Assert.AreEqual(0d, dialog.Opacity, "A background test must remain transparent after its first layout.");
                 Assert.AreEqual("Allgemein", page.SettingsTabs.SelectedTabPage.Text);
                 Assert.AreEqual(showNotifications, Field<CheckEdit>(page, "notificationsEdit").Checked);
                 Assert.IsTrue(Field<SimpleButton>(page, "saveButton").Enabled);

@@ -3638,6 +3638,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   und den gefüllten Katalog. Weitere Prüfungen decken gleichzeitige Öffnungsanforderungen und Schließen
   während der Vorbereitung ab. Reguläre Debug-/Any-CPU-Builds und je 14 gezielte App-Prüfungen
   bestanden in Pro und FinOffice.
+  Die Aufnahme vom 23.11.2026 zeigt nach der Datenvorbereitung kurz das sichtbare Dialogfenster
+  mit einem schwarzen ersten Reiter. Der Dialog bleibt beim ersten Layout und Neuzeichnen
+  transparent. Die sichtbare Gegenprüfung im normalen Pro-Profil steht aus.
 - [x] ✅ Einstellbare Empfangs-Aufnahmequelle ergänzt (21.11.2026): unter Audio → Geräte
   **RTP / Medienpfad** als Vorgabe oder **CSCore-Loopback** des tatsächlichen Gesprächsausgabegeräts.
   Die eigene Seite bleibt Codec-/RTP-gebunden. Quellenwahl und Gerätekennung gelten pro Gespräch;
