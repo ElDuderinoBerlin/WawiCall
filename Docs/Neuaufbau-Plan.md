@@ -3529,6 +3529,15 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 
 ### Phase 9 – Audio, Aufzeichnung und Ansagen 🟨
 
+- [x] ✅ **Audio → Audiodatei konvertieren** bereitet lokale Audiodateien für Ansagen auf.
+  WAV, MP3, Ogg/Vorbis und WMA als Quelle, PCM16-WAV als Ergebnis. Quelle und Ergebnis
+  lassen sich über das konfigurierte Ausgabegerät anhören. Abtastrate, Mono/Stereo und
+  Lautstärke sind einstellbar. Abbruch entfernt die temporäre Ausgabe. Die Konvertierung
+  ersetzt keine vorhandenen Dateien und verwendet keine Gesprächsdatensätze.
+  Pro und FinOffice bauen ohne Warnungen. Je acht gezielte Prüfungen für Formate, PCM-Ausgabe,
+  Vorschau mit Testausgabe, Abbruch und Designer bestanden. Die drei Historienprüfungen
+  bestanden im separaten Wiederholungslauf in beiden Editionen.
+
 Gerätekatalog und gespeicherte Auswahl sind als Teilpunkt in Phase 8 abgeschlossen. Die folgenden
 Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die echte Geräteabnahme bleibt erforderlich.
 

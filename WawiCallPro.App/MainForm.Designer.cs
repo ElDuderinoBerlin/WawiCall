@@ -39,6 +39,9 @@ partial class MainForm
         settingsRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
         helpRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
         mailRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        audioRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        audioToolsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
+        audioConvertItem = new DevExpress.XtraBars.BarButtonItem();
         mailActionsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         mailCacheGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         telephonyGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -131,6 +134,17 @@ partial class MainForm
         ribbon.Items.Add(mailCacheCancelItem);
         mailCacheGroup.ItemLinks.Add(mailCacheCancelItem);
         ribbon.SelectedPageChanged += RibbonMail_SelectedPageChanged;
+        audioRibbon.Text = "Audio";
+        audioToolsGroup.Text = "Dateien";
+        audioToolsGroup.AllowTextClipping = false;
+        audioConvertItem.Caption = "Audiodatei konvertieren";
+        audioConvertItem.Hint = "Audiodateien anhören und als WAV mit gewählter Abtastrate, Kanalzahl und Lautstärke speichern.";
+        audioConvertItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        audioConvertItem.ItemClick += AudioConvert_Click;
+        ribbon.Items.Add(audioConvertItem);
+        audioToolsGroup.ItemLinks.Add(audioConvertItem);
+        audioRibbon.Groups.Add(audioToolsGroup);
+        ribbon.Pages.Add(audioRibbon);
         databaseRibbon.Text = "Datenbank";
         ribbon.Pages.Add(databaseRibbon);
         settingsRibbon.Text = "Einstellungen";
@@ -471,6 +485,9 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup appearanceGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup helpGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPage mailRibbon;
+    private DevExpress.XtraBars.Ribbon.RibbonPage audioRibbon;
+    private DevExpress.XtraBars.Ribbon.RibbonPageGroup audioToolsGroup;
+    private DevExpress.XtraBars.BarButtonItem audioConvertItem;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailActionsGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailCacheGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup telephonyGroup;
