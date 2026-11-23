@@ -4,6 +4,10 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ Lexware-Tab bündig ausgerichtet. Die TableLayoutPanels der Mandantenauswahl und des Pro-Zugangs
+verwenden eine gemeinsame Eingabekante und gleich breite, adaptive Felder bis 300 logische Pixel.
+DPI-/Schriftskalierung, helle und dunkle Darstellung und die gemeinsame Eingabekante geprüft.
+
 ✅ Kompakte Mandantenauswahl im Lexware-Tab (23.11.2026). Pro und FinOffice verwenden ein einzeiliges
 DevExpress LookUpEdit. Die Dropdownliste zeigt Checkboxen und Firmennamen, die Eingabe bietet Namenssuche
 und zeigt bei mehreren gewählten Mandanten deren Anzahl. Die Mandanten laden weiter automatisch.

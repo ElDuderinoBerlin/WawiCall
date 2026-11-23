@@ -12,7 +12,22 @@ public partial class LexwareSettingsPage : XtraUserControl
     internal IPluginConnectionDirectoryFactory? Directories { get; set; }
     private IBusinessDirectory? _preview;
     private IPluginSettingsPageContext? _context;
+    private bool _aligningColumns;
     public LexwareSettingsPage() => InitializeComponent();
+    protected override void OnLayout(LayoutEventArgs e)
+    {
+        base.OnLayout(e);
+        if (_aligningColumns || companyPage is null || connectionPage is null) return;
+        _aligningColumns = true;
+        try
+        {
+            var labelWidth = Math.Max(companyPage.MeasureLabelColumn(), connectionPage.MeasureLabelColumn());
+            var editor = companyPage.AlignLabelColumn(labelWidth);
+            connectionPage.AlignColumns(companyPage.Left + editor.Left - connectionPage.Left, editor.Width);
+        }
+        finally { _aligningColumns = false; }
+    }
+
     public override Size GetPreferredSize(Size proposedSize)
     {
         if (layout is null) return base.GetPreferredSize(proposedSize);

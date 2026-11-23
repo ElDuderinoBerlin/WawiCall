@@ -177,6 +177,22 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         }
         return base.ProcessCmdKey(ref msg, keyData);
     }
+    /// <summary>Measures the natural label column so a containing settings page can share its alignment.</summary>
+    public int MeasureLabelColumn() => companyLabel.GetPreferredSize(Size.Empty).Width + companyLabel.Margin.Horizontal;
+
+    /// <summary>Aligns to a shared label column and returns the editor’s left edge and width in device pixels.</summary>
+    public (int Left, int Width) AlignLabelColumn(int width)
+    {
+        var column = layout.ColumnStyles[0];
+        if (column.SizeType != SizeType.Absolute || column.Width != width)
+        {
+            column.SizeType = SizeType.Absolute;
+            column.Width = width;
+        }
+        CompanySize_Changed(this, EventArgs.Empty);
+        return (layout.Left + layout.Padding.Left + width + companyEdit.Margin.Left, companyEdit.Width);
+    }
+
     private void CompanySize_Changed(object? sender, EventArgs e)
     {
         if (_sizing || _stopped) return;
@@ -184,9 +200,11 @@ public partial class PluginCompanySettingsPage : XtraUserControl
         try
         {
             _context?.Presentation.SizeButtons(refreshButton, clearButton);
-            var occupiedWidth = layout.Padding.Horizontal + companyLabel.GetPreferredSize(Size.Empty).Width
-                + companyLabel.Margin.Horizontal + companyEdit.Margin.Horizontal + actions.GetPreferredSize(Size.Empty).Width;
-            companyEdit.Width = Math.Clamp(ClientSize.Width - occupiedWidth, 1, LogicalToDeviceUnits(420));
+            var column = layout.ColumnStyles[0];
+            var labelWidth = column.SizeType == SizeType.Absolute ? (int)column.Width : MeasureLabelColumn();
+            var occupiedWidth = layout.Padding.Horizontal + labelWidth + companyEdit.Margin.Horizontal
+                + actions.GetPreferredSize(Size.Empty).Width;
+            companyEdit.Width = Math.Clamp(ClientSize.Width - occupiedWidth, 1, LogicalToDeviceUnits(300));
         }
         finally { _sizing = false; }
     }

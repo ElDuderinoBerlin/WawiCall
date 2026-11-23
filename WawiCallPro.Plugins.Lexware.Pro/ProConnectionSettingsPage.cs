@@ -15,18 +15,39 @@ public partial class ProConnectionSettingsPage : XtraUserControl
         if (layout is null) return base.GetPreferredSize(proposedSize);
         var width = Math.Max(1, proposedSize.Width > 0 ? proposedSize.Width : Width);
         var available = Math.Max(1, width - layout.Padding.Horizontal);
-        var labelWidth = layout.Controls.Cast<Control>().Where(control => layout.GetColumnSpan(control) == 1 && layout.GetColumn(control) == 0)
-            .Max(control => control.GetPreferredSize(Size.Empty).Width + control.Margin.Horizontal);
+        var labelWidth = Math.Max(MeasureLabelColumn(), (int)layout.ColumnStyles[0].Width);
         var heights = new int[layout.RowCount];
         foreach (Control control in layout.Controls)
         {
             if (!control.Visible) continue;
-            var cellWidth = layout.GetColumnSpan(control) == 2 ? available : layout.GetColumn(control) == 0 ? labelWidth : Math.Max(1, available - labelWidth);
+            var cellWidth = layout.GetColumnSpan(control) > 1 ? available : layout.GetColumn(control) == 0 ? labelWidth : Math.Max(1, Math.Min(available - labelWidth, (int)layout.ColumnStyles[1].Width));
             var row = layout.GetRow(control);
             heights[row] = Math.Max(heights[row], control.GetPreferredSize(new(Math.Max(1, cellWidth - control.Margin.Horizontal), 0)).Height + control.Margin.Vertical);
         }
         // Measure wrapped hints at the actual width, including when the parent's scrollbar appears.
         return new(width, heights.Sum() + layout.Padding.Vertical + Padding.Vertical);
+    }
+
+    internal int MeasureLabelColumn() => new[] { usernameLabel, passwordLabel, clientKeyLabel }
+        .Max(label => label.GetPreferredSize(Size.Empty).Width + label.Margin.Horizontal);
+
+    internal void AlignColumns(int editorLeft, int editorWidth)
+    {
+        var labelColumn = layout.ColumnStyles[0];
+        var editorColumn = layout.ColumnStyles[1];
+        var labelWidth = editorLeft - layout.Left - layout.Padding.Left - usernameEdit.Margin.Left;
+        var editorColumnWidth = editorWidth + usernameEdit.Margin.Horizontal;
+        if (labelColumn.SizeType == SizeType.Absolute && labelColumn.Width == labelWidth
+            && editorColumn.Width == editorColumnWidth) return;
+
+        layout.SuspendLayout();
+        try
+        {
+            labelColumn.SizeType = SizeType.Absolute;
+            labelColumn.Width = labelWidth;
+            editorColumn.Width = editorColumnWidth;
+        }
+        finally { layout.ResumeLayout(); }
     }
 
     internal void Reload(IPluginConnectionEditContext context)

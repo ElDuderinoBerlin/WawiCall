@@ -15,6 +15,21 @@ namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    private static void CheckLexwareEditorAlignment(Control exported, Control connection)
+    {
+        var company = FindCompanyEdit(exported);
+        var left = company.PointToScreen(Point.Empty).X;
+        Assert.IsTrue(company.Width <= company.LogicalToDeviceUnits(300));
+        foreach (var name in new[] { "usernameEdit", "passwordEdit", "clientKeyEdit" })
+        {
+            var editor = Field<TextEdit>(connection, name);
+            var a = (TableLayoutPanel)company.Parent!;
+            var b = (TableLayoutPanel)editor.Parent!;
+            Assert.AreEqual(left, editor.PointToScreen(Point.Empty).X, $"{name}: company={a.PointToScreen(Point.Empty).X} {a.Padding.Left} {company.Margin.Left} {string.Join(",", a.GetColumnWidths())}, connection={b.PointToScreen(Point.Empty).X} {b.Padding.Left} {editor.Margin.Left} {string.Join(",", b.GetColumnWidths())}");
+            Assert.AreEqual(company.Width, editor.Width, name);
+        }
+    }
+
     [TestMethod]
     public Task RealProConnectionEditorLoadsFromPluginValidatesAndRendersInCentralSettings() => WithWorkspace(async (workspace, services, plugin) =>
     {
@@ -102,6 +117,7 @@ public sealed partial class AppShellTests
                 Field<TextEdit>(editor, "clientKeyEdit").Text = Guid.NewGuid().ToString("B");
                 form.ClientSize = new Size(900, 740); form.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(editor);
+                CheckLexwareEditorAlignment(exported, editor);
                 using (var picture = new Bitmap(exported.Width, exported.Height))
                 {
                     exported.DrawToBitmap(picture, exported.ClientRectangle);
@@ -130,6 +146,7 @@ public sealed partial class AppShellTests
                 if (skin == "Basic" && fontSize == 9F)
                 {
                     form.Scale(new SizeF(1.5F, 1.5F)); form.PerformLayout(); Application.DoEvents(); CheckTableBounds(editor);
+                    CheckLexwareEditorAlignment(exported, editor);
                     using var scaledPicture = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
                     scaledPicture.Save(Path.Combine(output, "dialog-scale150.png"), ImageFormat.Png);
                 }

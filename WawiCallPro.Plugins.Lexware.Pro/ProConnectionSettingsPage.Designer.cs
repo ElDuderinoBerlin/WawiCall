@@ -34,10 +34,11 @@ partial class ProConnectionSettingsPage
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.AutoSize = true;
         layout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        layout.ColumnCount = 2;
+        layout.ColumnCount = 3;
         layout.RowCount = 5;
         layout.Padding = new System.Windows.Forms.Padding(6);
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
+        layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 312F));
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
 
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -51,13 +52,13 @@ partial class ProConnectionSettingsPage
         enabledEdit.Margin = new System.Windows.Forms.Padding(6);
         enabledEdit.CheckedChanged += Enabled_Changed;
         layout.Controls.Add(enabledEdit, 0, 0);
-        layout.SetColumnSpan(enabledEdit, 2);
+        layout.SetColumnSpan(enabledEdit, 3);
         usernameLabel.Name = "usernameLabel";
         usernameLabel.Text = "API-Benutzer:";
         usernameLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         usernameLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         usernameLabel.Appearance.Options.UseFont = true;
-        usernameLabel.Margin = new System.Windows.Forms.Padding(6, 6, 18, 6);
+        usernameLabel.Margin = new System.Windows.Forms.Padding(6, 6, 12, 6);
         usernameEdit.Name = "usernameEdit";
         usernameEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         usernameEdit.Margin = new System.Windows.Forms.Padding(6);
@@ -68,7 +69,7 @@ partial class ProConnectionSettingsPage
         passwordLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         passwordLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         passwordLabel.Appearance.Options.UseFont = true;
-        passwordLabel.Margin = new System.Windows.Forms.Padding(6, 6, 18, 6);
+        passwordLabel.Margin = new System.Windows.Forms.Padding(6, 6, 12, 6);
         passwordEdit.Name = "passwordEdit";
         passwordEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         passwordEdit.Margin = new System.Windows.Forms.Padding(6);
@@ -79,7 +80,7 @@ partial class ProConnectionSettingsPage
         clientKeyLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         clientKeyLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         clientKeyLabel.Appearance.Options.UseFont = true;
-        clientKeyLabel.Margin = new System.Windows.Forms.Padding(6, 6, 18, 6);
+        clientKeyLabel.Margin = new System.Windows.Forms.Padding(6, 6, 12, 6);
         clientKeyEdit.Name = "clientKeyEdit";
         clientKeyEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         clientKeyEdit.Margin = new System.Windows.Forms.Padding(6);
@@ -98,11 +99,11 @@ partial class ProConnectionSettingsPage
         hintLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         hintLabel.Margin = new System.Windows.Forms.Padding(6, 12, 6, 6);
         layout.Controls.Add(hintLabel, 0, 4);
-        layout.SetColumnSpan(hintLabel, 2);
+        layout.SetColumnSpan(hintLabel, 3);
         Controls.Add(layout);
         AutoSize = true;
         AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
+        AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         Name = "ProConnectionSettingsPage";
         Size = new System.Drawing.Size(680, 440);
