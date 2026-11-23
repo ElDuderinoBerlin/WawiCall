@@ -11,7 +11,7 @@ using WawiCallPro.Interfaces.Plugins;
 namespace WawiCallPro.Plugins.Dummy;
 
 /// <summary>Explicit test source without ERP, network or database access.</summary>
-public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCallPluginWorkspaces
+public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCallPluginWorkspaces, IWawiCallPluginShell
 {
     private readonly CompanyKey _company;
     public DummyPlugin() => _company = new(ProductLine, "dummy-test-installation", "demo");
@@ -28,6 +28,13 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
     public IBusinessDirectory Directory => _configured ? this : throw new InvalidOperationException("Plugin is not configured.");
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
     public void Configure(IWawiCallHostServices services) { if (!_initialized) throw new InvalidOperationException(); _configured = true; }
+    public void RegisterShell(IPluginShellUi host)
+    {
+        host.RegisterGroup(new("testbetrieb", "Testbetrieb"));
+        host.RegisterNavigation(new("testkunden", "Testkunden suchen",
+            "Geschäftspartner aus dem Dummy-Testbestand öffnen.", PluginShellIcon.Test, PluginNavigationTarget.PartySearch));
+        host.RegisterButton(new("testkunden", "testbetrieb", "testkunden"));
+    }
     public void Shutdown() { _configured = false; _initialized = false; }
     public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => _configured
         ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");

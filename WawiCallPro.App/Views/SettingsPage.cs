@@ -18,6 +18,7 @@ public partial class SettingsPage : XtraUserControl
     private AppUiState? _state;
     private CancellationTokenSource? _cacheCancellation;
     private Func<Task>? _beforePluginSwitch;
+    private Func<Task>? _afterPluginSwitch;
     private bool _arrangingButtons;
     private bool _initialBindingPending;
     private int _cacheActionColumns;
@@ -170,7 +171,11 @@ public partial class SettingsPage : XtraUserControl
         await numberDiagnosticsPage.StopAsync();
         await mailSettingsPage.StopAsync();
     }
-    internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch) => _beforePluginSwitch = beforeSwitch;
+    internal void ConfigurePluginSwitch(Func<Task>? beforeSwitch, Func<Task>? afterSwitch = null)
+    {
+        _beforePluginSwitch = beforeSwitch;
+        _afterPluginSwitch = afterSwitch;
+    }
     internal void SelectPluginsTab() => tabs.SelectedTabPage = pluginTab;
     internal void SelectAutomationTab(string id)
     {
@@ -202,12 +207,14 @@ public partial class SettingsPage : XtraUserControl
         RequireCleanPluginDraft();
         saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
+        var switchPrepared = false;
         try
         {
             pluginPage.ReportSwitchStatus("Offene Ansichten und Vorgänge werden beendet …");
             if (_operation is not null) await _operation.StopAsync();
             await ClosePluginConnectionEditorAsync();
             if (_beforePluginSwitch is not null) await _beforePluginSwitch();
+            switchPrepared = true;
             await _workspace.Companies.SelectAsync(null);
             pluginPage.ReportSwitchStatus("Bisheriges Plugin wird entladen, neues Plugin wird geladen …");
             await selection.SwitchAsync(id, token);
@@ -225,6 +232,7 @@ public partial class SettingsPage : XtraUserControl
             saveButton.Enabled = importButton.Enabled = exportButton.Enabled = true;
             foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = true;
             cacheTab.PageEnabled = _workspace.CanUseBusinessDirectory;
+            if (switchPrepared && _afterPluginSwitch is not null) await _afterPluginSwitch();
         }
     }
     private void DisposePage()

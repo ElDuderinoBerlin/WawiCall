@@ -52,10 +52,10 @@ public partial class FrmSettings : XtraForm
     internal bool RestartRequested { get; private set; }
     private void ContentSize_DpiChanged(object? sender, DpiChangedEventArgs e) => ContentSize_Changed(sender, e);
     private void Settings_RestartRequested(object? sender, EventArgs e) { RestartRequested = true; Close(); }
-    public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null) : this()
+    public FrmSettings(AppWorkspace workspace, Func<Task>? beforePluginSwitch = null, Func<Task>? afterPluginSwitch = null) : this()
     {
         settingsPage.Bind(workspace, deferInitialBinding: true);
-        settingsPage.ConfigurePluginSwitch(beforePluginSwitch);
+        settingsPage.ConfigurePluginSwitch(beforePluginSwitch, afterPluginSwitch);
     }
     internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
     internal void SelectMailTab() => settingsPage.SelectMailTab();

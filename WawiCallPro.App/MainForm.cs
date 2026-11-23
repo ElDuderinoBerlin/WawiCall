@@ -99,6 +99,7 @@ public partial class MainForm : RibbonForm
         _state?.Restore(this);
         _state?.Restore(dockManager);
         if (_configuration?.Current.Options.User.ShowStartPage != false) Navigate("home");
+        _ = ReloadPluginShellAsync();
         _ = ReloadCompaniesAsync();
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
             ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."
@@ -189,6 +190,7 @@ public partial class MainForm : RibbonForm
     {
         EnsureViewsCanClose();
         _closing = true; tray.Visible = false;
+        await StopPluginShellAsync();
         var stopCompanies = StopCompanyRestoreAsync();
         var stopParties = StopPartyOpeningAsync();
         await Task.WhenAll(stopCompanies, stopParties);
@@ -306,7 +308,7 @@ public partial class MainForm : RibbonForm
     private void HelpNavigation_Click(object? sender, EventArgs e) => helpDock.Show();
     internal FrmSettings CreateSettingsDialog(bool plugins = false)
     {
-        var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync);
+        var settings = _workspace is null ? new FrmSettings() : new FrmSettings(_workspace, PreparePluginSwitchAsync, () => ReloadPluginShellAsync(selectRibbon: true));
         settings.ConfigureLayoutPersistence(_state);
         settings.FormClosed += MailSettingsClosed;
         settings.FormClosed += CompanySettings_Closed;
@@ -324,11 +326,13 @@ public partial class MainForm : RibbonForm
         foreach (var call in _callPages.Values.ToArray()) await CloseDocumentAsync(call.Document);
         if (_workspace is not null) await _workspace.Companies.SelectAsync(null);
         await ClosePluginPagesAsync();
+        await StopPluginShellAsync();
     }
-    private void OpenSettings(bool plugins = false)
+    private void OpenSettings(bool plugins = false, string? selectedTab = null)
     {
         using var waiting = new UiWaitCursor(this);
         using var settings = CreateSettingsDialog(plugins);
+        if (selectedTab is not null) settings.SelectAutomationTab(selectedTab);
         settings.ShowDialog(this);
         if (settings.RestartRequested) { RestartRequested = true; Close(); return; }
         foreach (var document in _documents.Values)
@@ -378,7 +382,7 @@ public partial class MainForm : RibbonForm
         mailCacheRebuildItem.ImageOptions.SvgImage = RibbonIconHelper.Load("MailCacheRebuild");
         mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
     }
-    private void DisposePage() { DisposeCompanyRestore(); DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
+    private void DisposePage() { DisposeCompanyRestore(); DisposePluginShell(); DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;
     private void ActivateDocument(BaseDocument document)
     {

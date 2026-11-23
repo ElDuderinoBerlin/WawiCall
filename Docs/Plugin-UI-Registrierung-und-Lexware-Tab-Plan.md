@@ -344,3 +344,17 @@ Auswahl, Wiederöffnen und Abbruch beim Schließen werden isoliert geprüft. Sta
 über einen engen Enum-Vertrag in Log-Fenster und Datei, die eigene Statuszeile entfällt. Pro nutzt
 den gemeinsamen Bibliotheksresolver für die API-Adresse und besitzt dafür kein Eingabefeld.
 Die formale Tabregistrierung aus späteren Phasen bleibt separat offen.
+
+### ✅ Ribbon und Seitennavigation pro Pluginsitzung (23.11.2026)
+
+Der Desktop-Host reicht `IPluginShellUi` an Plugins mit `IWawiCallPluginShell`. Sie registrieren
+Gruppen, Navigationseinträge und zugehörige Ribbon-Buttons. Der Host prüft die Einträge und führt
+die freigegebenen Ziele (Geschäftspartnersuche oder Lexware-Einstellungen) über die bestehende Navigation aus.
+Beim Umschalten verschwinden die Beiträge und Ansichten der alten Sitzung. Der Host zeigt im Ribbon
+und links in der Navigation die Beiträge der neuen Sitzung an.
+
+- Dummy zeigt „Testkunden suchen“ in der Gruppe „Testbetrieb“.
+- Lexware Pro und FinOffice zeigen „Kunden und Lieferanten“ sowie den Einstieg in ihre Lexware-Einstellungen.
+- Die isolierten App-Tests decken den Hin- und Rückwechsel, Ribbon-Klicks, Zurück/Vorwärts,
+  ungültige Registrierungen und die Freigabe der alten Sitzung ab. Die Renderprüfung erfasst den Wechsel
+  bei unterschiedlichen Fenster- und Schriftgrößen mit hellem und dunklem Skin in beiden Editionen.

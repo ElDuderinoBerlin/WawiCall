@@ -1981,6 +1981,13 @@ App-/Console-Hosts und Telefonieprojekte bauen in Debug.
 
 ### Phase 8 – App und erstes vollständiges Kernprodukt 🟨
 
+#### Plugin-Beiträge zur Hauptoberfläche ✅
+
+- [x] ✅ Host-Schnittstelle für Ribbon-Gruppen, Buttons und Seitennavigation. Geprüfter Wechsel
+  zwischen Dummy und Lexware in Pro und FinOffice mit Austausch der Einträge, Schließen der alten
+  Plugin-Ansicht und Nutzung der bestehenden Vor-/Zurück-Navigation.
+  [Plugin-UI-Plan](Plugin-UI-Registrierung-und-Lexware-Tab-Plan.md)
+
 #### SIP-Profile – Zusatzauftrag vom 22.11.2026 ✅
 
 - [x] ✅ Bis zu 16 benannte SIP-Profile mit durchsuchbarer Auswahl sowie Hinzufügen/Entfernen im

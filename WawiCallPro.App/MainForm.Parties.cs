@@ -21,7 +21,9 @@ public partial class MainForm
             {
                 var host = new Panel { Dock = DockStyle.Fill };
                 handle.View.Dock = DockStyle.Fill; host.Controls.Add(handle.View);
-                var document = tabbedView.AddDocument(host); document.Caption = "Kunden und Lieferanten";
+                var document = tabbedView.AddDocument(host);
+                document.Caption = _pluginShell?.Navigation.FirstOrDefault(entry => entry.Target ==
+                    WawiCallPro.Interfaces.Plugins.PluginNavigationTarget.PartySearch)?.Title ?? "Kunden und Lieferanten";
                 _documents.Add("parties", document); _pluginPages.Add(document, handle); ActivateDocument(document);
             }
             catch { await handle.DisposeAsync(); throw; }

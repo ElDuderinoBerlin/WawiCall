@@ -3774,8 +3774,10 @@ public sealed partial class AppShellTests
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);
     }
-    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews, IWawiCallPluginWorkspaces, IWawiCallPluginSettings, IBusinessDirectoryConnectionState
+    private sealed class TestPlugin : IWawiCallPlugin, IWawiCallPluginViews, IAsyncWawiCallPluginViews, IWawiCallPluginWorkspaces, IWawiCallPluginSettings, IWawiCallPluginShell, IBusinessDirectoryConnectionState
     {
+        internal Action<IPluginShellUi>? ShellRegistration;
+        public void RegisterShell(IPluginShellUi host) => ShellRegistration?.Invoke(host);
         internal bool ConnectionConfigured = true;
         public bool IsConnectionConfigured => ConnectionConfigured;
         internal Func<IPluginConnectionEditContext, IPluginSettingsView>? SettingsFactory;
