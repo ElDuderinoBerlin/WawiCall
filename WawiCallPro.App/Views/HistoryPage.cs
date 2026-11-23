@@ -1,4 +1,5 @@
 using DevExpress.XtraEditors;
+using WawiCallPro.Audio;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
@@ -13,6 +14,11 @@ namespace WawiCallPro.App.Views;
 public partial class HistoryPage : XtraUserControl
 {
     private ICallHistoryService? _history;
+    private IHistoryRecordingPlayback? _playback;
+    private IReadOnlySet<Guid> _playable = new HashSet<Guid>();
+    private Guid? _playingCall;
+    private CancellationTokenSource? _playbackCancellation;
+    private Task _playing = Task.CompletedTask;
     private CallNotesSessionFactory? _notesFactory;
     private AppUiState? _state;
     private PageOperation? _operation;
@@ -35,6 +41,7 @@ public partial class HistoryPage : XtraUserControl
         var history = await _history.GetCallAsync(id, token);
         if (history?.Call.Id != id) throw new Hosting.AutomationCallNotFoundException();
         var call = history.Call;
+        await ReadRecordingAvailabilityAsync([id], token);
         _binding = true;
         try
         {
@@ -103,6 +110,7 @@ public partial class HistoryPage : XtraUserControl
         SetMinimum(numberColumn, "+49 30 123456789");
         SetMinimum(stateColumn, "Verbunden");
         SetMinimum(durationColumn, "00:00:00");
+        SetMinimum(playbackColumn, "Abspielen");
 
         void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
         {
@@ -116,11 +124,15 @@ public partial class HistoryPage : XtraUserControl
     internal void Bind(AppWorkspace workspace, AppUiState? state)
     {
         _state = state;
+        _playback = workspace.RecordingPlayback;
         BindHistory(workspace.History, workspace.CallNotes);
         _state?.Restore(view, "CallHistory-v2");
         FitColumns();
     }
     public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
+    internal HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory, IHistoryRecordingPlayback playback)
+        : this(history, notesFactory) => _playback = playback;
+
     private void BindHistory(ICallHistoryService history, CallNotesSessionFactory notesFactory)
     {
         if (_history is not null) throw new InvalidOperationException("The history page is already bound.");
@@ -132,14 +144,16 @@ public partial class HistoryPage : XtraUserControl
     private async Task StopCoreAsync()
     {
         _stopping = true;
+        _playbackCancellation?.Cancel();
         UpdateNotes();
         var notes = _notes.Values.Select(session => session.StopAsync()).ToArray();
         if (_operation is not null) await _operation.StopAsync();
-        await Task.WhenAll(notes);
+        await Task.WhenAll(notes.Append(_playing));
     }
     private void DisposePage()
     {
         _stopping = true;
+        _playbackCancellation?.Cancel();
         foreach (var notes in _notes.Values) { notes.Changed -= Notes_Changed; notes.Dispose(); }
         _notes.Clear(); _activeNotes = null;
         _operation?.Dispose();
@@ -172,6 +186,7 @@ public partial class HistoryPage : XtraUserControl
             statusLabel.Text = "Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.";
             return;
         }
+        await ReadRecordingAvailabilityAsync(loadedIds, token);
         var previous = (view.GetFocusedRow() as HistoryRow)?.Id;
         _binding = true;
         try
@@ -187,6 +202,66 @@ public partial class HistoryPage : XtraUserControl
         }
         finally { _binding = false; }
         await LoadFocusedDetailsAsync(token);
+    }
+
+    private async Task ReadRecordingAvailabilityAsync(IReadOnlyCollection<Guid> ids, CancellationToken token)
+    {
+        _playable = _playback is null ? new HashSet<Guid>() : await _playback.FindAsync(ids, token);
+        token.ThrowIfCancellationRequested();
+    }
+
+    private void View_PlaybackEditor(object? sender, DevExpress.XtraGrid.Views.Grid.CustomRowCellEditEventArgs e)
+    {
+        if (e.Column == playbackColumn && view.GetRow(e.RowHandle) is HistoryRow row && _playable.Contains(row.Id))
+            e.RepositoryItem = _playingCall == row.Id ? stopEditor : playEditor;
+    }
+
+    private void View_ShowingEditor(object? sender, System.ComponentModel.CancelEventArgs e) =>
+        e.Cancel = view.FocusedColumn != playbackColumn || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id);
+
+    private async void Playback_Click(object? sender, DevExpress.XtraEditors.Controls.ButtonPressedEventArgs e)
+    {
+        if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;
+        if (!_playing.IsCompleted)
+        {
+            if (_playingCall == row.Id) _playbackCancellation?.Cancel();
+            return;
+        }
+
+        await (_playing = PlayRecordingAsync(row.Id));
+    }
+
+    private async Task PlayRecordingAsync(Guid callId)
+    {
+        using var cancellation = new CancellationTokenSource();
+        _playbackCancellation = cancellation;
+        _playingCall = callId;
+        view.CloseEditor();
+        grid.Invalidate();
+        statusLabel.Text = "Aufnahme wird geprüft und abgespielt …";
+        try
+        {
+            await _playback!.PlayAsync(callId, cancellation.Token);
+            if (!_stopping) statusLabel.Text = "Wiedergabe beendet.";
+        }
+        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+        {
+            if (!_stopping) statusLabel.Text = "Wiedergabe gestoppt.";
+        }
+        catch (Exception)
+        {
+            if (!_stopping) statusLabel.Text = "Aufnahme konnte nicht abgespielt werden. Aufnahme und Audioausgabe prüfen.";
+        }
+        finally
+        {
+            _playbackCancellation = null;
+            _playingCall = null;
+            if (!_stopping)
+            {
+                view.CloseEditor();
+                grid.Invalidate();
+            }
+        }
     }
 
     internal Task LoadAsync() => _operation?.RunAsync(LoadCallsAsync) ?? Task.CompletedTask;
@@ -335,5 +410,8 @@ public partial class HistoryPage : XtraUserControl
 
     private static string DisplayNumber(CallAddress address) => address.Presentation == NumberPresentation.Withheld ? "Unterdrückt" : address.OriginalValue ?? address.E164 ?? "Unbekannt";
     private static string StateName(CallState state) => state switch { CallState.Created => "Angelegt", CallState.Dialing => "Wählt", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" };
-    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer);
+    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer)
+    {
+        public string Playback => "";
+    }
 }

@@ -47,13 +47,15 @@ public sealed class AppWorkspace(
     CallNotesSessionFactory callNotes,
     IAppAutoStart autoStart,
     MailApplication mail,
-    ILogger<AppWorkspace>? settingsLogger)
+    ILogger<AppWorkspace>? settingsLogger,
+    WawiCallPro.Audio.IHistoryRecordingPlayback? recordingPlayback = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
         if (SettingsMessages.Get(notice) is null) throw new ArgumentOutOfRangeException(nameof(notice));
         if (settingsLogger is not null) OperationEvents.Write(settingsLogger, notice);
     }
+    internal WawiCallPro.Audio.IHistoryRecordingPlayback? RecordingPlayback => recordingPlayback;
     public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;

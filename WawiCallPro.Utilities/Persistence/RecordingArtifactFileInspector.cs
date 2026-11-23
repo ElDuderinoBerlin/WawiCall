@@ -13,6 +13,8 @@ public enum RecordingArtifactFileState { Missing, Matches, Changed }
 public interface IRecordingArtifactObservation : IAsyncDisposable
 {
     RecordingArtifactFileState State { get; }
+    /// <summary>Borrowed read-only stream, valid while the matching observation remains alive.</summary>
+    Stream? VerifiedStream => null;
 }
 /// <summary>Observes one confirmed artifact; caller owns the observation until its metadata update has completed.</summary>
 public interface IRecordingArtifactFileInspector
@@ -58,6 +60,7 @@ public sealed class RecordingArtifactFileInspector(ApplicationPaths paths, IReco
     private sealed class Observation(RecordingArtifactFileState state, FileStream? stream) : IRecordingArtifactObservation
     {
         public RecordingArtifactFileState State => state;
+        public Stream? VerifiedStream => state == RecordingArtifactFileState.Matches ? stream : null;
         public ValueTask DisposeAsync() => stream?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
 }

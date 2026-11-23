@@ -33,14 +33,24 @@ public static class RecordingArtifactAuditQueryAcceptance
         var repository = new DapperRecordingArtifactRepository(context);
         var first = eligible[0]; var item = first.Artifact;
         eligible[0] = await repository.WriteAsync(new(new(item.Id, item.RecordingId, item.CallId, item.Format, item.RelativePath, RecordingAvailability.Missing, item.ByteLength, item.Sha256), first.Version, first.UpdatedAtUtc));
-        await Add(context, workstation, CallState.Connected, RecordingAvailability.Available);
-        await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available);
-        await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending);
-        await Add(context, workstation, CallState.Ended, RecordingAvailability.Failed);
+        var excluded = new[]
+        {
+            await Add(context, workstation, CallState.Connected, RecordingAvailability.Available),
+            await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available),
+            await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending),
+            await Add(context, workstation, CallState.Ended, RecordingAvailability.Failed),
+            await Add(context, workstation, CallState.Connected, RecordingAvailability.Available, RecordingArtifactFormat.Mp3),
+            await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending, RecordingArtifactFormat.Mp3),
+            await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3)
+        };
         eligible.Add(await Add(context, workstation, CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3));
-        await Add(context, workstation, CallState.Connected, RecordingAvailability.Available, RecordingArtifactFormat.Mp3);
-        await Add(context, workstation, CallState.Ended, RecordingAvailability.Pending, RecordingArtifactFormat.Mp3);
-        await Add(context, Guid.NewGuid(), CallState.Ended, RecordingAvailability.Available, RecordingArtifactFormat.Mp3);
+        var playback = new RecordingPlaybackCatalog(context);
+        var requestedIds = Enumerable.Range(0, 205).Select(_ => Guid.NewGuid())
+            .Concat(eligible.Concat(excluded).Select(record => record.Artifact.CallId)).ToArray();
+        var playable = await playback.FindAsync(workstation, requestedIds);
+        CollectionAssert.AreEquivalent(eligible.Skip(1).Select(row => row.Artifact.CallId).ToArray(), playable.Keys.ToArray());
+        Assert.AreEqual(RecordingArtifactFormat.Mp3, playable[eligible[^1].Artifact.CallId].Format);
+        Assert.IsEmpty(await playback.FindAsync(workstation, Array.Empty<Guid>()));
         var query = new DapperRecordingArtifactAuditQuery(context);
         var sorted = eligible.OrderBy(value => DatabaseId.Encode(value.Artifact.Id), StringComparer.Ordinal).ToArray();
         Guid? after = null;

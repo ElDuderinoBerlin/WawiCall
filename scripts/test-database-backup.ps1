@@ -15,7 +15,7 @@ $runner = Join-Path $audit 'Runner'
 New-Item -ItemType Directory -Path $runner | Out-Null
 @'
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net11.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <PropertyGroup><TargetFramework>net11.0-windows10.0.19041.0</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../WawiCallPro.Database.Tests/WawiCallPro.Database.Tests.csproj" />
     <ProjectReference Include="../../../WawiCallPro.Utilities.Tests/WawiCallPro.Utilities.Tests.csproj" />
@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Path $runner | Out-Null
 '@ | Set-Content -LiteralPath (Join-Path $runner 'Runner.csproj') -Encoding utf8
 if ($Mp3ProcessCrashes) {
     $projectFile = Join-Path $runner 'Runner.csproj'
-    $projectText = [IO.File]::ReadAllText($projectFile).Replace('<TargetFramework>net11.0</TargetFramework>', '<TargetFramework>net11.0-windows10.0.19041.0</TargetFramework><DefineConstants>MP3_CRASH_AUDIT</DefineConstants>')
+    $projectText = [IO.File]::ReadAllText($projectFile).Replace('</TargetFramework>', '</TargetFramework><DefineConstants>MP3_CRASH_AUDIT</DefineConstants>')
     $projectText = $projectText.Replace('</ItemGroup>', '<ProjectReference Include="../../../WawiCallPro.Console.Tests/WawiCallPro.Console.Tests.csproj" /></ItemGroup>')
     [IO.File]::WriteAllText($projectFile, $projectText)
 }
@@ -89,6 +89,7 @@ foreach(var item in configurations)
     Console.WriteLine(item.Engine + ": durable MP3 job restart, CAS claims, interrupted retry, unique artifacts, constraints and populated v11 upgrade passed.");
     await RecordingWaveArtifactAcceptance.RunAsync(target);
     await RecordingArtifactAuditQueryAcceptance.RunAsync(target);
+    Console.WriteLine(item.Engine + ": playback catalog batching and local confirmed audio scope passed.");
     await RecordingArtifactAuditAcceptance.RunAsync(target);
     await RecordingDirectoryInventoryAcceptance.RunAsync(target);
     Console.WriteLine(item.Engine + ": all-state local recording catalog, pending paths, read-only unassigned-file inventory and unchanged metadata passed.");

@@ -4,6 +4,30 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
+in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
+abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.
+Vor der Wiedergabe prüft die App das Original anhand der gespeicherten Dateigröße und Prüfsumme.
+CSCore spielt über die konfigurierte Gesprächsausgabe. Beim Schließen der Historie endet die Wiedergabe.
+Die Zeilenaktion und der Abbruch beim Schließen sind isoliert geprüft. Der Datenbankkatalog wurde
+mit SQLite, PostgreSQL, SQL Server, MySQL und MariaDB geprüft. Pro und FinOffice bauen ohne Warnungen.
+Die gemeinsame Hörprobe mit dem G1-Testgespräch steht aus.
+
+#### Reihenfolge der offenen Arbeiten
+
+Die technische Restliste A1–A4 aus Phase 8 ist erledigt. Bei den weiteren Phasen trennen wir
+Implementierung und isolierte Tests von der Abnahme auf dem Arbeitsplatz. Die folgenden Blöcke sind
+nach dem unmittelbaren Nutzen für den Kernablauf geordnet.
+
+| Block | Selbstständig umsetzbar und prüfbar | Gemeinsam oder mit bereitgestellter Quelle prüfen |
+| --- | --- | --- |
+| Phase 9, Audio und Aufnahmen | Desktop-Bedienung für geprüften Export und MP3-Konvertierung, Aufnahmeautomatik und Fehlerfälle, Dateiabgleich und Ansagen mit isolierten Dateien und Audio-Tests. | G1 mit FRITZ!Box, Headset und zweitem Anschluss. Beide Gesprächsseiten anhören. Gerätewechsel, Ausfall und Wiedergabepegel praktisch prüfen. |
+| Phasen 7 und 8, Telefonie und Desktop | Fehlerpfade und Wiederanlauf mit Test-Doubles prüfen, Lastmessungen vorbereiten und die bei der Abnahme gefundenen Fehler beheben. | G1–G6 Schritt für Schritt. Gespräch und Historie nach Neustart, reale Mandantenzuordnung, Explorer-Fokus, Tray, Hotkeys und Monitorwechsel bestätigen. |
+| Phasen 10 und 11, Kundenübersicht und Office | Abfragen und das Laden von Detailansichten, Tests für Mandantengrenzen, Office-Zuordnungen und Fehlerfälle umsetzen. | Welche Fachansichten und Schreibvorgänge je Produktlinie gebraucht werden, mit Lexware-Testbeständen bestätigen. Outlook, Microsoft 365 und Gmail mit freigegebenen Testkonten abnehmen. |
+| Phase 12, Telefonmenüs | Format, Validierung, Editor und Simulation mit Test-Doubles bauen. | Reale Ansage, DTMF und Weiterleitung mit dem Testanschluss prüfen. |
+| Phase 13, Altimport | Importer, Vorschau, Dubletten- und Wiederholungstests umsetzen, sobald ein repräsentatives Altschema oder eine Kopie verfügbar ist. | Die Datenübernahme anhand einer freigegebenen Kopie bestätigen und die fachliche Zuordnung prüfen. |
+| Phasen 14 und 15, Paket und Übergabe | Pakete, Update- und Wiederherstellungstests in isolierter Umgebung sowie Funktionsmatrix, Protokolle und Benutzerhilfe vorbereiten. | Installation, echtes Windows-Anmeldeverhalten und Updates in der vorgesehenen Zielumgebung abnehmen. Veröffentlichungen separat freigeben. |
+
 ✅ Gesprächshistorie mit festen Grid-Spalten und automatischem Laden beim Öffnen. Die Einträge
 kommen über den bestehenden Historiendienst aus der Kommunikationsdatenbank. Beginn, Richtung,
 Rufnummer, Zustand und Dauer stehen auch bei leerem Zeitraum als Spalten bereit. Die technische ID
@@ -4565,7 +4589,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Beide regulären Solution-Builds Debug/Any CPU ohne Fehler, je 26 bekannte externe CSCore-Warnungen;
   FinOffice zuletzt gebaut. Keine SQL-/Schema-/Desktopänderung. Nachweise:
   `.recording-export-cli-{build,console}-{pro,fin}.log`. Desktop-Auswahl, Wiedergabe und freie Formatwahl offen.
-- [ ] Aufnahmen abspielen und Export-/Konvertierungsbedienung anschließen; unterstützte Codecs anhand der tatsächlich verfügbaren Bibliotheken prüfen.
+- [x] ✅ Bestätigte lokale WAV-/MP3-Aufnahmen in der Gesprächshistorie abspielen und stoppen.
+  Die Hörprobe mit dem vereinbarten Headset bleibt Teil von G1.
+- [ ] Desktop-Bedienung für Export und MP3-Konvertierung anschließen.
 - [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
 
 Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, WAV/MP3 wiedergeben
