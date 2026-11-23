@@ -4603,7 +4603,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   prüfen. Wiedergabe, Export, Wiederanlauf und Dateiüberprüfung für jedes Format nachweisen.
   Mit CSCore wurde eine synthetische Stereo-WMA bei 44,1 kHz geschrieben und wieder dekodiert.
   Media Foundation meldete für Vorbis auf dem Prüfrechner keinen kompatiblen Encoder.
-  Ogg/Vorbis benötigt deshalb einen gesonderten Encoder mit geprüftem Dateirundlauf.
+  Ein unabhängiger Ogg/Vorbis-Rundlauf mit FFmpeg und libvorbis war erfolgreich
+  (synthetisches Stereo, 48 kHz, 1 Sekunde, vollständige Dekodierung).
+  Das belegt das Dateiformat mit einer Referenzdatei. Für die App den
+  [verwalteten OggVorbisEncoder](https://github.com/SteveLillis/.NET-Ogg-Vorbis-Encoder)
+  als gesonderten Encoder prüfen.
 - [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
 
 Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, WAV/MP3 wiedergeben
