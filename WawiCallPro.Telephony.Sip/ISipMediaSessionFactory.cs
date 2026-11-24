@@ -1,4 +1,5 @@
 using SIPSorcery.SIP.App;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Telephony.Sip;
@@ -12,5 +13,14 @@ public interface ISipMediaSessionFactory
 public interface ISipMediaSession : IAsyncDisposable
 {
     IMediaSession Session { get; }
+    ISipConversationAudio? ConversationAudio => null;
     void ApplyPlaybackSettings();
+}
+
+/// <summary>Audio controls owned by the SIP media session.</summary>
+public interface ISipConversationAudio
+{
+    ConversationAudioSnapshot GetAudio();
+    void SetPlaybackVolume(int percent);
+    void SetMicrophoneMuted(bool muted);
 }

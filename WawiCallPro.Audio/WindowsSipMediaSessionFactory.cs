@@ -43,7 +43,7 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         IAsyncDisposable? receive = null;
         try
         {
-            media = new VoIPMediaSession(new MediaEndPoints { AudioSource = devices.MicrophoneMuted ? null : audio, AudioSink = audio },
+            media = new VoIPMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio },
                 System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
                 { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
             receive = bridges.Create(media, audio, pcm);
@@ -69,6 +69,7 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
     private sealed class AudioSession(RecoveringConversationAudio audio, VoIPMediaSession media) : ISipMediaSession
     {
         public IMediaSession Session => media;
+        public ISipConversationAudio ConversationAudio => audio;
         public void ApplyPlaybackSettings()
         {
             if (media.AudioStream is { } stream) audio.EnableNegotiatedAudio(stream.NegotiatedFormat.ToAudioFormat());

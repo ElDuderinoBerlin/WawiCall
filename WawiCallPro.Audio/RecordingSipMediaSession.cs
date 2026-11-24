@@ -16,6 +16,7 @@ public sealed class RecordingSipMediaSession(ISipPcmMediaSession inner, IDuplexP
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
     public IConversationPcmSource PcmSource => inner.PcmSource;
     public void ApplyPlaybackSettings() => inner.ApplyPlaybackSettings();
+    public ISipConversationAudio? ConversationAudio => inner.ConversationAudio;
 
     public async Task<IDuplexPcmRecording> StartRecordingAsync(DuplexPcmRecordingRequest request, CancellationToken cancellationToken = default)
     {

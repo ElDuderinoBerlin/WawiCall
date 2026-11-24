@@ -47,6 +47,7 @@ public sealed class RecordingInputMediaSession : ISipPcmMediaSession
         }
     }
     public SIPSorcery.SIP.App.IMediaSession Session => _inner.Session;
+    public ISipConversationAudio? ConversationAudio => _inner.ConversationAudio;
     public IConversationPcmSource PcmSource { get; }
     public void ApplyPlaybackSettings() => _inner.ApplyPlaybackSettings();
     public ValueTask DisposeAsync() => _inner.DisposeAsync();

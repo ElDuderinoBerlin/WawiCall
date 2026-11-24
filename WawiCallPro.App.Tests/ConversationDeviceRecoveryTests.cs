@@ -21,6 +21,28 @@ public sealed class ConversationDeviceRecoveryTests
     private static readonly AudioFormat Pcmu = new(SDPWellKnownMediaFormatsEnum.PCMU);
 
     [TestMethod]
+    public void LivePeaksScaleWithVolumeAndExpireWhenAudioStops()
+    {
+        var clock = new PeakClock();
+        var peaks = new ConversationPcmPeaks(clock);
+        peaks.TryObserve(ConversationAudioSide.Sent, 8000, 1, [short.MinValue]);
+        peaks.TryObserve(ConversationAudioSide.Received, 8000, 1, [16384]);
+        Assert.AreEqual(100, peaks.MicrophonePercent);
+        Assert.AreEqual(20, peaks.PlaybackPercent(40));
+        Assert.AreEqual(0, peaks.PlaybackPercent(0));
+        clock.Ticks = TimeSpan.FromMilliseconds(400).Ticks;
+        Assert.AreEqual(0, peaks.MicrophonePercent);
+        Assert.AreEqual(0, peaks.PlaybackPercent(100));
+    }
+
+    private sealed class PeakClock : TimeProvider
+    {
+        internal long Ticks;
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        public override long GetTimestamp() => Ticks;
+    }
+
+    [TestMethod]
     public async Task SavedDevicesSwitchAndRecoverDuringOneRtpSession()
     {
         var root = Path.Combine(Path.GetTempPath(), "wcp-device-" + Guid.NewGuid().ToString("N"));
@@ -55,8 +77,13 @@ public sealed class ConversationDeviceRecoveryTests
             var originalRender = hardware.Current("speaker-a")!;
             Assert.AreEqual(0.35F, originalRender.Volume);
             originalCapture.Send();
-            peer.SendAudio(160, new AudioEncoder().EncodeAudio(new short[160], Pcmu));
+            peer.SendAudio(160, new AudioEncoder().EncodeAudio(Enumerable.Repeat((short)16000, 160).ToArray(), Pcmu));
             await UntilAsync(() => peerPackets.Count >= 1 && Volatile.Read(ref originalRender.Received) >= 1);
+            var controls = owned.ConversationAudio!;
+            Assert.IsTrue(controls.GetAudio().MicrophonePeakPercent > 0);
+            Assert.IsTrue(controls.GetAudio().PlaybackPeakPercent > 0);
+            controls.SetPlaybackVolume(62);
+            Assert.AreEqual(0.62F, originalRender.Volume);
 
             var snapshot = await settings.LoadAsync();
             await settings.SaveAsync(snapshot.Options with { Devices = snapshot.Options.Devices with { CaptureDeviceId = "mic-b", PlaybackDeviceId = "speaker-b" } }, snapshot);
@@ -65,6 +92,7 @@ public sealed class ConversationDeviceRecoveryTests
             Assert.AreSame(stableSink, media.Media.AudioSink);
             var nextRender = hardware.Current("speaker-b")!;
             var nextCapture = hardware.Current("mic-b")!;
+            Assert.AreEqual(0.62F, nextRender.Volume);
             nextCapture.Send();
             peer.SendAudio(160, new AudioEncoder().EncodeAudio(new short[160], Pcmu));
             await UntilAsync(() => peerPackets.Count >= 2 && Volatile.Read(ref nextRender.Received) >= 1);
@@ -80,6 +108,7 @@ public sealed class ConversationDeviceRecoveryTests
             hardware.MarkAvailable("speaker-b");
             await UntilAsync(() => hardware.Current("speaker-b") is { Running: true } current && !ReferenceEquals(current, nextRender));
             var recoveredRender = hardware.Current("speaker-b")!;
+            Assert.AreEqual(0.62F, recoveredRender.Volume);
             peer.SendAudio(160, new AudioEncoder().EncodeAudio(new short[160], Pcmu));
             await UntilAsync(() => Volatile.Read(ref recoveredRender.Received) >= 1);
 
@@ -88,6 +117,17 @@ public sealed class ConversationDeviceRecoveryTests
             await UntilAsync(() => nextCapture.Closed && hardware.Current("mic-b")?.Running == true);
             hardware.Current("mic-b")!.Send();
             await UntilAsync(() => peerPackets.Count >= 4);
+            var activeMicrophone = hardware.Current("mic-b")!;
+            controls.SetMicrophoneMuted(true);
+            Assert.IsTrue(activeMicrophone.Closed);
+            Assert.IsTrue(controls.GetAudio().MicrophoneMuted);
+            Assert.AreEqual(0, controls.GetAudio().MicrophonePeakPercent);
+            await Task.Delay(TimeSpan.FromMilliseconds(1200));
+            Assert.AreSame(activeMicrophone, hardware.Current("mic-b"));
+            controls.SetMicrophoneMuted(false);
+            await UntilAsync(() => hardware.Current("mic-b")?.Running == true);
+            hardware.Current("mic-b")!.Send();
+            await UntilAsync(() => peerPackets.Count >= 5);
             Assert.HasCount(1, peerPackets.Select(packet => packet.Header.SyncSource).Distinct().ToArray());
             Assert.IsFalse(media.IsClosed);
 
@@ -129,6 +169,12 @@ public sealed class ConversationDeviceRecoveryTests
         Assert.IsFalse(heldCapture.Running);
         await audio.ResumeAudio();
         Assert.IsTrue(heldCapture.Running);
+        await audio.PauseAudio();
+        audio.SetMicrophoneMuted(true);
+        await audio.ResumeAudio();
+        audio.RefreshDevices();
+        Assert.AreSame(heldCapture, hardware.Current("mic-b"));
+        Assert.IsTrue(heldCapture.Closed);
     }
 
     [TestMethod]
@@ -234,7 +280,7 @@ public sealed class ConversationDeviceRecoveryTests
         public IAudioSink Sink => this;
         public void SetVolume(float volume) => Volume = volume;
         public void Dispose() { Running = false; Closed = true; }
-        internal void Send() => OnAudioSourceEncodedSample?.Invoke(160, encoder.EncodeAudio(new short[160], format));
+        internal void Send() => OnAudioSourceEncodedSample?.Invoke(160, encoder.EncodeAudio(Enumerable.Repeat((short)16000, 160).ToArray(), format));
         public event EncodedSampleDelegate? OnAudioSourceEncodedSample;
         public event Action<EncodedAudioFrame>? OnAudioSourceEncodedFrameReady { add { } remove { } }
         public event RawAudioSampleDelegate? OnAudioSourceRawSample { add { } remove { } }

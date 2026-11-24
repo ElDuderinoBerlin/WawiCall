@@ -13,6 +13,7 @@ public partial class CallControlPanel : XtraUserControl
     private readonly PageOperation _operation;
     private readonly PageOperation _recordingOperation;
     private readonly PageOperation _dtmfOperation;
+    private readonly PageOperation _audioOperation;
     private readonly Queue<char> _dtmfQueue = new();
     private bool _dtmfOpen;
     private bool _recordingBusy;
@@ -29,6 +30,7 @@ public partial class CallControlPanel : XtraUserControl
         _operation = new(this, statusLabel);
         _recordingOperation = new(this, recordingStatus);
         _dtmfOperation = new(this, dtmfStatus);
+        _audioOperation = new(this, statusLabel);
         dtmfKeypad.DigitPressed += DtmfDigit_Pressed;
         UpdateButtons();
     }
@@ -36,7 +38,7 @@ public partial class CallControlPanel : XtraUserControl
     internal void Bind(ITelephonyService? telephony, CallSnapshot call)
     {
         ArgumentNullException.ThrowIfNull(call);
-        if (_busy || _stopTask is not null) throw new InvalidOperationException("Call controls are busy or stopping.");
+        if (_busy || _audioOperation.IsRunning || _stopTask is not null) throw new InvalidOperationException("Call controls are busy or stopping.");
         if (_telephony is not null) _telephony.CallChanged -= Call_Changed;
         if (_telephony is ILiveCallRecordingService previous) previous.RecordingChanged -= Recording_Changed;
         _telephony = telephony; _call = call;
@@ -77,6 +79,7 @@ public partial class CallControlPanel : XtraUserControl
         if (!CanSendDtmf) _dtmfQueue.Clear();
         dtmfButton.Enabled = dtmfKeypad.Enabled = CanSendDtmf;
         UpdateRecording();
+        UpdateAudio();
     }
 
     private bool CanSendDtmf => !_disposed && _stopTask is null && !_lifetime.IsCancellationRequested
@@ -210,7 +213,7 @@ public partial class CallControlPanel : XtraUserControl
         if (_telephony is ILiveCallRecordingService recordings) recordings.RecordingChanged -= Recording_Changed;
         await _lifetime.CancelAsync();
         UpdateButtons();
-        await Task.WhenAll(_operation.StopAsync(), _recordingOperation.StopAsync(), _dtmfOperation.StopAsync());
+        await Task.WhenAll(_operation.StopAsync(), _recordingOperation.StopAsync(), _dtmfOperation.StopAsync(), _audioOperation.StopAsync());
     }
     private void DisposePage()
     {
@@ -221,5 +224,6 @@ public partial class CallControlPanel : XtraUserControl
         _lifetime.Cancel(); _lifetime.Dispose(); _operation.Dispose();
         _recordingOperation.Dispose();
         _dtmfOperation.Dispose();
+        _audioOperation.Dispose();
     }
 }

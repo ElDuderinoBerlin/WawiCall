@@ -3201,6 +3201,7 @@ public sealed partial class AppShellTests
     {
         foreach (Control control in parent.Controls)
         {
+            if (parent.Visible && control is TableLayoutPanel { Visible: false }) continue;
             if (parent is XtraTabControl tabs && control is XtraTabPage tab && tabs.SelectedTabPage != tab) continue;
             if (parent is DevExpress.XtraBars.Navigation.NavigationFrame frame && control is DevExpress.XtraBars.Navigation.NavigationPage page && frame.SelectedPage != page) continue;
             if (parent is TableLayoutPanel { AutoScroll: false } && control is LabelControl or SimpleButton or TextEdit)

@@ -42,6 +42,7 @@ partial class CallDetailsPage
         callLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         callLabel.Text = "Anruf";
         callControls.Dock = System.Windows.Forms.DockStyle.Fill;
+        callControls.SizeChanged += DetailsContent_SizeChanged;
         selectionLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         selectionLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         selectionLabel.Text = "Noch keine Anrufzuordnung.";
@@ -85,6 +86,7 @@ partial class CallDetailsPage
         layout.Controls.Add(tabs, 0, 4);
         layout.Controls.Add(actions, 0, 5);
         Controls.Add(layout);
+        AutoScroll = true;
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         Name = "CallDetailsPage";

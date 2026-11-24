@@ -3581,7 +3581,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   53 gezielte App- und 448 Utilities-Tests bestanden. Die CSCore-Bibliothek baut für .NET 9 und .NET 11
   mit bekannten Nullable-Warnungen. CSCore-Fix `b1c493d`. Nachweise `.artifacts/phase9-device-switch/`.
   Siehe [Architektur](Architektur.md#audiogeräte-im-laufenden-gespräch).
-- [ ] Live-Pegelanzeige und Live-Änderung von Gesprächslautstärke und Stummschaltung über CSCore ergänzen.
+- [x] ✅ Live-Pegel, Gesprächslautstärke und Mikrofon-Stummschaltung in der gemeinsamen Gesprächsleiste ergänzen.
+  Anruferfenster und Gesprächsdetails zeigen den Mikrofon- und Ausgabepegel aus dem eigenen Gesprächssignal.
+  Die Lautstärke wirkt sofort auf den CSCore-Ausgabestream. Beim Stummschalten wird der Mikrofonstream
+  geschlossen. Beim Einschalten bindet die Geräteüberwachung das gewählte Mikrofon wieder an. Beide Werte
+  gelten pro Gespräch und überstehen Gerätewechsel. Die Hardware-Hörprobe mit FRITZ!Box bleibt Teil von G1.
+  RTP-Loopback, CSCore-Ausgabe, Gesprächsgrenzen und Layout beider Ansichten isoliert geprüft. Die
+  Gesprächsdetails bleiben bei großer Schrift und knappem Platz vertikal scrollbar. App und Konsole
+  für Pro und FinOffice in Debug/Any CPU gebaut. Je Edition 49 App- und 70 Telefonietests bestanden.
 - [x] ✅ Klingeltonwiedergabe von Gesprächsaudio trennen und Ressourcen nach dem Klingeln freigeben (24.11.2026).
   Eingehende Rufe klingeln lokal über eine eigene CSCore-/WASAPI-Ausgabe. Sie verwendet die gespeicherte
   Klingelausgabe und Klingellautstärke. Bei 0 % bleibt die Ausgabe geschlossen. Beim Annehmen wartet SIP

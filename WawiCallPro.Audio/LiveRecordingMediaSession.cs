@@ -21,6 +21,7 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
     private CancellationTokenSource? _startup;
     private LiveRecordingSnapshot _status = new(Guid.Empty, null, LiveRecordingState.Idle);
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
+    public ISipConversationAudio? ConversationAudio => inner.ConversationAudio;
     public IConversationPcmSource PcmSource => inner.PcmSource;
     public void ApplyPlaybackSettings() => inner.ApplyPlaybackSettings();
     public LiveRecordingSnapshot RecordingStatus => Volatile.Read(ref _status);

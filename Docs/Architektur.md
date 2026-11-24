@@ -453,6 +453,13 @@ Ausgabe. WASAPI-Loopback bindet ein Segment an die tatsächliche Ausgabe. Ein We
 markiert ein laufendes Loopback-Segment als Eingabefehler. Ein neues Segment verwendet die neue
 Ausgabe, sobald sie verbunden ist.
 
+Die Gesprächsleiste in Anruferfenster und Gesprächsdetails liest einen gemeinsamen Audiozustand pro
+Gespräch. Die Pegel stammen aus den PCM-Daten des Gesprächs. Der Ausgabepegel berücksichtigt die
+CSCore-Gesprächsverstärkung und beide Pegel fallen bei ausbleibendem Signal auf null. Änderungen
+der Lautstärke wirken sofort am CSCore-Stream und gelten auch für Ersatzgeräte. Die Stummschaltung
+schließt den Mikrofonstream und hält ihn bei Gerätewechsel und Fortsetzen geschlossen. Ein Klick auf
+„Stumm aufheben“ erlaubt die Wiederanbindung. Die Werte gelten für das jeweilige Gespräch.
+
 ## Projektgrenzen
 
 | Projekt/Bereich | Zuständigkeit |

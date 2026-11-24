@@ -12,6 +12,7 @@ public sealed class PcmSipMediaSession(ISipMediaSession inner, PcmObservingAudio
     public PcmSipMediaSession(ISipMediaSession inner, PcmObservingAudioEncoder pcm, IAsyncDisposable receive) : this(inner, pcm) =>
         _receive = receive ?? throw new ArgumentNullException(nameof(receive));
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
+    public ISipConversationAudio? ConversationAudio => inner.ConversationAudio;
     public IConversationPcmSource PcmSource => pcm;
     public void ApplyPlaybackSettings() => inner.ApplyPlaybackSettings();
     public ValueTask DisposeAsync()

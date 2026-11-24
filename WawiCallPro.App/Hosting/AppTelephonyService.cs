@@ -55,7 +55,8 @@ internal sealed class AppTelephonyAccess(IProductLicenseService licenses, Licens
 
 /// <summary>One shared UI/COM command gate around the existing SIP runtime; events and snapshots retain their original ownership.</summary>
 internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyConnection connection, AppTelephonyAccess access)
-    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver, ICallRecordingService, ILiveCallRecordingService, IAsyncDisposable
+    : ITelephonyService, ITelephonyConnection, ICallLineContextProvider, IDtmfReceiver, ICallRecordingService, ILiveCallRecordingService,
+        IConversationAudioService, IAsyncDisposable
 {
     private readonly SemaphoreSlim _commands = new(1);
     private readonly CancellationTokenSource _stopping = new();
@@ -87,6 +88,13 @@ internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyC
     public Task StopLiveRecordingAsync(Guid callId, CancellationToken cancellationToken = default) =>
         backend is ILiveCallRecordingService recordings ? recordings.StopLiveRecordingAsync(callId, cancellationToken)
             : throw new TelephonyException("RecordingUnavailable");
+    public ConversationAudioSnapshot? GetAudio(Guid callId) => (backend as IConversationAudioService)?.GetAudio(callId);
+    public Task SetPlaybackVolumeAsync(Guid callId, int percent, CancellationToken cancellationToken = default) =>
+        backend is IConversationAudioService audio ? audio.SetPlaybackVolumeAsync(callId, percent, cancellationToken)
+            : throw new TelephonyException("AudioUnavailable");
+    public Task SetMicrophoneMutedAsync(Guid callId, bool muted, CancellationToken cancellationToken = default) =>
+        backend is IConversationAudioService audio ? audio.SetMicrophoneMutedAsync(callId, muted, cancellationToken)
+            : throw new TelephonyException("AudioUnavailable");
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
