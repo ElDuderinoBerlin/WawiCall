@@ -36,6 +36,13 @@ public sealed record RecordingOutputSettings(Database.Contracts.RecordingArtifac
 
 public enum RecordingReceiveSource { Rtp, PlaybackLoopback }
 
+public sealed record AnnouncementAudioSettings
+{
+    public string? VoiceId { get; init; }
+    public string? CaptureDeviceId { get; init; }
+    public string? PlaybackDeviceId { get; init; }
+}
+
 /// <summary>Local CSCore/MMDevice endpoint IDs, never enumeration indexes. Null selects the system default later.</summary>
 public sealed record AudioDeviceSettings
 {
@@ -47,6 +54,7 @@ public sealed record AudioDeviceSettings
     public bool MicrophoneMuted { get; init; }
     public bool RecordConnectedCallsAutomatically { get; init; }
     public RecordingReceiveSource RecordingReceiveSource { get; init; } = RecordingReceiveSource.Rtp;
+    public AnnouncementAudioSettings Announcements { get; init; } = new();
     public override string ToString() => nameof(AudioDeviceSettings);
 }
 

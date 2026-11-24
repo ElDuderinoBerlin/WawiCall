@@ -17,6 +17,7 @@ public static class AudioConversionServices
         services.TryAddSingleton<IHistoryRecordingOutput, WasapiHistoryRecordingOutput>();
         services.TryAddSingleton<IAudioFileConversion, AudioFileConversion>();
         services.TryAddSingleton<IAnnouncementSpeech, WindowsAnnouncementSpeech>();
+        services.TryAddSingleton<IAnnouncementAudio, WindowsAnnouncementAudio>();
         services.TryAddSingleton<IConversationWaveRenderer, ConversationWaveRenderer>();
         services.TryAddSingleton<IConversationWaveMixer, ConversationWaveMixer>();
         services.TryAddSingleton<IPcmSegmentSinkFactory, CscorePcmSegmentSinkFactory>();

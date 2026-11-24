@@ -54,7 +54,9 @@ public sealed class AppWorkspace(
     IPartySearch? partySearch = null,
     WawiCallPro.Audio.IAudioFileConversion? audioFiles = null,
     WawiCallPro.Utilities.Licensing.IProductLicenseService? licenses = null,
-    IRecordingDirectoryInventory? recordingInventory = null)
+    IRecordingDirectoryInventory? recordingInventory = null,
+    WawiCallPro.Audio.IAnnouncementAudio? announcementAudio = null,
+    WawiCallPro.Audio.IAnnouncementSpeech? announcementSpeech = null)
 {
     public void ReportSettings(OperationEvent notice)
     {
@@ -75,6 +77,8 @@ public sealed class AppWorkspace(
     public IBusinessDirectory Directory { get; } = directory;
     public IPartySearch? PartySearch { get; } = partySearch;
     internal WawiCallPro.Audio.IAudioFileConversion? AudioFiles { get; } = audioFiles;
+    internal WawiCallPro.Audio.IAnnouncementAudio? AnnouncementAudio { get; } = announcementAudio;
+    internal WawiCallPro.Audio.IAnnouncementSpeech? AnnouncementSpeech { get; } = announcementSpeech;
     internal WawiCallPro.Utilities.Licensing.IProductLicenseService? Licenses => licenses;
     public IProductPluginRuntime Plugins { get; } = plugins;
     public WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? FunctionPlugins { get; } = functionPlugins;

@@ -217,6 +217,9 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("devices.ringVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
         if (!Enum.IsDefined(devices.RecordingReceiveSource))
             issues.Add(new("devices.recordingReceiveSource", "Eine gültige Aufnahmequelle auswählen."));
+        if (devices.Announcements is not { } announcements || !IsValidDeviceId(announcements.VoiceId)
+            || !IsValidDeviceId(announcements.CaptureDeviceId) || !IsValidDeviceId(announcements.PlaybackDeviceId))
+            issues.Add(new("devices.announcements", "Für Ansagen sind nur gültige Stimmen- und Gerätekennungen zulässig."));
     }
 
     private void ValidateDatabase(CommunicationDatabaseSettings? database, ImmutableArray<ConfigurationIssue>.Builder issues)

@@ -4865,7 +4865,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   stumm über WASAPI ausgegeben und bytegleich exportiert. Die Hintergrundrenders decken helle und dunkle
   Skins, 10 und 16 pt sowie 150 % Skalierung ab. Der native Speicherdialog und die Hörprobe mit einem
   echten Gespräch bleiben Teil der manuellen Abnahme.
-- [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
+- [x] ✅ Mikrofonansagen und Text-to-Speech im Audio-Ribbon anbieten. Aufnehmen, Stoppen, Vorhören
+  und WAV-Export sind unabhängig vom SIP-Gespräch. Stimme, Mikrofon und Vorschau-Ausgabe werden
+  getrennt vom Gesprächsaudio im lokalen Profilformat 17 gespeichert. Fehlende gespeicherte
+  Geräte oder Stimmen bleiben sichtbar. Je Edition zwei Dialog- und 30 Konfigurationsprüfungen
+  bestanden. Aufnahme, Abbruch, Vorschau und Auswahl wurden mit isolierten Audiogeräten geprüft.
+  Die praktische Prüfung an einem echten Mikrofon bleibt offen. Debuginhalte unter
+  `.artifacts/phase9-app-announcements/`, Renderbilder unter `.artifacts/app-shell/settings-ui/announcements/`.
   Die Altquellen `WawiCallPro_old/WawiCallPro/FrmVoiceMailRecording.cs` und
   `WawiCallPro_old/WawiCallPro/Audio/TextToSpeechPlayer.cs` wurden als Referenz gelesen.
   Die Mikrofonaufnahme verwendet ein gewähltes Gerät und kann die WAV-Datei vorhören.
@@ -4878,7 +4884,6 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Beide Editionen erzeugten mit der ausdrücklich ausgewählten Windows-Stimme eine WAV und spielten sie
   stumm über WASAPI ab. Vorhandene Ausgabe, fehlende Stimme, leerer und zu langer Text sowie ungültiges
   UTF-8 wurden abgewiesen. Reguläre Debug-/Any-CPU-Builds für App und Console ohne Warnungen und Fehler.
-  Die Desktop-Ansagenverwaltung, Mikrofonaufnahme und dauerhafte Auswahl von Stimme und Geräten bleiben offen.
   Nachweise `.artifacts/phase9-announcements/run-20261124-144239/`.
 
 Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, die gewählten Aufnahmeformate wiedergeben

@@ -250,6 +250,7 @@ public partial class MainForm : RibbonForm
         foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>()) await lookup.StopAsync();
         foreach (var dial in OwnedForms.OfType<FrmDial>()) await dial.StopAsync();
         foreach (var audio in OwnedForms.OfType<FrmAudioConvert>()) await audio.StopAsync();
+        foreach (var announcements in OwnedForms.OfType<FrmAnnouncements>()) await announcements.StopAsync();
         foreach (var call in _callPages.Values) await call.Page.StopAsync();
         await PendingCallUpdates;
         foreach (var setup in OwnedForms.OfType<FrmDatabaseSetup>()) await setup.StopAsync();
@@ -481,6 +482,7 @@ public partial class MainForm : RibbonForm
         mailCacheRebuildItem.ImageOptions.SvgImage = RibbonIconHelper.Load("MailCacheRebuild");
         mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
         audioConvertItem.ImageOptions.SvgImage = RibbonIconHelper.Load("AudioConvert");
+        announcementsItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Announcements");
         recordingInventoryItem.ImageOptions.SvgImage = RibbonIconHelper.Load("DatabaseCheck");
         sipConnectItem.ImageOptions.SvgImage = RibbonIconHelper.Load("SipConnect");
     }

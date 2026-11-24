@@ -6,6 +6,24 @@ namespace WawiCallPro.App;
 
 public partial class MainForm
 {
+    internal FrmAnnouncements CreateAnnouncementsDialog()
+    {
+        var dialog = _workspace?.AnnouncementAudio is { } audio && _workspace.AnnouncementSpeech is { } speech
+            && _workspace.AudioFiles is { } conversion && _audioDevices is { } catalog
+            ? new FrmAnnouncements(audio, speech, conversion, catalog, _workspace.Settings, _state)
+            : new FrmAnnouncements();
+        _state?.AttachWindow(dialog, "Announcements-v1");
+        if (_backgroundRun) dialog.PrepareForBackgroundRun();
+        return dialog;
+    }
+
+    private void Announcements_Click(object sender, ItemClickEventArgs e)
+    {
+        if (_closing || _workspace?.AnnouncementAudio is null || FindModalWindow() is not null) return;
+        using var dialog = CreateAnnouncementsDialog();
+        dialog.ShowDialog(this);
+    }
+
     internal FrmAudioConvert CreateAudioConvertDialog()
     {
         var dialog = _workspace?.AudioFiles is { } audio ? new FrmAudioConvert(audio, _state) : new FrmAudioConvert();

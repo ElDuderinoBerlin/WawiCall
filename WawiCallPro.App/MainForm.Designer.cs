@@ -43,6 +43,7 @@ partial class MainForm
         audioToolsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         audioConvertItem = new DevExpress.XtraBars.BarButtonItem();
         recordingInventoryItem = new DevExpress.XtraBars.BarButtonItem();
+        announcementsItem = new DevExpress.XtraBars.BarButtonItem();
         mailActionsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         mailCacheGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         telephonyGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -151,6 +152,12 @@ partial class MainForm
         recordingInventoryItem.ItemClick += RecordingInventory_Click;
         ribbon.Items.Add(recordingInventoryItem);
         audioToolsGroup.ItemLinks.Add(recordingInventoryItem);
+        announcementsItem.Caption = "Ansagen aufnehmen";
+        announcementsItem.Hint = "Mikrofon aufnehmen, Text vertonen und Ansagen als WAV speichern.";
+        announcementsItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        announcementsItem.ItemClick += Announcements_Click;
+        ribbon.Items.Add(announcementsItem);
+        audioToolsGroup.ItemLinks.Add(announcementsItem);
         audioRibbon.Groups.Add(audioToolsGroup);
         ribbon.Pages.Add(audioRibbon);
         databaseRibbon.Text = "Datenbank";
@@ -504,6 +511,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup audioToolsGroup;
     private DevExpress.XtraBars.BarButtonItem audioConvertItem;
     private DevExpress.XtraBars.BarButtonItem recordingInventoryItem;
+    private DevExpress.XtraBars.BarButtonItem announcementsItem;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailActionsGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailCacheGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup telephonyGroup;
