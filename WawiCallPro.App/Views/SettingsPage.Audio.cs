@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.IO;
 using DevExpress.XtraEditors;
+using WawiCallPro.App.Hosting;
 using WawiCallPro.Audio;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
@@ -12,6 +13,7 @@ public partial class SettingsPage
     private IAudioDeviceCatalog? _audioDevices;
     private AudioDeviceCatalog? _audioCatalog;
     private WindowsIncomingRingtone? _ringtones;
+    private PageOperation? _ringtoneOperation;
     private IReadOnlyList<string> _windowsRingtones = [];
     private bool _audioStopped;
 
@@ -40,7 +42,7 @@ public partial class SettingsPage
         windowsRingtoneEdit.EditValue = id ?? selected ?? "";
     }
 
-    internal Task PreviewRingtoneAsync() => _operation?.RunAsync(async token =>
+    internal Task PreviewRingtoneAsync() => _ringtoneOperation?.RunAsync(async token =>
     {
         if (!previewRingtoneButton.Enabled || _ringtones is not { } player) return;
         var volume = (int)ringVolumeEdit.Value;
@@ -66,6 +68,10 @@ public partial class SettingsPage
     }) ?? Task.CompletedTask;
 
     private async void PreviewRingtone_Click(object? sender, EventArgs e) => await PreviewRingtoneAsync();
+
+    private void RingVolumeSlider_EditValueChanged(object? sender, EventArgs e) => ringVolumeEdit.Value = ringVolumeSlider.Value;
+
+    private void RingVolumeEdit_EditValueChanged(object? sender, EventArgs e) => ringVolumeSlider.Value = (int)ringVolumeEdit.Value;
 
     private static string? ReadDevice(LookUpEdit editor) => editor.EditValue is string { Length: > 0 } value ? value : null;
 

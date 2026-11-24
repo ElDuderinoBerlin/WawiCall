@@ -35,7 +35,7 @@ public partial class SettingsPage : XtraUserControl
     internal event EventHandler? ContentSizeChanged;
     internal int GetMinimumWindowHeight()
     {
-        if (tabs.SelectedTabPage == sipTab || tabs.SelectedTabPage == generalTab) return GetRequiredGeneralHeight();
+        if (tabs.SelectedTabPage == sipTab || tabs.SelectedTabPage == generalTab || tabs.SelectedTabPage == audioTab) return GetRequiredGeneralHeight();
         var width = Math.Max(1, layout.ClientSize.Width - layout.Padding.Horizontal);
 
         return layout.Padding.Vertical + tabs.Margin.Vertical + generalTab.Top + generalTab.Left + Font.Height * 4
@@ -139,6 +139,7 @@ public partial class SettingsPage : XtraUserControl
         if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
         UpdateSipStatus();
         _operation = new PageOperation(this, ReportSettingsNotice);
+        _ringtoneOperation = new PageOperation(this, audioStatus);
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
         pluginPage.Bind(workspace, _state, ReportSettingsNotice);
         pluginPage.ConfigureSelection(ActivatePluginAsync);
@@ -167,6 +168,7 @@ public partial class SettingsPage : XtraUserControl
         }
         _audioStopped = true;
         SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
+        if (_ringtoneOperation is not null) await _ringtoneOperation.StopAsync();
         if (_operation is not null) await _operation.StopAsync();
         passwordEdit.Text = "";
         SetSipPasswordVisibility(false);
@@ -253,6 +255,7 @@ public partial class SettingsPage : XtraUserControl
         _audioStopped = true;
         passwordEdit.Text = "";
         _operation?.Dispose();
+        _ringtoneOperation?.Dispose();
         if (_workspace?.Telephony is not null) _workspace.Telephony.RegistrationChanged -= SipRegistration_Changed;
         if (!_sipUiLifetime.IsCancellationRequested) { _sipUiLifetime.Cancel(); _sipUiLifetime.Dispose(); }
         _state?.Save(cacheView, "CacheSources");

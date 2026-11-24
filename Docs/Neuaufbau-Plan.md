@@ -3666,6 +3666,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   oder ist ihre WAV-Struktur ungültig, bleibt die Auswahl sichtbar und die Wiedergabe nutzt den
   eingebauten Ton. Die Vorschau nutzt bis zu vier Sekunden lang die gewählte Klingelausgabe und
   Lautstärke. Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
+  Der Lautstärkeregler steht direkt unter der Klingeltonauswahl. Die Hörprobe zeigt ihren Status
+  im Audio-Reiter und erzeugt keine allgemeine Meldung zur Einstellungsbearbeitung.
   Sie wiederholen die WAV bis zum Ende des Klingelns über den konfigurierten Klingelausgang.
   Windows 11 (Build 22631) stellte 13 Dateien bereit. Gerätespezifische Tests verwendeten `Ring01.wav`
   und das Jabra Link 380. In Pro und FinOffice bestanden je 10 App-, 8 SIP- und 31
