@@ -1,17 +1,109 @@
+using CSCore.CoreAudioAPI;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Audio;
+using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Diagnostics;
 
 namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    [TestMethod]
+    public Task AnnouncementsCaptureAndPreviewOnSelectedWasapiEndpoints() => WithWorkspace(async (workspace, services, _) =>
+    {
+        var captureName = Environment.GetEnvironmentVariable("WCP_ANNOUNCEMENT_CAPTURE_DEVICE");
+        var playbackName = Environment.GetEnvironmentVariable("WCP_ANNOUNCEMENT_PLAYBACK_DEVICE");
+        if (string.IsNullOrWhiteSpace(captureName) || string.IsNullOrWhiteSpace(playbackName))
+            Assert.Inconclusive("Set both WCP_ANNOUNCEMENT device variables to opt in to microphone capture and audible playback.");
+
+        var catalog = new WindowsAudioDeviceCatalog(new StartupExecutionMode(false));
+        var devices = await catalog.ReadAsync();
+        var microphone = FindEndpoint(devices.Capture, captureName);
+        var headphones = FindEndpoint(devices.Playback, playbackName);
+        Console.WriteLine($"{workspace.Application.ProductLine}: {microphone.DisplayName} → {headphones.DisplayName}");
+        using var endpoints = new MMDeviceEnumerator();
+        using var captureEndpoint = endpoints.GetDevice(microphone.Id);
+        using var captureVolume = AudioEndpointVolume.FromDevice(captureEndpoint);
+        using var renderEndpoint = endpoints.GetDevice(headphones.Id);
+        using var renderVolume = AudioEndpointVolume.FromDevice(renderEndpoint);
+        Console.WriteLine($"Windows-Endpunkt stumm: Mikrofon={captureVolume.IsMuted}, Kopfhörer={renderVolume.IsMuted}.");
+
+        var original = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(original.Options with
+        {
+            Devices = original.Options.Devices with { PlaybackVolumePercent = 35 }
+        }, original);
+        var conversion = services.GetRequiredService<IAudioFileConversion>();
+        var audio = services.GetRequiredService<IAnnouncementAudio>();
+        var speech = services.GetRequiredService<IAnnouncementSpeech>();
+        var silentCaptures = 0;
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            string? draft;
+            using (var dialog = new FrmAnnouncements(audio, speech, conversion, catalog, workspace.Settings, null))
+            {
+                dialog.PrepareForBackgroundRun();
+                await dialog.LoadAsync();
+                var capture = Field<LookUpEdit>(dialog, "captureEdit");
+                var playback = Field<LookUpEdit>(dialog, "playbackEdit");
+                if (attempt == 1)
+                {
+                    capture.EditValue = microphone.Id;
+                    playback.EditValue = headphones.Id;
+                    await dialog.SavePreferencesAsync();
+                }
+                Assert.AreEqual(microphone.Id, capture.EditValue);
+                Assert.AreEqual(headphones.Id, playback.EditValue);
+
+                var recording = dialog.RecordAsync();
+                try { await Task.Delay(TimeSpan.FromSeconds(6)); }
+                finally { dialog.StopAction(); }
+                await recording.WaitAsync(TimeSpan.FromSeconds(12));
+                var message = Field<LabelControl>(dialog, "statusLabel");
+                draft = Field<string?>(dialog, "_draft");
+                Assert.IsNotNull(draft, message.Text);
+                using (var wave = File.OpenRead(draft))
+                {
+                    var header = PcmWaveHeader.Read(wave, default);
+                    Assert.AreEqual(1, header.Channels);
+                    var samples = header.DataLength / sizeof(short);
+                    Assert.IsTrue((double)samples / header.SampleRate is > 4 and < 8);
+                    wave.Position = header.DataOffset;
+                    using var reader = new BinaryReader(wave);
+                    var min = 0;
+                    var max = 0;
+                    for (long sample = 0; sample < samples; sample++)
+                    {
+                        int value = reader.ReadInt16();
+                        min = Math.Min(min, value);
+                        max = Math.Max(max, value);
+                    }
+                    Console.WriteLine($"Aufnahme {attempt}: {samples / (double)header.SampleRate:F2} s, {header.SampleRate} Hz, PCM-Spanne {min} bis {max}.");
+                    if (min == max) silentCaptures++;
+                }
+
+                var elapsed = System.Diagnostics.Stopwatch.StartNew();
+                await dialog.PreviewAsync().WaitAsync(TimeSpan.FromSeconds(12));
+                Assert.AreEqual("Wiedergabe beendet.", message.Text);
+                Assert.IsGreaterThan(TimeSpan.FromSeconds(4), elapsed.Elapsed);
+                Console.WriteLine($"Vorhören {attempt}: WASAPI nach {elapsed.Elapsed.TotalSeconds:F2} s beendet.");
+            }
+            Assert.IsFalse(File.Exists(draft), "Closing the dialog must remove the recorded draft.");
+        }
+        Assert.AreEqual(0, silentCaptures, "The microphone delivered no changing signal.");
+    }, configure: services => services.AddAudioConversion());
+
+    private static AudioDeviceInfo FindEndpoint(IEnumerable<AudioDeviceInfo> devices, string name) =>
+        devices.Single(device => string.Equals(device.DisplayName, name, StringComparison.OrdinalIgnoreCase));
+
     [TestMethod]
     [DataRow("Basic", 10F)]
     [DataRow("Office 2019 Black", 16F)]

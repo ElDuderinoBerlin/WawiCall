@@ -4881,7 +4881,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   getrennt vom Gesprächsaudio im lokalen Profilformat 17 gespeichert. Fehlende gespeicherte
   Geräte oder Stimmen bleiben sichtbar. Je Edition zwei Dialog- und 30 Konfigurationsprüfungen
   bestanden. Aufnahme, Abbruch, Vorschau und Auswahl wurden mit isolierten Audiogeräten geprüft.
-  Die praktische Prüfung an einem echten Mikrofon bleibt offen. Debuginhalte unter
+  Wiederholbarer Hardwaretest `AnnouncementsCaptureAndPreviewOnSelectedWasapiEndpoints` mit
+  `WCP_ANNOUNCEMENT_CAPTURE_DEVICE` und `WCP_ANNOUNCEMENT_PLAYBACK_DEVICE` (Windows-Anzeigenamen).
+  Jabra Link 380: Pro und FinOffice zeichneten je zweimal rund sechs Sekunden Mono-PCM mit 16 kHz
+  auf, beendeten die WASAPI-Vorschau und löschten die temporären Entwürfe. Windows meldete das
+  Mikrofon als stumm, alle Samples waren null. Der Nachweis für Sprache und Hörqualität bleibt offen.
+  Debug-Builds für beide Editionen ohne Warnungen und Fehler. Testprotokolle unter
+  `.artifacts/phase9-native-microphone/`. Debuginhalte der isolierten Dialogprüfung unter
   `.artifacts/phase9-app-announcements/`, Renderbilder unter `.artifacts/app-shell/settings-ui/announcements/`.
   Die Altquellen `WawiCallPro_old/WawiCallPro/FrmVoiceMailRecording.cs` und
   `WawiCallPro_old/WawiCallPro/Audio/TextToSpeechPlayer.cs` wurden als Referenz gelesen.
