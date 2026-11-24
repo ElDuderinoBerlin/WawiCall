@@ -442,7 +442,9 @@ public partial class MainForm : RibbonForm
     }
     private void UpdateBusinessActions()
     {
-        callerItem.Enabled = dialItem.Enabled = _workspace?.CanUseBusinessDirectory == true;
+        callerItem.Enabled = _workspace?.CanUseBusinessDirectory == true;
+        dialItem.Enabled = callerItem.Enabled || _workspace?.Telephony?.GetCalls()
+            .Any(call => call.State == WawiCallPro.Interfaces.Telephony.CallState.Connected) == true;
         partiesItem.Enabled = partiesNav.Enabled = _workspace?.CanUseBusinessDirectory == true;
     }
     private void ShowNavigation_Click(object sender, ItemClickEventArgs e) => navigationDock.Show();

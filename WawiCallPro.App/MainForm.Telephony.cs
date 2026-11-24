@@ -17,7 +17,8 @@ public partial class MainForm
     private void Dial_Click(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
     {
         if (_closing) return;
-        if (_workspace?.CanUseBusinessDirectory != true) { UpdateBusinessActions(); return; }
+        if (_workspace?.CanUseBusinessDirectory != true && _workspace?.Telephony?.GetCalls().Any(call => call.State == CallState.Connected) != true)
+        { UpdateBusinessActions(); return; }
         if (OwnedForms.OfType<FrmDial>().FirstOrDefault(dialog => !dialog.IsDisposed) is { } existing)
         { existing.Show(); if (!_backgroundRun) existing.Activate(); return; }
         using var waiting = new Hosting.UiWaitCursor(this);
@@ -96,7 +97,7 @@ public partial class MainForm
                 CallState.Created => "Neues Gespräch", CallState.Dialing => "Rufaufbau", CallState.Ringing => "Klingelt",
                 CallState.Connected => "Verbunden", CallState.Held => "Wird gehalten", CallState.Ended => "Beendet",
                 _ => "Fehlgeschlagen"
-            })); QueueCall(e.Call); }, _telephonyUiLifetime.Token);
+            })); QueueCall(e.Call); UpdateBusinessActions(); }, _telephonyUiLifetime.Token);
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }

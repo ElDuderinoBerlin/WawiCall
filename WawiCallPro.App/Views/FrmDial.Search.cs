@@ -30,7 +30,7 @@ public partial class FrmDial
 
     internal void SelectPhoneSearch()
     {
-        if (_phoneSearch is not null) dialTabs.SelectedTabPage = searchTab;
+        if (_phoneSearch is not null && CurrentConnectedCall() is null) dialTabs.SelectedTabPage = searchTab;
     }
 
     private void DialTab_Changed(object? sender, TabPageChangedEventArgs e)

@@ -24,6 +24,7 @@ public partial class FrmDial : XtraForm
     private bool _backgroundRun;
     private bool _arranging;
     private readonly Queue<char> _tones = new();
+    private Guid? _toneCallId;
     internal Guid? CallId { get; private set; }
 
     public FrmDial()
@@ -104,9 +105,9 @@ public partial class FrmDial : XtraForm
     private void Plus_Click(object? sender, EventArgs e) => InsertDigit('+');
     private async void DialKey_Pressed(char digit)
     {
-        if (dtmfToggle.Checked && CurrentConnectedCall() is { } call)
+        if (CurrentConnectedCall() is { } call)
         {
-            await SendToneAsync(call, digit);
+            if (dtmfToggle.Checked) await SendToneAsync(call, digit);
             return;
         }
         InsertDigit(digit);
@@ -171,11 +172,24 @@ public partial class FrmDial : XtraForm
     }
     private void UpdateAvailability(bool message = true)
     {
-        var connected = !_stopping && !_busy && CurrentConnectedCall().HasValue;
+        var connectedCall = CurrentConnectedCall();
+        var connected = !_stopping && !_busy && connectedCall.HasValue;
+        if (connectedCall is { } id && _toneCallId != id)
+        {
+            _toneCallId = id;
+            dialTabs.SelectedTabPage = dialTab;
+            dtmfToggle.Checked = true;
+        }
+        else if (connectedCall is null && _telephony?.GetCalls().All(call => call.State is CallState.Ended or CallState.Failed) != false)
+        {
+            _toneCallId = null;
+            dtmfToggle.Checked = false;
+        }
         if (!connected || !dtmfToggle.Checked) _tones.Clear();
-        companyEdit.Enabled = destinationEdit.Enabled = !_busy && !_stopping && !CallId.HasValue;
+        companyEdit.Enabled = destinationEdit.Enabled = !_busy && !_stopping && !CallId.HasValue
+            && _telephony?.GetCalls().All(call => call.State is CallState.Ended or CallState.Failed) != false;
         editActions.Enabled = destinationEdit.Enabled;
-        dtmfToggle.Enabled = !_busy && !_stopping;
+        dtmfToggle.Enabled = connected;
         dialKeypad.Enabled = connected ? dtmfToggle.Checked : destinationEdit.Enabled;
         dialButton.Enabled = !_busy && !_stopping && !CallId.HasValue && CanDial()
             && _companies.Any(company => company.Key == companyEdit.EditValue as CompanyKey) && !string.IsNullOrWhiteSpace(destinationEdit.Text);

@@ -36,6 +36,7 @@ partial class DialKeypad
         one.TabIndex = 0;
         one.Margin = new System.Windows.Forms.Padding(3);
         one.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        one.Appearance.FontSizeDelta = 6;
         one.Click += Digit_Click;
         one.KeyPress += Digit_KeyPress;
         keys.Controls.Add(one, 0, 0);
@@ -44,6 +45,7 @@ partial class DialKeypad
         two.TabIndex = 1;
         two.Margin = new System.Windows.Forms.Padding(3);
         two.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        two.Appearance.FontSizeDelta = 6;
         two.Click += Digit_Click;
         two.KeyPress += Digit_KeyPress;
         keys.Controls.Add(two, 1, 0);
@@ -52,6 +54,7 @@ partial class DialKeypad
         three.TabIndex = 2;
         three.Margin = new System.Windows.Forms.Padding(3);
         three.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        three.Appearance.FontSizeDelta = 6;
         three.Click += Digit_Click;
         three.KeyPress += Digit_KeyPress;
         keys.Controls.Add(three, 2, 0);
@@ -60,6 +63,7 @@ partial class DialKeypad
         four.TabIndex = 3;
         four.Margin = new System.Windows.Forms.Padding(3);
         four.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        four.Appearance.FontSizeDelta = 6;
         four.Click += Digit_Click;
         four.KeyPress += Digit_KeyPress;
         keys.Controls.Add(four, 0, 1);
@@ -68,6 +72,7 @@ partial class DialKeypad
         five.TabIndex = 4;
         five.Margin = new System.Windows.Forms.Padding(3);
         five.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        five.Appearance.FontSizeDelta = 6;
         five.Click += Digit_Click;
         five.KeyPress += Digit_KeyPress;
         keys.Controls.Add(five, 1, 1);
@@ -76,6 +81,7 @@ partial class DialKeypad
         six.TabIndex = 5;
         six.Margin = new System.Windows.Forms.Padding(3);
         six.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        six.Appearance.FontSizeDelta = 6;
         six.Click += Digit_Click;
         six.KeyPress += Digit_KeyPress;
         keys.Controls.Add(six, 2, 1);
@@ -84,6 +90,7 @@ partial class DialKeypad
         seven.TabIndex = 6;
         seven.Margin = new System.Windows.Forms.Padding(3);
         seven.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        seven.Appearance.FontSizeDelta = 6;
         seven.Click += Digit_Click;
         seven.KeyPress += Digit_KeyPress;
         keys.Controls.Add(seven, 0, 2);
@@ -92,6 +99,7 @@ partial class DialKeypad
         eight.TabIndex = 7;
         eight.Margin = new System.Windows.Forms.Padding(3);
         eight.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        eight.Appearance.FontSizeDelta = 6;
         eight.Click += Digit_Click;
         eight.KeyPress += Digit_KeyPress;
         keys.Controls.Add(eight, 1, 2);
@@ -100,6 +108,7 @@ partial class DialKeypad
         nine.TabIndex = 8;
         nine.Margin = new System.Windows.Forms.Padding(3);
         nine.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        nine.Appearance.FontSizeDelta = 6;
         nine.Click += Digit_Click;
         nine.KeyPress += Digit_KeyPress;
         keys.Controls.Add(nine, 2, 2);
@@ -108,6 +117,7 @@ partial class DialKeypad
         star.TabIndex = 9;
         star.Margin = new System.Windows.Forms.Padding(3);
         star.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        star.Appearance.FontSizeDelta = 6;
         star.Click += Digit_Click;
         star.KeyPress += Digit_KeyPress;
         keys.Controls.Add(star, 0, 3);
@@ -116,6 +126,7 @@ partial class DialKeypad
         zero.TabIndex = 10;
         zero.Margin = new System.Windows.Forms.Padding(3);
         zero.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        zero.Appearance.FontSizeDelta = 6;
         zero.Click += Digit_Click;
         zero.KeyPress += Digit_KeyPress;
         keys.Controls.Add(zero, 1, 3);
@@ -124,6 +135,7 @@ partial class DialKeypad
         hash.TabIndex = 11;
         hash.Margin = new System.Windows.Forms.Padding(3);
         hash.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
+        hash.Appearance.FontSizeDelta = 6;
         hash.Click += Digit_Click;
         hash.KeyPress += Digit_KeyPress;
         keys.Controls.Add(hash, 2, 3);

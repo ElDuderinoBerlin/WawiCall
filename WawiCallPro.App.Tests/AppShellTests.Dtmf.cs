@@ -32,6 +32,35 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task DialKeypadSendsToTheConnectedCallWithoutSelectingACompany() => RunStaAsync(async () =>
+    {
+        var call = CommandCall() with { State = CallState.Connected };
+        var service = new CommandTelephony { Current = call };
+        var application = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly);
+        using var dialog = new FrmDial(new TestDirectory(application), service);
+        dialog.PrepareForBackgroundRun();
+        dialog.Show();
+        await dialog.ReloadAsync();
+        var toggle = Field<CheckButton>(dialog, "dtmfToggle");
+        Assert.IsTrue(toggle.Checked);
+        Assert.IsTrue(toggle.Enabled);
+        var keypad = Field<DialKeypad>(dialog, "dialKeypad");
+        var digit = Field<SimpleButton>(keypad, "one");
+        Assert.AreEqual(6, digit.Appearance.FontSizeDelta);
+        digit.PerformClick();
+        CollectionAssert.AreEqual(new[] { ("Dtmf:1", call.Id) }, service.Commands.ToArray());
+        Assert.IsEmpty(Field<TextEdit>(dialog, "destinationEdit").Text);
+        service.Publish(call with { State = CallState.Held });
+        await dialog.InvokeAsync(() => Assert.IsFalse(keypad.Enabled));
+        using var shot = WawiCallPro.App.Diagnostics.UiAudit.Capture(dialog);
+        var output = Path.Combine(RenderOutput(), "dtmf");
+        Directory.CreateDirectory(output);
+        shot.Save(Path.Combine(output, typeof(MainForm).Assembly.GetName().Name + "-dial.png"),
+            System.Drawing.Imaging.ImageFormat.Png);
+        await dialog.StopAsync();
+    });
+
+    [TestMethod]
     public Task DtmfKeypadQueuesTonesForTheConnectedCallAndDropsTheQueueOnHold() => RunStaAsync(async () =>
     {
         using var dialog = new FrmCallerLookup();
