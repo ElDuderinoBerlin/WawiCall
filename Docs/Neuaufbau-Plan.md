@@ -15,6 +15,11 @@ verschiedenen Schriften und hellem sowie dunklem Skin geprüft. Nachweise
 Importdateien mit dem früheren Feld bleiben lesbar. Das Feld entfällt aus Dialog, Profil und Export.
 Je Edition 39 Konfigurations- und zwei App-Prüfungen bestanden. Nachweise `.artifacts/main-app-directx/`.
 
+✅ Fortschrittsmeldungen der Datenbank-Einrichtung füllen das App-Log nicht mehr mit allgemeinen
+Informationszeilen. Der Assistent zeigt den Migrationsfortschritt. Im App-Log bleiben Warnungen und
+benannte Anwendungsmeldungen sichtbar. Je Edition fünf Logprüfungen in Debug/Any CPU bestanden.
+Nachweise `.artifacts/database-log-progress/`.
+
 ✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
 in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
 abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.

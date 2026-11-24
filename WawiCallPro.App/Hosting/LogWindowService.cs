@@ -49,7 +49,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
         {
             if (!IsEnabled(logLevel)) return;
             var operation = OperationEvents.TryGetEvent(state, out var value) ? value : OperationEvent.FrameworkMessage;
-            if (operation == OperationEvent.PluginMessage && logLevel < LogLevel.Warning) return;
+            if (operation is OperationEvent.FrameworkMessage or OperationEvent.PluginMessage && logLevel < LogLevel.Warning) return;
             if ((SettingsMessages.Get(operation) ?? RecordingConversionMessages.Get(operation) ?? SipRegistrationMessages.Get(operation)) is { } status)
             { logs.Append(logLevel, status); return; }
             var message = operation switch
