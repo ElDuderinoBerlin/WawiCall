@@ -99,9 +99,17 @@ public sealed class DatabaseMigrationLock : IDatabaseMigrationLock
     {
         DatabaseType.SqlServer => new SqlConnection(new SqlConnectionStringBuilder(target.ConnectionString) { Pooling = false, ConnectRetryCount = 0 }.ConnectionString),
         DatabaseType.MySql => new MySqlConnection(new MySqlConnectionStringBuilder(target.ConnectionString) { Pooling = false }.ConnectionString),
-        DatabaseType.PostgreSql => new NpgsqlConnection(new NpgsqlConnectionStringBuilder(target.ConnectionString) { Pooling = false, Multiplexing = false }.ConnectionString),
+        DatabaseType.PostgreSql => CreatePostgresSession(target),
         _ => throw new DatabaseOperationException(DatabaseErrorCode.InvalidTarget)
     };
+
+    private static NpgsqlConnection CreatePostgresSession(DatabaseTarget target)
+    {
+        var settings = new NpgsqlConnectionStringBuilder(target.ConnectionString) { Pooling = false };
+        // Only older Npgsql versions expose multiplexing. A migration lease always owns one server session.
+        if (settings.ContainsKey("Multiplexing")) settings["Multiplexing"] = false;
+        return new NpgsqlConnection(settings.ConnectionString);
+    }
 
     private static void Add(DbCommand command, string name, object value)
     {

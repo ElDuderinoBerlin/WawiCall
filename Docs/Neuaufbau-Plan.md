@@ -1039,6 +1039,12 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   wurde Npgsql 10.0.3 vorübergehend per MSBuild gesetzt, da die lokale Paketumstellung auf 11.0.0 für
   `NpgsqlConnectionStringBuilder.Multiplexing` einen Kompilierfehler meldet.
   Nachweise `.artifacts/desktop-automation-20261124-122821/`.
+- [x] ✅ Reguläre Pro- und FinOffice-Builds mit Npgsql 11. Die PostgreSQL-Migrationssperre hält
+  weiterhin eine eigene Verbindung ohne Pooling. Multiplexing wird nur bei älteren Treibern
+  mit entsprechender Option ausdrücklich abgeschaltet. App und Console bauen in beiden Editionen
+  mit Npgsql 11.0.0 und ohne Paket-Override, je ohne Warnungen und Fehler. Auf isoliertem PostgreSQL 18.4
+  wurden Migration, Sperrkonkurrenz, Abbruch, Freigabe nach Prozessende und erneute Migration geprüft.
+  Nachweise `.artifacts/npgsql11/`.
 - [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
   `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
   vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte
