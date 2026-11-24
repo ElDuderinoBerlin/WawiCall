@@ -42,7 +42,7 @@
       "name": "Quantarix.Lexware.Core",
       "url": "https://github.com/Quantarix/Quantarix.Lexware.Core.git",
       "branch": "master",
-      "revision": "e37c3974b350c23fa5578e73547958c65c826144",
+      "revision": "a39bc9843211cc2677c5a74ebfc3b1de03d4ccda",
       "projects": [
         "Quantarix.Lexware.Core.csproj"
       ]
@@ -51,7 +51,7 @@
       "name": "Quantarix.Lexware.APIService",
       "url": "https://github.com/Quantarix/Quantarix.Lexware.APIService.git",
       "branch": "master",
-      "revision": "bb40d5ec4a4250d7c3aa7164927fef94e10f63e3",
+      "revision": "98bfcbe162ec4af84ad6e7abf436f7f21a0e6717",
       "projects": [
         "Quantarix.Lexware.APIService/Quantarix.Lexware.APIService.csproj"
       ]

@@ -1019,6 +1019,9 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   `obj/<Produktlinie>` sind getrennt; `obj/**` bleibt komplett aus Compile-Globs ausgeschlossen.
   Negativprüfung mit `LexwareProductLine=Invalid` wird erwartungsgemäß abgewiesen. Standard wie LxTranslate: FinOffice.
 - [x] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
+- [x] ✅ Pro-Abhängigkeiten auf die lokalen HEADs `a39bc98` (Lexware.Core) und `98bfcbe` (Lexware.APIService)
+  gesetzt. Der Batchlauf bestätigt beide Pins. Acht andere Arbeitskopien wurden wegen lokaler Änderungen
+  übersprungen und das Batch meldete Exitcode 1. Alle 13 HEADs blieben beim Lauf identisch.
 - [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
   `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
   vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte
