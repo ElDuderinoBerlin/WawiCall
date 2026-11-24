@@ -129,7 +129,7 @@ public sealed class PhoneSearchMaintenanceTests
         await using var test = new Fixture(services); await test.SelectAsync(test.A); await test.SeedAsync(test.A); await test.Index.RefreshAsync();
         var revision = test.Changes.Revision;
         var saved = await test.Settings.LoadAsync();
-        await test.Settings.SaveAsync(saved.Options with { User = saved.Options.User with { UseDirectXRendering = !saved.Options.User.UseDirectXRendering } }, saved);
+        await test.Settings.SaveAsync(saved.Options with { User = saved.Options.User with { StartMinimized = !saved.Options.User.StartMinimized } }, saved);
         Assert.AreEqual(revision, test.Changes.Revision); Assert.IsFalse(await test.Index.NeedsRefreshAsync(CancellationToken.None));
         await Assert.ThrowsExactlyAsync<ConfigurationException>(() => test.Settings.SaveAsync(saved.Options, saved));
         Assert.AreEqual(revision, test.Changes.Revision);

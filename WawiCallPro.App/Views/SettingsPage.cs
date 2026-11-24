@@ -276,7 +276,6 @@ public partial class SettingsPage : XtraUserControl
         var options = snapshot.Options;
         notificationsEdit.Checked = options.User.ShowCallNotifications;
         minimizedEdit.Checked = options.User.StartMinimized;
-        directXEdit.Checked = options.User.UseDirectXRendering;
         loggingEnabledEdit.Checked = options.User.LoggingEnabled;
         logLevelEdit.SelectedIndex = (int)options.User.LogLevel;
         logDirectoryEdit.Text = options.User.LogDirectory ?? _workspace?.Paths.LogsDirectory ?? "";
@@ -309,7 +308,7 @@ public partial class SettingsPage : XtraUserControl
             : new RecordingOutputSettings(selectedFormat, recordingFormatEdit.SelectedIndex == 0 ? null : DateTimeOffset.UtcNow);
         var options = old with
         {
-            User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked, UseDirectXRendering = directXEdit.Checked,
+            User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked,
                 LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
                 LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
                 ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
@@ -463,7 +462,7 @@ public partial class SettingsPage : XtraUserControl
         await _operation.RunAsync(async token =>
         {
             await SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
-            "Die geänderte Darstellung oder Tastenkürzel wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Die geänderten Tastenkürzel wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
             "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token);
             saved = true;
         });
@@ -501,7 +500,7 @@ public partial class SettingsPage : XtraUserControl
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
     private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>
-        first.UseDirectXRendering != second.UseDirectXRendering || first.ShowWindowHotkey != second.ShowWindowHotkey || first.DialHotkey != second.DialHotkey;
+        first.ShowWindowHotkey != second.ShowWindowHotkey || first.DialHotkey != second.DialHotkey;
 
     private async void RefreshCache_Click(object? sender, EventArgs e)
     {

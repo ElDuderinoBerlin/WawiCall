@@ -16,7 +16,9 @@ public sealed record UserSettings
     public CompanyKey? PreferredCompany { get; init; }
     public bool ShowCallNotifications { get; init; } = true;
     public bool StartMinimized { get; init; }
-    public bool UseDirectXRendering { get; init; } = true;
+    [System.Text.Json.Serialization.JsonInclude]
+    [System.Text.Json.Serialization.JsonPropertyName("useDirectXRendering")]
+    internal bool LegacyDirectXRendering { init { } }
     public string? ShowWindowHotkey { get; init; }
     public string? DialHotkey { get; init; }
     public override string ToString() => nameof(UserSettings);

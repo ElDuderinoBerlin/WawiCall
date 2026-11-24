@@ -1588,54 +1588,6 @@ public sealed partial class AppShellTests
     }
 
     [TestMethod]
-    [DataRow(false, true)]
-    [DataRow(true, false)]
-    public Task DirectXChangeAsksOnlyAfterSuccessfulSaveAndCanRestartInEitherDirection(bool initial, bool changed) => WithWorkspace(async (workspace, services, plugin) =>
-    {
-        var snapshot = await workspace.Settings.LoadAsync();
-        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { UseDirectXRendering = initial } }, snapshot);
-        await workspace.Configuration.StartAsync(CancellationToken.None);
-        using var dialog = new FrmSettings(workspace);
-        var page = Field<SettingsPage>(dialog, "settingsPage");
-        var editor = Field<CheckEdit>(page, "directXEdit"); Assert.AreEqual(initial, editor.Checked);
-        editor.Checked = changed; var prompts = 0;
-        await Field<PageOperation>(page, "_operation").RunAsync(token => page.SaveAndOfferRestartAsync(() =>
-        {
-        Assert.IsTrue(await dialog.PrepareAsync());
-            prompts++; Assert.AreEqual(changed, workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.UseDirectXRendering);
-            return true;
-        }, token));
-        Assert.AreEqual(1, prompts); Assert.IsTrue(dialog.RestartRequested);
-        Assert.AreEqual(initial, workspace.Configuration.Current.Options.User.UseDirectXRendering, "Running renderer preference must remain the startup snapshot.");
-        await dialog.StopAsync();
-    });
-    [TestMethod]
-    public Task DirectXRestartCanBeDeclinedAndUnchangedOrFailedSavesDoNotAsk() => WithWorkspace(async (workspace, services, plugin) =>
-    {
-        var baseline = await workspace.Settings.LoadAsync();
-        await workspace.Settings.SaveAsync(baseline.Options with { User = baseline.Options.User with { UseDirectXRendering = false } }, baseline);
-        await workspace.Configuration.StartAsync(CancellationToken.None);
-        using var page = new SettingsPage(); page.Bind(workspace); var prompts = 0; var restarts = 0;
-        page.RestartRequested += (_, _) => restarts++;
-        var editor = Field<CheckEdit>(page, "directXEdit");
-        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
-        Assert.AreEqual(0, prompts);
-        editor.Checked = true;
-        await page.SaveAndOfferRestartAsync(() => { prompts++; return false; }, CancellationToken.None);
-        Assert.AreEqual(1, prompts); Assert.AreEqual(0, restarts); Assert.IsTrue((await workspace.Settings.LoadAsync()).Options.User.UseDirectXRendering);
-        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
-        Assert.AreEqual(1, prompts, "Repeated save of an unchanged preference must not ask again.");
-        editor.Checked = false;
-        await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None);
-        Assert.AreEqual(1, prompts, "Returning to the active renderer does not need a restart.");
-        var snapshot = await workspace.Settings.LoadAsync();
-        await workspace.Settings.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { StartMinimized = !snapshot.Options.User.StartMinimized } }, snapshot);
-        editor.Checked = true;
-        await Assert.ThrowsExactlyAsync<ConfigurationException>(() => page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None));
-        Assert.AreEqual(1, prompts); Assert.AreEqual(0, restarts);
-        await page.StopAsync();
-    });
-    [TestMethod]
     public void DirectXStartupAndRestartArgumentsUseOnlyTheSavedPreferenceAndSameApplication()
     {
         var calls = 0;
@@ -1648,9 +1600,8 @@ public sealed partial class AppShellTests
         Assert.AreEqual(@"D:\App\WawiCallPro.App.Pro.dll", dotnet.ArgumentList.Single());
     }
     [TestMethod]
-    public Task DirectXCheckboxRendersInGeneralSettingsWithoutVisibleWindows() => WithWorkspace(async (workspace, services, plugin) =>
+    public Task GeneralSettingsRenderWithoutADirectXControl() => WithWorkspace(async (workspace, services, plugin) =>
     {
-        Assert.IsTrue(workspace.Configuration.Current.Options.User.UseDirectXRendering);
         AppUiStartup.Apply();
         var output = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(RenderOutput()))!, "autostart-settings", workspace.Application.ProductLine); Directory.CreateDirectory(output);
         var oldFont = WindowsFormsSettings.DefaultFont; var oldAppearance = AppearanceObject.DefaultFont;
@@ -1668,11 +1619,11 @@ public sealed partial class AppShellTests
                 using var settings = new FrmSettings(workspace); settings.PrepareForBackgroundRun(); settings.Font = font; settings.ClientSize = new(width, height);
                 settings.Show(); Application.DoEvents();
                 settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
-                var page = Field<SettingsPage>(settings, "settingsPage"); Field<CheckEdit>(page, "directXEdit").Checked = true;
+                var page = Field<SettingsPage>(settings, "settingsPage");
                 if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
                 using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"general-{autoStartState}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
                 CheckTableBounds(settings);
-                Assert.IsTrue(Field<CheckEdit>(page, "directXEdit").Visible);
+                Assert.HasCount(0, page.Controls.Find("directXEdit", true));
                 Assert.IsTrue(Field<CheckEdit>(page, "autoStartEdit").Visible);
                 Assert.IsTrue(Field<LabelControl>(page, "autoStartStatus").Bottom <= Field<TableLayoutPanel>(page, "generalLayout").ClientSize.Height,
                     "The autostart status must fit without a scrollbar.");

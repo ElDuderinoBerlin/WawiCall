@@ -10,6 +10,11 @@ am Log-Verzeichnis erhält einen schmaleren seitlichen Innenabstand und behält 
 verschiedenen Schriften und hellem sowie dunklem Skin geprüft. Nachweise
 `.artifacts/button-sizing-20261124-144722/`.
 
+✅ DirectX wird beim Start ausschließlich aus `AppUi.UseDirectXRendering` in der
+`appsettings.json` neben der Main-App gelesen. Ohne Eintrag gilt `true`. Alte Profile und
+Importdateien mit dem früheren Feld bleiben lesbar. Das Feld entfällt aus Dialog, Profil und Export.
+Je Edition 39 Konfigurations- und zwei App-Prüfungen bestanden. Nachweise `.artifacts/main-app-directx/`.
+
 ✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
 in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
 abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.

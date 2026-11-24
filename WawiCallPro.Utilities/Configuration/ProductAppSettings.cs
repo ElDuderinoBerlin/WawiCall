@@ -21,6 +21,18 @@ public sealed class ProductAppSettings(string path)
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException)
         { throw ConfigurationException.FileError("Die lokale appsettings.json konnte nicht gelesen werden. Format und Zugriffsrechte prüfen."); }
     }
+    public bool ReadDirectXRendering()
+    {
+        var root = Read();
+        if (!root.TryGetPropertyValue("AppUi", out var ui)) return true;
+        if (ui is JsonObject options)
+        {
+            if (!options.TryGetPropertyValue("UseDirectXRendering", out var preference)) return true;
+            if (preference is JsonValue value && value.TryGetValue<bool>(out var enabled)) return enabled;
+        }
+        throw ConfigurationException.FileError("AppUi.UseDirectXRendering in der lokalen appsettings.json muss true oder false sein.");
+    }
+
     public string? ReadClientKey()
     {
         string? raw;

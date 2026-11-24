@@ -9,11 +9,11 @@ using WawiCallPro.Utilities.Configuration;
 namespace WawiCallPro.App.Hosting;
 
 /// <summary>Initializes available DevExpress skins and dialogs on the UI thread, before licensing or application forms.</summary>
-internal sealed class AppUiStartup(IUiDispatcher dispatcher, ApplicationConfigurationService configuration) : IHostedService
+internal sealed class AppUiStartup(IUiDispatcher dispatcher, ApplicationConfigurationService configuration, ProductAppSettings appSettings) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken) => dispatcher.InvokeAsync(() =>
     {
-        ApplyRenderingPreference(configuration.Current.Options.User.UseDirectXRendering, WindowsFormsSettings.ForceDirectXPaint);
+        ApplyRenderingPreference(appSettings.ReadDirectXRendering(), WindowsFormsSettings.ForceDirectXPaint);
         Apply();
         var settings = configuration.Current.Options.User;
         WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = new Font(settings.FontFamily, settings.FontSize);

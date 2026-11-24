@@ -29,7 +29,7 @@ public sealed class SettingsVersionTests
         var saved = await directory.Store.LoadAsync();
         Assert.AreEqual(ConfigurationFormat.CurrentVersion, saved.FormatVersion); Assert.AreEqual("Ctrl+Alt+F1", saved.Options.User.ShowWindowHotkey);
         Assert.AreEqual("Ctrl+Alt+F11", saved.Options.User.DialHotkey);
-        Assert.IsTrue(saved.Options.User.StartMinimized); Assert.IsFalse(saved.Options.User.UseDirectXRendering);
+        Assert.IsTrue(saved.Options.User.StartMinimized);
         var bytes = await File.ReadAllBytesAsync(directory.Location.FilePath);
         foreach (var invalid in new[] { "", "Ctrl+Alt+F0", "Ctrl+Alt+F12", "Win+F1", "Ctrl+Alt+F1 " })
             await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { DialHotkey = invalid } }, saved));
@@ -40,21 +40,31 @@ public sealed class SettingsVersionTests
     }
 
     [TestMethod]
-    public async Task VersionFiveDefaultsToDirectXAndExplicitRenderingPreferenceRoundTrips()
+    public async Task LegacyDirectXProfileValueIsAcceptedAndOmittedOnSave()
     {
         using var directory = new SettingsDirectory();
-        const string json = "{\"formatVersion\":5,\"settings\":{\"user\":{\"startMinimized\":true}}}";
+        const string json = "{\"formatVersion\":16,\"settings\":{\"user\":{\"startMinimized\":true,\"useDirectXRendering\":false}}}";
         await File.WriteAllTextAsync(directory.Location.FilePath, json);
-        var old = await directory.Store.LoadAsync();
-        Assert.IsTrue(old.Options.User.UseDirectXRendering); Assert.IsTrue(old.Options.User.StartMinimized);
+        var previous = await directory.Store.LoadAsync();
+        Assert.IsTrue(previous.Options.User.StartMinimized);
         Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
-        await directory.Store.SaveAsync(old.Options with { User = old.Options.User with { UseDirectXRendering = true } }, old);
-        var enabled = await directory.Store.LoadAsync();
-        Assert.AreEqual(ConfigurationFormat.CurrentVersion, enabled.FormatVersion); Assert.IsTrue(enabled.Options.User.UseDirectXRendering); Assert.IsTrue(enabled.Options.User.StartMinimized);
-        await directory.Store.SaveAsync(enabled.Options with { User = enabled.Options.User with { UseDirectXRendering = false } }, enabled);
-        Assert.IsFalse((await directory.Store.LoadAsync()).Options.User.UseDirectXRendering);
-        Assert.IsTrue(new ApplicationOptions().User.UseDirectXRendering);
+        await directory.Store.SaveAsync(previous.Options, previous);
+        Assert.DoesNotContain("useDirectXRendering", await File.ReadAllTextAsync(directory.Location.FilePath));
     }
+    [TestMethod]
+    public async Task AppUiDirectXUsesTrueDefaultAndHonorsAnExplicitBoolean()
+    {
+        using var directory = new SettingsDirectory();
+        var product = new ProductAppSettings(directory.Location.FilePath);
+        Assert.IsTrue(product.ReadDirectXRendering());
+        await File.WriteAllTextAsync(product.FilePath, """{"AppUi":{}}""");
+        Assert.IsTrue(product.ReadDirectXRendering());
+        await File.WriteAllTextAsync(product.FilePath, """{"AppUi":{"UseDirectXRendering":false}}""");
+        Assert.IsFalse(product.ReadDirectXRendering());
+        await File.WriteAllTextAsync(product.FilePath, """{"AppUi":{"UseDirectXRendering":"false"}}""");
+        Assert.ThrowsExactly<ConfigurationException>(() => product.ReadDirectXRendering());
+    }
+
     [TestMethod]
     public async Task VersionOneNumberContextsDoNotAutomaticallyEnablePhoneCacheSources()
     {
