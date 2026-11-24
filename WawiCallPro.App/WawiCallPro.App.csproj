@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>AppIcon.ico</ApplicationIcon>
+    <Description>Telefonie und Gesprächsaufzeichnung für Lexware</Description>
+    <Copyright>© 2026 Martin Martinsson Softwareentwicklung und Beratung</Copyright>
     <ApplicationManifest>..\Application.manifest</ApplicationManifest>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>

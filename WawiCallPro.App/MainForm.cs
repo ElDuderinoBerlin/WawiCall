@@ -12,6 +12,7 @@ using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Plugin.Windows;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
+using WawiCallPro.Utilities.Licensing;
 
 namespace WawiCallPro.App;
 
@@ -90,7 +91,8 @@ public partial class MainForm : RibbonForm
         if (_loaded) return;
         _loaded = true;
         var app = _application ?? ApplicationDescriptor.FromAssembly(Assembly.GetExecutingAssembly());
-        Text = $"{app.Name} – {app.ProductLine}";
+        Text = FormatWindowCaption(app, null);
+        if (_workspace?.Licenses is { } licenses) _ = LoadWindowCaptionAsync(app, licenses);
         connectionLabel.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert. Telefonie noch nicht verbunden." : "Kein SIP-Konto konfiguriert.";
         statusItem.Caption = app.ProductLine + " · " + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
         _operation = new PageOperation(this, connectionLabel);
@@ -105,6 +107,42 @@ public partial class MainForm : RibbonForm
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
             ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."
             : "Anwendung gestartet. Lexware-abhängige Cacheaktualisierung ist gesperrt.");
+    }
+
+    private async Task LoadWindowCaptionAsync(ApplicationDescriptor app, IProductLicenseService licenses)
+    {
+        try
+        {
+            var license = await licenses.ValidateAsync(CancellationToken.None);
+            if (!_closing && !IsDisposed) Text = FormatWindowCaption(app, license);
+        }
+        catch (Exception)
+        {
+            if (!_closing && !IsDisposed) AppendOutput("Die Lizenzangabe für den Fenstertitel konnte nicht gelesen werden.");
+        }
+    }
+
+    internal static string FormatWindowCaption(ApplicationDescriptor app, ProductLicenseSnapshot? license)
+    {
+#if DEMO
+        const string edition = "Demo";
+#else
+        var edition = (license is { Status: LicenseStatus.Valid } ? license.Type : null) switch
+        {
+            Quantarix.License.Core.Models.LicenseType.NFR => "NFR",
+            Quantarix.License.Core.Models.LicenseType.Pro => "Professional",
+            Quantarix.License.Core.Models.LicenseType.Premium => "Premium",
+            _ => "Standard"
+        };
+#endif
+        var productLine = app.ProductLine == "FinOffice" ? "Financial Office" : "Professional";
+        var title = $"{app.Name} {edition} {ApplicationVersion.Display} - für Lexware {productLine}";
+        if (license?.Trial is { } trial)
+        {
+            var days = trial.RemainingDays == 1 ? "Tag" : "Tage";
+            title += $" (noch {trial.RemainingDays} {days}, bis {trial.EndUtc.LocalDateTime:dd.MM.yyyy HH:mm})";
+        }
+        return title;
     }
 
     internal void Navigate(string id)

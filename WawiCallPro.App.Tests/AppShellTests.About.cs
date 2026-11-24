@@ -1,9 +1,13 @@
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
+using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
+using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Licensing;
+using Quantarix.License.Core.Models;
 
 namespace WawiCallPro.App.Tests;
 
@@ -34,8 +38,12 @@ public sealed partial class AppShellTests
                 var product = Field<LabelControl>(dialog, "lblProduct");
                 Assert.StartsWith("WawiCallPro", product.Text);
                 Assert.Contains("DevExpress", Field<LabelControl>(dialog, "lblVersion").Text);
-                Assert.Contains("gültig", Field<LabelControl>(dialog, "lblLicenseInfo").Text);
-                Assert.Contains("Not for resale (NFR)", Field<LabelControl>(dialog, "lblLicenseInfo").Text);
+                var summary = Field<LabelControl>(dialog, "lblLicenseInfo").Text;
+                Assert.Contains("Lizenz: Gültig", summary);
+                Assert.Contains("Not for resale (NFR)", summary);
+                Assert.Contains($"{licenses.Expires.LocalDateTime:dd.MM.yyyy HH:mm} + 7 Tage Kulanz", summary);
+                Assert.Contains("© 2026", Field<LabelControl>(dialog, "lblCopyright").Text);
+                Assert.IsFalse(dialog.MaximizeBox);
                 Assert.AreEqual("Lizenznummer: SYNTHETIC-ABOUT-NUMBER", Field<HyperlinkLabelControl>(dialog, "linkLicenseNumber").Text);
                 Assert.IsTrue(Field<HyperlinkLabelControl>(dialog, "linkMachineKey").Visible);
                 CheckTableBounds(dialog);
@@ -53,12 +61,39 @@ public sealed partial class AppShellTests
         }
     });
 
+    [TestMethod]
+    [DataRow("Pro", LicenseType.NFR, "NFR", "Professional")]
+    [DataRow("FinOffice", LicenseType.Pro, "Professional", "Financial Office")]
+    [DataRow("Pro", LicenseType.Premium, "Premium", "Professional")]
+    [DataRow("FinOffice", LicenseType.Standard, "Standard", "Financial Office")]
+    public void MainWindowCaptionIncludesLicenseEditionVersionAndLexwareLine(string productLine, LicenseType type, string tier, string lexwareLine)
+    {
+        var app = new ApplicationDescriptor("WawiCallPro", productLine);
+        var license = new ProductLicenseSnapshot(LicenseStatus.Valid) { Type = type };
+#if DEMO
+        tier = "Demo";
+#endif
+        Assert.AreEqual($"WawiCallPro {tier} {ApplicationVersion.Display} - für Lexware {lexwareLine}",
+            MainForm.FormatWindowCaption(app, license));
+    }
+
+    [TestMethod]
+    public Task MainWindowCaptionUsesTheValidatedLocalLicenseOnLoad() => WithWorkspace(async (workspace, services, _) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun();
+        var license = await services.GetRequiredService<IProductLicenseService>().ValidateAsync(default);
+        form.Show();
+        Assert.AreEqual(MainForm.FormatWindowCaption(workspace.Application, license), form.Text);
+    }, configure: services => services.AddSingleton<IProductLicenseService, AboutLicenseProbe>());
+
     private sealed class AboutLicenseProbe : IProductLicenseService
     {
         private readonly Guid _licenseId = Guid.NewGuid();
+        internal DateTimeOffset Expires { get; } = DateTimeOffset.UtcNow.AddDays(30);
         public Task<ProductLicenseSnapshot> ValidateAsync(CancellationToken token) =>
             Task.FromResult(new ProductLicenseSnapshot(LicenseStatus.Valid, _licenseId, Online: true)
-            { ProductLabel = "WawiCallPro", Type = Quantarix.License.Core.Models.LicenseType.NFR, ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30), GraceDays = 7 });
+            { ProductLabel = "WawiCallPro", Type = LicenseType.NFR, ExpiresUtc = Expires, GraceDays = 7 });
         public Task<string?> GetStoredLicenseNumberAsync(Guid licenseId, CancellationToken token) =>
             Task.FromResult(licenseId == _licenseId ? "SYNTHETIC-ABOUT-NUMBER" : null);
         public Task<ProductLicenseSnapshot> ActivateAsync(string licenseKey, CancellationToken token) => throw new AssertFailedException("Unexpected activation.");
