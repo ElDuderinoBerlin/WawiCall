@@ -79,6 +79,16 @@ public sealed class PlaybackLoopbackTests
     }
 
     [TestMethod]
+    public void DeviceClockRejectsABackwardsQpcTimestampInsideTheDriftTolerance()
+    {
+        var timeline = new PlaybackPacketTimeline(48000, 100_000_000, TimeSpan.Zero);
+        timeline.Map(0, 100_000_000, 480, false);
+        timeline.Map(480, 100_100_000, 480, false);
+        var error = Assert.Throws<PcmRecordingException>(() => timeline.Map(960, 100_090_000, 480, false));
+        Assert.AreEqual(PcmRecordingFailure.TimelineConflict, error.Failure);
+    }
+
+    [TestMethod]
     [DataRow(16)]
     [DataRow(24)]
     [DataRow(32)]

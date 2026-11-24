@@ -130,11 +130,11 @@ public sealed class CscorePlaybackCaptureFactory(TimeProvider clock) : IPlayback
 public sealed class PlaybackPacketTimeline(int sampleRate, long referenceQpc, TimeSpan referenceOffset)
 {
     private bool _started;
-    private long _firstDevice, _firstQpc, _end;
+    private long _firstDevice, _firstQpc, _lastQpc, _end;
     public TimeSpan Map(long devicePosition, long qpc, int frames, bool discontinuity)
     {
         if (sampleRate is < 8000 or > 192000 || frames is < 1 || frames > sampleRate / 2 || devicePosition < 0 || qpc <= 0
-            || _started && (discontinuity || devicePosition < _end))
+            || _started && (discontinuity || devicePosition < _end || qpc < _lastQpc))
             throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
         if (!_started) { _firstDevice = devicePosition; _firstQpc = qpc; _started = true; }
         var elapsed = (Int128)(devicePosition - _firstDevice) * TimeSpan.TicksPerSecond / sampleRate;
@@ -144,6 +144,7 @@ public sealed class PlaybackPacketTimeline(int sampleRate, long referenceQpc, Ti
         if (ticks < -TimeSpan.FromSeconds(2).Ticks || ticks + (Int128)frames * TimeSpan.TicksPerSecond / sampleRate > TimeSpan.FromHours(8).Ticks)
             throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
         _end = checked(devicePosition + frames);
+        _lastQpc = qpc;
         return TimeSpan.FromTicks((long)ticks);
     }
 }

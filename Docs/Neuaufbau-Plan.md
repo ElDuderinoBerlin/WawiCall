@@ -3805,6 +3805,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Testtons am gewählten Ausgabeendpunkt. Beide Hosts in Debug/Any CPU gebaut, je 22 gezielte
   Tests bestanden. Nachweise `.artifacts/phase9-native-loopback/`. Die Hörprobe mit einem echten
   Gespräch bleibt Teil von G1.
+  ✅ Die Loopback-Zeitachse weist rückwärts laufende WASAPI-QPC-Zeitstempel auch innerhalb der
+  bestehenden 50-ms-Drifttoleranz zurück. Gerätezähler und Zeitstempel müssen in derselben
+  Reihenfolge voranschreiten. Ein Regressionstest weist einen Zeitstempelsprung um 1 ms nach.
+  Je Edition 41 gezielte App-Prüfungen und ein nativer Jabra-Lauf mit zwei Testtönen bestanden.
+  App und Konsole in Debug/Any CPU gebaut. Nachweise `.artifacts/phase9-loopback-qpc/`.
 
 - [x] ✅ Dateibasierte Mixer-Vorstufe nach `WavMixer`/`SimpleMixer` umgesetzt (14.11.2026):
   `IConversationWaveMixer` mit injiziertem `IConversationWaveRenderer` im bestehenden Audio-Projekt;
