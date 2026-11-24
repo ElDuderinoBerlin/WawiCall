@@ -420,6 +420,20 @@ Die Demos verwenden unterschiedliche Transporte und Codecfreigaben. Domain/Proxy
 Optionen bleiben bedarfsabhängige Experteneinstellungen. Konfiguriert und tatsächlich registriert
 werden getrennt dargestellt; reine Anzeige/Speicherung startet weder Anmeldung noch Audiohardware.
 
+### Lokaler Klingelton
+
+Die Desktop-App gibt bei einem eingehenden SIP-Ruf einen wiederholten Klingelton über eine eigene
+CSCore-/WASAPI-Ausgabe aus. Sie verwendet dafür die gespeicherte Klingelausgabe und Klingellautstärke.
+Als Systemstandard gilt das Windows-Standardwiedergabegerät. Bei 0 % öffnet die App keinen Klingelstream.
+Das Signal bleibt lokal. Die SIP-Gesprächsmedien werden beim Annehmen erst nach Freigabe der
+Klingelausgabe aufgebaut, auch wenn beide Ausgaben dasselbe Gerät verwenden.
+
+Die SIP-Sitzung besitzt die Abbruchquelle und die Wiedergabeaufgabe pro Ruf. Die Ereigniswarteschlange
+beendet und erwartet die Wiedergabe auch bei Ablehnung, Abbruch durch die Gegenstelle, Zeitablauf,
+Auflegen und Abmelden. Der Ausgabeadapter gibt PCM-Quelle, WASAPI-Ausgabe und Geräteobjekte frei.
+Ein Ausgabefehler erzeugt eine Warnung im Log. Der Ruf bleibt bedienbar. Diagnosemodus und Konsole
+binden den Klingeltonadapter nicht ein.
+
 ## Projektgrenzen
 
 | Projekt/Bereich | Zuständigkeit |

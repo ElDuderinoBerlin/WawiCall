@@ -22,6 +22,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     private readonly ISipTransportFactory _transports;
     private readonly ISipAccountLeaseFactory _leases;
     private readonly ISipMediaSessionFactory _media;
+    private readonly IIncomingRingtone? _ringtone;
     private readonly ISipCallPersistence _persistence;
     private readonly ISipCallOutbox _outbox;
     private readonly ICallOriginProvider _origins;
@@ -61,11 +62,20 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         ISipAccountLeaseFactory leases, ISipMediaSessionFactory media, ISipCallPersistence persistence,
         ICallStateSessionFactory states, TimeProvider clock, ILogger<SipTelephonyService> log,
         ISipCallOutbox outbox, ICallOriginProvider origins, ApplicationConfigurationService configuration)
+        : this(settings, secrets, transports, leases, media, persistence, states, clock, log, outbox, origins, configuration, null)
+    {
+    }
+
+    public SipTelephonyService(ConfigurationStore settings, ISecretProtector secrets, ISipTransportFactory transports,
+        ISipAccountLeaseFactory leases, ISipMediaSessionFactory media, ISipCallPersistence persistence,
+        ICallStateSessionFactory states, TimeProvider clock, ILogger<SipTelephonyService> log,
+        ISipCallOutbox outbox, ICallOriginProvider origins, ApplicationConfigurationService configuration, IIncomingRingtone? ringtone)
     {
         _settings = settings; _secrets = secrets; _transports = transports; _leases = leases; _media = media;
         _persistence = persistence; _states = states; _clock = clock; _log = log;
         _outbox = outbox; _origins = origins;
         _configuration = configuration;
+        _ringtone = ringtone;
         _eventLoop = ConsumeAsync();
         _retryLoop = RetryPersistenceAsync();
     }
@@ -179,10 +189,13 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 agent.ShutdownRequested = true;
                 agent.Stopping.Cancel();
                 (agent.Media as ISipLiveRecordingMediaSession)?.CancelPendingStart();
-                if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
-                else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
-                else agent.UserAgent.Cancel();
-                await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Interrupted)).ConfigureAwait(false);
+                try
+                {
+                    if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
+                    else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
+                    else agent.UserAgent.Cancel();
+                }
+                finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Interrupted)).ConfigureAwait(false); }
             }
             if (_registrar is { } registrar)
             {
@@ -228,8 +241,10 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         Agent? agent = null;
         try
         {
+            var ringing = GetAgent(callId, CallState.Ringing);
+            if (ringing.Incoming is null) throw new TelephonyException("NotIncoming");
+            await EnqueueAsync(() => StopRingtoneAsync(ringing)).ConfigureAwait(false);
             agent = GetAgent(callId, CallState.Ringing);
-            if (agent.Incoming is null) throw new TelephonyException("NotIncoming");
             agent.Media = _media.Create(_account!, _devices);
             using var registration = cancellationToken.Register(() => agent.UserAgent.Hangup());
             if (!await agent.UserAgent.Answer(agent.Incoming, agent.Media.Session).ConfigureAwait(false)) throw new TelephonyException("AnswerFailed");
@@ -240,8 +255,8 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         {
             if (agent is not null)
             {
-                agent.Incoming?.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
-                await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Error)).ConfigureAwait(false);
+                try { agent.Incoming?.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null); }
+                finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Error)).ConfigureAwait(false); }
             }
             throw;
         }
@@ -251,8 +266,8 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => CommandAsync(callId, async agent =>
     {
         if (agent.Incoming is null || agent.State!.Current.State != CallState.Ringing) throw new TelephonyException("NotIncoming");
-        agent.Incoming.Reject(SIPResponseStatusCodesEnum.BusyHere, null);
-        await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Rejected)).ConfigureAwait(false);
+        try { agent.Incoming.Reject(SIPResponseStatusCodesEnum.BusyHere, null); }
+        finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Rejected)).ConfigureAwait(false); }
     }, cancellationToken);
 
     public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default)
@@ -263,10 +278,13 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         {
             var current = agent.State!.Current;
             var reason = current.AnsweredAtUtc.HasValue ? CallEndReason.Completed : current.Direction == CallDirection.Outgoing ? CallEndReason.Cancelled : CallEndReason.Rejected;
-            if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
-            else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.Decline, null);
-            else agent.UserAgent.Cancel();
-            await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, reason)).ConfigureAwait(false);
+            try
+            {
+                if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
+                else if (agent.Incoming is not null) agent.Incoming.Reject(SIPResponseStatusCodesEnum.Decline, null);
+                else agent.UserAgent.Cancel();
+            }
+            finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, reason)).ConfigureAwait(false); }
         }, cancellationToken);
     }
 
@@ -396,14 +414,19 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             agent.Incoming = agent.UserAgent.AcceptCall(request);
         }
         await EnqueueAsync(() => ChangeAsync(agent, CallState.Ringing)).ConfigureAwait(false);
-        agent.Incoming.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null);
+        try { agent.Incoming.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null); }
+        catch
+        {
+            await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Error)).ConfigureAwait(false);
+            throw;
+        }
         Track(async () =>
         {
             try { await Task.Delay(TimeSpan.FromSeconds(_account!.Connection.RingTimeoutSeconds), agent.Stopping.Token).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
             if (agent.State?.Current.State != CallState.Ringing) return;
-            agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null);
-            await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Missed)).ConfigureAwait(false);
+            try { agent.Incoming.Reject(SIPResponseStatusCodesEnum.TemporarilyUnavailable, null); }
+            finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Missed)).ConfigureAwait(false); }
         });
     }
 
@@ -466,7 +489,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         if (now < current.StateChangedAtUtc) now = current.StateChangedAtUtc;
         if (agent.State.Apply(new(current.Revision + 1, state, now, reason)) != CallChangeResult.Applied) return;
         var terminal = state is CallState.Ended or CallState.Failed;
-        if (terminal) agent.Stopping.Cancel();
+        if (terminal)
+        {
+            agent.Stopping.Cancel();
+            await StopRingtoneAsync(agent).ConfigureAwait(false);
+        }
+        else if (state == CallState.Ringing && current.Direction == CallDirection.Incoming) StartRingtone(agent);
         await PublishAsync(agent).ConfigureAwait(false);
         if (!terminal) return;
         var media = Interlocked.Exchange(ref agent.Media, null);
@@ -684,6 +712,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         internal ICallStateSession? State;
         internal SIPServerUserAgent? Incoming;
         internal ISipMediaSession? Media;
+        internal (CancellationTokenSource Cancellation, Task Playback)? Ringtone;
         internal Task? AutomaticRecordingStart;
         internal SIPResponseStatusCodesEnum? FailureStatus;
         internal volatile bool TransferAccepted;

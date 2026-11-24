@@ -293,7 +293,8 @@ public sealed partial class SipRuntimeTests
     [TestMethod]
     public async Task RealOutgoingCallSupportsConfirmedHoldResumeAndBidirectionalRtpDtmf()
     {
-        await using var fixture = await Fixture.CreateAsync();
+        var ringtone = new RingtoneDouble();
+        await using var fixture = await Fixture.CreateAsync(false, ringtone);
         await fixture.Runtime.ConnectAsync();
         await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
         using var peerTransport = new SIPTransport();
@@ -305,9 +306,18 @@ public sealed partial class SipRuntimeTests
         var localDigits = new ConcurrentQueue<DtmfReceivedEventArgs>();
         peer.OnDtmfTone += (tone, _) => peerDigits.Enqueue(tone);
         fixture.Runtime.DtmfReceived += (_, tone) => localDigits.Enqueue(tone);
-        peer.OnIncomingCall += async (agent, request) => await agent.Answer(agent.AcceptCall(request), peerMedia.Session);
+        var allowAnswer = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        peer.OnIncomingCall += async (agent, request) =>
+        {
+            var incoming = agent.AcceptCall(request);
+            incoming.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null);
+            await allowAnswer.Task;
+            await agent.Answer(incoming, peerMedia.Session);
+        };
         var company = new CompanyKey(LexwareProductLine.Pro, "isolated-sip", "1");
         var id = await fixture.Runtime.DialAsync(company, "sip:peer@127.0.0.1:" + peerChannel.Port);
+        try { await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Ringing); }
+        finally { allowAnswer.TrySetResult(); }
         await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Connected);
         Assert.AreEqual(company, fixture.Runtime.GetCalls().Single().Company);
         await fixture.Runtime.HoldAsync(id);
@@ -322,6 +332,7 @@ public sealed partial class SipRuntimeTests
         await fixture.Runtime.HangUpAsync(id);
         Assert.AreEqual(CallState.Ended, fixture.Runtime.GetCalls().Single().State);
         await UntilAsync(() => fixture.Media.Created == fixture.Media.Closed);
+        Assert.AreEqual(0, ringtone.Starts);
     }
 
     private sealed class Fixture : IAsyncDisposable
@@ -344,9 +355,12 @@ public sealed partial class SipRuntimeTests
         private ApplicationConfigurationService _configuration = null!;
         internal ApplicationConfigurationService Configuration => _configuration;
         private bool _unavailableAudio;
+        private IIncomingRingtone? _ringtone;
         internal string Destination => "sip:workstation@127.0.0.1:" + LocalPort;
 
-        internal static async Task<Fixture> CreateAsync(bool unavailableAudio = false)
+        internal static Task<Fixture> CreateAsync(bool unavailableAudio = false) => CreateAsync(unavailableAudio, null);
+
+        internal static async Task<Fixture> CreateAsync(bool unavailableAudio, IIncomingRingtone? ringtone, int ringVolume = 35)
         {
             var fixture = new Fixture();
             var channel = new SIPUDPChannel(new IPEndPoint(IPAddress.Loopback, 0));
@@ -366,6 +380,7 @@ public sealed partial class SipRuntimeTests
             fixture._settings = settings;
             await settings.SaveAsync(new()
             {
+                Devices = ringtone is null ? new() : new() { RingDeviceId = "ring", RingVolumePercent = ringVolume, PlaybackDeviceId = "conversation" },
                 SipAccount = new()
                 {
                     Server = "127.0.0.1", Port = channel.Port, Username = "workstation",
@@ -374,6 +389,7 @@ public sealed partial class SipRuntimeTests
                 }
             });
             fixture._unavailableAudio = unavailableAudio;
+            fixture._ringtone = ringtone;
             fixture._configuration = new(settings);
             await fixture._configuration.StartAsync(CancellationToken.None);
             fixture.CreateRuntime();
@@ -386,7 +402,7 @@ public sealed partial class SipRuntimeTests
                 _unavailableAudio ? new UnavailableSipMediaSessionFactory() : Media, Persistence,
                 new CallStateSessionFactory(), TimeProvider.System, NullLogger<SipTelephonyService>.Instance,
                 new ProtectedSipCallOutbox(new ApplicationPaths(new ConfigurationLocation(_root)), protector, new("test", "Pro")),
-                new OriginProvider(Persistence), _configuration);
+                new OriginProvider(Persistence), _configuration, _ringtone);
         }
         internal async Task SetAutomaticRecordingAsync(bool enabled)
         {

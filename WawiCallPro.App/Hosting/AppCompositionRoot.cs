@@ -59,6 +59,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<WindowsSipMediaSessionFactory>();
                 services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
                 services.AddAudioConversion();
+                if (!mode.SuppressNetwork) services.AddSingleton<IIncomingRingtone, WindowsIncomingRingtone>();
                 services.AddPersistedRecordings();
                 services.AddSingleton<WawiCallPro.Database.Repositories.RecordingPlaybackCatalog>();
                 services.AddSingleton<IHistoryRecordingPlayback, HistoryRecordingPlayback>();

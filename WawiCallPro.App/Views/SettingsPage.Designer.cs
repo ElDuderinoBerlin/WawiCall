@@ -800,7 +800,7 @@ partial class SettingsPage
         playbackDeviceLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         playbackDeviceLabel.Appearance.Options.UseFont = true;
         audioLayout.Controls.Add(playbackDeviceLabel, 0, 1);
-        ringDeviceLabel.Text = "Klingelausgabe (geplant)";
+        ringDeviceLabel.Text = "Klingelausgabe";
         ringDeviceLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         ringDeviceLabel.Margin = new System.Windows.Forms.Padding(4, 4, 12, 4);
         ringDeviceLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
@@ -957,7 +957,7 @@ partial class SettingsPage
         audioLevelsLayout.Controls.Add(recordingFormatHint, 0, 5);
         audioLevelsLayout.SetColumnSpan(recordingFormatHint, 2);
         audioHint.Name = "audioHint";
-        audioHint.Text = "Geräte, Lautstärken und Mikrofonpräferenz gelten nach dem nächsten Programmstart. Klingelausgabe und Klingellautstärke sind für den späteren Klingelton vorgesehen.";
+        audioHint.Text = "Geräte, Lautstärken und Mikrofonpräferenz gelten nach dem nächsten Programmstart. 0 % Klingellautstärke schaltet den Klingelton aus.";
         audioHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         audioHint.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         audioHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
