@@ -4702,7 +4702,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Nachweise unter `.artifacts/phase9-acceptance-20261124/`. Der echte FRITZ!Box-/Headset-Lauf mit
   Hörprobe, physischem Gerätewechsel und Neustart der Desktop-Historie bleibt Teil von G1.
   Details zum persistenten Medienablauf stehen in der [Architektur](Architektur.md#gesprächsaufzeichnung-wav-mixer-und-mp3).
-- [ ] Dateien und Metadaten konsistent verwalten; Dateinamen kollisionsfrei, fehlende Dateien verständlich anzeigen.
+- [x] ✅ Dateinamen, Dateischutz und Metadatenkonsistenz für Aufnahmen prüfen (24.11.2026).
+  Live-Aufnahmen verwenden die Aufnahme-ID als WAV-Dateinamen. Die Mix- und Exportprüfungen bestätigen
+  den Schutz vorhandener und gleichzeitig angelegter Ziele. Fehlende oder veränderte Aufnahmen werden
+  als nicht verfügbar erkannt und mit einem Hinweis im Ausgabefenster gemeldet. Ausschließlich die
+  wiedergefundene Datei mit dem ursprünglichen SHA-256 setzt das Artefakt wieder auf verfügbar.
+  Abgleich und erneute Zustellung erhalten die ursprüngliche Zuordnung und vermeiden doppelte
+  Artefakte. In den Console-, Utilities-, Database- und App-Läufen beider Editionen enthalten.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem
