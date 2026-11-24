@@ -1,14 +1,63 @@
 using System.Reflection;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
+using DevExpress.XtraBars;
+using DevExpress.XtraBars.Ribbon;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.App.Tests;
 
 public partial class AppShellTests
 {
+    [TestMethod]
+    public Task SipProfileCanBeRegisteredFromMainRibbonWithoutOpeningSettings() => WithWorkspace(async (workspace, services, _) =>
+    {
+        var backend = (ComTelephonyFixture.Backend)workspace.Telephony!;
+        var log = new LogWindowService();
+        using var main = new MainForm(workspace.Application, workspace.Configuration, workspace,
+            services.GetRequiredService<AppUiState>(), log);
+        main.PrepareForBackgroundRun();
+        main.Show();
+        var action = Field<BarButtonItem>(main, "sipConnectItem");
+        Assert.IsTrue(action.Enabled);
+        Assert.AreEqual("SIP-Konto anmelden", action.Caption);
+        Assert.IsNotNull(action.ImageOptions.SvgImage);
+        Assert.IsTrue(Field<RibbonPageGroup>(main, "telephonyGroup").ItemLinks.Any(link => link.Item == action));
+        var renders = Path.Combine(RenderOutput(), "sip-main-ribbon");
+        Directory.CreateDirectory(renders);
+        main.ClientSize = new Size(1080, 720);
+        using (var shot = WawiCallPro.App.Diagnostics.UiAudit.Capture(main))
+            shot.Save(Path.Combine(renders, workspace.Application.ProductLine + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+        action.PerformClick();
+        Assert.AreEqual(1, backend.Connects);
+        Assert.AreEqual(0, backend.Attempts);
+        Assert.IsFalse(action.Enabled);
+        Assert.IsFalse(main.OwnedForms.OfType<FrmSettings>().Any());
+        Assert.AreEqual("SIP: Angemeldet", Field<BarStaticItem>(main, "telephonyStatusItem").Caption);
+        await backend.DisconnectAsync();
+        await main.InvokeAsync(() => Assert.IsTrue(action.Enabled));
+    }, telephony: new ComTelephonyFixture.Backend());
+
+    [TestMethod]
+    [DataRow(OperationEvent.SipRegistrationStarted, "SIP-Anmeldung läuft …")]
+    [DataRow(OperationEvent.SipRegistrationSucceeded, "SIP-Konto angemeldet.")]
+    [DataRow(OperationEvent.SipRegistrationStopped, "SIP-Konto nicht angemeldet.")]
+    public void SipProfileStatusAppearsInOutput(OperationEvent operation, string message)
+    {
+        var logs = new LogWindowService();
+        using var provider = new UiLogProvider(logs);
+        OperationEvents.Write(provider.CreateLogger("SIP"), operation);
+        var entry = logs.Drain().Single();
+        Assert.AreEqual(LogLevel.Information, entry.Level);
+        Assert.AreEqual(message, entry.Message);
+    }
+
     [TestMethod]
     public Task SipProfilesKeepPasswordsAndAdvancedOptionsSeparateWithoutReconnecting() => WithWorkspace(async (workspace, _, plugin) =>
     {

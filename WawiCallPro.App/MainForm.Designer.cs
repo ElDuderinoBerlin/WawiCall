@@ -46,6 +46,7 @@ partial class MainForm
         mailActionsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         mailCacheGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         telephonyGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
+        sipConnectItem = new DevExpress.XtraBars.BarButtonItem();
         mailRefreshItem = new DevExpress.XtraBars.BarButtonItem();
         mailSettingsItem = new DevExpress.XtraBars.BarButtonItem();
         mailCacheRebuildItem = new DevExpress.XtraBars.BarButtonItem();
@@ -212,6 +213,13 @@ partial class MainForm
         dialItem.ItemClick += Dial_Click;
         ribbon.Items.Add(dialItem);
         telephonyGroup.ItemLinks.Add(dialItem);
+        sipConnectItem.Caption = "SIP-Konto anmelden";
+        sipConnectItem.Hint = "Das gespeicherte aktive SIP-Profil beim SIP-Server anmelden.";
+        sipConnectItem.Enabled = false;
+        sipConnectItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+        sipConnectItem.ItemClick += SipConnect_Click;
+        ribbon.Items.Add(sipConnectItem);
+        telephonyGroup.ItemLinks.Add(sipConnectItem);
         closeItem.Caption = "Ansicht schließen";
         closeItem.Hint = "Ansicht schließen.";
         closeItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.SmallWithText;
@@ -499,6 +507,7 @@ partial class MainForm
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailActionsGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup mailCacheGroup;
     private DevExpress.XtraBars.Ribbon.RibbonPageGroup telephonyGroup;
+    private DevExpress.XtraBars.BarButtonItem sipConnectItem;
     private DevExpress.XtraBars.BarButtonItem mailRefreshItem;
     private DevExpress.XtraBars.BarButtonItem mailSettingsItem;
     private DevExpress.XtraBars.BarButtonItem mailCacheRebuildItem;

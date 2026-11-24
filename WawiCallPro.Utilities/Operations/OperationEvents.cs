@@ -92,7 +92,10 @@ public enum OperationEvent
     SettingsFunctionPluginDisabled,
     SettingsFunctionPluginExecuted,
     SettingsFunctionPluginActivationFailed,
-    SettingsFunctionPluginExecutionFailed
+    SettingsFunctionPluginExecutionFailed,
+    SipRegistrationStarted,
+    SipRegistrationSucceeded,
+    SipRegistrationStopped
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>

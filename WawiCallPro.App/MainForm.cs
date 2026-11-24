@@ -93,7 +93,10 @@ public partial class MainForm : RibbonForm
         var app = _application ?? ApplicationDescriptor.FromAssembly(Assembly.GetExecutingAssembly());
         Text = FormatWindowCaption(app, null);
         if (_workspace?.Licenses is { } licenses) _ = LoadWindowCaptionAsync(app, licenses);
-        connectionLabel.Text = _configuration?.Current.IsSipConfigured == true ? "SIP-Konto konfiguriert. Telefonie noch nicht verbunden." : "Kein SIP-Konto konfiguriert.";
+        if (_workspace?.Telephony?.Registration.State is null or WawiCallPro.Interfaces.Telephony.RegistrationState.Stopped)
+            connectionLabel.Text = _configuration?.Current.IsSipConfigured == true
+                ? "SIP-Konto konfiguriert. Telefonie noch nicht verbunden."
+                : "Kein SIP-Konto konfiguriert.";
         statusItem.Caption = app.ProductLine + " · " + (_workspace?.Plugins.IsLoaded == true ? "Warenwirtschaftsplugin geladen" : "Kein Warenwirtschaftsplugin geladen");
         _operation = new PageOperation(this, connectionLabel);
         BindTelephony();
@@ -477,6 +480,7 @@ public partial class MainForm : RibbonForm
         mailCacheCancelItem.ImageOptions.SvgImage = RibbonIconHelper.Load("Close");
         audioConvertItem.ImageOptions.SvgImage = RibbonIconHelper.Load("AudioConvert");
         recordingInventoryItem.ImageOptions.SvgImage = RibbonIconHelper.Load("DatabaseCheck");
+        sipConnectItem.ImageOptions.SvgImage = RibbonIconHelper.Load("SipConnect");
     }
     private void DisposePage() { DisposeCompanyRestore(); DisposePluginShell(); DisposeMailOperation(); DisposePartyOpening(); UnbindTelephony(); tray.Visible = false; tray.Dispose(); _operation?.Dispose(); }
     internal Control? GetActiveDocumentView() => (tabbedView.ActiveDocument ?? _lastDocument)?.Control is Panel { Controls.Count: > 0 } host ? host.Controls[0] : null;

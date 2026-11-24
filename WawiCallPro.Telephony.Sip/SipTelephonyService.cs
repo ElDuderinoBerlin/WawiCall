@@ -603,14 +603,32 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     }
     private void SetRegistration(RegistrationState state, string? code = null)
     {
-        if (state == RegistrationState.Registered) Volatile.Write(ref _failure, null);
+        RegistrationState previous;
+        RegistrationSnapshot snapshot;
+        lock (_gate)
+        {
+            previous = _registration.State;
+            if (state == RegistrationState.Registered) Volatile.Write(ref _failure, null);
+            if (code is not null) Volatile.Write(ref _failure, code);
+            snapshot = _registration = new(state, _clock.GetUtcNow(), code)
+                { SipProfileId = state == RegistrationState.Stopped ? null : _sipProfileId };
+        }
         if (code is not null)
         {
-            Volatile.Write(ref _failure, code);
             OperationEvents.Write(_log, SipRegistrationMessages.ForCode(code));
         }
-        lock (_gate) _registration = new(state, _clock.GetUtcNow(), code) { SipProfileId = state == RegistrationState.Stopped ? null : _sipProfileId };
-        Publish(RegistrationChanged, new(Registration));
+        else if (state != previous)
+        {
+            var operation = state switch
+            {
+                RegistrationState.Registering => OperationEvent.SipRegistrationStarted,
+                RegistrationState.Registered => OperationEvent.SipRegistrationSucceeded,
+                RegistrationState.Stopped => OperationEvent.SipRegistrationStopped,
+                _ => (OperationEvent?)null
+            };
+            if (operation is { } notice) OperationEvents.Write(_log, notice);
+        }
+        Publish(RegistrationChanged, new(snapshot));
     }
     private void Failure(string code) { Volatile.Write(ref _failure, code); _log.LogWarning("SIP operation: {Code}", code); }
     private void Publish<T>(EventHandler<T>? handler, T args) where T : EventArgs

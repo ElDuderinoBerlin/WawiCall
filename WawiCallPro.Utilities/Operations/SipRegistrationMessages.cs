@@ -15,6 +15,9 @@ public static class SipRegistrationMessages
 
     public static string? Get(OperationEvent operation) => operation switch
     {
+        OperationEvent.SipRegistrationStarted => "SIP-Anmeldung läuft …",
+        OperationEvent.SipRegistrationSucceeded => "SIP-Konto angemeldet.",
+        OperationEvent.SipRegistrationStopped => "SIP-Konto nicht angemeldet.",
         OperationEvent.SipRegistrationDatabaseNotReady =>
             "Die SIP-Anmeldung wurde nicht gestartet. Prüfen Sie die Kommunikationsdatenbank und den Arbeitsplatz unter „Datenbank → Datenbank einrichten“.",
         OperationEvent.SipRegistrationAccountMissing =>

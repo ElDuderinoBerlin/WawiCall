@@ -1,5 +1,6 @@
 using WawiCallPro.App.Views;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Utilities.Licensing;
 
 namespace WawiCallPro.App;
 
@@ -26,6 +27,40 @@ public partial class MainForm
         dial.Show(this);
     }
     private readonly CancellationTokenSource _telephonyUiLifetime = new();
+    private bool _startingSipRegistration;
+
+    private async void SipConnect_Click(object sender, DevExpress.XtraBars.ItemClickEventArgs e) => await ConnectSavedSipProfileAsync();
+
+    private async Task ConnectSavedSipProfileAsync()
+    {
+        if (_closing || _startingSipRegistration || !sipConnectItem.Enabled ||
+            _workspace?.TelephonyConnection is not { } connection) return;
+        _startingSipRegistration = true;
+        sipConnectItem.Enabled = false;
+        using var waiting = new Hosting.UiWaitCursor(this);
+        try { await connection.ConnectAsync(_telephonyUiLifetime.Token); }
+        catch (OperationCanceledException) when (_telephonyUiLifetime.IsCancellationRequested) { }
+        catch (TelephonyException error)
+        {
+            // The SIP runtime already reports failures that reached the registrar.
+            if (error.Code == "Busy" && !_closing && !IsDisposed)
+                AppendOutput("Die SIP-Anmeldung ist erst nach Ende des laufenden Gesprächs möglich.");
+        }
+        catch (Exception error) when (error is LicenseAccessException or UnauthorizedAccessException)
+        {
+            if (!_closing && !IsDisposed) AppendOutput("Die SIP-Anmeldung konnte nicht freigegeben werden. Prüfen Sie den Lizenz- und Anwendungsstatus.");
+        }
+        catch (Exception)
+        {
+            if (!_closing && !IsDisposed) AppendOutput("Die SIP-Anmeldung konnte nicht gestartet werden. Bitte prüfen Sie das gespeicherte SIP-Profil.");
+        }
+        finally
+        {
+            _startingSipRegistration = false;
+            if (!_closing && !IsDisposed) UpdateTelephonyStatus();
+        }
+    }
+
     private void BindTelephony()
     {
         if (_workspace?.Telephony is null) return;
@@ -68,6 +103,8 @@ public partial class MainForm
     }
     private void UpdateTelephonyStatus()
     {
+        sipConnectItem.Enabled = !_startingSipRegistration && _workspace?.TelephonyConnection is not null
+            && _workspace.Telephony?.Registration.State is RegistrationState.Stopped or RegistrationState.Failed;
         var text = _workspace?.Telephony?.Registration.State switch
         {
             RegistrationState.Registered => "SIP-Konto angemeldet.",

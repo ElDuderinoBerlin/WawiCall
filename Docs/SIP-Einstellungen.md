@@ -160,6 +160,10 @@ SIP-Kontoprofils. Verfahren und Anlagenkompatibilität werden geprüft; siehe
 
 ## Bedienung und Prüfung
 
+**Start → Telefonie → SIP-Konto anmelden** meldet im Hauptfenster das gespeicherte aktive SIP-Profil an.
+Im Ausgabefenster stehen der Anmeldestart, die erfolgreiche Anmeldung und die Abmeldung.
+Bei einem Fehler erscheint dort der konkrete Hinweis zur SIP-Anmeldung.
+
 Die Oberfläche benötigt getrennte Aktionen für Speichern/Übernehmen, Anmelden, Abmelden,
 Registrierungsprüfung und Audiovorhören. Eine Registrierungsprüfung führt einen sichtbaren
 Anmeldeversuch aus; sie bestätigt noch keinen erfolgreichen Gesprächs-/RTP-Pfad.
