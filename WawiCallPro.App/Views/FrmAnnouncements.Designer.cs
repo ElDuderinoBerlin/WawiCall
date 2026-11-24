@@ -3,14 +3,21 @@ namespace WawiCallPro.App.Views;
 
 partial class FrmAnnouncements
 {
+    private System.ComponentModel.IContainer components;
+
     protected override void Dispose(bool disposing)
     {
-        if (disposing) DisposePage();
+        if (disposing)
+        {
+            DisposePage();
+            if (components != null) components.Dispose();
+        }
         base.Dispose(disposing);
     }
 
     private void InitializeComponent()
     {
+        components = new System.ComponentModel.Container();
         layout = new System.Windows.Forms.TableLayoutPanel();
         choicesLayout = new System.Windows.Forms.TableLayoutPanel();
         actions = new System.Windows.Forms.TableLayoutPanel();
@@ -18,6 +25,9 @@ partial class FrmAnnouncements
         captureEdit = new DevExpress.XtraEditors.LookUpEdit();
         playbackLabel = new DevExpress.XtraEditors.LabelControl();
         playbackEdit = new DevExpress.XtraEditors.LookUpEdit();
+        capturePeak = new DevExpress.XtraEditors.ProgressBarControl();
+        playbackPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        meterTimer = new System.Windows.Forms.Timer(components);
         voiceLabel = new DevExpress.XtraEditors.LabelControl();
         voiceEdit = new DevExpress.XtraEditors.LookUpEdit();
         textLabel = new DevExpress.XtraEditors.LabelControl();
@@ -40,12 +50,13 @@ partial class FrmAnnouncements
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-        choicesLayout.ColumnCount = 2;
+        choicesLayout.ColumnCount = 3;
         choicesLayout.RowCount = 3;
         choicesLayout.AutoSize = true;
         choicesLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         choicesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         choicesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        choicesLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         choicesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         choicesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         choicesLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -59,6 +70,11 @@ partial class FrmAnnouncements
         captureEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
         choicesLayout.Controls.Add(captureLabel, 0, 0);
         choicesLayout.Controls.Add(captureEdit, 1, 0);
+        capturePeak.Name = "capturePeak";
+        capturePeak.AccessibleName = "Mikrofonpegel";
+        capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        capturePeak.Margin = new System.Windows.Forms.Padding(4);
+        choicesLayout.Controls.Add(capturePeak, 2, 0);
         playbackLabel.Text = "Ausgabe zum Vorhören";
         playbackLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         playbackLabel.Margin = new System.Windows.Forms.Padding(4, 5, 16, 5);
@@ -69,6 +85,11 @@ partial class FrmAnnouncements
         playbackEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
         choicesLayout.Controls.Add(playbackLabel, 0, 1);
         choicesLayout.Controls.Add(playbackEdit, 1, 1);
+        playbackPeak.Name = "playbackPeak";
+        playbackPeak.AccessibleName = "Ausgabepegel beim Vorhören";
+        playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        playbackPeak.Margin = new System.Windows.Forms.Padding(4);
+        choicesLayout.Controls.Add(playbackPeak, 2, 1);
         voiceLabel.Text = "Windows-Stimme";
         voiceLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         voiceLabel.Margin = new System.Windows.Forms.Padding(4, 5, 16, 5);
@@ -79,6 +100,7 @@ partial class FrmAnnouncements
         voiceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
         choicesLayout.Controls.Add(voiceLabel, 0, 2);
         choicesLayout.Controls.Add(voiceEdit, 1, 2);
+        choicesLayout.SetColumnSpan(voiceEdit, 2);
         textLabel.Text = "Ansagetext";
         textLabel.Margin = new System.Windows.Forms.Padding(4, 12, 4, 4);
         textEdit.Name = "textEdit";
@@ -137,6 +159,9 @@ partial class FrmAnnouncements
         StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
         ShowInTaskbar = false;
         Shown += Window_Shown;
+        VisibleChanged += MeterView_Changed;
+        meterTimer.Interval = 100;
+        meterTimer.Tick += MeterTimer_Tick;
         FontChanged += Font_Changed;
         DpiChanged += Dpi_Changed;
         FormClosing += Window_FormClosing;
@@ -150,6 +175,9 @@ partial class FrmAnnouncements
     private DevExpress.XtraEditors.LookUpEdit captureEdit;
     private DevExpress.XtraEditors.LabelControl playbackLabel;
     private DevExpress.XtraEditors.LookUpEdit playbackEdit;
+    private DevExpress.XtraEditors.ProgressBarControl capturePeak;
+    private DevExpress.XtraEditors.ProgressBarControl playbackPeak;
+    private System.Windows.Forms.Timer meterTimer;
     private DevExpress.XtraEditors.LabelControl voiceLabel;
     private DevExpress.XtraEditors.LookUpEdit voiceEdit;
     private DevExpress.XtraEditors.LabelControl textLabel;

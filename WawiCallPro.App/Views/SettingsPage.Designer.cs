@@ -20,6 +20,7 @@ partial class SettingsPage
 
     private void InitializeComponent()
     {
+        components = new System.ComponentModel.Container();
         cachePages = new DevExpress.XtraTab.XtraTabControl();
         cacheSourcesTab = new DevExpress.XtraTab.XtraTabPage();
         matchingTab = new DevExpress.XtraTab.XtraTabPage();
@@ -138,6 +139,10 @@ partial class SettingsPage
         captureDeviceLabel = new DevExpress.XtraEditors.LabelControl();
         playbackDeviceLabel = new DevExpress.XtraEditors.LabelControl();
         ringDeviceLabel = new DevExpress.XtraEditors.LabelControl();
+        capturePeak = new DevExpress.XtraEditors.ProgressBarControl();
+        playbackPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        ringPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        audioMeterTimer = new System.Windows.Forms.Timer(components);
         windowsRingtoneLabel = new DevExpress.XtraEditors.LabelControl();
         windowsRingtoneEdit = new DevExpress.XtraEditors.LookUpEdit();
         previewRingtoneButton = new DevExpress.XtraEditors.SimpleButton();
@@ -739,6 +744,11 @@ partial class SettingsPage
         audioPages.Dock = System.Windows.Forms.DockStyle.Fill;
         audioPages.TabPages.Add(audioDevicesTab);
         audioPages.TabPages.Add(audioLevelsTab);
+        audioPages.SelectedPageChanged += AudioMeterView_Changed;
+        tabs.SelectedPageChanged += AudioMeterView_Changed;
+        VisibleChanged += AudioMeterView_Changed;
+        audioMeterTimer.Interval = 100;
+        audioMeterTimer.Tick += AudioMeterTimer_Tick;
         audioDevicesTab.Text = "Geräte";
         audioDevicesTab.Controls.Add(audioLayout);
         audioDevicesTab.AutoScroll = true;
@@ -821,7 +831,12 @@ partial class SettingsPage
         captureDeviceEdit.Enabled = false;
         captureDeviceEdit.EditValueChanged += Device_EditValueChanged;
         audioLayout.Controls.Add(captureDeviceEdit, 1, 0);
-        audioLayout.SetColumnSpan(captureDeviceEdit, 2);
+        capturePeak.Name = "capturePeak";
+        capturePeak.AccessibleName = "Mikrofonpegel";
+        capturePeak.Size = new System.Drawing.Size(96, 18);
+        capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
+        capturePeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+        audioLayout.Controls.Add(capturePeak, 2, 0);
         playbackDeviceEdit.Name = "playbackDeviceEdit";
         playbackDeviceEdit.Properties.ValueMember = "Id";
         playbackDeviceEdit.Properties.DisplayMember = "Name";
@@ -838,7 +853,12 @@ partial class SettingsPage
         audioLayout.Controls.Add(playbackDeviceEdit, 1, 1);
         ringDeviceEdit.Name = "ringDeviceEdit";
         ringDeviceEdit.Properties.DisplayMember = "Name";
-        audioLayout.SetColumnSpan(playbackDeviceEdit, 2);
+        playbackPeak.Name = "playbackPeak";
+        playbackPeak.AccessibleName = "Pegel der Gesprächsausgabe";
+        playbackPeak.Size = new System.Drawing.Size(96, 18);
+        playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
+        playbackPeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+        audioLayout.Controls.Add(playbackPeak, 2, 1);
         ringDeviceEdit.Properties.ValueMember = "Id";
         ringDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
         ringDeviceEdit.Properties.ShowHeader = false;
@@ -851,7 +871,12 @@ partial class SettingsPage
         ringDeviceEdit.Enabled = false;
         ringDeviceEdit.EditValueChanged += Device_EditValueChanged;
         audioLayout.Controls.Add(ringDeviceEdit, 1, 2);
-        audioLayout.SetColumnSpan(ringDeviceEdit, 2);
+        ringPeak.Name = "ringPeak";
+        ringPeak.AccessibleName = "Pegel der Klingelausgabe";
+        ringPeak.Size = new System.Drawing.Size(96, 18);
+        ringPeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
+        ringPeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+        audioLayout.Controls.Add(ringPeak, 2, 2);
         windowsRingtoneLabel.Text = "Klingelton";
         windowsRingtoneLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         windowsRingtoneLabel.Margin = new System.Windows.Forms.Padding(4, 4, 12, 4);
@@ -1408,6 +1433,10 @@ partial class SettingsPage
     private DevExpress.XtraEditors.LabelControl captureDeviceLabel;
     private DevExpress.XtraEditors.LabelControl playbackDeviceLabel;
     private DevExpress.XtraEditors.LabelControl ringDeviceLabel;
+    private DevExpress.XtraEditors.ProgressBarControl capturePeak;
+    private DevExpress.XtraEditors.ProgressBarControl playbackPeak;
+    private DevExpress.XtraEditors.ProgressBarControl ringPeak;
+    private System.Windows.Forms.Timer audioMeterTimer;
     private DevExpress.XtraEditors.LabelControl windowsRingtoneLabel;
     private DevExpress.XtraEditors.LookUpEdit windowsRingtoneEdit;
     private DevExpress.XtraEditors.SimpleButton previewRingtoneButton;

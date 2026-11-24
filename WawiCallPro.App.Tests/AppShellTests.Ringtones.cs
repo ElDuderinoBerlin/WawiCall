@@ -61,6 +61,7 @@ public sealed partial class AppShellTests
             var notice = page.LastSettingsNotice;
             await page.PreviewRingtoneAsync();
             Assert.AreEqual(notice, page.LastSettingsNotice);
+            Assert.Contains("Windows", Field<LabelControl>(page, "audioStatus").Text);
             Assert.AreEqual(22050, output.SampleRate);
             Assert.AreEqual(35, output.Volume);
             Assert.AreEqual("RingPrevious.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
@@ -86,6 +87,7 @@ public sealed partial class AppShellTests
             Assert.AreEqual(customFile, saved.CustomRingtonePath);
             Assert.IsNull(saved.WindowsRingtoneFile);
             Assert.Contains(channels == 1 ? "Mono" : "Stereo", info.Text);
+            await page.PreviewRingtoneAsync();
             dialog.MinimumSize = Size.Empty;
             dialog.ClientSize = new Size(680, 870);
             if (scale != 1) dialog.Scale(new SizeF(scale, scale));
@@ -93,6 +95,8 @@ public sealed partial class AppShellTests
             Application.DoEvents();
             CheckTableBounds(dialog);
             Assert.AreEqual(Field<LookUpEdit>(page, "ringDeviceEdit").Left, ringtone.Left);
+            Assert.IsGreaterThan(Field<ProgressBarControl>(page, "ringPeak").Width, ringtone.Width);
+            Assert.IsGreaterThan(0, Field<ProgressBarControl>(page, "ringPeak").Height);
             Assert.IsLessThanOrEqualTo(button.Left, ringtone.Right);
             Assert.AreEqual(Field<SimpleButton>(page, "browseRingtoneButton").Width, button.Width);
             var folder = Path.Combine(RenderOutput(), "windows-ringtones", workspace.Application.ProductLine);
@@ -107,6 +111,28 @@ public sealed partial class AppShellTests
             WindowsFormsSettings.DefaultFont = previousFont;
             AppearanceObject.DefaultFont = previousAppearance;
         }
+    });
+
+    [TestMethod]
+    public Task SettingsDeviceMetersReleaseWhenLeavingTheAudioTab() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var catalog = new AnnouncementCatalogDouble();
+        using var dialog = new FrmSettings(workspace);
+        dialog.PrepareForBackgroundRun();
+        dialog.ConfigureAudioDevices(catalog);
+        await dialog.PrepareAsync();
+        dialog.Show();
+        var page = Field<SettingsPage>(dialog, "settingsPage");
+        Assert.AreEqual(0, catalog.OpenMeters);
+        dialog.SelectAutomationTab("settings-audio");
+        await AppComTelephonyTests.Until(() => Field<ProgressBarControl>(page, "capturePeak").Position == 34);
+        Assert.AreEqual(67, Field<ProgressBarControl>(page, "playbackPeak").Position);
+        Assert.AreEqual(67, Field<ProgressBarControl>(page, "ringPeak").Position);
+        Assert.AreEqual(3, catalog.OpenMeters);
+        dialog.SelectAutomationTab("settings-audio-levels");
+        Assert.AreEqual(0, catalog.OpenMeters);
+        Assert.AreEqual(0, Field<ProgressBarControl>(page, "ringPeak").Position);
+        await dialog.StopAsync();
     });
 
     private sealed class RingtoneSettingsOutput : IHistoryRecordingOutput

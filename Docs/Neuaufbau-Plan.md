@@ -3659,6 +3659,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   App und Konsole in Debug/Any CPU für Pro und FinOffice ohne Warnungen und Fehler gebaut.
   Je Edition 69 Telefonietests und neun gezielte App- und Audioprüfungen bestanden.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
+- [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
+  `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen
+  sind Mikrofon, Gesprächsausgabe und Klingelausgabe getrennt sichtbar. Beim Vorhören zeigen beide
+  Dialoge zusätzlich die Windows-Gerätelautstärke und Stummschaltung aus `AudioEndpointVolume`.
+  Gerätepegel und Windows-Lautstärke sind getrennte Messwerte. Beim Tabwechsel und Schließen werden
+  die Meter freigegeben. Beide Editionen prüften die Anzeigen mit Testwerten und lasen das Jabra
+  Link 380 direkt aus. Debug-Builds von App und Konsole, neun gezielte Tests je Edition sowie
+  Renderprüfung bei großer Schrift und 150 % Skalierung. Nachweise `.artifacts/phase9-endpoint-meters/`.
 - [x] ✅ Installierte Windows-Klingeltöne unter **Einstellungen → Audio → Geräte** auswählen und vorhören.
   Die Hilfsklasse `WindowsRingtoneFiles` liest `Ring*.wav` und `Windows Ring*.wav` aus dem Medienordner der laufenden
   Windows-Installation. Das lokale Profilformat 18 speichert den Dateinamen. Vorhandene Profile

@@ -92,7 +92,7 @@ public sealed partial class AppShellTests
 
                 var elapsed = System.Diagnostics.Stopwatch.StartNew();
                 await dialog.PreviewAsync().WaitAsync(TimeSpan.FromSeconds(12));
-                Assert.AreEqual("Wiedergabe beendet.", message.Text);
+                Assert.StartsWith("Wiedergabe beendet. Windows:", message.Text);
                 Assert.IsGreaterThan(TimeSpan.FromSeconds(4), elapsed.Elapsed);
                 Console.WriteLine($"Vorhören {attempt}: WASAPI nach {elapsed.Elapsed.TotalSeconds:F2} s beendet.");
             }
@@ -164,6 +164,7 @@ public sealed partial class AppShellTests
                 await recording;
                 await dialog.PreviewAsync();
                 Assert.AreEqual("speaker", audio.PreviewDevice);
+                Assert.Contains("Windows: 0 %, stumm.", Field<LabelControl>(dialog, "statusLabel").Text);
                 draft = audio.Draft;
                 Assert.IsTrue(File.Exists(draft));
                 await dialog.ExportAsync(Path.Combine(output, "fixture-export.wav"));
@@ -173,6 +174,8 @@ public sealed partial class AppShellTests
                 Assert.IsFalse(File.Exists(draft));
                 Assert.AreEqual("voice", speech.SelectedVoice);
                 await dialog.PreviewAsync();
+                await AppComTelephonyTests.Until(() => Field<ProgressBarControl>(dialog, "capturePeak").Position == 34);
+                Assert.AreEqual(67, Field<ProgressBarControl>(dialog, "playbackPeak").Position);
                 draft = audio.Draft;
                 dialog.ClientSize = new Size(665, 440);
                 if (points == 10F) dialog.Scale(new SizeF(1.5F, 1.5F));
@@ -182,6 +185,7 @@ public sealed partial class AppShellTests
                 bitmap.Save(Path.Combine(output, $"announcements-{skin}-{points:0}.png"));
             }
             Assert.IsFalse(File.Exists(draft));
+            Assert.AreEqual(0, catalog.OpenMeters);
             using var reopened = new FrmAnnouncements(audio, speech, conversion, catalog, workspace.Settings, null);
             await reopened.LoadAsync();
             Assert.AreEqual("mic", Field<LookUpEdit>(reopened, "captureEdit").EditValue);
@@ -200,10 +204,26 @@ public sealed partial class AppShellTests
         }
     });
 
-    private sealed class AnnouncementCatalogDouble : IAudioDeviceCatalog
+    private sealed class AnnouncementCatalogDouble : IAudioDeviceCatalog, IAudioEndpointMeterFactory
     {
+        internal int OpenMeters { get; private set; }
+
         public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(new AudioDeviceCatalog([new("mic", "USB-Mikrofon")], [new("speaker", "Headset")]));
+
+        public IAudioEndpointMeter? Open(AudioEndpointDirection direction, string? deviceId)
+        {
+            if (deviceId == "missing-microphone") return null;
+            OpenMeters++;
+            var reading = direction == AudioEndpointDirection.Capture ? new AudioEndpointReading(34, 70, false) : new(67, 0, true);
+            return new Meter(reading, () => OpenMeters--);
+        }
+
+        private sealed class Meter(AudioEndpointReading reading, Action close) : IAudioEndpointMeter
+        {
+            public AudioEndpointReading Read() => reading;
+            public void Dispose() => close();
+        }
     }
 
     private sealed class AnnouncementAudioDouble : IAnnouncementAudio

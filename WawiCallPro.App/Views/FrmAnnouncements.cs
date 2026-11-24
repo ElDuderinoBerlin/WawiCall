@@ -14,6 +14,9 @@ public partial class FrmAnnouncements : XtraForm
     private readonly IAnnouncementSpeech? _speech;
     private readonly IAudioFileConversion? _conversion;
     private readonly IAudioDeviceCatalog? _catalog;
+    private readonly IAudioEndpointMeterFactory? _meterFactory;
+    private readonly EndpointMeterDisplay? _captureMeter;
+    private readonly EndpointMeterDisplay? _playbackMeter;
     private readonly ConfigurationStore? _settings;
     private readonly AppUiState? _state;
     private CancellationTokenSource? _operation;
@@ -43,6 +46,9 @@ public partial class FrmAnnouncements : XtraForm
         _speech = speech;
         _conversion = conversion;
         _catalog = catalog;
+        _meterFactory = catalog as IAudioEndpointMeterFactory;
+        _captureMeter = new EndpointMeterDisplay(capturePeak, AudioEndpointDirection.Capture);
+        _playbackMeter = new EndpointMeterDisplay(playbackPeak, AudioEndpointDirection.Playback);
         _settings = settings;
         _state = state;
     }
@@ -81,6 +87,7 @@ public partial class FrmAnnouncements : XtraForm
         Bind(playbackEdit, devices.Playback.Select(device => new Choice(device.Id, device.DisplayName)), saved.PlaybackDeviceId);
         Bind(voiceEdit, voices, saved.VoiceId);
         _loaded = true;
+        MeterView_Changed(this, EventArgs.Empty);
         statusLabel.Text = devices.Suppressed ? "Audiogeräte sind im Prüfmodus deaktiviert." : "";
     });
 
@@ -153,11 +160,37 @@ public partial class FrmAnnouncements : XtraForm
         var path = _draft!;
         return RunAsync(async token =>
         {
-            statusLabel.Text = "Ansage wird abgespielt …";
+            var deviceStatus = _meterFactory is { } factory ? " " + EndpointMeterDisplay.Describe(_playbackMeter?.Update(factory, device)) : "";
+            statusLabel.Text = "Ansage wird abgespielt …" + deviceStatus;
             var options = (await _settings!.LoadAsync(token)).Options.Devices;
             await _audio!.PreviewAsync(path, options with { PlaybackDeviceId = device }, token);
-            statusLabel.Text = "Wiedergabe beendet.";
+            statusLabel.Text = "Wiedergabe beendet." + deviceStatus;
         });
+    }
+
+    private void MeterView_Changed(object? sender, EventArgs e)
+    {
+        if (meterTimer is null) return;
+        if (_loaded && !_closing && !_catalogSuppressed && Visible && _meterFactory is not null)
+        {
+            MeterTimer_Tick(this, EventArgs.Empty);
+            meterTimer.Start();
+        }
+        else StopMeters();
+    }
+
+    private void MeterTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_meterFactory is not { } factory) return;
+        _captureMeter?.Update(factory, SelectedId(captureEdit));
+        _playbackMeter?.Update(factory, SelectedId(playbackEdit));
+    }
+
+    private void StopMeters()
+    {
+        meterTimer.Stop();
+        _captureMeter?.Dispose();
+        _playbackMeter?.Dispose();
     }
 
     internal Task SavePreferencesAsync()
@@ -263,6 +296,7 @@ public partial class FrmAnnouncements : XtraForm
     internal Task StopAsync()
     {
         _closing = true;
+        StopMeters();
         _operation?.Cancel();
         UpdateActions();
         return _pending;
@@ -280,6 +314,7 @@ public partial class FrmAnnouncements : XtraForm
     private void DisposePage()
     {
         LookAndFeel.StyleChanged -= Font_Changed;
+        StopMeters();
         _operation?.Cancel();
         DeleteDraft();
     }

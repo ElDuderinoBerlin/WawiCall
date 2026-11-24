@@ -6,11 +6,14 @@ using WawiCallPro.Utilities.Diagnostics;
 namespace WawiCallPro.Audio;
 
 /// <summary>Enumerates CSCore endpoint metadata on a worker; no audio client or stream is activated.</summary>
-public sealed class WindowsAudioDeviceCatalog(StartupExecutionMode mode) : IAudioDeviceCatalog
+public sealed class WindowsAudioDeviceCatalog(StartupExecutionMode mode) : IAudioDeviceCatalog, IAudioEndpointMeterFactory
 {
     public WindowsAudioDeviceCatalog(StartupExecutionMode mode, WindowsIncomingRingtone ringtones) : this(mode) => Ringtones = ringtones;
 
     public WindowsIncomingRingtone? Ringtones { get; }
+
+    public IAudioEndpointMeter? Open(AudioEndpointDirection direction, string? deviceId) =>
+        mode.SuppressNetwork ? null : WindowsAudioEndpointMeter.Open(direction, deviceId);
 
     public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default)
     {

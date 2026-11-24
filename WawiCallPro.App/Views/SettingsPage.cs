@@ -253,6 +253,7 @@ public partial class SettingsPage : XtraUserControl
     private void DisposePage()
     {
         _audioStopped = true;
+        StopAudioMeters();
         passwordEdit.Text = "";
         _operation?.Dispose();
         _ringtoneOperation?.Dispose();

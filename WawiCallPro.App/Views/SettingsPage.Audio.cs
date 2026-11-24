@@ -15,6 +15,8 @@ public partial class SettingsPage
     private IAudioDeviceCatalog? _audioDevices;
     private AudioDeviceCatalog? _audioCatalog;
     private WindowsIncomingRingtone? _ringtones;
+    private IAudioEndpointMeterFactory? _meterFactory;
+    private EndpointMeterDisplay? _captureMeter, _playbackMeter, _ringMeter;
     private PageOperation? _ringtoneOperation;
     private IReadOnlyList<string> _windowsRingtones = [];
     private string? _customRingtonePath;
@@ -25,6 +27,10 @@ public partial class SettingsPage
     {
         _audioDevices = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _ringtones = (catalog as WindowsAudioDeviceCatalog)?.Ringtones;
+        _meterFactory = catalog as IAudioEndpointMeterFactory;
+        _captureMeter = new EndpointMeterDisplay(capturePeak, AudioEndpointDirection.Capture);
+        _playbackMeter = new EndpointMeterDisplay(playbackPeak, AudioEndpointDirection.Playback);
+        _ringMeter = new EndpointMeterDisplay(ringPeak, AudioEndpointDirection.Playback);
         refreshAudioButton.Enabled = !_audioStopped;
     }
 
@@ -106,11 +112,12 @@ public partial class SettingsPage
             RingDeviceId = ReadDevice(ringDeviceEdit), RingVolumePercent = volume
         };
         previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = false;
-        audioStatus.Text = "Klingelton wird abgespielt …";
+        var deviceStatus = _meterFactory is { } factory ? " " + EndpointMeterDisplay.Describe(_ringMeter?.Update(factory, settings.RingDeviceId)) : "";
+        audioStatus.Text = "Klingelton wird abgespielt …" + deviceStatus;
         try
         {
             var selected = await player.PreviewAsync(settings, token);
-            if (!_audioStopped) audioStatus.Text = selected ? "Klingelton abgespielt." : "Klingeldatei nicht verfügbar. Eingebauten Ton abgespielt.";
+            if (!_audioStopped) audioStatus.Text = (selected ? "Klingelton abgespielt." : "Klingeldatei nicht verfügbar. Eingebauten Ton abgespielt.") + deviceStatus;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception) { if (!_audioStopped) audioStatus.Text = "Klingelton konnte nicht abgespielt werden. Klingelausgabe und Windows-Lautstärke prüfen."; }
@@ -191,6 +198,35 @@ public partial class SettingsPage
     {
         captureDeviceEdit.Enabled = playbackDeviceEdit.Enabled = ringDeviceEdit.Enabled = enabled && !_audioStopped;
         windowsRingtoneEdit.Enabled = previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = ringDeviceEdit.Enabled && _ringtones is not null;
+        AudioMeterView_Changed(this, EventArgs.Empty);
+    }
+
+    private void AudioMeterView_Changed(object? sender, EventArgs e)
+    {
+        if (audioMeterTimer is null || captureDeviceEdit is null) return;
+        if (!_audioStopped && _meterFactory is not null && Visible && captureDeviceEdit.Enabled
+            && tabs.SelectedTabPage == audioTab && audioPages.SelectedTabPage == audioDevicesTab)
+        {
+            AudioMeterTimer_Tick(this, EventArgs.Empty);
+            audioMeterTimer.Start();
+        }
+        else StopAudioMeters();
+    }
+
+    private void AudioMeterTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_meterFactory is not { } factory) return;
+        _captureMeter?.Update(factory, ReadDevice(captureDeviceEdit));
+        _playbackMeter?.Update(factory, ReadDevice(playbackDeviceEdit));
+        _ringMeter?.Update(factory, ReadDevice(ringDeviceEdit));
+    }
+
+    private void StopAudioMeters()
+    {
+        audioMeterTimer.Stop();
+        _captureMeter?.Dispose();
+        _playbackMeter?.Dispose();
+        _ringMeter?.Dispose();
     }
     private sealed record AudioDeviceChoice(string Id, string Name);
 }
