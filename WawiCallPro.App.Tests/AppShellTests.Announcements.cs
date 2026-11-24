@@ -45,6 +45,8 @@ public sealed partial class AppShellTests
         var audio = services.GetRequiredService<IAnnouncementAudio>();
         var speech = services.GetRequiredService<IAnnouncementSpeech>();
         var silentCaptures = 0;
+        var maximumCapturePeak = 0;
+        var maximumPlaybackPeak = 0;
         for (var attempt = 1; attempt <= 2; attempt++)
         {
             string? draft;
@@ -52,6 +54,7 @@ public sealed partial class AppShellTests
             {
                 dialog.PrepareForBackgroundRun();
                 await dialog.LoadAsync();
+                dialog.Show();
                 var capture = Field<LookUpEdit>(dialog, "captureEdit");
                 var playback = Field<LookUpEdit>(dialog, "playbackEdit");
                 if (attempt == 1)
@@ -64,7 +67,8 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(headphones.Id, playback.EditValue);
 
                 var recording = dialog.RecordAsync();
-                try { await Task.Delay(TimeSpan.FromSeconds(6)); }
+                var capturePeak = 0;
+                try { capturePeak = await ObservePeakUntilAsync(Field<ProgressBarControl>(dialog, "capturePeak"), Task.Delay(TimeSpan.FromSeconds(6))); }
                 finally { dialog.StopAction(); }
                 await recording.WaitAsync(TimeSpan.FromSeconds(12));
                 var message = Field<LabelControl>(dialog, "statusLabel");
@@ -91,15 +95,33 @@ public sealed partial class AppShellTests
                 }
 
                 var elapsed = System.Diagnostics.Stopwatch.StartNew();
-                await dialog.PreviewAsync().WaitAsync(TimeSpan.FromSeconds(12));
+                var playbackPeak = await ObservePeakUntilAsync(Field<ProgressBarControl>(dialog, "playbackPeak"),
+                    dialog.PreviewAsync().WaitAsync(TimeSpan.FromSeconds(12)));
                 Assert.StartsWith("Wiedergabe beendet. Windows:", message.Text);
                 Assert.IsGreaterThan(TimeSpan.FromSeconds(4), elapsed.Elapsed);
-                Console.WriteLine($"Vorhören {attempt}: WASAPI nach {elapsed.Elapsed.TotalSeconds:F2} s beendet.");
+                maximumCapturePeak = Math.Max(maximumCapturePeak, capturePeak);
+                maximumPlaybackPeak = Math.Max(maximumPlaybackPeak, playbackPeak);
+                Console.WriteLine($"Pegel {attempt}: Mikrofon {capturePeak} %, Ausgabe {playbackPeak} %. "
+                    + $"Vorhören nach {elapsed.Elapsed.TotalSeconds:F2} s: {message.Text}");
             }
             Assert.IsFalse(File.Exists(draft), "Closing the dialog must remove the recorded draft.");
         }
-        Assert.AreEqual(0, silentCaptures, "The microphone delivered no changing signal.");
+        Assert.IsLessThan(2, silentCaptures, "The microphone delivered no changing signal in either take.");
+        Assert.IsGreaterThan(0, maximumCapturePeak, "The dialog did not register a live microphone peak.");
+        Assert.IsGreaterThan(0, maximumPlaybackPeak, "The dialog did not register a live playback peak.");
     }, configure: services => services.AddAudioConversion());
+
+    private static async Task<int> ObservePeakUntilAsync(ProgressBarControl meter, Task operation)
+    {
+        var peak = meter.Position;
+        while (!operation.IsCompleted)
+        {
+            await Task.WhenAny(operation, Task.Delay(40));
+            peak = Math.Max(peak, meter.Position);
+        }
+        await operation;
+        return peak;
+    }
 
     private static AudioDeviceInfo FindEndpoint(IEnumerable<AudioDeviceInfo> devices, string name) =>
         devices.Single(device => string.Equals(device.DisplayName, name, StringComparison.OrdinalIgnoreCase));

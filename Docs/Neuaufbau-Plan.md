@@ -3667,6 +3667,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   die Meter freigegeben. Beide Editionen prüften die Anzeigen mit Testwerten und lasen das Jabra
   Link 380 direkt aus. Debug-Builds von App und Konsole, neun gezielte Tests je Edition sowie
   Renderprüfung bei großer Schrift und 150 % Skalierung. Nachweise `.artifacts/phase9-endpoint-meters/`.
+  Die anschließende Ansagenprobe am Jabra zeichnete je Edition zwei Sprachentwürfe mit 16 kHz auf
+  und spielte sie vor. Der Ansagendialog maß in beiden Editionen bis zu 7 % Mikrofon- und 2 %
+  Wiedergabepegel. Die Kopfhörer standen laut Windows bei 91 % und waren nicht stumm. Alle vier
+  Entwürfe wurden beim Schließen entfernt. Nachweise `Pro-Jabra-speech.log` und `FinOffice-Jabra-speech.log`.
 - [x] ✅ Installierte Windows-Klingeltöne unter **Einstellungen → Audio → Geräte** auswählen und vorhören.
   Die Hilfsklasse `WindowsRingtoneFiles` liest `Ring*.wav` und `Windows Ring*.wav` aus dem Medienordner der laufenden
   Windows-Installation. Das lokale Profilformat 18 speichert den Dateinamen. Vorhandene Profile
