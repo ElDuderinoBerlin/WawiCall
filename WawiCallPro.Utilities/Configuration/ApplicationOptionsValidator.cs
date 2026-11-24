@@ -211,6 +211,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         }
         if (!IsValidDeviceId(devices.CaptureDeviceId) || !IsValidDeviceId(devices.PlaybackDeviceId) || !IsValidDeviceId(devices.RingDeviceId))
             issues.Add(new("devices", "Gerätekennungen müssen null oder nichtleere Kennungen ohne Steuerzeichen sein."));
+        if (devices.WindowsRingtoneFile is { } ringtone && !IsWindowsRingtoneFileName(ringtone))
+            issues.Add(new("devices.windowsRingtoneFile", "Der Windows-Klingelton muss ein WAV-Dateiname ohne Pfad sein."));
         if (devices.PlaybackVolumePercent is < 0 or > 100)
             issues.Add(new("devices.playbackVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
         if (devices.RingVolumePercent is < 0 or > 100)
@@ -318,6 +320,11 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
 
     private static bool IsValidDeviceId(string? id) =>
         id is null || (!string.IsNullOrWhiteSpace(id) && id.Length <= 1024 && !id.Any(char.IsControl));
+
+    private static bool IsWindowsRingtoneFileName(string name) => name.Length is > 4 and <= 255
+        && name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+        && !name.Any(char.IsControl) && name.IndexOfAny(['/', '\\', ':']) < 0
+        && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
 
     private static bool IsReservedDeviceName(string fileName)
     {

@@ -14,7 +14,7 @@ public sealed partial class SipTelephonyService
         var settings = _devices;
         var playback = Task.Run(async () =>
         {
-            try { await player.PlayAsync(settings.RingDeviceId, settings.RingVolumePercent, token).ConfigureAwait(false); }
+            try { await player.PlayAsync(settings, token).ConfigureAwait(false); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch { _log.LogWarning("Der Klingelton konnte nicht ausgegeben werden. Bitte prüfen Sie die Klingelausgabe."); }
         }, token);

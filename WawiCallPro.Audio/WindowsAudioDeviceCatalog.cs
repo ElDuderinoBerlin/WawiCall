@@ -8,6 +8,10 @@ namespace WawiCallPro.Audio;
 /// <summary>Enumerates CSCore endpoint metadata on a worker; no audio client or stream is activated.</summary>
 public sealed class WindowsAudioDeviceCatalog(StartupExecutionMode mode) : IAudioDeviceCatalog
 {
+    public WindowsAudioDeviceCatalog(StartupExecutionMode mode, WindowsIncomingRingtone ringtones) : this(mode) => Ringtones = ringtones;
+
+    public WindowsIncomingRingtone? Ringtones { get; }
+
     public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

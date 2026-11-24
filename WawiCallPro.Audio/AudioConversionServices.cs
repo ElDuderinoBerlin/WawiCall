@@ -15,6 +15,7 @@ public static class AudioConversionServices
         services.TryAddSingleton<IMp3Converter, WavToMp3Converter>();
         services.TryAddSingleton<WawiCallPro.Utilities.Persistence.IRecordingFormatConverters, RecordingFormatConverters>();
         services.TryAddSingleton<IHistoryRecordingOutput, WasapiHistoryRecordingOutput>();
+        services.TryAddSingleton<WindowsIncomingRingtone>();
         services.TryAddSingleton<IAudioFileConversion, AudioFileConversion>();
         services.TryAddSingleton<IAnnouncementSpeech, WindowsAnnouncementSpeech>();
         services.TryAddSingleton<IAnnouncementAudio, WindowsAnnouncementAudio>();

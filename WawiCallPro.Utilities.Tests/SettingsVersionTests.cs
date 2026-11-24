@@ -124,7 +124,7 @@ public sealed class SettingsVersionTests
         var options = new ApplicationOptions
         {
             User = new UserSettings { PreferredCompany = key },
-            Devices = new AudioDeviceSettings { CaptureDeviceId = "capture-ä-001", RingDeviceId = "ring-002", RingVolumePercent = 70 },
+            Devices = new AudioDeviceSettings { CaptureDeviceId = "capture-ä-001", RingDeviceId = "ring-002", RingVolumePercent = 70, WindowsRingtoneFile = "Windows Ringin.wav" },
             Database = new CommunicationDatabaseSettings
             {
                 Provider = CommunicationDatabaseProvider.SqlServer,
@@ -142,6 +142,7 @@ public sealed class SettingsVersionTests
         Assert.AreEqual(key, second.Options.User.PreferredCompany);
         Assert.AreEqual("capture-ä-001", second.Options.Devices.CaptureDeviceId);
         Assert.AreEqual(70, second.Options.Devices.RingVolumePercent);
+        Assert.AreEqual("Windows Ringin.wav", second.Options.Devices.WindowsRingtoneFile);
         Assert.AreEqual("030", second.Options.FindCompanySettings(key)!.LocalAreaCode);
         Assert.AreEqual(CommunicationDatabaseProvider.SqlServer, second.Options.Database.Provider);
         using var revealed = directory.Protector.Unprotect(second.Options.Database.ConnectionString!, CommunicationDatabaseSettings.ConnectionStringPurpose);
@@ -150,6 +151,22 @@ public sealed class SettingsVersionTests
         Assert.DoesNotContain(connection, saved);
         Assert.DoesNotContain("synthetic-db-password", saved);
         Assert.DoesNotContain("synthetic.invalid", saved);
+    }
+
+    [TestMethod]
+    public async Task VersionSeventeenKeepsTheBuiltInRingtoneAndPathsAreRejected()
+    {
+        using var directory = new SettingsDirectory();
+        await File.WriteAllTextAsync(directory.Location.FilePath, """{"formatVersion":17,"settings":{"devices":{"ringVolumePercent":30}}}""");
+        var before = await directory.Store.LoadAsync();
+        Assert.IsNull(before.Options.Devices.WindowsRingtoneFile);
+        Assert.AreEqual(30, before.Options.Devices.RingVolumePercent);
+        foreach (var path in new[] { "../Ring01.wav", @"Media\Ring01.wav", @"C:\Windows\Media\Ring01.wav", "Ring01.mp3" })
+        {
+            var edited = before.Options with { Devices = before.Options.Devices with { WindowsRingtoneFile = path } };
+            await Assert.ThrowsAsync<ConfigurationException>(() => directory.Store.SaveAsync(edited, before));
+        }
+        Assert.AreEqual(17, (await directory.Store.LoadAsync()).FormatVersion);
     }
 
     [TestMethod]

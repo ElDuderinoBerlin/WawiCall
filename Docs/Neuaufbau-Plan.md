@@ -3659,6 +3659,19 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   App und Konsole in Debug/Any CPU für Pro und FinOffice ohne Warnungen und Fehler gebaut.
   Je Edition 69 Telefonietests und neun gezielte App- und Audioprüfungen bestanden.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
+- [x] ✅ Installierte Windows-Klingeltöne unter **Einstellungen → Audio → Geräte** auswählen und vorhören.
+  Der Katalog liest `Ring*.wav` und `Windows Ring*.wav` aus dem Medienordner der laufenden
+  Windows-Installation. Das lokale Profilformat 18 speichert den Dateinamen. Vorhandene Profile
+  verwenden weiterhin den eingebauten Ton. Fehlt eine gewählte Datei nach einem Windows-Wechsel
+  oder ist ihre WAV-Struktur ungültig, bleibt die Auswahl sichtbar und die Wiedergabe nutzt den
+  eingebauten Ton. Die Vorschau nutzt bis zu vier Sekunden lang die gewählte Klingelausgabe und
+  Lautstärke. Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
+  Sie wiederholen die WAV bis zum Ende des Klingelns über den konfigurierten Klingelausgang.
+  Windows 11 (Build 22631) stellte 13 Dateien bereit. Gerätespezifische Tests verwendeten `Ring01.wav`
+  und das Jabra Link 380. In Pro und FinOffice bestanden je 10 App-, 8 SIP- und 31
+  Konfigurationsprüfungen. Debug-/Any-CPU-Builds von App und Konsole erfolgreich. Hintergrundrenders
+  bei kleiner Fensterbreite, 16 pt im dunklen Skin und 150 % im hellen Skin geprüft.
+  Nachweise `.artifacts/phase9-windows-ringtones/`.
 - [x] ✅ Manuelle Live-Aufnahme einschließlich lokaler Zeitreferenzen umgesetzt (22.11.2026).
   `ILiveCallRecordingService` führt Start/Stop und gemeinsamen Status pro Call-ID; Buttons in
   Anruferfenster und Gesprächsdetails verwenden dieselbe Instanz. Start nur verbunden, Stop auch
