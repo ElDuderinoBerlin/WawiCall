@@ -4856,6 +4856,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Die Sprachsynthese listet installierte Stimmen, synthetisiert lokal in einen Audiostream
   und spielt ihn separat ab. Für den Neuaufbau die vorhandene CSCore-Ausgabe und WAV-Konvertierung
   nutzen. Eine gespeicherte, inzwischen fehlende Stimme oder Geräte-ID muss im Dialog erkennbar bleiben.
+- [x] ✅ Lokale Text-to-Speech-Ansagen über die Konsole erzeugen und vorhören. Die Windows-Stimmen
+  sind mit Sprachkennung und Stimm-ID auswählbar. Aus UTF-8-Text entsteht eine neue Mono-PCM16-WAV
+  über die vorhandene CSCore-Konvertierung. Die Vorschau verwendet das konfigurierte Ausgabegerät.
+  Beide Editionen erzeugten mit der ausdrücklich ausgewählten Windows-Stimme eine WAV und spielten sie
+  stumm über WASAPI ab. Vorhandene Ausgabe, fehlende Stimme, leerer und zu langer Text sowie ungültiges
+  UTF-8 wurden abgewiesen. Reguläre Debug-/Any-CPU-Builds für App und Console ohne Warnungen und Fehler.
+  Die Desktop-Ansagenverwaltung, Mikrofonaufnahme und dauerhafte Auswahl von Stimme und Geräten bleiben offen.
+  Nachweise `.artifacts/phase9-announcements/run-20261124-144239/`.
 
 Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, die gewählten Aufnahmeformate wiedergeben
 und Historie nach Neustart/Zeitraum prüfen. Unterschiedliche Codecs/Abtastraten, Aufnahme ab Gesprächsmitte,

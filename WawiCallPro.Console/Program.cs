@@ -8,17 +8,25 @@ using WawiCallPro.ConsoleApp.Diagnostics;
 using WawiCallPro.ConsoleApp.Presentation;
 using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Utilities.Persistence;
+using WawiCallPro.Audio;
 
 try
 {
     Console.OutputEncoding = new UTF8Encoding(false);
     var command = ConsoleCommand.Parse(args);
     var host = ConsoleCompositionRoot.Build(
-        loadPlugins: !command.UsesDatabase && !command.UsesRecordingDiagnostics && command.Name is not ("--workstation-init" or "--erp-configure"),
-        startRecordingRecovery: !command.UsesRecordingDiagnostics);
+        loadPlugins: !command.UsesDatabase && !command.UsesRecordingDiagnostics && !command.UsesAnnouncements && command.Name is not ("--workstation-init" or "--erp-configure"),
+        startRecordingRecovery: !command.UsesRecordingDiagnostics && !command.UsesAnnouncements);
     HostDiagnosticSnapshot? diagnostic = null;
     await HostExecution.RunAsync(host, async stoppingToken =>
     {
+        if (command.UsesAnnouncements)
+        {
+            var result = await AnnouncementCommands.ExecuteAsync(command, host.Services.GetRequiredService<IAnnouncementSpeech>(),
+                host.Services.GetRequiredService<IAudioFileConversion>(), stoppingToken);
+            await new TablePager(new SystemConsoleTerminal()).WriteAsync(result, stoppingToken);
+            return;
+        }
         diagnostic = await host.Services.GetRequiredService<HostDiagnostics>().CaptureAsync(stoppingToken);
         if (command.Name != "--diagnostics")
         {
@@ -65,6 +73,7 @@ try
 }
 catch (Exception exception)
 {
-    Console.Error.WriteLine(exception is DiagnosticException diagnostic ? diagnostic.Message : StartupFailureMessage.Format(exception));
+    Console.Error.WriteLine(exception is DiagnosticException or AnnouncementSpeechException or AudioFileConversionException
+        ? exception.Message : StartupFailureMessage.Format(exception));
     return 1;
 }

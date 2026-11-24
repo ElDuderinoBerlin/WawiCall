@@ -15,10 +15,21 @@ internal sealed record ConsoleCommand(string Name, string? File = null)
     internal string? ReviewWavePath { get; init; }
     internal bool UsesRecordingDiagnostics => UsesRecordingInventory || UsesRecordingExport || ReviewWavePath is not null;
     internal bool UsesPhoneMatching => Name is "--phone-rule" or "--phone-match";
+    internal bool UsesAnnouncements => Name is "--announcement-voices" or "--announcement-speech" or "--announcement-preview";
+    internal string? AnnouncementTextFile { get; init; }
+    internal string? AnnouncementVoiceId { get; init; }
     internal bool UsesDatabase => Name.StartsWith("--db-", StringComparison.Ordinal) || UsesPhoneMatching;
     internal static ConsoleCommand Parse(string[] arguments) => arguments switch
     {
         [] => new("--status"),
+        ["--announcement-voices"] => new(arguments[0]),
+        ["--announcement-preview", var wave] when Path.IsPathFullyQualified(wave)
+            && Path.GetExtension(wave).Equals(".wav", StringComparison.OrdinalIgnoreCase) => new(arguments[0], wave),
+        ["--announcement-speech", var text, var wave] when Path.IsPathFullyQualified(text) && Path.IsPathFullyQualified(wave)
+            => new(arguments[0], wave) { AnnouncementTextFile = text },
+        ["--announcement-speech", var text, var wave, var voice]
+            when Path.IsPathFullyQualified(text) && Path.IsPathFullyQualified(wave) && !string.IsNullOrWhiteSpace(voice)
+            => new(arguments[0], wave) { AnnouncementTextFile = text, AnnouncementVoiceId = voice },
         ["--recordings-inventory"] => new(arguments[0]),
         ["--recordings-inventory", "--details"] => new(arguments[0]) { ShowRecordingPaths = true },
         ["--recording-recover-wave", var relative, var destination]

@@ -638,6 +638,17 @@ und [Vertraege.md](Vertraege.md#pluginwahl-in-frmsettings-09112026).
 
 ### Eigener CSCore-Audioendpunkt
 
+Die Diagnosekonsole kann lokale Ansagen mit installierten Windows-Stimmen erzeugen. Die Stimm-ID
+ist optional. Ohne explizite Auswahl verwendet Windows die Standardstimme. Die UTF-8-Datei
+enthält höchstens 4000 Zeichen. Die WAV-Ausgabe wird neu angelegt. Die Vorschau nutzt die in den
+Audioeinstellungen gewählte Ausgabe und Lautstärke.
+
+```powershell
+.\WawiCallPro.Console.FinOffice.exe --announcement-voices
+.\WawiCallPro.Console.FinOffice.exe --announcement-speech 'D:\Audio\Ansage.txt' 'D:\Audio\Ansage.wav'
+.\WawiCallPro.Console.FinOffice.exe --announcement-preview 'D:\Audio\Ansage.wav'
+```
+
 Die Hauptsolution referenziert unter `src` direkt
 `../SIPSorceryMedia.Windows.CSCore/src/SIPSorceryMedia.Windows.CSCore.csproj`.
 `WawiCallPro.Audio` verwendet dessen `WindowsAudioEndPoint` über eine typisierte
