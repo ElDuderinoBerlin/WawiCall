@@ -7,6 +7,7 @@ using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Audio;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Diagnostics;
 
@@ -147,6 +148,55 @@ public sealed partial class AppShellTests
         Assert.AreEqual(0, Field<ProgressBarControl>(page, "ringPeak").Position);
         await dialog.StopAsync();
     });
+
+    [TestMethod]
+    public Task SettingsDetectRemovedAndReturnedDevicesWithoutReplacingTheDraft() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var catalog = new ChangingAudioCatalog();
+        using var dialog = new FrmSettings(workspace);
+        dialog.PrepareForBackgroundRun();
+        dialog.ConfigureAudioDevices(catalog);
+        await dialog.PrepareAsync();
+        dialog.SelectAutomationTab("settings-audio");
+        dialog.Show();
+        var page = Field<SettingsPage>(dialog, "settingsPage");
+        var capture = Field<LookUpEdit>(page, "captureDeviceEdit");
+        capture.EditValue = "test-mic";
+        Assert.AreEqual("USB-Mikrofon", capture.Text);
+        var notice = page.LastSettingsNotice;
+        catalog.Devices = new([], []);
+        await Task.Run(catalog.Notify);
+        await AppComTelephonyTests.Until(() => capture.Text == "Gerät nicht verfügbar");
+        Assert.AreEqual("test-mic", capture.EditValue);
+        catalog.Devices = new([new("test-mic", "USB-Mikrofon wieder da")], []);
+        await Task.Run(catalog.Notify);
+        await AppComTelephonyTests.Until(() => capture.Text == "USB-Mikrofon wieder da");
+        Assert.AreEqual(notice, page.LastSettingsNotice);
+        Assert.IsNull((await workspace.Settings.LoadAsync()).Options.Devices.CaptureDeviceId);
+        await dialog.StopAsync();
+        Assert.IsFalse(catalog.IsSubscribed);
+    });
+
+    private sealed class ChangingAudioCatalog : IAudioDeviceCatalog, IAudioDeviceChanges
+    {
+        private Action? _changed;
+        internal AudioDeviceCatalog Devices { get; set; } = new([new("test-mic", "USB-Mikrofon")], []);
+        internal bool IsSubscribed => _changed is not null;
+        internal void Notify() => _changed?.Invoke();
+
+        public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(Devices);
+
+        public IDisposable Subscribe(Action onChanged)
+        {
+            _changed = onChanged;
+            return new Subscription(this);
+        }
+
+        private sealed class Subscription(ChangingAudioCatalog owner) : IDisposable
+        {
+            public void Dispose() => owner._changed = null;
+        }
+    }
 
     private sealed class RingtoneSettingsOutput : IHistoryRecordingOutput
     {

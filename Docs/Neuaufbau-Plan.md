@@ -3681,6 +3681,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   im laufenden WASAPI-Stream, und der Status erscheint im Audio-Reiter. Ein Wartecursor erscheint
   bei der Dateiauswahl, während der Wiedergabe bleibt der normale Cursor sichtbar.
   Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
+  Windows-Geräteereignisse aktualisieren die Liste bei geöffneten Einstellungen automatisch.
+  Fehlende Geräte behalten ihre Zuordnung und erscheinen nach Rückkehr wieder in der Liste.
+  Die Gerätezeilen, Pegelanzeigen, Lautstärke und Aktionen bleiben auch in breiten Fenstern in
+  einem kompakten TableLayoutPanel. Je 14 App-Prüfungen in Pro und FinOffice bestanden, einschließlich
+  simuliertem Entfernen und Wiederanschließen. Nachweise `.artifacts/audio-device-layout/`.
   **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton

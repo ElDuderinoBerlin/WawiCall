@@ -13,5 +13,11 @@ public interface IAudioDeviceCatalog
     Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>Notifies about endpoint changes. Callbacks may run on a Windows audio thread.</summary>
+public interface IAudioDeviceChanges
+{
+    IDisposable? Subscribe(Action onChanged);
+}
+
 /// <summary>A safe display message; native exception details and endpoint IDs stay out of UI diagnostics.</summary>
-public sealed class AudioDeviceCatalogException() : Exception("Geräteliste nicht verfügbar. Bitte erneut laden. Zuordnungen bleiben erhalten.");
+public sealed class AudioDeviceCatalogException() : Exception("Geräteliste nicht verfügbar. Gespeicherte Zuordnungen bleiben erhalten.");

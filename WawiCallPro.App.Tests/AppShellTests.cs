@@ -84,7 +84,6 @@ public sealed partial class AppShellTests
         Assert.AreEqual("capture-two", capture.EditValue); Assert.IsFalse(capture.Enabled);
         Assert.Contains("Zuordnungen bleiben erhalten", Field<LabelControl>(page, "audioStatus").Text);
         Assert.DoesNotContain("private-device-error", Field<LabelControl>(page, "audioStatus").Text);
-        Assert.IsTrue(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
         await page.SaveAsync(CancellationToken.None); Assert.AreEqual("capture-two", (await workspace.Settings.LoadAsync()).Options.Devices.CaptureDeviceId);
         catalog.Read = null; await page.ReloadAudioDevicesAsync(); Assert.IsTrue(capture.Enabled); Assert.AreEqual("capture-two", capture.EditValue);
         catalog.Result = new([new("duplicate", "A"), new("duplicate", "B")], []);
@@ -104,11 +103,11 @@ public sealed partial class AppShellTests
         catalog.Read = async token => { captured = token; entered.TrySetResult(); await release.Task; return new([], []); };
         var loading = page.ReloadAudioDevicesAsync(); await entered.Task;
         var duplicate = page.ReloadAudioDevicesAsync(); Assert.AreEqual(2, catalog.Reads);
-        Assert.IsFalse(capture.Enabled); Assert.IsFalse(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
+        Assert.IsFalse(capture.Enabled);
         var stopping = settings.StopAsync(); Assert.IsTrue(captured.IsCancellationRequested); Assert.IsFalse(stopping.IsCompleted);
         release.SetResult(); await loading; await duplicate; await stopping;
         Assert.AreSame(oldSource, capture.Properties.DataSource); Assert.AreEqual("capture-one", capture.EditValue);
-        Assert.IsFalse(capture.Enabled); Assert.IsFalse(Field<SimpleButton>(page, "refreshAudioButton").Enabled);
+        Assert.IsFalse(capture.Enabled);
     });
 
     [TestMethod]
@@ -132,7 +131,7 @@ public sealed partial class AppShellTests
         try
         {
             foreach (var state in new[] { "available", "missing", "empty", "failure", "suppressed" })
-            foreach (var (width, height, fontSize, scale, skin) in new[] { (980, 760, 10F, 1F, "Basic"), (680, 800, 16F, 1F, "Office 2019 Black"), (980, 760, 10F, 1.5F, "Basic") })
+            foreach (var (width, height, fontSize, scale, skin) in new[] { (1220, 760, 10F, 1F, "Basic"), (680, 800, 16F, 1F, "Office 2019 Black"), (980, 760, 10F, 1.5F, "Basic") })
             {
                 if (skin == "Basic") DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin, "Blue Dark"); else DevExpress.LookAndFeel.UserLookAndFeel.Default.SetSkinStyle(skin);
                 using var font = new Font("Segoe UI", fontSize); WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
@@ -152,7 +151,9 @@ public sealed partial class AppShellTests
                 settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, height);
                 if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(settings);
-                Assert.AreEqual(Field<LookUpEdit>(page, "captureDeviceEdit").Left, Field<SimpleButton>(page, "refreshAudioButton").Left);
+                var audioLayout = Field<TableLayoutPanel>(page, "audioLayout");
+                Assert.AreEqual(Field<LookUpEdit>(page, "captureDeviceEdit").Left, Field<LookUpEdit>(page, "windowsRingtoneEdit").Left);
+                Assert.IsLessThanOrEqualTo(audioLayout.MaximumSize.Width, audioLayout.Width);
                 Assert.IsFalse(Field<TableLayoutPanel>(page, "audioLayout").AutoScroll);
                 Assert.IsTrue(Field<LabelControl>(page, "audioStatus").Bottom <= Field<TableLayoutPanel>(page, "audioLayout").ClientSize.Height);
                 using var shot = UiAudit.Capture(settings); shot.Save(Path.Combine(output, $"audio-{state}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);

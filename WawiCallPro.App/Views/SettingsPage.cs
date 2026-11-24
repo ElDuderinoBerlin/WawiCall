@@ -103,9 +103,7 @@ public partial class SettingsPage : XtraUserControl
             ArrangeTransferActions();
             UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(databaseSetupButton);
-            UiButtonSizing.Apply(refreshAudioButton);
             UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
-            refreshAudioButton.Margin = new Padding(captureDeviceEdit.Margin.Left, refreshAudioButton.Margin.Top, refreshAudioButton.Margin.Right, refreshAudioButton.Margin.Bottom);
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
             foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
             {
@@ -167,7 +165,8 @@ public partial class SettingsPage : XtraUserControl
             databaseDialog.Close();
         }
         _audioStopped = true;
-        SetDeviceEditorsEnabled(false); refreshAudioButton.Enabled = false;
+        StopAudioDeviceChanges();
+        SetDeviceEditorsEnabled(false);
         if (_ringtoneOperation is not null) await _ringtoneOperation.StopAsync();
         if (_operation is not null) await _operation.StopAsync();
         passwordEdit.Text = "";
@@ -253,6 +252,7 @@ public partial class SettingsPage : XtraUserControl
     private void DisposePage()
     {
         _audioStopped = true;
+        StopAudioDeviceChanges();
         StopAudioMeters();
         passwordEdit.Text = "";
         _operation?.Dispose();
