@@ -21,6 +21,7 @@ public sealed class ConfigurationStore(
 {
     private const int MaximumFileSize = 131072;
     public event Action<ErpConnectionSettings, bool>? ErpSaved;
+    internal event Action<AudioDeviceSettings>? AudioDevicesSaved;
 
     /// <summary>Creates dialog-local connection edits without changing the saved or running configuration.</summary>
     public PluginConnectionEditContext BeginPluginConnectionEdit(ConfigurationSnapshot snapshot, WawiCallPro.Utilities.Security.ISecretProtector secrets)
@@ -156,6 +157,7 @@ public sealed class ConfigurationStore(
             using var keyEdit = options.ProductClientKeyEdit is { } edit ? new ProductAppSettings(edit.Path).BeginKeyUpdate(edit.Value, edit.ExpectedHash) : null;
             File.Move(temporaryFile, location.FilePath, true);
             keyEdit?.Commit();
+            AudioDevicesSaved?.Invoke(options.Devices);
             ErpSaved?.Invoke(options.Erp, options.ProductClientKeyEdit is not null);
             phoneSearchChanges?.ConfigurationSaved(options);
         }

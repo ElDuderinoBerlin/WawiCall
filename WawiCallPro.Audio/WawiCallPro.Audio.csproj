@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="WawiCallPro.App.Tests" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="NVorbis" Version="0.10.5" />
     <ProjectReference Include="..\WawiCallPro.Telephony.Sip\WawiCallPro.Telephony.Sip.csproj" />

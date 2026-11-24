@@ -1,41 +1,54 @@
-using CSCore.CoreAudioAPI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SIPSorcery.Media;
 using SIPSorcery.SIP.App;
 using SIPSorceryMedia.Abstractions;
-using SIPSorceryMedia.Windows.CSCore;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Audio;
 
-/// <summary>Uses the user's CSCore endpoint; construction occurs only when media is requested.</summary>
+/// <summary>Creates one SIP media session with independently recoverable CSCore capture and playback.</summary>
 public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges) : ISipMediaSessionFactory
 {
+    private readonly IConversationAudioHardware _hardware = new ConversationAudioHardware();
+    private readonly ApplicationConfigurationService? _configuration;
+    private readonly TimeProvider _clock = TimeProvider.System;
+    private readonly ILogger _log = NullLogger.Instance;
+
+    public WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges, ApplicationConfigurationService configuration,
+        TimeProvider clock, ILogger<WindowsSipMediaSessionFactory> log) : this(bridges)
+    {
+        _configuration = configuration;
+        _clock = clock;
+        _log = log;
+    }
+
+    internal WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges, IConversationAudioHardware hardware,
+        ApplicationConfigurationService configuration, TimeProvider clock, ILogger log) : this(bridges)
+    {
+        _hardware = hardware;
+        _configuration = configuration;
+        _clock = clock;
+        _log = log;
+    }
+
     public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices)
     {
-        using var enumerator = new MMDeviceEnumerator();
-        MMDevice? playback = null;
-        MMDevice? capture = null;
-        WindowsAudioEndPoint? endpoint = null;
+        var start = new ConversationDeviceSelection(devices.CaptureDeviceId, devices.PlaybackDeviceId);
+        var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
+        var audio = new RecoveringConversationAudio(_hardware, () => _configuration?.ConversationDevices ?? start, pcm,
+            devices, account.Connection.EnableG722, _clock, _log);
         VoIPMediaSession? media = null;
         IAsyncDisposable? receive = null;
-        var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         try
         {
-            playback = devices.PlaybackDeviceId is not null ? enumerator.GetDevice(devices.PlaybackDeviceId)
-                : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-            if (devices.CaptureDeviceId is not null) capture = enumerator.GetDevice(devices.CaptureDeviceId);
-            endpoint = new WindowsAudioEndPoint(pcm, playback, capture, disableSource: devices.MicrophoneMuted);
-            if (!endpoint.IsAudioSinkInitialized || !devices.MicrophoneMuted && !endpoint.IsAudioSourceInitialized)
-                throw new WawiCallPro.Interfaces.Telephony.TelephonyException("AudioDeviceUnavailable");
-            endpoint.OutputVolume = devices.PlaybackVolumePercent / 100F;
-            endpoint.RestrictFormats(format => format.Codec is AudioCodecsEnum.PCMA or AudioCodecsEnum.PCMU
-                || account.Connection.EnableG722 && format.Codec == AudioCodecsEnum.G722);
-            media = new VoIPMediaSession(endpoint.ToMediaEndPoints(), System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
+            media = new VoIPMediaSession(new MediaEndPoints { AudioSource = devices.MicrophoneMuted ? null : audio, AudioSink = audio },
+                System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
                 { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
-            receive = bridges.Create(media, endpoint, pcm);
-            return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(endpoint, media, devices.PlaybackVolumePercent, playback, capture), pcm, receive),
-                devices with { PlaybackDeviceId = playback.DeviceID });
+            receive = bridges.Create(media, audio, pcm);
+            return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media), pcm, receive),
+                devices, audio.ReadPlaybackBinding);
         }
         catch
         {
@@ -46,35 +59,24 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
                 finally
                 {
                     try { media?.Close("Media setup failed"); }
-                    finally
-                    {
-                        try { endpoint?.Close().GetAwaiter().GetResult(); }
-                        finally { playback?.Dispose(); capture?.Dispose(); }
-                    }
+                    finally { audio.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
                 }
             }
             throw;
         }
     }
 
-    private sealed class AudioSession(WindowsAudioEndPoint endpoint, VoIPMediaSession media, int volume,
-        MMDevice? playback, MMDevice? capture) : ISipMediaSession
+    private sealed class AudioSession(RecoveringConversationAudio audio, VoIPMediaSession media) : ISipMediaSession
     {
-        private int _closed;
         public IMediaSession Session => media;
         public void ApplyPlaybackSettings()
         {
-            if (endpoint.IsAudioSinkInitialized) endpoint.OutputVolume = volume / 100F;
+            if (media.AudioStream is { } stream) audio.EnableNegotiatedAudio(stream.NegotiatedFormat.ToAudioFormat());
         }
         public async ValueTask DisposeAsync()
         {
-            if (Interlocked.Exchange(ref _closed, 1) != 0) return;
             try { media.Close("Call ended"); }
-            finally
-            {
-                try { await endpoint.Close(); }
-                finally { playback?.Dispose(); capture?.Dispose(); }
-            }
+            finally { await audio.DisposeAsync().ConfigureAwait(false); }
         }
     }
 }

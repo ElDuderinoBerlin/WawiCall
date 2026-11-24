@@ -183,7 +183,10 @@ Authentifizierungsname und zweckgebunden geschütztes Kennwort. `SipConnectionOp
 lokale Bindung/Port, Registrierungsdauer, Timeout, Wiederholungsabstand, Klingelzeit und Medienprofil.
 Standardfelder und erweiterte Eigenschaften stehen im zentralen Einstellungsdialog bereit.
 `AudioDeviceSettings` enthält CaptureDeviceId, PlaybackDeviceId, RingDeviceId sowie
-Gesprächs-/Klingellautstärke; separate Klingeltonwiedergabe gehört weiterhin zu Phase 9.
+Gesprächs-/Klingellautstärke. Die Klingeltonwiedergabe verwendet eine separate Ausgabe. Änderungen an
+Mikrofon und Gesprächsausgabe gelten nach dem Speichern auch im laufenden Gespräch. „Systemstandard“
+folgt dem Windows-Standardgerät. Nach Geräteverlust versucht die App die gewählte Richtung wieder
+anzubinden. Klingelausgabe, Lautstärken und Mikrofonstummschaltung gelten nach dem Programmstart.
 
 Die DI-Laufzeit verwendet den tatsächlichen gewählten Kanal und Registrartransport. Sie öffnet
 beim Anmelden kein Audiogerät. Vorübergehende Registrierungsfehler wechseln zu `Reconnecting`;

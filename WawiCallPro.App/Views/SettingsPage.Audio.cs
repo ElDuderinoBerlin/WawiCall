@@ -40,7 +40,8 @@ public partial class SettingsPage
     {
         if (sender is not LookUpEdit editor || editor.Properties.DataSource is not List<AudioDeviceChoice> rows) return;
         var name = rows.FirstOrDefault(row => row.Id == (editor.EditValue as string ?? ""))?.Name ?? "Systemstandard";
-        editor.ToolTip = name + ". Änderungen gelten nach einem Neustart.";
+        editor.ToolTip = name + (ReferenceEquals(editor, ringDeviceEdit)
+            ? ". Änderungen gelten nach einem Neustart." : ". Die Gesprächsauswahl gilt nach dem Speichern.");
     }
 
     internal Task ReloadAudioDevicesAsync() => _operation?.RunAsync(LoadAudioDevicesAsync) ?? Task.CompletedTask;

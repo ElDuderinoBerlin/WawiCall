@@ -18,7 +18,7 @@ public sealed class LivePcmRecordingFactory(IPersistedDuplexPcmRecordingFactory 
             await preparation.Ready.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             var calibrated = preparation.CreateRequest(request);
             var input = source is PlaybackRecordingSource selected
-                ? new PlaybackRecordingSource(preparation, selected.DeviceId) : (IConversationPcmFailureSource)preparation;
+                ? selected.WithSent(preparation) : (IConversationPcmFailureSource)preparation;
             recording = await recordings.StartAsync(input, calibrated, lifetime.Token).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return new LivePcmRecording(preparation, recording, request, lifetime);

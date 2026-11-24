@@ -434,6 +434,25 @@ Auflegen und Abmelden. Der Ausgabeadapter gibt PCM-Quelle, WASAPI-Ausgabe und Ge
 Ein Ausgabefehler erzeugt eine Warnung im Log. Der Ruf bleibt bedienbar. Diagnosemodus und Konsole
 binden den Klingeltonadapter nicht ein.
 
+### Audiogeräte im laufenden Gespräch
+
+SIPSorcery und die RTP-/PCM-Bindungen behalten pro Gespräch dieselbe Quelle und denselben Sink.
+Der Audioadapter kann den jeweiligen nativen CSCore-/WASAPI-Stream darunter öffnen und ersetzen.
+Er prüft jede Sekunde die beim Speichern veröffentlichten Mikrofon- und Ausgabe-IDs sowie den Zustand
+der Streams. „Systemstandard“ folgt der Windows-Standardzuordnung. Bei einer fehlenden expliziten
+Zuordnung versucht der Adapter erneut, das ausgewählte Gerät zu öffnen. Eine noch funktionierende
+vorherige Zuordnung bleibt bis zum erfolgreichen Wechsel in Betrieb. Die jeweils andere Richtung
+kann weiterlaufen. Geräteauswahl, Lautstärke und Freigabe bleiben pro Stream getrennt.
+
+Der Adapter übernimmt ausgehandelte Formate beim Öffnen und respektiert ein gehaltenes oder beim
+Start stummgeschaltetes Mikrofon. Das Gespräch bleibt auch bei fehlenden lokalen Audiogeräten verbunden.
+Beim Schließen endet die Geräteprüfung und beide Streams werden freigegeben. Die referenzierte
+`SIPSorceryMedia.Windows.CSCore`-Bibliothek stellt dafür strikte Gerätebindung, Streamstatus und
+geordnete Freigabe bereit. Der Aufnahmepfad per RTP dekodiert eingehende Frames auch bei fehlender
+Ausgabe. WASAPI-Loopback bindet ein Segment an die tatsächliche Ausgabe. Ein Wechsel oder Ausfall
+markiert ein laufendes Loopback-Segment als Eingabefehler. Ein neues Segment verwendet die neue
+Ausgabe, sobald sie verbunden ist.
+
 ## Projektgrenzen
 
 | Projekt/Bereich | Zuständigkeit |

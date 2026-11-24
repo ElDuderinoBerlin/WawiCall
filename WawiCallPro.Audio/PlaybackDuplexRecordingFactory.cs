@@ -19,19 +19,24 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         var session = await sessions.StartAsync(request.Recording, cancellationToken).ConfigureAwait(false);
         ISentPcmRecordingBinding? sent = null;
         IPlaybackPcmCapture? playback = null;
+        CancellationTokenRegistration changed = default;
         try
         {
             if (session is not IPcmRecordingInputGuard guard) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
             var observer = new PlaybackObserver(session, guard);
+            var binding = source.ReadBinding();
+            changed = binding.Changed.Register(observer.OnFailure);
             sent = sentBindings.Attach(source.Sent, session, request.Sent);
-            playback = await capture.StartAsync(source.DeviceId, epoch, observer, cancellationToken).ConfigureAwait(false);
+            using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, binding.Changed);
+            playback = await capture.StartAsync(binding.DeviceId, epoch, observer, startup.Token).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             if (session.State != PcmRecordingState.Capturing || playback.Completion.IsCompleted || sent.Completion.IsCompleted)
                 throw new PcmRecordingException(session.Failure ?? PcmRecordingFailure.TimelineConflict);
-            return new Recording(session, sent, playback, guard, request.Recording);
+            return new Recording(session, sent, playback, changed, guard, request.Recording);
         }
         catch
         {
+            changed.Dispose();
             try { if (playback is not null) await playback.DisposeAsync().ConfigureAwait(false); }
             finally
             {
@@ -54,6 +59,7 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         private readonly IPcmRecordingSession _session;
         private readonly ISentPcmRecordingBinding _sent;
         private readonly IPlaybackPcmCapture _playback;
+        private readonly CancellationTokenRegistration _deviceChanged;
         private readonly IPcmRecordingInputGuard _guard;
         private readonly PcmRecordingRequest _request;
         private readonly object _gate = new();
@@ -70,8 +76,8 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         public PcmRecordingFailure? Failure => _session.Failure;
         public Task InputCompletion { get; }
         internal Recording(IPcmRecordingSession session, ISentPcmRecordingBinding sent, IPlaybackPcmCapture playback,
-            IPcmRecordingInputGuard guard, PcmRecordingRequest request)
-        { _session = session; _sent = sent; _playback = playback; _guard = guard; _request = request; InputCompletion = ObserveAsync(); }
+            CancellationTokenRegistration deviceChanged, IPcmRecordingInputGuard guard, PcmRecordingRequest request)
+        { _session = session; _sent = sent; _playback = playback; _deviceChanged = deviceChanged; _guard = guard; _request = request; InputCompletion = ObserveAsync(); }
 
         private async Task ObserveAsync()
         {
@@ -100,6 +106,7 @@ public sealed class PlaybackDuplexRecordingFactory(IPcmRecordingSessionFactory s
         private Task DrainOnceAsync() { lock (_gate) return _detach ??= DetachCoreAsync(); }
         private async Task DetachCoreAsync()
         {
+            _deviceChanged.Dispose();
             try { await _playback.DisposeAsync().ConfigureAwait(false); }
             finally { await _sent.DisposeAsync().ConfigureAwait(false); }
             await InputCompletion.ConfigureAwait(false);

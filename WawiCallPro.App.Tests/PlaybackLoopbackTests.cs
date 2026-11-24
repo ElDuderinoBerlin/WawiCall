@@ -175,6 +175,30 @@ public sealed class PlaybackLoopbackTests
     }
 
     [TestMethod]
+    public async Task RenderDeviceChangeRejectsAnActiveLoopbackSegmentAndNextSegmentUsesReplacement()
+    {
+        using var fixture = new Fixture();
+        using var replaced = new CancellationTokenSource();
+        var binding = new PlaybackDeviceBinding("old-speaker", replaced.Token);
+        var source = PlaybackRecordingSource.ForActivePlayback(new SentSource(), () => binding);
+        var factory = fixture.Services.GetRequiredService<IDuplexPcmRecordingFactory>();
+        var request = fixture.Request();
+        var first = await factory.StartAsync(source, request);
+        Assert.AreEqual("old-speaker", fixture.Capture.DeviceId);
+        binding = new("new-speaker", CancellationToken.None);
+        await replaced.CancelAsync();
+        Assert.AreEqual(PcmRecordingState.Failed, first.State);
+        await Assert.ThrowsAsync<PcmRecordingException>(() => first.StopAsync(TimeSpan.FromMilliseconds(20)));
+        try { await first.DisposeAsync(); } catch (PcmRecordingException) { }
+        Assert.IsFalse(File.Exists(request.Recording.WavePath));
+
+        using var nextFixture = new Fixture();
+        await using var next = await nextFixture.Services.GetRequiredService<IDuplexPcmRecordingFactory>()
+            .StartAsync(source.WithSent(new SentSource()), nextFixture.Request());
+        Assert.AreEqual("new-speaker", nextFixture.Capture.DeviceId);
+    }
+
+    [TestMethod]
     public async Task VersionElevenDefaultsToRtpAndVersionTwelveRoundTripsLoopback()
     {
         using var fixture = new Fixture();
