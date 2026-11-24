@@ -4080,9 +4080,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Live-Ermittlung einer verlässlichen gemeinsamen Sende-/Empfangszeitbasis fehlt weiterhin. Der obige
   Resolver berechnet Anker aus bereits verifizierten Referenzen; er beschafft oder verifiziert diese
   Referenzen nicht selbst und ersetzt keine laufende Drift-/Diskontinuitätsüberwachung.
-  Explizite Start-/Stop-/Abbruchaufrufe sind als Dienst vorhanden. Aufnahmebedienung, ausdrücklich
-  konfigurierte Automatik, automatische Finalisierung mit geprüfter Endzeit und echte SIP-/Geräteabnahme
-  bleiben offen. Gesprächszuordnung und geordneter Abbruch bei Gesprächs-/Host-Ende sind oben ergänzt.
+  Aufnahmebedienung, konfigurierbare Automatik und Abschluss beim Gesprächsende verwenden inzwischen
+  lokale Codec-Beobachtungen und die oben beschriebene Endzeitprüfung. Die gerätegenaue gemeinsame
+  Abtastzeitreferenz, laufende Driftüberwachung und die echte SIP-/Geräteabnahme bleiben offen.
+  Erneut geprüft: je Edition 50 Anker-/Duplexprüfungen, drei samplegenaue Stereo-WAVs für PCMA, PCMU
+  und G.722 mit vorgegebenen Referenzen sowie 26 SIP-Runtime-Prüfungen. Die stumme native WASAPI-Prüfung
+  bestätigte je Edition den Ausgabewechsel, die Wiederbindung und die erneute Klingelausgabe.
+  Nachweise `.artifacts/desktop-automation-20261124-122821/phase9-*.log`.
 - [x] ✅ WAV asynchron nach MP3 encodieren (14.11.2026): eigener `IMp3Converter` mit
   `WavToMp3Converter` und injiziertem `IMp3EncodingBackend` im bestehenden Audio-Projekt.
   Beide Hosts registrieren denselben zustandslosen Dienst; native Encoder, Resampler und Dateien
@@ -4840,6 +4844,12 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Skins, 10 und 16 pt sowie 150 % Skalierung ab. Der native Speicherdialog und die Hörprobe mit einem
   echten Gespräch bleiben Teil der manuellen Abnahme.
 - [ ] Mikrofonansagen und Text-to-Speech anbieten; Vorhören und verwendete Stimme/Geräte speichern.
+  Die Altquellen `WawiCallPro_old/WawiCallPro/FrmVoiceMailRecording.cs` und
+  `WawiCallPro_old/WawiCallPro/Audio/TextToSpeechPlayer.cs` wurden als Referenz gelesen.
+  Die Mikrofonaufnahme verwendet ein gewähltes Gerät und kann die WAV-Datei vorhören.
+  Die Sprachsynthese listet installierte Stimmen, synthetisiert lokal in einen Audiostream
+  und spielt ihn separat ab. Für den Neuaufbau die vorhandene CSCore-Ausgabe und WAV-Konvertierung
+  nutzen. Eine gespeicherte, inzwischen fehlende Stimme oder Geräte-ID muss im Dialog erkennbar bleiben.
 
 Abnahme: Echte ein- und ausgehende Gespräche mit beiden Gesprächsseiten aufzeichnen, die gewählten Aufnahmeformate wiedergeben
 und Historie nach Neustart/Zeitraum prüfen. Unterschiedliche Codecs/Abtastraten, Aufnahme ab Gesprächsmitte,
