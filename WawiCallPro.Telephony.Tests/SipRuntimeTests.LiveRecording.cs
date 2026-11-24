@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
@@ -10,6 +11,49 @@ namespace WawiCallPro.Telephony.Tests;
 
 public sealed partial class SipRuntimeTests
 {
+    [TestMethod]
+    public async Task LiveRecordingKeepsItsSessionAcrossRtpDtmfAndHoldResume()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        LiveMedia? media = null;
+        fixture.Media.Wrap = inner => media = new(inner);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+
+        using var peer = new SIPUserAgent();
+        using var peerMedia = new TestMedia();
+        var peerDigits = new ConcurrentQueue<byte>();
+        var localDigits = new ConcurrentQueue<DtmfReceivedEventArgs>();
+        peer.OnDtmfTone += (tone, _) => peerDigits.Enqueue(tone);
+        fixture.Runtime.DtmfReceived += (_, tone) => localDigits.Enqueue(tone);
+
+        var incoming = peer.Call(fixture.Destination, "caller", "synthetic", peerMedia.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().SingleOrDefault()?.State == CallState.Ringing);
+        var id = fixture.Runtime.GetCalls().Single().Id;
+        await fixture.Runtime.AnswerAsync(id);
+        Assert.IsTrue(await incoming.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.IsNotNull(media);
+        await fixture.Runtime.StartLiveRecordingAsync(id);
+
+        await fixture.Runtime.SendDtmfAsync(id, '#');
+        await UntilAsync(() => peerDigits.Contains((byte)11));
+        await fixture.Runtime.HoldAsync(id);
+        Assert.AreEqual(CallState.Held, fixture.Runtime.GetCalls().Single().State);
+        Assert.AreEqual(LiveRecordingState.Recording, fixture.Runtime.GetRecording(id).State);
+        await fixture.Runtime.ResumeAsync(id);
+        Assert.AreEqual(CallState.Connected, fixture.Runtime.GetCalls().Single().State);
+        await peer.SendDtmf(5);
+        await UntilAsync(() => localDigits.Any(tone => tone.CallId == id && tone.Digit == '5'));
+        Assert.AreEqual(LiveRecordingState.Recording, fixture.Runtime.GetRecording(id).State);
+        Assert.AreEqual(1, media.Starts);
+        Assert.AreEqual(0, media.Stops);
+
+        await fixture.Runtime.HangUpAsync(id);
+        await UntilAsync(() => fixture.Media.Closed == 1);
+        Assert.AreEqual(1, media.Stops);
+        Assert.AreEqual(LiveRecordingState.Completed, fixture.Runtime.GetRecording(id).State);
+    }
+
     [TestMethod]
     [DataRow("remote")]
     [DataRow("local")]
