@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Audio;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Security;
 
 namespace WawiCallPro.App.Tests;
@@ -12,6 +13,49 @@ namespace WawiCallPro.App.Tests;
 [TestClass]
 public sealed class PlaybackLoopbackTests
 {
+    [TestMethod]
+    public async Task SelectedNativeLoopbackReceivesKnownOutputAndCanReopen()
+    {
+        var deviceName = Environment.GetEnvironmentVariable("WCP_LOOPBACK_OUTPUT_DEVICE");
+        if (string.IsNullOrWhiteSpace(deviceName))
+            Assert.Inconclusive("Set WCP_LOOPBACK_OUTPUT_DEVICE to opt in to the audible WASAPI loopback test.");
+
+        var clock = TimeProvider.System;
+        var catalog = await new WindowsAudioDeviceCatalog(new StartupExecutionMode(false)).ReadAsync();
+        var speaker = catalog.Playback.Single(device => string.Equals(device.DisplayName, deviceName, StringComparison.OrdinalIgnoreCase));
+        using var fixture = new Fixture();
+        var file = Path.Combine(fixture.Root, "tone.wav");
+        const int sampleRate = 48000;
+        using (var writer = new WaveWriter(file, new WaveFormat(sampleRate, 16, 1)))
+        {
+            var bytes = new byte[2 * sampleRate * sizeof(short)];
+            for (var index = 0; index < bytes.Length / sizeof(short); index++)
+            {
+                var envelope = Math.Min(1, Math.Min(index, 2 * sampleRate - index) / 480.0);
+                var value = (short)(6000 * envelope * Math.Sin(ToneProbe.AngularFrequency * index / sampleRate));
+                BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(index * sizeof(short)), value);
+            }
+            writer.Write(bytes, 0, bytes.Length);
+        }
+
+        var factory = new CscorePlaybackCaptureFactory(clock);
+        var audio = fixture.Services.GetRequiredService<IAnnouncementAudio>();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        for (var trial = 1; trial <= 2; trial++)
+        {
+            var probe = new ToneProbe();
+            var capture = await factory.StartAsync(speaker.Id, clock.GetUtcNow(), probe, timeout.Token);
+            try
+            {
+                await audio.PreviewAsync(file, new() { PlaybackDeviceId = speaker.Id, PlaybackVolumePercent = 15 }, timeout.Token);
+            }
+            finally { await capture.DisposeAsync(); }
+            await capture.Completion.WaitAsync(timeout.Token);
+            Console.WriteLine($"{speaker.DisplayName}, Lauf {trial}: {probe.MatchingDuration.TotalSeconds:F2} s Testton aus WASAPI-Loopback.");
+            Assert.IsGreaterThan(TimeSpan.FromSeconds(1), probe.MatchingDuration);
+        }
+    }
+
     [TestMethod]
     public void DeviceClockPreservesSilenceAndDoesNotFollowPacketArrivalJitter()
     {
@@ -234,6 +278,31 @@ public sealed class PlaybackLoopbackTests
         await target.SaveAsync(imported.Options with { Devices = imported.Options.Devices with { RecordingReceiveSource = RecordingReceiveSource.PlaybackLoopback } }, imported);
         imported = await target.ImportPortableAsync(path, await target.LoadAsync());
         Assert.AreEqual(RecordingReceiveSource.PlaybackLoopback, imported.Options.Devices.RecordingReceiveSource);
+    }
+
+    private sealed class ToneProbe : IPlaybackPcmObserver
+    {
+        internal const double AngularFrequency = 2 * Math.PI * 1000;
+        internal TimeSpan MatchingDuration { get; private set; }
+
+        public bool TryObserve(TimeSpan position, int sampleRate, ReadOnlySpan<short> samples)
+        {
+            double inPhase = 0, quadrature = 0, power = 0;
+            for (var index = 0; index < samples.Length; index++)
+            {
+                var phase = AngularFrequency * index / sampleRate;
+                int sample = samples[index];
+                inPhase += sample * Math.Cos(phase);
+                quadrature += sample * Math.Sin(phase);
+                power += sample * sample;
+            }
+
+            if (power / samples.Length > 25 && 2 * (inPhase * inPhase + quadrature * quadrature) / (samples.Length * power) > 0.8)
+                MatchingDuration += TimeSpan.FromSeconds((double)samples.Length / sampleRate);
+            return true;
+        }
+
+        public void OnFailure() { }
     }
 
     private sealed class Fixture : IDisposable

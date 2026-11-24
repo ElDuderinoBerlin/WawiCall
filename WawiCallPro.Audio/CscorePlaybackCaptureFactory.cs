@@ -11,6 +11,10 @@ namespace WawiCallPro.Audio;
 /// <summary>CSCore WASAPI loopback with the original capture packet clock. No device is opened by construction.</summary>
 public sealed class CscorePlaybackCaptureFactory(TimeProvider clock) : IPlaybackPcmCaptureFactory
 {
+    // The CSCore enum in use defines TimestampError as 0x3 (Discontinuity | Silent).
+    // WASAPI's AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR is the independent bit 0x4.
+    private const AudioClientBufferFlags WasapiTimestampError = (AudioClientBufferFlags)0x4;
+
     public async Task<IPlaybackPcmCapture> StartAsync(string? deviceId, DateTimeOffset epoch, IPlaybackPcmObserver observer,
         CancellationToken cancellationToken = default)
     {
@@ -72,7 +76,7 @@ public sealed class CscorePlaybackCaptureFactory(TimeProvider clock) : IPlayback
                             var pointer = packets.GetBuffer(out var frames, out var flags, out var devicePosition, out var qpc);
                             try
                             {
-                                if (frames is < 1 || frames > format.SampleRate / 2 || (flags & AudioClientBufferFlags.TimestampError) != 0)
+                                if (frames is < 1 || frames > format.SampleRate / 2 || (flags & WasapiTimestampError) != 0)
                                     throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
                                 var start = timeline.Map(devicePosition, qpc, frames, (flags & AudioClientBufferFlags.DataDiscontinuity) != 0);
                                 var length = checked(frames * format.BlockAlign);

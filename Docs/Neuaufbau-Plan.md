@@ -3752,6 +3752,17 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Logs `.loopback-*.log`, `.artifacts/loopback/native-smoke-result.json` und
   `.artifacts/app-shell/settings-ui/recording-source`. Allgemeine Aufnahmebedienung separat offen.
 
+- [x] ✅ Aktiven WASAPI-Loopback auf dem Jabra Link 380 prüfen und Pufferflags korrigieren.
+  CSCore 1.2.1.5 verwendet für `TimestampError` den Wert `0x3`, der in WASAPI aus Stille und
+  Diskontinuität zusammengesetzt ist. Der Adapter verwendet das native Bit `0x4` aus `Audioclient.h`.
+  Stille wird als Stille verarbeitet, der erste Puffer darf die Streamgrenze markieren und spätere
+  Diskontinuitäten sowie ungültige Zeitstempel brechen die Aufnahme weiterhin ab.
+  Der Test `SelectedNativeLoopbackReceivesKnownOutputAndCanReopen` nutzt `WCP_LOOPBACK_OUTPUT_DEVICE`
+  (Windows-Anzeigename). Pro und FinOffice erkannten je zweimal 1,99 Sekunden eines zweisekündigen
+  Testtons am gewählten Ausgabeendpunkt. Beide Hosts in Debug/Any CPU gebaut, je 22 gezielte
+  Tests bestanden. Nachweise `.artifacts/phase9-native-loopback/`. Die Hörprobe mit einem echten
+  Gespräch bleibt Teil von G1.
+
 - [x] ✅ Dateibasierte Mixer-Vorstufe nach `WavMixer`/`SimpleMixer` umgesetzt (14.11.2026):
   `IConversationWaveMixer` mit injiziertem `IConversationWaveRenderer` im bestehenden Audio-Projekt;
   beide Hosts registrieren zustandslose Dienste. Ein Auftrag enthält Call-/Aufnahme-ID, finalisierte
