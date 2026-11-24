@@ -4895,10 +4895,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Wiederholbarer Hardwaretest `AnnouncementsCaptureAndPreviewOnSelectedWasapiEndpoints` mit
   `WCP_ANNOUNCEMENT_CAPTURE_DEVICE` und `WCP_ANNOUNCEMENT_PLAYBACK_DEVICE` (Windows-Anzeigenamen).
   Jabra Link 380: Pro und FinOffice zeichneten je zweimal rund sechs Sekunden Mono-PCM mit 16 kHz
-  auf, beendeten die WASAPI-Vorschau und löschten die temporären Entwürfe. Windows meldete das
-  Mikrofon als stumm, alle Samples waren null. Der Nachweis für Sprache und Hörqualität bleibt offen.
+  auf, beendeten die WASAPI-Vorschau und löschten die temporären Entwürfe. Im ersten Lauf waren alle
+  Samples null. Beim Wiederholungstest mit aufgesetztem Headset lieferten beide Editionen je zweimal
+  5,91–5,92 Sekunden mit wechselndem Mikrofonsignal und spielten den Entwurf vollständig über das
+  Jabra ab. Die PCM-Spitzen erreichten bis zu −2191 und +731 bei PCM16. Die Verständlichkeit beurteilt
+  die Person am Headset. Die Windows-Stummabfrage zu Testbeginn zeigte auch beim Wiederholungslauf
+  `True`, während die Aufnahmen ein wechselndes Signal enthielten.
   Debug-Builds für beide Editionen ohne Warnungen und Fehler. Testprotokolle unter
-  `.artifacts/phase9-native-microphone/`. Debuginhalte der isolierten Dialogprüfung unter
+  `.artifacts/phase9-native-microphone/` (`Pro-speech.log`, `FinOffice-speech.log`). Debuginhalte der isolierten Dialogprüfung unter
   `.artifacts/phase9-app-announcements/`, Renderbilder unter `.artifacts/app-shell/settings-ui/announcements/`.
   Die Altquellen `WawiCallPro_old/WawiCallPro/FrmVoiceMailRecording.cs` und
   `WawiCallPro_old/WawiCallPro/Audio/TextToSpeechPlayer.cs` wurden als Referenz gelesen.
