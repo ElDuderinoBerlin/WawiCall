@@ -1025,9 +1025,20 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 - [x] ✅ App-Ansichten wie bei LxTranslate per `--automation-docs --automation-open` direkt starten.
   [Der Start mit Renderausgabe](Build.md#app-direkt-für-einen-ansichtstest-starten) wurde für sechs Ansichten
   in Pro und FinOffice geprüft. App und Console bauen in Debug/Any CPU ohne Warnungen oder Fehler.
-  Je Edition bestanden elf Startargument- und Identitätsprüfungen. Beim Desktopstart der regulären
-  FinOffice-EXE mit `--automation-docs --automation-open settings` erschien zusätzlich zum Hauptfenster
-  automatisch das Dialogfenster „Einstellungen“. Der Vordergrundstatus des Dialogs wurde nicht bestätigt.
+  Je Edition bestanden elf Startargument- und Identitätsprüfungen. Beim Start der regulären FinOffice-EXE
+  0.1.332 über die Windows-Shell öffnete sich mit `--automation-docs --automation-open settings` automatisch
+  der Dialog „Einstellungen“. Die native Messung erfasste ihn vor dem Hauptfenster und als aktives
+  Windows-Vordergrundfenster. Ein weiterer Start aus einer Hintergrund-Shell ordnete den Dialog ebenfalls
+  vor dem Hauptfenster ein, während ein anderes Programm aktiv blieb.
+  Nachweis `.artifacts/settings-desktop-launch/foreground-shell-execute.log`.
+  Der anschließende Desktop-Testlauf prüfte 36 Designer-Oberflächen sowie je Edition 11 Renderziele
+  und alle neun Einstellungsregister in insgesamt 114 PNGs. Pro bestand 500 Prüfungen im Gesamtlauf
+  und zwei separate native WASAPI-Prüfungen. FinOffice bestand 500 Prüfungen im ersten Gesamtlauf,
+  den anschließend korrigierten Tonwahltest im Wiederholungslauf und beide nativen WASAPI-Prüfungen.
+  Die sechs gezielten Regressionstests bestanden in beiden Editionen. Für den erneuten Debug-/Any-CPU-Build
+  wurde Npgsql 10.0.3 vorübergehend per MSBuild gesetzt, da die lokale Paketumstellung auf 11.0.0 für
+  `NpgsqlConnectionStringBuilder.Multiplexing` einen Kompilierfehler meldet.
+  Nachweise `.artifacts/desktop-automation-20261124-122821/`.
 - [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
   `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
   vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte

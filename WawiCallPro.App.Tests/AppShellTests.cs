@@ -1601,6 +1601,7 @@ public sealed partial class AppShellTests
         editor.Checked = changed; var prompts = 0;
         await Field<PageOperation>(page, "_operation").RunAsync(token => page.SaveAndOfferRestartAsync(() =>
         {
+        Assert.IsTrue(await dialog.PrepareAsync());
             prompts++; Assert.AreEqual(changed, workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.UseDirectXRendering);
             return true;
         }, token));
@@ -1969,8 +1970,12 @@ public sealed partial class AppShellTests
         release.SetResult(); await page.PendingLoads;
         Assert.AreEqual(1, plugin.Disposed); Assert.AreEqual(3, plugin.Created);
         var tabs = Field<XtraTabControl>(page, "tabs");
-        Assert.HasCount(2, tabs.TabPages.Cast<XtraTabPage>().Where(tab => tab.Tag is CallViewContext));
-        foreach (XtraTabPage tab in tabs.TabPages) if (tab.Tag is CallViewContext context) Assert.AreEqual(next, context.Party);
+        var contextualTabs = tabs.TabPages.Cast<XtraTabPage>().Where(tab => tab.Tag is CallViewContext).ToArray();
+        var mailTabs = contextualTabs.Where(tab => tab.Controls.OfType<MailPage>().Any()).ToArray();
+        CollectionAssert.AreEquivalent(new[] { first, next }, mailTabs.Select(tab => ((CallViewContext)tab.Tag!).Party).ToArray());
+        var pluginTabs = contextualTabs.Except(mailTabs).ToArray();
+        Assert.HasCount(2, pluginTabs);
+        Assert.IsTrue(pluginTabs.All(tab => ((CallViewContext)tab.Tag!).Party == next));
         plugin.CreatedControls.First(control => !control.IsDisposed).Tag = true;
         Assert.IsTrue(page.HasUnsavedChanges);
         foreach (var control in plugin.CreatedControls.Where(control => !control.IsDisposed)) control.Tag = false;

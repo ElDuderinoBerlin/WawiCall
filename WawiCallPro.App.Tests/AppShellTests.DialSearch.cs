@@ -57,7 +57,7 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
-    public Task DialDialogToneSwitchCanBeArmedBeforeDialAndSendsOnlyAfterConnect() => RunStaAsync(async () =>
+    public Task DialDialogUsesKeypadForNumberEntryBeforeConnectAndEnablesToneSwitchAfterConnect() => RunStaAsync(async () =>
     {
         var directory = new TestDirectory(new("test", "Pro"));
         var company = (await directory.GetCompaniesAsync())[0];
@@ -69,17 +69,21 @@ public sealed partial class AppShellTests
         var toggle = Field<CheckButton>(dialog, "dtmfToggle");
         var keypad = Field<DialKeypad>(dialog, "dialKeypad");
         var one = Field<SimpleButton>(keypad, "one");
-        Assert.IsTrue(toggle.Enabled);
-        toggle.Checked = true;
-        Assert.AreEqual("Tonwahl an", toggle.Text);
+        var destination = Field<TextEdit>(dialog, "destinationEdit");
+        Assert.IsFalse(toggle.Enabled);
+        Assert.IsFalse(toggle.Checked);
         one.PerformClick();
+        Assert.AreEqual("1", destination.Text);
         Assert.IsEmpty(telephony.Tones);
-        Field<TextEdit>(dialog, "destinationEdit").Text = "1234";
+        destination.Text = "1234";
         await dialog.DialAsync();
+        Assert.IsFalse(toggle.Enabled);
         one.PerformClick();
         Assert.IsEmpty(telephony.Tones);
         telephony.SetActiveCall(true);
-        await WaitForDialStateAsync(() => keypad.Enabled);
+        await WaitForDialStateAsync(() => toggle.Enabled && keypad.Enabled);
+        Assert.IsTrue(toggle.Checked);
+        Assert.AreEqual("Tonwahl an", toggle.Text);
         one.PerformClick();
         await WaitForDialStateAsync(() => telephony.Tones.Count == 1);
         Assert.AreEqual((telephony.CallId, '1'), telephony.Tones.Single());
@@ -87,7 +91,7 @@ public sealed partial class AppShellTests
         one.PerformClick();
         Assert.HasCount(1, telephony.Tones);
         telephony.SetActiveCall(false);
-        await WaitForDialStateAsync(() => dialog.CallId is null);
+        await WaitForDialStateAsync(() => dialog.CallId is null && !toggle.Enabled);
         Assert.IsTrue(dialog.Visible);
         await dialog.StopAsync();
     });

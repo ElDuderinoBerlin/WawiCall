@@ -1,13 +1,16 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WawiCallPro.App;
 using WawiCallPro.App.Hosting;
-using WawiCallPro.Core.Threading;
-using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Diagnostics;
+using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Tests;
 
@@ -25,15 +28,8 @@ public sealed class ApplicationLifetimeTests
             {
                 using var synchronization = new WindowsFormsSynchronizationContext(); SynchronizationContext.SetSynchronizationContext(synchronization);
                 var instance = new ActivationInstanceGuard(); instance.Signal();
-                var host = WawiCallHost.CreateBuilder(typeof(MainForm).Assembly).ConfigureServices(services =>
-                {
-                    services.AddSingleton(new ConfigurationLocation(root));
-                    services.AddSingleton<IUiDispatcher>(new SynchronizationContextUiDispatcher(synchronization));
-                    services.AddSingleton<IHostLifetime, AppHostLifetime>();
-                    services.AddSingleton<CrashReportQueue>(); services.AddSingleton(new CrashApplicationInfo("test", "test"));
-                    services.AddSingleton<ICrashReporter, CrashReporter>(); services.AddSingleton<AppExceptionBoundary>();
-                    services.AddSingleton(new AppWindowOptions(Hidden: true)); services.AddSingleton<IAppInstanceGuard>(instance);
-                }).Build();
+                var host = BuildHiddenHost(root, synchronization, instance, out var exceptions);
+                using var boundary = exceptions;
                 using var context = new AppApplicationContext(host, false, null);
                 using var timer = new System.Windows.Forms.Timer { Interval = 30 };
                 var stage = 0; var observed = false; Exception? failure = null;
@@ -63,7 +59,7 @@ public sealed class ApplicationLifetimeTests
                 };
                 timer.Start(); Application.Run(context);
                 if (failure is not null) throw failure;
-                Assert.IsNull(context.Failure); Assert.IsTrue(observed); completion.SetResult();
+                Assert.IsNull(context.Failure, context.Failure?.ToString()); Assert.IsTrue(observed); completion.SetResult();
             }
             catch (Exception exception) { completion.TrySetException(exception); }
         }) { IsBackground = true };
@@ -97,19 +93,8 @@ public sealed class ApplicationLifetimeTests
                 Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
                 using var synchronization = new WindowsFormsSynchronizationContext();
                 SynchronizationContext.SetSynchronizationContext(synchronization);
-                var host = WawiCallHost.CreateBuilder(typeof(MainForm).Assembly).ConfigureServices(services =>
-                {
-                    services.AddSingleton(new ConfigurationLocation(directory));
-                    services.AddSingleton<IUiDispatcher>(new SynchronizationContextUiDispatcher(synchronization));
-                    services.AddSingleton<Microsoft.Extensions.Hosting.IHostLifetime, AppHostLifetime>();
-                    services.AddSingleton<CrashReportQueue>();
-                    services.AddSingleton(new CrashApplicationInfo("test", "test"));
-                    services.AddSingleton<ICrashReporter, CrashReporter>();
-                    services.AddSingleton<AppExceptionBoundary>();
-                    services.AddSingleton(new AppWindowOptions(Hidden: true));
-                    services.AddSingleton<IAppInstanceGuard, NoInstanceGuard>();
-                }).Build();
-                using var exceptions = host.Services.GetRequiredService<AppExceptionBoundary>();
+                var host = BuildHiddenHost(directory, synchronization, new NoInstanceGuard(), out var exceptions);
+                using var boundary = exceptions;
                 exceptions.Install();
                 using var context = new AppApplicationContext(host, false, null);
                 MainForm? observedForm = null;
@@ -124,7 +109,7 @@ public sealed class ApplicationLifetimeTests
                 };
                 timer.Start();
                 Application.Run(context);
-                Assert.IsNotNull(observedForm);
+                Assert.IsNotNull(observedForm, context.Failure?.ToString());
                 Assert.IsTrue(observedForm.IsDisposed);
                 completion.SetResult(context.Failure);
             }
@@ -148,6 +133,24 @@ public sealed class ApplicationLifetimeTests
         {
             if (!thread.IsAlive && Directory.Exists(directory)) Directory.Delete(directory, true);
         }
+    }
+
+    private static IHost BuildHiddenHost(string profile, WindowsFormsSynchronizationContext synchronization,
+        IAppInstanceGuard instance, out AppExceptionBoundary exceptions, [CallerFilePath] string sourceFile = "")
+    {
+        var application = ApplicationDescriptor.FromAssembly(typeof(MainForm).Assembly);
+        var queue = new CrashReportQueue(new ApplicationPaths(new ConfigurationLocation(profile)));
+        exceptions = new AppExceptionBoundary(new CrashReporter(queue, application, new CrashApplicationInfo("test", "test"), TimeProvider.System));
+        var mode = new StartupExecutionMode(SuppressNetwork: true) { IsolatedProfile = true, DocumentationProfileDirectory = profile };
+        var repository = Directory.GetParent(Path.GetDirectoryName(sourceFile)!)!.FullName;
+        var configuration = typeof(MainForm).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
+        var framework = new DirectoryInfo(AppContext.BaseDirectory).Name;
+        var plugins = Path.Combine(repository, "WawiCallPro.App", "bin", configuration, framework, "plugins");
+        return AppCompositionRoot.Build(synchronization, exceptions, mode, instance, null, queue, services =>
+        {
+            services.Replace(ServiceDescriptor.Singleton(new AppWindowOptions(Hidden: true)));
+            services.Replace(ServiceDescriptor.Singleton(new ProductPluginLocation(plugins)));
+        });
     }
 
     private sealed class NoInstanceGuard : IAppInstanceGuard

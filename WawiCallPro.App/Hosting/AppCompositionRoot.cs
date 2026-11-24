@@ -23,6 +23,11 @@ internal static class AppCompositionRoot
 
     internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
         StartupExecutionMode mode, IAppInstanceGuard instance, AppComIdentity? identity, CrashReportQueue? reportQueue = null) =>
+        Build(uiContext, exceptions, mode, instance, identity, reportQueue, null);
+
+    internal static IHost Build(WindowsFormsSynchronizationContext uiContext, AppExceptionBoundary exceptions,
+        StartupExecutionMode mode, IAppInstanceGuard instance, AppComIdentity? identity, CrashReportQueue? reportQueue,
+        Action<IServiceCollection>? configure) =>
         WawiCallHost.CreateBuilder(Assembly.GetExecutingAssembly())
             .ConfigureServices(services =>
             {
@@ -85,6 +90,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IHostLifetime, AppHostLifetime>();
                 services.AddAppAutomation(mode, identity);
                 services.AddStartupProgress(mode);
+                configure?.Invoke(services);
             })
             .Build();
 }
