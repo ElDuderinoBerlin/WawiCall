@@ -7,7 +7,7 @@ namespace WawiCallPro.App.Hosting;
 /// <summary>Sizes all text button groups consistently from native skin/text metrics, independent of their host.</summary>
 internal static class ToolbarButtonLayoutHelper
 {
-    private const int HorizontalPadding = 24;
+    private const int AdditionalHeight = 4;
     private static readonly ConditionalWeakTable<SimpleButton, ButtonBinding> Buttons = new();
     private static readonly ConditionalWeakTable<Control, object> Owners = new();
     [ThreadStatic] private static bool _resizing;
@@ -66,8 +66,8 @@ internal static class ToolbarButtonLayoutHelper
         var text = TextRenderer.MeasureText(button.Text, button.Font);
         var best = button.CalcBestSize();
         return new Size(
-            Math.Max(best.Width, text.Width + (int)Math.Ceiling(HorizontalPadding * button.DeviceDpi / 96F)),
-            Math.Max(best.Height, text.Height + button.Padding.Vertical));
+            Math.Max(best.Width, text.Width + button.Padding.Horizontal),
+            Math.Max(best.Height, text.Height) + button.LogicalToDeviceUnits(AdditionalHeight));
     }
 
     private sealed class ButtonBinding
@@ -89,8 +89,8 @@ internal static class ToolbarButtonLayoutHelper
                 {
                     button.AutoSize = false;
                     button.MinimumSize = Size.Empty;
-                    // Native skin insets remain identical in views, dialogs and browse actions.
-                    button.Padding = new Padding(button.LogicalToDeviceUnits(12), 0, button.LogicalToDeviceUnits(12), 0);
+                    var inset = button.LogicalToDeviceUnits(button.Text == "..." ? 4 : 12);
+                    button.Padding = new Padding(inset, 0, inset, 0);
                     if ((button.Anchor & (AnchorStyles.Left | AnchorStyles.Right)) == (AnchorStyles.Left | AnchorStyles.Right))
                         button.Anchor &= ~AnchorStyles.Right;
                 }

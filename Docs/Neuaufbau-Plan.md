@@ -4,6 +4,12 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ App-Buttons über die zentrale Größenhilfe um vier logische Pixel erhöht. Der Durchsuchen-Button
+am Log-Verzeichnis erhält einen schmaleren seitlichen Innenabstand und behält dieselbe Höhe wie die
+übrigen Aktionen. Einstellungen, Historie und Wahldialog im Hintergrund mit kleinen Fenstergrößen,
+verschiedenen Schriften und hellem sowie dunklem Skin geprüft. Nachweise
+`.artifacts/button-sizing-20261124-144722/`.
+
 ✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
 in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
 abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.

@@ -38,12 +38,26 @@ public sealed partial class AppShellTests
             Assert.AreEqual(4, Field<TableLayoutPanel>(page, "transferActions").Controls.Count + Field<TableLayoutPanel>(page, "dialogActions").Controls.Count);
             Assert.AreEqual(0, page.Controls.Find("reloadButton", true).Length);
             Assert.AreEqual(1, actions.Select(button => button.Size).Distinct().Count());
-            foreach (var button in actions.Append(Field<SimpleButton>(page, "logDirectoryBrowseButton")))
+            foreach (var button in actions)
             {
                 Assert.AreEqual(reference.Height, button.Height, $"{button.Name} differs from the view action at {button.DeviceDpi} DPI.");
                 Assert.IsTrue(button.Width >= button.CalcBestSize().Width);
                 Assert.AreEqual(reference.Padding, button.Padding);
             }
+            var browse = Field<SimpleButton>(page, "logDirectoryBrowseButton");
+            Assert.AreEqual(reference.Height, browse.Height);
+            Assert.AreEqual(browse.LogicalToDeviceUnits(4), browse.Padding.Left);
+            Assert.AreEqual(browse.Padding.Left, browse.Padding.Right);
+            Assert.IsTrue(browse.Width >= browse.CalcBestSize().Width);
+            var regularWidth = TextRenderer.MeasureText(browse.Text, browse.Font).Width + browse.LogicalToDeviceUnits(24);
+            Assert.IsTrue(browse.Width < regularWidth, $"Browse button is {browse.Width}px, with regular width {regularWidth}px.");
+            var actionHeight = reference.Height;
+            var minimum = reference.MinimumSize;
+            reference.MinimumSize = Size.Empty;
+            var nativeHeight = reference.CalcBestSize().Height;
+            reference.MinimumSize = minimum;
+            Assert.IsTrue(actionHeight >= nativeHeight + reference.LogicalToDeviceUnits(4));
+            Console.WriteLine($"Browse {browse.Width}×{browse.Height}px, regular ellipsis width {regularWidth}px, native action height {nativeHeight}px.");
             CheckTableBounds(page);
             var output = Path.Combine(RenderOutput(), "uniform-buttons"); Directory.CreateDirectory(output);
             using var bitmap = WawiCallPro.App.Diagnostics.UiAudit.Capture(settings);
