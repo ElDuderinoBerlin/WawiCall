@@ -65,8 +65,7 @@ public partial class FrmAudioConvert : XtraForm
 
     private void SizeActions()
     {
-        UiButtonSizing.Apply(sourceBrowse, targetBrowse);
-        UiButtonSizing.Apply(sourcePlay, resultPlay);
+        UiButtonSizing.Apply(sourcePlay, sourceBrowse, resultPlay, targetBrowse);
         UiButtonSizing.Apply(convertButton, cancelButton, closeButton);
     }
 

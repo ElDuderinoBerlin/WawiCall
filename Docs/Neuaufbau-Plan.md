@@ -20,6 +20,10 @@ Informationszeilen. Der Assistent zeigt den Migrationsfortschritt. Im App-Log bl
 benannte Anwendungsmeldungen sichtbar. Je Edition fünf Logprüfungen in Debug/Any CPU bestanden.
 Nachweise `.artifacts/database-log-progress/`.
 
+✅ Im WAV-Konverter haben Abspielen und Durchsuchen in Quell- und Zielzeile
+dieselbe Breite und stehen in derselben Reihenfolge rechts. Heller und dunkler Skin,
+große Schrift und 150-%-Layoutskalierung in beiden Editionen geprüft.
+
 ✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
 in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
 abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.

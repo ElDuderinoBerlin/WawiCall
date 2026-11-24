@@ -256,6 +256,12 @@ public sealed partial class AppShellTests
                     Assert.AreEqual(path.Left, editor.Left, name);
                 }
                 var table = (TableLayoutPanel)path.Parent!;
+                var sourceActions = new[] { Field<SimpleButton>(capture, "sourcePlay"), Field<SimpleButton>(capture, "sourceBrowse") };
+                var targetActions = new[] { Field<SimpleButton>(capture, "resultPlay"), Field<SimpleButton>(capture, "targetBrowse") };
+                Assert.HasCount(1, sourceActions.Concat(targetActions).Select(button => button.Width).Distinct());
+                Assert.AreEqual(sourceActions[0].Left, targetActions[0].Left);
+                Assert.AreEqual(sourceActions[1].Left, targetActions[1].Left);
+                Assert.IsTrue(sourceActions[0].Right < sourceActions[1].Left);
                 Assert.IsTrue(table.GetRow(Field<LabelControl>(capture, "sourceLabel")) < table.GetRow(path));
                 Assert.IsTrue(table.GetRow(path) < table.GetRow(Field<LabelControl>(capture, "targetLabel")));
                 Assert.IsTrue(table.GetRow(Field<LabelControl>(capture, "targetLabel")) < table.GetRow(Field<TextEdit>(capture, "targetEdit")));
