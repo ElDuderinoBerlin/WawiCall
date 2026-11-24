@@ -1025,7 +1025,9 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 - [x] ✅ App-Ansichten wie bei LxTranslate per `--automation-docs --automation-open` direkt starten.
   [Der Start mit Renderausgabe](Build.md#app-direkt-für-einen-ansichtstest-starten) wurde für sechs Ansichten
   in Pro und FinOffice geprüft. App und Console bauen in Debug/Any CPU ohne Warnungen oder Fehler.
-  Je Edition bestanden elf Startargument- und Identitätsprüfungen. Der sichtbare Start bleibt der Desktop-Abnahme vorbehalten.
+  Je Edition bestanden elf Startargument- und Identitätsprüfungen. Beim Desktopstart der regulären
+  FinOffice-EXE mit `--automation-docs --automation-open settings` erschien zusätzlich zum Hauptfenster
+  automatisch das Dialogfenster „Einstellungen“. Der Vordergrundstatus des Dialogs wurde nicht bestätigt.
 - [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
   `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
   vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte
