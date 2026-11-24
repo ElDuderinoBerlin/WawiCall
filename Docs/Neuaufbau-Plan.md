@@ -3660,7 +3660,7 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Je Edition 69 Telefonietests und neun gezielte App- und Audioprüfungen bestanden.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ Installierte Windows-Klingeltöne unter **Einstellungen → Audio → Geräte** auswählen und vorhören.
-  Der Katalog liest `Ring*.wav` und `Windows Ring*.wav` aus dem Medienordner der laufenden
+  Die Hilfsklasse `WindowsRingtoneFiles` liest `Ring*.wav` und `Windows Ring*.wav` aus dem Medienordner der laufenden
   Windows-Installation. Das lokale Profilformat 18 speichert den Dateinamen. Vorhandene Profile
   verwenden weiterhin den eingebauten Ton. Fehlt eine gewählte Datei nach einem Windows-Wechsel
   oder ist ihre WAV-Struktur ungültig, bleibt die Auswahl sichtbar und die Wiedergabe nutzt den
@@ -3671,6 +3671,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   und das Jabra Link 380. In Pro und FinOffice bestanden je 10 App-, 8 SIP- und 31
   Konfigurationsprüfungen. Debug-/Any-CPU-Builds von App und Konsole erfolgreich. Hintergrundrenders
   bei kleiner Fensterbreite, 16 pt im dunklen Skin und 150 % im hellen Skin geprüft.
+  Beim erneuten Hörtest gab WASAPI `Ring01.wav` in beiden Editionen auf dem Jabra aus. Bei 0 %
+  (−52 dB) war der Ton am Headset nicht hörbar. Die Ausgabe wurde anschließend mit freigegebenen
+  30 % erneut technisch geprüft und der ursprüngliche Windows-Gerätepegel wiederhergestellt.
+  Die Bestätigung der Hörbarkeit bei 30 % steht aus. Nach der Auslagerung der Hilfsklasse liefen
+  erneut je vier gezielte Tests und die Debug-Builds für App und Konsole.
   Nachweise `.artifacts/phase9-windows-ringtones/`.
 - [x] ✅ Manuelle Live-Aufnahme einschließlich lokaler Zeitreferenzen umgesetzt (22.11.2026).
   `ILiveCallRecordingService` führt Start/Stop und gemeinsamen Status pro Call-ID; Buttons in
