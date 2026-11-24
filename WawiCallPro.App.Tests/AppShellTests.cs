@@ -1498,6 +1498,8 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(Field<SimpleButton>(dialog, "dialButton").Size, Field<SimpleButton>(dialog, "cancelButton").Size);
                 Assert.IsTrue(Field<TableLayoutPanel>(dialog, "layout").Bottom <= dialog.ClientSize.Height,
                     $"{width}/{fontSize}/{scale}/{populated}: layout={Field<TableLayoutPanel>(dialog, "layout").Bounds}, client={dialog.ClientSize}, minimum={dialog.MinimumSize}");
+                Assert.IsTrue(dialog.Height <= dialog.MinimumSize.Height + 6 * dialog.Font.Height,
+                    $"Opening at {width}px/{fontSize}pt grew to {dialog.Height}px for a {dialog.MinimumSize.Height}px minimum.");
                 await dialog.StopAsync();
             }
         }

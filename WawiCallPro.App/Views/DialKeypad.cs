@@ -5,6 +5,7 @@ namespace WawiCallPro.App.Views;
 
 public partial class DialKeypad : XtraUserControl
 {
+    private bool _responsive;
     public DialKeypad()
     {
         InitializeComponent();
@@ -15,8 +16,32 @@ public partial class DialKeypad : XtraUserControl
     internal event Action<char>? DigitPressed;
     internal void FocusFirstKey() => one.Select();
 
-    public override Size GetPreferredSize(Size proposedSize) =>
-        keys is null ? base.GetPreferredSize(proposedSize) : keys.GetPreferredSize(Size.Empty);
+    internal void EnableResponsiveLayout()
+    {
+        _responsive = true;
+        AutoSize = false;
+        keys.AutoSize = false;
+        keys.Dock = DockStyle.Fill;
+        foreach (ColumnStyle column in keys.ColumnStyles)
+        {
+            column.SizeType = SizeType.Percent;
+            column.Width = 100F / keys.ColumnCount;
+        }
+        foreach (RowStyle row in keys.RowStyles)
+        {
+            row.SizeType = SizeType.Percent;
+            row.Height = 100F / keys.RowCount;
+        }
+        foreach (var button in keys.Controls.OfType<SimpleButton>()) button.Dock = DockStyle.Fill;
+    }
+
+    public override Size GetPreferredSize(Size proposedSize)
+    {
+        if (keys is null) return base.GetPreferredSize(proposedSize);
+        if (!_responsive) return keys.GetPreferredSize(Size.Empty);
+        return new((one.MinimumSize.Width + one.Margin.Horizontal) * keys.ColumnCount,
+            (one.MinimumSize.Height + one.Margin.Vertical) * keys.RowCount);
+    }
 
     private void Digit_Click(object? sender, EventArgs e)
     {

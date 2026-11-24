@@ -11,6 +11,7 @@ public partial class MainForm
         var dialog = _workspace?.Telephony is { } telephony
             ? new FrmDial(_workspace.Directory, telephony, _workspace.Companies.Current.Company?.Key) : new FrmDial();
         _state?.AttachWindow(dialog, "FrmDial");
+        if (_workspace is not null) dialog.ConfigureCompanyScope(_workspace.Settings);
         dialog.ConfigurePhoneSearch(_workspace?.PartySearch, _state);
         return dialog;
     }

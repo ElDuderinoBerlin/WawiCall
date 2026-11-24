@@ -51,7 +51,7 @@ public partial class FrmDial
     internal Task SearchPhoneNumbersAsync()
     {
         if (_disposed || _stopping || _phoneSearch is null || dialTabs.SelectedTabPage != searchTab) return Task.CompletedTask;
-        var company = companyEdit.EditValue as CompanyKey;
+        var company = SelectedCompany;
         var text = (searchView.FindFilterText ?? "").Trim();
         var hasCompany = company is not null && _companies.Any(item => item.Key == company);
         var query = company is not null && hasCompany
@@ -68,7 +68,7 @@ public partial class FrmDial
         choosePhoneButton.Enabled = false;
         if (query is null)
         {
-            searchStatus.Text = !hasCompany ? "Mandant auswählen." : "Mindestens zwei Zeichen der Rufnummer oder des Namens eingeben.";
+            searchStatus.Text = !hasCompany ? "Für die Suche genau einen Mandanten auswählen." : "Mindestens zwei Zeichen der Rufnummer oder des Namens eingeben.";
             return Task.CompletedTask;
         }
         var request = _phoneSearchCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
@@ -120,7 +120,7 @@ public partial class FrmDial
     }
 
     private bool PhoneQueryIsCurrent(PartySearchQuery query) => !_disposed && !_stopping
-        && dialTabs.SelectedTabPage == searchTab && companyEdit.EditValue as CompanyKey == query.Company
+        && dialTabs.SelectedTabPage == searchTab && SelectedCompany == query.Company
         && (searchView.FindFilterText ?? "").Trim() == query.Text;
 
     private void CancelPhoneSearch()

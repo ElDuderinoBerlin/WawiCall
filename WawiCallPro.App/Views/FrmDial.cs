@@ -1,9 +1,12 @@
 using System.Collections.Immutable;
 using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
+using DevExpress.XtraEditors.Repository;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Telephony;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Views;
 
@@ -15,6 +18,7 @@ public partial class FrmDial : XtraForm
     private readonly CompanyKey? _initialCompany;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly PageOperation _operation;
+    private ConfigurationStore? _companyScopeSettings;
     private ImmutableArray<Company> _companies = [];
     private bool _busy;
     private bool _stopping;
@@ -34,6 +38,7 @@ public partial class FrmDial : XtraForm
         UiButtonSizing.Apply(plusButton, eraseButton);
         UiButtonSizing.Apply(dtmfToggle);
         UiButtonSizing.Apply(choosePhoneButton);
+        dialKeypad.EnableResponsiveLayout();
         dialKeypad.DigitPressed += DialKey_Pressed;
         AppIconHelper.Apply(this);
         _operation = new(this, statusLabel);
@@ -51,6 +56,28 @@ public partial class FrmDial : XtraForm
 
     internal void PrepareForBackgroundRun() { _backgroundRun = true; ShowInTaskbar = false; Opacity = 0; }
     internal void SetAutomationNumber(string number) => destinationEdit.Text = number;
+
+    internal void ConfigureCompanyScope(ConfigurationStore settings)
+    {
+        _companyScopeSettings = settings;
+        companyEdit.Properties.EditValueType = LookUpEditValueType.ValueList;
+        companyEdit.Properties.ShowPopupButtons = DevExpress.Utils.DefaultBoolean.False;
+        companyEdit.Properties.AddCheckBoxSelectorColumn();
+        companyEdit.CustomDisplayText += CompanyDisplayText;
+    }
+
+    private CompanyKey? SelectedCompany => companyEdit.EditValue switch
+    {
+        CompanyKey key => key,
+        IList<object> { Count: 1 } values => values[0] as CompanyKey,
+        _ => null
+    };
+
+    private void CompanyDisplayText(object? sender, CustomDisplayTextEventArgs e)
+    {
+        if (e.Value is IList<object> { Count: > 1 } values)
+            e.DisplayText = $"{values.Count} Mandanten ausgewählt";
+    }
     protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
     protected override CreateParams CreateParams
     {
@@ -65,10 +92,18 @@ public partial class FrmDial : XtraForm
         try
         {
             var companies = await _directory.GetCompaniesAsync(token);
+            if (_companyScopeSettings is { } settings)
+            {
+                var configured = (await settings.LoadAsync(token)).Options.Companies
+                    .Where(company => company.IncludeInPhoneCache).Select(company => company.Company).ToHashSet();
+                companies = companies.Where(company => configured.Contains(company.Key)).ToImmutableArray();
+            }
             token.ThrowIfCancellationRequested();
             _companies = companies;
             companyEdit.Properties.DataSource = companies.ToArray();
-            companyEdit.EditValue = companies.Any(company => company.Key == _initialCompany) ? _initialCompany : null;
+            var preferred = companies.FirstOrDefault(company => company.Key == _initialCompany)?.Key;
+            companyEdit.EditValue = _companyScopeSettings is null ? preferred
+                : companies.Select(company => (object)company.Key).ToList();
         }
         finally { SetBusy(false); }
         UpdateAvailability();
@@ -77,8 +112,8 @@ public partial class FrmDial : XtraForm
     internal Task DialAsync()
     {
         if (_stopping || _busy || CallId.HasValue) return Task.CompletedTask;
-        var company = _companies.FirstOrDefault(item => item.Key == companyEdit.EditValue as CompanyKey);
-        if (company is null) { statusLabel.Text = "Einen Mandanten auswählen."; return Task.CompletedTask; }
+        var company = _companies.FirstOrDefault(item => item.Key == SelectedCompany);
+        if (company is null) { statusLabel.Text = "Für den Anruf genau einen Mandanten auswählen."; return Task.CompletedTask; }
         if (string.IsNullOrWhiteSpace(destinationEdit.Text)) { statusLabel.Text = "Eine Rufnummer oder SIP-Adresse eingeben."; return Task.CompletedTask; }
         if (!CanDial()) { UpdateAvailability(); return Task.CompletedTask; }
         var destination = destinationEdit.Text.Trim();
@@ -192,7 +227,7 @@ public partial class FrmDial : XtraForm
         dtmfToggle.Enabled = connected;
         dialKeypad.Enabled = connected ? dtmfToggle.Checked : destinationEdit.Enabled;
         dialButton.Enabled = !_busy && !_stopping && !CallId.HasValue && CanDial()
-            && _companies.Any(company => company.Key == companyEdit.EditValue as CompanyKey) && !string.IsNullOrWhiteSpace(destinationEdit.Text);
+            && _companies.Any(company => company.Key == SelectedCompany) && !string.IsNullOrWhiteSpace(destinationEdit.Text);
         if (!message || _busy || _stopping) return;
         if (connected)
         {
@@ -202,7 +237,9 @@ public partial class FrmDial : XtraForm
         statusLabel.Text = _telephony?.Registration.State switch
         {
             RegistrationState.Registered when !CanDial() => "Es ist bereits ein Gespräch aktiv.",
+            RegistrationState.Registered when _companies.IsEmpty && _companyScopeSettings is not null => "Unter Einstellungen zuerst Mandanten für Telefonie auswählen.",
             RegistrationState.Registered when _companies.IsEmpty => "Keine berechtigten Mandanten verfügbar.",
+            RegistrationState.Registered when SelectedCompany is null => "Für den Anruf genau einen Mandanten auswählen.",
             RegistrationState.Registered => "Mandant und Ziel auswählen, dann Anrufen drücken.",
             RegistrationState.Registering => "SIP-Anmeldung läuft …",
             RegistrationState.Reconnecting => "SIP-Verbindung unterbrochen; erneute Anmeldung läuft …",
@@ -261,17 +298,22 @@ public partial class FrmDial : XtraForm
     }
     private void Layout_Changed(object? sender, EventArgs e)
     {
-        if (_arranging || layout is null || IsDisposed) return;
+        if (_arranging || layout is null || IsDisposed || !IsHandleCreated || !Visible) return;
         _arranging = true;
         try
         {
-            var preferred = layout.GetPreferredSize(new Size(ClientSize.Width, 0));
-            // DevExpress draws its own caption; use the actual frame rather than WinForms' native caption estimate.
+            static int RequiredHeight(Control control) => control.PreferredSize.Height + control.Margin.Vertical;
+            var inputHeight = Math.Max(RequiredHeight(destinationLabel), RequiredHeight(destinationEdit));
+            var bodyHeight = inputHeight + RequiredHeight(dialKeypad) + RequiredHeight(editActions)
+                + RequiredHeight(statusLabel) + RequiredHeight(actions) + layout.Padding.Vertical;
             var companyHeight = companyLayout.GetPreferredSize(new Size(ClientSize.Width, 0)).Height;
             var commandHeight = dtmfToggle.Height + dtmfToggle.Margin.Vertical;
-            var tabChrome = Math.Max(LogicalToDeviceUnits(30), dialTabs.Height - dialTabs.DisplayRectangle.Height);
-            MinimumSize = new Size(LogicalToDeviceUnits(400) + Width - ClientSize.Width,
-                Math.Max(preferred.Height, layout.Height) + commandHeight + companyHeight + tabChrome + Height - ClientSize.Height);
+            // During layout the tab can report an empty DisplayRectangle. Use the font and skin allowance
+            // so a growing form cannot feed its current height back into its minimum size.
+            var tabChrome = Math.Max(LogicalToDeviceUnits(30), Font.Height + LogicalToDeviceUnits(20));
+            var minimum = new Size(LogicalToDeviceUnits(400) + Width - ClientSize.Width,
+                bodyHeight + commandHeight + companyHeight + tabChrome + Height - ClientSize.Height);
+            MinimumSize = WindowWorkArea.LimitMinimum(minimum, WindowWorkArea.GetArea(this));
         }
         finally { _arranging = false; }
     }

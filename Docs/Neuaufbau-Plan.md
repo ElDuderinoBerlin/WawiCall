@@ -24,6 +24,13 @@ Nachweise `.artifacts/database-log-progress/`.
 dieselbe Breite und stehen in derselben Reihenfolge rechts. Heller und dunkler Skin,
 große Schrift und 150-%-Layoutskalierung in beiden Editionen geprüft.
 
+✅ Der Wähldialog übernimmt die gespeicherten Telefonie-Mandanten aus den Einstellungen
+mit der DevExpress-Checkbox-Spalte. Ein gespeicherter Dummy-Mandant erscheint, wenn ihn
+das aktive Plugin liefert. Wählen und Rufnummernsuche verlangen genau einen markierten
+Mandanten. Die Zifferntasten wachsen mit der Fenstergröße, die Aktionen bleiben in der
+unteren Tabellenzeile. Je Edition elf Wähl- und Layoutprüfungen bestanden.
+Nachweise `.artifacts/dial-settings-scope/`.
+
 ✅ Die Ausgabe unter dem Hauptfenster enthält nur noch die Logliste. Vorgangsmeldungen erscheinen
 in der Liste und der SIP-Status bleibt in der Statusleiste. Die Gesprächshistorie bietet pro
 abgeschlossenem Gespräch mit bestätigter lokaler WAV- oder MP3-Aufnahme „Abspielen“ und „Stoppen“.

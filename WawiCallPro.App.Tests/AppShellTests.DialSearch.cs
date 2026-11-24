@@ -3,13 +3,66 @@ using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraTab;
 using WawiCallPro.App.Views;
+using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Parties;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    [TestMethod]
+    public Task DialDialogLoadsCheckedSettingsScopeAndResizesItsKeypad() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var directory = new TestDirectory(workspace.Application);
+        var companies = await directory.GetCompaniesAsync();
+        var dummy = new Company(new CompanyKey(companies[0].Key.ProductLine, "dummy", "1"), "Dummy");
+        directory.ReadCatalog = _ => Task.FromResult(companies.Add(dummy));
+        var current = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(current.Options with
+        {
+            Companies =
+            [
+                new() { Company = companies[0].Key, IncludeInPhoneCache = true },
+                new() { Company = companies[1].Key, IncludeInPhoneCache = false },
+                new() { Company = dummy.Key, IncludeInPhoneCache = true }
+            ]
+        }, current);
+        var telephony = new DialTelephony();
+        using var dialog = new FrmDial(directory, telephony);
+        dialog.ConfigureCompanyScope(workspace.Settings);
+        dialog.PrepareForBackgroundRun();
+        await dialog.ReloadAsync();
+        dialog.Show();
+        var lookup = Field<LookUpEdit>(dialog, "companyEdit");
+        Assert.AreEqual(DevExpress.XtraEditors.Repository.LookUpEditValueType.ValueList, lookup.Properties.EditValueType);
+        Assert.HasCount(2, lookup.Properties.Columns);
+        CollectionAssert.AreEqual(new[] { companies[0], dummy }, (Company[])lookup.Properties.DataSource);
+        CollectionAssert.AreEqual(new object[] { companies[0].Key, dummy.Key }, ((IList<object>)lookup.EditValue).ToArray());
+        Field<TextEdit>(dialog, "destinationEdit").Text = "123";
+        await dialog.DialAsync();
+        Assert.AreEqual(0, telephony.Attempts);
+
+        var keys = Field<DialKeypad>(dialog, "dialKeypad");
+        var firstKey = Field<SimpleButton>(keys, "one");
+        var narrow = firstKey.Size;
+        var footer = Field<TableLayoutPanel>(dialog, "actions");
+        var oldFooter = footer.Bottom;
+        dialog.ClientSize += new Size(180, 120);
+        dialog.PerformLayout();
+        Application.DoEvents();
+        Assert.IsTrue(firstKey.Width > narrow.Width && firstKey.Height > narrow.Height, $"{narrow} → {firstKey.Size}");
+        Assert.IsTrue(footer.Bottom > oldFooter);
+        CheckTableBounds(dialog);
+
+        lookup.EditValue = new List<object> { dummy.Key };
+        await dialog.DialAsync();
+        Assert.AreEqual(dummy.Key, telephony.Company);
+        Assert.AreEqual(1, telephony.Attempts);
+        await dialog.StopAsync();
+    });
+
     [TestMethod]
     public Task DialDialogPhoneSearchFindsFormattedContactNumbersAndTransfersOnlyTheSelectedNumber() => RunStaAsync(async () =>
     {
