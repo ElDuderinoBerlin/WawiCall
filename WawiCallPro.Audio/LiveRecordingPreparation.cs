@@ -8,6 +8,7 @@ namespace WawiCallPro.Audio;
 public sealed class LiveRecordingPreparation : IConversationPcmFailureSource, ISentRtpPcmObserver,
     IReceivedRtpPcmObserver, IConversationPcmFailureObserver, IAsyncDisposable
 {
+    internal static readonly TimeSpan MaximumInputLead = TimeSpan.FromMilliseconds(500);
     private readonly object _gate = new();
     private readonly TimeProvider _clock;
     private readonly long _origin;
@@ -27,7 +28,7 @@ public sealed class LiveRecordingPreparation : IConversationPcmFailureSource, IS
     public async Task WaitForInputEndAsync(TimeSpan end)
     {
         var remaining = end - GetElapsed();
-        if (remaining > TimeSpan.FromMilliseconds(500)) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+        if (remaining > MaximumInputLead) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
         if (remaining > TimeSpan.Zero) await Task.Delay(remaining + TimeSpan.FromMilliseconds(1), _clock).ConfigureAwait(false);
         if (end > GetElapsed()) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
     }

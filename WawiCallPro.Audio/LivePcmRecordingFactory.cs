@@ -36,7 +36,7 @@ public sealed class LivePcmRecordingFactory(IPersistedDuplexPcmRecordingFactory 
     }
 }
 
-/// <summary>Stop drains input, then measures duration using the preparation's monotonic clock and final output extent.
+/// <summary>Stop fixes the monotonic end time before draining, then includes bounded in-flight audio.
 /// UTC is metadata only. Disposal without Stop explicitly aborts instead of inventing a duration.</summary>
 public sealed class LivePcmRecording(LiveRecordingPreparation preparation, IDuplexPcmRecording inner,
     PcmRecordingRequest request, CancellationTokenSource lifetime) : IAsyncDisposable
@@ -59,15 +59,18 @@ public sealed class LivePcmRecording(LiveRecordingPreparation preparation, IDupl
     }
     private async Task<PcmRecordingResult> StopCoreAsync()
     {
+        var stoppedAt = preparation.GetElapsed();
         try
         {
             await preparation.DisposeAsync().ConfigureAwait(false);
             if (inner is not IRecordingInputDrain drain) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
             var inputFrames = await drain.DrainInputAsync().ConfigureAwait(false);
-            var elapsed = preparation.GetElapsed();
-            var frames = Math.Max(inputFrames, (long)((Int128)elapsed.Ticks * request.SampleRate / TimeSpan.TicksPerSecond));
+            var stopFrames = (long)((Int128)stoppedAt.Ticks * request.SampleRate / TimeSpan.TicksPerSecond);
+            var frames = Math.Max(inputFrames, stopFrames);
             if (frames < 1 || frames > 8L * 3600 * request.SampleRate) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
             var duration = TimeSpan.FromTicks((long)(((Int128)frames * TimeSpan.TicksPerSecond + request.SampleRate - 1) / request.SampleRate));
+            if (duration - stoppedAt > LiveRecordingPreparation.MaximumInputLead)
+                throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
             await preparation.WaitForInputEndAsync(duration).ConfigureAwait(false);
             return await inner.StopAsync(duration).ConfigureAwait(false);
         }

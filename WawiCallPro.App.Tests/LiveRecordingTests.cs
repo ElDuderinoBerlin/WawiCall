@@ -215,6 +215,38 @@ public sealed class LiveRecordingTests
     }
 
     [TestMethod]
+    [DataRow(160L, 40)]
+    [DataRow(640L, 80)]
+    [DataRow(4800L, 0)]
+    public async Task SlowInputDrainDoesNotMoveTheStopTimeOrHideFutureFrames(long inputFrames, int expectedMilliseconds)
+    {
+        var clock = new LiveRecordingClock();
+        var source = new LiveRecordingSourceDouble();
+        await using var preparation = new LiveRecordingPreparation(source, clock);
+        var request = new PcmRecordingRequest(Guid.NewGuid(), Guid.NewGuid(), "unused.wav", 8000);
+        var inner = new SlowDrainRecording(request, clock, inputFrames);
+        var recording = new LivePcmRecording(preparation, inner, request, new CancellationTokenSource());
+        clock.Advance(40);
+
+        if (expectedMilliseconds == 0)
+        {
+            await Assert.ThrowsAsync<PcmRecordingException>(() => recording.StopAsync());
+            await Assert.ThrowsAsync<PcmRecordingException>(() => recording.DisposeAsync().AsTask());
+            Assert.IsNull(inner.StopDuration);
+        }
+        else
+        {
+            await using (recording)
+            {
+                var result = await recording.StopAsync();
+                Assert.AreEqual(TimeSpan.FromMilliseconds(expectedMilliseconds), result.Wave.Duration);
+            }
+        }
+        Assert.IsTrue(inner.Disposed);
+        Assert.AreEqual(0, source.Subscribers);
+    }
+
+    [TestMethod]
     public async Task MediaTerminationFinalizesBeforeClosingNativeMediaAndRejectsParallelStarts()
     {
         using var fixture = new Fixture();
@@ -256,6 +288,35 @@ public sealed class LiveRecordingTests
         fixture.Source.Send(2000, 100); fixture.Source.Receive(2, 3000, 200);
         recording = await start; fixture.Clock.Advance(40); await recording.StopAsync(); await recording.DisposeAsync();
         Assert.IsTrue(File.Exists(fixture.Path));
+    }
+
+    private sealed class SlowDrainRecording(PcmRecordingRequest request, LiveRecordingClock clock, long inputFrames)
+        : IDuplexPcmRecording, IRecordingInputDrain
+    {
+        public PcmRecordingState State => PcmRecordingState.Capturing;
+        public PcmRecordingFailure? Failure => null;
+        public Task InputCompletion => Task.CompletedTask;
+        internal bool Disposed { get; private set; }
+        internal TimeSpan? StopDuration { get; private set; }
+
+        public Task<long> DrainInputAsync()
+        {
+            clock.Advance(1000);
+            return Task.FromResult(inputFrames);
+        }
+
+        public Task<PcmRecordingResult> StopAsync(TimeSpan duration, CancellationToken cancellationToken = default)
+        {
+            StopDuration = duration;
+            var frames = duration.Ticks * request.SampleRate / TimeSpan.TicksPerSecond;
+            return Task.FromResult(new PcmRecordingResult(new(request.CallId, request.RecordingId, frames, request.SampleRate, 2, 0), []));
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Disposed = true;
+            return ValueTask.CompletedTask;
+        }
     }
 
     private sealed class Fixture : IDisposable

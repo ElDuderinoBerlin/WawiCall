@@ -3683,6 +3683,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Aufnahme, 10/16 pt, hellem/dunklem Skin und 150-%-Layoutsimulation geprüft.
   Nachweise `.live-recording-*.log`, `.artifacts/app-shell/settings-ui/live-recording`.
   **Echte FRITZ!Box-/Headset-Aufnahme, Hörprüfung, Geräteverlust und Dauerlauf bleiben G1/Phase 9 offen.**
+- [x] ✅ WAV-Endzeit am Aufnahmestopp festhalten. Die monotone Endzeit wird vor dem Abkoppeln und
+  Leeren der Eingabe erfasst. Verzögerte Verarbeitung erzeugt dadurch keine zusätzliche Stille.
+  Bereits erfasste Frames bis zu 500 ms nach dieser Endzeit bleiben erhalten. Weiter in der Zukunft
+  liegende Frames gelten auch bei langsamer Verarbeitung als Zeitkonflikt und verhindern den Abschluss.
+  Drei Regressionen simulieren eine Sekunde Verarbeitungsverzögerung und prüfen die ursprüngliche
+  Endzeit, einen zulässigen Frame-Überhang und die Ablehnung eines Zeitkonflikts.
+  Nachweise `.artifacts/phase9-stop-duration/`.
 - [x] ✅ Konfigurierbare Aufnahmeautomatik und Fehlerbehandlung der laufenden Aufnahme (23.11.2026).
   Unter Einstellungen → Audio → Lautstärke und Aufnahme ist „Verbundene Gespräche automatisch aufzeichnen“
   standardmäßig aus. Die Option bleibt eine lokale Einstellung im Format 16 und wird nicht über portable
