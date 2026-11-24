@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using OggVorbisEncoder;
+using OggVorbisEncoder.Setup;
 using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
 
@@ -10,6 +11,7 @@ internal sealed class VorbisRecordingEncoder : IMp3EncodingBackend
 {
     private const int FramesPerBlock = 1024;
     private const int NominalBitRate = 128000;
+    private static readonly object SetupGate = new();
     private static readonly ImmutableArray<Mp3EncodingFormat> Formats =
         [.. from rate in new[] { 8000, 16000, 32000, 44100, 48000 }
             from channels in new[] { 1, 2 } select new Mp3EncodingFormat(rate, channels, NominalBitRate)];
@@ -26,7 +28,7 @@ internal sealed class VorbisRecordingEncoder : IMp3EncodingBackend
         if (header.SampleRate != format.SampleRate || header.Channels != format.Channels || !Formats.Contains(format))
             throw new Mp3ConversionException(Mp3ConversionFailure.UnsupportedFormat);
 
-        var info = VorbisInfo.InitVariableBitRate(header.Channels, header.SampleRate, 0.4f);
+        var info = CreateIndependentSetup(header.Channels, header.SampleRate, cancellationToken);
         var container = new OggStream(Random.Shared.Next());
         container.PacketIn(HeaderPacketBuilder.BuildInfoPacket(info));
         container.PacketIn(HeaderPacketBuilder.BuildCommentsPacket(new Comments()));
@@ -58,6 +60,38 @@ internal sealed class VorbisRecordingEncoder : IMp3EncodingBackend
         WritePages(container, output, force: true);
         if (!container.Finished) throw new Mp3ConversionException(Mp3ConversionFailure.EncodingFailed);
         return header.Duration;
+    }
+
+    private static VorbisInfo CreateIndependentSetup(int channels, int sampleRate, CancellationToken token)
+    {
+        lock (SetupGate)
+        {
+            token.ThrowIfCancellationRequested();
+            var info = VorbisInfo.InitVariableBitRate(channels, sampleRate, 0.4f);
+            var setup = info.CodecSetup;
+            var mapping = setup.EncodeSetup.Template.Maps[(int)setup.EncodeSetup.BaseSetting];
+            var index = 0;
+            // OggVorbisEncoder 1.2.2 shares its residue arrays with the templates.
+            // Rebuild the stage masks from the selected books and detach the generated book indices.
+            foreach (var map in setup.MapParams)
+            {
+                for (var subMap = 0; subMap < map.SubMaps; subMap++)
+                {
+                    var residue = setup.ResidueParams[index];
+                    var books = mapping.ResidueTemplate[map.ResidueSubMap[subMap]].BooksBase.Books;
+                    var stages = new int[residue.SecondStages.Length];
+                    for (var partition = 0; partition < Math.Min(residue.Partitions, books.Length); partition++)
+                    {
+                        for (var stage = 0; stage < Math.Min(4, books[partition].Length); stage++)
+                            if (books[partition][stage] is not null) stages[partition] |= 1 << stage;
+                    }
+                    setup.ResidueParams[index++] = new ResidueEntry(residue.Begin, residue.End, residue.Grouping,
+                        residue.Partitions, residue.PartitionValues, residue.GroupBook, stages, (int[])residue.BookList.Clone(),
+                        residue.ClassMetric1, residue.ClassMetric2, residue.ResidueType);
+                }
+            }
+            return info;
+        }
     }
 
     private static void WritePackets(ProcessingState encoder, OggStream container, Stream output, CancellationToken token)

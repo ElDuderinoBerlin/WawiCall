@@ -6,6 +6,7 @@ using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Security;
 
 namespace WawiCallPro.App.Tests;
 
@@ -269,6 +270,7 @@ public sealed class LiveRecordingTests
         internal Fixture()
         {
             Directory.CreateDirectory(Root); var services = new ServiceCollection(); services.AddLogging(); services.AddSingleton<TimeProvider>(Clock); services.AddAudioConversion();
+            services.AddSingleton(new ConfigurationStore(new ConfigurationLocation(Root), new ApplicationOptionsValidator(new WindowsUserSecretProtector())));
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true });
             Persisted = new ForwardFactory(Services.GetRequiredService<IDuplexPcmRecordingFactory>());
             Factory = new(Persisted, Clock);

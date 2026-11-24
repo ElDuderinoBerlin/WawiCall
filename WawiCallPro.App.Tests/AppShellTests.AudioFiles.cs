@@ -140,6 +140,29 @@ public sealed partial class AppShellTests
     }, configure: services => services.AddAudioConversion());
 
     [TestMethod]
+    public Task AudioFileVorbisPreservesFormatsAcrossSuccessiveEncodes() => WithWorkspace(async (workspace, services, _) =>
+    {
+        var encoder = services.GetRequiredService<IRecordingFormatConverters>().GetConverter(RecordingArtifactFormat.OggVorbis);
+        var formats = await encoder.GetSupportedFormatsAsync();
+        var folder = workspace.Paths.RootDirectory;
+        Directory.CreateDirectory(folder);
+        var sequence = new[] { (16000, 2), (48000, 2), (8000, 2), (16000, 1), (8000, 2) };
+        var output = new AudioPreviewProbe();
+        var preview = new AudioFileConversion(output, workspace.Settings);
+        for (var index = 0; index < sequence.Length; index++)
+        {
+            var (rate, channels) = sequence[index];
+            var source = Path.Combine(folder, $"vorbis-{index}.wav");
+            var result = Path.Combine(folder, $"vorbis-{index}.ogg");
+            WriteAudioSource(source, new WaveFormat(rate, 16, channels), rate * channels * 2);
+            var profile = formats.Single(item => item.SampleRate == rate && item.Channels == channels);
+            await encoder.ConvertAsync(new(source, result, profile));
+            await preview.PreviewAsync(result, default);
+        }
+        CollectionAssert.AreEqual(sequence, output.Formats.ToArray());
+    }, configure: services => services.AddAudioConversion());
+
+    [TestMethod]
     public Task AudioFileDialogShowsRibbonEntryAndCancelsWithoutEnablingResultPreview() => WithWorkspace(async (workspace, services, _) =>
     {
         using var main = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());

@@ -63,7 +63,12 @@ public sealed partial class AppShellTests
 
             var (callId, recordingId) = await RecordSyntheticCallAsync(calls, journal, origin, now, workspace.Paths.RecordingsDirectory, sampleRate, channels);
             var result = await batch.RunAsync();
-            Assert.AreEqual(new RecordingConversionBatchResult(format == RecordingArtifactFormat.Wave ? 0 : 1, 0, 0), result, format.ToString());
+            var expected = new RecordingConversionBatchResult(format == RecordingArtifactFormat.Wave ? 0 : 1, 0, 0);
+            if (result != expected)
+            {
+                var failures = (await jobs.GetPageAsync(local)).Items.Select(item => $"{item.Job.Format}: {item.Job.State}/{item.Job.Failure}");
+                Assert.AreEqual(expected, result, $"{format}. Jobs: {string.Join(", ", failures)}");
+            }
             var created = (await artifacts.GetForRecordingAsync(recordingId)).Single(item => item.Artifact.Format == format);
             Assert.AreEqual(RecordingAvailability.Available, created.Artifact.Availability);
             Assert.AreEqual(new RecordingConversionBatchResult(0, 0, 0), await batch.RunAsync(), "Conversion is idempotent.");

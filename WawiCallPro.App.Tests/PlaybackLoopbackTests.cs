@@ -221,6 +221,7 @@ public sealed class PlaybackLoopbackTests
         {
             Directory.CreateDirectory(Root);
             var services = new ServiceCollection(); services.AddLogging(); services.AddAudioConversion();
+            services.AddSingleton(new ConfigurationStore(new ConfigurationLocation(Root), new ApplicationOptionsValidator(new WindowsUserSecretProtector())));
             services.AddSingleton<IPlaybackPcmCaptureFactory>(Capture);
             Services = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
         }
