@@ -69,15 +69,32 @@ public sealed partial class AppShellTests
             Assert.AreEqual("RingNew.wav", ringtone.EditValue);
             Assert.AreEqual(35, slider.Value);
             Assert.AreEqual("RingNew.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
+            var customFile = Path.Combine(media, "Eigene Ansage.wav");
+            var channels = scale == 1F ? 2 : 1;
+            using (var wave = new WaveWriter(customFile, new WaveFormat(44100, 16, channels)))
+                wave.Write(new byte[256], 0, 256);
+            await page.SelectCustomRingtoneAsync(customFile);
+            var info = Field<LabelControl>(page, "customRingtoneInfo");
+            Assert.Contains("Hz", info.Text);
+            Assert.Contains(channels == 1 ? "Mono" : "Stereo", info.Text);
+            await page.PreviewRingtoneAsync();
+            Assert.AreEqual(44100, output.SampleRate);
+            Assert.AreEqual(channels, output.Channels);
+            await page.SaveAsync(CancellationToken.None);
+            await page.ReloadAsync();
+            var saved = (await workspace.Settings.LoadAsync()).Options.Devices;
+            Assert.AreEqual(customFile, saved.CustomRingtonePath);
+            Assert.IsNull(saved.WindowsRingtoneFile);
+            Assert.Contains(channels == 1 ? "Mono" : "Stereo", info.Text);
             dialog.MinimumSize = Size.Empty;
-            dialog.ClientSize = new Size(680, 800);
+            dialog.ClientSize = new Size(680, 870);
             if (scale != 1) dialog.Scale(new SizeF(scale, scale));
             dialog.PerformLayout();
             Application.DoEvents();
             CheckTableBounds(dialog);
             Assert.AreEqual(Field<LookUpEdit>(page, "ringDeviceEdit").Left, ringtone.Left);
             Assert.IsLessThanOrEqualTo(button.Left, ringtone.Right);
-            Assert.IsLessThan(Field<SimpleButton>(page, "refreshAudioButton").Width, button.Width);
+            Assert.AreEqual(Field<SimpleButton>(page, "browseRingtoneButton").Width, button.Width);
             var folder = Path.Combine(RenderOutput(), "windows-ringtones", workspace.Application.ProductLine);
             Directory.CreateDirectory(folder);
             using var image = UiAudit.Capture(dialog);
@@ -96,10 +113,12 @@ public sealed partial class AppShellTests
     {
         internal int SampleRate { get; private set; }
         internal int Volume { get; private set; }
+        internal int Channels { get; private set; }
 
         public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
         {
             SampleRate = source.WaveFormat.SampleRate;
+            Channels = source.WaveFormat.Channels;
             Volume = settings.PlaybackVolumePercent;
         }
     }

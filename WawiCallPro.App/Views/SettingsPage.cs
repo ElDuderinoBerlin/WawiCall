@@ -104,7 +104,7 @@ public partial class SettingsPage : XtraUserControl
             UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(refreshAudioButton);
-            UiButtonSizing.Apply(previewRingtoneButton);
+            UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
             refreshAudioButton.Margin = new Padding(captureDeviceEdit.Margin.Left, refreshAudioButton.Margin.Top, refreshAudioButton.Margin.Right, refreshAudioButton.Margin.Bottom);
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
             foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
@@ -320,7 +320,7 @@ public partial class SettingsPage : XtraUserControl
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
-                WindowsRingtoneFile = ReadDevice(windowsRingtoneEdit) },
+                WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone },
             RecordingOutput = output,
             AutomaticMp3 = new(),
             Companies = ReadCompanySettings(old),

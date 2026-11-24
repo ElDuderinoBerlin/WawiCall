@@ -3668,6 +3668,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Lautstärke. Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
   Der Lautstärkeregler steht direkt unter der Klingeltonauswahl. Die Hörprobe zeigt ihren Status
   im Audio-Reiter und erzeugt keine allgemeine Meldung zur Einstellungsbearbeitung.
+  **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
+  Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
+  und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton
+  bleibt als Fallback verfügbar, wenn die eigene Datei später fehlt oder nicht lesbar ist.
   Sie wiederholen die WAV bis zum Ende des Klingelns über den konfigurierten Klingelausgang.
   Windows 11 (Build 22631) stellte 13 Dateien bereit. Gerätespezifische Tests verwendeten `Ring01.wav`
   und das Jabra Link 380. In Pro und FinOffice bestanden je 10 App-, 8 SIP- und 31

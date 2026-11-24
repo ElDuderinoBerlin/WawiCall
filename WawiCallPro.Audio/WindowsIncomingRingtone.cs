@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using CSCore;
 using CSCore.Codecs.WAV;
 using CSCore.Streams;
+using WawiCallPro.Core.Audio;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
 
@@ -26,6 +27,12 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
 
     public IReadOnlyList<string> ReadWindowsRingtones() => _files.ReadNames();
 
+    public static PcmWaveHeader? ReadCustomRingtoneFormat(string path, CancellationToken token)
+    {
+        using var file = WindowsRingtoneFiles.TryOpenCustom(path, token, out var format);
+        return format;
+    }
+
     public Task PlayAsync(string? deviceId, int volumePercent, CancellationToken cancellationToken) =>
         PlayAsync(new AudioDeviceSettings { RingDeviceId = deviceId, RingVolumePercent = volumePercent }, cancellationToken);
 
@@ -45,13 +52,14 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
     private bool Play(AudioDeviceSettings settings, bool preview, CancellationToken token, CancellationToken caller = default)
     {
         token.ThrowIfCancellationRequested();
-        using var file = _files.TryOpen(settings.WindowsRingtoneFile, token);
+        using var file = settings.CustomRingtonePath is { } custom
+            ? WindowsRingtoneFiles.TryOpenCustom(custom, token, out _) : _files.TryOpen(settings.WindowsRingtoneFile, token);
         using var wave = file is null ? null : new WaveFileReader(file);
         using IWaveSource source = wave is null ? new RingtoneWaveSource() : preview ? wave : new LoopStream(wave);
         var playback = settings with { PlaybackDeviceId = settings.RingDeviceId, PlaybackVolumePercent = settings.RingVolumePercent };
         try { _output.Play(source, playback, token); }
         catch (OperationCanceledException) when (preview && token.IsCancellationRequested && !caller.IsCancellationRequested) { }
-        return settings.WindowsRingtoneFile is null || file is not null;
+        return settings is { WindowsRingtoneFile: null, CustomRingtonePath: null } || file is not null;
     }
 
     private sealed class RingtoneWaveSource : IWaveSource

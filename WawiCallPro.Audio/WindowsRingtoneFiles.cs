@@ -1,5 +1,6 @@
 using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Audio;
 
@@ -16,12 +17,23 @@ internal sealed class WindowsRingtoneFiles(string? mediaDirectory)
     {
         if (fileName is null) return null;
         var path = EnumerateFiles().FirstOrDefault(path => string.Equals(Path.GetFileName(path), fileName, StringComparison.OrdinalIgnoreCase));
-        if (path is null) return null;
+        return path is null ? null : OpenWave(path, token, out _);
+    }
+
+    internal static FileStream? TryOpenCustom(string path, CancellationToken token, out PcmWaveHeader? format)
+    {
+        format = null;
+        return ApplicationOptionsValidator.IsLocalRingtonePath(path) ? OpenWave(path, token, out format) : null;
+    }
+
+    private static FileStream? OpenWave(string path, CancellationToken token, out PcmWaveHeader? format)
+    {
+        format = null;
         FileStream? stream = null;
         try
         {
             stream = File.OpenRead(path);
-            _ = PcmWaveHeader.Read(stream, token);
+            format = PcmWaveHeader.Read(stream, token);
             return stream;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or Mp3ConversionException or ArgumentException)

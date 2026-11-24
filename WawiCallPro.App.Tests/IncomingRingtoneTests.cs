@@ -41,6 +41,14 @@ public sealed class IncomingRingtoneTests
             CollectionAssert.AreEqual(samples.Concat(samples).ToArray(), output.Bytes);
             Assert.IsTrue(await player.PreviewAsync(settings, default));
             CollectionAssert.AreEqual(samples, output.Bytes);
+            var own = Path.Combine(media, "custom.wav");
+            File.Copy(Path.Combine(media, "Ring42.wav"), own);
+            var custom = settings with { WindowsRingtoneFile = null, CustomRingtonePath = own };
+            Assert.AreEqual(22050, WindowsIncomingRingtone.ReadCustomRingtoneFormat(own, default)?.SampleRate);
+            await player.PlayAsync(custom, default);
+            CollectionAssert.AreEqual(samples.Concat(samples).ToArray(), output.Bytes);
+            File.Delete(own);
+            Assert.IsFalse(await player.PreviewAsync(custom, default));
             File.Delete(Path.Combine(media, "Ring42.wav"));
             foreach (var name in new[] { "Ring42.wav", "Windows RingNew.wav", "../Ring42.wav" })
             {
