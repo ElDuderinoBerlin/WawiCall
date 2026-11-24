@@ -12,7 +12,9 @@ internal sealed class PageOperation : IDisposable
     private readonly Control owner;
     private readonly LabelControl? status;
     private readonly Action<WawiCallPro.Utilities.Operations.OperationEvent>? report;
+    private readonly bool useWaitCursor = true;
     internal PageOperation(Control owner, LabelControl status) { this.owner = owner; this.status = status; }
+    internal PageOperation(Control owner, LabelControl status, bool useWaitCursor) : this(owner, status) => this.useWaitCursor = useWaitCursor;
     internal PageOperation(Control owner, Action<WawiCallPro.Utilities.Operations.OperationEvent> report) { this.owner = owner; this.report = report; }
     private readonly CancellationTokenSource _stopping = new();
     private Task _running = Task.CompletedTask;
@@ -28,7 +30,7 @@ internal sealed class PageOperation : IDisposable
 
     private async Task RunCoreAsync(Func<CancellationToken, Task> operation)
     {
-        using var waiting = new UiWaitCursor(owner);
+        using var waiting = useWaitCursor ? new UiWaitCursor(owner) : null;
         if (report is not null) report(WawiCallPro.Utilities.Operations.OperationEvent.SettingsWaiting);
         else status!.Text = "Bitte warten …";
         try { await operation(_stopping.Token); }

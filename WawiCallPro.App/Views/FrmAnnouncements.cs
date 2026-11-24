@@ -145,7 +145,7 @@ public partial class FrmAnnouncements : XtraForm
             if (IsDisposed || _closing) return;
             DeleteDraft();
             _draft = path;
-            statusLabel.Text = "Ansage ist zum Vorhören und Speichern bereit.";
+            statusLabel.Text = "Ansage ist zum Abspielen und Speichern bereit.";
         }
         finally
         {

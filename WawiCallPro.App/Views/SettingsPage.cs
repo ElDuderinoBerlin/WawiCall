@@ -139,7 +139,7 @@ public partial class SettingsPage : XtraUserControl
         if (workspace.Telephony is not null) workspace.Telephony.RegistrationChanged += SipRegistration_Changed;
         UpdateSipStatus();
         _operation = new PageOperation(this, ReportSettingsNotice);
-        _ringtoneOperation = new PageOperation(this, audioStatus);
+        _ringtoneOperation = new PageOperation(this, audioStatus, useWaitCursor: false);
         mailSettingsPage.Bind(workspace, SaveMailSettingsAsync, ReloadMailSettingsAsync);
         pluginPage.Bind(workspace, _state, ReportSettingsNotice);
         pluginPage.ConfigureSelection(ActivatePluginAsync);

@@ -64,6 +64,19 @@ public sealed partial class AppShellTests
             Assert.Contains("Windows", Field<LabelControl>(page, "audioStatus").Text);
             Assert.AreEqual(22050, output.SampleRate);
             Assert.AreEqual(35, output.Volume);
+            output.Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var playing = page.PreviewRingtoneAsync();
+            var liveVolume = await output.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.IsFalse(dialog.UseWaitCursor);
+            Assert.IsTrue(slider.Enabled);
+            Assert.AreEqual("Stopp", button.Text);
+            slider.Value = 57;
+            Assert.AreEqual(57, liveVolume.Percent);
+            button.PerformClick();
+            await playing.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.AreEqual("Abspielen", button.Text);
+            output.Started = null;
+            slider.Value = 35;
             Assert.AreEqual("RingPrevious.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
             await page.SaveAsync(CancellationToken.None);
             await page.ReloadAsync();
@@ -140,12 +153,22 @@ public sealed partial class AppShellTests
         internal int SampleRate { get; private set; }
         internal int Volume { get; private set; }
         internal int Channels { get; private set; }
+        internal TaskCompletionSource<AudioPlaybackVolume>? Started { get; set; }
 
         public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
         {
             SampleRate = source.WaveFormat.SampleRate;
             Channels = source.WaveFormat.Channels;
             Volume = settings.PlaybackVolumePercent;
+        }
+
+        public void Play(IWaveSource source, AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token)
+        {
+            Play(source, settings with { PlaybackVolumePercent = volume.Percent }, token);
+            if (Started is not { } started) return;
+            started.TrySetResult(volume);
+            token.WaitHandle.WaitOne();
+            token.ThrowIfCancellationRequested();
         }
     }
 }

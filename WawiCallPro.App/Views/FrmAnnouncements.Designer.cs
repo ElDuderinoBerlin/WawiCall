@@ -75,7 +75,7 @@ partial class FrmAnnouncements
         capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         capturePeak.Margin = new System.Windows.Forms.Padding(4);
         choicesLayout.Controls.Add(capturePeak, 2, 0);
-        playbackLabel.Text = "Ausgabe zum Vorhören";
+        playbackLabel.Text = "Wiedergabeausgabe";
         playbackLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
         playbackLabel.Margin = new System.Windows.Forms.Padding(4, 5, 16, 5);
         playbackEdit.Name = "playbackEdit";
@@ -86,7 +86,7 @@ partial class FrmAnnouncements
         choicesLayout.Controls.Add(playbackLabel, 0, 1);
         choicesLayout.Controls.Add(playbackEdit, 1, 1);
         playbackPeak.Name = "playbackPeak";
-        playbackPeak.AccessibleName = "Ausgabepegel beim Vorhören";
+        playbackPeak.AccessibleName = "Ausgabepegel beim Abspielen";
         playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         playbackPeak.Margin = new System.Windows.Forms.Padding(4);
         choicesLayout.Controls.Add(playbackPeak, 2, 1);
@@ -133,7 +133,7 @@ partial class FrmAnnouncements
         speechButton.Click += Speech_Click;
         actions.Controls.Add(speechButton, 0, 1);
         previewButton.Name = "previewButton";
-        previewButton.Text = "Vorhören";
+        previewButton.Text = "Abspielen";
         previewButton.Margin = new System.Windows.Forms.Padding(4);
         previewButton.Click += Preview_Click;
         actions.Controls.Add(previewButton, 1, 1);
@@ -153,7 +153,7 @@ partial class FrmAnnouncements
         layout.Controls.Add(statusLabel, 0, 3);
         layout.Controls.Add(actions, 0, 4);
         Controls.Add(layout);
-        Text = "Ansagen aufnehmen und vorhören";
+        Text = "Ansagen aufnehmen und abspielen";
         ClientSize = new System.Drawing.Size(720, 435);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
         StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;

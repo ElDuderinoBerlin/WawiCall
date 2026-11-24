@@ -20,6 +20,20 @@ public interface IHistoryRecordingPlayback
 public interface IHistoryRecordingOutput
 {
     void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token);
+
+    void Play(IWaveSource source, AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token) =>
+        Play(source, settings with { PlaybackVolumePercent = volume.Percent }, token);
+}
+
+/// <summary>Volume shared between the UI and one playback operation.</summary>
+public sealed class AudioPlaybackVolume(int percent)
+{
+    private int _percent = Math.Clamp(percent, 0, 100);
+    public int Percent
+    {
+        get => Volatile.Read(ref _percent);
+        set => Volatile.Write(ref _percent, Math.Clamp(value, 0, 100));
+    }
 }
 
 public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, IWorkstationIdentity workstation,
@@ -72,7 +86,12 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
 
 internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
 {
-    public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
+    public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token) => PlayCore(source, settings, null, token);
+
+    public void Play(IWaveSource source, AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token) =>
+        PlayCore(source, settings, volume, token);
+
+    private static void PlayCore(IWaveSource source, AudioDeviceSettings settings, AudioPlaybackVolume? volume, CancellationToken token)
     {
         using var enumerator = new MMDeviceEnumerator();
         using var device = settings.PlaybackDeviceId is { } deviceId ? enumerator.GetDevice(deviceId)
@@ -85,10 +104,21 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
             else stopped.TrySetResult();
         };
         output.Initialize(source);
-        output.Volume = settings.PlaybackVolumePercent / 100F;
+        output.Volume = (volume?.Percent ?? settings.PlaybackVolumePercent) / 100F;
         token.ThrowIfCancellationRequested();
         output.Play();
-        try { stopped.Task.WaitAsync(token).GetAwaiter().GetResult(); }
+        try
+        {
+            if (volume is not null)
+            {
+                while (!stopped.Task.IsCompleted && !token.IsCancellationRequested)
+                {
+                    output.Volume = volume.Percent / 100F;
+                    Task.WhenAny(stopped.Task, Task.Delay(40, token)).GetAwaiter().GetResult();
+                }
+            }
+            stopped.Task.WaitAsync(token).GetAwaiter().GetResult();
+        }
         finally { output.Stop(); }
     }
 }

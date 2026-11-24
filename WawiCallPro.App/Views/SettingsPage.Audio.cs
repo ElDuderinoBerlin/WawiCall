@@ -18,6 +18,8 @@ public partial class SettingsPage
     private IAudioEndpointMeterFactory? _meterFactory;
     private EndpointMeterDisplay? _captureMeter, _playbackMeter, _ringMeter;
     private PageOperation? _ringtoneOperation;
+    private CancellationTokenSource? _stopRingtonePreview;
+    private AudioPlaybackVolume? _ringtonePreviewVolume;
     private IReadOnlyList<string> _windowsRingtones = [];
     private string? _customRingtonePath;
     private PcmWaveHeader? _customRingtoneFormat;
@@ -84,6 +86,7 @@ public partial class SettingsPage
 
     internal Task SelectCustomRingtoneAsync(string fileName) => _ringtoneOperation?.RunAsync(async token =>
     {
+        using var waiting = new UiWaitCursor(this);
         var format = await Task.Run(() => WindowsIncomingRingtone.ReadCustomRingtoneFormat(fileName, token), token);
         if (_audioStopped || IsDisposed) return;
         if (format is null)
@@ -101,34 +104,51 @@ public partial class SettingsPage
     {
         if (!previewRingtoneButton.Enabled || _ringtones is not { } player) return;
         var volume = (int)ringVolumeEdit.Value;
-        if (volume == 0)
-        {
-            audioStatus.Text = "Die Klingellautstärke steht auf 0 %.";
-            return;
-        }
         var settings = new AudioDeviceSettings
         {
             WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
             RingDeviceId = ReadDevice(ringDeviceEdit), RingVolumePercent = volume
         };
-        previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = false;
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _stopRingtonePreview = stop;
+        _ringtonePreviewVolume = new AudioPlaybackVolume(volume);
+        browseRingtoneButton.Enabled = false;
+        previewRingtoneButton.Text = "Stopp";
         var deviceStatus = _meterFactory is { } factory ? " " + EndpointMeterDisplay.Describe(_ringMeter?.Update(factory, settings.RingDeviceId)) : "";
         audioStatus.Text = "Klingelton wird abgespielt …" + deviceStatus;
         try
         {
-            var selected = await player.PreviewAsync(settings, token);
+            var selected = await player.PreviewAsync(settings, _ringtonePreviewVolume, stop.Token);
             if (!_audioStopped) audioStatus.Text = (selected ? "Klingelton abgespielt." : "Klingeldatei nicht verfügbar. Eingebauten Ton abgespielt.") + deviceStatus;
         }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            if (!_audioStopped) audioStatus.Text = "Wiedergabe beendet." + deviceStatus;
+        }
         catch (Exception) { if (!_audioStopped) audioStatus.Text = "Klingelton konnte nicht abgespielt werden. Klingelausgabe und Windows-Lautstärke prüfen."; }
-        finally { previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = !_audioStopped && windowsRingtoneEdit.Enabled; }
+        finally
+        {
+            _stopRingtonePreview = null;
+            _ringtonePreviewVolume = null;
+            previewRingtoneButton.Text = "Abspielen";
+            previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = !_audioStopped && windowsRingtoneEdit.Enabled;
+        }
     }) ?? Task.CompletedTask;
 
-    private async void PreviewRingtone_Click(object? sender, EventArgs e) => await PreviewRingtoneAsync();
+    private async void PreviewRingtone_Click(object? sender, EventArgs e)
+    {
+        if (_stopRingtonePreview is { } stop) await stop.CancelAsync();
+        else await PreviewRingtoneAsync();
+    }
 
     private void RingVolumeSlider_EditValueChanged(object? sender, EventArgs e) => ringVolumeEdit.Value = ringVolumeSlider.Value;
 
-    private void RingVolumeEdit_EditValueChanged(object? sender, EventArgs e) => ringVolumeSlider.Value = (int)ringVolumeEdit.Value;
+    private void RingVolumeEdit_EditValueChanged(object? sender, EventArgs e)
+    {
+        var volume = (int)ringVolumeEdit.Value;
+        ringVolumeSlider.Value = volume;
+        if (_ringtonePreviewVolume is { } preview) preview.Percent = volume;
+    }
 
     private static string? ReadDevice(LookUpEdit editor) => editor.EditValue is string { Length: > 0 } value ? value : null;
 

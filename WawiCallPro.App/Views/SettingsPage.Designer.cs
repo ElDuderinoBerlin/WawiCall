@@ -896,9 +896,8 @@ partial class SettingsPage
         windowsRingtoneEdit.Enabled = false;
         audioLayout.Controls.Add(windowsRingtoneEdit, 1, 3);
         previewRingtoneButton.Name = "previewRingtoneButton";
-        previewRingtoneButton.Text = "Vorhören";
-        windowsRingtoneEdit.EditValueChanged += Ringtone_EditValueChanged;
-        previewRingtoneButton.ToolTip = "Spielt den Klingelton bis zu vier Sekunden auf der gewählten Klingelausgabe ab.";
+        previewRingtoneButton.Text = "Abspielen";
+        previewRingtoneButton.ToolTip = "Spielt den Klingelton auf der gewählten Ausgabe ab. Mit Stopp beenden.";
         previewRingtoneButton.AutoSize = true;
         previewRingtoneButton.Anchor = System.Windows.Forms.AnchorStyles.Right;
         previewRingtoneButton.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);

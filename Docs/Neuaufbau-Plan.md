@@ -3676,10 +3676,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Windows-Installation. Das lokale Profilformat 18 speichert den Dateinamen. Vorhandene Profile
   verwenden weiterhin den eingebauten Ton. Fehlt eine gewählte Datei nach einem Windows-Wechsel
   oder ist ihre WAV-Struktur ungültig, bleibt die Auswahl sichtbar und die Wiedergabe nutzt den
-  eingebauten Ton. Die Vorschau nutzt bis zu vier Sekunden lang die gewählte Klingelausgabe und
-  Lautstärke. Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
-  Der Lautstärkeregler steht direkt unter der Klingeltonauswahl. Die Hörprobe zeigt ihren Status
-  im Audio-Reiter und erzeugt keine allgemeine Meldung zur Einstellungsbearbeitung.
+  eingebauten Ton. **Abspielen** wiederholt den Klingelton bis zu 30 Sekunden auf der gewählten
+  Klingelausgabe. **Stopp** beendet die Wiedergabe. Der Regler bleibt bedienbar, Änderungen wirken
+  im laufenden WASAPI-Stream, und der Status erscheint im Audio-Reiter. Ein Wartecursor erscheint
+  bei der Dateiauswahl, während der Wiedergabe bleibt der normale Cursor sichtbar.
+  Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
   **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton
