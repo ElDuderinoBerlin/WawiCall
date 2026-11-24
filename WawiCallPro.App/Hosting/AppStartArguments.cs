@@ -2,14 +2,17 @@ using System.IO;
 
 namespace WawiCallPro.App.Hosting;
 
-internal enum AppStartKind { Interactive, Diagnostics, UiAudit, ActivateExisting, Com, ImportLicense, ResetLicense }
+internal enum AppStartKind { Interactive, Diagnostics, UiAudit, ActivateExisting, Com, ImportLicense, ResetLicense, Documentation }
 
 /// <summary>Validates the complete command line before loading configuration or creating controls.</summary>
 internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
 {
     internal string? FixtureDirectory { get; init; }
+    internal AppDocumentationView? DocumentationView { get; init; }
     internal static AppStartArguments Parse(string[] arguments)
     {
+        if (arguments.Length > 0 && (EqualsOption(arguments[0], "--automation-docs") || EqualsOption(arguments[0], "/automation-docs")))
+            return ParseDocumentation(arguments);
         if (arguments.Length is 2 or 3 && EqualsOption(arguments[0], "--com-fixture")
             && System.IO.Path.IsPathFullyQualified(arguments[1]))
         {
@@ -35,6 +38,23 @@ internal sealed record AppStartArguments(AppStartKind Kind, string? Path = null)
                 return new(AppStartKind.ImportLicense, arguments[1]);
         }
         throw new ArgumentException("Ungültige oder widersprüchliche Startargumente.");
+    }
+
+    private static AppStartArguments ParseDocumentation(string[] arguments)
+    {
+        AppDocumentationView? view = null;
+        string? output = null;
+        for (var index = 1; index < arguments.Length; index += 2)
+        {
+            if (index + 1 >= arguments.Length || string.IsNullOrWhiteSpace(arguments[index + 1])
+                || arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
+                throw new ArgumentException("Ein Wert für die Dokumentationsautomation fehlt.");
+            var value = arguments[index + 1];
+            if (view is null && EqualsOption(arguments[index], "--automation-open")) view = AppDocumentationView.Parse(value);
+            else if (output is null && EqualsOption(arguments[index], "--automation-output")) output = value;
+            else throw new ArgumentException("Ungültige oder doppelte Dokumentationsoption.");
+        }
+        return new(AppStartKind.Documentation, output) { DocumentationView = view ?? AppDocumentationView.Parse("home") };
     }
 
     internal string[] ToInteractiveArguments() => Kind switch

@@ -1022,6 +1022,10 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
 - [x] ✅ Pro-Abhängigkeiten auf die lokalen HEADs `a39bc98` (Lexware.Core) und `98bfcbe` (Lexware.APIService)
   gesetzt. Der Batchlauf bestätigt beide Pins. Acht andere Arbeitskopien wurden wegen lokaler Änderungen
   übersprungen und das Batch meldete Exitcode 1. Alle 13 HEADs blieben beim Lauf identisch.
+- [x] ✅ App-Ansichten wie bei LxTranslate per `--automation-docs --automation-open` direkt starten.
+  [Der Start mit Renderausgabe](Build.md#app-direkt-für-einen-ansichtstest-starten) wurde für sechs Ansichten
+  in Pro und FinOffice geprüft. App und Console bauen in Debug/Any CPU ohne Warnungen oder Fehler.
+  Je Edition bestanden elf Startargument- und Identitätsprüfungen. Der sichtbare Start bleibt der Desktop-Abnahme vorbehalten.
 - [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
   `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
   vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte

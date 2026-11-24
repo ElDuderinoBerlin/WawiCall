@@ -9,9 +9,12 @@ internal static class UiAudit
 {
     internal static Task Render(string outputDirectory) => Render(outputDirectory, () => new MainForm());
 
-    internal static async Task Render(string outputDirectory, Func<MainForm> createForm)
+    internal static Task Render(string outputDirectory, Func<MainForm> createForm) => Render(outputDirectory, createForm, null);
+
+    internal static async Task Render(string outputDirectory, Func<MainForm> createForm, string? selectedSurface)
     {
-        var requested = Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
+        var requested = selectedSurface is not null ? new[] { selectedSurface }
+            : Environment.GetEnvironmentVariable("LX_UI_AUDIT_SURFACES")?.Split(',', StringSplitOptions.TrimEntries);
         var surfaces = new[] { ("MainForm", "home"), ("PartySearchPage", "parties"), ("FrmSettings", "settings"), ("PluginPage", "plugins"), ("MailSettingsPage", "settings"), ("FrmDial", "dial"), ("HistoryPage", "history"), ("MailPage", "mail"), ("CallerLookupPage", "caller"), ("CallDetailsPage", "call-details"), ("PhoneNumberDiagnosticsPage", "number-diagnostics") }
             .Where(surface => requested is null || requested.Contains(surface.Item1)).ToArray();
         if (surfaces.Length == 0) throw new ArgumentException("Keine bekannte Oberfläche für die Renderprüfung ausgewählt.");

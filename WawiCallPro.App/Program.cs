@@ -85,10 +85,14 @@ internal static class Program
     {
         var start = AppStartArguments.Parse(args);
         var diagnostics = start.Kind == AppStartKind.Diagnostics;
+        var documentation = start.Kind == AppStartKind.Documentation;
         ServiceProvider? bootstrap = null;
         AppExceptionBoundary? exceptions = null;
         try
         {
+            var documentationProfile = documentation ? Directory.CreateTempSubdirectory("WawiCallPro-docs-").FullName : null;
+            if (documentationProfile is not null)
+                Environment.SetEnvironmentVariable("WAWICALLPRO_CONFIG_DIR", documentationProfile);
             var descriptor = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
             var identity = AppComIdentity.Resolve(start, descriptor);
             bootstrap = AppBootstrap.Create();
@@ -100,9 +104,13 @@ internal static class Program
             Application.OleRequired();
             using var uiContext = new WindowsFormsSynchronizationContext();
             SynchronizationContext.SetSynchronizationContext(uiContext);
-            var auditDirectory = start.Kind == AppStartKind.UiAudit ? start.Path : null;
-            var mode = new StartupExecutionMode(diagnostics || auditDirectory is not null)
-            { ComActivated = start.Kind == AppStartKind.Com, IsolatedProfile = start.FixtureDirectory is not null };
+            var auditDirectory = start.Kind is AppStartKind.UiAudit or AppStartKind.Documentation ? start.Path : null;
+            var mode = new StartupExecutionMode(diagnostics || documentation || auditDirectory is not null)
+            {
+                ComActivated = start.Kind == AppStartKind.Com,
+                IsolatedProfile = documentation || start.FixtureDirectory is not null,
+                DocumentationProfileDirectory = documentationProfile
+            };
             var instance = bootstrap.GetRequiredService<IAppInstanceGuard>();
             if (!mode.SuppressNetwork && !instance.TryAcquire())
             {
@@ -115,7 +123,7 @@ internal static class Program
                 else { instance.RequestExistingInstanceActivation(); return 0; }
             }
             var host = AppCompositionRoot.Build(uiContext, exceptions, mode, instance, identity, bootstrap.GetRequiredService<CrashReportQueue>());
-            using var application = new AppApplicationContext(host, diagnostics, auditDirectory);
+            using var application = new AppApplicationContext(host, diagnostics, auditDirectory) { DocumentationView = start.DocumentationView };
             Application.Run(application);
             if (application.Failure is not null) ExceptionDispatchInfo.Capture(application.Failure).Throw();
             if (exceptions.Failure is not null) ExceptionDispatchInfo.Capture(exceptions.Failure).Throw();
@@ -126,7 +134,7 @@ internal static class Program
             exceptions?.Report(exception, CrashOrigin.Startup);
             var message = StartupFailureMessage.Format(exception);
             Console.Error.WriteLine(message);
-            if (!diagnostics && start.Kind is not (AppStartKind.UiAudit or AppStartKind.Com))
+            if (!diagnostics && !documentation && start.Kind is not (AppStartKind.UiAudit or AppStartKind.Com))
                 XtraMessageBox.Show(message, "WawiCallPro",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             return 1;

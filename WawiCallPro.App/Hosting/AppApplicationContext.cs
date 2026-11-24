@@ -67,6 +67,7 @@ internal sealed class AppApplicationContext : ApplicationContext
 
     internal Exception? Failure { get; private set; }
     internal bool RestartRequested { get; private set; }
+    internal AppDocumentationView? DocumentationView { get; init; }
 
     private async void StartOnIdle(object? sender, EventArgs e)
     {
@@ -87,7 +88,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 }
                 if (_auditDirectory is not null)
                 {
-                    if (NativeTrayAudit.IsRequested)
+                    if (DocumentationView is null && NativeTrayAudit.IsRequested)
                     {
                         if (!_instance.TryAcquire()) throw new InvalidOperationException("Native audit requires an isolated instance profile.");
                         _form = CreateMainForm();
@@ -99,7 +100,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                         }, stoppingToken);
                         return;
                     }
-                    await UiAudit.Render(_auditDirectory, CreateMainForm);
+                    await UiAudit.Render(_auditDirectory, CreateMainForm, DocumentationView?.AuditSurface);
                     return;
                 }
 
@@ -111,7 +112,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 {
                     _form.PrepareForBackgroundRun();
                 }
-                else if (_host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User.StartMinimized)
+                else if (DocumentationView is null && _host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User.StartMinimized)
                     _form.WindowState = FormWindowState.Minimized;
                 using var stopRegistration = stoppingToken.Register(() => _closeRequested.TrySetResult());
                 _form.ShowAfterStartup(_splash?.ShouldPreserveForeground() == true);
@@ -125,6 +126,7 @@ internal sealed class AppApplicationContext : ApplicationContext
                 _automation.Visible();
                 _automation.Telephony = _host.Services.GetRequiredService<WawiCallPro.Interfaces.Telephony.ITelephonyService>();
                 OnActivationRequested(this, EventArgs.Empty);
+                DocumentationView?.Open(_form);
                 if (_diagnostics)
                 {
                     var diagnostics = _host.Services.GetRequiredService<HostDiagnostics>();
@@ -136,7 +138,7 @@ internal sealed class AppApplicationContext : ApplicationContext
             });
             // Emit success only after StopAsync and asynchronous container disposal have succeeded.
             if (_diagnostics) Console.WriteLine(JsonSerializer.Serialize(diagnostic));
-            RestartRequested = !_diagnostics && _auditDirectory is null && _form?.RestartRequested == true;
+            RestartRequested = !_diagnostics && _auditDirectory is null && DocumentationView is null && _form?.RestartRequested == true;
         }
         catch (Exception exception)
         {
@@ -316,7 +318,7 @@ internal sealed class AppApplicationContext : ApplicationContext
         {
             if (_form is not null)
             {
-                if (!_host.Services.GetRequiredService<ClientKeyExitProtection>().TryComplete(_form)) return;
+                if (DocumentationView is null && !_host.Services.GetRequiredService<ClientKeyExitProtection>().TryComplete(_form)) return;
                 await _form.PrepareToCloseAsync();
             }
         }

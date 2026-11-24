@@ -30,7 +30,10 @@ internal static class AppCompositionRoot
                 services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
                 services.AddSingleton<AppWorkspace>();
-                services.AddSingleton(_ => new WawiCallPro.Utilities.Configuration.ProductAppSettings(Path.Combine(AppContext.BaseDirectory, "appsettings.json")));
+                if (mode.DocumentationProfileDirectory is { } profile)
+                    services.Replace(ServiceDescriptor.Singleton(new WawiCallPro.Utilities.Configuration.ConfigurationLocation(profile)));
+                services.AddSingleton(_ => new WawiCallPro.Utilities.Configuration.ProductAppSettings(
+                    Path.Combine(mode.DocumentationProfileDirectory ?? AppContext.BaseDirectory, "appsettings.json")));
                 services.AddSingleton<IClientKeyExitPrompt, ClientKeyExitPrompt>();
                 services.AddSingleton<ClientKeyExitProtection>();
                 services.AddSingleton<CallNotesSessionFactory>();

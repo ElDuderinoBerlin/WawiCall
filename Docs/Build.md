@@ -122,6 +122,25 @@ Die Ergebnisse bleiben in den regulären Projektverzeichnissen `bin/Debug/Pro` u
 visuell betrachtet werden. Die 150%-Layoutskalierung ist eine Simulation; eine echte spätere High-DPI-Abnahme
 wird dadurch nicht ersetzt. Unveränderte Ansichten müssen nicht nach jedem reinen Build erneut gerendert werden.
 
+### App direkt für einen Ansichtstest starten
+
+`--automation-docs --automation-open <Ansicht>` öffnet die gewählte Ansicht wie in LxTranslate.
+Unterstützt werden `home` (Standard), `history`, `mail`, `settings`, `plugin` und `dial`.
+Mit `--automation-output <Ordner>` rendert die App nur die gewählte Ansicht per UI-Audit und
+beendet sich anschließend. Für unbeaufsichtigte Tests den Prozess bis zum Ende abwarten.
+
+```powershell
+$exe = '.\WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.App.FinOffice.exe'
+$output = Join-Path $PWD '.artifacts\ui-settings'
+$run = Start-Process -FilePath $exe -ArgumentList @('--automation-docs', '--automation-open', 'settings', '--automation-output', ('"{0}"' -f $output)) -WindowStyle Hidden -Wait -PassThru
+$run.ExitCode
+```
+
+Für die Pro-Ausgabe heißt die Datei `WawiCallPro.App.Pro.exe`. Jeder Lauf verwendet ein eigenes
+temporäres Konfigurationsprofil und unterdrückt die regulären Hintergrunddienste für externe
+Verbindungen. Exitcode `0` steht für Erfolg, `2` für ungültige Startargumente und `1` für einen
+Start- oder Renderfehler.
+
 Die Diagnosekonsole und die App melden bei fehlender Einrichtung `ConnectionConfigured=false`.
 Seit Phase 2, Punkt 4 kommen `ConfigurationFound` und `ConnectionConfigured` aus einer typisiert validierten
 Startkonfiguration. Ein konfiguriertes Konto ist noch kein Nachweis einer SIP-Registrierung/Netzwerkverbindung.

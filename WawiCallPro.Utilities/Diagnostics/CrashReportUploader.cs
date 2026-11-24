@@ -9,6 +9,7 @@ public sealed record StartupExecutionMode(bool SuppressNetwork = false)
 {
     public bool ComActivated { get; init; }
     public bool IsolatedProfile { get; init; }
+    public string? DocumentationProfileDirectory { get; init; }
 }
 
 /// <summary>Uploads only the sanitized persisted payload, with product-bound activation authentication.</summary>

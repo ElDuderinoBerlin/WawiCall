@@ -43,4 +43,28 @@ public sealed class AppStartArgumentsTests
             ["--unknown"], ["/regserver", "/machine"], ["-Embedding", "-Embedding"]];
         foreach (var arguments in invalid) Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(arguments));
     }
+
+    [TestMethod]
+    public void DocumentationStartupSelectsAViewAndAnOptionalAuditDirectory()
+    {
+        var defaults = AppStartArguments.Parse(["/automation-docs"]);
+        Assert.AreEqual(AppStartKind.Documentation, defaults.Kind);
+        Assert.AreEqual(new AppDocumentationView("home", "MainForm"), defaults.DocumentationView);
+        Assert.IsNull(defaults.Path);
+
+        var render = AppStartArguments.Parse(["--automation-docs", "--automation-output", "local render", "--automation-open", "History"]);
+        Assert.AreEqual(new AppDocumentationView("history", "HistoryPage"), render.DocumentationView);
+        Assert.AreEqual("local render", render.Path);
+    }
+
+    [TestMethod]
+    [DataRow("--automation-open", "unknown")]
+    [DataRow("--automation-output", "--diagnostics")]
+    [DataRow("--automation-output", " ")]
+    [DataRow("--profile", "current")]
+    public void DocumentationStartupRejectsUnsupportedOrEmptyOptions(string option, string value)
+    {
+        Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(["--automation-docs", option, value]));
+        Assert.Throws<ArgumentException>(() => AppStartArguments.Parse(["--automation-docs", "--automation-open", "home", "--automation-open", "mail"]));
+    }
 }
