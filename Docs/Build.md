@@ -95,6 +95,13 @@ Voraussetzungen: Windows, PowerShell 7 (`pwsh`), Git, .NET-11-SDK entsprechend `
 die in `deps.json` aufgeführten Schwester-Repositories und ein eingerichteter Zugriff auf die benötigten
 DevExpress-Pakete beziehungsweise ein vorhandener Paketcache. Keine Zugangsdaten ins Repository schreiben.
 
+`update-dependencies.bat` klont fehlende Git-Arbeitskopien und aktualisiert die vorhandenen auf die in
+`deps.json` fixierten Revisionen. Es verarbeitet standardmäßig alle Einträge. Mit
+`update-dependencies.bat -Name CSCore,NAudio` lassen sich nur die beiden lokalen Quellkopien aktualisieren.
+Diese liegen unter `src/CSCore` und `src/NAudio`. WawiCallPro referenziert weiterhin das bestehende
+CSCore-basierte Medienprojekt. Das Batch meldet abweichende Arbeitskopien mit lokalen Änderungen oder
+abweichendem Commit-Verlauf und bearbeitet die anderen Einträge weiter.
+
 ```powershell
 .\bootstrap.ps1 -CheckOnly
 .\debug-build.bat

@@ -1,5 +1,7 @@
 **/bin/
 **/obj/
+/src/CSCore/
+/src/NAudio/
 .artifacts/
 artifacts/
 .idea/

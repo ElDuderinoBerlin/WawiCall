@@ -1019,6 +1019,11 @@ Ein Fachbuild ist für diesen reinen Dokumentationsblock nicht erforderlich; es 
   `obj/<Produktlinie>` sind getrennt; `obj/**` bleibt komplett aus Compile-Globs ausgeschlossen.
   Negativprüfung mit `LexwareProductLine=Invalid` wird erwartungsgemäß abgewiesen. Standard wie LxTranslate: FinOffice.
 - [x] `deps.json` und Bootstrap für tatsächlich benötigte Schwester-Repositories samt Revision/Branch dokumentieren.
+- [x] ✅ CSCore und NAudio zusätzlich als lokale GitHub-Quellkopien unter `src` bereitstellen und in
+  `deps.json` fixieren. `update-dependencies.bat` verarbeitet alle Manifesteinträge und aktualisiert
+  vorhandene Arbeitskopien per Fast-forward. Fehlende, saubere, lokal geänderte und abgezweigte
+  Arbeitskopien sowie die Fehlerweitergabe im isolierten Batch-Lauf geprüft. Die beiden Audioquellen
+  sind separate Arbeitskopien für die lokale Arbeit.
   Vorhandene Änderungen in Schwester-Repositories nicht überschreiben oder automatisch auf einen anderen Stand ziehen.
   Nachweis: zehn Git-Repositories mit festen Revisionen und Projektpfaden erfasst. `bootstrap.ps1 -CheckOnly`
   prüft vorhandene Kopien ohne Fetch/Pull/Reset; nur fehlende Repositories werden standardmäßig geklont.

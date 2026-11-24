@@ -1,5 +1,5 @@
 {
-  "description": "Schwester-Repositories der WawiCallPro-Solution. Bestehende Arbeitskopien werden ausschließlich geprüft und niemals zurückgesetzt.",
+  "description": "Fixierte Git-Abhängigkeiten und lokale Quellkopien. Aktualisierungen erfolgen ausschließlich per Fast-forward.",
   "baseDir": "..",
   "dependencies": [
     {
@@ -101,6 +101,26 @@
       "projects": [
         "Quantarix.License.Client/Quantarix.License.Client.csproj",
         "Quantarix.License.Core/Quantarix.License.Core.csproj"
+      ]
+    },
+    {
+      "name": "CSCore",
+      "workspaceSubdir": "src",
+      "url": "https://github.com/filoe/cscore.git",
+      "branch": "master",
+      "revision": "74ccb4d7e1211690876b20c816181f4d811f48aa",
+      "projects": [
+        "CSCore/CSCore.csproj"
+      ]
+    },
+    {
+      "name": "NAudio",
+      "workspaceSubdir": "src",
+      "url": "https://github.com/naudio/NAudio.git",
+      "branch": "main",
+      "revision": "174bb499e5d36df1617377cbc1c72e503fc8f22e",
+      "projects": [
+        "src/NAudio/NAudio.csproj"
       ]
     }
   ]
