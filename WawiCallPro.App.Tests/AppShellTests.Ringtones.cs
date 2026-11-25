@@ -57,8 +57,14 @@ public sealed partial class AppShellTests
             Assert.IsTrue(button.Enabled);
             ringtone.EditValue = "RingNew.wav";
             var slider = Field<TrackBarControl>(page, "ringVolumeSlider");
+            var microphone = Field<TrackBarControl>(page, "micVolumeSlider");
+            var outputVolume = Field<TrackBarControl>(page, "playVolumeSlider");
+            Assert.IsTrue(microphone.Properties.ShowValueToolTip);
+            Assert.IsTrue(outputVolume.Properties.ShowValueToolTip);
+            Assert.IsTrue(slider.Properties.ShowValueToolTip);
+            microphone.Value = 64;
+            outputVolume.Value = 78;
             slider.Value = 35;
-            Assert.AreEqual(35M, Field<SpinEdit>(page, "ringVolumeEdit").Value);
             var notice = page.LastSettingsNotice;
             await page.PreviewRingtoneAsync();
             Assert.AreEqual(notice, page.LastSettingsNotice);
@@ -86,6 +92,8 @@ public sealed partial class AppShellTests
             await page.ReloadAsync();
             Assert.AreEqual("RingNew.wav", ringtone.EditValue);
             Assert.AreEqual(35, slider.Value);
+            Assert.AreEqual(64, microphone.Value);
+            Assert.AreEqual(78, outputVolume.Value);
             Assert.AreEqual("RingNew.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
             var customFile = Path.Combine(media, "Eigene Ansage.wav");
             var channels = scale == 1F ? 2 : 1;

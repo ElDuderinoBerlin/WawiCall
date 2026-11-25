@@ -288,9 +288,9 @@ public partial class SettingsPage : XtraUserControl
         dialHotkeyEdit.Hotkey = ParseHotkey(options.User.DialHotkey);
         ApplySipProfiles(options);
         ApplyDatabase(options.Database);
-        playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
-        micVolumeEdit.Value = options.Devices.MicrophoneVolumePercent;
-        ringVolumeEdit.Value = options.Devices.RingVolumePercent;
+        micVolumeSlider.Value = options.Devices.MicrophoneVolumePercent;
+        playVolumeSlider.Value = options.Devices.PlaybackVolumePercent;
+        ringVolumeSlider.Value = options.Devices.RingVolumePercent;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
         automaticRecordingEdit.Checked = options.Devices.RecordConnectedCallsAutomatically;
         recordingFormatEdit.SelectedIndex = (int)options.GetRecordingOutput().Format - 1;
@@ -319,8 +319,8 @@ public partial class SettingsPage : XtraUserControl
                 LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
                 ShowWindowHotkey = ReadHotkey(showWindowHotkeyEdit),
                 DialHotkey = ReadHotkey(dialHotkeyEdit) },
-            Devices = old.Devices with { MicrophoneVolumePercent = (int)micVolumeEdit.Value,
-                PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
+            Devices = old.Devices with { MicrophoneVolumePercent = micVolumeSlider.Value,
+                PlaybackVolumePercent = playVolumeSlider.Value, RingVolumePercent = ringVolumeSlider.Value, MicrophoneMuted = mutedEdit.Checked,
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
                 WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone },

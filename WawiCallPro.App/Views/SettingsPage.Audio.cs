@@ -111,7 +111,7 @@ public partial class SettingsPage
     internal Task PreviewRingtoneAsync() => _ringtoneOperation?.RunAsync(async token =>
     {
         if (!previewRingtoneButton.Enabled || _ringtones is not { } player) return;
-        var volume = (int)ringVolumeEdit.Value;
+        var volume = ringVolumeSlider.Value;
         var settings = new AudioDeviceSettings
         {
             WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
@@ -145,18 +145,15 @@ public partial class SettingsPage
         else await PreviewRingtoneAsync();
     }
 
-    private void RingVolumeSlider_EditValueChanged(object? sender, EventArgs e) => ringVolumeEdit.Value = ringVolumeSlider.Value;
-
-    private void MicVolumeSlider_EditValueChanged(object? sender, EventArgs e) => micVolumeEdit.Value = micVolumeSlider.Value;
-    private void MicVolumeEdit_EditValueChanged(object? sender, EventArgs e) => micVolumeSlider.Value = (int)micVolumeEdit.Value;
-    private void PlayVolumeSlider_EditValueChanged(object? sender, EventArgs e) => playVolumeEdit.Value = playVolumeSlider.Value;
-    private void PlayVolumeEdit_EditValueChanged(object? sender, EventArgs e) => playVolumeSlider.Value = (int)playVolumeEdit.Value;
-
-    private void RingVolumeEdit_EditValueChanged(object? sender, EventArgs e)
+    private void RingVolumeSlider_EditValueChanged(object? sender, EventArgs e)
     {
-        var volume = (int)ringVolumeEdit.Value;
-        ringVolumeSlider.Value = volume;
-        if (_ringtonePreviewVolume is { } preview) preview.Percent = volume;
+        if (_ringtonePreviewVolume is { } preview) preview.Percent = ringVolumeSlider.Value;
+    }
+
+    private void VolumeSlider_BeforeShowValueToolTip(object? sender, TrackBarValueToolTipEventArgs e)
+    {
+        if (sender is TrackBarControl slider) e.ShowArgs.ToolTip = $"{slider.Value} %";
+        e.ShowArgs.ToolTipLocation = DevExpress.Utils.ToolTipLocation.TopCenter;
     }
 
     private static string? ReadDevice(LookUpEdit editor) => editor.EditValue is string { Length: > 0 } value ? value : null;
