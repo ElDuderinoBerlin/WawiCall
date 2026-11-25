@@ -50,13 +50,18 @@ public sealed partial class AppShellTests
         await main.ObserveCallAsync(first);
         var original = main.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == first.Id);
         Assert.IsTrue(original.Visible);
-        Assert.Contains(first.RemoteAddress.OriginalValue!, original.Text);
+        Assert.Contains("+49301234567 (Berlin)", original.Text);
         Assert.IsFalse(Field<TextEdit>(original.Page, "numberEdit").Visible);
 
         var second = (await CreateWorkspaceCallAsync(services)) with { Revision = 2, State = CallState.Ringing };
         await main.ObserveCallAsync(second);
         var concurrent = main.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == second.Id);
         Assert.AreNotSame(original, concurrent);
+        concurrent.ObserveCall(second with { RemoteAddress = new(NumberPresentation.Available, E164: "+4940123456") });
+        Assert.Contains("+4940123456 (Hamburg)", concurrent.Text);
+        concurrent.ObserveCall(second with { RemoteAddress = new(NumberPresentation.Available, "+80012345678") });
+        Assert.Contains("+80012345678 ·", concurrent.Text);
+        Assert.DoesNotContain("Hamburg", concurrent.Text);
         await main.ObserveCallAsync(first with { Revision = 3, State = CallState.Ended, EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Completed });
         Assert.Contains("Gespräch beendet", Field<LabelControl>(original.Page, "callStatusLabel").Text);
         Assert.AreSame(Field<TableLayoutPanel>(original.Page, "statusBar"), Field<LabelControl>(original.Page, "statusLabel").Parent);
@@ -81,6 +86,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual(reuse, ReferenceEquals(original, selected));
         Assert.Contains("Rufnummer unterdrückt", selected.Text);
         Assert.DoesNotContain("030555555", selected.Text);
+        Assert.DoesNotContain("Berlin", selected.Text);
         Assert.AreEqual(second.Id, concurrent.CallId);
         await main.PrepareToCloseAsync();
     });

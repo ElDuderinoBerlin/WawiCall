@@ -1810,6 +1810,8 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   Start → Anrufzuordnung öffnet FrmCallerLookup mit eigenem Größen-/Positionszustand und designerfähigem
   CallerLookupPage: gruppierter GridView, eingebaute Suche, versioniertes Spaltenlayout, Suchfirmen-/Cache-
   und Herkunftsdetails. Suche, Abbruch und Schließen sind abwartbar; Hauptansichten bleiben erhalten.
+  Bei eingehenden Anrufen zeigt der Fenstertitel die per libphonenumber ermittelte Region neben der Rufnummer,
+  sofern die öffentliche Nummer aufgelöst werden kann.
   Der frühere Untertab „Leitungsfirma“ wurde am 22.11.2026 entfernt. Persönliche Cacheauswahl und
   Berechtigungen bleiben bestehen; alte gespeicherte Zuordnungen bleiben lesbar, beeinflussen neue
   Anrufentscheidungen aber nicht. Historische Gesprächszuordnungen bleiben erhalten.

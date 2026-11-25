@@ -85,6 +85,13 @@ public partial class CallerLookupPage : XtraUserControl
         if (_boundCall?.Id == call.Id) _boundCall = call;
     }
 
+    internal PhoneNumberInterpretation? InterpretAddress(CallAddress address)
+    {
+        if (address.Presentation == NumberPresentation.Available && string.IsNullOrWhiteSpace(address.OriginalValue))
+            address = address with { OriginalValue = address.E164 };
+        return _workspace?.PhoneInterpreter.InterpretIncoming(address, _boundLine);
+    }
+
     internal void DisplayCallStatus(string status)
     {
         callStatusLabel.Text = status;
@@ -111,11 +118,8 @@ public partial class CallerLookupPage : XtraUserControl
             return;
         }
         var address = _boundCall?.RemoteAddress ?? new(NumberPresentation.Available, numberEdit.Text.Trim());
-        if (address.Presentation == NumberPresentation.Available && string.IsNullOrWhiteSpace(address.OriginalValue))
-            address = address with { OriginalValue = address.E164 };
-        var number = address.OriginalValue ?? "";
-        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(address, _boundLine);
-        if (incoming.Kind != PhoneNumberAddressKind.Public)
+        var incoming = InterpretAddress(address);
+        if (incoming is not { Kind: PhoneNumberAddressKind.Public })
         {
             _decision = null; grid.DataSource = Array.Empty<CandidateRow>();
             selectionLabel.Text = "Keine Zuordnung."; chooseButton.Enabled = false;
@@ -124,6 +128,7 @@ public partial class CallerLookupPage : XtraUserControl
                 : "Für diese Rufnummer ist keine öffentliche Anrufzuordnung möglich.";
             return;
         }
+        var number = incoming.Address.OriginalValue ?? "";
         await _operation.RunAsync(async token =>
         {
             using var request = CancellationTokenSource.CreateLinkedTokenSource(token);

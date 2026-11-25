@@ -1,5 +1,6 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Telephony;
 
 namespace WawiCallPro.App.Views;
@@ -86,6 +87,9 @@ public partial class FrmCallerLookup : XtraForm
         };
         var display = number is null ? "" : string.Concat(number.Where(character => !char.IsControl(character))).Trim();
         if (display.Length == 0) display = "Rufnummer unbekannt";
+        else if (call.Direction == CallDirection.Incoming && address.Presentation == NumberPresentation.Available &&
+            callerPage.InterpretAddress(address) is { Kind: PhoneNumberAddressKind.Public, Parsed.RegionDescription: { Length: > 0 } region })
+            display += " (" + region + ")";
         Text = "Anrufzuordnung · " + display + " · " + call.StartedAtUtc.LocalDateTime.ToString("T");
     }
     internal void BindNotes(CallNotesSession notes)
