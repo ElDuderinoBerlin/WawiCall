@@ -3686,6 +3686,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Die Gerätezeilen, Pegelanzeigen, Lautstärke und Aktionen bleiben auch in breiten Fenstern in
   einem kompakten TableLayoutPanel. Je 14 App-Prüfungen in Pro und FinOffice bestanden, einschließlich
   simuliertem Entfernen und Wiederanschließen. Nachweise `.artifacts/audio-device-layout/`.
+  ✅ Native Abnahme am Jabra Link 380 in Pro und FinOffice. Der Regler wurde im laufenden Testton
+  von 15 auf 60 % verschoben; in beiden Editionen stieg der Windows-Endpunktpegel von 2 auf 9 %.
+  Beim physischen Abziehen zeigten beide geöffneten Einstellungen alle drei Jabra-Zuordnungen
+  als nicht verfügbar. Nach dem Einstecken erschienen Mikrofon und beide Ausgaben automatisch
+  wieder mit den gewählten IDs. Nachweise `.artifacts/phase9-jabra-hotplug/`.
   **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton

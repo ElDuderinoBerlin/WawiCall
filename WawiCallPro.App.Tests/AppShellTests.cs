@@ -3635,7 +3635,11 @@ public sealed partial class AppShellTests
         public Task SaveAsync(WawiCallPro.Utilities.Persistence.DatabaseSetupDraft draft, ConfigurationSnapshot expected, CancellationToken cancellationToken = default) => inner.SaveAsync(draft, expected, cancellationToken);
     }
 
-    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, ITelephonyService? telephony = null, Action<IServiceCollection>? configure = null) => RunStaAsync(async () =>
+    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, ITelephonyService? telephony = null, Action<IServiceCollection>? configure = null) =>
+        WithWorkspace(action, TimeSpan.FromSeconds(40), telephony, configure);
+
+    private static Task WithWorkspace(Func<AppWorkspace, IServiceProvider, TestPlugin, Task> action, TimeSpan timeout,
+        ITelephonyService? telephony = null, Action<IServiceCollection>? configure = null) => RunStaAsync(async () =>
     {
         var root = Path.Combine(Path.GetTempPath(), "WawiCallPro-shell-" + Guid.NewGuid().ToString("N"));
         var plugin = new TestPlugin();
@@ -3674,7 +3678,7 @@ public sealed partial class AppShellTests
             await ((IAsyncDisposable)host).DisposeAsync();
             if (Directory.Exists(root)) Directory.Delete(root, true);
         }
-    });
+    }, timeout);
 
     private static async Task ClickRibbonAsync(MainForm form, string item)
     {
@@ -3696,7 +3700,9 @@ public sealed partial class AppShellTests
     }
     private static T Field<T>(object value, string name) => (T)value.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(value)!;
     private static T Find<T>(Control parent, string name) where T : Control => parent.Controls.Find(name, true).OfType<T>().Single();
-    private static async Task RunStaAsync(Func<Task> action)
+    private static Task RunStaAsync(Func<Task> action) => RunStaAsync(action, TimeSpan.FromSeconds(40));
+
+    private static async Task RunStaAsync(Func<Task> action, TimeSpan timeout)
     {
         var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var thread = new Thread(() =>
@@ -3718,7 +3724,7 @@ public sealed partial class AppShellTests
             finally { Application.ThreadException -= failure; }
         }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
-        try { await done.Task.WaitAsync(TimeSpan.FromSeconds(40)); }
+        try { await done.Task.WaitAsync(timeout); }
         finally { Assert.IsTrue(thread.Join(TimeSpan.FromSeconds(2))); }
     }
     private sealed class StartupRegistryDouble : IAutoStartRegistry
