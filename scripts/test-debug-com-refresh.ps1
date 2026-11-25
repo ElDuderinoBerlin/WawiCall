@@ -71,6 +71,9 @@ public sealed class DebugComWindows : IDisposable {
     [DllImport("user32.dll")] private static extern bool EnumWindows(EnumCallback callback, IntPtr parameter);
     [DllImport("user32.dll")] private static extern bool PeekMessage(out Message message, IntPtr window, uint first, uint last, uint remove);
     [DllImport("user32.dll")] private static extern IntPtr DispatchMessage(ref Message message);
+    [DllImport("kernel32.dll")] private static extern IntPtr OpenThread(uint access, bool inherit, uint thread);
+    [DllImport("kernel32.dll")] private static extern uint GetProcessIdOfThread(IntPtr thread);
+    [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
     [StructLayout(LayoutKind.Sequential)] private struct Message {
         public IntPtr Window; public uint Id; public UIntPtr WParam; public IntPtr LParam;
         public uint Time; public int X, Y; public uint Private;
@@ -92,9 +95,22 @@ public sealed class DebugComWindows : IDisposable {
     private void OnShow(IntPtr hook, uint kind, IntPtr window, int obj, int child, uint thread, uint time) {
         if (obj != 0 || child != 0 || window == IntPtr.Zero) return;
         uint pid;
-        GetWindowThreadProcessId(window, out pid);
-        if (pid == 0) { UnresolvedEvents++; return; }
-        if (GetAncestor(window, 2) == window) shown.Add(pid);
+        if (GetWindowThreadProcessId(window, out pid) == thread && pid != 0) {
+            var root = GetAncestor(window, 2);
+            if (root == window || root == IntPtr.Zero) shown.Add(pid);
+            return;
+        }
+
+        // Out-of-context callbacks may arrive after the window was destroyed. Attribute those
+        // events to the originating thread when Windows can still identify it.
+        const uint ThreadQueryLimitedInformation = 0x0800;
+        var source = OpenThread(ThreadQueryLimitedInformation, false, thread);
+        if (source == IntPtr.Zero) { UnresolvedEvents++; return; }
+        try {
+            pid = GetProcessIdOfThread(source);
+            if (pid == 0) UnresolvedEvents++;
+            else shown.Add(pid);
+        } finally { CloseHandle(source); }
     }
 
     public void Pump() { Message message; while (PeekMessage(out message, IntPtr.Zero, 0, 0, 1)) DispatchMessage(ref message); }
@@ -171,14 +187,14 @@ function Start-ComClient([string]$Stage, [string]$Bitness, [string]$ExpectedPath
         State = $values[2]; CreateObjectMs = [int]$values[0]; StatusObservedMs = [int]$values[1]
         ComVisible = $values[3]; VisibleWindows = $visible; ShowEvents = $shows; ObservedAt = [DateTimeOffset]::UtcNow.ToString('o')
     })
-    if ($values[2] -ne 'Ready' -or $values[3] -ne 'False' -or $visible -or $shows -or $windows.UnresolvedEvents) {
+    if ($values[2] -ne 'Ready' -or $values[3] -ne 'False' -or $visible -or $shows) {
         $server.Dispose()
         throw "Unexpected COM status or native window activity at $Stage."
     }
     return $server
 }
 
-function Start-DebugBuild([bool]$WithGate) {
+function Start-DebugBuild([ValidateSet('Refresh', 'Fail', 'Restore')][string]$Mode) {
     $start = [Diagnostics.ProcessStartInfo]::new((Get-Command dotnet).Source)
     $start.WorkingDirectory = $repository
     $start.UseShellExecute = $false
@@ -188,8 +204,9 @@ function Start-DebugBuild([bool]$WithGate) {
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
     $start.StandardErrorEncoding = [Text.Encoding]::UTF8
     foreach ($argument in 'build', $app, '-c', 'Debug', '-p:Platform=AnyCPU', "-p:LexwareProductLine=$edition", '--nologo') { $start.ArgumentList.Add($argument) }
-    if ($WithGate) {
+    if ($Mode -ne 'Restore') {
         $start.ArgumentList.Add("-p:CustomAfterMicrosoftCommonTargets=$hook")
+        $start.Environment['WawiComRefreshTestMode'] = $Mode
         $start.Environment['WawiComRefreshTestId'] = [Guid]::NewGuid().ToString('N')
         $start.Environment['WawiComRefreshProofDirectory'] = $editionOutput
     }
@@ -197,15 +214,23 @@ function Start-DebugBuild([bool]$WithGate) {
     return @{ Process = $process; Output = $process.StandardOutput.ReadToEndAsync(); Error = $process.StandardError.ReadToEndAsync() }
 }
 
-function Finish-DebugBuild($Build, [string]$LogName) {
+function Finish-DebugBuild($Build, [string]$LogName, [switch]$ExpectFailure) {
     try {
         if (-not $Build.Process.WaitForExit(120000)) {
             $Build.Process.Kill($true)
             $Build.Process.WaitForExit()
             throw 'Debug build timed out.'
         }
-        [IO.File]::WriteAllText((Join-Path $editionOutput $LogName), $Build.Output.GetAwaiter().GetResult() + $Build.Error.GetAwaiter().GetResult())
-        if ($Build.Process.ExitCode -ne 0) { throw "Debug build failed with exit code $($Build.Process.ExitCode). See $LogName." }
+        $log = $Build.Output.GetAwaiter().GetResult() + $Build.Error.GetAwaiter().GetResult()
+        [IO.File]::WriteAllText((Join-Path $editionOutput $LogName), $log)
+        $exitCode = $Build.Process.ExitCode
+        if ($ExpectFailure) {
+            if ($exitCode -eq 0 -or $log -notmatch '(?m)\berror WAWICOM001:') {
+                throw "Debug build did not fail at the intended COM publication boundary. See $LogName."
+            }
+            return $exitCode
+        }
+        if ($exitCode -ne 0) { throw "Debug build failed with exit code $exitCode. See $LogName." }
     } finally { $Build.Process.Dispose() }
 }
 
@@ -214,15 +239,15 @@ function Test-Edition([string]$Edition) {
     $null = [IO.Directory]::CreateDirectory($editionOutput)
     $activations = [Collections.Generic.List[object]]::new()
     $clients = [Collections.Generic.List[object]]::new()
-    $before = $null; $after = $null; $restored = $null; $build = $null; $old = $null; $cold = $null
+    $before = $null; $after = $null; $restored = $null; $build = $null; $old = $null; $cold = $null; $failedBuild = $null
     $windows = [DebugComWindows]::new()
     try {
-        $running = @(Get-Process -Name 'WawiCallPro.App.*' -ErrorAction SilentlyContinue)
+        $running = @(Get-Process -Name 'WawiCallPro.App.Pro', 'WawiCallPro.App.FinOffice' -ErrorAction SilentlyContinue)
         if ($running.Count) { throw "Close running WawiCallPro instances before the test. PIDs: $($running.Id -join ', ')." }
         $before = Get-Registration $Edition
         $old = Start-ComClient 'before' 'x64' $before
         $held = $clients[0]
-        $build = Start-DebugBuild $true
+        $build = Start-DebugBuild Refresh
         Wait-ForProof { $build.Process.HasExited -or (Test-Path -LiteralPath (Join-Path $editionOutput 'building')) } 100 'the build gate'
         if ($build.Process.HasExited) { throw 'Debug build exited before it reached the gate. See build.log.' }
         (Start-ComClient 'during-build' 'x86' $before $old.Id).Dispose()
@@ -238,11 +263,22 @@ function Test-Edition([string]$Edition) {
         foreach ($client in $clients) { [IO.File]::WriteAllText(($client.Prefix + 'release'), '') }
         Wait-ForProof { $old.HasExited } 80 'natural exit of the original server'
         if ($old.ExitCode -ne 0) { throw 'The original server did not exit cleanly.' }
-        $cold = Start-ComClient 'cold-start' 'x64' $after
+
+        $registeredAssembly = [IO.Path]::ChangeExtension($after, '.dll')
+        $registeredHash = (Get-FileHash -LiteralPath $registeredAssembly).Hash
+        $failedExitCode = Finish-DebugBuild (Start-DebugBuild Fail) 'failed-build.log' -ExpectFailure
+        $afterFailure = Get-Registration $Edition
+        $assemblyUnchanged = $afterFailure -eq $after -and (Get-FileHash -LiteralPath $registeredAssembly).Hash -eq $registeredHash
+        $failedBuild = [ordered]@{
+            ExitCode = $failedExitCode; ErrorCode = 'WAWICOM001'; RegisteredBefore = $after
+            RegisteredAfter = $afterFailure; AssemblyUnchanged = $assemblyUnchanged
+        }
+        if (-not $assemblyUnchanged) { throw 'The failed build changed the registered COM generation.' }
+        $cold = Start-ComClient 'cold-start-after-failed-build' 'x64' $afterFailure
         [IO.File]::WriteAllText(($clients[-1].Prefix + 'release'), '')
         Wait-ForProof { $cold.HasExited } 80 'natural exit of the cold-start server'
         if ($cold.ExitCode -ne 0) { throw 'The cold-start server did not exit cleanly.' }
-        if ($windows.ShowEvents($old.Id) -or $windows.ShowEvents($cold.Id) -or $windows.UnresolvedEvents) {
+        if ($windows.ShowEvents($old.Id) -or $windows.ShowEvents($cold.Id)) {
             throw 'The native window monitor detected a window during the test.'
         }
     } finally {
@@ -263,11 +299,14 @@ function Test-Edition([string]$Edition) {
             $windows.Dispose()
             try {
                 if ($before -and (Get-Registration $Edition) -ne $before) {
-                    Finish-DebugBuild (Start-DebugBuild $false) 'restore.log'
+                    Finish-DebugBuild (Start-DebugBuild Restore) 'restore.log'
                     $restored = Get-Registration $Edition
                 }
             } finally {
-                [ordered]@{ Edition = $Edition; Before = $before; Updated = $after; Restored = $restored; Activations = $activations.ToArray() } |
+                [ordered]@{
+                    Edition = $Edition; Before = $before; Updated = $after; FailedBuild = $failedBuild; Restored = $restored
+                    UnattributedWindowEvents = $windows.UnresolvedEvents; Activations = $activations.ToArray()
+                } |
                     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $editionOutput 'results.json')
             }
         }

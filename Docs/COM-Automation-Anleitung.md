@@ -60,8 +60,10 @@ geprüft. Für eine einzelne Edition `-ProductLine FinOffice` oder `-ProductLine
 .\scripts\test-debug-com-refresh.ps1
 ```
 
-Der Test hält einen VBScript-Client geöffnet, aktiviert mit einem zweiten Client während des Debug-Builds
-und prüft den Kaltstart nach dem regulären Prozessende. Windows-Fensterereignisse, EXE-Pfade und
+Der Test hält einen VBScript-Client geöffnet und aktiviert mit einem zweiten Client während des Debug-Builds.
+Nach dem regulären Prozessende bricht er einen weiteren Build gezielt vor der COM-Aktualisierung ab.
+Er prüft die unveränderte HKCU-Registrierung, die Prüfsumme der registrierten Assembly und einen
+fensterlosen Kaltstart aus der weiterhin registrierten Ausgabe. Windows-Fensterereignisse, EXE-Pfade und
 `CreateObject`-Zeiten stehen unter `artifacts/com-debug-refresh`. Der Test verwendet die echten ProgIDs,
 prüft `Ready` und registriert am Ende wieder die Ausgabe eines regulären Debug-Builds ohne Testmarker.
 

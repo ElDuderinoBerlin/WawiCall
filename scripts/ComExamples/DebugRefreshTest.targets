@@ -3,7 +3,12 @@
     <!-- Give the test build distinct contents without changing the product version or any runtime code. -->
     <AssemblyMetadata Include="WawiDebugComRefreshTest" Value="$(WawiComRefreshTestId)" />
   </ItemGroup>
-  <Target Name="WaitForComClientDuringDebugBuild" AfterTargets="PrepareForBuild" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App'">
+  <Target Name="WaitForComClientDuringDebugBuild" AfterTargets="PrepareForBuild"
+          Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(WawiComRefreshTestMode)' == 'Refresh'">
     <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)..\test-debug-com-refresh.ps1&quot; -BuildGate" />
+  </Target>
+  <Target Name="FailBeforeDebugComRefresh" BeforeTargets="RefreshWawiDebugCom"
+          Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(WawiComRefreshTestMode)' == 'Fail'">
+    <Error Code="WAWICOM001" Text="Intentional failure before publishing a Debug COM generation." />
   </Target>
 </Project>
