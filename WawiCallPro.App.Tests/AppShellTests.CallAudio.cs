@@ -13,6 +13,39 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public Task AudioMeterShowsTheCurrentLevelByDefaultAndKeepsHistoryOnlyInRollingMode() => RunStaAsync(() =>
+    {
+        using var meter = new AudioLevelMeter { Size = new(128, 16) };
+        Assert.AreEqual(AudioLevelMeterRenderMode.Static, meter.RenderMode);
+        var silence = RenderPixels();
+
+        meter.Position = 50;
+        var halfLevel = RenderPixels();
+        Assert.IsFalse(silence.SequenceEqual(halfLevel));
+        meter.Position = 100;
+        meter.Position = 50;
+        CollectionAssert.AreEqual(halfLevel, RenderPixels());
+        meter.Position = 0;
+        CollectionAssert.AreEqual(silence, RenderPixels());
+
+        meter.RenderMode = AudioLevelMeterRenderMode.Rolling;
+        meter.Position = 100;
+        meter.Position = 0;
+        Assert.IsFalse(silence.SequenceEqual(RenderPixels()));
+        meter.Clear();
+        CollectionAssert.AreEqual(silence, RenderPixels());
+        return Task.CompletedTask;
+
+        int[] RenderPixels()
+        {
+            using var bitmap = new Bitmap(meter.Width, meter.Height);
+            meter.DrawToBitmap(bitmap, new Rectangle(Point.Empty, meter.Size));
+            return Enumerable.Range(0, bitmap.Width * bitmap.Height)
+                .Select(index => bitmap.GetPixel(index % bitmap.Width, index / bitmap.Width).ToArgb()).ToArray();
+        }
+    });
+
+    [TestMethod]
     public Task CallAudioControlsUseTheActiveCallAndRenderInBothHosts() => RunStaAsync(async () =>
     {
         AppUiStartup.Apply();
