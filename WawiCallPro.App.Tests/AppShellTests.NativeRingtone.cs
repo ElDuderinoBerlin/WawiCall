@@ -13,6 +13,37 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public Task AudioDeviceSettingsRestoreSelectionsWithDifferentIdCasing() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with { Devices = new()
+        {
+            CaptureDeviceId = "CAPTURE-ONE", PlaybackDeviceId = "RENDER-ONE", RingDeviceId = "RENDER-ONE"
+        } }, snapshot);
+        var catalog = new AudioCatalogDouble();
+        var available = catalog.Result;
+        catalog.Result = new([], []);
+        using var dialog = new FrmSettings(workspace);
+        dialog.PrepareForBackgroundRun();
+        dialog.ConfigureAudioDevices(catalog);
+        Assert.IsTrue(await dialog.PrepareAsync());
+        var page = Field<SettingsPage>(dialog, "settingsPage");
+        var capture = Field<LookUpEdit>(page, "captureDeviceEdit");
+        var playback = Field<LookUpEdit>(page, "playbackDeviceEdit");
+        var ring = Field<LookUpEdit>(page, "ringDeviceEdit");
+        Assert.AreEqual("CAPTURE-ONE", capture.EditValue);
+        Assert.AreEqual("RENDER-ONE", playback.EditValue);
+        Assert.AreEqual("RENDER-ONE", ring.EditValue);
+
+        catalog.Result = available;
+        await page.ReloadAudioDevicesAsync();
+        Assert.AreEqual("capture-one", capture.EditValue);
+        Assert.AreEqual("render-one", playback.EditValue);
+        Assert.AreEqual("render-one", ring.EditValue);
+        await dialog.StopAsync();
+    });
+
+    [TestMethod]
     public Task NativeRingtoneSliderChangesTheRunningJabraOutput() => WithWorkspace(async (workspace, services, _) =>
     {
         var name = Environment.GetEnvironmentVariable("WCP_NATIVE_AUDIO_DEVICE");

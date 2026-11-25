@@ -3691,6 +3691,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Beim physischen Abziehen zeigten beide geöffneten Einstellungen alle drei Jabra-Zuordnungen
   als nicht verfügbar. Nach dem Einstecken erschienen Mikrofon und beide Ausgaben automatisch
   wieder mit den gewählten IDs. Nachweise `.artifacts/phase9-jabra-hotplug/`.
+  ✅ Gerätekennungen werden unabhängig von ihrer Groß-/Kleinschreibung erkannt. Kehrt ein
+  gespeichertes Gerät zurück, wählen die Audio-Kombos seine Windows-Kennung wieder aus. Bei einer
+  fehlenden Auswahl wird der Gerätekatalog auch ohne Windows-Ereignis erneut gelesen. Je Edition
+  vier gezielte Prüfungen bestanden. Nachweise `.artifacts/phase9-live-sip/20261125-030357/`.
   **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton

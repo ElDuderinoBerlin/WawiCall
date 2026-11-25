@@ -40,7 +40,7 @@ public partial class SettingsPage
         if (!_audioStopped && catalog is IAudioDeviceChanges changes)
         {
             _audioDeviceSubscription = changes.Subscribe(() => Interlocked.Exchange(ref _audioDevicesChanged, 1));
-            if (_audioDeviceSubscription is not null) audioDeviceChangesTimer.Start();
+            audioDeviceChangesTimer.Start();
         }
     }
 
@@ -164,16 +164,17 @@ public partial class SettingsPage
     {
         var rows = new List<AudioDeviceChoice> { new("", "Systemstandard") };
         rows.AddRange(devices.Select(device => new AudioDeviceChoice(device.Id, device.DisplayName)));
-        if (selected is not null && !devices.Any(device => device.Id == selected))
+        var activeId = devices.FirstOrDefault(device => string.Equals(device.Id, selected, StringComparison.OrdinalIgnoreCase))?.Id;
+        if (selected is not null && activeId is null)
             rows.Add(new(selected, "Gerät nicht verfügbar"));
         editor.Properties.DataSource = rows;
-        editor.EditValue = selected ?? "";
+        editor.EditValue = activeId ?? selected ?? "";
     }
 
     private void Device_EditValueChanged(object? sender, EventArgs e)
     {
         if (sender is not LookUpEdit editor || editor.Properties.DataSource is not List<AudioDeviceChoice> rows) return;
-        var name = rows.FirstOrDefault(row => row.Id == (editor.EditValue as string ?? ""))?.Name ?? "Systemstandard";
+        var name = rows.FirstOrDefault(row => string.Equals(row.Id, editor.EditValue as string ?? "", StringComparison.OrdinalIgnoreCase))?.Name ?? "Systemstandard";
         editor.ToolTip = name + (ReferenceEquals(editor, ringDeviceEdit)
             ? ". Änderungen gelten nach einem Neustart." : ". Die Gesprächsauswahl gilt nach dem Speichern.");
     }
@@ -200,8 +201,6 @@ public partial class SettingsPage
     private async Task LoadAudioDevicesAsync(CancellationToken token)
     {
         if (_audioStopped || _audioDevices is null) return;
-        var capture = ReadDevice(captureDeviceEdit); var playback = ReadDevice(playbackDeviceEdit); var ring = ReadDevice(ringDeviceEdit);
-        var ringtone = ReadDevice(windowsRingtoneEdit);
         SetDeviceEditorsEnabled(false);
         audioStatus.Text = "Audiogeräte werden geladen …";
         try
@@ -211,8 +210,8 @@ public partial class SettingsPage
             if (_audioStopped || IsDisposed) return;
             if (devices.Capture.IsDefault || devices.Playback.IsDefault || devices.Capture.Concat(devices.Playback).Any(device =>
                     device is null || string.IsNullOrWhiteSpace(device.Id) || string.IsNullOrWhiteSpace(device.DisplayName))
-                || devices.Capture.Select(device => device.Id).Distinct(StringComparer.Ordinal).Count() != devices.Capture.Length
-                || devices.Playback.Select(device => device.Id).Distinct(StringComparer.Ordinal).Count() != devices.Playback.Length)
+                || devices.Capture.Select(device => device.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != devices.Capture.Length
+                || devices.Playback.Select(device => device.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != devices.Playback.Length)
                 throw new AudioDeviceCatalogException();
             _audioCatalog = devices;
             _retryAudioDevicesAfter = 0;
@@ -222,10 +221,17 @@ public partial class SettingsPage
                 _customRingtoneFormat = await Task.Run(() => WindowsIncomingRingtone.ReadCustomRingtoneFormat(customPath, token), token);
             token.ThrowIfCancellationRequested();
             if (_audioStopped || IsDisposed) return;
+            var capture = ReadDevice(captureDeviceEdit);
+            var playback = ReadDevice(playbackDeviceEdit);
+            var ring = ReadDevice(ringDeviceEdit);
             BindDevice(captureDeviceEdit, devices.Capture, capture);
             BindDevice(playbackDeviceEdit, devices.Playback, playback);
             BindDevice(ringDeviceEdit, devices.Playback, ring);
-            BindRingtones(ringtone);
+            BindRingtones(ReadDevice(windowsRingtoneEdit));
+            if (!devices.Suppressed && (capture is not null && !devices.Capture.Any(device => string.Equals(device.Id, capture, StringComparison.OrdinalIgnoreCase))
+                || playback is not null && !devices.Playback.Any(device => string.Equals(device.Id, playback, StringComparison.OrdinalIgnoreCase))
+                || ring is not null && !devices.Playback.Any(device => string.Equals(device.Id, ring, StringComparison.OrdinalIgnoreCase))))
+                _retryAudioDevicesAfter = Environment.TickCount64 + 3000;
             SetDeviceEditorsEnabled(!devices.Suppressed);
             audioStatus.Text = devices.Suppressed ? "Geräteerkennung im Prüfmodus deaktiviert. Zuordnungen bleiben erhalten."
                 : devices.Capture.IsEmpty && devices.Playback.IsEmpty ? "Keine aktiven Geräte gefunden. Zuordnungen bleiben erhalten."
