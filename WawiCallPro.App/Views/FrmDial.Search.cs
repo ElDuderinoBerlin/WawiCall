@@ -15,6 +15,7 @@ public partial class FrmDial
     private PartySearchQuery? _lastPhoneQuery;
     private PartySearchQuery? _displayedPhoneQuery;
     private bool _phoneSearchChecked;
+    private bool _restoredDialTab;
     private CompanyKey? _lastPhoneCompany;
     private string? _lastPhoneText;
 
@@ -23,6 +24,7 @@ public partial class FrmDial
         _phoneSearch = search;
         _searchLayoutState = state;
         searchTab.PageVisible = search is not null;
+        _restoredDialTab = state?.AttachTabs(dialTabs, "Dial") == true;
         if (search is null) return;
         searchGrid.ForceInitialize();
         state?.Restore(searchView, "DialPhoneSearch_v1");
@@ -30,7 +32,7 @@ public partial class FrmDial
 
     internal void SelectPhoneSearch()
     {
-        if (_phoneSearch is not null && CurrentConnectedCall() is null) dialTabs.SelectedTabPage = searchTab;
+        if (!_restoredDialTab && _phoneSearch is not null && CurrentConnectedCall() is null) dialTabs.SelectedTabPage = searchTab;
     }
 
     private void DialTab_Changed(object? sender, TabPageChangedEventArgs e)

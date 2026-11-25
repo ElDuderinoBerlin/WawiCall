@@ -21,7 +21,9 @@ partial class HistoryPage
         components = new System.ComponentModel.Container();
         historyTabs = new DevExpress.XtraTab.XtraTabControl();
         callsTab = new DevExpress.XtraTab.XtraTabPage();
+        callsTab.Name = "callsTab";
         notesTab = new DevExpress.XtraTab.XtraTabPage();
+        notesTab.Name = "notesTab";
         callsLayout = new System.Windows.Forms.TableLayoutPanel();
         recordingActionsLayout = new System.Windows.Forms.TableLayoutPanel();
         exportRecordingButton = new DevExpress.XtraEditors.SimpleButton();

@@ -17,7 +17,9 @@ partial class FrmDial
         companyLayout = new System.Windows.Forms.TableLayoutPanel();
         dialTabs = new DevExpress.XtraTab.XtraTabControl();
         dialTab = new DevExpress.XtraTab.XtraTabPage();
+        dialTab.Name = "dialTab";
         searchTab = new DevExpress.XtraTab.XtraTabPage();
+        searchTab.Name = "searchTab";
         searchLayout = new System.Windows.Forms.TableLayoutPanel();
         searchGrid = new DevExpress.XtraGrid.GridControl();
         searchView = new DevExpress.XtraGrid.Views.Grid.GridView();

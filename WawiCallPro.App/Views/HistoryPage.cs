@@ -129,6 +129,7 @@ public partial class HistoryPage : XtraUserControl
         _playback = workspace.RecordingPlayback;
         _recordingFiles = workspace.RecordingFiles;
         BindHistory(workspace.History, workspace.CallNotes);
+        state?.AttachTabs(historyTabs, "History");
         _state?.Restore(view, "CallHistory-v2");
         FitColumns();
     }

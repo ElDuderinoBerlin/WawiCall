@@ -42,6 +42,7 @@ public partial class MainForm
         }
         if (call.State is CallState.Ended or CallState.Failed) return;
         var page = new CallDetailsPage(); page.Bind(_workspace, call);
+        page.ConfigureTabPersistence(_state);
         page.ChooseRequested += Call_ChooseRequested;
         var previous = tabbedView.ActiveDocument ?? _lastDocument;
         var host = new Panel { Dock = DockStyle.Fill }; page.Dock = DockStyle.Fill; host.Controls.Add(page);

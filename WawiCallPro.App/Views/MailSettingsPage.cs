@@ -38,7 +38,12 @@ public partial class MailSettingsPage : XtraUserControl
     internal void Bind(AppWorkspace workspace, Func<CancellationToken, Task> save, Func<CancellationToken, Task> reload)
     { _workspace = workspace; _save = save; _reload = reload; }
     internal void ConfigureLayoutPersistence(AppUiState? state)
-    { _state = state; state?.Restore(accountsView, "MailAccounts-v1"); state?.Restore(foldersView, "MailImportFolders-v1"); }
+    {
+        _state = state;
+        state?.AttachTabs(detailsTabs, "Settings.MailDetails");
+        state?.Restore(accountsView, "MailAccounts-v1");
+        state?.Restore(foldersView, "MailImportFolders-v1");
+    }
     internal void Apply(ImmutableArray<MailAccountSettings> accounts, ImmutableArray<CompanySettings> companies)
     {
         _accounts = accounts.ToList();

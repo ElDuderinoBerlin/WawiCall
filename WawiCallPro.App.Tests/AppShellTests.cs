@@ -690,6 +690,80 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task ActiveMainTabsSurviveReopening() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var state = new AppUiState(workspace.Application, new(false), @"Software\WawiCallPro.Tests\Tabs\" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (var form = new MainForm(workspace.Application, workspace.Configuration, workspace, state))
+            {
+                form.PrepareForBackgroundRun();
+                form.Show();
+                form.Navigate("history");
+                form.Navigate("database");
+                Assert.AreEqual("history", state.ReadTab("MainWorkspace"));
+                Assert.AreEqual("databaseRibbon", state.ReadTab("MainRibbon"));
+                await form.PrepareToCloseAsync();
+            }
+
+            using var reopened = new MainForm(workspace.Application, workspace.Configuration, workspace, state);
+            reopened.PrepareForBackgroundRun();
+            reopened.Show();
+            Assert.IsInstanceOfType<HistoryPage>(reopened.GetActiveDocumentView());
+            Assert.AreEqual("databaseRibbon", Field<DevExpress.XtraBars.Ribbon.RibbonControl>(reopened, "ribbon").SelectedPage.Name);
+            await reopened.PrepareToCloseAsync();
+        }
+        finally { state.Reset(); }
+    });
+
+    [TestMethod]
+    public Task ActiveSettingsTabsSurviveReopeningAndExplicitNavigationTakesPrecedence() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var state = new AppUiState(workspace.Application, new(false), @"Software\WawiCallPro.Tests\Tabs\" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (var settings = new FrmSettings(workspace))
+            {
+                settings.PrepareForBackgroundRun();
+                settings.ConfigureLayoutPersistence(state);
+                await settings.PrepareAsync();
+                settings.Show();
+
+                var page = Field<SettingsPage>(settings, "settingsPage");
+                settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "audioTab");
+                var audio = Field<XtraTabControl>(page, "audioPages");
+                audio.SelectedTabPage = Field<XtraTabPage>(page, "audioLevelsTab");
+                settings.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "hotkeysTab");
+                Assert.AreEqual("hotkeysTab", state.ReadTab("Settings"));
+                Assert.AreEqual("audioLevelsTab", state.ReadTab("Settings.Audio"));
+                await settings.StopAsync();
+            }
+
+            using (var reopened = new FrmSettings(workspace))
+            {
+                reopened.ConfigureLayoutPersistence(state);
+                await reopened.PrepareAsync();
+                var page = Field<SettingsPage>(reopened, "settingsPage");
+                Assert.AreEqual("hotkeysTab", reopened.SettingsTabs.SelectedTabPage.Name);
+                Assert.AreEqual("audioLevelsTab", Field<XtraTabControl>(page, "audioPages").SelectedTabPage.Name);
+                await reopened.StopAsync();
+            }
+
+            using (var targeted = new FrmSettings(workspace))
+            {
+                targeted.ConfigureLayoutPersistence(state);
+                targeted.SelectAutomationTab("settings-sip-advanced");
+                await targeted.PrepareAsync();
+                var page = Field<SettingsPage>(targeted, "settingsPage");
+                Assert.AreEqual("sipTab", targeted.SettingsTabs.SelectedTabPage.Name);
+                Assert.AreEqual("sipAdvanced", Field<XtraTabControl>(page, "sipPages").SelectedTabPage.Name);
+                await targeted.StopAsync();
+            }
+        }
+        finally { state.Reset(); }
+    });
+
+    [TestMethod]
     public Task HotkeyEditorsLoadExistingBindingsAndSaveNewAndClearedBindings() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var snapshot = await workspace.Settings.LoadAsync();

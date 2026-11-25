@@ -33,9 +33,13 @@ partial class CallerLookupPage
         detailsLabel = new DevExpress.XtraEditors.LabelControl();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         resultsTab = new DevExpress.XtraTab.XtraTabPage();
+        resultsTab.Name = "resultsTab";
         scopeTab = new DevExpress.XtraTab.XtraTabPage();
+        scopeTab.Name = "scopeTab";
         detailsTab = new DevExpress.XtraTab.XtraTabPage();
+        detailsTab.Name = "detailsTab";
         notesTab = new DevExpress.XtraTab.XtraTabPage();
+        notesTab.Name = "notesTab";
         notesPanel = new WawiCallPro.App.Views.CallNotesPanel();
         scopeScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();

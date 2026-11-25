@@ -22,7 +22,9 @@ partial class CallDetailsPage
         reloadButton = new DevExpress.XtraEditors.SimpleButton();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         masterTab = new DevExpress.XtraTab.XtraTabPage();
+        masterTab.Name = "masterTab";
         notesTab = new DevExpress.XtraTab.XtraTabPage();
+        notesTab.Name = "notesTab";
         notesPanel = new WawiCallPro.App.Views.CallNotesPanel();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         SuspendLayout();

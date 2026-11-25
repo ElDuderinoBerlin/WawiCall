@@ -35,11 +35,17 @@ partial class MainForm
         traySettingsItem = new DevExpress.XtraBars.BarButtonItem();
         trayExitItem = new DevExpress.XtraBars.BarButtonItem();
         startRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        startRibbon.Name = "startRibbon";
         databaseRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        databaseRibbon.Name = "databaseRibbon";
         settingsRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        settingsRibbon.Name = "settingsRibbon";
         helpRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        helpRibbon.Name = "helpRibbon";
         mailRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        mailRibbon.Name = "mailRibbon";
         audioRibbon = new DevExpress.XtraBars.Ribbon.RibbonPage();
+        audioRibbon.Name = "audioRibbon";
         audioToolsGroup = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
         audioConvertItem = new DevExpress.XtraBars.BarButtonItem();
         recordingInventoryItem = new DevExpress.XtraBars.BarButtonItem();

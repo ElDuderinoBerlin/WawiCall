@@ -47,6 +47,7 @@ partial class SettingsPage
         layout = new System.Windows.Forms.TableLayoutPanel();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         mailTab = new DevExpress.XtraTab.XtraTabPage();
+        mailTab.Name = "mailTab";
         mailSettingsPage = new WawiCallPro.App.Views.MailSettingsPage();
         pluginTab = new DevExpress.XtraTab.XtraTabPage();
         pluginPages = new DevExpress.XtraTab.XtraTabControl();
@@ -64,6 +65,7 @@ partial class SettingsPage
         importButton = new DevExpress.XtraEditors.SimpleButton();
         exportButton = new DevExpress.XtraEditors.SimpleButton();
         generalTab = new DevExpress.XtraTab.XtraTabPage();
+        generalTab.Name = "generalTab";
         generalLayout = new System.Windows.Forms.TableLayoutPanel();
         loggingEnabledEdit = new DevExpress.XtraEditors.CheckEdit();
         logLevelLabel = new DevExpress.XtraEditors.LabelControl();
@@ -94,9 +96,12 @@ partial class SettingsPage
         addSipProfileButton = new DevExpress.XtraEditors.SimpleButton();
         removeSipProfileButton = new DevExpress.XtraEditors.SimpleButton();
         sipTab = new DevExpress.XtraTab.XtraTabPage();
+        sipTab.Name = "sipTab";
         sipPages = new DevExpress.XtraTab.XtraTabControl();
         sipStandard = new DevExpress.XtraTab.XtraTabPage();
+        sipStandard.Name = "sipStandard";
         sipAdvanced = new DevExpress.XtraTab.XtraTabPage();
+        sipAdvanced.Name = "sipAdvanced";
         sipProperties = new DevExpress.XtraVerticalGrid.PropertyGridControl();
         sipLayout = new System.Windows.Forms.TableLayoutPanel();
         sipScroll = new DevExpress.XtraEditors.XtraScrollableControl();
@@ -120,6 +125,7 @@ partial class SettingsPage
         passwordVisibilityButton = new DevExpress.XtraEditors.Controls.EditorButton();
         passwordLabel = new DevExpress.XtraEditors.LabelControl();
         databaseTab = new DevExpress.XtraTab.XtraTabPage();
+        databaseTab.Name = "databaseTab";
         databaseLayout = new System.Windows.Forms.TableLayoutPanel();
         databaseHint = new DevExpress.XtraEditors.LabelControl();
         databaseSetupButton = new DevExpress.XtraEditors.SimpleButton();
@@ -130,10 +136,13 @@ partial class SettingsPage
         databaseConnectionValue = new DevExpress.XtraEditors.LabelControl();
         connectionLabel = new DevExpress.XtraEditors.LabelControl();
         audioTab = new DevExpress.XtraTab.XtraTabPage();
+        audioTab.Name = "audioTab";
         audioLayout = new System.Windows.Forms.TableLayoutPanel();
         audioPages = new DevExpress.XtraTab.XtraTabControl();
         audioDevicesTab = new DevExpress.XtraTab.XtraTabPage();
+        audioDevicesTab.Name = "audioDevicesTab";
         audioLevelsTab = new DevExpress.XtraTab.XtraTabPage();
+        audioLevelsTab.Name = "audioLevelsTab";
         audioLevelsLayout = new System.Windows.Forms.TableLayoutPanel();
         audioHint = new DevExpress.XtraEditors.LabelControl();
         captureDeviceLabel = new DevExpress.XtraEditors.LabelControl();
@@ -169,6 +178,7 @@ partial class SettingsPage
         recordingFormatEdit = new DevExpress.XtraEditors.ComboBoxEdit();
         recordingFormatHint = new DevExpress.XtraEditors.LabelControl();
         cacheTab = new DevExpress.XtraTab.XtraTabPage();
+        cacheTab.Name = "cacheTab";
         cacheLayout = new System.Windows.Forms.TableLayoutPanel();
         cacheHint = new DevExpress.XtraEditors.LabelControl();
         loadCompaniesButton = new DevExpress.XtraEditors.SimpleButton();

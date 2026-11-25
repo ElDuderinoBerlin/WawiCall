@@ -23,7 +23,9 @@ partial class PartySearchPage
         statusLabel = new DevExpress.XtraEditors.LabelControl();
         tabs = new DevExpress.XtraTab.XtraTabControl();
         resultsTab = new DevExpress.XtraTab.XtraTabPage();
+        resultsTab.Name = "resultsTab";
         detailsTab = new DevExpress.XtraTab.XtraTabPage();
+        detailsTab.Name = "detailsTab";
         grid = new DevExpress.XtraGrid.GridControl();
         view = new DevExpress.XtraGrid.Views.Grid.GridView();
         nameColumn = new DevExpress.XtraGrid.Columns.GridColumn();

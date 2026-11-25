@@ -3,6 +3,8 @@ using DevExpress.LookAndFeel;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraBars.Docking;
+using DevExpress.XtraBars.Ribbon;
+using DevExpress.XtraTab;
 using Microsoft.Win32;
 using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Licensing;
@@ -18,8 +20,68 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
     internal AppUiState(ApplicationDescriptor application, StartupExecutionMode mode, IWindowDisplayEnvironment displays)
         : this(application, mode) => _displays = displays;
 
-    private string KeyPath => @"Software\WawiCallPro\" + application.ProductLine + @"\App\v1";
+    internal AppUiState(ApplicationDescriptor application, StartupExecutionMode mode, string keyPath)
+        : this(application, mode) => KeyPath = keyPath;
+
+    private string KeyPath { get; } = @"Software\WawiCallPro\" + application.ProductLine + @"\App\v1";
     private bool Enabled => !mode.SuppressNetwork && !mode.IsolatedProfile;
+
+    internal bool AttachTabs(XtraTabControl tabs, string name, Func<bool>? canSave = null)
+    {
+        if (!Enabled) return false;
+        var restored = RestoreTab(tabs, name);
+        tabs.SelectedPageChanged += (_, args) =>
+        {
+            if (tabs.Visible && !tabs.Disposing && canSave?.Invoke() != false
+                && args.Page is { PageVisible: true, PageEnabled: true, Name.Length: > 0 } page)
+                SaveTab(name, page.Name);
+        };
+        return restored;
+    }
+
+    internal bool RestoreTab(XtraTabControl tabs, string name)
+    {
+        var selected = ReadTab(name);
+        if (selected is null) return false;
+        var page = tabs.TabPages.Cast<XtraTabPage>().FirstOrDefault(candidate =>
+            candidate.Name == selected && candidate.PageVisible && candidate.PageEnabled);
+        if (page is null) return false;
+        tabs.SelectedTabPage = page;
+        return true;
+    }
+
+    internal bool RestoreRibbonTab(RibbonControl ribbon)
+    {
+        var selected = ReadTab("MainRibbon");
+        if (selected is null) return false;
+        var page = ribbon.Pages.Cast<RibbonPage>().FirstOrDefault(candidate => candidate.Name == selected && candidate.Visible);
+        if (page is null) return false;
+        ribbon.SelectedPage = page;
+        return true;
+    }
+
+    internal string? ReadTab(string name)
+    {
+        if (!Enabled) return null;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(KeyPath + @"\Tabs\v1");
+            return key?.GetValue(name) is string { Length: > 0 } value ? value : null;
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or System.IO.IOException)
+        { return null; }
+    }
+
+    internal void SaveTab(string name, string? selected)
+    {
+        if (!Enabled || selected is null) return;
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(KeyPath + @"\Tabs\v1");
+            key.SetValue(name, selected);
+        }
+        catch (Exception exception) when (exception is System.Security.SecurityException or UnauthorizedAccessException or System.IO.IOException) { }
+    }
 
     internal void Restore(Form form)
     {

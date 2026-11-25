@@ -104,7 +104,15 @@ public partial class MainForm : RibbonForm
         UpdateDatabaseActions();
         _state?.Restore(this);
         _state?.Restore(dockManager);
+        var workspaceTab = _state?.ReadTab("MainWorkspace");
         if (_configuration?.Current.Options.User.ShowStartPage != false) Navigate("home");
+        if (workspaceTab is "history" or "mail" or "help" || workspaceTab == "parties" && _workspace?.CanUseBusinessDirectory == true)
+            Navigate(workspaceTab);
+        _state?.RestoreRibbonTab(ribbon);
+        ribbon.SelectedPageChanged += (_, _) =>
+        {
+            if (Visible && !_closing) _state?.SaveTab("MainRibbon", ribbon.SelectedPage?.Name);
+        };
         _ = ReloadPluginShellAsync();
         _ = ReloadCompaniesAsync();
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
@@ -284,7 +292,11 @@ public partial class MainForm : RibbonForm
         await StopPageAsync(page.Control);
         if (_pluginPages.Remove(page, out var handle)) await handle.DisposeAsync();
         foreach (var key in _automationParties.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray()) _automationParties.Remove(key);
-        foreach (var key in _documents.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray()) _documents.Remove(key);
+        foreach (var key in _documents.Where(pair => ReferenceEquals(pair.Value, page)).Select(pair => pair.Key).ToArray())
+        {
+            _documents.Remove(key);
+            if (!_closing && _state?.ReadTab("MainWorkspace") == key) _state.SaveTab("MainWorkspace", "");
+        }
         var control = page.Control;
         if (ReferenceEquals(_lastDocument, page)) _lastDocument = null;
         _removingDocument = true;
@@ -496,6 +508,7 @@ public partial class MainForm : RibbonForm
             foreach (DevExpress.XtraBars.Docking2010.Views.Tabbed.DocumentGroup group in tabbedView.DocumentGroups)
                 if (group.Items.Contains(tab)) group.SetSelected(tab);
         _lastDocument = document;
+        SaveWorkspaceTab(document);
         if (GetActiveDocumentView() is MailPage) ribbon.SelectedPage = mailRibbon;
         else if (ribbon.SelectedPage == mailRibbon) ribbon.SelectedPage = startRibbon;
         UpdateViewNavigation();

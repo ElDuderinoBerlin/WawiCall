@@ -49,7 +49,18 @@ public partial class MailPage : XtraUserControl
     {
         if (_source is not null) throw new InvalidOperationException("The mail page is already bound.");
         _source = source ?? throw new ArgumentNullException(nameof(source)); _state = state;
+        ConfigureFilterTabPersistence(state, "MailFilter");
         _state?.Restore(messagesView, "MailTiles_v2"); reloadButton.Enabled = true; searchTimer.Start();
+    }
+
+    internal void ConfigureFilterTabPersistence(AppUiState? state, string name)
+    {
+        if (state is null) return;
+        if (state.ReadTab(name) == unreadMessagesTab.Name) filterTabs.SelectedItem = unreadMessagesTab;
+        filterTabs.SelectedItemChanged += (_, _) =>
+        {
+            if (Visible && !Disposing) state.SaveTab(name, filterTabs.SelectedItem?.Name);
+        };
     }
 
     internal Task ReloadAsync()

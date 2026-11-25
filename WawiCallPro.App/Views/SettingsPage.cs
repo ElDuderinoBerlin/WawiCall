@@ -22,6 +22,7 @@ public partial class SettingsPage : XtraUserControl
     private bool _arrangingButtons;
     private bool _initialBindingPending;
     private bool _settingsLoaded;
+    private bool _stoppingTabs;
     private int _cacheActionColumns;
     private int _cacheActionCellWidth;
     private AutoStartState? _autoStartState;
@@ -157,6 +158,7 @@ public partial class SettingsPage : XtraUserControl
     }
     internal async Task StopAsync()
     {
+        _stoppingTabs = true;
         databaseSetupButton.Enabled = false;
         importButton.Enabled = exportButton.Enabled = false;
         if (_databaseDialog is { } databaseDialog)
@@ -266,10 +268,28 @@ public partial class SettingsPage : XtraUserControl
     {
         _state = state;
         _state?.Restore(cacheView, "CacheSources");
+        state?.AttachTabs(tabs, "Settings", () => !_stoppingTabs);
+        state?.AttachTabs(pluginPages, "Settings.Plugins");
+        state?.AttachTabs(sipPages, "Settings.Sip");
+        state?.AttachTabs(audioPages, "Settings.Audio");
+        state?.AttachTabs(cachePages, "Settings.PhoneCache");
         pluginPage.ConfigureLayoutPersistence(state);
         functionPluginsPage.ConfigureLayoutPersistence(state);
         numberDiagnosticsPage.ConfigureLayoutPersistence(state);
         mailSettingsPage.ConfigureLayoutPersistence(state);
+    }
+
+    internal void RestoreSettingsTab() => _state?.RestoreTab(tabs, "Settings");
+
+    internal void RememberSettingsTab()
+    {
+        var page = tabs.SelectedTabPage;
+        if (page is not { PageVisible: true, PageEnabled: true }) return;
+        _state?.SaveTab("Settings", page.Name);
+        if (page == pluginTab) _state?.SaveTab("Settings.Plugins", pluginPages.SelectedTabPage?.Name);
+        if (page == sipTab) _state?.SaveTab("Settings.Sip", sipPages.SelectedTabPage?.Name);
+        if (page == audioTab) _state?.SaveTab("Settings.Audio", audioPages.SelectedTabPage?.Name);
+        if (page == cacheTab) _state?.SaveTab("Settings.PhoneCache", cachePages.SelectedTabPage?.Name);
     }
 
     internal void Apply(ConfigurationSnapshot snapshot)

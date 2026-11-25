@@ -15,6 +15,14 @@ public partial class MainForm
         // Native AddDocument can activate a new, not yet published tab (including a background call).
         if (!IsWorkspaceDocument(e.Document)) return;
         _lastDocument = e.Document; _viewHistory.Record(e.Document); UpdateViewNavigation();
+        SaveWorkspaceTab(e.Document);
+    }
+
+    private void SaveWorkspaceTab(BaseDocument document)
+    {
+        if (_closing || !Visible || _state is null) return;
+        var id = _documents.FirstOrDefault(pair => ReferenceEquals(pair.Value, document)).Key;
+        if (id is "home" or "history" or "mail" or "help" or "parties") _state.SaveTab("MainWorkspace", id);
     }
     private void Document_Closed(object sender, DocumentEventArgs e)
     {

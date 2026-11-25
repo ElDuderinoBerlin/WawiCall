@@ -8,6 +8,7 @@ public partial class FrmSettings : XtraForm
     private bool _canClose;
     private bool _closing;
     private bool _backgroundRun;
+    private bool _explicitTab;
     private bool _sizingMinimum;
     private Task? _stopTask;
     internal void PrepareForBackgroundRun()
@@ -59,15 +60,21 @@ public partial class FrmSettings : XtraForm
         settingsPage.Bind(workspace, deferInitialBinding: true);
         settingsPage.ConfigurePluginSwitch(beforePluginSwitch, afterPluginSwitch);
     }
-    internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
-    internal void SelectMailTab() => settingsPage.SelectMailTab();
-    internal void SelectAutomationTab(string id) => settingsPage.SelectAutomationTab(id);
+    internal void SelectPluginsTab() { _explicitTab = true; settingsPage.SelectPluginsTab(); }
+    internal void SelectMailTab() { _explicitTab = true; settingsPage.SelectMailTab(); }
+    internal void SelectAutomationTab(string id)
+    {
+        if (id == "settings") return;
+        _explicitTab = true;
+        settingsPage.SelectAutomationTab(id);
+    }
     internal bool TryCaptureRegisteredHotkey(string? value) => settingsPage.TryCaptureRegisteredHotkey(value);
     internal void ConfigureAudioDevices(WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog catalog) => settingsPage.ConfigureAudioDevices(catalog);
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
     internal async Task<bool> PrepareAsync(CancellationToken token = default)
     {
         await settingsPage.ReloadAsync().WaitAsync(token);
+        if (!_explicitTab) settingsPage.RestoreSettingsTab();
         return settingsPage.HasLoadedSettings;
     }
     internal Task StopAsync() => _stopTask ??= settingsPage.StopAsync();
@@ -83,6 +90,7 @@ public partial class FrmSettings : XtraForm
         // The native tab handles and restored window placement are available only once the modal is shown.
         try
         {
+            if (_explicitTab && !_backgroundRun) settingsPage.RememberSettingsTab();
             ContentSize_Changed(this, EventArgs.Empty);
             PerformLayout();
             settingsPage.PerformLayout();

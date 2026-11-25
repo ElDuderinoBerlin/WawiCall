@@ -38,6 +38,7 @@ public partial class PartySearchPage : XtraUserControl
     {
         _directory = directory; _search = search; _presentation = presentation;
         presentation.Restore(view); Appearance_Changed(this, EventArgs.Empty);
+        presentation.AttachTabs(tabs);
     }
     private void Appearance_Changed(object? sender, EventArgs e) => _presentation?.SizeButtons(reloadButton, openButton);
     private async void Page_Load(object? sender, EventArgs e) { searchTimer.Start(); if (!_directRecord) await ReloadAsync(); }

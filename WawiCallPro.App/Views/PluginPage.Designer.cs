@@ -18,6 +18,7 @@ partial class PluginPage
         components = new System.ComponentModel.Container();
         switchProgress = new DevExpress.XtraWaitForm.ProgressPanel();
         detailsTab = new DevExpress.XtraTab.XtraTabPage();
+        detailsTab.Name = "detailsTab";
         detailsRoot = new System.Windows.Forms.TableLayoutPanel();
         detailsScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         backButton = new DevExpress.XtraEditors.SimpleButton();
@@ -33,7 +34,9 @@ partial class PluginPage
         capabilitiesButton = new DevExpress.XtraEditors.SimpleButton();
         pluginTabs = new DevExpress.XtraTab.XtraTabControl();
         installedTab = new DevExpress.XtraTab.XtraTabPage();
+        installedTab.Name = "installedTab";
         capabilitiesTab = new DevExpress.XtraTab.XtraTabPage();
+        capabilitiesTab.Name = "capabilitiesTab";
         catalogGrid = new DevExpress.XtraGrid.GridControl();
         catalogView = new DevExpress.XtraGrid.Views.Items.ItemsView();
         grid = new DevExpress.XtraGrid.GridControl();

@@ -76,7 +76,11 @@ public partial class PluginPage : XtraUserControl
         _operation = new PageOperation(this, report);
     }
     internal void ConfigureSelection(Func<string, CancellationToken, Task> activate) => _activate = activate;
-    internal void ConfigureLayoutPersistence(AppUiState? state) => _state = state;
+    internal void ConfigureLayoutPersistence(AppUiState? state)
+    {
+        _state = state;
+        state?.AttachTabs(pluginTabs, "Settings.PluginCatalog");
+    }
     internal void RefreshCatalog() => ApplyCatalog(ReadCatalog());
 
     internal async Task RefreshCatalogAsync(CancellationToken token)

@@ -80,7 +80,7 @@ public partial class MainForm
                 if (group.ItemLinks.Count != 0) page.Groups.Add(group);
             }
             ribbon.Pages.Add(page);
-            if (selectRibbon) ribbon.SelectedPage = page;
+            if (selectRibbon || _state?.ReadTab("MainRibbon") == page.Name) ribbon.SelectedPage = page;
         }
 
         if (!session.Navigation.IsEmpty)

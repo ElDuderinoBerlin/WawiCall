@@ -55,7 +55,11 @@ public partial class FrmDial : XtraForm
     }
 
     internal void PrepareForBackgroundRun() { _backgroundRun = true; ShowInTaskbar = false; Opacity = 0; }
-    internal void SetAutomationNumber(string number) => destinationEdit.Text = number;
+    internal void SetAutomationNumber(string number)
+    {
+        destinationEdit.Text = number;
+        dialTabs.SelectedTabPage = dialTab;
+    }
 
     internal void ConfigureCompanyScope(ConfigurationStore settings)
     {

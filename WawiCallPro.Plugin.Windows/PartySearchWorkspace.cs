@@ -1,5 +1,6 @@
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
+using DevExpress.XtraTab;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Plugins;
@@ -12,6 +13,7 @@ public interface IPartySearchPresentation
     void SizeButtons(params SimpleButton[] buttons);
     void Restore(GridView view);
     void Save(GridView view);
+    void AttachTabs(XtraTabControl tabs) { }
 }
 public interface IPartySearchWorkspaceAccess
 {

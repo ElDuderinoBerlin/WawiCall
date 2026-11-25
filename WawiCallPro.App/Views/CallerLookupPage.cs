@@ -57,6 +57,7 @@ public partial class CallerLookupPage : XtraUserControl
         _workspace = workspace; _state = state;
         _context = (context ?? new(workspace.Companies.Current.Company?.Key)) with { LineAssignment = null };
         _operation = new(this, statusLabel);
+        state?.AttachTabs(tabs, "CallerLookup");
         _state?.Restore(view, "CallerLookup-v1");
         view.ClearGrouping();
         groupColumn.GroupIndex = 0;
@@ -64,8 +65,13 @@ public partial class CallerLookupPage : XtraUserControl
         searchButton.Enabled = workspace.CanUseBusinessDirectory;
     }
     internal CallerMatchDecision? Decision => _decision;
-    internal void BindNotes(CallNotesSession notes) { notesPanel.Bind(notes); notesTab.PageVisible = true; }
     internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
+    internal void BindNotes(CallNotesSession notes)
+    {
+        notesPanel.Bind(notes);
+        notesTab.PageVisible = true;
+        _state?.RestoreTab(tabs, "CallerLookup");
+    }
     {
         _boundCall = call;
         _accept = accept;

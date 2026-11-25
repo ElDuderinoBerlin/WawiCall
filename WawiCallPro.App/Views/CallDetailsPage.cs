@@ -11,6 +11,8 @@ namespace WawiCallPro.App.Views;
 public partial class CallDetailsPage : XtraUserControl
 {
     private AppWorkspace? _workspace;
+    private AppUiState? _tabState;
+    private string? _pendingTab;
     private ICallViewScope? _scope;
     private readonly CancellationTokenSource _stopping = new();
     private readonly List<Task> _loads = [];
@@ -54,6 +56,20 @@ public partial class CallDetailsPage : XtraUserControl
         _notes = workspace.CallNotes.Create(call.Id);
         notesPanel.Bind(_notes);
         ShowCall();
+    }
+    internal void ConfigureTabPersistence(AppUiState? state)
+    {
+        _tabState = state;
+        if (state is null || state.AttachTabs(tabs, "CallDetails")) return;
+        _pendingTab = state.ReadTab("CallDetails");
+        tabs.SelectedPageChanged += (_, _) => _pendingTab = null;
+    }
+
+    private void AddContextTab(XtraTabPage page)
+    {
+        var restore = page.Name == _pendingTab;
+        tabs.TabPages.Add(page);
+        if (restore) tabs.SelectedTabPage = page;
     }
     internal async Task ObserveAsync(CallSnapshot call)
     { if (_scope is not null && _stopTask is null) { await _scope.ObserveAsync(call); callControls.Observe(Call); ShowCall(); } }
@@ -123,8 +139,9 @@ public partial class CallDetailsPage : XtraUserControl
                     if (_mailViews.ContainsKey(party.Key)) return;
                     mail = new MailPage { Dock = DockStyle.Fill };
                     mail.Bind(_workspace.Mail.ForParty(party), null); mail.ConfigureMailActions(_workspace.Mail, false);
-                    var mailTab = new XtraTabPage { Text = context.CompanyName + " · " + context.PartyName + " · E-Mails", Tag = context };
-                    mailTab.Controls.Add(mail); tabs.TabPages.Add(mailTab); _mailViews.Add(party.Key, mail);
+                    mail.ConfigureFilterTabPersistence(_tabState, "CallDetails.MailFilter");
+                    var mailTab = new XtraTabPage { Name = "partyMail", Text = context.CompanyName + " · " + context.PartyName + " · E-Mails", Tag = context };
+                    mailTab.Controls.Add(mail); AddContextTab(mailTab); _mailViews.Add(party.Key, mail);
                 }) && mail is not null) await mail.ReloadAsync();
             }
             // The generic master-data tab works with every product adapter, even without optional Windows views.
@@ -136,9 +153,9 @@ public partial class CallDetailsPage : XtraUserControl
                 {
                     if (await operation.PublishAsync(_workspace.Dispatcher, () =>
                     {
-                        var tab = new XtraTabPage { Text = context.CompanyName + " · " + Role(context) + " " + context.PartyName + " · " + descriptor.DisplayName, Tag = context };
+                        var tab = new XtraTabPage { Name = "plugin_" + descriptor.Id, Text = context.CompanyName + " · " + Role(context) + " " + context.PartyName + " · " + descriptor.DisplayName, Tag = context };
                         handle.View.Dock = DockStyle.Fill; tab.Controls.Add(handle.View);
-                        _views.Add(tab, handle); tabs.TabPages.Add(tab);
+                        _views.Add(tab, handle); AddContextTab(tab);
                     })) handle = null;
                 }
                 finally { if (handle is not null) await handle.DisposeAsync(); }
