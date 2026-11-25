@@ -10,7 +10,7 @@ internal static class SipCallerIdentity
         var header = request.Header;
         if (header.UnknownHeaders.Any(WithholdsIdentity)) return new(NumberPresentation.Withheld);
 
-        var from = header.From.FromURI.User;
+        var from = GetIdentity(header.From.FromURI);
         var anonymous = string.Equals(from, "anonymous", StringComparison.OrdinalIgnoreCase);
         if (IsPhoneNumber(from)) return new(NumberPresentation.Available, from);
 
@@ -19,13 +19,15 @@ internal static class SipCallerIdentity
             && source.Protocol == registeredPeer.Protocol && source.Port == registeredPeer.Port
             && source.Address.Equals(registeredPeer.Address))
         {
-            var asserted = header.PassertedIdentity.Select(identity => identity.URI.User).FirstOrDefault(IsPhoneNumber);
+            var asserted = header.PassertedIdentity.Select(identity => GetIdentity(identity.URI)).FirstOrDefault(IsPhoneNumber);
             if (asserted is not null) return new(NumberPresentation.Available, asserted);
         }
 
         if (anonymous) return new(NumberPresentation.Withheld);
         return string.IsNullOrEmpty(from) ? new(NumberPresentation.Unknown) : new(NumberPresentation.Available, from);
     }
+
+    private static string? GetIdentity(SIPURI uri) => uri.Scheme == SIPSchemesEnum.tel ? uri.User ?? uri.Host : uri.User;
 
     private static bool IsPhoneNumber(string? value) => value is { Length: > 0 and <= 32 }
         && value.AsSpan(value[0] == '+' ? 1 : 0) is { IsEmpty: false } digits

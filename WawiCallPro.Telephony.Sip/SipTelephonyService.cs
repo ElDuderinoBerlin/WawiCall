@@ -431,6 +431,9 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 return;
             }
             var caller = SipCallerIdentity.Read(request, Volatile.Read(ref _registeredPeer));
+            if (caller.Presentation != NumberPresentation.Available)
+                _log.LogDebug("SIP-Rufnummer {Presentation} ({Transport}, P-Asserted-Identity vorhanden: {HasAssertedIdentity}).",
+                    caller.Presentation, request.RemoteSIPEndPoint?.Protocol, request.Header.PassertedIdentity.Count > 0);
             Begin(agent, CallDirection.Incoming, caller.OriginalValue, null);
             if (caller.Presentation == NumberPresentation.Withheld)
                 agent.State = _states.Create(agent.State!.Current with { RemoteAddress = caller });
