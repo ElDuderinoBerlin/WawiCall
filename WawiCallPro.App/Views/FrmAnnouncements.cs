@@ -1,4 +1,5 @@
 using System.IO;
+using System.ComponentModel;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
 using WawiCallPro.App.Hosting;
@@ -10,8 +11,18 @@ namespace WawiCallPro.App.Views;
 
 public partial class FrmAnnouncements : XtraForm
 {
+    private static readonly ProviderChoice[] SpeechProviders =
+    [
+        new(AnnouncementSpeechProvider.Windows, "Windows"),
+        new(AnnouncementSpeechProvider.AzureSpeech, "Azure Speech"),
+        new(AnnouncementSpeechProvider.GoogleCloud, "Google Cloud")
+    ];
+
     private readonly IAnnouncementAudio? _audio;
     private readonly IAnnouncementSpeech? _speech;
+    private readonly Dictionary<AnnouncementSpeechProvider, string?> _selectedVoices = [];
+    private IAnnouncementSpeech? _selectedSpeech;
+    private AnnouncementSpeechProvider _selectedProvider;
     private readonly IAudioFileConversion? _conversion;
     private readonly IAudioDeviceCatalog? _catalog;
     private readonly IAudioEndpointMeterFactory? _meterFactory;
@@ -29,9 +40,14 @@ public partial class FrmAnnouncements : XtraForm
     private bool _closing;
     private bool _background;
 
+    [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    internal Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>? ResolveCloudSpeech { private get; init; }
+
     public FrmAnnouncements()
     {
         InitializeComponent();
+        providerEdit.Properties.DataSource = SpeechProviders;
+        providerEdit.EditValue = AnnouncementSpeechProvider.Windows;
         AppIconHelper.Apply(this);
         WindowWorkArea.Attach(this);
         UiButtonSizing.Attach(this);
@@ -78,22 +94,61 @@ public partial class FrmAnnouncements : XtraForm
         var saved = (await _settings.LoadAsync(token)).Options.Devices.Announcements;
         var devices = await _catalog!.ReadAsync(token);
         _catalogSuppressed = devices.Suppressed;
-        IReadOnlyList<AnnouncementVoice> installedVoices;
-        try { installedVoices = _speech!.GetVoices(); }
-        catch (Exception) { installedVoices = []; }
-        var voices = installedVoices.Select(voice => new Choice(voice.Id, $"{voice.DisplayName} ({voice.Language})")).ToArray();
-        _speechAvailable = voices.Length > 0;
         Bind(captureEdit, devices.Capture.Select(device => new Choice(device.Id, device.DisplayName)), saved.CaptureDeviceId);
         Bind(playbackEdit, devices.Playback.Select(device => new Choice(device.Id, device.DisplayName)), saved.PlaybackDeviceId);
-        Bind(voiceEdit, voices, saved.VoiceId);
+        providerEdit.EditValue = saved.SpeechProvider;
+        _selectedVoices[saved.SpeechProvider] = saved.VoiceId;
+        await LoadSpeechVoicesAsync(saved.SpeechProvider, token);
         _loaded = true;
         MeterView_Changed(this, EventArgs.Empty);
         statusLabel.Text = devices.Suppressed ? "Audiogeräte sind im Prüfmodus deaktiviert." : "";
     });
 
-    private static void Bind(LookUpEdit editor, IEnumerable<Choice> available, string? saved)
+    private async Task LoadSpeechVoicesAsync(AnnouncementSpeechProvider provider, CancellationToken token)
     {
-        var choices = new List<Choice> { new("", "Systemstandard") };
+        _selectedProvider = provider;
+        _selectedSpeech = null;
+        _speechAvailable = false;
+        var windows = provider == AnnouncementSpeechProvider.Windows;
+        var defaultVoiceLabel = windows ? "Systemstandard" : "Standardstimme";
+        var savedVoice = _selectedVoices.GetValueOrDefault(provider);
+        Bind(voiceEdit, [], savedVoice, defaultVoiceLabel);
+        providerHint.Text = "";
+        providerHint.Visible = false;
+        var hint = "Beim Klick auf „Text vertonen“ wird der Ansagetext an den gewählten Anbieter gesendet.";
+        IReadOnlyList<AnnouncementVoice> available = [];
+        try
+        {
+            _selectedSpeech = windows ? _speech : await Task.Run(() => ResolveCloudSpeech?.Invoke(provider), token);
+            token.ThrowIfCancellationRequested();
+            available = _selectedSpeech?.GetVoices() ?? [];
+            if (!windows && _selectedSpeech is null)
+                hint = provider == AnnouncementSpeechProvider.AzureSpeech
+                    ? "Azure Speech ist nicht eingerichtet. Die Umgebungsvariable WAWICALLPRO_AZURE_SPEECH_ENDPOINT prüfen."
+                    : "Google Cloud ist nicht eingerichtet. Die Umgebungsvariable WAWICALLPRO_GOOGLE_TTS_PROJECT prüfen.";
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            _selectedSpeech = null;
+            hint = "Der Sprachanbieter konnte nicht geladen werden. Lokale Anmeldung und Einrichtung prüfen.";
+        }
+        token.ThrowIfCancellationRequested();
+        _speechAvailable = available.Count > 0;
+        if (!windows && !_speechAvailable && _selectedSpeech is not null)
+            hint = "Für den gewählten Sprachanbieter sind keine Stimmen verfügbar.";
+        var choices = available.Select(voice => new Choice(voice.Id, $"{voice.DisplayName} ({voice.Language})"));
+        Bind(voiceEdit, choices, savedVoice, defaultVoiceLabel);
+        providerHint.Text = windows ? "" : hint;
+        providerHint.Visible = !windows;
+        RefreshMinimum();
+    }
+
+    private static void Bind(LookUpEdit editor, IEnumerable<Choice> available, string? saved) =>
+        Bind(editor, available, saved, "Systemstandard");
+
+    private static void Bind(LookUpEdit editor, IEnumerable<Choice> available, string? saved, string defaultLabel)
+    {
+        var choices = new List<Choice> { new("", defaultLabel) };
         choices.AddRange(available);
         if (saved is not null && choices.All(item => item.Id != saved))
             choices.Add(new(saved, "Nicht verfügbar (gespeichert)"));
@@ -130,10 +185,10 @@ public partial class FrmAnnouncements : XtraForm
 
     internal Task SynthesizeAsync()
     {
-        if (!speechButton.Enabled) return Task.CompletedTask;
+        if (!speechButton.Enabled || _selectedSpeech is not { } speech) return Task.CompletedTask;
         var text = textEdit.Text;
         var voice = SelectedId(voiceEdit);
-        return RunAsync(token => CreateDraftAsync(path => _speech!.WriteWaveAsync(text, voice, path, token)));
+        return RunAsync(token => CreateDraftAsync(path => speech.WriteWaveAsync(text, voice, path, token)));
     }
 
     private async Task CreateDraftAsync(Func<string, Task> create)
@@ -200,14 +255,15 @@ public partial class FrmAnnouncements : XtraForm
         {
             CaptureDeviceId = SelectedId(captureEdit),
             PlaybackDeviceId = SelectedId(playbackEdit),
-            VoiceId = SelectedId(voiceEdit)
+            VoiceId = SelectedId(voiceEdit),
+            SpeechProvider = _selectedProvider
         };
         return RunAsync(async token =>
         {
             using var waiting = new UiWaitCursor(this);
             var current = await _settings!.LoadAsync(token);
             await _settings.SaveAsync(current.Options with { Devices = current.Options.Devices with { Announcements = selections } }, current, token);
-            statusLabel.Text = "Stimme und Audiogeräte gespeichert.";
+            statusLabel.Text = "Sprachanbieter, Stimme und Audiogeräte gespeichert.";
         });
     }
 
@@ -253,7 +309,8 @@ public partial class FrmAnnouncements : XtraForm
     private void UpdateActions()
     {
         var ready = _loaded && !_closing && _operation is null;
-        captureEdit.Enabled = playbackEdit.Enabled = voiceEdit.Enabled = textEdit.Enabled = preferencesButton.Enabled = ready;
+        captureEdit.Enabled = playbackEdit.Enabled = providerEdit.Enabled = textEdit.Enabled = preferencesButton.Enabled = ready;
+        voiceEdit.Enabled = ready && _speechAvailable;
         recordButton.Enabled = ready && !_catalogSuppressed;
         speechButton.Enabled = ready && _speechAvailable && !string.IsNullOrWhiteSpace(textEdit.Text);
         previewButton.Enabled = ready && !_catalogSuppressed && _draft is not null;
@@ -265,16 +322,28 @@ public partial class FrmAnnouncements : XtraForm
     {
         if (!IsHandleCreated) return;
         var width = Math.Max(LogicalToDeviceUnits(540), actions.GetPreferredSize(Size.Empty).Width + layout.Padding.Horizontal);
-        var height = choicesLayout.GetPreferredSize(new Size(width, 0)).Height
-            + actions.GetPreferredSize(new Size(width, 0)).Height + statusLabel.PreferredSize.Height + Font.Height * 4 + layout.Padding.Vertical;
+        var contentWidth = width - layout.Padding.Horizontal;
+        var height = PreferredRowHeight(choicesLayout) + PreferredRowHeight(textLabel)
+            + textEdit.Font.Height * 3 + textEdit.Margin.Vertical
+            + PreferredRowHeight(statusLabel) + PreferredRowHeight(actions) + layout.Padding.Vertical;
         MinimumSize = WindowWorkArea.LimitMinimum(new Size(width + Width - ClientSize.Width, height + Height - ClientSize.Height),
             WindowWorkArea.GetArea(this));
+
+        int PreferredRowHeight(Control control) => control.GetPreferredSize(
+            new Size(Math.Max(1, contentWidth - control.Margin.Horizontal), 0)).Height + control.Margin.Vertical;
     }
 
     private async void Window_Shown(object? sender, EventArgs e) { RefreshMinimum(); await LoadAsync(); }
     private void Font_Changed(object? sender, EventArgs e) => RefreshMinimum();
     private void Dpi_Changed(object? sender, DpiChangedEventArgs e) => RefreshMinimum();
     private void Text_Changed(object? sender, EventArgs e) => UpdateActions();
+    private async void Provider_Changed(object? sender, EventArgs e)
+    {
+        if (!_loaded || _operation is not null || providerEdit.EditValue is not AnnouncementSpeechProvider provider
+            || provider == _selectedProvider) return;
+        _selectedVoices[_selectedProvider] = SelectedId(voiceEdit);
+        await RunAsync(token => LoadSpeechVoicesAsync(provider, token));
+    }
     private async void Record_Click(object? sender, EventArgs e) => await RecordAsync();
     private void Stop_Click(object? sender, EventArgs e) => StopAction();
     private async void Speech_Click(object? sender, EventArgs e) => await SynthesizeAsync();
@@ -329,4 +398,5 @@ public partial class FrmAnnouncements : XtraForm
     }
 
     private sealed record Choice(string Id, string Name);
+    private sealed record ProviderChoice(AnnouncementSpeechProvider Id, string Name);
 }

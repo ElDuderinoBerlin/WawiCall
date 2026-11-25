@@ -38,8 +38,11 @@ public sealed record RecordingOutputSettings(Database.Contracts.RecordingArtifac
 
 public enum RecordingReceiveSource { Rtp, PlaybackLoopback }
 
+public enum AnnouncementSpeechProvider { Windows, AzureSpeech, GoogleCloud }
+
 public sealed record AnnouncementAudioSettings
 {
+    public AnnouncementSpeechProvider SpeechProvider { get; init; } = AnnouncementSpeechProvider.Windows;
     public string? VoiceId { get; init; }
     public string? CaptureDeviceId { get; init; }
     public string? PlaybackDeviceId { get; init; }

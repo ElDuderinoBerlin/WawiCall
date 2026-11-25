@@ -204,6 +204,8 @@ public sealed partial class AppShellTests
                 if (points == 10F) dialog.Scale(new SizeF(1.5F, 1.5F));
                 dialog.PerformLayout();
                 CheckTableBounds(dialog);
+                var editor = Field<MemoEdit>(dialog, "textEdit");
+                Assert.IsGreaterThanOrEqualTo(editor.Font.Height * 2, editor.Height);
                 using var bitmap = UiAudit.Capture(dialog);
                 bitmap.Save(Path.Combine(output, $"announcements-{skin}-{points:0}.png"));
             }
@@ -275,9 +277,81 @@ public sealed partial class AppShellTests
         }
     }
 
+    [TestMethod]
+    public Task AnnouncementSpeechProviderSwitchesVoicesAndRestoresSavedSelection() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var windows = new AnnouncementSpeechDouble();
+        var azure = new AnnouncementSpeechDouble { Voice = new("azure-voice", "Azure-Teststimme", "de-DE") };
+        var google = new AnnouncementSpeechDouble { Voice = new("google-voice", "Google-Teststimme", "de-DE") };
+        var audio = new AnnouncementAudioDouble();
+        var conversion = new AnnouncementConversionDouble();
+        var catalog = new AnnouncementCatalogDouble();
+        IAnnouncementSpeech? Resolve(AnnouncementSpeechProvider provider) => provider switch
+        {
+            AnnouncementSpeechProvider.AzureSpeech => azure,
+            AnnouncementSpeechProvider.GoogleCloud => google,
+            _ => null
+        };
+
+        using (var dialog = new FrmAnnouncements(audio, windows, conversion, catalog, workspace.Settings, null)
+               { ResolveCloudSpeech = Resolve })
+        {
+            dialog.PrepareForBackgroundRun();
+            await dialog.LoadAsync();
+            dialog.Show();
+            var provider = Field<LookUpEdit>(dialog, "providerEdit");
+            var voice = Field<LookUpEdit>(dialog, "voiceEdit");
+            var text = Field<MemoEdit>(dialog, "textEdit");
+            var speech = Field<SimpleButton>(dialog, "speechButton");
+            text.Text = "Deutsche Ansage für den Hörvergleich.";
+            Assert.AreEqual(AnnouncementSpeechProvider.Windows, provider.EditValue);
+            voice.EditValue = "voice";
+
+            provider.EditValue = AnnouncementSpeechProvider.AzureSpeech;
+            await AppComTelephonyTests.Until(() => speech.Enabled);
+            Assert.AreEqual("", voice.EditValue);
+            Assert.IsNull(voice.Properties.GetDataSourceRowByKeyValue("voice"));
+            voice.EditValue = "azure-voice";
+            await dialog.SynthesizeAsync();
+            Assert.AreEqual("azure-voice", azure.SelectedVoice);
+
+            provider.EditValue = AnnouncementSpeechProvider.GoogleCloud;
+            await AppComTelephonyTests.Until(() => speech.Enabled);
+            Assert.IsNull(voice.Properties.GetDataSourceRowByKeyValue("azure-voice"));
+            voice.EditValue = "google-voice";
+            await dialog.SynthesizeAsync();
+            Assert.AreEqual("google-voice", google.SelectedVoice);
+            Assert.Contains("Ansagetext", Field<LabelControl>(dialog, "providerHint").Text);
+
+            provider.EditValue = AnnouncementSpeechProvider.Windows;
+            Assert.AreEqual("voice", voice.EditValue);
+            provider.EditValue = AnnouncementSpeechProvider.GoogleCloud;
+            await AppComTelephonyTests.Until(() => speech.Enabled);
+            Assert.AreEqual("google-voice", voice.EditValue);
+            await dialog.SavePreferencesAsync();
+            Assert.AreEqual("Deutsche Ansage für den Hörvergleich.", text.Text);
+            Assert.IsNull(windows.SelectedVoice);
+            dialog.ClientSize = new Size(665, 440);
+            dialog.PerformLayout();
+            CheckTableBounds(dialog);
+            var output = Path.Combine(RenderOutput(), "announcements", workspace.Application.ProductLine);
+            Directory.CreateDirectory(output);
+            using var bitmap = UiAudit.Capture(dialog);
+            bitmap.Save(Path.Combine(output, "announcements-google.png"));
+        }
+
+        using var reopened = new FrmAnnouncements(audio, windows, conversion, catalog, workspace.Settings, null);
+        await reopened.LoadAsync();
+        Assert.AreEqual(AnnouncementSpeechProvider.GoogleCloud, Field<LookUpEdit>(reopened, "providerEdit").EditValue);
+        Assert.AreEqual("google-voice", Field<LookUpEdit>(reopened, "voiceEdit").EditValue);
+        Field<MemoEdit>(reopened, "textEdit").Text = "Ansage";
+        Assert.IsFalse(Field<SimpleButton>(reopened, "speechButton").Enabled);
+        Assert.Contains("WAWICALLPRO_GOOGLE_TTS_PROJECT", Field<LabelControl>(reopened, "providerHint").Text);
+    });
+
     private sealed class AnnouncementSpeechDouble : IAnnouncementSpeech
     {
-        private static readonly AnnouncementVoice Voice = new("voice", "Teststimme", "de-DE");
+        internal AnnouncementVoice Voice { get; init; } = new("voice", "Teststimme", "de-DE");
         internal string? SelectedVoice;
         public IReadOnlyList<AnnouncementVoice> GetVoices() => [Voice];
         public async Task<AnnouncementVoice> WriteWaveAsync(string text, string? voiceId, string destination, CancellationToken token)

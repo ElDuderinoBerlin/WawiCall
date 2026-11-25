@@ -240,6 +240,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (devices.Announcements is not { } announcements || !IsValidDeviceId(announcements.VoiceId)
             || !IsValidDeviceId(announcements.CaptureDeviceId) || !IsValidDeviceId(announcements.PlaybackDeviceId))
             issues.Add(new("devices.announcements", "Für Ansagen sind nur gültige Stimmen- und Gerätekennungen zulässig."));
+        else if (!Enum.IsDefined(announcements.SpeechProvider))
+            issues.Add(new("devices.announcements.speechProvider", "Einen gültigen Sprachanbieter für Ansagen auswählen."));
     }
 
     private void ValidateDatabase(CommunicationDatabaseSettings? database, ImmutableArray<ConfigurationIssue>.Builder issues)

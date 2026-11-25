@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>The version belongs to settings JSON, independently of the DPAPI envelope version.</summary>
 public static class ConfigurationFormat
 {
-    public const int CurrentVersion = 23;
+    public const int CurrentVersion = 24;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -24,6 +24,7 @@ public static class ConfigurationFormat
             new JsonStringEnumConverter<SipTransport>(allowIntegerValues: false),
             new JsonStringEnumConverter<SipDtmfMethod>(allowIntegerValues: false),
             new JsonStringEnumConverter<RecordingReceiveSource>(allowIntegerValues: false),
+            new JsonStringEnumConverter<AnnouncementSpeechProvider>(allowIntegerValues: false),
             new JsonStringEnumConverter<Database.Contracts.RecordingArtifactFormat>(allowIntegerValues: false),
             new JsonStringEnumConverter<CommunicationDatabaseProvider>(allowIntegerValues: false),
             new JsonStringEnumConverter<LexwareProductLine>(allowIntegerValues: false),

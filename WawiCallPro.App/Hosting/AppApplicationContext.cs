@@ -187,6 +187,7 @@ internal sealed class AppApplicationContext : ApplicationContext
     {
         var form = ActivatorUtilities.CreateInstance<MainForm>(_host.Services);
         form.VisibleChanged += OnMainFormVisibilityChanged;
+        form.ResolveCloudAnnouncementSpeech = _host.Services.GetService<Func<AnnouncementSpeechProvider, WawiCallPro.Audio.IAnnouncementSpeech?>>();
         if (_host.Services.GetService<IAppHotkeyFactory>() is { } hotkeys)
             form.ConfigureHotkeys(hotkeys, _host.Services.GetRequiredService<ApplicationConfigurationService>().Current.Options.User);
         return form;

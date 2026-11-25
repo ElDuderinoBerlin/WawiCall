@@ -118,9 +118,21 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
 
 ### Phase 3 – Anbieterwahl im Dialog
 
-- [ ] Im vorhandenen Ansagendialog die Auswahl **Sprachanbieter** und **Stimme** ergänzen. Windows bleibt vorbelegt. Cloud-Vertonung erfolgt beim Klick auf **Text vertonen**; am Anbieterfeld steht, dass dabei der eingegebene Text übertragen wird.
-- [ ] Anbieter, Stimme und Region als Einstellungen speichern. Zugangsdaten geschützt ablegen und aus portablem Export sowie Logs heraushalten. Ausschließlich den Ansagetext und die Syntheseparameter an den Anbieter senden.
-- [ ] **Text vertonen**, **Vorgang stoppen**, **Abspielen**, **WAV speichern** und den expliziten Wechsel zu Windows prüfen. Wiedergabe und Export des vorhandenen Entwurfs bei abgeschaltetem Netzwerk nachweisen. Layout und reguläre Debug-Builds in Pro und FinOffice prüfen.
+- [x] ✅ **Sprachanbieter** und **Stimme** im Ansagendialog ergänzt. Windows ist die Voreinstellung. Die Stimmenliste wechselt mit dem Anbieter. Der Dialog weist vor einer Cloud-Vertonung auf die Textübertragung hin.
+- [x] ✅ **Auswahl speichern** übernimmt Anbieter, Stimme und Audiogeräte in die lokale Konfiguration. Die Cloud-Zielsysteme kommen aus der Prozessumgebung. Die SDKs verwenden Azure Entra beziehungsweise Google ADC für die Anmeldung.
+- [ ] Live-Wiedergabe und Export eines Cloud-Entwurfs bei abgeschaltetem Netzwerk nachweisen. Die automatisierten Dialogtests prüfen Anbieterwechsel, gespeicherte Auswahl, lokale Aufnahme, Wiedergabe und Export mit Test-Doubles.
+
+Für die Cloud-Anbieter die folgenden Werte vor dem App-Start setzen. Die Platzhalter durch die
+eingerichtete Speech-Ressource und die Google-Projekt-ID ersetzen.
+
+```powershell
+$env:WAWICALLPRO_AZURE_SPEECH_ENDPOINT = 'https://<speech-ressource>.cognitiveservices.azure.com/'
+$env:WAWICALLPRO_GOOGLE_TTS_PROJECT = '<google-projekt-id>'
+```
+
+Aus derselben PowerShell starten, damit der App-Prozess diese Werte übernimmt. Die Variablen
+enthalten nur Zielangaben. Die lokalen SDK-Anmeldungen werden separat eingerichtet. Fehlende
+Einrichtung wird im Dialog angezeigt. Der Wechsel zu Windows bleibt möglich.
 
 ### Phase 4 – Betriebsfreigabe und optionale Erweiterungen
 

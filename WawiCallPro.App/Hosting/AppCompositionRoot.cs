@@ -13,6 +13,7 @@ using WawiCallPro.Utilities.Hosting;
 using WawiCallPro.Utilities.Plugins;
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Persistence;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -67,6 +68,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton<WindowsSipMediaSessionFactory>();
                 services.AddSingleton<ISipMediaSessionFactory, LivePersistedSipMediaSessionFactory>();
                 services.AddAudioConversion();
+                if (!mode.SuppressNetwork) AddCloudAnnouncementSpeech(services);
                 if (!mode.SuppressNetwork) services.AddSingleton<IIncomingRingtone>(provider => provider.GetRequiredService<WindowsIncomingRingtone>());
                 services.AddPersistedRecordings();
                 services.AddSingleton<WawiCallPro.Database.Repositories.RecordingPlaybackCatalog>();
@@ -93,4 +95,24 @@ internal static class AppCompositionRoot
                 configure?.Invoke(services);
             })
             .Build();
+
+    private static void AddCloudAnnouncementSpeech(IServiceCollection services)
+    {
+        var endpoint = Environment.GetEnvironmentVariable("WAWICALLPRO_AZURE_SPEECH_ENDPOINT");
+        if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+        {
+            try { services.AddAzureAnnouncementSpeech(uri); }
+            catch (ArgumentException) { } // The dialog shows the setup hint when the endpoint is not usable.
+        }
+        var quotaProject = Environment.GetEnvironmentVariable("WAWICALLPRO_GOOGLE_TTS_PROJECT");
+        if (!string.IsNullOrWhiteSpace(quotaProject))
+            services.AddGoogleAnnouncementSpeech(quotaProject.Trim());
+
+        services.AddSingleton<Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>>(provider => selection => selection switch
+        {
+            AnnouncementSpeechProvider.AzureSpeech => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.AzureSpeech),
+            AnnouncementSpeechProvider.GoogleCloud => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.GoogleCloud),
+            _ => null
+        });
+    }
 }

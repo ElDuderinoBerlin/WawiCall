@@ -1,16 +1,23 @@
+using System.ComponentModel;
 using DevExpress.XtraBars;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
+using WawiCallPro.Audio;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App;
 
 public partial class MainForm
 {
+    [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    internal Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>? ResolveCloudAnnouncementSpeech { private get; set; }
+
     internal FrmAnnouncements CreateAnnouncementsDialog()
     {
         var dialog = _workspace?.AnnouncementAudio is { } audio && _workspace.AnnouncementSpeech is { } speech
             && _workspace.AudioFiles is { } conversion && _audioDevices is { } catalog
             ? new FrmAnnouncements(audio, speech, conversion, catalog, _workspace.Settings, _state)
+                { ResolveCloudSpeech = ResolveCloudAnnouncementSpeech }
             : new FrmAnnouncements();
         _state?.AttachWindow(dialog, "Announcements-v1");
         if (_backgroundRun) dialog.PrepareForBackgroundRun();
