@@ -91,8 +91,16 @@ public sealed partial class AppShellTests
                 if (firstEditor)
                 {
                     Assert.AreEqual(PluginSettingsIssue.PasswordRequired, Assert.ThrowsExactly<PluginSettingsValidationException>(() => page.ReadOptions()).Issue);
+                    var testButton = Field<SimpleButton>(editor, "testAccessButton");
+                    var testStatus = Field<LabelControl>(editor, "hintLabel");
+                    Assert.IsTrue(testButton.Enabled);
+                    testButton.PerformClick();
+                    await AppComTelephonyTests.Until(() => testStatus.Text.Contains("konnte nicht bestätigt", StringComparison.Ordinal));
                     Field<TextEdit>(editor, "passwordEdit").Text = "isolated-only-secret";
                     Field<TextEdit>(editor, "clientKeyEdit").Text = Guid.NewGuid().ToString("B");
+                    testButton.PerformClick();
+                    await AppComTelephonyTests.Until(() => testStatus.Text.Contains("erfolgreich", StringComparison.Ordinal));
+                    Assert.IsNull((await workspace.Settings.LoadAsync()).Options.Erp.Pro);
                     var context = Field<WawiCallPro.App.Hosting.PluginSettingsPageContext>(page, "_pluginPageContext");
                     await Field<PluginCompanySettingsPage>(exported, "companyPage").LoadAsync();
                     context.StageSelection((await workspace.Directory.GetCompaniesAsync())[0].Key);

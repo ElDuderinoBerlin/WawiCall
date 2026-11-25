@@ -1,5 +1,6 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.Interfaces.Plugins;
+using WawiCallPro.Plugin.Windows;
 
 namespace WawiCallPro.Plugins.Lexware.Pro;
 
@@ -7,8 +8,20 @@ namespace WawiCallPro.Plugins.Lexware.Pro;
 public partial class ProConnectionSettingsPage : XtraUserControl
 {
     private ProConnectionEditorSnapshot _saved = new();
+    private readonly CancellationTokenSource _stopping = new();
+    private Task _accessTest = Task.CompletedTask;
+    private bool _testing;
+    private readonly string _editHint;
+    [System.ComponentModel.Browsable(false), System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    internal Func<CancellationToken, Task>? TestAccess { private get; set; }
+    internal bool AccessEnabled => enabledEdit.Checked;
 
-    public ProConnectionSettingsPage() { InitializeComponent(); UpdateEnabled(); }
+    public ProConnectionSettingsPage()
+    {
+        InitializeComponent();
+        _editHint = hintLabel.Text;
+        UpdateEnabled();
+    }
 
     public override Size GetPreferredSize(Size proposedSize)
     {
@@ -57,6 +70,8 @@ public partial class ProConnectionSettingsPage : XtraUserControl
         usernameEdit.Text = _saved.Username ?? "";
         passwordEdit.Text = _saved.InitialPassword ?? "";
         clientKeyEdit.Text = "";
+        hintLabel.Text = _editHint;
+        (context as IPluginSettingsPageContext)?.Presentation.SizeButtons(testAccessButton);
         UpdateEnabled();
     }
 
@@ -78,12 +93,57 @@ public partial class ProConnectionSettingsPage : XtraUserControl
             || usernameEdit.Text.Trim() != (_saved.Username ?? "") || passwordEdit.Text.Length > 0 || clientKeyEdit.Text.Length > 0;
     }
 
-    private void Enabled_Changed(object? sender, EventArgs e) => UpdateEnabled();
-    private void UpdateEnabled()
+    private void Enabled_Changed(object? sender, EventArgs e)
     {
-        var enabled = enabledEdit.Checked;
-        usernameEdit.Enabled = passwordEdit.Enabled = clientKeyEdit.Enabled = enabled;
+        AccessField_Changed(sender, e);
+        UpdateEnabled();
     }
 
-    private void DisposePage() { if (!IsDisposed) passwordEdit.Text = clientKeyEdit.Text = ""; }
+    private void AccessField_Changed(object? sender, EventArgs e) => hintLabel.Text = _editHint;
+    private void UpdateEnabled()
+    {
+        enabledEdit.Enabled = !_testing;
+        var enabled = enabledEdit.Checked && !_testing;
+        usernameEdit.Enabled = passwordEdit.Enabled = clientKeyEdit.Enabled = enabled;
+        testAccessButton.Enabled = enabled && TestAccess is not null;
+    }
+
+    private async void TestAccess_Click(object? sender, EventArgs e)
+    {
+        if (_testing || TestAccess is not { } test || _stopping.IsCancellationRequested) return;
+        var token = _stopping.Token;
+        _testing = true;
+        UpdateEnabled();
+        try { _accessTest = test(token); await _accessTest; }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally
+        {
+            _testing = false;
+            if (!IsDisposed) UpdateEnabled();
+        }
+    }
+
+    internal Task WaitForAccessTestAsync(CancellationToken token) => _accessTest.WaitAsync(token);
+
+    internal async Task StopTestAsync()
+    {
+        if (IsDisposed) return;
+        await _stopping.CancelAsync();
+        try { await _accessTest; }
+        catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
+    }
+
+    internal void ShowAccessTestResult(bool passed)
+    {
+        if (IsDisposed) return;
+        hintLabel.Text = passed ? "API-Zugang erfolgreich geprüft." : "API-Zugang konnte nicht bestätigt werden.";
+    }
+
+    private void DisposePage()
+    {
+        if (IsDisposed) return;
+        _stopping.Cancel();
+        _stopping.Dispose();
+        passwordEdit.Text = clientKeyEdit.Text = "";
+    }
 }

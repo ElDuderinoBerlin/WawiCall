@@ -96,7 +96,10 @@ public enum OperationEvent
     SipRegistrationStarted,
     SipRegistrationSucceeded,
     SipRegistrationStopped,
-    RecordingArchiveSwitchPending
+    RecordingArchiveSwitchPending,
+    SettingsProApiAccessSucceeded,
+    SettingsProApiAccessFailed,
+    SettingsProApiAccessDisabled
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -113,6 +116,7 @@ public static class OperationEvents
             or OperationEvent.SettingsCompaniesClientConfigurationInvalid or OperationEvent.SettingsCompaniesApiUnavailable
             or OperationEvent.SettingsCompaniesTimeout or OperationEvent.SettingsCompaniesInvalidResponse or OperationEvent.SettingsCompaniesCompanyNames
             or OperationEvent.SettingsFailed or OperationEvent.SettingsValidationFailed or OperationEvent.SettingsCompaniesFailed or OperationEvent.SettingsCompaniesUnavailable
+            or OperationEvent.SettingsProApiAccessFailed
             or OperationEvent.SettingsFunctionPluginsListFailed or OperationEvent.SettingsFunctionPluginActivationFailed
             or OperationEvent.SettingsFunctionPluginExecutionFailed
             or OperationEvent.SettingsProductPluginActiveCall or OperationEvent.SettingsProductPluginUnsavedChanges

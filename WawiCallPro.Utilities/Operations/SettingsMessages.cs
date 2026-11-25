@@ -56,6 +56,9 @@ public static class SettingsMessages
         OperationEvent.SettingsCompaniesTimeout => "Mandantenladung fehlgeschlagen: Zeitlimit beim API-Aufruf überschritten.",
         OperationEvent.SettingsCompaniesInvalidResponse => "Mandantenladung fehlgeschlagen: API-Antwort oder Mandantenkatalog hat ein ungültiges Format oder enthält einen nicht zugeordneten API-Fehler.",
         OperationEvent.SettingsCompaniesCompanyNames => "Mandantenladung fehlgeschlagen: Lokale Lexware-Mandantennamen konnten nicht gelesen werden.",
+        OperationEvent.SettingsProApiAccessSucceeded => "Lexware-Pro-API-Zugang erfolgreich geprüft.",
+        OperationEvent.SettingsProApiAccessFailed => "Prüfung des Lexware-Pro-API-Zugangs fehlgeschlagen. Zugangsdaten und API-Dienst prüfen.",
+        OperationEvent.SettingsProApiAccessDisabled => "Lexware-Pro-API-Zugang wurde deaktiviert.",
         _ => null
     };
 }

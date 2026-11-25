@@ -69,7 +69,7 @@ public interface IPluginCompanySelectionPublisher
     Task PublishAsync(CompanyKey? company, CancellationToken cancellationToken = default);
 }
 
-public enum PluginSettingsNotice { Loading, Loaded, Empty, Unavailable, Failed, SelectionChanged }
+public enum PluginSettingsNotice { Loading, Loaded, Empty, Unavailable, Failed, SelectionChanged, ProApiAccessSucceeded, ProApiAccessFailed, ProApiAccessDisabled }
 
 /// <summary>Closed failure vocabulary. Never carries source text, credentials or response bodies.</summary>
 public enum PluginCompanyFailure

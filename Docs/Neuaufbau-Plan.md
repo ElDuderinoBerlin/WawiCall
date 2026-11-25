@@ -293,6 +293,10 @@ Darstellung, 9/16 pt und 150-%-Layoutsimulation visuell geprüft. Korrigierte in
 verhindert abgeschnittene Auswahl-/Statustexte im Navigationsdock. Echte Mandanten-/API-/SIP-Abnahme
 bleibt offen; die Testprofileinrichtung ist damit nicht abgeschlossen. Der Pro-Zugangseditor ist inzwischen
 wie nachfolgend beschrieben implementiert und isoliert geprüft.
+✅ **API-Zugang testen:** Das Pro-Plugin prüft den aktuellen Zugang am API-Dienst, ohne den
+Entwurf zu speichern. Wird der Zugang geändert, protokolliert Speichern das Prüfergebnis oder
+die Deaktivierung. Die Meldungen enthalten keine Zugangsdaten. Isolierte App-Prüfungen und
+Hintergrund-Rendering des Pro-Editors bestanden. Debug-Ausgaben für Pro und FinOffice geprüft.
 ✅ **Pro-Zugangseditor im Plugin (21.11.2026):** Einstellungen → **Lexware-Pro-Zugang** enthält die vom
 aktiven Pro-Plugin bereitgestellte Oberfläche. API-Adresse/Installation optional, API-Benutzer,
 maskiertes Kennwort und Client-Key, geschützte Übernahme der Buildvorgabe und Zeitlimits.
