@@ -8,7 +8,7 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>The version belongs to settings JSON, independently of the DPAPI envelope version.</summary>
 public static class ConfigurationFormat
 {
-    public const int CurrentVersion = 19;
+    public const int CurrentVersion = 20;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

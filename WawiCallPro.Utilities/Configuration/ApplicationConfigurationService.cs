@@ -41,7 +41,11 @@ public sealed class ApplicationConfigurationService : IHostedService
         Interlocked.Increment(ref _erpRevision);
     }
     private void ApplyConversationDevices(AudioDeviceSettings devices) =>
-        Volatile.Write(ref _conversationDevices, new(devices.CaptureDeviceId, devices.PlaybackDeviceId));
+        Volatile.Write(ref _conversationDevices, new(devices.CaptureDeviceId, devices.PlaybackDeviceId)
+        {
+            MicrophoneVolumePercent = devices.MicrophoneVolumePercent,
+            PlaybackVolumePercent = devices.PlaybackVolumePercent
+        });
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
@@ -52,4 +56,8 @@ public sealed class ApplicationConfigurationService : IHostedService
 }
 
 /// <summary>Committed microphone and render device IDs. A null ID follows the Windows default.</summary>
-public sealed record ConversationDeviceSelection(string? CaptureId, string? PlaybackId);
+public sealed record ConversationDeviceSelection(string? CaptureId, string? PlaybackId)
+{
+    public int? MicrophoneVolumePercent { get; init; }
+    public int? PlaybackVolumePercent { get; init; }
+}

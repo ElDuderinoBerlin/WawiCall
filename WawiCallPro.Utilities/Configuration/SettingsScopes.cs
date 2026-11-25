@@ -51,6 +51,7 @@ public sealed record AudioDeviceSettings
     public string? RingDeviceId { get; init; }
     public string? WindowsRingtoneFile { get; init; }
     public string? CustomRingtonePath { get; init; }
+    public int MicrophoneVolumePercent { get; init; } = 100;
     public int PlaybackVolumePercent { get; init; } = 100;
     public int RingVolumePercent { get; init; } = 100;
     public bool MicrophoneMuted { get; init; }

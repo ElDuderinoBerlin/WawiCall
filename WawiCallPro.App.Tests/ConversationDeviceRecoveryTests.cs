@@ -178,6 +178,38 @@ public sealed class ConversationDeviceRecoveryTests
     }
 
     [TestMethod]
+    public async Task SavedConversationVolumesApplyAndSurviveDeviceRecovery()
+    {
+        var hardware = new Hardware();
+        var selection = new ConversationDeviceSelection("mic-a", "speaker-a");
+        await using var encoder = new PcmObservingAudioEncoder(new AudioEncoder());
+        await using var audio = new RecoveringConversationAudio(hardware, () => selection, encoder,
+            new() { MicrophoneVolumePercent = 45, PlaybackVolumePercent = 75 }, false, TimeProvider.System, NullLogger.Instance);
+        audio.SetAudioSourceFormat(Pcmu);
+        audio.SetAudioSinkFormat(Pcmu);
+        await audio.StartAudio();
+        await audio.StartAudioSink();
+        audio.RefreshDevices();
+        Assert.AreEqual(0.45F, hardware.Current("mic-a")!.Volume);
+        Assert.AreEqual(0.75F, hardware.Current("speaker-a")!.Volume);
+
+        selection = selection with { MicrophoneVolumePercent = 25, PlaybackVolumePercent = 65 };
+        audio.RefreshDevices();
+        Assert.AreEqual(0.25F, hardware.Current("mic-a")!.Volume);
+        Assert.AreEqual(0.65F, hardware.Current("speaker-a")!.Volume);
+
+        audio.SetPlaybackVolume(35);
+        hardware.MarkMissing("mic-a");
+        hardware.MarkMissing("speaker-a");
+        audio.RefreshDevices();
+        hardware.MarkAvailable("mic-a");
+        hardware.MarkAvailable("speaker-a");
+        audio.RefreshDevices();
+        Assert.AreEqual(0.25F, hardware.Current("mic-a")!.Volume);
+        Assert.AreEqual(0.35F, hardware.Current("speaker-a")!.Volume);
+    }
+
+    [TestMethod]
     public async Task NativeMutedPlaybackSwitchesBetweenTwoDevicesAndRecovers()
     {
         if (Environment.GetEnvironmentVariable("WCP_VERIFY_RECORDING_OUTPUT_DEVICE") != "1")

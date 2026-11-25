@@ -3695,6 +3695,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   gespeichertes Gerät zurück, wählen die Audio-Kombos seine Windows-Kennung wieder aus. Bei einer
   fehlenden Auswahl wird der Gerätekatalog auch ohne Windows-Ereignis erneut gelesen. Je Edition
   vier gezielte Prüfungen bestanden. Nachweise `.artifacts/phase9-live-sip/20261125-030357/`.
+  ✅ App-eigene Regler für Mikrofon- und Gesprächslautstärke stehen neben der Geräteauswahl.
+  Der Mikrofonwert wird seit Profilformat 20 gespeichert. Ältere Profile verwenden 100 %.
+  Speichern übernimmt geänderte Pegel auch im laufenden Gespräch, und CSCore verwendet sie nach
+  Gerätewechsel oder Wiederanbindung erneut. Beide App-Debug-Ausgaben und je sechs gezielte
+  App-Prüfungen einschließlich Audio-Rendering bestanden. Layoutnachweise `.artifacts/audio-devices/`.
   **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton

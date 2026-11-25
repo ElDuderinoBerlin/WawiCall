@@ -151,6 +151,11 @@ public partial class SettingsPage
 
     private void RingVolumeSlider_EditValueChanged(object? sender, EventArgs e) => ringVolumeEdit.Value = ringVolumeSlider.Value;
 
+    private void MicVolumeSlider_EditValueChanged(object? sender, EventArgs e) => micVolumeEdit.Value = micVolumeSlider.Value;
+    private void MicVolumeEdit_EditValueChanged(object? sender, EventArgs e) => micVolumeSlider.Value = (int)micVolumeEdit.Value;
+    private void PlayVolumeSlider_EditValueChanged(object? sender, EventArgs e) => playVolumeEdit.Value = playVolumeSlider.Value;
+    private void PlayVolumeEdit_EditValueChanged(object? sender, EventArgs e) => playVolumeSlider.Value = (int)playVolumeEdit.Value;
+
     private void RingVolumeEdit_EditValueChanged(object? sender, EventArgs e)
     {
         var volume = (int)ringVolumeEdit.Value;

@@ -61,7 +61,11 @@ internal sealed class ConversationAudioHardware : IConversationAudioHardware
         public IAudioSource Source => endpoint;
         public IAudioSink Sink => endpoint;
         public bool Running => capture ? endpoint.IsAudioSourceRunning : endpoint.IsAudioSinkRunning;
-        public void SetVolume(float volume) => endpoint.OutputVolume = volume;
+        public void SetVolume(float volume)
+        {
+            if (capture) endpoint.InputVolume = volume;
+            else endpoint.OutputVolume = volume;
+        }
         public void Dispose()
         {
             try { endpoint.Close().GetAwaiter().GetResult(); }

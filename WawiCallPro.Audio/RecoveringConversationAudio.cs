@@ -17,6 +17,8 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
     private readonly PcmObservingAudioEncoder _encoder;
     private readonly ILogger _log;
     private int _playbackVolumePercent;
+    private int _configuredPlaybackVolumePercent;
+    private int _microphoneVolumePercent;
     private bool _microphoneMuted;
     private readonly ConversationPcmPeaks _peaks;
     private readonly IConversationPcmSubscription _peakSubscription;
@@ -37,7 +39,8 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
         _selection = selection;
         _encoder = encoder;
         _log = log;
-        _playbackVolumePercent = settings.PlaybackVolumePercent;
+        _playbackVolumePercent = _configuredPlaybackVolumePercent = settings.PlaybackVolumePercent;
+        _microphoneVolumePercent = settings.MicrophoneVolumePercent;
         _microphoneMuted = settings.MicrophoneMuted;
         _peaks = new(clock);
         _peakSubscription = encoder.Subscribe(_peaks);
@@ -143,7 +146,11 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
             _capturePaused = false;
             if (_capture is { } current)
             {
-                try { current.Device.Source.ResumeAudio().GetAwaiter().GetResult(); }
+                try
+                {
+                    current.Device.Source.ResumeAudio().GetAwaiter().GetResult();
+                    current.Device.SetVolume(_microphoneVolumePercent / 100F);
+                }
                 catch { ReplaceCapture(null); }
             }
         }
@@ -195,6 +202,20 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
         {
             if (_stopping.IsCancellationRequested) return;
             var preferred = _selection();
+            if (preferred.PlaybackVolumePercent is { } playbackVolume && playbackVolume != _configuredPlaybackVolumePercent)
+            {
+                _configuredPlaybackVolumePercent = playbackVolume;
+                SetPlaybackVolume(playbackVolume);
+            }
+            if (preferred.MicrophoneVolumePercent is { } microphoneVolume && microphoneVolume != _microphoneVolumePercent)
+            {
+                _microphoneVolumePercent = microphoneVolume;
+                if (!_capturePaused && _capture is { } input)
+                {
+                    try { input.Device.SetVolume(microphoneVolume / 100F); }
+                    catch { ReplaceCapture(null); }
+                }
+            }
             if (_captureStarted && !_microphoneMuted && _sendFormat is { } send && !send.IsEmpty()) RefreshCapture(preferred.CaptureId, send);
             if (_playbackStarted && _receiveFormat is { } receive && !receive.IsEmpty()) RefreshPlayback(preferred.PlaybackId, receive);
         }
@@ -217,6 +238,7 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
             try
             {
                 candidate = new(id, format, _hardware.Open(id, ConversationAudioDirection.Capture, _encoder, format));
+                candidate.Device.SetVolume(_microphoneVolumePercent / 100F);
                 if (!_capturePaused && previous is not null) previous.Device.Source.PauseAudio().GetAwaiter().GetResult();
                 AttachCapture(candidate);
                 if (!_capturePaused)
