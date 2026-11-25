@@ -94,9 +94,27 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
-- [ ] Azure-Synthese per REST und Dependency Injection anbinden. Den vorhandenen WAV-Entwurf als Übergabe an Wiedergabe und Export nutzen. Für den Pilot zwei freigegebene `de-DE`-Stimmen hinterlegen, damit der Dialog auch ohne Stimmenabfrage starten kann.
-- [ ] SSML im Adapter aus dem Texteingabefeld sicher als XML aufbauen. Antwortformat und Inhalt prüfen. Bei Abbruch, Zeitüberschreitung, defekter Antwort oder fehlendem Zugang den vorigen gültigen Entwurf erhalten und temporäre Dateien bereinigen.
-- [ ] Mit einem HTTP-Test-Double WAV-Erzeugung, Abbruch, Zeitüberschreitung, Authentifizierungsfehler und Kontingentfehler prüfen. Mit einer ausdrücklich eingerichteten Testressource anschließend eine synthetische Ansage erzeugen und lokal wiedergeben.
+- [x] ✅ Auf Nutzerwunsch die offiziellen Azure- und Google-SDKs einsetzen und beide Adapter separat per DI registrierbar machen. Je Anbieter stehen zwei deutsche Stimmen zur Auswahl. Der gemeinsame Vertrag schreibt Mono-PCM-WAV mit 16 kHz und 16 Bit.
+- [x] ✅ Klartext an die SDKs übergeben, WAV-Format prüfen und das Ziel ohne Überschreiben veröffentlichen. Ein SDK-Test-Double prüft Google-Aufrufparameter sowie Fehler- und Abbruchverhalten des gemeinsamen Dateipfads.
+- [ ] Mit den eingerichteten Testressourcen Azure und Google live prüfen. WAV-Erzeugung, Zeitlimit, Zugang und Kontingentfehler nachweisen. Bedarf für SSML anhand der Aussprache im Hörtest entscheiden.
+
+Die Adapter lassen sich im Composition Root opt-in registrieren. Die vorhandene Registrierung
+`AddAudioConversion()` stellt weiterhin Windows über den unqualifizierten Vertrag bereit.
+
+```csharp
+services.AddAudioConversion()
+    .AddAzureAnnouncementSpeech(speechEndpoint, new Azure.Identity.AzureCliCredential())
+    .AddGoogleAnnouncementSpeech(googleQuotaProject);
+```
+
+`speechEndpoint` ist der benutzerdefinierte HTTPS-Endpunkt der Azure-Speech-Ressource. Der lokale
+Versuch verwendet die Azure-CLI-Anmeldung und Google Application Default Credentials. Die beiden
+Registrierungsschlüssel `CloudAnnouncementSpeechServices.AzureSpeech` und
+`CloudAnnouncementSpeechServices.GoogleCloud` erlauben später getrennte Konstruktorinjektion
+mit `FromKeyedServices`. Google verwendet vorerst den Standardendpunkt des SDK.
+Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
+[Azure Speech SDK](https://www.nuget.org/packages/Microsoft.CognitiveServices.Speech/1.53.1) ·
+[Google Cloud Text-to-Speech SDK](https://www.nuget.org/packages/Google.Cloud.TextToSpeech.V1/3.18.0)
 
 ### Phase 3 – Anbieterwahl im Dialog
 

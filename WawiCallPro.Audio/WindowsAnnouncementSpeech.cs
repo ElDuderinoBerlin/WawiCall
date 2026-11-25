@@ -4,7 +4,7 @@ namespace WawiCallPro.Audio;
 
 public sealed record AnnouncementVoice(string Id, string DisplayName, string Language);
 
-/// <summary>Generates a local PCM WAV from text using an installed voice.</summary>
+/// <summary>Generates a local PCM WAV from text using a voice offered by the configured provider.</summary>
 public interface IAnnouncementSpeech
 {
     IReadOnlyList<AnnouncementVoice> GetVoices();
