@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using SIPSorcery.Media;
@@ -45,8 +46,11 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         try
         {
             if (connection.CodecOrder is { } order) audio.SetCodecOrder(order);
+            var bindAddress = IPAddress.Parse(connection.BindAddress);
+            // The SDK advertises an explicitly supplied wildcard in an initial SDP offer.
+            // An unspecified media bind lets it select a usable local address for SDP.
             media = new VoIPMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio },
-                System.Net.IPAddress.Parse(connection.BindAddress), 0)
+                bindAddress.Equals(IPAddress.Any) ? null : bindAddress, 0)
                 { AcceptRtpFromAny = connection.AcceptRtpFromAny };
             receive = bridges.Create(media, audio, pcm);
             return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media), pcm, receive),

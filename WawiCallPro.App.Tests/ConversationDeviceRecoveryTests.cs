@@ -21,6 +21,32 @@ public sealed class ConversationDeviceRecoveryTests
     private static readonly AudioFormat Pcmu = new(SDPWellKnownMediaFormatsEnum.PCMU);
 
     [TestMethod]
+    public async Task AutomaticSipBindAdvertisesAReachableAudioAddressInAnOutgoingOffer()
+    {
+        using var services = new ServiceCollection().AddAudioConversion().AddLogging().BuildServiceProvider();
+        var factory = new WindowsSipMediaSessionFactory(services.GetRequiredService<ISipRtpPcmBridgeFactory>());
+        await using var owned = factory.Create(new SipAccountOptions(), new());
+
+        var offer = owned.Session.CreateOffer(null);
+        Assert.IsTrue(IPAddress.TryParse(offer.Connection.ConnectionAddress, out var advertised));
+        Assert.AreNotEqual(IPAddress.Any, advertised);
+        Assert.AreNotEqual(IPAddress.IPv6Any, advertised);
+        Assert.IsTrue(offer.Media.Single(media => media.Media == SDPMediaTypesEnum.audio).Port > 0);
+
+        using var peer = new VoIPMediaSession(format => format.Codec == AudioCodecsEnum.PCMU);
+        Assert.AreEqual(SetDescriptionResultEnum.OK, peer.SetRemoteDescription(SdpType.offer, offer));
+        Assert.AreEqual(SetDescriptionResultEnum.OK, owned.Session.SetRemoteDescription(SdpType.answer, peer.CreateAnswer(advertised)));
+        var received = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ((VoIPMediaSession)owned.Session).OnRtpPacketReceived += (_, media, _) =>
+        {
+            if (media == SDPMediaTypesEnum.audio) received.TrySetResult();
+        };
+        await peer.Start();
+        peer.SendAudio(160, new AudioEncoder().EncodeAudio(new short[160], Pcmu));
+        await received.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [TestMethod]
     [DataRow("PCMA, PCMU", true, new[] { 8, 0 })]
     [DataRow("G722, PCMU, PCMA", false, new[] { 9, 0, 8 })]
     [DataRow("PCMU", true, new[] { 0 })]
