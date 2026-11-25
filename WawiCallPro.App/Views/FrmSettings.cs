@@ -62,6 +62,7 @@ public partial class FrmSettings : XtraForm
     internal void SelectPluginsTab() => settingsPage.SelectPluginsTab();
     internal void SelectMailTab() => settingsPage.SelectMailTab();
     internal void SelectAutomationTab(string id) => settingsPage.SelectAutomationTab(id);
+    internal bool TryCaptureRegisteredHotkey(string? value) => settingsPage.TryCaptureRegisteredHotkey(value);
     internal void ConfigureAudioDevices(WawiCallPro.Interfaces.Audio.IAudioDeviceCatalog catalog) => settingsPage.ConfigureAudioDevices(catalog);
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => settingsPage.SettingsTabs;
     internal async Task<bool> PrepareAsync(CancellationToken token = default)

@@ -662,6 +662,32 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task HotkeyEditorsLoadExistingBindingsAndSaveNewAndClearedBindings() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        var snapshot = await workspace.Settings.LoadAsync();
+        await workspace.Settings.SaveAsync(snapshot.Options with
+        {
+            User = snapshot.Options.User with { ShowWindowHotkey = "Ctrl+Alt+F3", DialHotkey = "Ctrl+Alt+F4" }
+        }, snapshot);
+
+        using var settings = new FrmSettings(workspace);
+        var page = Field<SettingsPage>(settings, "settingsPage");
+        await page.ReloadAsync();
+        var showWindow = Field<Quantarix.DevExpressExtensions.Controls.HotkeyCaptureEdit>(page, "showWindowHotkeyEdit");
+        var dial = Field<Quantarix.DevExpressExtensions.Controls.HotkeyCaptureEdit>(page, "dialHotkeyEdit");
+        Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F3, showWindow.Hotkey);
+        Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F4, dial.Hotkey);
+
+        showWindow.Hotkey = Keys.Control | Keys.Alt | Keys.F11;
+        dial.Hotkey = Keys.None;
+        await page.SaveAsync(CancellationToken.None);
+        var saved = (await workspace.Settings.LoadAsync()).Options.User;
+        Assert.AreEqual("Ctrl+Alt+F11", saved.ShowWindowHotkey);
+        Assert.IsNull(saved.DialHotkey);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
     public Task AutoStartOnlyChangesAfterExplicitSavedChoiceAndCanBeDisabledAgain() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var registry = (StartupRegistryDouble)services.GetRequiredService<IAutoStartRegistry>();

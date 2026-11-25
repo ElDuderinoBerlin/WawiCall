@@ -284,8 +284,8 @@ public partial class SettingsPage : XtraUserControl
         loggingEnabledEdit.Checked = options.User.LoggingEnabled;
         logLevelEdit.SelectedIndex = (int)options.User.LogLevel;
         logDirectoryEdit.Text = options.User.LogDirectory ?? _workspace?.Paths.LogsDirectory ?? "";
-        showWindowHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.ShowWindowHotkey);
-        dialHotkeyEdit.SelectedIndex = GlobalHotkeySettings.GetFunctionKey(options.User.DialHotkey);
+        showWindowHotkeyEdit.Hotkey = ParseHotkey(options.User.ShowWindowHotkey);
+        dialHotkeyEdit.Hotkey = ParseHotkey(options.User.DialHotkey);
         ApplySipProfiles(options);
         ApplyDatabase(options.Database);
         playVolumeEdit.Value = options.Devices.PlaybackVolumePercent;
@@ -316,8 +316,8 @@ public partial class SettingsPage : XtraUserControl
             User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked,
                 LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
                 LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
-                ShowWindowHotkey = showWindowHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + showWindowHotkeyEdit.SelectedIndex : null,
-                DialHotkey = dialHotkeyEdit.SelectedIndex > 0 ? "Ctrl+Alt+F" + dialHotkeyEdit.SelectedIndex : null },
+                ShowWindowHotkey = ReadHotkey(showWindowHotkeyEdit),
+                DialHotkey = ReadHotkey(dialHotkeyEdit) },
             Devices = old.Devices with { PlaybackVolumePercent = (int)playVolumeEdit.Value, RingVolumePercent = (int)ringVolumeEdit.Value, MicrophoneMuted = mutedEdit.Checked,
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
@@ -329,6 +329,26 @@ public partial class SettingsPage : XtraUserControl
             MailCache = mailSettingsPage.ReadCache()
         };
         return ApplyPluginConnectionDraft(ReadSipProfiles(options));
+    }
+
+    private static Keys ParseHotkey(string? value) =>
+        HotkeyCaptureEdit.TryParseHotkey(value, out var hotkey) ? hotkey : Keys.None;
+
+    private static string? ReadHotkey(HotkeyCaptureEdit editor) =>
+        editor.Hotkey == Keys.None ? null : HotkeyCaptureEdit.SerializeHotkey(editor.Hotkey);
+
+    private void Hotkey_CustomDisplayText(object? sender, DevExpress.XtraEditors.Controls.CustomDisplayTextEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.DisplayText)) e.DisplayText = "Deaktiviert";
+    }
+
+    internal bool TryCaptureRegisteredHotkey(string? value)
+    {
+        var editor = showWindowHotkeyEdit.ContainsFocus ? showWindowHotkeyEdit
+            : dialHotkeyEdit.ContainsFocus ? dialHotkeyEdit : null;
+        if (editor is null || !HotkeyCaptureEdit.TryParseHotkey(value, out var hotkey)) return false;
+        editor.Hotkey = hotkey;
+        return true;
     }
 
     private ImmutableArray<CompanySettings> ReadCompanySettings(ApplicationOptions old)

@@ -39,6 +39,12 @@ public partial class MainForm
     private void ExecuteHotkey(AppHotkeyAction action)
     {
         if (_closing || !_loaded || IsDisposed) return;
+        if (_settingsDialog is { ContainsFocus: true } settings && Form.ActiveForm == settings)
+        {
+            // Windows posts WM_HOTKEY to this window instead of a key-down to the focused editor.
+            var value = action == AppHotkeyAction.ShowWindow ? _hotkeySettings?.ShowWindowHotkey : _hotkeySettings?.DialHotkey;
+            if (settings.TryCaptureRegisteredHotkey(value)) return;
+        }
         if (!ReferenceEquals(RestoreFromTray(), this)) return;
         if (action == AppHotkeyAction.OpenDial) Dial_Click(this, null!);
     }
