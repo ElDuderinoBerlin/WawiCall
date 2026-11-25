@@ -5,7 +5,7 @@ using WawiCallPro.Utilities.Diagnostics;
 
 namespace WawiCallPro.Audio;
 
-/// <summary>Enumerates CSCore endpoint metadata on a worker; no audio client or stream is activated.</summary>
+/// <summary>Enumerates CSCore endpoints and opens live monitoring only on demand.</summary>
 public sealed class WindowsAudioDeviceCatalog(StartupExecutionMode mode) : IAudioDeviceCatalog, IAudioEndpointMeterFactory, IAudioDeviceChanges
 {
     public WindowsAudioDeviceCatalog(StartupExecutionMode mode, WindowsIncomingRingtone ringtones) : this(mode) => Ringtones = ringtones;

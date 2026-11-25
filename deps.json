@@ -33,7 +33,7 @@
       "name": "Quantarix.DevExpress",
       "url": "https://github.com/Quantarix/Quantarix.DevExpress.git",
       "branch": "master",
-      "revision": "0a43a4372092e93194c0c68c00bd38f4450f8c9d",
+      "revision": "110db0e94bd13fda2c3cb6077f07d3926f07be3c",
       "projects": [
         "Quantarix.DevExpress.csproj"
       ]

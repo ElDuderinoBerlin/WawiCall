@@ -44,15 +44,26 @@ public sealed class PlaybackLoopbackTests
         for (var trial = 1; trial <= 2; trial++)
         {
             var probe = new ToneProbe();
+            using var meter = WindowsAudioEndpointMeter.Open(AudioEndpointDirection.Playback, speaker.Id);
+            Assert.IsNotNull(meter);
             var capture = await factory.StartAsync(speaker.Id, clock.GetUtcNow(), probe, timeout.Token);
+            var resolvedTone = false;
             try
             {
-                await audio.PreviewAsync(file, new() { PlaybackDeviceId = speaker.Id, PlaybackVolumePercent = 15 }, timeout.Token);
+                var playback = audio.PreviewAsync(file, new() { PlaybackDeviceId = speaker.Id, PlaybackVolumePercent = 15 }, timeout.Token);
+                while (!playback.IsCompleted)
+                {
+                    if (meter.Read() is { } reading && reading.Spectrum[7] > 30 && reading.Spectrum[7] == reading.Spectrum.Max())
+                        resolvedTone = true;
+                    await Task.Delay(30, timeout.Token);
+                }
+                await playback;
             }
             finally { await capture.DisposeAsync(); }
             await capture.Completion.WaitAsync(timeout.Token);
             Console.WriteLine($"{speaker.DisplayName}, Lauf {trial}: {probe.MatchingDuration.TotalSeconds:F2} s Testton aus WASAPI-Loopback.");
             Assert.IsGreaterThan(TimeSpan.FromSeconds(1), probe.MatchingDuration);
+            Assert.IsTrue(resolvedTone, "The endpoint meter must resolve the 1 kHz tone in its frequency band.");
         }
     }
 

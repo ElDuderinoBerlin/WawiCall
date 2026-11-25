@@ -34,6 +34,19 @@ public sealed partial class AppShellTests
         Assert.IsFalse(silence.SequenceEqual(RenderPixels()));
         meter.Clear();
         CollectionAssert.AreEqual(silence, RenderPixels());
+
+        meter.RenderMode = AudioLevelMeterRenderMode.Static;
+        meter.SetSpectrum([0, 0, 0, 0]);
+        var silentSpectrum = RenderPixels();
+        meter.SetSpectrum([80, 0, 0, 0]);
+        var lowerBand = RenderPixels();
+        Assert.IsFalse(silentSpectrum.SequenceEqual(lowerBand));
+        meter.Position = 100;
+        CollectionAssert.AreEqual(lowerBand, RenderPixels());
+        meter.SetSpectrum([0, 0, 0, 80]);
+        Assert.IsFalse(lowerBand.SequenceEqual(RenderPixels()));
+        meter.Clear();
+        CollectionAssert.AreEqual(silentSpectrum, RenderPixels());
         return Task.CompletedTask;
 
         int[] RenderPixels()
@@ -107,6 +120,13 @@ public sealed partial class AppShellTests
                 Assert.AreEqual("Stumm aufheben", Field<SimpleButton>(panel, "muteMicrophone").Text);
                 Assert.AreEqual(0, Field<AudioLevelMeter>(panel, "microphonePeak").Position);
 
+                service.Audio = service.Audio with
+                {
+                    PlaybackSpectrum = [0, 4, 18, 82, 54, 25, 12, 35, 63, 45, 31, 22, 12, 5, 0, 0]
+                };
+                panel.Observe(call);
+                detailsPanel.Observe(call);
+
                 var prefix = $"{typeof(MainForm).Assembly.GetName().Name}-{fontSize:0}-{scale:0.0}";
                 using (var callerImage = UiAudit.Capture(dialog)) callerImage.Save(Path.Combine(output, prefix + "-caller.png"));
                 using (var detailsImage = UiAudit.Capture(detailsHost)) detailsImage.Save(Path.Combine(output, prefix + "-details.png"));
@@ -130,7 +150,7 @@ public sealed partial class AppShellTests
 
     private sealed class CallAudioDouble(CallSnapshot call) : ITelephonyService, IConversationAudioService
     {
-        internal ConversationAudioSnapshot Audio { get; private set; } = new(75, false, 43, 65);
+        internal ConversationAudioSnapshot Audio { get; set; } = new(75, false, 43, 65);
         public ConversationAudioSnapshot? GetAudio(Guid callId) => callId == call.Id ? Audio : null;
         public Task SetPlaybackVolumeAsync(Guid callId, int percent, CancellationToken token)
         { Assert.AreEqual(call.Id, callId); Audio = Audio with { PlaybackVolumePercent = percent }; return Task.CompletedTask; }

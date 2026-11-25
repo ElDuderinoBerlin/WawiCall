@@ -3666,6 +3666,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   RTP-Loopback, CSCore-Ausgabe, Gesprächsgrenzen und Layout beider Ansichten isoliert geprüft. Die
   Gesprächsdetails bleiben bei großer Schrift und knappem Platz vertikal scrollbar. App und Konsole
   für Pro und FinOffice in Debug/Any CPU gebaut. Je Edition 49 App- und 70 Telefonietests bestanden.
+  ✅ Gespräch, Audio-Einstellungen und Ansagendialog zeigen zusätzlich ein CSCore-Spektrum mit 16
+  festen Frequenzbändern. Das Gespräch nutzt vorhandene PCM-Daten. Die Geräteanzeigen nutzen temporäre
+  WASAPI-Messstreams im Arbeitsspeicher und geben sie beim Verlassen der Ansicht frei. Das gemeinsame
+  DevExpress-Steuerelement bietet den bisherigen gleitenden Pegelverlauf weiterhin als Rolling-Modus.
 - [x] ✅ Klingeltonwiedergabe von Gesprächsaudio trennen und Ressourcen nach dem Klingeln freigeben (24.11.2026).
   Eingehende Rufe klingeln lokal über eine eigene CSCore-/WASAPI-Ausgabe. Sie verwendet die gespeicherte
   Klingelausgabe und Klingellautstärke. Bei 0 % bleibt die Ausgabe geschlossen. Beim Annehmen wartet SIP

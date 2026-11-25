@@ -16,7 +16,7 @@ internal sealed class EndpointMeterDisplay(AudioLevelMeter bar, AudioEndpointDir
     internal AudioEndpointReading? Update(IAudioEndpointMeterFactory factory, string? deviceId)
     {
         var now = Environment.TickCount64;
-        if (_deviceId != deviceId || now >= _reopenAfter && (_meter is null || deviceId is null))
+        if (_deviceId != deviceId || now >= _reopenAfter && _meter is null)
         {
             ReleaseMeter();
             if (_deviceId != deviceId) bar.Clear();
@@ -32,6 +32,7 @@ internal sealed class EndpointMeterDisplay(AudioLevelMeter bar, AudioEndpointDir
             _reopenAfter = now + 1500;
         }
         bar.Position = reading?.PeakPercent ?? 0;
+        bar.SetSpectrum((reading?.Spectrum ?? AudioSpectrum.Silence).AsSpan());
         bar.ToolTip = Describe(reading);
         return reading;
     }

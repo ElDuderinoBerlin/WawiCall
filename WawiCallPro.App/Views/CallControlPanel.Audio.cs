@@ -34,8 +34,11 @@ public partial class CallControlPanel
         try
         {
             if (!_audioOperation.IsRunning) conversationVolume.Value = audio.PlaybackVolumePercent;
-            microphonePeak.Position = _call!.State == CallState.Held ? 0 : audio.MicrophonePeakPercent;
-            playbackPeak.Position = _call.State == CallState.Held ? 0 : audio.PlaybackPeakPercent;
+            var held = _call!.State == CallState.Held;
+            microphonePeak.Position = held ? 0 : audio.MicrophonePeakPercent;
+            playbackPeak.Position = held ? 0 : audio.PlaybackPeakPercent;
+            microphonePeak.SetSpectrum((held ? AudioSpectrum.Silence : audio.MicrophoneSpectrum).AsSpan());
+            playbackPeak.SetSpectrum((held ? AudioSpectrum.Silence : audio.PlaybackSpectrum).AsSpan());
             var text = audio.MicrophoneMuted ? "Stumm aufheben" : "Stummschalten";
             var description = audio.MicrophoneMuted ? "Mikrofon einschalten" : "Mikrofon stummschalten";
             muteMicrophone.ToolTip = muteMicrophone.AccessibleName = description;

@@ -94,11 +94,13 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
     {
         var volume = Volatile.Read(ref _playbackVolumePercent);
         var muted = Volatile.Read(ref _microphoneMuted);
-        var capturePeak = muted || Volatile.Read(ref _capturePaused) || Volatile.Read(ref _capture) is null
-            ? 0 : _peaks.MicrophonePercent;
-        var playbackPeak = Volatile.Read(ref _playbackPaused) || Volatile.Read(ref _playback) is null
-            ? 0 : _peaks.PlaybackPercent(volume);
-        return new(volume, muted, capturePeak, playbackPeak);
+        var captureActive = !muted && !Volatile.Read(ref _capturePaused) && Volatile.Read(ref _capture) is not null;
+        var playbackActive = !Volatile.Read(ref _playbackPaused) && Volatile.Read(ref _playback) is not null;
+        return new(volume, muted, captureActive ? _peaks.MicrophonePercent : 0, playbackActive ? _peaks.PlaybackPercent(volume) : 0)
+        {
+            MicrophoneSpectrum = captureActive ? _peaks.MicrophoneSpectrum : AudioSpectrum.Silence,
+            PlaybackSpectrum = playbackActive ? _peaks.PlaybackSpectrum(volume) : AudioSpectrum.Silence
+        };
     }
 
     public void SetPlaybackVolume(int percent)

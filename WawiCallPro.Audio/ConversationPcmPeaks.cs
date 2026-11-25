@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.Audio;
@@ -6,17 +7,22 @@ internal sealed class ConversationPcmPeaks(TimeProvider clock) : IConversationPc
 {
     private readonly Peak _microphone = new(clock);
     private readonly Peak _playback = new(clock);
+    private readonly CscoreSpectrumAnalyzer _microphoneSpectrum = new(clock);
+    private readonly CscoreSpectrumAnalyzer _playbackSpectrum = new(clock);
 
     internal int MicrophonePercent => _microphone.Read(100);
     internal int PlaybackPercent(int volume) => _playback.Read(volume);
-    internal void ResetMicrophone() => _microphone.Clear();
-    internal void ResetPlayback() => _playback.Clear();
+    internal ImmutableArray<int> MicrophoneSpectrum => _microphoneSpectrum.Read();
+    internal ImmutableArray<int> PlaybackSpectrum(int volume) => _playbackSpectrum.Read(volume);
+    internal void ResetMicrophone() { _microphone.Clear(); _microphoneSpectrum.Clear(); }
+    internal void ResetPlayback() { _playback.Clear(); _playbackSpectrum.Clear(); }
 
     public bool TryObserve(ConversationAudioSide side, int sampleRate, int channels, ReadOnlySpan<short> samples)
     {
         var amplitude = 0;
         foreach (var sample in samples) amplitude = Math.Max(amplitude, Math.Abs((int)sample));
         (side == ConversationAudioSide.Sent ? _microphone : _playback).Update(amplitude);
+        (side == ConversationAudioSide.Sent ? _microphoneSpectrum : _playbackSpectrum).Add(sampleRate, channels, samples);
         return true;
     }
 
