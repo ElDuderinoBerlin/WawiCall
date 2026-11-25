@@ -75,6 +75,8 @@ public partial class SettingsPage : XtraUserControl
         sipLayout.Layout += General_Layout;
         UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
+        sipCodecOrderEdit.Items.AddRange(new object[] { SipAdvancedSettings.DefaultCodecOrder, SipAdvancedSettings.DefaultCodecOrderWithoutG722 });
+        sipCodecOrderEdit.Items.AddRange(SipCodecOrders.Choices.ToArray());
         FontChanged += ButtonLayout_Changed;
         DpiChangedAfterParent += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;

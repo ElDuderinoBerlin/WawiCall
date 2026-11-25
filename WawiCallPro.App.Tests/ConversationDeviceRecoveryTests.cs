@@ -21,6 +21,24 @@ public sealed class ConversationDeviceRecoveryTests
     private static readonly AudioFormat Pcmu = new(SDPWellKnownMediaFormatsEnum.PCMU);
 
     [TestMethod]
+    [DataRow("PCMA, PCMU", true, new[] { 8, 0 })]
+    [DataRow("G722, PCMU, PCMA", false, new[] { 9, 0, 8 })]
+    [DataRow("PCMU", true, new[] { 0 })]
+    public async Task SipProfileCodecOrderControlsOutgoingSdp(string codecOrder, bool enableG722, int[] expectedPayloads)
+    {
+        using var services = new ServiceCollection().AddAudioConversion().AddLogging().BuildServiceProvider();
+        var factory = new WindowsSipMediaSessionFactory(services.GetRequiredService<ISipRtpPcmBridgeFactory>());
+        var account = new SipAccountOptions
+        {
+            Connection = new() { BindAddress = "127.0.0.1", CodecOrder = codecOrder, EnableG722 = enableG722 }
+        };
+        await using var owned = factory.Create(account, new());
+        var offer = owned.Session.CreateOffer(IPAddress.Loopback);
+        var audio = offer.Media.Single(media => media.Media == SDPMediaTypesEnum.audio);
+        CollectionAssert.AreEqual(expectedPayloads, audio.MediaFormats.Keys.Where(payload => payload is 0 or 8 or 9).ToArray());
+    }
+
+    [TestMethod]
     public void LivePeaksScaleWithVolumeAndExpireWhenAudioStops()
     {
         var clock = new PeakClock();

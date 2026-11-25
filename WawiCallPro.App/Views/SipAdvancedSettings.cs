@@ -6,6 +6,9 @@ namespace WawiCallPro.App.Views;
 /// <summary>Editable expert properties, separate from credentials and the immutable stored snapshot.</summary>
 internal sealed class SipAdvancedSettings
 {
+    internal const string DefaultCodecOrder = "Standard";
+    internal const string DefaultCodecOrderWithoutG722 = "Standard ohne G.722";
+
     [DisplayName("Bind-Adresse"), Category("Netzwerk"), Description("Lokale IPv4-Adresse; 0.0.0.0 verwendet alle Schnittstellen."), DefaultValue("0.0.0.0")]
     public string BindAddress { get; set; } = "0.0.0.0";
 
@@ -27,8 +30,8 @@ internal sealed class SipAdvancedSettings
     [DisplayName("Klingelzeit (s)"), Category("Anrufe"), Description("Maximale Dauer eines unbeantworteten Rufaufbaus."), DefaultValue(60)]
     public int RingTimeoutSeconds { get; set; } = 60;
 
-    [DisplayName("G.722 zulassen"), Category("Medien"), Description("Zusätzlich zu PCMA und PCMU den Breitbandcodec G.722 anbieten."), DefaultValue(true)]
-    public bool EnableG722 { get; set; } = true;
+    [DisplayName("Codec-Reihenfolge"), Category("Medien"), Description("Auswahl der aktiven Audio-Codecs. Die Reihenfolge gibt die Priorität im ausgehenden SIP-Angebot an."), DefaultValue(DefaultCodecOrder)]
+    public string CodecOrder { get; set; } = DefaultCodecOrder;
 
     [DisplayName("RTP von abweichender Adresse"), Category("Medien"), Description("Nur bei entsprechender Anlagen-/NAT-Konfiguration aktivieren."), DefaultValue(false)]
     public bool AcceptRtpFromAny { get; set; } = false;
@@ -42,7 +45,7 @@ internal sealed class SipAdvancedSettings
         RetryIntervalSeconds = options.RetryIntervalSeconds,
         KeepAliveIntervalSeconds = options.KeepAliveIntervalSeconds,
         RingTimeoutSeconds = options.RingTimeoutSeconds,
-        EnableG722 = options.EnableG722,
+        CodecOrder = options.CodecOrder ?? (options.EnableG722 ? DefaultCodecOrder : DefaultCodecOrderWithoutG722),
         AcceptRtpFromAny = options.AcceptRtpFromAny,
     };
 
@@ -55,7 +58,8 @@ internal sealed class SipAdvancedSettings
         RetryIntervalSeconds = RetryIntervalSeconds,
         KeepAliveIntervalSeconds = KeepAliveIntervalSeconds,
         RingTimeoutSeconds = RingTimeoutSeconds,
-        EnableG722 = EnableG722,
+        EnableG722 = CodecOrder == DefaultCodecOrder || CodecOrder.Contains("G722", StringComparison.Ordinal),
+        CodecOrder = CodecOrder is DefaultCodecOrder or DefaultCodecOrderWithoutG722 ? null : CodecOrder,
         AcceptRtpFromAny = AcceptRtpFromAny,
     };
 }

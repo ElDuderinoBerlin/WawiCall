@@ -72,6 +72,7 @@ public sealed record SipConnectionOptions
     public int RingTimeoutSeconds { get; init; } = 60;
     public bool AcceptRtpFromAny { get; init; }
     public bool EnableG722 { get; init; } = true;
+    public string? CodecOrder { get; init; }
 }
 
 internal sealed record ProductClientKeyEdit(string Path, string Value, string? ExpectedHash)

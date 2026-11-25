@@ -121,7 +121,7 @@ die Implementierungen werden über DI und Interfaces bereitgestellt.
 | Gesprächsausgabe | Standardgerät oder gewähltes Headset/Lautsprechergerät |
 | Klingelausgabe | Separat wählbar, damit das Klingeln auch ohne aufgesetztes Headset hörbar ist |
 | Gesprächs-/Klingellautstärke | Getrennte Werte; im Einstellungsmodell bereits vorgesehen |
-| Codecs / Codecprofil | Zunächst die im Referenzcode geprüften G.722, PCMA und PCMU; Schnittmenge aushandeln, gemeinsame Auswahl und Priorität testen |
+| Codec-Reihenfolge | Pro SIP-Profil unter **Erweitert → Medien** die aktiven Codecs und ihre Priorität im ausgehenden Angebot auswählen. Für die gezeigte FRITZ!Box-Konfiguration `PCMA, PCMU` wählen. Die beiden Standardoptionen übernehmen die bisherige Codec-Auswahl mit beziehungsweise ohne G.722. |
 | Klingelton | Ressource und Vorhören unabhängig von Gesprächsaudio und Aufnahme |
 
 G.722 allein ist das konkrete Profil des Aufnahmedemos, keine allgemeine Pflicht aller Anlagen.

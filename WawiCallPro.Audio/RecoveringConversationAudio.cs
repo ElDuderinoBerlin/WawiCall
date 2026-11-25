@@ -61,6 +61,15 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
     public List<AudioFormat> GetAudioSourceFormats() { lock (_commands) return [.. _formats]; }
     public List<AudioFormat> GetAudioSinkFormats() => GetAudioSourceFormats();
     public void RestrictFormats(Func<AudioFormat, bool> filter) { lock (_commands) _formats = _formats.Where(filter).ToList(); }
+
+    internal void SetCodecOrder(string order)
+    {
+        var codecs = order.Split(',', StringSplitOptions.TrimEntries)
+            .Select(Enum.Parse<AudioCodecsEnum>);
+        lock (_commands)
+            _formats = codecs.SelectMany(codec => _formats.Where(format => format.Codec == codec)).ToList();
+    }
+
     public void ExternalAudioSourceRawSample(AudioSamplingRatesEnum samplingRate, uint durationMilliseconds, short[] sample) =>
         throw new NotSupportedException();
 

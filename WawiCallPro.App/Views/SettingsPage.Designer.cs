@@ -105,6 +105,7 @@ partial class SettingsPage
         sipAdvanced = new DevExpress.XtraTab.XtraTabPage();
         sipAdvanced.Name = "sipAdvanced";
         sipProperties = new DevExpress.XtraVerticalGrid.PropertyGridControl();
+        sipCodecOrderEdit = new DevExpress.XtraEditors.Repository.RepositoryItemComboBox();
         sipLayout = new System.Windows.Forms.TableLayoutPanel();
         sipScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         sipHint = new DevExpress.XtraEditors.LabelControl();
@@ -532,6 +533,9 @@ partial class SettingsPage
         sipAdvanced.Controls.Add(sipProperties);
         sipProperties.Dock = System.Windows.Forms.DockStyle.Fill;
         sipProperties.Name = "sipProperties";
+        sipProperties.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { sipCodecOrderEdit });
+        sipCodecOrderEdit.Name = "sipCodecOrderEdit";
+        sipCodecOrderEdit.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         sipLayout.Dock = System.Windows.Forms.DockStyle.Top;
         sipLayout.AutoSize = true;
         sipLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
@@ -1517,6 +1521,7 @@ partial class SettingsPage
     private DevExpress.XtraTab.XtraTabPage sipStandard;
     private DevExpress.XtraTab.XtraTabPage sipAdvanced;
     private DevExpress.XtraVerticalGrid.PropertyGridControl sipProperties;
+    private DevExpress.XtraEditors.Repository.RepositoryItemComboBox sipCodecOrderEdit;
     private System.Windows.Forms.TableLayoutPanel sipLayout;
     private DevExpress.XtraEditors.XtraScrollableControl sipScroll;
     private DevExpress.XtraEditors.LabelControl sipHint;

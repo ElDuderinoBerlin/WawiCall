@@ -37,15 +37,17 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
     {
         var start = new ConversationDeviceSelection(devices.CaptureDeviceId, devices.PlaybackDeviceId);
         var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
+        var connection = account.Connection;
         var audio = new RecoveringConversationAudio(_hardware, () => _configuration?.ConversationDevices ?? start, pcm,
-            devices, account.Connection.EnableG722, _clock, _log);
+            devices, connection.EnableG722 || connection.CodecOrder is not null, _clock, _log);
         VoIPMediaSession? media = null;
         IAsyncDisposable? receive = null;
         try
         {
+            if (connection.CodecOrder is { } order) audio.SetCodecOrder(order);
             media = new VoIPMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio },
-                System.Net.IPAddress.Parse(account.Connection.BindAddress), 0)
-                { AcceptRtpFromAny = account.Connection.AcceptRtpFromAny };
+                System.Net.IPAddress.Parse(connection.BindAddress), 0)
+                { AcceptRtpFromAny = connection.AcceptRtpFromAny };
             receive = bridges.Create(media, audio, pcm);
             return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media), pcm, receive),
                 devices, audio.ReadPlaybackBinding);
