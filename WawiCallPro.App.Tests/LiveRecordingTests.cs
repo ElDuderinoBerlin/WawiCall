@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using CSCore.Codecs.WAV;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Audio;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
@@ -32,13 +33,21 @@ public sealed class LiveRecordingTests
     public async Task ImmediateStopDrainsTheLastWholeFrameInsteadOfCuttingItOrInventingAFutureUtcEnd()
     {
         using var fixture = new Fixture();
-        var factory = new LivePcmRecordingFactory(fixture.Persisted, TimeProvider.System);
-        var start = factory.StartAsync(fixture.Source, fixture.Request());
+        var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root));
+        var request = fixture.Request() with { WavePath = Path.Combine(paths.RecordingsDirectory, "live.wav") };
+        var journal = new RecordingJournalDouble();
+        var persisted = new PersistedDuplexPcmRecordingFactory(fixture.Services.GetRequiredService<IDuplexPcmRecordingFactory>(),
+            journal, paths, TimeProvider.System);
+        var factory = new LivePcmRecordingFactory(persisted, TimeProvider.System);
+        var start = factory.StartAsync(fixture.Source, request);
         fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
         await using var recording = await start;
         var result = await recording.StopAsync();
         Assert.IsTrue(result.Wave.FrameCount >= 160);
-        Assert.IsTrue(File.Exists(fixture.Path)); Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.IsTrue(File.Exists(request.WavePath)); Assert.AreEqual(0, fixture.Source.Subscribers);
+        Assert.AreEqual(PcmRecordingState.Completed, journal.Saved?.Capture.Capture.State);
+        Assert.IsEmpty(result.Segments);
+        Assert.IsFalse(Directory.EnumerateDirectories(paths.RecordingsDirectory, ".wawi-record-*").Any());
     }
 
     [TestMethod]
@@ -317,6 +326,17 @@ public sealed class LiveRecordingTests
             Disposed = true;
             return ValueTask.CompletedTask;
         }
+    }
+
+    private sealed class RecordingJournalDouble : IRecordingJournal
+    {
+        internal StoredRecordingJournal? Saved;
+        public Task<StoredRecordingJournal> BeginAsync(RecordingWrite recording, RecordingCaptureWrite capture, CancellationToken cancellationToken = default)
+            => WriteAsync(recording, capture, cancellationToken);
+        public Task<StoredRecordingJournal> WriteAsync(RecordingWrite recording, RecordingCaptureWrite capture, CancellationToken cancellationToken = default)
+            => Task.FromResult(Saved = new StoredRecordingJournal(
+                new(recording.Recording, (recording.ExpectedVersion ?? 0) + 1, recording.ChangedAtUtc, recording.ChangedAtUtc),
+                new(capture.Capture, (capture.ExpectedVersion ?? 0) + 1, capture.ChangedAtUtc)));
     }
 
     private sealed class Fixture : IDisposable

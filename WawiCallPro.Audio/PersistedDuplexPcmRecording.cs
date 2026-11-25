@@ -1,6 +1,7 @@
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Audio;
 using System.Runtime.ExceptionServices;
+using System.Collections.Immutable;
 
 namespace WawiCallPro.Audio;
 
@@ -12,6 +13,7 @@ internal sealed class PersistedDuplexPcmRecording(IDuplexPcmRecording inner, Rec
     private Task? _dispose;
     private bool _closing;
     private int _failure;
+    internal bool ReleaseCompletedSegments { get; init; }
     private int Channels => request.Layout == ConversationWaveLayout.SeparatedStereo ? 2 : 1;
     public PcmRecordingState State => Volatile.Read(ref _failure) != 0 ? PcmRecordingState.Failed : inner.State;
     public PcmRecordingFailure? Failure
@@ -58,7 +60,40 @@ internal sealed class PersistedDuplexPcmRecording(IDuplexPcmRecording inner, Rec
             throw new PcmRecordingException(PcmRecordingFailure.MixingFailed);
         }
         await writer.SaveAsync(new(request.RecordingId, request.CallId, epoch, end, PcmRecordingState.Completed, request.SampleRate, Channels, frames)).ConfigureAwait(false);
+        if (ReleaseCompletedSegments && !writer.HasPending && !result.Segments.IsEmpty && File.Exists(request.WavePath))
+            result = result with { Segments = ReleaseSegments(result.Segments) };
         return result;
+    }
+
+    private ImmutableArray<ConversationWaveSegment> ReleaseSegments(ImmutableArray<ConversationWaveSegment> segments)
+    {
+        var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(request.WavePath));
+        var directory = Path.GetDirectoryName(segments[0].WavePath);
+        var prefix = ".wawi-record-" + request.RecordingId.ToString("N") + "-";
+        if (directory is null || !string.Equals(Path.GetDirectoryName(directory), outputDirectory, StringComparison.OrdinalIgnoreCase)
+            || Path.GetFileName(directory) is not { } name || !name.StartsWith(prefix, StringComparison.Ordinal)
+            || !Guid.TryParseExact(name[prefix.Length..], "N", out _)
+            || segments.Any(segment => !string.Equals(Path.GetDirectoryName(segment.WavePath), directory, StringComparison.OrdinalIgnoreCase)))
+            return segments;
+
+        try
+        {
+            if (File.GetAttributes(directory).HasFlag(FileAttributes.ReparsePoint)) return segments;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return segments; }
+
+        var retained = ImmutableArray.CreateBuilder<ConversationWaveSegment>();
+        foreach (var segment in segments)
+        {
+            try { File.Delete(segment.WavePath); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { retained.Add(segment); }
+        }
+        if (retained.Count == 0)
+        {
+            try { Directory.Delete(directory); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+        return retained.ToImmutable();
     }
 
     private Task SaveFailureAsync(Exception? error)

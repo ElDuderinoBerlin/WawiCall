@@ -3846,6 +3846,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   und Weitergabe arbeiten danach mit verwaltetem Speicher. Je Edition 40 Aufnahmeprüfungen
   mit zwei nativen Jabra-Testtönen bestanden. App und Konsole in Debug/Any CPU gebaut.
   Nachweise `.artifacts/phase9-loopback-buffer/`.
+  ✅ Nach bestätigt gespeicherten Live-Aufnahmen werden die zugehörigen Zwischen-WAVs freigegeben.
+  Eine fehlende Abschlussbestätigung lässt die Segmente für die Prüfung erhalten. Je Edition
+  19 Live-Aufnahmetests bestanden. Debug App und Konsole gebaut.
 
 - [x] ✅ Dateibasierte Mixer-Vorstufe nach `WavMixer`/`SimpleMixer` umgesetzt (14.11.2026):
   `IConversationWaveMixer` mit injiziertem `IConversationWaveRenderer` im bestehenden Audio-Projekt;

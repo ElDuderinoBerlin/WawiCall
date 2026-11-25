@@ -57,7 +57,8 @@ public sealed class PersistedDuplexPcmRecordingFactory(IDuplexPcmRecordingFactor
             };
             inner = await recordings.StartAsync(source, persistedRequest, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            return new PersistedDuplexPcmRecording(inner, writer, item, epoch, clock);
+            return new PersistedDuplexPcmRecording(inner, writer, item, epoch, clock)
+            { ReleaseCompletedSegments = request.TimelineBasis == RecordingTimelineBasis.LocalCodecObservation };
         }
         catch (Exception error)
         {
