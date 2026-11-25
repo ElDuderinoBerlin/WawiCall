@@ -73,20 +73,28 @@ public sealed class CscorePlaybackCaptureFactory(TimeProvider clock) : IPlayback
                     {
                         while (!_stopping.IsCancellationRequested && packets.GetNextPacketSize() > 0)
                         {
-                            var pointer = packets.GetBuffer(out var frames, out var flags, out var devicePosition, out var qpc);
+                            byte[]? bytes = null;
                             try
                             {
-                                if (frames is < 1 || frames > format.SampleRate / 2 || (flags & WasapiTimestampError) != 0)
-                                    throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+                                var pointer = packets.GetBuffer(out var frames, out var flags, out var devicePosition, out var qpc);
+                                var silent = (flags & AudioClientBufferFlags.Silent) != 0;
+                                int length;
+                                try
+                                {
+                                    if (frames is < 1 || frames > format.SampleRate / 2 || (flags & WasapiTimestampError) != 0)
+                                        throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+                                    if (!silent && pointer == IntPtr.Zero) throw new PcmRecordingException(PcmRecordingFailure.InvalidBlock);
+                                    length = checked(frames * format.BlockAlign);
+                                    bytes = ArrayPool<byte>.Shared.Rent(length);
+                                    if (!silent) Marshal.Copy(pointer, bytes, 0, length);
+                                }
+                                finally { packets.ReleaseBuffer(frames); }
+
+                                // Only the owned copy is needed for timeline checks, decoding and the observer.
                                 var start = timeline.Map(devicePosition, qpc, frames, (flags & AudioClientBufferFlags.DataDiscontinuity) != 0);
-                                var length = checked(frames * format.BlockAlign);
-                                var bytes = ArrayPool<byte>.Shared.Rent(length);
                                 var pcm = ArrayPool<short>.Shared.Rent(frames);
                                 try
                                 {
-                                    var silent = (flags & AudioClientBufferFlags.Silent) != 0;
-                                    if (!silent && pointer == IntPtr.Zero) throw new PcmRecordingException(PcmRecordingFailure.InvalidBlock);
-                                    if (!silent) Marshal.Copy(pointer, bytes, 0, length);
                                     PlaybackPacketPcm.Decode(bytes.AsSpan(0, length), format, pcm.AsSpan(0, frames), silent);
                                     var offset = start.Ticks < 0 ? (int)Int128.Min(frames, ((Int128)(-start.Ticks) * format.SampleRate + TimeSpan.TicksPerSecond - 1) / TimeSpan.TicksPerSecond) : 0;
                                     while (offset < frames && !_stopping.IsCancellationRequested)
@@ -98,9 +106,9 @@ public sealed class CscorePlaybackCaptureFactory(TimeProvider clock) : IPlayback
                                         offset += count;
                                     }
                                 }
-                                finally { ArrayPool<byte>.Shared.Return(bytes, true); ArrayPool<short>.Shared.Return(pcm, true); }
+                                finally { ArrayPool<short>.Shared.Return(pcm, true); }
                             }
-                            finally { packets.ReleaseBuffer(frames); }
+                            finally { if (bytes is not null) ArrayPool<byte>.Shared.Return(bytes, true); }
                         }
                         _stopping.Token.WaitHandle.WaitOne(5);
                     }

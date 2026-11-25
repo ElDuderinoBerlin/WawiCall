@@ -3821,6 +3821,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Reihenfolge voranschreiten. Ein Regressionstest weist einen Zeitstempelsprung um 1 ms nach.
   Je Edition 41 gezielte App-Prüfungen und ein nativer Jabra-Lauf mit zwei Testtönen bestanden.
   App und Konsole in Debug/Any CPU gebaut. Nachweise `.artifacts/phase9-loopback-qpc/`.
+  ✅ Der WASAPI-Adapter gibt jeden nativen Aufnahmepuffer nach dem Kopieren frei. PCM-Dekodierung
+  und Weitergabe arbeiten danach mit verwaltetem Speicher. Je Edition 40 Aufnahmeprüfungen
+  mit zwei nativen Jabra-Testtönen bestanden. App und Konsole in Debug/Any CPU gebaut.
+  Nachweise `.artifacts/phase9-loopback-buffer/`.
 
 - [x] ✅ Dateibasierte Mixer-Vorstufe nach `WavMixer`/`SimpleMixer` umgesetzt (14.11.2026):
   `IConversationWaveMixer` mit injiziertem `IConversationWaveRenderer` im bestehenden Audio-Projekt;
