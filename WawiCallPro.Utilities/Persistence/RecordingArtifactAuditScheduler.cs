@@ -45,10 +45,7 @@ public sealed class RecordingArtifactAuditScheduler(IRecordingArtifactReconcilia
     {
         try
         {
-            var result = await _inventory!.ReadAsync(token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
-            if (!result.Review.IsEmpty)
-                OperationEvents.Write(log, OperationEvent.RecordingDirectoryReviewRequired);
+            await _inventory!.ReadAsync(token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception) { OperationEvents.Write(log, OperationEvent.RecordingDirectoryInventoryIncomplete); }

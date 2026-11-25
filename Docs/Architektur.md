@@ -1429,11 +1429,9 @@ seriell; der begrenzte Anforderungskanal und die abgewartete Abbruchbereinigung 
 Ein Inventurfehler wird ohne rohe Exception als eigenes geschlossenes Warnereignis gemeldet. Er verhindert
 keine spätere Anforderung. Beim regulären Hostabbruch entsteht keine zusätzliche Inventurwarnung.
 
-`RecordingDirectoryReviewRequired` meldet zusammengefasst Dateien ohne lokale Referenz, unbekannte `.tmp`-
-Dateien oder übersprungene Links. `RecordingDirectoryInventoryIncomplete` meldet einen unvollständigen Lauf.
-Beide erscheinen als verständliche deutsche Warnung im vorhandenen Log-Fenster. Keine Dateipfade, Prüflisten,
-Dateiinhalte oder Fehlerdetails gelangen in die Ereignisse. Ein sauberer Bestand erzeugt keine Warnung.
-Die Meldung erklärt ausdrücklich möglichen Bezug zu aktiven Aufnahmen oder anderen Arbeitsplätzen.
+Dateien ohne lokale Referenz, unbekannte `.tmp`-Dateien und übersprungene Links stehen in der manuellen
+Aufnahmebestandsprüfung. `RecordingDirectoryInventoryIncomplete` meldet einen unvollständigen Lauf im
+Log-Fenster. Dateipfade, Prüflisten, Dateiinhalte und Fehlerdetails bleiben außerhalb des Logs.
 Die oben beschriebenen Grenzen des beobachteten Zustands bleiben bestehen; keine Übernahme oder Löschung.
 
 Sieben isolierte Workerfälle prüfen Start, Reihenfolge, unbekannte/temporäre Dateien, Links, sauberen Bestand,

@@ -38,9 +38,9 @@ public partial class SettingsPage
     {
         recordingFolderEdit.Text = settings.PendingDirectory ?? settings.Directory ?? _workspace?.Paths.DefaultRecordingsDirectory ?? "";
         recordingPatternEdit.Text = settings.FileNamePattern;
-        recordingFolderHint.Text = settings.PendingDirectory is not null && _workspace is not null
-            ? "Ordnerwechsel vorgemerkt. Aktiver Aufnahmeordner: " + _workspace.Paths.RecordingsDirectory
-            : "Bei einem Ordnerwechsel kopiert WawiCallPro den Bestand beim nächsten Start. Der bisherige Ordner bleibt erhalten.";
+        var hasPendingFolder = settings.PendingDirectory is not null && _workspace is not null;
+        recordingFolderHint.Text = hasPendingFolder ? "Ordnerwechsel vorgemerkt. Aktiver Aufnahmeordner: " + _workspace!.Paths.RecordingsDirectory : "";
+        recordingFolderHint.Visible = hasPendingFolder;
         UpdateRecordingPreview();
     }
 

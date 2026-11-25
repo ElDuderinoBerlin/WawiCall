@@ -16,12 +16,12 @@ public sealed class RecordingDirectoryBackgroundTests
         await worker.StartAsync(CancellationToken.None);
         Assert.AreEqual(0, inventory.Calls);
         worker.Request(); await inventory.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        if (mode != "clean") await log.First.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (mode == "failure") await log.First.Task.WaitAsync(TimeSpan.FromSeconds(5));
         // Stop waits for the event emitted after the inventory adapter returns.
         await worker.StopAsync(CancellationToken.None);
         Assert.AreEqual(1, inventory.Calls);
-        if (mode == "clean") Assert.AreEqual(0, log.Events.Count);
-        else Assert.AreEqual(mode == "failure" ? OperationEvent.RecordingDirectoryInventoryIncomplete : OperationEvent.RecordingDirectoryReviewRequired, log.Events.Single());
+        if (mode == "failure") Assert.AreEqual(OperationEvent.RecordingDirectoryInventoryIncomplete, log.Events.Single());
+        else Assert.IsEmpty(log.Events);
     }
 
     [TestMethod]

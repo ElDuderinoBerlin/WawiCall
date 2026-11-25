@@ -12,7 +12,6 @@ public static class SettingsMessages
         OperationEvent.SettingsCancelled => "Einstellungsvorgang abgebrochen. Gespeicherte Werte bleiben erhalten.",
         OperationEvent.SettingsFailed => "Die Einstellungsaktion ist fehlgeschlagen. Einstellungen und Erreichbarkeit prüfen.",
         OperationEvent.SettingsValidationFailed => "Einstellungen konnten nicht übernommen werden. Eingaben und Plugin-Zugang prüfen.",
-        OperationEvent.SettingsCompaniesLoading => "Mandanten werden asynchron geladen …",
         OperationEvent.SettingsCompaniesLoaded => "Mandanten geladen. Mehrere Mandanten für Telefon- und Mailzuordnung auswählen und speichern.",
         OperationEvent.SettingsCompaniesEmpty => "Keine freigegebenen Mandanten verfügbar.",
         OperationEvent.SettingsCompaniesUnavailable => "Mindestens ein gewählter Mandant ist nicht mehr verfügbar. Zugang und Auswahl prüfen.",

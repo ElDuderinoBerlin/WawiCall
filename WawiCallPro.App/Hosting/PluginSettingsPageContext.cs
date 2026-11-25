@@ -32,18 +32,21 @@ internal sealed class PluginSettingsPageContext(PluginConnectionEditContext conn
     internal AppUiState? LayoutState { get; set; }
     public void RestoreCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) => LayoutState?.Restore(view, "PluginCompanies-v2");
     public void SaveCompanyLayout(DevExpress.XtraGrid.Views.Grid.GridView view) => LayoutState?.Save(view, "PluginCompanies-v2");
-    public void Report(PluginSettingsNotice notice) => workspace.ReportSettings(notice switch
+    public void Report(PluginSettingsNotice notice)
     {
-        PluginSettingsNotice.Loading => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesLoading,
-        PluginSettingsNotice.Loaded => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesLoaded,
-        PluginSettingsNotice.Empty => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesEmpty,
-        PluginSettingsNotice.Unavailable => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesUnavailable,
-        PluginSettingsNotice.Failed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesFailed,
-        PluginSettingsNotice.ProApiAccessSucceeded => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessSucceeded,
-        PluginSettingsNotice.ProApiAccessFailed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessFailed,
-        PluginSettingsNotice.ProApiAccessDisabled => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessDisabled,
-        _ => WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged
-    });
+        if (notice == PluginSettingsNotice.Loading) return;
+        workspace.ReportSettings(notice switch
+        {
+            PluginSettingsNotice.Loaded => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesLoaded,
+            PluginSettingsNotice.Empty => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesEmpty,
+            PluginSettingsNotice.Unavailable => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesUnavailable,
+            PluginSettingsNotice.Failed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesFailed,
+            PluginSettingsNotice.ProApiAccessSucceeded => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessSucceeded,
+            PluginSettingsNotice.ProApiAccessFailed => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessFailed,
+            PluginSettingsNotice.ProApiAccessDisabled => WawiCallPro.Utilities.Operations.OperationEvent.SettingsProApiAccessDisabled,
+            _ => WawiCallPro.Utilities.Operations.OperationEvent.SettingsSelectionChanged
+        });
+    }
     public void ReportCompanyFailure(PluginCompanyFailure failure) => workspace.ReportSettings(failure switch
     {
         PluginCompanyFailure.ConfigurationRequired => WawiCallPro.Utilities.Operations.OperationEvent.SettingsCompaniesConfigurationRequired,

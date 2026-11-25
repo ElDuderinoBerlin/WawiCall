@@ -477,7 +477,8 @@ Zuvor ergänzt: gezielte Konsolenprüfung mit `--recordings-inventory`; standard
 relative Prüfpfade nur mit `--details`. Bestehende Datenbank und Arbeitsplatzkennung erforderlich;
 keine Anlage, Migration, Dateiübernahme oder Löschung durch die Inventur (Phase 9).
 Zuvor ergänzt: Aufnahmeordner-Inventur an den vorhandenen Hintergrundabgleich nach abgeschlossener
-SIP-/Aufnahmerecovery angeschlossen. Verständliche Log-Warnungen für Prüfbedarf und unvollständige Inventur;
+SIP-/Aufnahmerecovery angeschlossen. Prüfbedarf steht in der manuellen Bestandsprüfung. Eine unvollständige
+Inventur erscheint im Log;
 keine Dateipfade oder Fehlerdetails im Log. Bei eingerichteter Datenbank und vorhandenem Arbeitsplatz wird die Inventur auch nach dem Anwendungsstart angefordert (Phase 9).
 Zuvor ergänzt: lesende Bestandsaufnahme des Aufnahmeordners gegen alle lokal registrierten Pfade,
 einschließlich laufender Aufnahmen, Pending-Artefakte und Altverweise. Dateien ohne lokale Referenz,
