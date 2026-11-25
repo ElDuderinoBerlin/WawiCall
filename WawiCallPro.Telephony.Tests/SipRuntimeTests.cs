@@ -384,6 +384,7 @@ public sealed partial class SipRuntimeTests
         Assert.AreEqual(1, localDigits.Count(tone => tone.Digit == '5'));
         await fixture.Runtime.HangUpAsync(id);
         Assert.AreEqual(CallState.Ended, fixture.Runtime.GetCalls().Single().State);
+        Assert.AreEqual(CallEndReason.Completed, fixture.Runtime.GetCalls().Single().EndReason);
         await UntilAsync(() => fixture.Media.Created == fixture.Media.Closed);
         Assert.AreEqual(0, ringtone.Starts);
     }

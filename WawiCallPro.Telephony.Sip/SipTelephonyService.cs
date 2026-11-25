@@ -304,6 +304,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         {
             var current = agent.State!.Current;
             var reason = current.AnsweredAtUtc.HasValue ? CallEndReason.Completed : current.Direction == CallDirection.Outgoing ? CallEndReason.Cancelled : CallEndReason.Rejected;
+            agent.LocalHangupRequested = true;
             try
             {
                 if (agent.UserAgent.IsCallActive) agent.UserAgent.Hangup();
@@ -390,6 +391,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         {
             agent.Stopping.Cancel();
             (agent.Media as ISipLiveRecordingMediaSession)?.CancelPendingStart();
+            if (agent.LocalHangupRequested) return;
             Queue(() => ChangeAsync(agent,
                 agent.ShutdownRequested ? CallState.Failed : CallState.Ended,
                 agent.ShutdownRequested ? CallEndReason.Interrupted : agent.TransferAccepted ? CallEndReason.Transferred : CallEndReason.RemoteHangup));
@@ -468,7 +470,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 agent.Media.ApplyPlaybackSettings();
                 await EnqueueAsync(() => CompleteMediaConnectionAsync(agent)).ConfigureAwait(false);
             }
-            else
+            else if (!agent.LocalHangupRequested)
             {
                 var reason = agent.FailureStatus switch
                 {
@@ -744,6 +746,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         internal SIPResponseStatusCodesEnum? FailureStatus;
         internal volatile bool TransferAccepted;
         internal volatile bool ShutdownRequested;
+        internal volatile bool LocalHangupRequested;
         internal CancellationTokenSource Stopping { get; } = new();
     }
 
