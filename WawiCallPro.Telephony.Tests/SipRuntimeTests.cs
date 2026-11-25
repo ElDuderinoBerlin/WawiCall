@@ -355,8 +355,10 @@ public sealed partial class SipRuntimeTests
         peer.OnDtmfTone += (tone, _) => peerDigits.Enqueue(tone);
         fixture.Runtime.DtmfReceived += (_, tone) => localDigits.Enqueue(tone);
         var allowAnswer = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var initialInvite = new TaskCompletionSource<SIPRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
         peer.OnIncomingCall += async (agent, request) =>
         {
+            initialInvite.TrySetResult(request);
             var incoming = agent.AcceptCall(request);
             incoming.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null);
             await allowAnswer.Task;
@@ -367,6 +369,9 @@ public sealed partial class SipRuntimeTests
         try { await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Ringing); }
         finally { allowAnswer.TrySetResult(); }
         await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Connected);
+        var invite = await initialInvite.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.IsFalse(string.IsNullOrWhiteSpace(invite.Body));
+        Assert.AreEqual("application/sdp", invite.Header.ContentType);
         Assert.AreEqual(company, fixture.Runtime.GetCalls().Single().Company);
         await fixture.Runtime.HoldAsync(id);
         Assert.AreEqual(CallState.Held, fixture.Runtime.GetCalls().Single().State);

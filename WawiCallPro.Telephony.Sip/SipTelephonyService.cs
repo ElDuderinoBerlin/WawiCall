@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 using WawiCallPro.Interfaces.Companies;
@@ -460,7 +461,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             agent.Media = _media.Create(_account!, _devices);
             using var password = _secrets.Unprotect(_account!.Password!, SipAccountOptions.PasswordPurpose);
             var descriptor = new SIPCallDescriptor(_account.Username, password.Reveal(), target, Address(_account.Username!).ToString(), target,
-                null, null, _account.AuthenticationUsername ?? _account.Username, SIPCallDirection.Out, null, null, null);
+                null, null, _account.AuthenticationUsername ?? _account.Username, SIPCallDirection.Out, SDP.SDP_MIME_CONTENTTYPE, null, null);
             var connected = await agent.UserAgent.Call(descriptor, agent.Media.Session, _account.Connection.RingTimeoutSeconds).ConfigureAwait(false);
             if (connected)
             {
