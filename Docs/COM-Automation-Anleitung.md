@@ -52,6 +52,19 @@ Eine bisherige Debug-Registrierung aus demselben Repository kann das Skript übe
 aus einer anderen Installation bleibt geschützt. `-PrepareOnly` erstellt die separate Ausgabe ohne
 Registrierung. Zum gezielten Entfernen die zuletzt registrierte EXE mit `/unregserver /user` aufrufen.
 
+Der native Regressionstest verwendet die registrierten Debug-Ausgaben dieses Repositorys. Vor dem Test
+laufende WawiCallPro-Instanzen regulär schließen. Standardmäßig werden FinOffice und Pro nacheinander
+geprüft. Für eine einzelne Edition `-ProductLine FinOffice` oder `-ProductLine Pro` angeben.
+
+```powershell
+.\scripts\test-debug-com-refresh.ps1
+```
+
+Der Test hält einen VBScript-Client geöffnet, aktiviert mit einem zweiten Client während des Debug-Builds
+und prüft den Kaltstart nach dem regulären Prozessende. Windows-Fensterereignisse, EXE-Pfade und
+`CreateObject`-Zeiten stehen unter `artifacts/com-debug-refresh`. Der Test verwendet die echten ProgIDs,
+prüft `Ready` und registriert am Ende wieder die Ausgabe eines regulären Debug-Builds ohne Testmarker.
+
 ## VBS- und PowerShell-Testskripte
 
 Zusätzlich stehen [automation.vbs](../scripts/ComExamples/automation.vbs) und

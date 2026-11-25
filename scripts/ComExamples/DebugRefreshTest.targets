@@ -1,0 +1,9 @@
+<Project>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App'">
+    <!-- Give the test build distinct contents without changing the product version or any runtime code. -->
+    <AssemblyMetadata Include="WawiDebugComRefreshTest" Value="$(WawiComRefreshTestId)" />
+  </ItemGroup>
+  <Target Name="WaitForComClientDuringDebugBuild" AfterTargets="PrepareForBuild" Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App'">
+    <Exec Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)..\test-debug-com-refresh.ps1&quot; -BuildGate" />
+  </Target>
+</Project>
