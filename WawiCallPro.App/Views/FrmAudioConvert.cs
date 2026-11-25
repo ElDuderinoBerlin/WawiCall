@@ -52,7 +52,7 @@ public partial class FrmAudioConvert : XtraForm
     {
         if (!IsHandleCreated) return;
         static int RequiredWidth(Control control) => control.PreferredSize.Width + control.Margin.Horizontal;
-        var filesWidth = new[] { formatLabel, rateLabel, channelLabel, volumeLabel }.Max(RequiredWidth)
+        var filesWidth = new[] { sourceLabel, targetLabel, formatLabel, rateLabel, channelLabel, volumeLabel }.Max(RequiredWidth)
             + Math.Max(sourceBrowse.Width, targetBrowse.Width) + sourceBrowse.Margin.Horizontal
             + Math.Max(sourcePlay.Width, resultPlay.Width) + sourcePlay.Margin.Horizontal + RequiredWidth(formatEdit);
         var actionsWidth = convertButton.Width + cancelButton.Width + closeButton.Width + 3 * closeButton.Margin.Horizontal;

@@ -230,7 +230,8 @@ public sealed partial class AppShellTests
         Directory.CreateDirectory(folder);
         try
         {
-            foreach (var (theme, size, width, scale) in new[] { ("Basic", 10F, 650, 1F), ("Office 2019 Black", 16F, 740, 1F), ("Basic", 10F, 710, 1.5F) })
+            foreach (var (theme, size, width, scale, populated) in new[]
+                     { ("Basic", 10F, 650, 1F, false), ("Office 2019 Black", 16F, 740, 1F, true), ("Basic", 10F, 710, 1.5F, true) })
             {
                 using var font = new Font("Segoe UI", size);
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
@@ -239,10 +240,13 @@ public sealed partial class AppShellTests
                 capture.PrepareForBackgroundRun();
                 capture.Font = font;
                 capture.ClientSize = new(width, 365);
-                Field<TextEdit>(capture, "sourceEdit").Text = Field<TextEdit>(form, "sourceEdit").Text;
-                Field<TextEdit>(capture, "targetEdit").Text = Field<TextEdit>(form, "targetEdit").Text;
+                if (populated)
+                {
+                    Field<TextEdit>(capture, "sourceEdit").Text = Field<TextEdit>(form, "sourceEdit").Text;
+                    Field<TextEdit>(capture, "targetEdit").Text = Field<TextEdit>(form, "targetEdit").Text;
+                    Field<LabelControl>(capture, "status").Text = Field<LabelControl>(form, "status").Text;
+                }
                 if (theme == "Office 2019 Black") Field<ComboBoxEdit>(capture, "formatEdit").SelectedIndex = 1;
-                Field<LabelControl>(capture, "status").Text = Field<LabelControl>(form, "status").Text;
                 capture.Show();
                 if (scale != 1F) capture.Scale(new SizeF(scale, scale));
                 capture.PerformLayout();
@@ -262,13 +266,27 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(sourceActions[0].Left, targetActions[0].Left);
                 Assert.AreEqual(sourceActions[1].Left, targetActions[1].Left);
                 Assert.IsTrue(sourceActions[0].Right < sourceActions[1].Left);
-                Assert.IsTrue(table.GetRow(Field<LabelControl>(capture, "sourceLabel")) < table.GetRow(path));
-                Assert.IsTrue(table.GetRow(path) < table.GetRow(Field<LabelControl>(capture, "targetLabel")));
-                Assert.IsTrue(table.GetRow(Field<LabelControl>(capture, "targetLabel")) < table.GetRow(Field<TextEdit>(capture, "targetEdit")));
+                var target = Field<TextEdit>(capture, "targetEdit");
+                Assert.IsTrue(table.GetRow(path) < table.GetRow(target));
+                AssertRowAlignment(path, Field<LabelControl>(capture, "sourceLabel"), sourceActions[0], sourceActions[1]);
+                AssertRowAlignment(target, Field<LabelControl>(capture, "targetLabel"), targetActions[0], targetActions[1]);
                 Assert.IsTrue(Field<SpinEdit>(capture, "volumeEdit").Width < path.Width);
                 Assert.IsTrue(capture.Width < 1200, "Minimum width must not grow to the entire monitor.");
                 using var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(capture);
                 image.Save(Path.Combine(folder, $"{edition}-{size:0}-{scale:0.0}.png"), System.Drawing.Imaging.ImageFormat.Png);
+
+                void AssertRowAlignment(TextEdit pathEditor, LabelControl label, SimpleButton play, SimpleButton browse)
+                {
+                    var row = table.GetRow(pathEditor);
+                    var center = pathEditor.Top + pathEditor.Height / 2;
+                    foreach (var control in new Control[] { label, play, browse })
+                    {
+                        Assert.AreSame(table, control.Parent);
+                        Assert.AreEqual(row, table.GetRow(control));
+                        Assert.IsTrue(Math.Abs(center - (control.Top + control.Height / 2)) <= 1,
+                            $"{control.Text} is not vertically centered with {pathEditor.AccessibleName}.");
+                    }
+                }
             }
         }
         finally
