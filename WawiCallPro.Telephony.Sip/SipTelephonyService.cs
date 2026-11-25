@@ -272,7 +272,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => CommandAsync(callId, async agent =>
     {
         if (agent.Incoming is null || agent.State!.Current.State != CallState.Ringing) throw new TelephonyException("NotIncoming");
-        try { agent.Incoming.Reject(SIPResponseStatusCodesEnum.BusyHere, null); }
+        try { agent.Incoming.Reject(SIPResponseStatusCodesEnum.Decline, null); }
         finally { await EnqueueAsync(() => ChangeAsync(agent, CallState.Ended, CallEndReason.Rejected)).ConfigureAwait(false); }
     }, cancellationToken);
 

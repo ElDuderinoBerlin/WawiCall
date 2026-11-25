@@ -236,9 +236,12 @@ public sealed partial class SipRuntimeTests
         using (var peer = new SIPUserAgent())
         using (var media = new TestMedia())
         {
+            var reply = new TaskCompletionSource<SIPResponseStatusCodesEnum>(TaskCreationOptions.RunContinuationsAsynchronously);
+            peer.ClientCallFailed += (_, _, response) => { if (response is not null) reply.TrySetResult(response.Status); };
             var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
             await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
             await fixture.Runtime.RejectAsync(fixture.Runtime.GetCalls().Single(call => call.State == CallState.Ringing).Id);
+            Assert.AreEqual(SIPResponseStatusCodesEnum.Decline, await reply.Task.WaitAsync(TimeSpan.FromSeconds(3)));
             Assert.IsFalse(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
             Assert.IsTrue(fixture.Runtime.GetCalls().Any(call => call.EndReason == CallEndReason.Rejected));
         }
@@ -339,10 +342,10 @@ public sealed partial class SipRuntimeTests
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "wawi-sip-" + Guid.NewGuid().ToString("N"));
         private readonly SIPTransport _registrar = new();
+        internal SIPTransport RegistrarTransport => _registrar;
         internal SipTelephonyService Runtime = null!;
         internal readonly MemoryPersistence Persistence = new();
         internal readonly MediaFactory Media = new();
-        internal SIPTransport RegistrarTransport => _registrar;
         internal readonly LeaseFactory Leases = new();
         internal int LocalPort;
         internal int Registers;

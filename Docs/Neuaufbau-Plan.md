@@ -1983,6 +1983,8 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   ✅ Bei anonymem SIP-From kann die Rufnummer aus der vom registrierten SIP-Gegenpunkt gelieferten
   Identität übernommen werden. Explizite Privacy-Kennzeichen haben Vorrang. Drei UDP-Loopback-Fälle
   je Edition bestanden. Bestätigung über die echte Telefonanlage steht aus.
+  ✅ Die Aktion „Ablehnen“ sendet SIP 603. Der UDP-Loopback bestätigt den empfangenen
+  Antwortcode in Pro und FinOffice. Die Rückmeldung der echten Gegenstelle steht aus.
   DTMF zunächst über ausgehandelte RTP-Telefonieereignisse und SIPSorcery SendDtmf/OnDtmfTone anbinden;
   keine zusätzliche Audio-Erkennungsbibliothek aus WawiCallPro.old.sln für diesen Pfad übernehmen.
   Gemeinsamen Empfangsvertrag für Telefonmenüs ergänzen und Gesprächszuordnung/Mehrfachmeldungen prüfen.
