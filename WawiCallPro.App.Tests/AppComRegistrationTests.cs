@@ -92,6 +92,32 @@ public sealed class AppComRegistrationTests
             Assert.AreEqual(debug.Executable, store.Nodes[(view, debug.ClassKey + @"\LocalServer32")]["ServerExecutable"]);
     }
     [TestMethod]
+    public void AutomaticDebugRefreshRequiresTheExistingRepositoryRegistrationInBothViews()
+    {
+        var store = new RegistryDouble();
+        var service = new UserComRegistration(store);
+        var current = Identity("1.0.0");
+        var refresh = current with
+        {
+            Executable = Path.Combine(current.InstallationRoot, "generation", "WawiCallPro.App.Pro.exe"),
+            RequireSameInstallationRoot = true,
+            RefreshExistingDebugRegistration = true
+        };
+
+        service.Register(refresh);
+        Assert.AreEqual(0, store.Nodes.Count);
+        service.Register(current);
+        store.Nodes[(RegistryView.Registry32, current.ProgId)]["WawiCallPro.InstallationRoot"] = @"D:\Another install";
+        var before = store.Snapshot();
+        service.Register(refresh);
+        Assert.AreEqual(before, store.Snapshot());
+
+        store.Nodes[(RegistryView.Registry32, current.ProgId)]["WawiCallPro.InstallationRoot"] = current.InstallationRoot;
+        service.Register(refresh);
+        foreach (var view in new[] { RegistryView.Registry32, RegistryView.Registry64 })
+            Assert.AreEqual(refresh.Executable, store.Nodes[(view, current.ClassKey + @"\LocalServer32")]["ServerExecutable"]);
+    }
+    [TestMethod]
     public void InstalledRollbackRequiresTheSameInstallationAndDoesNotAuthorizeAnOldForeignInstall()
     {
         var store = new RegistryDouble(); var service = new UserComRegistration(store); var v1 = Identity("1.0.0");

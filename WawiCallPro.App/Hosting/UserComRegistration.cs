@@ -12,6 +12,7 @@ internal sealed record ComRegistrationIdentity(Guid ClassId, string ProgId, stri
     internal string? AssemblyPath { get; init; }
     internal Guid? ModuleId { get; init; }
     internal bool RequireSameInstallationRoot { get; init; }
+    internal bool RefreshExistingDebugRegistration { get; init; }
     internal string Command => "\"" + Executable + "\"" + Arguments;
     internal string ClassKey => @"CLSID\" + ClassId.ToString("B");
 }
@@ -91,6 +92,8 @@ internal sealed class UserComRegistration(IUserComRegistry registry)
                 var classBefore = registry.Read(view, identity.ClassKey);
                 var progBefore = registry.Read(view, identity.ProgId);
                 var owned = IsOurs(classBefore, identity) && IsOurs(progBefore, identity);
+                var sameRoot = owned && SamePath(classBefore![Root], identity.InstallationRoot) && SamePath(progBefore![Root], identity.InstallationRoot);
+                if (identity.RefreshExistingDebugRegistration && !sameRoot) return;
                 if (!register && !owned) continue;
                 if (register && (classBefore is not null || progBefore is not null) && !owned)
                     throw new InvalidOperationException("COM identity belongs to another registration.");
@@ -98,7 +101,6 @@ internal sealed class UserComRegistration(IUserComRegistry registry)
                 if (register && owned)
                 {
                     var previous = ComRegistrationVersion.Compare(classBefore![Version], identity.Version);
-                    var sameRoot = SamePath(classBefore[Root], identity.InstallationRoot) && SamePath(progBefore![Root], identity.InstallationRoot);
                     if (identity.RequireSameInstallationRoot && !sameRoot)
                         throw new InvalidOperationException("The Debug build cannot replace a different installation.");
                     if (classBefore[Version] != progBefore![Version] || previous > 0 && !(rollback && sameRoot)

@@ -13,6 +13,20 @@ internal static class AppComDeployment
 {
     internal static int? TryRun(string[] args)
     {
+#if DEBUG
+        if (args.Length > 0 && args[0].Equals("--refresh-debug-com", StringComparison.OrdinalIgnoreCase))
+        {
+            if (args.Length != 1) return 2;
+            try
+            {
+                var identity = Current();
+                if (!identity.RequireSameInstallationRoot) return 2;
+                new UserComRegistration(new WindowsUserComRegistry()).Register(identity with { RefreshExistingDebugRegistration = true });
+                return 0;
+            }
+            catch (Exception) { Console.Error.WriteLine("WawiCallPro: COM-Debug-Ausgabe konnte nicht registriert werden."); return 1; }
+        }
+#endif
         var fixture = args.Length == 3 && args[0].Equals("--com-fixture", StringComparison.OrdinalIgnoreCase) ? args[1] : null;
         var command = fixture is null ? args.FirstOrDefault() : args[2];
         if (command is null || !IsCommand(command)) return null;

@@ -112,9 +112,11 @@
     <MSBuild Projects="@(_WawiPluginProject)" Targets="GetWawiPluginDeploymentFiles" RemoveProperties="TargetFramework;RuntimeIdentifier;SelfContained;PublishDir" Properties="Configuration=$(Configuration);LexwareProductLine=$(LexwareProductLine)">
       <Output TaskParameter="TargetOutputs" ItemName="_WawiPluginFiles" />
     </MSBuild>
+    <ItemGroup>
+      <_WawiDuplicatePluginFiles Include="@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb');@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
+    </ItemGroup>
     <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(TargetDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
-    <Delete Files="@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
-    <Delete Files="@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
+    <Delete Files="@(_WawiDuplicatePluginFiles)" />
   </Target>
   <Target Name="PublishWawiPlugins" AfterTargets="Publish" DependsOnTargets="DeployWawiPlugins" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(PublishDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
@@ -257,5 +259,22 @@
   </Target>
   <Target Name="InitializeWawiPublishedAppSettings" AfterTargets="Publish" DependsOnTargets="InitializeWawiAppSettings" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFiles="$(PublishDir)appsettings.json" />
+  </Target>
+  <Target Name="RefreshWawiDebugCom" AfterTargets="Build"
+          DependsOnTargets="DeployWawiPlugins;RemoveWawiOtherLexwareAssemblies;CopyWawiSqliteInterop;InitializeWawiAppSettings"
+          Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(Configuration)' == 'Debug' and '$(DesignTimeBuild)' != 'true'
+            and '$(WawiDebugComGeneration)' == '' and '$(OS)' == 'Windows_NT' and '$(DemoBuild)' != 'true'
+            and '$(WawiUseVelopackAppSettings)' != 'true' and '$(WawiRegisterDebugCom)' != 'false'">
+    <ItemGroup>
+      <_WawiDebugComFiles Include="@(FileWrites);@(_WawiPluginFiles->'$(TargetDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)');$(TargetDir)appsettings.json" />
+      <_WawiDebugComExcludedFiles Include="@(_WawiDuplicatePluginFiles);@(_WawiOtherLexwareFiles);$(TargetDir)SQLite.Interop.dll" />
+      <_WawiDebugComFiles Remove="@(_WawiDebugComExcludedFiles)" MatchOnMetadata="FullPath" MatchOnMetadataOptions="PathLike" />
+    </ItemGroup>
+    <FindUnderPath Path="$(TargetDir)" Files="@(_WawiDebugComFiles)" UpdateToAbsolutePaths="true">
+      <Output TaskParameter="InPath" ItemName="_WawiDebugComOutputFiles" />
+    </FindUnderPath>
+    <WriteLinesToFile File="$(IntermediateOutputPath)WawiDebugComFiles.txt" Lines="@(_WawiDebugComOutputFiles)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)scripts\register-debug-com.ps1&quot; -ProductLine $(LexwareProductLine) -CompletedBuildDirectory &quot;$(TargetDir).&quot; -BuildFileList &quot;$(IntermediateOutputPath)WawiDebugComFiles.txt&quot;" />
   </Target>
 </Project>

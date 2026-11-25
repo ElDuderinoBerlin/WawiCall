@@ -41,11 +41,12 @@ vollständigen Debug-Ausgabe. Die Registrierung wird erst nach dem erfolgreichen
 ```
 
 Die registrierte EXE liegt unter `WawiCallPro.App/bin/ComDebug/<Edition>/<Generation>/<Framework>`.
-Reguläre Builds und Editionswechsel unter `bin/Debug` bearbeiten diese Ausgabe nicht. Den Befehl nach
-gewünschten Codeänderungen erneut ausführen. Bereits gestartete Server verwenden ihre bisherige Ausgabe
-bis zum Prozessende. Frühere Generationen bleiben liegen, damit laufende oder gerade startende Clients
-ihre Dateien weiter vorfinden. Erst nach dem Ende aller betreffenden Prozesse und nach Prüfung des
-registrierten `LocalServer32`-Pfads alte Generationen entfernen.
+Nach der Erstregistrierung übernimmt jeder erfolgreiche reguläre Debug-Build der Edition seine fertige
+Ausgabe automatisch. Bei identischen Dateien wird die vorhandene Generation weiterverwendet. Laufende
+Server und ihre Clients bleiben verbunden, auch neue Clients werden weiterhin vom laufenden Server
+bedient. Sobald der Server regulär beendet ist, lädt der nächste Kaltstart die neu registrierte Ausgabe.
+Frühere Generationen bleiben für laufende oder gerade startende Prozesse verfügbar. Erst nach dem Ende
+aller betreffenden Prozesse und nach Prüfung des registrierten `LocalServer32`-Pfads alte Generationen entfernen.
 
 Eine bisherige Debug-Registrierung aus demselben Repository kann das Skript übernehmen. Eine Registrierung
 aus einer anderen Installation bleibt geschützt. `-PrepareOnly` erstellt die separate Ausgabe ohne
