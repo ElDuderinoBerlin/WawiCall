@@ -306,6 +306,7 @@ public partial class SettingsPage : XtraUserControl
         ApplyPluginConnectionSnapshot(snapshot);
         var options = snapshot.Options;
         notificationsEdit.Checked = options.User.ShowCallNotifications;
+        reuseCallDialogEdit.Checked = options.User.ReuseCallDialog;
         minimizedEdit.Checked = options.User.StartMinimized;
         loggingEnabledEdit.Checked = options.User.LoggingEnabled;
         logLevelEdit.SelectedIndex = (int)options.User.LogLevel;
@@ -342,6 +343,7 @@ public partial class SettingsPage : XtraUserControl
         var options = old with
         {
             User = old.User with { LoggingEnabled = loggingEnabledEdit.Checked, ShowCallNotifications = notificationsEdit.Checked, StartMinimized = minimizedEdit.Checked,
+                ReuseCallDialog = reuseCallDialogEdit.Checked,
                 LogLevel = (Microsoft.Extensions.Logging.LogLevel)logLevelEdit.SelectedIndex,
                 LogDirectory = string.IsNullOrWhiteSpace(logDirectoryEdit.Text) || logDirectoryEdit.Text.Trim() == _workspace?.Paths.LogsDirectory ? null : logDirectoryEdit.Text.Trim(),
                 ShowWindowHotkey = ReadHotkey(showWindowHotkeyEdit),

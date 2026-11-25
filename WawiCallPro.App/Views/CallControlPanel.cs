@@ -76,6 +76,7 @@ public partial class CallControlPanel : XtraUserControl
             || _call.State is CallState.Connected or CallState.Held);
         holdButton.Text = _call?.State == CallState.Held ? "Fortsetzen" : "Halten";
         holdButton.Enabled = available && (_call!.State is CallState.Connected or CallState.Held);
+        UiButtonSizing.Apply(answerButton, endButton, holdButton);
         if (!CanSendDtmf) _dtmfQueue.Clear();
         dtmfButton.Enabled = dtmfKeypad.Enabled = CanSendDtmf;
         UpdateRecording();
@@ -89,7 +90,9 @@ public partial class CallControlPanel : XtraUserControl
     {
         if (!CanSendDtmf) return;
         _dtmfOpen = !_dtmfOpen;
-        dtmfKeypad.Visible = dtmfStatus.Visible = _dtmfOpen;
+        dtmfKeypad.Visible = _dtmfOpen;
+        dtmfStatus.Visible = _dtmfOpen && _externalStatus is null;
+        PublishExternalStatus();
         if (_dtmfOpen) dtmfKeypad.FocusFirstKey();
     }
 
@@ -139,7 +142,7 @@ public partial class CallControlPanel : XtraUserControl
             LiveRecordingState.Failed => WawiCallPro.Utilities.Operations.LiveRecordingMessages.Failure(snapshot?.Failure),
             _ => "Keine Aufnahme"
         };
-        UiButtonSizing.Apply(recordingButton);
+        UiButtonSizing.Apply(recordingButton, dtmfButton);
     }
     private async void Recording_Changed(object? sender, LiveRecordingChangedEventArgs e)
     {
@@ -206,6 +209,27 @@ public partial class CallControlPanel : XtraUserControl
         else if (_call?.State == CallState.Connected) await CommandAsync((service, id, token) => service.HoldAsync(id, token));
     }
 
+    private Action<string>? _externalStatus;
+
+    internal void UseStatusBar(Action<string> display)
+    {
+        _externalStatus = display;
+        foreach (var label in new[] { statusLabel, recordingStatus, dtmfStatus })
+        {
+            label.Visible = false;
+            layout.Controls.Remove(label);
+            label.TextChanged += (_, _) => PublishExternalStatus();
+        }
+        PublishExternalStatus();
+    }
+
+    private void PublishExternalStatus()
+    {
+        if (_externalStatus is null) return;
+        var parts = new[] { statusLabel.Text, recordingStatus.Text, _dtmfOpen ? dtmfStatus.Text : "" };
+        _externalStatus(string.Join(" · ", parts.Where(text => !string.IsNullOrWhiteSpace(text))));
+    }
+
     internal Task StopAsync() => _stopTask ??= StopCoreAsync();
     private async Task StopCoreAsync()
     {
@@ -225,5 +249,11 @@ public partial class CallControlPanel : XtraUserControl
         _recordingOperation.Dispose();
         _dtmfOperation.Dispose();
         _audioOperation.Dispose();
+        if (_externalStatus is not null)
+        {
+            statusLabel.Dispose();
+            recordingStatus.Dispose();
+            dtmfStatus.Dispose();
+        }
     }
 }

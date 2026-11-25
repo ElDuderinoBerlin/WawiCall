@@ -1,0 +1,69 @@
+using DevExpress.XtraEditors;
+using Microsoft.Extensions.DependencyInjection;
+using WawiCallPro.App.Diagnostics;
+using WawiCallPro.App.Hosting;
+using WawiCallPro.App.Views;
+using WawiCallPro.Interfaces.Telephony;
+
+namespace WawiCallPro.App.Tests;
+
+public sealed partial class AppShellTests
+{
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public Task CallerWindowPreferenceReusesOnlyEndedWindows(bool reuse) => WithWorkspace(async (workspace, services, _) =>
+    {
+        await SeedCallerCachesAsync(workspace, services);
+        using (var settings = new FrmSettings(workspace))
+        {
+            settings.PrepareForBackgroundRun();
+            var page = Field<SettingsPage>(settings, "settingsPage");
+            await settings.PrepareAsync();
+            Field<CheckEdit>(page, "reuseCallDialogEdit").Checked = reuse;
+            await page.SaveAsync(CancellationToken.None);
+            Assert.AreEqual(reuse, (await workspace.Settings.LoadAsync()).Options.User.ReuseCallDialog);
+            await settings.StopAsync();
+        }
+        using var main = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        main.PrepareForBackgroundRun();
+        main.Show();
+        var first = (await CreateWorkspaceCallAsync(services)) with { Revision = 2, State = CallState.Ringing };
+        await main.ObserveCallAsync(first);
+        var original = main.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == first.Id);
+        Assert.IsTrue(original.Visible);
+        Assert.Contains(first.RemoteAddress.OriginalValue!, original.Text);
+        Assert.IsFalse(Field<TextEdit>(original.Page, "numberEdit").Visible);
+
+        var second = (await CreateWorkspaceCallAsync(services)) with { Revision = 2, State = CallState.Ringing };
+        await main.ObserveCallAsync(second);
+        var concurrent = main.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == second.Id);
+        Assert.AreNotSame(original, concurrent);
+        await main.ObserveCallAsync(first with { Revision = 3, State = CallState.Ended, EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Completed });
+        Assert.Contains("Gespräch beendet", Field<LabelControl>(original.Page, "callStatusLabel").Text);
+        Assert.AreSame(Field<TableLayoutPanel>(original.Page, "statusBar"), Field<LabelControl>(original.Page, "statusLabel").Parent);
+        if (reuse)
+        {
+            original.ClientSize = new Size(680, 500);
+            original.PerformLayout();
+            Application.DoEvents();
+            CheckTableBounds(original);
+            var output = Path.Combine(RenderOutput(), "caller-window");
+            Directory.CreateDirectory(output);
+            using var screenshot = UiAudit.Capture(original);
+            screenshot.Save(Path.Combine(output, "ended.png"), System.Drawing.Imaging.ImageFormat.Png);
+        }
+
+        var third = (await CreateWorkspaceCallAsync(services)) with
+        {
+            Revision = 2, State = CallState.Ringing, RemoteAddress = new(NumberPresentation.Withheld, "030555555")
+        };
+        await main.ObserveCallAsync(third);
+        var selected = main.OwnedForms.OfType<FrmCallerLookup>().Single(window => window.CallId == third.Id);
+        Assert.AreEqual(reuse, ReferenceEquals(original, selected));
+        Assert.Contains("Rufnummer unterdrückt", selected.Text);
+        Assert.DoesNotContain("030555555", selected.Text);
+        Assert.AreEqual(second.Id, concurrent.CallId);
+        await main.PrepareToCloseAsync();
+    });
+}

@@ -15,6 +15,7 @@ public sealed record UserSettings
     public string? ActivePluginId { get; init; }
     public CompanyKey? PreferredCompany { get; init; }
     public bool ShowCallNotifications { get; init; } = true;
+    public bool ReuseCallDialog { get; init; }
     public bool StartMinimized { get; init; }
     [System.Text.Json.Serialization.JsonInclude]
     [System.Text.Json.Serialization.JsonPropertyName("useDirectXRendering")]

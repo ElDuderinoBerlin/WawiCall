@@ -65,23 +65,34 @@ public partial class CallerLookupPage : XtraUserControl
         searchButton.Enabled = workspace.CanUseBusinessDirectory;
     }
     internal CallerMatchDecision? Decision => _decision;
-    internal void BindCall(WawiCallPro.Interfaces.Telephony.CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
     internal void BindNotes(CallNotesSession notes)
     {
         notesPanel.Bind(notes);
         notesTab.PageVisible = true;
         _state?.RestoreTab(tabs, "CallerLookup");
     }
+    internal void BindCall(CallSnapshot call, Func<CallerMatchDecision, CancellationToken, Task> accept)
     {
         _boundCall = call;
         _accept = accept;
         _boundLine = (_workspace?.Telephony as ICallLineContextProvider)?.GetLineContext(call.Id);
-        numberEdit.Text = call.RemoteAddress.Presentation == NumberPresentation.Available ? call.RemoteAddress.OriginalValue ?? call.RemoteAddress.E164 ?? "" : "";
-        numberEdit.Properties.ReadOnly = true;
-        numberEdit.ToolTip = "Rufnummer dieses Anrufs. Unterdrückte oder unbekannte Nummern werden nicht ergänzt.";
+        filters.Visible = false;
+        statusLabel.Text = "";
     }
+
+    internal void ObserveCallAddress(CallSnapshot call)
+    {
+        if (_boundCall?.Id == call.Id) _boundCall = call;
+    }
+
+    internal void DisplayCallStatus(string status)
+    {
+        callStatusLabel.Text = status;
+        callStatusLabel.Visible = status.Length != 0;
+    }
+
     internal async Task EndCallAsync()
-    { _callEnded = true; await StopAsync(); chooseButton.Enabled = searchButton.Enabled = cancelButton.Enabled = false; statusLabel.Text = "Gespräch beendet. Die bisherige Auswahl bleibt in der Historie erhalten."; }
+    { _callEnded = true; await StopAsync(); chooseButton.Enabled = searchButton.Enabled = cancelButton.Enabled = false; statusLabel.Text = "Die bisherige Auswahl bleibt in der Historie erhalten."; }
     internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
     private void DisposePage()
     {
@@ -99,13 +110,18 @@ public partial class CallerLookupPage : XtraUserControl
             statusLabel.Text = "Rufnummernsuche ist gesperrt. Telefonie bleibt verfügbar; Details stehen im Log-Fenster.";
             return;
         }
-        var number = numberEdit.Text.Trim();
-        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(new(NumberPresentation.Available, number), _boundLine);
+        var address = _boundCall?.RemoteAddress ?? new(NumberPresentation.Available, numberEdit.Text.Trim());
+        if (address.Presentation == NumberPresentation.Available && string.IsNullOrWhiteSpace(address.OriginalValue))
+            address = address with { OriginalValue = address.E164 };
+        var number = address.OriginalValue ?? "";
+        var incoming = _workspace.PhoneInterpreter.InterpretIncoming(address, _boundLine);
         if (incoming.Kind != PhoneNumberAddressKind.Public)
         {
             _decision = null; grid.DataSource = Array.Empty<CandidateRow>();
             selectionLabel.Text = "Keine Zuordnung."; chooseButton.Enabled = false;
-            statusLabel.Text = "Bitte eine gültige Rufnummer mit Ländervorwahl eingeben. Interne oder unterdrückte Nummern ergeben keine öffentliche Zuordnung.";
+            statusLabel.Text = _boundCall is null
+                ? "Bitte eine gültige Rufnummer mit Ländervorwahl eingeben."
+                : "Für diese Rufnummer ist keine öffentliche Anrufzuordnung möglich.";
             return;
         }
         await _operation.RunAsync(async token =>

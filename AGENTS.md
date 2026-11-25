@@ -262,6 +262,9 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ### Bündige Eingabefelder in Dialogen
 
+- Die Anrufzuordnung verwendet kompakte, zusammenhängende Aktionszeilen in einem
+  `TableLayoutPanel`. Gesprächs-, Aufnahme- und Suchstatus stehen in der Statusleiste
+  am unteren Fensterrand. Bei einem gebundenen Anruf steht die Rufnummer im Fenstertitel.
 - Zusammengehörige Beschriftungen und Eingabefelder eines Dialogs in einem gemeinsamen
   `System.Windows.Forms.TableLayoutPanel` anordnen. Alle Edit-Controls beginnen links bündig in
   derselben Eingabespalte, auch wenn manche Felder wie Dateipfade breiter sind. Keine getrennten

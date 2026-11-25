@@ -32,10 +32,10 @@ public partial class MainForm
         if (_callPages.TryGetValue(call.Id, out var existing))
         {
             await existing.Page.ObserveAsync(call);
-            foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Id))
+            foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Id).ToArray())
             {
                 lookup.ObserveCall(existing.Page.Call);
-                if (existing.Page.Call.State is CallState.Ended or CallState.Failed) await lookup.Page.EndCallAsync();
+                if (existing.Page.Call.State is CallState.Ended or CallState.Failed) await lookup.CompleteCallAsync(call.Id);
             }
             await ShowCallNotificationAsync(existing.Page);
             return;
@@ -66,21 +66,42 @@ public partial class MainForm
             return;
         }
         using var waiting = new UiWaitCursor(this);
-        var lookup = CreateCallerDialog();
+        FrmCallerLookup? reusable = null;
+        if (incoming && page.Call.Direction == CallDirection.Incoming)
+        {
+            reusable = OwnedForms.OfType<FrmCallerLookup>().LastOrDefault(form => form.CanReuse);
+            if (reusable is not null)
+            {
+                var settings = await _workspace!.Settings.LoadAsync(_telephonyUiLifetime.Token);
+                if (_closing || page.IsDisposed || page.Call.State is CallState.Ended or CallState.Failed
+                    || OwnedForms.OfType<FrmCallerLookup>().Any(form => form.CallId == page.Call.Id && !form.IsDisposed)) return;
+                if (!settings.Options.User.ReuseCallDialog || !settings.Options.User.ShowCallNotifications || !reusable.CanReuse)
+                    reusable = null;
+            }
+        }
+        reusable?.PrepareForReuse();
+        var lookup = reusable ?? CreateCallerDialog();
         lookup.BindCall(page.Call, page.AcceptAsync);
         lookup.BindNotes(page.Notes);
+        var callerPage = lookup.Page;
         if (_backgroundRun) lookup.PrepareForBackgroundRun();
         // Retain lookup/selection work for every call, even when automatic windows are disabled.
         // Ownership also keeps the hidden window in the normal close/cancellation lifecycle.
         lookup.Owner = this;
         if (incoming) await ShowCallNotificationAsync(page);
         else { _callNotificationsHandled.Add(page.Call.Id); lookup.Show(this); }
-        await lookup.Page.SearchAsync();
+        if (page.Call.State is CallState.Ended or CallState.Failed)
+        {
+            await lookup.CompleteCallAsync(page.Call.Id);
+            return;
+        }
+        await callerPage.SearchAsync();
         await page.Notes.LoadAsync();
     }
     private async Task ShowCallNotificationAsync(CallDetailsPage page)
     {
         if (_closing || page.IsDisposed || page.Call.Direction != CallDirection.Incoming || page.Call.State != CallState.Ringing
+            || !OwnedForms.OfType<FrmCallerLookup>().Any(form => form.CallId == page.Call.Id && !form.IsDisposed)
             || !_callNotificationsHandled.Add(page.Call.Id)) return;
         try
         {

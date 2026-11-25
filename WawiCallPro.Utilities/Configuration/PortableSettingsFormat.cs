@@ -21,7 +21,8 @@ internal static class PortableSettingsFormat
 
     internal static byte[] Encode(ApplicationOptions options) => JsonSerializer.SerializeToUtf8Bytes(new Document(2, "WawiCallPro",
         new(options.User.LogLevel, options.User.LogDirectory, options.User.ShowCallNotifications, options.User.StartMinimized,
-            options.User.ShowWindowHotkey, options.User.DialHotkey) { LoggingEnabled = options.User.LoggingEnabled },
+            options.User.ShowWindowHotkey, options.User.DialHotkey)
+            { LoggingEnabled = options.User.LoggingEnabled, ReuseCallDialog = options.User.ReuseCallDialog },
         new(options.Devices.PlaybackVolumePercent, options.Devices.RingVolumePercent, options.Devices.MicrophoneMuted)) { MailCache = options.MailCache }, JsonOptions);
 
     internal static ApplicationOptions Decode(ReadOnlyMemory<byte> bytes, ApplicationOptions local)
@@ -38,6 +39,7 @@ internal static class PortableSettingsFormat
                 MailCache = document.MailCache ?? local.MailCache,
                 User = local.User with { LoggingEnabled = user.LoggingEnabled, LogLevel = user.LogLevel, LogDirectory = user.LogDirectory,
                     ShowCallNotifications = user.ShowCallNotifications, StartMinimized = user.StartMinimized,
+                    ReuseCallDialog = user.ReuseCallDialog ?? local.User.ReuseCallDialog,
                     ShowWindowHotkey = user.ShowWindowHotkey, DialHotkey = user.DialHotkey },
                 Devices = local.Devices with { PlaybackVolumePercent = audio.PlaybackVolumePercent, RingVolumePercent = audio.RingVolumePercent, MicrophoneMuted = audio.MicrophoneMuted }
             };
@@ -52,6 +54,7 @@ internal static class PortableSettingsFormat
         bool StartMinimized, string? ShowWindowHotkey, string? DialHotkey)
     {
         public bool LoggingEnabled { get; init; } = true;
+        public bool? ReuseCallDialog { get; init; }
         [JsonInclude]
         [JsonPropertyName("useDirectXRendering")]
         internal bool LegacyDirectXRendering { init { } }
