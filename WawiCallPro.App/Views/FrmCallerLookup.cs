@@ -98,7 +98,7 @@ public partial class FrmCallerLookup : XtraForm
     {
         statusText.ItemAppearance.Normal.Font = Font;
         statusText.ItemAppearance.Normal.Options.UseFont = true;
-        statusDock.MinimumSize = new Size(0, Font.Height);
+        statusDock.MinimumSize = new Size(0, Font.Height + LogicalToDeviceUnits(6));
     }
 
     private void DisplayCallStatus(string status)
@@ -110,9 +110,9 @@ public partial class FrmCallerLookup : XtraForm
     private void UpdateStatusBar()
     {
         var lookupStatus = callerPage.StatusText;
-        statusText.Caption = _ended ? "" : _callStatus.Length == 0 ? lookupStatus :
+        statusText.Caption = _ended ? "Bereit" : _callStatus.Length == 0 ? lookupStatus :
             lookupStatus.Length == 0 ? _callStatus : _callStatus + "\n" + lookupStatus;
-        statusText.Hint = statusText.Caption;
+        statusText.Hint = _ended ? "" : statusText.Caption;
     }
 
     private void UpdateCaption(CallSnapshot call)

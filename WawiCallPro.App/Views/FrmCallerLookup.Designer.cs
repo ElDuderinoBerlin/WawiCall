@@ -19,7 +19,7 @@ partial class FrmCallerLookup
         statusManager = new DevExpress.XtraBars.BarManager(components);
         statusBar = new DevExpress.XtraBars.Bar();
         statusText = new DevExpress.XtraBars.BarStaticItem();
-        statusDock = new DevExpress.XtraBars.BarDockControl();
+        statusDock = new DevExpress.XtraBars.StandaloneBarDockControl();
         ((System.ComponentModel.ISupportInitialize)statusManager).BeginInit();
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -36,7 +36,9 @@ partial class FrmCallerLookup
         Controls.Add(layout);
         Controls.Add(statusDock);
         statusDock.Name = "statusDock";
+        statusDock.AutoSize = true;
         statusDock.Dock = System.Windows.Forms.DockStyle.Bottom;
+        statusDock.Border = DevExpress.XtraBars.BarDockControlBorder.Top;
         statusDock.AccessibleRole = System.Windows.Forms.AccessibleRole.StatusBar;
         statusDock.Manager = statusManager;
         statusManager.Bars.Add(statusBar);
@@ -46,9 +48,12 @@ partial class FrmCallerLookup
         statusManager.MaxItemId = 1;
         statusManager.StatusBar = statusBar;
         statusBar.BarName = "Statusleiste";
-        statusBar.DockStyle = DevExpress.XtraBars.BarDockStyle.Bottom;
+        statusBar.DockStyle = DevExpress.XtraBars.BarDockStyle.Standalone;
+        statusBar.StandaloneBarDockControl = statusDock;
         statusBar.OptionsBar.AllowQuickCustomization = false;
+        statusBar.OptionsBar.DrawBorder = true;
         statusBar.OptionsBar.DrawDragBorder = false;
+        statusBar.OptionsBar.DrawSizeGrip = true;
         statusBar.OptionsBar.UseWholeRow = true;
         statusBar.ItemLinks.Add(statusText);
         statusText.Id = 0;
@@ -73,5 +78,5 @@ partial class FrmCallerLookup
     private DevExpress.XtraBars.BarManager statusManager;
     private DevExpress.XtraBars.Bar statusBar;
     private DevExpress.XtraBars.BarStaticItem statusText;
-    private DevExpress.XtraBars.BarDockControl statusDock;
+    private DevExpress.XtraBars.StandaloneBarDockControl statusDock;
 }

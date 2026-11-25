@@ -89,9 +89,13 @@ public sealed partial class AppShellTests
         Assert.DoesNotContain("Hamburg", concurrent.Text);
         await main.ObserveCallAsync(first with { Revision = 3, State = CallState.Ended, EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Completed });
         var status = Field<BarStaticItem>(original, "statusText");
-        Assert.IsTrue(string.IsNullOrWhiteSpace(status.Caption));
+        Assert.AreEqual("Bereit", status.Caption);
         Assert.AreSame(Field<Bar>(original, "statusBar"), status.Manager.StatusBar);
-        Assert.IsGreaterThan(0, Field<BarDockControl>(original, "statusDock").Height);
+        original.PerformLayout();
+        Application.DoEvents();
+        var dock = Field<StandaloneBarDockControl>(original, "statusDock");
+        Assert.AreSame(dock, status.Manager.StatusBar.StandaloneBarDockControl);
+        Assert.IsGreaterThan(0, dock.Height);
         if (reuse)
         {
             original.ClientSize = new Size(680, 500);
