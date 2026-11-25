@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <_LibPhoneNumberSource>$([System.String]::Copy('$(MSBuildProjectDirectory)').StartsWith('$(MSBuildThisFileDirectory)libphonenumber-csharp\'))</_LibPhoneNumberSource>
+  </PropertyGroup>
+
+  <!-- The upstream project takes its release version from the tag when packing. Match the tag pinned in deps.json. -->
+  <PropertyGroup Condition="'$(_LibPhoneNumberSource)' == 'true' and '$(MSBuildProjectName)' == 'PhoneNumbers'">
+    <Version>9.0.44</Version>
+  </PropertyGroup>
+
+  <!-- Build the metadata generator without copying its executable and runtime files into the hosts. -->
+  <ItemGroup Condition="'$(_LibPhoneNumberSource)' == 'true' and '$(MSBuildProjectName)' == 'PhoneNumbers'">
+    <ProjectReference Update="..\PhoneNumbers.MetadataBuilder\PhoneNumbers.MetadataBuilder.csproj" Private="false" />
+  </ItemGroup>
+
+  <Import Project="..\Directory.Build.targets" Condition="'$(_LibPhoneNumberSource)' != 'true'" />
+</Project>

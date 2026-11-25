@@ -14,6 +14,11 @@ Wir verwenden [libphonenumber-csharp](https://github.com/twcclegg/libphonenumber
 Normalisierung, Nummernprüfung und Rufnummern-Metadaten. Die Zuordnung zu Lexware-Firmen, Kunden,
 Lieferanten und Kontakten übernimmt unsere eigene Logik anhand des Telefon-Caches.
 
+`WawiCallPro.Core` baut die Bibliothek aus `src/libphonenumber-csharp`. Der Quellstand ist in
+`deps.json` fixiert und lässt sich mit `update-dependencies.bat -Name libphonenumber-csharp`
+bereitstellen. Bei einem Versionswechsel die Release-Version in `src/Directory.Build.targets`
+mit dem neuen Quellstand abgleichen.
+
 Die Suchfirmen und die Firma einer Fachansicht sind getrennte Zustände. Ein Anruf wird in allen
 angehakten, berechtigten Firmen gesucht. Jede geöffnete Fachansicht erhält anschließend genau einen
 vollständigen Firmen- und Geschäftspartnerkontext. Mehrere Treffer werden nicht über Kundennummer,

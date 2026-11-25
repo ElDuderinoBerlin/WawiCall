@@ -2,6 +2,7 @@
 **/obj/
 /src/CSCore/
 /src/NAudio/
+/src/libphonenumber-csharp/
 .artifacts/
 artifacts/
 .idea/

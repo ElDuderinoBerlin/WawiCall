@@ -122,6 +122,17 @@
       "projects": [
         "src/NAudio/NAudio.csproj"
       ]
+    },
+    {
+      "name": "libphonenumber-csharp",
+      "workspaceSubdir": "src",
+      "url": "https://github.com/twcclegg/libphonenumber-csharp.git",
+      "branch": "main",
+      "revision": "c04bd49d66d67f2bf1bcd9edc7ac0df0353c63b1",
+      "projects": [
+        "csharp/PhoneNumbers/PhoneNumbers.csproj",
+        "csharp/PhoneNumbers.MetadataBuilder/PhoneNumbers.MetadataBuilder.csproj"
+      ]
     }
   ]
 }
