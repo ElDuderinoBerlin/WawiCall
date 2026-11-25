@@ -43,6 +43,7 @@ public static class WawiCallHost
                 services.AddSingleton(ApplicationDescriptor.FromAssembly(entryAssembly));
                 services.AddSingleton(provider => ConfigurationLocation.ForCurrentUser(provider.GetRequiredService<ApplicationDescriptor>().ProductLine));
                 services.AddSingleton<ApplicationPaths>();
+                services.AddSingleton<RecordingArchive>();
                 services.AddSingleton<RuntimeFailureState>();
                 services.AddSingleton<RuntimeLoggingSettings>();
                 services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace));

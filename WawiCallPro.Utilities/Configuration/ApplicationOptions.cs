@@ -25,6 +25,7 @@ public sealed record ApplicationOptions
     public AudioDeviceSettings Devices { get; init; } = new();
     public AutomaticMp3Settings AutomaticMp3 { get; init; } = new();
     public RecordingOutputSettings? RecordingOutput { get; init; }
+    public RecordingStorageSettings RecordingStorage { get; init; } = new();
 
     public RecordingOutputSettings GetRecordingOutput() => RecordingOutput
         ?? (AutomaticMp3.Enabled

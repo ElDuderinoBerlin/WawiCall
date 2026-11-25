@@ -9,17 +9,25 @@ public sealed class ApplicationPaths
     {
         RootDirectory = Path.GetDirectoryName(configuration.FilePath)!;
         LogsDirectory = Path.Combine(RootDirectory, "logs");
-        RecordingsDirectory = Path.Combine(RootDirectory, "recordings");
+        DefaultRecordingsDirectory = Path.Combine(RootDirectory, "recordings");
         BackupsDirectory = Path.Combine(RootDirectory, "backups");
     }
 
     public string RootDirectory { get; }
     public string LogsDirectory { get; }
-    public string RecordingsDirectory { get; }
+    private RecordingStorageSettings _recordingStorage = new();
+    public string DefaultRecordingsDirectory { get; }
+    public string RecordingsDirectory => GetRecordingDirectory(_recordingStorage.Directory);
+    public string RecordingFileNamePattern => _recordingStorage.FileNamePattern;
     public string BackupsDirectory { get; }
 
     public string ResolveRecordingPath(string relativePath) => ResolveRelative(RecordingsDirectory, relativePath);
     public string ResolveBackupPath(string relativePath) => ResolveRelative(BackupsDirectory, relativePath);
+
+    internal string GetRecordingDirectory(string? configured) =>
+        configured is null ? DefaultRecordingsDirectory : RecordingArchive.NormalizeDirectory(configured);
+
+    internal void SetRecordingStorage(RecordingStorageSettings settings) => _recordingStorage = settings;
 
     private static string ResolveRelative(string root, string relativePath)
     {

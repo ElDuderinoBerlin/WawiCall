@@ -31,6 +31,9 @@ public static class HostExecution
         {
             OperationEvents.Write(logger, OperationEvent.HostStarting);
             services = host.Services.GetServices<IHostedService>().ToArray();
+            // Copying an archive can take longer than the hosted-service startup deadline.
+            if (host.Services.GetService<RecordingArchive>() is { } archive)
+                await archive.OpenAsync(cancellationToken);
             await host.StartAsync(cancellationToken);
             started = true;
             using var cancellation = cancellationToken.Register(lifetime.StopApplication);

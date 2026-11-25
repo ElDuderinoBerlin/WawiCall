@@ -41,6 +41,14 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (options.AutomaticMp3 is null || options.AutomaticMp3.Enabled && options.AutomaticMp3.SinceUtc is null ||
             options.AutomaticMp3?.SinceUtc is { } since && since.Offset != TimeSpan.Zero)
             issues.Add(new("automaticMp3", "Automatische MP3-Konvertierung benötigt einen gültigen Aktivierungszeitpunkt in UTC."));
+        try
+        {
+            if (options.RecordingStorage.Directory is { } directory) Operations.RecordingArchive.NormalizeDirectory(directory);
+            if (options.RecordingStorage.PendingDirectory is { } pending) Operations.RecordingArchive.NormalizeDirectory(pending);
+            RecordingFileName.Format(options.RecordingStorage.FileNamePattern, DateTimeOffset.UnixEpoch, Interfaces.Telephony.CallDirection.Outgoing, Guid.Empty,
+                new(Interfaces.Telephony.NumberPresentation.Available, new string('9', 40)));
+        }
+        catch (FormatException error) { issues.Add(new("recordingStorage", error.Message)); }
         ValidateDatabase(options.Database, issues);
         ValidateCompanies(options, issues);
         ValidateMail(options.MailAccounts, issues);

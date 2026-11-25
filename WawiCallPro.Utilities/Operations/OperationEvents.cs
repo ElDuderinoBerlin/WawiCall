@@ -95,7 +95,8 @@ public enum OperationEvent
     SettingsFunctionPluginExecutionFailed,
     SipRegistrationStarted,
     SipRegistrationSucceeded,
-    SipRegistrationStopped
+    SipRegistrationStopped,
+    RecordingArchiveSwitchPending
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -117,7 +118,7 @@ public static class OperationEvents
             or OperationEvent.SettingsProductPluginActiveCall or OperationEvent.SettingsProductPluginUnsavedChanges
             or OperationEvent.LexwareMissing or OperationEvent.LexwareCheckFailed or OperationEvent.GlobalHotkeyUnavailable or OperationEvent.GlobalHotkeyReleaseFailed
             or OperationEvent.RecordingArtifactUnavailable or OperationEvent.RecordingArtifactAuditIncomplete or OperationEvent.RecordingConversionRecoveryIncomplete or OperationEvent.RecordingConversionInterrupted or OperationEvent.RecordingConversionQueueIncomplete
-            or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete
+            or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete or OperationEvent.RecordingArchiveSwitchPending
             or OperationEvent.LiveRecordingSignalMissing or OperationEvent.LiveRecordingInputFailed
             or OperationEvent.LiveRecordingStorageFailed or OperationEvent.LiveRecordingUnavailable or OperationEvent.LiveRecordingFailed
             or OperationEvent.RecordingConversionSchemaUpdateRequired or OperationEvent.RecordingConversionNewerSchema

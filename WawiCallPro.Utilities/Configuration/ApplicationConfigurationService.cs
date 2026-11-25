@@ -6,6 +6,7 @@ namespace WawiCallPro.Utilities.Configuration;
 public sealed class ApplicationConfigurationService : IHostedService
 {
     private readonly ConfigurationStore _store;
+    private readonly WawiCallPro.Utilities.Operations.RecordingArchive? _archive;
     private readonly WawiCallPro.Utilities.Operations.RuntimeLoggingSettings? _logging;
     public ApplicationConfigurationService(ConfigurationStore store)
     {
@@ -15,6 +16,8 @@ public sealed class ApplicationConfigurationService : IHostedService
     }
     public ApplicationConfigurationService(ConfigurationStore store, WawiCallPro.Utilities.Operations.RuntimeLoggingSettings logging)
         : this(store) { _logging = logging; }
+    public ApplicationConfigurationService(ConfigurationStore store, WawiCallPro.Utilities.Operations.RuntimeLoggingSettings logging,
+        WawiCallPro.Utilities.Operations.RecordingArchive archive) : this(store, logging) => _archive = archive;
     private ConfigurationSnapshot? _current;
     private ConversationDeviceSelection _conversationDevices = new(null, null);
 
@@ -25,7 +28,8 @@ public sealed class ApplicationConfigurationService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var loaded = await _store.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var loaded = _archive is null ? await _store.LoadAsync(cancellationToken).ConfigureAwait(false)
+            : await _archive.OpenAsync(cancellationToken).ConfigureAwait(false);
         _logging?.Apply(loaded.Options.User);
         if (loaded.ProductFile is { } product) _logging?.ApplyProduct(new ProductAppSettings(product).Read(), loaded.Options.User);
         ApplyConversationDevices(loaded.Options.Devices);

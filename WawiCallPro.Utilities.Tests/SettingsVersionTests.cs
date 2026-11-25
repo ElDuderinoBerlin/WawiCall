@@ -17,6 +17,85 @@ namespace WawiCallPro.Utilities.Tests;
 public sealed class SettingsVersionTests
 {
     [TestMethod]
+    public async Task RecordingArchiveSwitchWaitsForOtherHostsAndPreservesTheSource()
+    {
+        using var directory = new SettingsDirectory();
+        var paths = new WawiCallPro.Utilities.Operations.ApplicationPaths(directory.Location);
+        var destination = Path.Combine(directory.Path, "new-archive");
+        var relative = Path.Combine("subfolder", "aufnahme.wav");
+        var oldFile = Path.Combine(paths.RecordingsDirectory, relative);
+        Directory.CreateDirectory(Path.GetDirectoryName(oldFile)!);
+        await File.WriteAllTextAsync(oldFile, "original");
+
+        using (var runningArchive = NewArchive(paths, directory.Store))
+        {
+            var running = new ApplicationConfigurationService(directory.Store, new(paths), runningArchive);
+            await running.StartAsync(CancellationToken.None);
+            var snapshot = await directory.Store.LoadAsync();
+            await directory.Store.SaveAsync(snapshot.Options with { RecordingStorage = new() { PendingDirectory = destination } }, snapshot);
+
+            var concurrentPaths = new WawiCallPro.Utilities.Operations.ApplicationPaths(directory.Location);
+            using var concurrentArchive = NewArchive(concurrentPaths, directory.Store);
+            var concurrent = new ApplicationConfigurationService(directory.Store, new(concurrentPaths), concurrentArchive);
+            await concurrent.StartAsync(CancellationToken.None);
+            Assert.AreEqual(paths.DefaultRecordingsDirectory, concurrentPaths.RecordingsDirectory);
+            Assert.AreEqual(destination, concurrent.Current.Options.RecordingStorage.PendingDirectory);
+            Assert.IsFalse(Directory.Exists(destination));
+            await concurrent.StopAsync(CancellationToken.None);
+            await running.StopAsync(CancellationToken.None);
+        }
+
+        var migratedPaths = new WawiCallPro.Utilities.Operations.ApplicationPaths(directory.Location);
+        using var migratedArchive = NewArchive(migratedPaths, directory.Store);
+        var migrated = new ApplicationConfigurationService(directory.Store, new(migratedPaths), migratedArchive);
+        await migrated.StartAsync(CancellationToken.None);
+        Assert.AreEqual(destination, migratedPaths.RecordingsDirectory);
+        Assert.IsNull(migrated.Current.Options.RecordingStorage.PendingDirectory);
+        Assert.AreEqual("original", await File.ReadAllTextAsync(migratedPaths.ResolveRecordingPath(relative)));
+        Assert.AreEqual("original", await File.ReadAllTextAsync(oldFile));
+        await migrated.StopAsync(CancellationToken.None);
+    }
+
+    [TestMethod]
+    public async Task RecordingArchiveSwitchKeepsOldRootWhenADestinationFileDiffers()
+    {
+        using var directory = new SettingsDirectory();
+        var paths = new WawiCallPro.Utilities.Operations.ApplicationPaths(directory.Location);
+        var destination = Path.Combine(directory.Path, "new-archive");
+        Directory.CreateDirectory(paths.RecordingsDirectory);
+        Directory.CreateDirectory(destination);
+        await File.WriteAllTextAsync(Path.Combine(paths.RecordingsDirectory, "aufnahme.wav"), "source");
+        await File.WriteAllTextAsync(Path.Combine(destination, "aufnahme.wav"), "target");
+        var snapshot = await directory.Store.LoadAsync();
+        await directory.Store.SaveAsync(snapshot.Options with { RecordingStorage = new() { PendingDirectory = destination } }, snapshot);
+
+        using var archive = NewArchive(paths, directory.Store);
+        var configuration = new ApplicationConfigurationService(directory.Store, new(paths), archive);
+        await configuration.StartAsync(CancellationToken.None);
+        Assert.AreEqual(paths.DefaultRecordingsDirectory, paths.RecordingsDirectory);
+        Assert.AreEqual(destination, configuration.Current.Options.RecordingStorage.PendingDirectory);
+        Assert.AreEqual("source", await File.ReadAllTextAsync(paths.ResolveRecordingPath("aufnahme.wav")));
+        Assert.AreEqual("target", await File.ReadAllTextAsync(Path.Combine(destination, "aufnahme.wav")));
+        await configuration.StopAsync(CancellationToken.None);
+    }
+
+    [TestMethod]
+    public void RecordingPatternUsesStableIdsAndRejectsPathSyntax()
+    {
+        var id = Guid.Parse("a31f0e03-3d61-4e74-8288-0abf04700102");
+        var date = new DateTimeOffset(2026, 11, 25, 10, 44, 16, TimeSpan.Zero);
+        var stem = RecordingFileName.Format("{Datum}_{Uhrzeit}_{Rufnummer}", date, Interfaces.Telephony.CallDirection.Incoming, id,
+            new(Interfaces.Telephony.NumberPresentation.Available, "030 123-456"));
+        Assert.AreEqual("2026-11-25_10-44-16_030123456_" + id.ToString("N"), stem);
+        Assert.AreEqual(id.ToString("N"), RecordingFileName.Format(RecordingFileName.IdPattern, date, null, id));
+        Assert.ThrowsExactly<FormatException>(() => RecordingFileName.Format("../{AufnahmeId}", date, null, id));
+        Assert.ThrowsExactly<FormatException>(() => RecordingFileName.Format("{NichtVorhanden}", date, null, id));
+    }
+
+    private static WawiCallPro.Utilities.Operations.RecordingArchive NewArchive(WawiCallPro.Utilities.Operations.ApplicationPaths paths, ConfigurationStore store) =>
+        new(paths, store, Microsoft.Extensions.Logging.Abstractions.NullLogger<WawiCallPro.Utilities.Operations.RecordingArchive>.Instance);
+
+    [TestMethod]
     public async Task VersionSixDefaultsToDisabledGlobalHotkeysAndVersionSevenPreservesOtherSettings()
     {
         using var directory = new SettingsDirectory();

@@ -43,6 +43,7 @@ public partial class MainForm
     internal FrmRecordingInventory CreateRecordingInventoryDialog()
     {
         var dialog = new FrmRecordingInventory(_workspace?.RecordingInventory, _state);
+        dialog.ShowRecordingDirectory(_workspace?.Paths.RecordingsDirectory);
         _state?.AttachWindow(dialog, "RecordingInventory-v1");
         if (_backgroundRun) dialog.PrepareForBackgroundRun();
         return dialog;

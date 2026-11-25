@@ -40,6 +40,13 @@ public sealed partial class FrmRecordingInventory : XtraForm
 
     protected override bool ShowWithoutActivation => _backgroundRun || base.ShowWithoutActivation;
 
+    internal void ShowRecordingDirectory(string? directory)
+    {
+        directoryLabel.Visible = directory is not null;
+        directoryLabel.Text = directory is null ? "" : "Geprüfter Aufnahmeordner: " + directory;
+        directoryLabel.ToolTip = directory;
+    }
+
     internal async Task RefreshAsync()
     {
         if (_inventory is null || _closing || _operation.IsRunning) return;

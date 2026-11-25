@@ -3,6 +3,7 @@ using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Database.Contracts;
 
 namespace WawiCallPro.Audio;
 
@@ -11,6 +12,8 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
     LivePcmRecordingFactory live, ApplicationPaths paths) : ISipLiveRecordingMediaSession
 {
     private readonly RecordingSipMediaSession _legacy = new(inner, recordings);
+    private readonly ICallRepository? _calls;
+    private readonly TimeProvider _clock = TimeProvider.System;
     private readonly SemaphoreSlim _commands = new(1);
     private readonly object _gate = new();
     private readonly CancellationTokenSource _closing = new();
@@ -20,6 +23,14 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
     private Task _watch = Task.CompletedTask;
     private CancellationTokenSource? _startup;
     private LiveRecordingSnapshot _status = new(Guid.Empty, null, LiveRecordingState.Idle);
+
+    internal LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplexPcmRecordingFactory recordings,
+        LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository? calls, TimeProvider clock)
+        : this(inner, recordings, live, paths)
+    {
+        _calls = calls;
+        _clock = clock;
+    }
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
     public ISipConversationAudio? ConversationAudio => inner.ConversationAudio;
     public IConversationPcmSource PcmSource => inner.PcmSource;
@@ -53,7 +64,15 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
             try
             {
                 if (inner.PcmSource is not IConversationPcmFailureSource source) throw new TelephonyException("RecordingUnavailable");
-                _recording = await live.StartAsync(source, new(callId, id, paths.ResolveRecordingPath(id.ToString("N") + ".wav")), linked.Token).ConfigureAwait(false);
+                var pattern = paths.RecordingFileNamePattern;
+                CallSnapshot? metadata = null;
+                if (_calls is not null && (pattern.Contains("{Richtung}", StringComparison.Ordinal) || pattern.Contains("{Rufnummer}", StringComparison.Ordinal)))
+                {
+                    try { metadata = (await _calls.GetAsync(callId, linked.Token).ConfigureAwait(false))?.History.Call; }
+                    catch (WawiCallPro.Database.DatabaseOperationException) { }
+                }
+                var fileName = RecordingFileName.Format(pattern, _clock.GetLocalNow(), metadata?.Direction, id, metadata?.RemoteAddress) + ".wav";
+                _recording = await live.StartAsync(source, new(callId, id, paths.ResolveRecordingPath(fileName)), linked.Token).ConfigureAwait(false);
                 linked.Token.ThrowIfCancellationRequested();
                 SetStatus(LiveRecordingState.Recording);
                 _watch = WatchInputAsync(_recording, _closing.Token);
@@ -157,6 +176,17 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
 public sealed class LivePersistedSipMediaSessionFactory(WindowsSipMediaSessionFactory media,
     IPersistedDuplexPcmRecordingFactory recordings, LivePcmRecordingFactory live, ApplicationPaths paths) : ISipMediaSessionFactory
 {
+    private readonly ICallRepository? _calls;
+    private readonly TimeProvider _clock = TimeProvider.System;
+
+    public LivePersistedSipMediaSessionFactory(WindowsSipMediaSessionFactory media, IPersistedDuplexPcmRecordingFactory recordings,
+        LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository calls, TimeProvider clock)
+        : this(media, recordings, live, paths)
+    {
+        _calls = calls;
+        _clock = clock;
+    }
+
     public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices) =>
-        new LiveRecordingMediaSession((ISipPcmMediaSession)media.Create(account, devices), recordings, live, paths);
+        new LiveRecordingMediaSession((ISipPcmMediaSession)media.Create(account, devices), recordings, live, paths, _calls, _clock);
 }

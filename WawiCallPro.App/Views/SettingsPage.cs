@@ -62,6 +62,7 @@ public partial class SettingsPage : XtraUserControl
     public SettingsPage()
     {
         InitializeComponent();
+        InitializeRecordingStorageEditor();
         SetSipPasswordVisibility(false);
         databaseLayout.Layout += DatabaseLayout_Changed;
         footer.SizeChanged += ButtonLayout_Changed;
@@ -104,6 +105,7 @@ public partial class SettingsPage : XtraUserControl
             UiButtonSizing.Apply(saveButton, cancelButton, importButton, exportButton);
             ArrangeTransferActions();
             UiButtonSizing.Apply(logDirectoryBrowseButton);
+            UiButtonSizing.Apply(recordingFolderBrowse, recordingFolderReset);
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
             var volumeSliderHeight = captureDeviceEdit.PreferredSize.Height;
@@ -318,6 +320,7 @@ public partial class SettingsPage : XtraUserControl
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
         automaticRecordingEdit.Checked = options.Devices.RecordConnectedCallsAutomatically;
         recordingFormatEdit.SelectedIndex = (int)options.GetRecordingOutput().Format - 1;
+        ApplyRecordingStorage(options.RecordingStorage);
         recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
@@ -349,6 +352,7 @@ public partial class SettingsPage : XtraUserControl
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
                 WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone },
             RecordingOutput = output,
+            RecordingStorage = ReadRecordingStorage(old.RecordingStorage),
             AutomaticMp3 = new(),
             Companies = ReadCompanySettings(old),
             MailAccounts = mailSettingsPage.ReadAccounts(),
@@ -488,6 +492,7 @@ public partial class SettingsPage : XtraUserControl
             var publishCompany = _pluginPageContext?.HasSelectionChanges == true;
             var company = _pluginPageContext is null ? null : await _pluginPageContext.ValidateSelectionAsync(token);
             var options = ReadOptions();
+            await ValidateRecordingDestinationAsync(options.RecordingStorage, token);
             await _workspace!.Settings.SaveAsync(options, _snapshot!, token);
             Apply(await _workspace.Settings.LoadAsync(token));
             if (publishCompany) await _workspace.Companies.SelectAsync(company);
@@ -514,7 +519,7 @@ public partial class SettingsPage : XtraUserControl
         await _operation.RunAsync(async token =>
         {
             await SaveAndOfferRestartAsync(() => XtraMessageBox.Show(FindForm(),
-            "Die geänderten Tastenkürzel wurden gespeichert und werden nach einem Neustart wirksam. Möchten Sie WawiCallPro jetzt neu starten?",
+            "Die geänderten Startoptionen wurden gespeichert. Möchten Sie WawiCallPro jetzt neu starten?",
             "Neustart erforderlich", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes, token);
             saved = true;
         });
@@ -542,13 +547,14 @@ public partial class SettingsPage : XtraUserControl
     }
     internal async Task SaveAndOfferRestartAsync(Func<bool> confirm, CancellationToken token)
     {
-        var previous = _snapshot!.Options.User;
+        var previous = _snapshot!.Options;
         await SaveAsync(token);
-        var saved = _snapshot.Options.User;
-        var restartNeeded = RestartSettingsDiffer(saved, _workspace!.Configuration.Current.Options.User);
+        var saved = _snapshot.Options;
+        var running = _workspace!.Configuration.Current.Options;
+        var restartNeeded = RestartSettingsDiffer(saved.User, running.User) || saved.RecordingStorage != running.RecordingStorage;
         if (restartNeeded)
             ReportSettingsNotice(WawiCallPro.Utilities.Operations.OperationEvent.SettingsRestartRequired);
-        if (RestartSettingsDiffer(saved, previous) && restartNeeded && confirm())
+        if ((RestartSettingsDiffer(saved.User, previous.User) || saved.RecordingStorage != previous.RecordingStorage) && restartNeeded && confirm())
             RestartRequested?.Invoke(this, EventArgs.Empty);
     }
     private static bool RestartSettingsDiffer(UserSettings first, UserSettings second) =>

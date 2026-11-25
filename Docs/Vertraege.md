@@ -338,6 +338,20 @@ seit Phase 3, Punkt 1 festgelegt, Rohverbindungen bleiben Implementierungsdetail
 wird ausdrücklich modelliert; Dateipfade sind relativ
 zum konfigurierten Aufnahmeverzeichnis. Implementierungen müssen diese Grenze bei Dateioperationen prüfen.
 
+Seit Einstellungsformat 21 enthält der lokale Abschnitt `recordingStorage` das Dateinamensmuster,
+den aktiven Ordner und gegebenenfalls das vorgemerkte Ziel. Unter **Einstellungen → Audio → Aufnahme**
+lassen sich Ordner, Platzhalter und Vorschau bearbeiten. Ohne eigene Einstellung gelten der Profilordner
+`recordings` und `{AufnahmeId}`. Verfügbare Platzhalter sind Datum, Uhrzeit, Richtung, Rufnummer und
+Aufnahme-ID. Fehlt die Aufnahme-ID im Muster, fügt WawiCallPro sie an. Die Vorschau nutzt feste Beispieldaten,
+die Aufnahme verwendet die Metadaten des zugehörigen Gesprächs. Dateiendungen werden aus dem Format abgeleitet.
+Muster und Ordner werden nach einem Neustart wirksam. Das Muster betrifft neue Aufnahmen.
+
+Beim Start kopiert WawiCallPro für einen vorgemerkten Ordnerwechsel die Dateien mit ihren relativen
+Pfaden. Die Einstellung wechselt erst nach Inhaltsprüfung und erfolgreicher Speicherung. Die Quelle
+bleibt erhalten. Bei einem Zielkonflikt oder einem weiteren aktiven Host für das Profil bleibt der bisherige
+Ordner aktiv. Bereits identische Kopien können bei einem erneuten Versuch weiterverwendet werden.
+Die Diagnose **Audio → Dateien → Aufnahmebestand prüfen** zeigt den aktuell verwendeten Ordner an.
+
 Historienseiten sind nach Beginn absteigend und anschließend Gesprächs-ID geordnet. Zeitfilter verwenden
 UTC mit inklusivem Beginn und exklusivem Ende. Ohne Mandantenfilter werden auch unzugeordnete Gespräche
 berücksichtigt. Gleichzeitige Mandanten-/Geschäftspartnerfilter müssen widerspruchsfrei sein.

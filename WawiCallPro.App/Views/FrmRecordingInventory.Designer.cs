@@ -15,6 +15,7 @@ partial class FrmRecordingInventory
         actions = new System.Windows.Forms.TableLayoutPanel();
         summaryLabel = new DevExpress.XtraEditors.LabelControl();
         hintLabel = new DevExpress.XtraEditors.LabelControl();
+        directoryLabel = new DevExpress.XtraEditors.LabelControl();
         reviewGrid = new DevExpress.XtraGrid.GridControl();
         reviewView = new DevExpress.XtraGrid.Views.Grid.GridView();
         pathColumn = new DevExpress.XtraGrid.Columns.GridColumn();
@@ -27,8 +28,9 @@ partial class FrmRecordingInventory
         layout.SuspendLayout();
         actions.SuspendLayout();
         layout.ColumnCount = 1;
-        layout.RowCount = 4;
+        layout.RowCount = 5;
         layout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -44,6 +46,9 @@ partial class FrmRecordingInventory
         hintLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         hintLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         hintLabel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 8);
+        directoryLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
+        directoryLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        directoryLabel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         reviewGrid.Dock = System.Windows.Forms.DockStyle.Fill;
         reviewGrid.AccessibleName = "Aufnahmedateien mit Prüfbedarf";
         reviewGrid.MainView = reviewView;
@@ -82,10 +87,11 @@ partial class FrmRecordingInventory
         closeButton.Click += Close_Click;
         actions.Controls.Add(refreshButton, 0, 0);
         actions.Controls.Add(closeButton, 2, 0);
-        layout.Controls.Add(summaryLabel, 0, 0);
-        layout.Controls.Add(hintLabel, 0, 1);
-        layout.Controls.Add(reviewGrid, 0, 2);
-        layout.Controls.Add(actions, 0, 3);
+        layout.Controls.Add(directoryLabel, 0, 0);
+        layout.Controls.Add(summaryLabel, 0, 1);
+        layout.Controls.Add(hintLabel, 0, 2);
+        layout.Controls.Add(reviewGrid, 0, 3);
+        layout.Controls.Add(actions, 0, 4);
         Controls.Add(layout);
         CancelButton = closeButton;
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
@@ -95,7 +101,7 @@ partial class FrmRecordingInventory
         StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
         ShowInTaskbar = false;
         Name = "FrmRecordingInventory";
-        Text = "Aufnahmeordner prüfen";
+        Text = "Aufnahmebestand prüfen";
         Shown += Inventory_Shown;
         FormClosing += Inventory_Closing;
         ((System.ComponentModel.ISupportInitialize)reviewView).EndInit();
@@ -109,6 +115,7 @@ partial class FrmRecordingInventory
     private System.Windows.Forms.TableLayoutPanel actions;
     private DevExpress.XtraEditors.LabelControl summaryLabel;
     private DevExpress.XtraEditors.LabelControl hintLabel;
+    private DevExpress.XtraEditors.LabelControl directoryLabel;
     private DevExpress.XtraGrid.GridControl reviewGrid;
     private DevExpress.XtraGrid.Views.Grid.GridView reviewView;
     private DevExpress.XtraGrid.Columns.GridColumn pathColumn;

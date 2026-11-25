@@ -21,7 +21,7 @@ public sealed partial class AppShellTests
         using var main = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
         main.PrepareForBackgroundRun();
         var item = Field<BarButtonItem>(main, "recordingInventoryItem");
-        Assert.AreEqual("Aufnahmeordner prüfen", item.Caption);
+        Assert.AreEqual("Aufnahmebestand prüfen", item.Caption);
         Assert.IsNotNull(item.ImageOptions.SvgImage);
         Assert.IsTrue(Field<RibbonPage>(main, "audioRibbon").Groups[0].ItemLinks.Any(link => link.Item == item));
 

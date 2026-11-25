@@ -152,7 +152,7 @@ partial class MainForm
         audioConvertItem.ItemClick += AudioConvert_Click;
         ribbon.Items.Add(audioConvertItem);
         audioToolsGroup.ItemLinks.Add(audioConvertItem);
-        recordingInventoryItem.Caption = "Aufnahmeordner prüfen";
+        recordingInventoryItem.Caption = "Aufnahmebestand prüfen";
         recordingInventoryItem.Hint = "Dateien im Aufnahmeordner mit dem lokalen Datenbankkatalog abgleichen.";
         recordingInventoryItem.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
         recordingInventoryItem.ItemClick += RecordingInventory_Click;
