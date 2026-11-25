@@ -3,6 +3,7 @@ using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.DependencyInjection;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
@@ -68,7 +69,7 @@ public sealed partial class AppShellTests
 
                 var recording = dialog.RecordAsync();
                 var capturePeak = 0;
-                try { capturePeak = await ObservePeakUntilAsync(Field<ProgressBarControl>(dialog, "capturePeak"), Task.Delay(TimeSpan.FromSeconds(6))); }
+                try { capturePeak = await ObservePeakUntilAsync(Field<AudioLevelMeter>(dialog, "capturePeak"), Task.Delay(TimeSpan.FromSeconds(6))); }
                 finally { dialog.StopAction(); }
                 await recording.WaitAsync(TimeSpan.FromSeconds(12));
                 var message = Field<LabelControl>(dialog, "statusLabel");
@@ -95,7 +96,7 @@ public sealed partial class AppShellTests
                 }
 
                 var elapsed = System.Diagnostics.Stopwatch.StartNew();
-                var playbackPeak = await ObservePeakUntilAsync(Field<ProgressBarControl>(dialog, "playbackPeak"),
+                var playbackPeak = await ObservePeakUntilAsync(Field<AudioLevelMeter>(dialog, "playbackPeak"),
                     dialog.PreviewAsync().WaitAsync(TimeSpan.FromSeconds(12)));
                 Assert.StartsWith("Wiedergabe beendet. Windows:", message.Text);
                 Assert.IsGreaterThan(TimeSpan.FromSeconds(4), elapsed.Elapsed);
@@ -111,7 +112,7 @@ public sealed partial class AppShellTests
         Assert.IsGreaterThan(0, maximumPlaybackPeak, "The dialog did not register a live playback peak.");
     }, configure: services => services.AddAudioConversion());
 
-    private static async Task<int> ObservePeakUntilAsync(ProgressBarControl meter, Task operation)
+    private static async Task<int> ObservePeakUntilAsync(AudioLevelMeter meter, Task operation)
     {
         var peak = meter.Position;
         while (!operation.IsCompleted)
@@ -196,8 +197,8 @@ public sealed partial class AppShellTests
                 Assert.IsFalse(File.Exists(draft));
                 Assert.AreEqual("voice", speech.SelectedVoice);
                 await dialog.PreviewAsync();
-                await AppComTelephonyTests.Until(() => Field<ProgressBarControl>(dialog, "capturePeak").Position == 34);
-                Assert.AreEqual(67, Field<ProgressBarControl>(dialog, "playbackPeak").Position);
+                await AppComTelephonyTests.Until(() => Field<AudioLevelMeter>(dialog, "capturePeak").Position == 34);
+                Assert.AreEqual(67, Field<AudioLevelMeter>(dialog, "playbackPeak").Position);
                 draft = audio.Draft;
                 dialog.ClientSize = new Size(665, 440);
                 if (points == 10F) dialog.Scale(new SizeF(1.5F, 1.5F));

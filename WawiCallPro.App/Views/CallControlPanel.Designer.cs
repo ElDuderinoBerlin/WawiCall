@@ -1,4 +1,6 @@
 #nullable disable
+using Quantarix.DevExpressExtensions.Controls;
+
 namespace WawiCallPro.App.Views;
 
 partial class CallControlPanel
@@ -30,14 +32,12 @@ partial class CallControlPanel
         volumeLabel = new DevExpress.XtraEditors.LabelControl();
         conversationVolume = new DevExpress.XtraEditors.SpinEdit();
         microphonePeakLabel = new DevExpress.XtraEditors.LabelControl();
-        microphonePeak = new DevExpress.XtraEditors.ProgressBarControl();
+        microphonePeak = new AudioLevelMeter();
         muteMicrophone = new DevExpress.XtraEditors.SimpleButton();
         playbackPeakLabel = new DevExpress.XtraEditors.LabelControl();
-        playbackPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        playbackPeak = new AudioLevelMeter();
         audioTimer = new System.Windows.Forms.Timer(components);
         ((System.ComponentModel.ISupportInitialize)conversationVolume.Properties).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)microphonePeak.Properties).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)playbackPeak.Properties).BeginInit();
         SuspendLayout();
         layout.ColumnCount = 1;
         layout.RowCount = 7;
@@ -187,6 +187,9 @@ partial class CallControlPanel
         microphonePeak.Name = "microphonePeak";
         microphonePeak.AccessibleName = "Mikrofonpegel";
         microphonePeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        microphonePeak.Size = new System.Drawing.Size(128, 11);
+        microphonePeak.MinimumSize = new System.Drawing.Size(56, 11);
+        microphonePeak.MaximumSize = new System.Drawing.Size(128, 0);
         microphonePeak.Margin = new System.Windows.Forms.Padding(4);
         playbackPeakLabel.Text = "Ausgabepegel";
         playbackPeakLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
@@ -194,6 +197,9 @@ partial class CallControlPanel
         playbackPeak.Name = "playbackPeak";
         playbackPeak.AccessibleName = "Ausgabepegel";
         playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        playbackPeak.Size = new System.Drawing.Size(128, 11);
+        playbackPeak.MinimumSize = new System.Drawing.Size(56, 11);
+        playbackPeak.MaximumSize = new System.Drawing.Size(128, 0);
         playbackPeak.Margin = new System.Windows.Forms.Padding(4);
         muteMicrophone.Name = "muteMicrophone";
         muteMicrophone.Text = "Stummschalten";
@@ -220,8 +226,6 @@ partial class CallControlPanel
         Name = "CallControlPanel";
         Size = new System.Drawing.Size(540, 82);
         ((System.ComponentModel.ISupportInitialize)conversationVolume.Properties).EndInit();
-        ((System.ComponentModel.ISupportInitialize)microphonePeak.Properties).EndInit();
-        ((System.ComponentModel.ISupportInitialize)playbackPeak.Properties).EndInit();
         ResumeLayout(false);
         PerformLayout();
     }
@@ -243,9 +247,9 @@ partial class CallControlPanel
     private DevExpress.XtraEditors.LabelControl volumeLabel;
     private DevExpress.XtraEditors.SpinEdit conversationVolume;
     private DevExpress.XtraEditors.LabelControl microphonePeakLabel;
-    private DevExpress.XtraEditors.ProgressBarControl microphonePeak;
+    private AudioLevelMeter microphonePeak;
     private DevExpress.XtraEditors.SimpleButton muteMicrophone;
     private DevExpress.XtraEditors.LabelControl playbackPeakLabel;
-    private DevExpress.XtraEditors.ProgressBarControl playbackPeak;
+    private AudioLevelMeter playbackPeak;
     private System.Windows.Forms.Timer audioTimer;
 }

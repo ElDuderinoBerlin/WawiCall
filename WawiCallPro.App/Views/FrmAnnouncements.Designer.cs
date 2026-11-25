@@ -1,4 +1,6 @@
 #nullable disable
+using Quantarix.DevExpressExtensions.Controls;
+
 namespace WawiCallPro.App.Views;
 
 partial class FrmAnnouncements
@@ -25,8 +27,8 @@ partial class FrmAnnouncements
         captureEdit = new DevExpress.XtraEditors.LookUpEdit();
         playbackLabel = new DevExpress.XtraEditors.LabelControl();
         playbackEdit = new DevExpress.XtraEditors.LookUpEdit();
-        capturePeak = new DevExpress.XtraEditors.ProgressBarControl();
-        playbackPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        capturePeak = new AudioLevelMeter();
+        playbackPeak = new AudioLevelMeter();
         meterTimer = new System.Windows.Forms.Timer(components);
         voiceLabel = new DevExpress.XtraEditors.LabelControl();
         voiceEdit = new DevExpress.XtraEditors.LookUpEdit();
@@ -72,7 +74,8 @@ partial class FrmAnnouncements
         choicesLayout.Controls.Add(captureEdit, 1, 0);
         capturePeak.Name = "capturePeak";
         capturePeak.AccessibleName = "Mikrofonpegel";
-        capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        capturePeak.Size = new System.Drawing.Size(128, 11);
         capturePeak.Margin = new System.Windows.Forms.Padding(4);
         choicesLayout.Controls.Add(capturePeak, 2, 0);
         playbackLabel.Text = "Wiedergabeausgabe";
@@ -87,7 +90,8 @@ partial class FrmAnnouncements
         choicesLayout.Controls.Add(playbackEdit, 1, 1);
         playbackPeak.Name = "playbackPeak";
         playbackPeak.AccessibleName = "Ausgabepegel beim Abspielen";
-        playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+        playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        playbackPeak.Size = new System.Drawing.Size(128, 11);
         playbackPeak.Margin = new System.Windows.Forms.Padding(4);
         choicesLayout.Controls.Add(playbackPeak, 2, 1);
         voiceLabel.Text = "Windows-Stimme";
@@ -175,8 +179,8 @@ partial class FrmAnnouncements
     private DevExpress.XtraEditors.LookUpEdit captureEdit;
     private DevExpress.XtraEditors.LabelControl playbackLabel;
     private DevExpress.XtraEditors.LookUpEdit playbackEdit;
-    private DevExpress.XtraEditors.ProgressBarControl capturePeak;
-    private DevExpress.XtraEditors.ProgressBarControl playbackPeak;
+    private AudioLevelMeter capturePeak;
+    private AudioLevelMeter playbackPeak;
     private System.Windows.Forms.Timer meterTimer;
     private DevExpress.XtraEditors.LabelControl voiceLabel;
     private DevExpress.XtraEditors.LookUpEdit voiceEdit;

@@ -3,6 +3,7 @@ using CSCore.Codecs.WAV;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
@@ -128,8 +129,8 @@ public sealed partial class AppShellTests
                 Assert.IsLessThanOrEqualTo(Field<LookUpEdit>(page, "captureDeviceEdit").Height + 2, volumeSlider.Height, label.Text);
             }
             Assert.AreEqual(Field<LookUpEdit>(page, "ringDeviceEdit").Left, ringtone.Left);
-            Assert.IsGreaterThan(Field<ProgressBarControl>(page, "ringPeak").Width, ringtone.Width);
-            Assert.IsGreaterThan(0, Field<ProgressBarControl>(page, "ringPeak").Height);
+            Assert.IsGreaterThan(Field<AudioLevelMeter>(page, "ringPeak").Width, ringtone.Width);
+            Assert.IsGreaterThan(0, Field<AudioLevelMeter>(page, "ringPeak").Height);
             Assert.IsLessThanOrEqualTo(button.Left, ringtone.Right);
             Assert.AreEqual(Field<SimpleButton>(page, "browseRingtoneButton").Width, button.Width);
             var folder = Path.Combine(RenderOutput(), "windows-ringtones", workspace.Application.ProductLine);
@@ -158,13 +159,13 @@ public sealed partial class AppShellTests
         var page = Field<SettingsPage>(dialog, "settingsPage");
         Assert.AreEqual(0, catalog.OpenMeters);
         dialog.SelectAutomationTab("settings-audio");
-        await AppComTelephonyTests.Until(() => Field<ProgressBarControl>(page, "capturePeak").Position == 34);
-        Assert.AreEqual(67, Field<ProgressBarControl>(page, "playbackPeak").Position);
-        Assert.AreEqual(67, Field<ProgressBarControl>(page, "ringPeak").Position);
+        await AppComTelephonyTests.Until(() => Field<AudioLevelMeter>(page, "capturePeak").Position == 34);
+        Assert.AreEqual(67, Field<AudioLevelMeter>(page, "playbackPeak").Position);
+        Assert.AreEqual(67, Field<AudioLevelMeter>(page, "ringPeak").Position);
         Assert.AreEqual(3, catalog.OpenMeters);
         dialog.SelectAutomationTab("settings-audio-levels");
         Assert.AreEqual(0, catalog.OpenMeters);
-        Assert.AreEqual(0, Field<ProgressBarControl>(page, "ringPeak").Position);
+        Assert.AreEqual(0, Field<AudioLevelMeter>(page, "ringPeak").Position);
         await dialog.StopAsync();
     });
 

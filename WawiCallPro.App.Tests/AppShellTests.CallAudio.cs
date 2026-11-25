@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using DevExpress.XtraEditors;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
@@ -60,21 +61,25 @@ public sealed partial class AppShellTests
                 var volume = Field<SpinEdit>(panel, "conversationVolume");
                 var mute = Field<SimpleButton>(detailsPanel, "muteMicrophone");
                 Assert.AreEqual(75m, volume.Value);
-                Assert.AreEqual(43, Field<ProgressBarControl>(panel, "microphonePeak").Position);
-                Assert.AreEqual(65, Field<ProgressBarControl>(detailsPanel, "playbackPeak").Position);
+                Assert.AreEqual(43, Field<AudioLevelMeter>(panel, "microphonePeak").Position);
+                Assert.AreEqual(65, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Position);
+                Assert.IsGreaterThanOrEqualTo(56, Field<AudioLevelMeter>(panel, "microphonePeak").Width);
+                Assert.IsGreaterThanOrEqualTo(56, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Width);
+                Assert.IsGreaterThanOrEqualTo(11, Field<AudioLevelMeter>(panel, "microphonePeak").Height);
+                Assert.IsGreaterThanOrEqualTo(11, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Height);
                 volume.Value = 40;
                 mute.PerformClick();
                 panel.Observe(call);
                 Assert.AreEqual(new(40, true, 0, 65), service.Audio);
                 Assert.AreEqual("Stumm aufheben", Field<SimpleButton>(panel, "muteMicrophone").Text);
-                Assert.AreEqual(0, Field<ProgressBarControl>(panel, "microphonePeak").Position);
+                Assert.AreEqual(0, Field<AudioLevelMeter>(panel, "microphonePeak").Position);
 
                 var prefix = $"{typeof(MainForm).Assembly.GetName().Name}-{fontSize:0}-{scale:0.0}";
                 using (var callerImage = UiAudit.Capture(dialog)) callerImage.Save(Path.Combine(output, prefix + "-caller.png"));
                 using (var detailsImage = UiAudit.Capture(detailsHost)) detailsImage.Save(Path.Combine(output, prefix + "-details.png"));
 
                 panel.Observe(call with { State = CallState.Held, Revision = call.Revision + 1 });
-                Assert.AreEqual(0, Field<ProgressBarControl>(panel, "playbackPeak").Position);
+                Assert.AreEqual(0, Field<AudioLevelMeter>(panel, "playbackPeak").Position);
                 panel.Observe(call with { State = CallState.Ended, Revision = call.Revision + 2 });
                 Assert.IsFalse(Field<TableLayoutPanel>(panel, "audioLayout").Visible);
                 Assert.IsFalse(Field<System.Windows.Forms.Timer>(panel, "audioTimer").Enabled);

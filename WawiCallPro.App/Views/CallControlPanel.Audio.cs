@@ -17,10 +17,18 @@ public partial class CallControlPanel
     private void UpdateAudio()
     {
         if (_disposed) return;
-        audioTimer.Enabled = CanControlAudio && Visible;
-        var audio = CanControlAudio ? ((IConversationAudioService)_telephony!).GetAudio(_call!.Id) : null;
-        audioLayout.Visible = audio is not null;
-        if (audio is null) return;
+        var canControlAudio = CanControlAudio;
+        audioTimer.Enabled = canControlAudio && Visible;
+        var audio = canControlAudio ? ((IConversationAudioService)_telephony!).GetAudio(_call!.Id) : null;
+        audioLayout.Visible = canControlAudio;
+        conversationVolume.Enabled = audio is not null;
+        if (audio is null)
+        {
+            microphonePeak.Clear();
+            playbackPeak.Clear();
+            muteMicrophone.Enabled = false;
+            return;
+        }
 
         _refreshingAudio = true;
         try

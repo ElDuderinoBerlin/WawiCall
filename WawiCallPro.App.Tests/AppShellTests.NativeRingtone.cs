@@ -3,6 +3,7 @@ using CSCore;
 using CSCore.Codecs.WAV;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.DependencyInjection;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Views;
 using WawiCallPro.Audio;
 using WawiCallPro.Interfaces.Audio;
@@ -66,7 +67,7 @@ public sealed partial class AppShellTests
         await page.SelectCustomRingtoneAsync(file);
         var slider = Field<TrackBarControl>(page, "ringVolumeSlider");
         var button = Field<SimpleButton>(page, "previewRingtoneButton");
-        var peak = Field<ProgressBarControl>(page, "ringPeak");
+        var peak = Field<AudioLevelMeter>(page, "ringPeak");
         slider.Value = 15;
         var playback = page.PreviewRingtoneAsync();
         try

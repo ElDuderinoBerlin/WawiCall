@@ -1,9 +1,9 @@
-using DevExpress.XtraEditors;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.Interfaces.Audio;
 
 namespace WawiCallPro.App.Hosting;
 
-internal sealed class EndpointMeterDisplay(ProgressBarControl bar, AudioEndpointDirection direction) : IDisposable
+internal sealed class EndpointMeterDisplay(AudioLevelMeter bar, AudioEndpointDirection direction) : IDisposable
 {
     private IAudioEndpointMeter? _meter;
     private string? _deviceId;
@@ -18,7 +18,8 @@ internal sealed class EndpointMeterDisplay(ProgressBarControl bar, AudioEndpoint
         var now = Environment.TickCount64;
         if (_deviceId != deviceId || now >= _reopenAfter && (_meter is null || deviceId is null))
         {
-            Dispose();
+            ReleaseMeter();
+            if (_deviceId != deviceId) bar.Clear();
             _deviceId = deviceId;
             _reopenAfter = now + 1500;
             _meter = factory.Open(direction, deviceId);
@@ -27,7 +28,7 @@ internal sealed class EndpointMeterDisplay(ProgressBarControl bar, AudioEndpoint
         var reading = _meter?.Read();
         if (reading is null && _meter is not null)
         {
-            Dispose();
+            ReleaseMeter();
             _reopenAfter = now + 1500;
         }
         bar.Position = reading?.PeakPercent ?? 0;
@@ -37,13 +38,18 @@ internal sealed class EndpointMeterDisplay(ProgressBarControl bar, AudioEndpoint
 
     public void Dispose()
     {
-        _meter?.Dispose();
-        _meter = null;
+        ReleaseMeter();
         _reopenAfter = 0;
         if (!bar.IsDisposed)
         {
-            bar.Position = 0;
+            bar.Clear();
             bar.ToolTip = "";
         }
+    }
+
+    private void ReleaseMeter()
+    {
+        _meter?.Dispose();
+        _meter = null;
     }
 }

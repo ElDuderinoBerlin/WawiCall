@@ -1,5 +1,7 @@
 #nullable disable
 
+using Quantarix.DevExpressExtensions.Controls;
+
 namespace WawiCallPro.App.Views;
 
 partial class SettingsPage
@@ -151,9 +153,9 @@ partial class SettingsPage
         captureDeviceLabel = new DevExpress.XtraEditors.LabelControl();
         playbackDeviceLabel = new DevExpress.XtraEditors.LabelControl();
         ringDeviceLabel = new DevExpress.XtraEditors.LabelControl();
-        capturePeak = new DevExpress.XtraEditors.ProgressBarControl();
-        playbackPeak = new DevExpress.XtraEditors.ProgressBarControl();
-        ringPeak = new DevExpress.XtraEditors.ProgressBarControl();
+        capturePeak = new AudioLevelMeter();
+        playbackPeak = new AudioLevelMeter();
+        ringPeak = new AudioLevelMeter();
         audioMeterTimer = new System.Windows.Forms.Timer(components);
         audioDeviceChangesTimer = new System.Windows.Forms.Timer(components);
         windowsRingtoneLabel = new DevExpress.XtraEditors.LabelControl();
@@ -884,7 +886,7 @@ partial class SettingsPage
         audioLayout.Controls.Add(captureDeviceEdit, 1, 0);
         capturePeak.Name = "capturePeak";
         capturePeak.AccessibleName = "Mikrofonpegel";
-        capturePeak.Size = new System.Drawing.Size(96, 18);
+        capturePeak.Size = new System.Drawing.Size(96, 11);
         capturePeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
         capturePeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         audioLayout.Controls.Add(capturePeak, 2, 0);
@@ -903,7 +905,7 @@ partial class SettingsPage
         audioLayout.Controls.Add(playbackDeviceEdit, 1, 1);
         playbackPeak.Name = "playbackPeak";
         playbackPeak.AccessibleName = "Pegel der Gesprächsausgabe";
-        playbackPeak.Size = new System.Drawing.Size(96, 18);
+        playbackPeak.Size = new System.Drawing.Size(96, 11);
         playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
         playbackPeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         audioLayout.Controls.Add(playbackPeak, 2, 1);
@@ -922,7 +924,7 @@ partial class SettingsPage
         audioLayout.Controls.Add(ringDeviceEdit, 1, 2);
         ringPeak.Name = "ringPeak";
         ringPeak.AccessibleName = "Pegel der Klingelausgabe";
-        ringPeak.Size = new System.Drawing.Size(96, 18);
+        ringPeak.Size = new System.Drawing.Size(96, 11);
         ringPeak.Anchor = System.Windows.Forms.AnchorStyles.Right;
         ringPeak.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         audioLayout.Controls.Add(ringPeak, 2, 2);
@@ -1559,9 +1561,9 @@ partial class SettingsPage
     private DevExpress.XtraEditors.LabelControl captureDeviceLabel;
     private DevExpress.XtraEditors.LabelControl playbackDeviceLabel;
     private DevExpress.XtraEditors.LabelControl ringDeviceLabel;
-    private DevExpress.XtraEditors.ProgressBarControl capturePeak;
-    private DevExpress.XtraEditors.ProgressBarControl playbackPeak;
-    private DevExpress.XtraEditors.ProgressBarControl ringPeak;
+    private AudioLevelMeter capturePeak;
+    private AudioLevelMeter playbackPeak;
+    private AudioLevelMeter ringPeak;
     private System.Windows.Forms.Timer audioMeterTimer;
     private System.Windows.Forms.Timer audioDeviceChangesTimer;
     private DevExpress.XtraEditors.LabelControl windowsRingtoneLabel;
