@@ -678,12 +678,12 @@ public sealed partial class AppShellTests
         Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F3, showWindow.Hotkey);
         Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F4, dial.Hotkey);
 
-        showWindow.Hotkey = Keys.Control | Keys.Alt | Keys.F11;
-        dial.Hotkey = Keys.None;
+        showWindow.Hotkey = Keys.None;
+        dial.Hotkey = Keys.F2;
         await page.SaveAsync(CancellationToken.None);
         var saved = (await workspace.Settings.LoadAsync()).Options.User;
-        Assert.AreEqual("Ctrl+Alt+F11", saved.ShowWindowHotkey);
-        Assert.IsNull(saved.DialHotkey);
+        Assert.IsNull(saved.ShowWindowHotkey);
+        Assert.AreEqual("F2", saved.DialHotkey);
         await settings.StopAsync();
     });
 

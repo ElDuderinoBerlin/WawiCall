@@ -43,30 +43,28 @@ internal sealed class AppHotkeyFactory(IAppHotkeyBackend backend, StartupExecuti
 internal sealed class AppHotkeySession(IntPtr window, IAppHotkeyBackend backend, Action<AppHotkeyAction> execute, ILogger logger) : IDisposable
 {
     internal const int MessageId = 0x0312;
-    internal const int Modifiers = 0x0001 | 0x0002;
-    private readonly Dictionary<int, (int Key, AppHotkeyAction Action)> _registered = [];
+    private const int NoRepeat = 0x4000;
+    private readonly Dictionary<int, (int Key, int Modifiers, AppHotkeyAction Action)> _registered = [];
     private bool _disposed;
 
     internal void Register(int id, string? combination, AppHotkeyAction action)
     {
         if (combination is null) return;
-        var functionKey = GlobalHotkeySettings.GetFunctionKey(combination);
-        if (functionKey == 0 || window == IntPtr.Zero || id > 0xBFFF)
+        if (!GlobalHotkeySettings.TryGetRegistration(combination, out var key, out var modifiers) || window == IntPtr.Zero || id > 0xBFFF)
         { OperationEvents.Write(logger, OperationEvent.GlobalHotkeyUnavailable); return; }
-        var key = 0x70 + functionKey - 1;
-        if (!backend.Register(window, id, Modifiers | 0x4000, key))
+        if (!backend.Register(window, id, modifiers | NoRepeat, key))
         {
             OperationEvents.Write(logger, OperationEvent.GlobalHotkeyUnavailable);
             return;
         }
-        _registered.Add(id, (key, action));
+        _registered.Add(id, (key, modifiers, action));
     }
 
     internal bool TryDispatch(IntPtr identifier, IntPtr data)
     {
         var id = identifier.ToInt64();
         if (_disposed || id is < 1 or > 0xBFFF || !_registered.TryGetValue((int)id, out var binding)) return false;
-        if (data.ToInt64() != ((long)binding.Key << 16 | Modifiers)) return false;
+        if (data.ToInt64() != ((long)binding.Key << 16 | (uint)binding.Modifiers)) return false;
         execute(binding.Action);
         return true;
     }

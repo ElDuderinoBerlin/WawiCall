@@ -31,11 +31,15 @@ public sealed class SettingsVersionTests
         Assert.AreEqual("Ctrl+Alt+F11", saved.Options.User.DialHotkey);
         Assert.IsTrue(saved.Options.User.StartMinimized);
         var bytes = await File.ReadAllBytesAsync(directory.Location.FilePath);
-        foreach (var invalid in new[] { "", "Ctrl+Alt+F0", "Ctrl+Alt+F12", "Win+F1", "Ctrl+Alt+F1 " })
+        foreach (var invalid in new[] { "", "Ctrl+Alt+F0", "Ctrl+Alt+F12", "Win+F1", "Ctrl+Alt+F1 ", "Alt+Ctrl+F1", "Ctrl+Ctrl+F1" })
             await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { DialHotkey = invalid } }, saved));
         await Assert.ThrowsExactlyAsync<ConfigurationException>(() => directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { DialHotkey = "Ctrl+Alt+F1" } }, saved));
         CollectionAssert.AreEqual(bytes, await File.ReadAllBytesAsync(directory.Location.FilePath));
-        await directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { ShowWindowHotkey = null, DialHotkey = null } }, saved);
+        await directory.Store.SaveAsync(saved.Options with { User = saved.Options.User with { ShowWindowHotkey = "Ctrl+Shift+F11", DialHotkey = "F2" } }, saved);
+        var updated = await directory.Store.LoadAsync();
+        Assert.AreEqual("Ctrl+Shift+F11", updated.Options.User.ShowWindowHotkey);
+        Assert.AreEqual("F2", updated.Options.User.DialHotkey);
+        await directory.Store.SaveAsync(updated.Options with { User = updated.Options.User with { ShowWindowHotkey = null, DialHotkey = null } }, updated);
         Assert.IsNull((await directory.Store.LoadAsync()).Options.User.DialHotkey);
     }
 

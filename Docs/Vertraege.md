@@ -847,8 +847,9 @@ DI-Kontextprovider diese Firmenvorgaben und der Interpreter wendet die lokale Vo
 Es gibt weiterhin kein automatisches Nachladen geänderter Startkonfigurationen.
 
 Seit Einstellungsformat 7 enthalten `user.showWindowHotkey` und `user.dialHotkey` optionale globale
-Tastenkürzel. `null` deaktiviert sie; zulässig sind die kanonischen Werte `Ctrl+Alt+F1` bis
-`Ctrl+Alt+F11`. Beide Aktionen benötigen unterschiedliche Kombinationen. Versionen 0–6 werden
+Tastenkürzel. `null` deaktiviert sie. Zulässig sind `F1` bis `F11` und die optionalen
+Modifikatortasten in der kanonischen Reihenfolge `Ctrl`, `Alt`, `Shift`, etwa `F2` oder
+`Ctrl+Alt+F1`. Beide Aktionen benötigen unterschiedliche Kombinationen. Versionen 0–6 werden
 weiterhin gelesen und bleiben beim Laden unverändert; ausdrückliches Speichern schreibt das aktuelle Format.
 Fehlende Felder aktivieren keine Tastenkürzel. Der zentrale Tab **Tastenkürzel** bietet die beiden
 Auswahlfelder; Änderungen werden wie DirectX erst nach einem Neustart wirksam. Ein Neustart wird

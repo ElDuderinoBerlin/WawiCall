@@ -13,17 +13,19 @@ public sealed class AppHotkeyTests
     {
         var backend = new HotkeyBackendDouble(); var actions = new List<AppHotkeyAction>();
         var factory = new AppHotkeyFactory(backend, new(false), NullLogger<AppHotkeyFactory>.Instance);
-        var settings = new UserSettings { ShowWindowHotkey = "Ctrl+Alt+F3", DialHotkey = "Ctrl+Alt+F4" };
+        var settings = new UserSettings { ShowWindowHotkey = "Ctrl+Alt+F3", DialHotkey = "F2" };
         using var session = factory.Create(new(42), settings, actions.Add);
         var show = backend.Registered[0]; var dial = backend.Registered[1];
         Assert.AreEqual(0x4003, show.Modifiers); Assert.AreEqual(0x72, show.Key);
+        Assert.AreEqual(0x4000, dial.Modifiers); Assert.AreEqual(0x71, dial.Key);
         Assert.IsFalse(session.TryDispatch(new(show.Id), MessageData(show.Key, 0)));
         Assert.IsFalse(session.TryDispatch(new(show.Id), MessageData(dial.Key)));
         Assert.IsFalse(session.TryDispatch(new(9999), MessageData(show.Key)));
         Assert.IsFalse(session.TryDispatch(new(long.MaxValue), MessageData(show.Key)));
         Assert.IsFalse(session.TryDispatch(new(show.Id), new(long.MaxValue)));
         Assert.IsTrue(session.TryDispatch(new(show.Id), MessageData(show.Key)));
-        Assert.IsTrue(session.TryDispatch(new(dial.Id), MessageData(dial.Key)));
+        Assert.IsFalse(session.TryDispatch(new(dial.Id), MessageData(dial.Key)));
+        Assert.IsTrue(session.TryDispatch(new(dial.Id), MessageData(dial.Key, 0)));
         CollectionAssert.AreEqual(new[] { AppHotkeyAction.ShowWindow, AppHotkeyAction.OpenDial }, actions);
         session.Dispose(); session.Dispose(); Assert.AreEqual(2, backend.Unregistered.Count);
         Assert.IsFalse(session.TryDispatch(new(show.Id), MessageData(show.Key)));

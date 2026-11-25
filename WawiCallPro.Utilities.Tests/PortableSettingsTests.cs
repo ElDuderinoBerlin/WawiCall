@@ -76,7 +76,7 @@ public sealed class PortableSettingsTests
             case "missing": node.AsObject().Remove("audio"); break;
             case "null": node["user"] = null; break;
             case "invalid-volume": node["audio"]!["ringVolumePercent"] = 101; break;
-            case "invalid-hotkeys": node["user"]!["dialHotkey"] = "F1"; break;
+            case "invalid-hotkeys": node["user"]!["dialHotkey"] = "F12"; break;
             case "integer-enum": node["user"]!["logLevel"] = 2; break;
         }
         var json = mode == "truncated" ? "{" : node.ToJsonString();
