@@ -160,6 +160,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("sipAccount.connection", "Erweiterte SIP-Einstellungen prüfen: IPv4-Bind-Adresse, lokaler Port 1–65535, Registrierung 60–86400 s, Timeout 1–120 s, Wiederholung 1–3600 s und Klingelzeit 5–600 s."));
         if (!IsValidUsername(account.Username))
             issues.Add(new("sipAccount.username", "Ein Benutzername ohne Leerraum und Steuerzeichen ist erforderlich."));
+        if (connection?.KeepAliveIntervalSeconds is < 0 or > 3600)
+            issues.Add(new("sipAccount.connection.keepAliveIntervalSeconds", "Das SIP-Keep-Alive-Intervall muss zwischen 0 und 3600 Sekunden liegen (0 = aus)."));
         if (account.AuthenticationUsername is not null && !IsValidUsername(account.AuthenticationUsername))
             issues.Add(new("sipAccount.authenticationUsername", "Der optionale Authentifizierungsname ist ungültig."));
         if (account.Password is null)

@@ -90,6 +90,7 @@ seltener benötigte Netzwerkwahl erscheint unter „Erweitert“.
 | Authentifizierungsname | Abweichender Anmeldename für die Authentifizierung | Optional; leer verwendet den SIP-Benutzernamen |
 | Kennwort | Kennwort dieses SIP-Kontos | Pflicht im bisherigen Kontomodell; DPAPI-geschützt und zweckgebunden speichern |
 | Lokaler SIP-Port | Port, auf dem dieser PC eingehende SIP-Nachrichten annimmt | 5060 entsprechend den Demos; Konflikte müssen sichtbar sein, kein stiller Wechsel |
+| SIP-Keep-Alive (s) | Sendet nach erfolgreicher Anmeldung regelmäßig SIP-OPTIONS an den registrierten Gegenpunkt | Pro Profil unter **Erweitert → Registrierung**, 0 = aus. Für das gezeigte FRITZ!Box-Profil sind 15 Sekunden einstellbar. Nach Änderung neu anmelden. |
 | Lokale Bind-Adresse / Netzwerkauswahl | Bei mehreren Netzadaptern/VPNs muss die gewünschte Schnittstelle nutzbar sein | Automatisch, zunächst IPv4 entsprechend den Demos; Expertenauswahl anbieten |
 | Registrierungsdauer | Gewünschte Lebensdauer der Registrierung | 120 Sekunden als geprüftes Demo-Profil; Serverantwort und erneute Anmeldung berücksichtigen |
 

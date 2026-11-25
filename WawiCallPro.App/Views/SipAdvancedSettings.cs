@@ -21,6 +21,9 @@ internal sealed class SipAdvancedSettings
     [DisplayName("Wiederholung (s)"), Category("Registrierung"), Description("Pause zwischen fehlgeschlagenen Anmeldeversuchen."), DefaultValue(30)]
     public int RetryIntervalSeconds { get; set; } = 30;
 
+    [DisplayName("SIP-Keep-Alive (s)"), Category("Registrierung"), Description("Intervall für SIP-OPTIONS an den Registrar nach erfolgreicher Anmeldung. 0 deaktiviert Keep-Alive."), DefaultValue(0)]
+    public int KeepAliveIntervalSeconds { get; set; }
+
     [DisplayName("Klingelzeit (s)"), Category("Anrufe"), Description("Maximale Dauer eines unbeantworteten Rufaufbaus."), DefaultValue(60)]
     public int RingTimeoutSeconds { get; set; } = 60;
 
@@ -37,6 +40,7 @@ internal sealed class SipAdvancedSettings
         RegistrationExpirySeconds = options.RegistrationExpirySeconds,
         RegistrationTimeoutSeconds = options.RegistrationTimeoutSeconds,
         RetryIntervalSeconds = options.RetryIntervalSeconds,
+        KeepAliveIntervalSeconds = options.KeepAliveIntervalSeconds,
         RingTimeoutSeconds = options.RingTimeoutSeconds,
         EnableG722 = options.EnableG722,
         AcceptRtpFromAny = options.AcceptRtpFromAny,
@@ -49,6 +53,7 @@ internal sealed class SipAdvancedSettings
         RegistrationExpirySeconds = RegistrationExpirySeconds,
         RegistrationTimeoutSeconds = RegistrationTimeoutSeconds,
         RetryIntervalSeconds = RetryIntervalSeconds,
+        KeepAliveIntervalSeconds = KeepAliveIntervalSeconds,
         RingTimeoutSeconds = RingTimeoutSeconds,
         EnableG722 = EnableG722,
         AcceptRtpFromAny = AcceptRtpFromAny,

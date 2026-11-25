@@ -426,6 +426,24 @@ public sealed partial class SipRuntimeTests
 
         internal string? LastRegisteredUsername => Volatile.Read(ref _lastRegistration)?.Header.From.FromURI.User;
 
+        internal async Task SetKeepAliveAsync(int seconds)
+        {
+            var snapshot = await _settings.LoadAsync();
+            var account = snapshot.Options.SipAccount!;
+            var selected = snapshot.Options.ActiveSipProfileId!.Value;
+            var profiles = SipProfileCatalog.Read(snapshot.Options).Select(profile =>
+                profile.Id == selected ? profile with
+                {
+                    Account = new()
+                    {
+                        Server = account.Server, Port = account.Port, Username = account.Username, Password = account.Password,
+                        Transport = account.Transport, Connection = account.Connection with { KeepAliveIntervalSeconds = seconds }
+                    }
+                } : profile);
+            await _settings.SaveAsync(SipProfileCatalog.Select(snapshot.Options,
+                [.. profiles], selected), snapshot);
+        }
+
         internal async Task SelectProfileAsync(Guid selected, Guid first, Guid second)
         {
             var snapshot = await _settings.LoadAsync();
@@ -434,7 +452,7 @@ public sealed partial class SipRuntimeTests
                 ? System.Collections.Immutable.ImmutableArray.Create(new SipAccountProfile(first, "First", account),
                     new SipAccountProfile(second, "Second", new SipAccountOptions
                     {
-                        Server = account.Server, Port = account.Port, Username = "second-user", Password = account.Password,
+                        Server = account.Server, Port = account.Port, Username = "second-user", Password = account.Password, Transport = account.Transport,
                         Connection = account.Connection
                     }))
                 : SipProfileCatalog.Read(snapshot.Options);

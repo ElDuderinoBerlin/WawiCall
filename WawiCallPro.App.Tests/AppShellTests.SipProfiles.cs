@@ -80,6 +80,7 @@ public partial class AppShellTests
         var firstId = (Guid)selector.EditValue;
         var advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
         advanced.RegistrationExpirySeconds = 240;
+        advanced.KeepAliveIntervalSeconds = 15;
         Action("AddSipProfile_Click");
         var secondId = (Guid)selector.EditValue;
         Assert.AreNotEqual(firstId, secondId);
@@ -92,6 +93,7 @@ public partial class AppShellTests
         Assert.AreEqual("", password.Text); Assert.IsTrue(password.Properties.UseSystemPasswordChar);
         advanced = (SipAdvancedSettings)Field<DevExpress.XtraVerticalGrid.PropertyGridControl>(page, "sipProperties").SelectedObject;
         Assert.AreEqual(240, advanced.RegistrationExpirySeconds);
+        Assert.AreEqual(15, advanced.KeepAliveIntervalSeconds);
         Assert.IsNull(page.ReadOptions().CallerLineAssignment);
         Toggle(); Assert.AreEqual("synthetic-office-secret", password.Text);
         selector.EditValue = secondId;
@@ -104,6 +106,8 @@ public partial class AppShellTests
         var saved = (await workspace.Settings.LoadAsync()).Options;
         Assert.AreEqual(2, saved.SipProfiles.Length); Assert.AreEqual(secondId, saved.ActiveSipProfileId);
         Assert.AreEqual("mobile.invalid", saved.SipAccount!.Server);
+        Assert.AreEqual(0, saved.SipAccount.Connection.KeepAliveIntervalSeconds);
+        Assert.AreEqual(15, saved.SipProfiles.Single(profile => profile.Id == firstId).Account!.Connection.KeepAliveIntervalSeconds);
         Assert.IsTrue(SipProfileCatalog.Read(saved).All(profile => profile.LineAssignment is null));
         Application.DoEvents(); CheckTableBounds(form);
         var directory = Path.Combine(RenderOutput(), "sip-profiles"); Directory.CreateDirectory(directory);

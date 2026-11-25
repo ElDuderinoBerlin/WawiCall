@@ -50,6 +50,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     private SIPTransport? _transport;
     private SIPRegistrationUserAgent? _registrar;
     private SIPEndPoint? _registeredPeer;
+    private PeriodicTimer? _keepAliveTimer;
     private IDisposable? _lease;
     private SipAccountOptions? _account;
     private Guid? _sipProfileId;
@@ -147,6 +148,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             };
             _agent = CreateAgent();
             using var password = _secrets.Unprotect(account.Password!, SipAccountOptions.PasswordPurpose);
+            var registrarAddress = Address(null);
             var contact = new SIPURI(SIPSchemesEnum.sip, System.Net.IPAddress.Any, 0)
             {
                 User = account.Username,
@@ -154,7 +156,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             };
             // Transient failures retry; a rejected account needs an explicit new login after correction.
             var registrar = new SIPRegistrationUserAgent(_transport, null, Address(account.Username!),
-                account.AuthenticationUsername ?? account.Username, password.Reveal(), null, Address(null).ToString(), contact,
+                account.AuthenticationUsername ?? account.Username, password.Reveal(), null, registrarAddress.ToString(), contact,
                 account.Connection.RegistrationExpirySeconds, null, account.Connection.RegistrationTimeoutSeconds,
                 account.Connection.RetryIntervalSeconds, 3, true);
             _registrar = registrar;
@@ -168,6 +170,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             registrar.RegistrationFailed += (_, _, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Failed, "RegistrationFailed"); };
             registrar.RegistrationRemoved += (_, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Stopped); };
             SetRegistration(RegistrationState.Registering);
+            if (account.Connection.KeepAliveIntervalSeconds > 0)
+            {
+                var timer = new PeriodicTimer(TimeSpan.FromSeconds(account.Connection.KeepAliveIntervalSeconds), _clock);
+                _keepAliveTimer = timer;
+                _ = SendKeepAlivesAsync(activeTransport, registrarAddress, timer);
+            }
             registrar.Start();
         }
         catch (OperationCanceledException) { CleanupTransport(); SetRegistration(RegistrationState.Stopped); throw; }
@@ -692,6 +700,8 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     }
     private void CleanupTransport()
     {
+        _keepAliveTimer?.Dispose();
+        _keepAliveTimer = null;
         _registrar?.Stop(false);
         _registrar = null;
         Volatile.Write(ref _registeredPeer, null);

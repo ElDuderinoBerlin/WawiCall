@@ -68,6 +68,7 @@ public sealed record SipConnectionOptions
     public int RegistrationExpirySeconds { get; init; } = 120;
     public int RegistrationTimeoutSeconds { get; init; } = 10;
     public int RetryIntervalSeconds { get; init; } = 30;
+    public int KeepAliveIntervalSeconds { get; init; }
     public int RingTimeoutSeconds { get; init; } = 60;
     public bool AcceptRtpFromAny { get; init; }
     public bool EnableG722 { get; init; } = true;
