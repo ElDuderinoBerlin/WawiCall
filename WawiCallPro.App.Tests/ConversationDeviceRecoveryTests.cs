@@ -254,6 +254,28 @@ public sealed class ConversationDeviceRecoveryTests
     }
 
     [TestMethod]
+    public async Task SipMediaCloseReleasesPlaybackWithoutInvalidatingTheRecording()
+    {
+        var hardware = new Hardware();
+        var selection = new ConversationDeviceSelection(null, "speaker-a");
+        await using var encoder = new PcmObservingAudioEncoder(new AudioEncoder());
+        await using var audio = new RecoveringConversationAudio(hardware, () => selection, encoder,
+            new(), false, TimeProvider.System, NullLogger.Instance);
+        var session = new VoIPMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio });
+        audio.SetAudioSinkFormat(Pcmu);
+        await audio.StartAudioSink();
+        audio.RefreshDevices();
+        var binding = audio.ReadPlaybackBinding();
+        var speaker = hardware.Current("speaker-a")!;
+
+        session.Close("Call ended");
+        await UntilAsync(() => speaker.Closed);
+
+        Assert.IsFalse(binding.Changed.IsCancellationRequested);
+        Assert.Throws<PcmRecordingException>(() => audio.ReadPlaybackBinding());
+    }
+
+    [TestMethod]
     public async Task NativeMutedPlaybackSwitchesBetweenTwoDevicesAndRecovers()
     {
         if (Environment.GetEnvironmentVariable("WCP_VERIFY_RECORDING_OUTPUT_DEVICE") != "1")

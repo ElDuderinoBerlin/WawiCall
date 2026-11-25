@@ -3846,6 +3846,15 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Testtons am gewählten Ausgabeendpunkt. Beide Hosts in Debug/Any CPU gebaut, je 22 gezielte
   Tests bestanden. Nachweise `.artifacts/phase9-native-loopback/`. Die Hörprobe mit einem echten
   Gespräch bleibt Teil von G1.
+  Pro-Liveversuch vom 25.11.2026: Das SIP-Gespräch wurde angenommen. Die Loopback-Aufnahme endete
+  mit `TimelineConflict`. Beide stummen Quellsegmente (je rund 15 Sekunden) sind erhalten. Die
+  anschließende Prüfung meldete das Jabra-Mikrofon als stumm. Der separate native Jabra-Ausgabetest
+  erfasste zweimal 1,99 Sekunden Testton. Der Sprachmitschnitt und die Wiederanbindung im laufenden
+  Gespräch bleiben offen. Nachweis `.artifacts/caller-region-caption/Pro-Jabra-loopback.log`.
+  ✅ Der reguläre SIPSorcery-Medienabschluss gibt das Ausgabegerät frei, ohne die laufende
+  Loopback-Aufnahme als Geräteverlust zu verwerfen. Ein Regressionstest mit `VoIPMediaSession.Close`
+  reproduzierte den fälschlichen Abbruch vor der Korrektur. Gerätewechsel und tatsächlicher Verlust
+  beenden weiterhin das betroffene Segment. Der korrigierte Ablauf ist mit echter Sprache erneut zu prüfen.
   ✅ Die Loopback-Zeitachse weist rückwärts laufende WASAPI-QPC-Zeitstempel auch innerhalb der
   bestehenden 50-ms-Drifttoleranz zurück. Gerätezähler und Zeitstempel müssen in derselben
   Reihenfolge voranschreiten. Ein Regressionstest weist einen Zeitstempelsprung um 1 ms nach.

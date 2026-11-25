@@ -349,7 +349,12 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
             _playback = next;
             _playbackChanged = next is null ? null : new();
         }
-        using (changed) changed?.Cancel();
+        // SIPSorcery closes the sink at hangup before the recording owner drains loopback.
+        // During the call, invalidating the playback binding still ends the current recording segment.
+        using (changed)
+        {
+            if (_playbackStarted || _stopping.IsCancellationRequested) changed?.Cancel();
+        }
         Release(previous);
         _peaks.ResetPlayback();
     }
