@@ -171,12 +171,25 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
 
     public void GotEncodedMediaFrame(EncodedAudioFrame frame)
     {
-        lock (_render)
+        var format = frame.AudioFormat;
+        if (format.IsEmpty()) return;
+        lock (_commands)
         {
-            if (!_playbackPaused && _playback is { } current && current.Format.Equals(frame.AudioFormat))
-                current.Device.Sink.GotEncodedMediaFrame(frame);
-            else if (!frame.AudioFormat.IsEmpty())
-                _encoder.DecodeAudio(frame.EncodedAudio, frame.AudioFormat);
+            // The SDP selection starts playback provisionally. SIPSorcery supplies the actual received format per frame.
+            if (_playbackStarted && !_stopping.IsCancellationRequested && !format.Equals(_receiveFormat) &&
+                _formats.Any(candidate => candidate.Codec == format.Codec && candidate.ClockRate == format.ClockRate &&
+                    candidate.RtpClockRate == format.RtpClockRate && candidate.ChannelCount == format.ChannelCount))
+            {
+                _receiveFormat = format;
+                RefreshPlayback(_selection().PlaybackId, format);
+            }
+            lock (_render)
+            {
+                if (!_playbackPaused && _playback is { } current && current.Format.Equals(format))
+                    current.Device.Sink.GotEncodedMediaFrame(frame);
+                else
+                    _encoder.DecodeAudio(frame.EncodedAudio, format);
+            }
         }
     }
 

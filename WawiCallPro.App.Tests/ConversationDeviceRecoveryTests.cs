@@ -254,6 +254,27 @@ public sealed class ConversationDeviceRecoveryTests
     }
 
     [TestMethod]
+    public async Task ReceivedCodecCanDifferFromTheInitialPlaybackFormat()
+    {
+        var hardware = new Hardware();
+        var selection = new ConversationDeviceSelection(null, "speaker-a");
+        await using var encoder = new PcmObservingAudioEncoder(new AudioEncoder());
+        await using var audio = new RecoveringConversationAudio(hardware, () => selection, encoder,
+            new(), true, TimeProvider.System, NullLogger.Instance);
+        audio.EnableNegotiatedAudio(Pcmu);
+        audio.RefreshDevices();
+        var initial = hardware.Current("speaker-a")!;
+        var actualFormat = new AudioFormat(SDPWellKnownMediaFormatsEnum.G722);
+        var payload = new AudioEncoder().EncodeAudio(Enumerable.Repeat((short)16000, 320).ToArray(), actualFormat);
+
+        audio.GotEncodedMediaFrame(new(0, actualFormat, 20, payload));
+
+        var current = hardware.Current("speaker-a")!;
+        Assert.IsTrue(initial.Closed);
+        Assert.AreEqual(1, current.Received);
+    }
+
+    [TestMethod]
     public async Task SipMediaCloseReleasesPlaybackWithoutInvalidatingTheRecording()
     {
         var hardware = new Hardware();

@@ -3859,6 +3859,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Beim nächsten Pro-Liveanruf am 25.11.2026 wurde die 16,98 Sekunden lange Stereo-WAV erfolgreich
   abgeschlossen. Die Mikrofonspur enthielt Signal, der Loopback-Kanal der Gegenstelle blieb stumm.
   Der beidseitige Sprachnachweis und die Wiederanbindung im laufenden Gespräch stehen weiter aus.
+  Ein Regressionstest reproduziert fehlende Wiedergabe, wenn der Empfangscodec vom zuerst gewählten
+  SDP-Format abweicht. Die Gesprächsausgabe übernimmt jetzt das tatsächliche unterstützte Format aus
+  dem empfangenen Frame. Der erneute Jabra-Liveversuch prüft den Effekt auf die Gegenstelle.
   ✅ Die Loopback-Zeitachse weist rückwärts laufende WASAPI-QPC-Zeitstempel auch innerhalb der
   bestehenden 50-ms-Drifttoleranz zurück. Gerätezähler und Zeitstempel müssen in derselben
   Reihenfolge voranschreiten. Ein Regressionstest weist einen Zeitstempelsprung um 1 ms nach.
