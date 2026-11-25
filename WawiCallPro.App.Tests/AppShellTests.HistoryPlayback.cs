@@ -64,9 +64,13 @@ public sealed partial class AppShellTests
         view.ShowEditor();
         Assert.IsInstanceOfType<ButtonEdit>(view.ActiveEditor);
         Assert.AreEqual("Abspielen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
+        Assert.IsNotNull(((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].ImageOptions.SvgImage);
         var click = typeof(HistoryPage).GetMethod("Playback_Click", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         click.Invoke(page, [view.ActiveEditor, new ButtonPressedEventArgs(((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0])]);
         Assert.AreEqual(available, await player.Started.Task.WaitAsync(TimeSpan.FromSeconds(3)));
+        view.ShowEditor();
+        Assert.IsInstanceOfType<ButtonEdit>(view.ActiveEditor);
+        Assert.AreEqual("Stoppen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
         var stop = page.StopAsync();
         await player.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(3));
         await stop;

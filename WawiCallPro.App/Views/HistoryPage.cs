@@ -56,6 +56,8 @@ public partial class HistoryPage : XtraUserControl
     public HistoryPage()
     {
         InitializeComponent();
+        playEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStart");
+        stopEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStop");
         grid.DataSource = Array.Empty<HistoryRow>();
         UiButtonSizing.Attach(this);
         fromEdit.DateTime = DateTime.Today.AddDays(-30);
@@ -112,13 +114,13 @@ public partial class HistoryPage : XtraUserControl
         SetMinimum(numberColumn, "+49 30 123456789");
         SetMinimum(stateColumn, "Verbunden");
         SetMinimum(durationColumn, "00:00:00");
-        SetMinimum(playbackColumn, "Abspielen");
+        SetMinimum(playbackColumn, "Abspielen", 20);
 
-        void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
+        void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample, int iconSpace = 0)
         {
             var header = TextRenderer.MeasureText(column.Caption, view.Appearance.HeaderPanel.Font).Width;
             var cell = TextRenderer.MeasureText(sample, view.Appearance.Row.Font).Width;
-            column.MinWidth = Math.Max(header, cell) + LogicalToDeviceUnits(24);
+            column.MinWidth = Math.Max(header, cell + LogicalToDeviceUnits(iconSpace)) + LogicalToDeviceUnits(24);
             if (column.Width < column.MinWidth) column.Width = column.MinWidth;
         }
     }
@@ -244,8 +246,7 @@ public partial class HistoryPage : XtraUserControl
         using var cancellation = new CancellationTokenSource();
         _playbackCancellation = cancellation;
         _playingCall = callId;
-        view.CloseEditor();
-        grid.Invalidate();
+        RefreshPlaybackRow(callId);
         statusLabel.Text = "Aufnahme wird geprüft und abgespielt …";
         try
         {
@@ -264,12 +265,15 @@ public partial class HistoryPage : XtraUserControl
         {
             _playbackCancellation = null;
             _playingCall = null;
-            if (!_stopping)
-            {
-                view.CloseEditor();
-                grid.Invalidate();
-            }
+            if (!_stopping) RefreshPlaybackRow(callId);
         }
+    }
+
+    private void RefreshPlaybackRow(Guid callId)
+    {
+        view.CloseEditor();
+        var handle = view.LocateByValue(nameof(HistoryRow.Id), callId);
+        if (handle >= 0) view.RefreshRow(handle);
     }
 
     internal Task LoadAsync() => _operation?.RunAsync(LoadCallsAsync) ?? Task.CompletedTask;
