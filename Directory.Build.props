@@ -36,4 +36,8 @@
     <OutputPath Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Tests')) or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.TestWorker')) or $([System.String]::Copy('$(MSBuildProjectDirectory)').Contains('\Fixtures\'))">bin\$(Configuration)\$(LexwareProductLineShortName)\</OutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(Configuration)' == 'Debug' and '$(WawiDebugComGeneration)' != ''">
+    <OutputPath>bin\ComDebug\$(LexwareProductLine)\$(WawiDebugComGeneration)\</OutputPath>
+    <BaseIntermediateOutputPath>obj\ComDebug\$(LexwareProductLine)\$(WawiDebugComGeneration)\</BaseIntermediateOutputPath>
+  </PropertyGroup>
 </Project>

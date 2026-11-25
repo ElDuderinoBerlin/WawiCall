@@ -11,6 +11,7 @@ internal sealed record ComRegistrationIdentity(Guid ClassId, string ProgId, stri
 {
     internal string? AssemblyPath { get; init; }
     internal Guid? ModuleId { get; init; }
+    internal bool RequireSameInstallationRoot { get; init; }
     internal string Command => "\"" + Executable + "\"" + Arguments;
     internal string ClassKey => @"CLSID\" + ClassId.ToString("B");
 }
@@ -98,6 +99,8 @@ internal sealed class UserComRegistration(IUserComRegistry registry)
                 {
                     var previous = ComRegistrationVersion.Compare(classBefore![Version], identity.Version);
                     var sameRoot = SamePath(classBefore[Root], identity.InstallationRoot) && SamePath(progBefore![Root], identity.InstallationRoot);
+                    if (identity.RequireSameInstallationRoot && !sameRoot)
+                        throw new InvalidOperationException("The Debug build cannot replace a different installation.");
                     if (classBefore[Version] != progBefore![Version] || previous > 0 && !(rollback && sameRoot)
                         || previous == 0 && !sameRoot) throw new InvalidOperationException("A newer or different installation owns this identity.");
                 }

@@ -30,6 +30,27 @@ Eine neuere oder andere gleich alte Installation wird nicht still durch eine alt
 Beim Umzug derselben Version zuerst die bisherige Installation regulär entfernen. Veraltete
 Deinstallationsaufrufe löschen die Registrierung der neueren Installation nicht.
 
+### COM aus einem Debug-Build
+
+Im Repository baut und registriert das folgende Skript die gewählte Edition aus einer separaten,
+vollständigen Debug-Ausgabe. Die Registrierung wird erst nach dem erfolgreichen Build umgestellt.
+
+```powershell
+.\scripts\register-debug-com.ps1 -ProductLine Pro
+.\scripts\register-debug-com.ps1 -ProductLine FinOffice
+```
+
+Die registrierte EXE liegt unter `WawiCallPro.App/bin/ComDebug/<Edition>/<Generation>/<Framework>`.
+Reguläre Builds und Editionswechsel unter `bin/Debug` bearbeiten diese Ausgabe nicht. Den Befehl nach
+gewünschten Codeänderungen erneut ausführen. Bereits gestartete Server verwenden ihre bisherige Ausgabe
+bis zum Prozessende. Frühere Generationen bleiben liegen, damit laufende oder gerade startende Clients
+ihre Dateien weiter vorfinden. Erst nach dem Ende aller betreffenden Prozesse und nach Prüfung des
+registrierten `LocalServer32`-Pfads alte Generationen entfernen.
+
+Eine bisherige Debug-Registrierung aus demselben Repository kann das Skript übernehmen. Eine Registrierung
+aus einer anderen Installation bleibt geschützt. `-PrepareOnly` erstellt die separate Ausgabe ohne
+Registrierung. Zum gezielten Entfernen die zuletzt registrierte EXE mit `/unregserver /user` aufrufen.
+
 ## VBS- und PowerShell-Testskripte
 
 Zusätzlich stehen [automation.vbs](../scripts/ComExamples/automation.vbs) und

@@ -73,6 +73,7 @@
   <!-- Framework upgrades must not leave an older executable as an alternative entry point. -->
   <Target Name="WawiRemoveLegacyHostFrameworkOutputs" BeforeTargets="PrepareForBuild"
           Condition="'$(DesignTimeBuild)' != 'true' and '$(TargetFramework)' == 'net11.0-windows10.0.19041.0'
+            and ('$(MSBuildProjectName)' != 'WawiCallPro.App' or '$(WawiDebugComGeneration)' == '')
             and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <PropertyGroup>
       <_WawiLegacyWindowsOutput>$(MSBuildProjectDirectory)\bin\$(Configuration)\net10.0-windows\</_WawiLegacyWindowsOutput>

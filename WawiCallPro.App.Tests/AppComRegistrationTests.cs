@@ -65,6 +65,33 @@ public sealed class AppComRegistrationTests
         service.Unregister(next); Assert.AreEqual(0, store.Nodes.Count);
     }
     [TestMethod]
+    public void DebugGenerationCanReplaceTheRepositoryOwnerButCannotTakeOverAnInstalledCopy()
+    {
+        var store = new RegistryDouble();
+        var service = new UserComRegistration(store);
+        var installed = Identity("1.0.0");
+        var debug = installed with
+        {
+            InstallationRoot = @"D:\Repository\bin\Debug\net11.0-windows",
+            Executable = @"D:\Repository\bin\ComDebug\generation\WawiCallPro.App.Pro.exe",
+            Version = "2.0.0",
+            RequireSameInstallationRoot = true
+        };
+
+        service.Register(installed);
+        var previous = store.Snapshot();
+        Assert.Throws<InvalidOperationException>(() => service.Register(debug));
+        Assert.AreEqual(previous, store.Snapshot());
+
+        service.Unregister(installed);
+        var legacy = debug with { Executable = Path.Combine(debug.InstallationRoot, "WawiCallPro.App.Pro.exe") };
+        service.Register(legacy);
+        service.Register(debug);
+        service.Unregister(legacy);
+        foreach (var view in new[] { RegistryView.Registry32, RegistryView.Registry64 })
+            Assert.AreEqual(debug.Executable, store.Nodes[(view, debug.ClassKey + @"\LocalServer32")]["ServerExecutable"]);
+    }
+    [TestMethod]
     public void InstalledRollbackRequiresTheSameInstallationAndDoesNotAuthorizeAnOldForeignInstall()
     {
         var store = new RegistryDouble(); var service = new UserComRegistration(store); var v1 = Identity("1.0.0");

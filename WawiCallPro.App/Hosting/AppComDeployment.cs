@@ -69,7 +69,35 @@ internal static class AppComDeployment
         var parent = Path.GetDirectoryName(content);
         if (installationRoot is null && Path.GetFileName(content).Equals("current", StringComparison.OrdinalIgnoreCase)
             && parent is not null && File.Exists(Path.Combine(parent, "Update.exe"))) installationRoot = parent;
+#if DEBUG
+        var debugRoot = installationRoot is null ? DebugBuildRoot(content, line) : null;
+        installationRoot ??= debugRoot;
+#endif
         return new(clsid, progId, line, executable, version, Path.GetFullPath(installationRoot ?? directory).TrimEnd(Path.DirectorySeparatorChar), arguments)
-        { AssemblyPath = assembly.Location, ModuleId = assembly.ManifestModule.ModuleVersionId };
+        {
+            AssemblyPath = assembly.Location,
+            ModuleId = assembly.ManifestModule.ModuleVersionId,
+#if DEBUG
+            RequireSameInstallationRoot = debugRoot is not null
+#endif
+        };
     }
+
+#if DEBUG
+    private static string? DebugBuildRoot(string directory, string productLine)
+    {
+        var framework = new DirectoryInfo(directory);
+        var generation = framework.Parent;
+        var edition = generation?.Parent;
+        var snapshots = edition?.Parent;
+        var bin = snapshots?.Parent;
+        if (generation is null || !Guid.TryParseExact(generation.Name, "N", out _)
+            || !string.Equals(edition?.Name, productLine, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(snapshots?.Name, "ComDebug", StringComparison.OrdinalIgnoreCase)
+            || bin is null || !bin.Name.Equals("bin", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(bin.Parent?.Name, "WawiCallPro.App", StringComparison.OrdinalIgnoreCase)) return null;
+        // Existing Debug registrations and all completed generations share the same repository owner.
+        return Path.Combine(bin.FullName, "Debug", framework.Name);
+    }
+#endif
 }
