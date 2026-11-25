@@ -10,6 +10,24 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public Task IncomingCallToastPreferenceCanBeSavedIndependentlyOfTheCallerWindow() => WithWorkspace(async (workspace, _, _) =>
+    {
+        using var settings = new FrmSettings(workspace);
+        settings.PrepareForBackgroundRun();
+        await settings.PrepareAsync();
+        var page = Field<SettingsPage>(settings, "settingsPage");
+        var toast = Field<CheckEdit>(page, "incomingCallToastEdit");
+        Assert.IsFalse(toast.Checked);
+        Field<CheckEdit>(page, "notificationsEdit").Checked = false;
+        toast.Checked = true;
+        await page.SaveAsync(CancellationToken.None);
+        var saved = (await workspace.Settings.LoadAsync()).Options.User;
+        Assert.IsTrue(saved.ShowIncomingCallToasts);
+        Assert.IsFalse(saved.ShowCallNotifications);
+        await settings.StopAsync();
+    });
+
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public Task CallerWindowPreferenceReusesOnlyEndedWindows(bool reuse) => WithWorkspace(async (workspace, services, _) =>

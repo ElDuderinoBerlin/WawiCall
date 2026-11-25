@@ -30,7 +30,7 @@ public sealed class PortableSettingsTests
     {
         using var source = new Files(); using var target = new Files();
         await source.Store.SaveAsync(new() { User = new() { LogLevel = LogLevel.Trace, StartMinimized = true,
-            ShowCallNotifications = false, ShowWindowHotkey = "Ctrl+Alt+F1", DialHotkey = "Ctrl+Alt+F2", LogDirectory = Path.Combine(source.Root, "logs") },
+            ShowCallNotifications = false, ShowIncomingCallToasts = true, ShowWindowHotkey = "Ctrl+Alt+F1", DialHotkey = "Ctrl+Alt+F2", LogDirectory = Path.Combine(source.Root, "logs") },
             Devices = new() { PlaybackVolumePercent = 35, RingVolumePercent = 65, MicrophoneMuted = true } });
         await source.Store.ExportPortableAsync(source.Export);
         var portable = JsonNode.Parse(await File.ReadAllTextAsync(source.Export))!;
@@ -43,6 +43,7 @@ public sealed class PortableSettingsTests
         var after = await target.Store.ImportPortableAsync(source.Export, before); var options = after.Options;
         Assert.AreEqual(LogLevel.Trace, options.User.LogLevel); Assert.IsTrue(options.User.StartMinimized);
         Assert.IsFalse(options.User.ShowCallNotifications); Assert.AreEqual(35, options.Devices.PlaybackVolumePercent); Assert.AreEqual(65, options.Devices.RingVolumePercent); Assert.IsTrue(options.Devices.MicrophoneMuted);
+        Assert.IsTrue(options.User.ShowIncomingCallToasts);
         Assert.AreEqual(before.Options.User.ActivePluginId, options.User.ActivePluginId); Assert.AreEqual(before.Options.User.PreferredCompany, options.User.PreferredCompany);
         Assert.IsTrue(options.Devices.RecordConnectedCallsAutomatically);
         Assert.AreEqual(before.Options.Devices.CaptureDeviceId, options.Devices.CaptureDeviceId); Assert.AreEqual(before.Options.Devices.PlaybackDeviceId, options.Devices.PlaybackDeviceId); Assert.AreEqual(before.Options.Devices.RingDeviceId, options.Devices.RingDeviceId);

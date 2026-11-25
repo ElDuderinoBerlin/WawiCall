@@ -10,6 +10,7 @@ public partial class MainForm
 {
     private readonly Dictionary<Guid, (BaseDocument Document, CallDetailsPage Page)> _callPages = [];
     private readonly HashSet<Guid> _callNotificationsHandled = [];
+    private AppToast? _incomingCallToast;
     private readonly List<Task> _callUpdates = [];
     private Task _pendingCallUpdates = Task.CompletedTask;
     internal Task PendingCallUpdates => _pendingCallUpdates;
@@ -106,12 +107,26 @@ public partial class MainForm
         try
         {
             var settings = await _workspace!.Settings.LoadAsync(_telephonyUiLifetime.Token);
-            if (!settings.Options.User.ShowCallNotifications || _closing || page.IsDisposed || page.Call.State != CallState.Ringing) return;
-            if (OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { Visible: false } lookup)
+            if (_closing || page.IsDisposed || page.Call.State != CallState.Ringing) return;
+            if (settings.Options.User.ShowCallNotifications
+                && OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { Visible: false } lookup)
                 lookup.ShowForIncoming(this);
+            if (settings.Options.User.ShowIncomingCallToasts && !_backgroundRun)
+                ShowIncomingCallToast(page.Call.RemoteAddress);
         }
         catch (OperationCanceledException) when (_closing || IsDisposed) { }
         catch (Exception exception) { if (!_closing && !IsDisposed) connectionLabel.Text = PageOperation.Describe(exception); }
+    }
+
+    private void ShowIncomingCallToast(CallAddress address)
+    {
+        var source = address.Presentation == NumberPresentation.Available
+            ? string.IsNullOrWhiteSpace(address.OriginalValue) ? address.E164 : address.OriginalValue
+            : null;
+        var number = string.Concat((source ?? "").Where(character => !char.IsControl(character))).Trim();
+        var message = address.Presentation == NumberPresentation.Withheld ? "Rufnummer unterdrückt"
+            : number.Length == 0 ? "Rufnummer unbekannt" : number;
+        (_incomingCallToast ??= new AppToast(components)).Show(this, "Eingehender Anruf", message);
     }
     internal void EnsureViewsCanClose()
     {
