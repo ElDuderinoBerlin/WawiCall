@@ -1,5 +1,6 @@
 using WawiCallPro.Utilities.Security;
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.PhoneNumbers;
 
@@ -10,6 +11,12 @@ public enum SipTransport
     Udp = 1,
     Tcp = 2,
     Tls = 3
+}
+
+public enum SipDtmfMethod
+{
+    Rtp,
+    SipInfo
 }
 
 /// <summary>Independent scopes in one immutable settings snapshot; no company setting overrides workstation credentials.</summary>
@@ -73,6 +80,8 @@ public sealed record SipConnectionOptions
     public bool AcceptRtpFromAny { get; init; }
     public bool EnableG722 { get; init; } = true;
     public string? CodecOrder { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public SipDtmfMethod DtmfMethod { get; init; }
 }
 
 internal sealed record ProductClientKeyEdit(string Path, string Value, string? ExpectedHash)

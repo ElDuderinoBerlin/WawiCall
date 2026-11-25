@@ -41,6 +41,8 @@ public sealed class TelephonyException(string code) : Exception(code switch
     "HoldTimedOut" => "Halten/Fortsetzen wurde von der Gegenstelle nicht bestätigt.",
     "TransferRejected" => "Die Gegenstelle hat die Weiterleitung nicht angenommen.",
     "InvalidDtmf" => "Erlaubte DTMF-Zeichen sind 0–9, *, # und A–D.",
+    "DtmfInfoRejected" => "Die Gegenstelle hat DTMF per SIP INFO abgelehnt.",
+    "DtmfInfoTimedOut" => "Die Gegenstelle hat DTMF per SIP INFO nicht bestätigt.",
     "InvalidDestination" => "Eine gültige Rufnummer oder SIP-Adresse eingeben.",
     _ => "Die Telefonie-Aktion ist fehlgeschlagen. Konto und Verbindung prüfen."
 })

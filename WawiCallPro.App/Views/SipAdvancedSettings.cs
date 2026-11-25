@@ -33,6 +33,9 @@ internal sealed class SipAdvancedSettings
     [DisplayName("Codec-Reihenfolge"), Category("Medien"), Description("Auswahl der aktiven Audio-Codecs. Die Reihenfolge gibt die Priorität im ausgehenden SIP-Angebot an."), DefaultValue(DefaultCodecOrder)]
     public string CodecOrder { get; set; } = DefaultCodecOrder;
 
+    [DisplayName("DTMF-Methode"), Category("Medien"), Description("Übertragung der während eines Gesprächs gewählten Ziffern als RTP-Telefonereignisse oder per SIP INFO."), DefaultValue(SipDtmfMethod.Rtp)]
+    public SipDtmfMethod DtmfMethod { get; set; }
+
     [DisplayName("RTP von abweichender Adresse"), Category("Medien"), Description("Nur bei entsprechender Anlagen-/NAT-Konfiguration aktivieren."), DefaultValue(false)]
     public bool AcceptRtpFromAny { get; set; } = false;
 
@@ -46,6 +49,7 @@ internal sealed class SipAdvancedSettings
         KeepAliveIntervalSeconds = options.KeepAliveIntervalSeconds,
         RingTimeoutSeconds = options.RingTimeoutSeconds,
         CodecOrder = options.CodecOrder ?? (options.EnableG722 ? DefaultCodecOrder : DefaultCodecOrderWithoutG722),
+        DtmfMethod = options.DtmfMethod,
         AcceptRtpFromAny = options.AcceptRtpFromAny,
     };
 
@@ -60,6 +64,7 @@ internal sealed class SipAdvancedSettings
         RingTimeoutSeconds = RingTimeoutSeconds,
         EnableG722 = CodecOrder == DefaultCodecOrder || CodecOrder.Contains("G722", StringComparison.Ordinal),
         CodecOrder = CodecOrder is DefaultCodecOrder or DefaultCodecOrderWithoutG722 ? null : CodecOrder,
+        DtmfMethod = DtmfMethod,
         AcceptRtpFromAny = AcceptRtpFromAny,
     };
 }

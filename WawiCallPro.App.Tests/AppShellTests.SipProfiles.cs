@@ -94,8 +94,38 @@ public partial class AppShellTests
         editor.SelectedIndex = editor.Properties.Items.IndexOf("PCMA, PCMU");
         properties.CloseEditor();
         Assert.AreEqual("PCMA, PCMU", advanced.CodecOrder);
+        Assert.AreEqual(SipDtmfMethod.Rtp, advanced.DtmfMethod);
+        properties.FocusedRow = properties.GetRowByFieldName(nameof(SipAdvancedSettings.DtmfMethod));
+        properties.ShowEditor();
+        Assert.IsInstanceOfType<ImageComboBoxEdit>(properties.ActiveEditor);
+        properties.ActiveEditor.EditValue = SipDtmfMethod.SipInfo;
+        properties.CloseEditor();
+        Assert.AreEqual(SipDtmfMethod.SipInfo, advanced.DtmfMethod);
         var directory = Path.Combine(RenderOutput(), "sip-profiles"); Directory.CreateDirectory(directory);
         using (var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form)) image.Save(Path.Combine(directory, "expert-configured.png"));
+        var originalSize = form.ClientSize;
+        var originalFont = form.Font;
+        var originalEditorFont = WindowsFormsSettings.DefaultFont;
+        var originalAppearanceFont = DevExpress.Utils.AppearanceObject.DefaultFont;
+        using (var largeFont = new Font(originalFont.FontFamily, originalFont.SizeInPoints * 1.4f, originalFont.Style))
+        {
+            try
+            {
+                WindowsFormsSettings.DefaultFont = DevExpress.Utils.AppearanceObject.DefaultFont = largeFont;
+                form.Font = largeFont;
+                form.ClientSize = new Size(700, 560);
+                Application.DoEvents();
+                using var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form);
+                image.Save(Path.Combine(directory, "expert-large-font.png"));
+            }
+            finally
+            {
+                WindowsFormsSettings.DefaultFont = originalEditorFont;
+                DevExpress.Utils.AppearanceObject.DefaultFont = originalAppearanceFont;
+                form.Font = originalFont;
+                form.ClientSize = originalSize;
+            }
+        }
         sipPages.SelectedTabPageIndex = 0;
         Action("AddSipProfile_Click");
         var secondId = (Guid)selector.EditValue;
@@ -111,6 +141,7 @@ public partial class AppShellTests
         Assert.AreEqual(240, advanced.RegistrationExpirySeconds);
         Assert.AreEqual(15, advanced.KeepAliveIntervalSeconds);
         Assert.AreEqual("PCMA, PCMU", advanced.CodecOrder);
+        Assert.AreEqual(SipDtmfMethod.SipInfo, advanced.DtmfMethod);
         Assert.IsNull(page.ReadOptions().CallerLineAssignment);
         Toggle(); Assert.AreEqual("synthetic-office-secret", password.Text);
         selector.EditValue = secondId;
@@ -125,9 +156,11 @@ public partial class AppShellTests
         Assert.AreEqual("mobile.invalid", saved.SipAccount!.Server);
         Assert.AreEqual(0, saved.SipAccount.Connection.KeepAliveIntervalSeconds);
         Assert.IsNull(saved.SipAccount.Connection.CodecOrder);
+        Assert.AreEqual(SipDtmfMethod.Rtp, saved.SipAccount.Connection.DtmfMethod);
         var firstConnection = saved.SipProfiles.Single(profile => profile.Id == firstId).Account!.Connection;
         Assert.AreEqual(15, firstConnection.KeepAliveIntervalSeconds);
         Assert.AreEqual("PCMA, PCMU", firstConnection.CodecOrder);
+        Assert.AreEqual(SipDtmfMethod.SipInfo, firstConnection.DtmfMethod);
         Assert.IsTrue(SipProfileCatalog.Read(saved).All(profile => profile.LineAssignment is null));
         Application.DoEvents(); CheckTableBounds(form);
         using (var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(form)) image.Save(Path.Combine(directory, "two-profiles.png"));

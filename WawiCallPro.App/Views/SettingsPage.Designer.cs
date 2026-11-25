@@ -106,6 +106,7 @@ partial class SettingsPage
         sipAdvanced.Name = "sipAdvanced";
         sipProperties = new DevExpress.XtraVerticalGrid.PropertyGridControl();
         sipCodecOrderEdit = new DevExpress.XtraEditors.Repository.RepositoryItemComboBox();
+        sipDtmfMethodEdit = new DevExpress.XtraEditors.Repository.RepositoryItemImageComboBox();
         sipLayout = new System.Windows.Forms.TableLayoutPanel();
         sipScroll = new DevExpress.XtraEditors.XtraScrollableControl();
         sipHint = new DevExpress.XtraEditors.LabelControl();
@@ -533,9 +534,13 @@ partial class SettingsPage
         sipAdvanced.Controls.Add(sipProperties);
         sipProperties.Dock = System.Windows.Forms.DockStyle.Fill;
         sipProperties.Name = "sipProperties";
-        sipProperties.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { sipCodecOrderEdit });
+        sipProperties.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { sipCodecOrderEdit, sipDtmfMethodEdit });
         sipCodecOrderEdit.Name = "sipCodecOrderEdit";
         sipCodecOrderEdit.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
+        sipDtmfMethodEdit.Name = "sipDtmfMethodEdit";
+        sipDtmfMethodEdit.Items.AddRange(new DevExpress.XtraEditors.Controls.ImageComboBoxItem[] {
+            new DevExpress.XtraEditors.Controls.ImageComboBoxItem("RTP (Standard)", WawiCallPro.Utilities.Configuration.SipDtmfMethod.Rtp),
+            new DevExpress.XtraEditors.Controls.ImageComboBoxItem("SIP INFO", WawiCallPro.Utilities.Configuration.SipDtmfMethod.SipInfo) });
         sipLayout.Dock = System.Windows.Forms.DockStyle.Top;
         sipLayout.AutoSize = true;
         sipLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
@@ -1522,6 +1527,7 @@ partial class SettingsPage
     private DevExpress.XtraTab.XtraTabPage sipAdvanced;
     private DevExpress.XtraVerticalGrid.PropertyGridControl sipProperties;
     private DevExpress.XtraEditors.Repository.RepositoryItemComboBox sipCodecOrderEdit;
+    private DevExpress.XtraEditors.Repository.RepositoryItemImageComboBox sipDtmfMethodEdit;
     private System.Windows.Forms.TableLayoutPanel sipLayout;
     private DevExpress.XtraEditors.XtraScrollableControl sipScroll;
     private DevExpress.XtraEditors.LabelControl sipHint;

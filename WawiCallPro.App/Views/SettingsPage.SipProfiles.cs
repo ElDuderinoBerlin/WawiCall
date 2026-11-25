@@ -38,6 +38,7 @@ public partial class SettingsPage
         _sipAdvanced = SipAdvancedSettings.From(account?.Connection ?? new());
         sipProperties.SelectedObject = _sipAdvanced;
         sipProperties.GetRowByFieldName(nameof(SipAdvancedSettings.CodecOrder)).Properties.RowEdit = sipCodecOrderEdit;
+        sipProperties.GetRowByFieldName(nameof(SipAdvancedSettings.DtmfMethod)).Properties.RowEdit = sipDtmfMethodEdit;
         serverEdit.Text = account?.Server ?? "";
         portEdit.Value = account?.Port ?? 5060;
         transportEdit.SelectedIndex = (int)(account?.Transport ?? SipTransport.Udp) - 1;

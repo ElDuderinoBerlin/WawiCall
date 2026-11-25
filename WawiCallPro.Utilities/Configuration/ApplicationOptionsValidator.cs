@@ -164,6 +164,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("sipAccount.connection.keepAliveIntervalSeconds", "Das SIP-Keep-Alive-Intervall muss zwischen 0 und 3600 Sekunden liegen (0 = aus)."));
         if (connection?.CodecOrder is { } codecOrder && !SipCodecOrders.Choices.Contains(codecOrder))
             issues.Add(new("sipAccount.connection.codecOrder", "Eine gültige Reihenfolge aus PCMA, PCMU und G.722 auswählen."));
+        if (connection is not null && !Enum.IsDefined(connection.DtmfMethod))
+            issues.Add(new("sipAccount.connection.dtmfMethod", "Als DTMF-Methode RTP oder SIP INFO auswählen."));
         if (account.AuthenticationUsername is not null && !IsValidUsername(account.AuthenticationUsername))
             issues.Add(new("sipAccount.authenticationUsername", "Der optionale Authentifizierungsname ist ungültig."));
         if (account.Password is null)

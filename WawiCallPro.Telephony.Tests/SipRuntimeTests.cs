@@ -389,6 +389,51 @@ public sealed partial class SipRuntimeTests
         Assert.AreEqual(0, ringtone.Starts);
     }
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task SipInfoSendsDigitsInDialogAndReportsRejection(bool tcp)
+    {
+        await using var fixture = await Fixture.CreateAsync(false, null, dtmfMethod: SipDtmfMethod.SipInfo);
+        if (tcp) await fixture.UseTcpAsync();
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        using var transport = new SIPTransport();
+        var endpoint = new IPEndPoint(IPAddress.Loopback, 0);
+        SIPChannel channel = tcp ? new SIPTCPChannel(endpoint) : new SIPUDPChannel(endpoint);
+        transport.AddSIPChannel(channel);
+        using var peer = new SIPUserAgent(transport, null, false);
+        using var media = new TestMedia();
+        var requests = new ConcurrentQueue<SIPRequest>();
+        transport.SIPTransportRequestReceived += (_, _, request) =>
+        {
+            if (request.Method != SIPMethodsEnum.INFO) return Task.CompletedTask;
+            requests.Enqueue(request);
+            var status = requests.Count == 1 ? SIPResponseStatusCodesEnum.Ok : SIPResponseStatusCodesEnum.UnsupportedMediaType;
+            var transaction = new SIPNonInviteTransaction(transport, request, null);
+            transaction.SendResponse(SIPResponse.GetResponse(request, status, null));
+            return Task.CompletedTask;
+        };
+        peer.OnIncomingCall += async (agent, request) => await agent.Answer(agent.AcceptCall(request), media.Session);
+        var id = await fixture.Runtime.DialAsync(new CompanyKey(LexwareProductLine.Pro, "isolated-sip", "1"),
+            $"sip:peer@127.0.0.1:{channel.Port};transport={(tcp ? "tcp" : "udp")}");
+        await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Connected);
+
+        await fixture.Runtime.SendDtmfAsync(id, '#');
+        var rejection = await Assert.ThrowsExactlyAsync<TelephonyException>(() => fixture.Runtime.SendDtmfAsync(id, 'a'));
+        Assert.AreEqual("DtmfInfoRejected", rejection.Code);
+        var info = requests.ToArray();
+        Assert.HasCount(2, info);
+        Assert.AreEqual(peer.Dialogue.CallId, info[0].Header.CallId);
+        Assert.AreEqual(peer.Dialogue.LocalTag, info[0].Header.To.ToTag);
+        Assert.AreEqual(peer.Dialogue.RemoteTag, info[0].Header.From.FromTag);
+        Assert.AreEqual("application/dtmf-relay", info[0].Header.ContentType);
+        Assert.AreEqual("Signal=#\r\nDuration=250\r\n", info[0].Body);
+        Assert.AreEqual("Signal=A\r\nDuration=250\r\n", info[1].Body);
+        Assert.AreEqual(info[0].Header.CSeq + 1, info[1].Header.CSeq);
+        await fixture.Runtime.HangUpAsync(id);
+    }
+
     private sealed class Fixture : IAsyncDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "wawi-sip-" + Guid.NewGuid().ToString("N"));
@@ -415,7 +460,8 @@ public sealed partial class SipRuntimeTests
 
         internal static Task<Fixture> CreateAsync(bool unavailableAudio = false) => CreateAsync(unavailableAudio, null);
 
-        internal static async Task<Fixture> CreateAsync(bool unavailableAudio, IIncomingRingtone? ringtone, int ringVolume = 35)
+        internal static async Task<Fixture> CreateAsync(bool unavailableAudio, IIncomingRingtone? ringtone, int ringVolume = 35,
+            SipDtmfMethod dtmfMethod = SipDtmfMethod.Rtp)
         {
             var fixture = new Fixture();
             var channel = new SIPUDPChannel(new IPEndPoint(IPAddress.Loopback, 0));
@@ -440,7 +486,8 @@ public sealed partial class SipRuntimeTests
                 {
                     Server = "127.0.0.1", Port = channel.Port, Username = "workstation",
                     Password = protector.Protect("isolated-secret", SipAccountOptions.PasswordPurpose),
-                    Connection = new() { BindAddress = "127.0.0.1", LocalPort = fixture.LocalPort, RegistrationTimeoutSeconds = 1, RetryIntervalSeconds = 1, RingTimeoutSeconds = 5 }
+                    Connection = new() { BindAddress = "127.0.0.1", LocalPort = fixture.LocalPort, RegistrationTimeoutSeconds = 1,
+                        RetryIntervalSeconds = 1, RingTimeoutSeconds = 5, DtmfMethod = dtmfMethod }
                 }
             });
             fixture._unavailableAudio = unavailableAudio;

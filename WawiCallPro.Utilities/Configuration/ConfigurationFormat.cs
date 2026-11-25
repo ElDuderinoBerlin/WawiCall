@@ -22,6 +22,7 @@ public static class ConfigurationFormat
         {
             new JsonStringEnumConverter<Microsoft.Extensions.Logging.LogLevel>(allowIntegerValues: false),
             new JsonStringEnumConverter<SipTransport>(allowIntegerValues: false),
+            new JsonStringEnumConverter<SipDtmfMethod>(allowIntegerValues: false),
             new JsonStringEnumConverter<RecordingReceiveSource>(allowIntegerValues: false),
             new JsonStringEnumConverter<Database.Contracts.RecordingArtifactFormat>(allowIntegerValues: false),
             new JsonStringEnumConverter<CommunicationDatabaseProvider>(allowIntegerValues: false),

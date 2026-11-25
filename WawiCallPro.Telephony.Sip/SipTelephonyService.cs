@@ -372,8 +372,41 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         const string digits = "0123456789*#ABCD";
         var code = digits.IndexOf(char.ToUpperInvariant(digit));
         if (code < 0) throw new TelephonyException("InvalidDtmf");
-        await agent.UserAgent.SendDtmf((byte)code).WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (_account!.Connection.DtmfMethod == SipDtmfMethod.SipInfo)
+            await SendDtmfInfoAsync(agent, digits[code], cancellationToken).ConfigureAwait(false);
+        else
+            await agent.UserAgent.SendDtmf((byte)code).WaitAsync(cancellationToken).ConfigureAwait(false);
     }, cancellationToken);
+
+    private async Task SendDtmfInfoAsync(Agent agent, char digit, CancellationToken cancellationToken)
+    {
+        var transport = _transport ?? throw new TelephonyException("NotRegistered");
+        var dialog = agent.UserAgent.Dialogue ?? throw new TelephonyException("NotConnected");
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Stopping.Token);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (agent.Stopping.IsCancellationRequested) throw new TelephonyException("NotConnected");
+
+        var request = dialog.GetInDialogRequest(SIPMethodsEnum.INFO);
+        request.Header.ContentType = "application/dtmf-relay";
+        request.Body = $"Signal={digit}\r\nDuration=250\r\n";
+        request.Header.ContentLength = request.Body.Length; // Only ASCII digits and fixed text are used.
+        var transaction = new SIPNonInviteTransaction(transport, request, SIPEndPoint.ParseSIPEndPoint(dialog.ProxySendFrom));
+        var finalResponse = new TaskCompletionSource<SIPResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        transaction.NonInviteTransactionFinalResponseReceived += (_, _, _, response) =>
+        {
+            finalResponse.TrySetResult(response);
+            return Task.FromResult(System.Net.Sockets.SocketError.Success);
+        };
+        transaction.SendRequest();
+        try
+        {
+            var response = await finalResponse.Task.WaitAsync(TimeSpan.FromSeconds(5), stopping.Token).ConfigureAwait(false);
+            if ((int)response.Status is < 200 or >= 300) throw new TelephonyException("DtmfInfoRejected");
+        }
+        catch (TimeoutException) { throw new TelephonyException("DtmfInfoTimedOut"); }
+        catch (OperationCanceledException) when (agent.Stopping.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        { throw new TelephonyException("NotConnected"); }
+    }
 
     private Agent CreateAgent()
     {
