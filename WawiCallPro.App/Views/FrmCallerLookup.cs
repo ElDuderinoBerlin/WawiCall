@@ -98,7 +98,6 @@ public partial class FrmCallerLookup : XtraForm
     {
         statusText.ItemAppearance.Normal.Font = Font;
         statusText.ItemAppearance.Normal.Options.UseFont = true;
-        statusDock.MinimumSize = new Size(0, Font.Height + LogicalToDeviceUnits(6));
     }
 
     private void DisplayCallStatus(string status)

@@ -19,7 +19,6 @@ partial class FrmCallerLookup
         statusManager = new DevExpress.XtraBars.BarManager(components);
         statusBar = new DevExpress.XtraBars.Bar();
         statusText = new DevExpress.XtraBars.BarStaticItem();
-        statusDock = new DevExpress.XtraBars.StandaloneBarDockControl();
         ((System.ComponentModel.ISupportInitialize)statusManager).BeginInit();
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -34,22 +33,13 @@ partial class FrmCallerLookup
         layout.Controls.Add(callControls, 0, 0);
         layout.Controls.Add(callerPage, 0, 1);
         Controls.Add(layout);
-        Controls.Add(statusDock);
-        statusDock.Name = "statusDock";
-        statusDock.AutoSize = true;
-        statusDock.Dock = System.Windows.Forms.DockStyle.Bottom;
-        statusDock.Border = DevExpress.XtraBars.BarDockControlBorder.Top;
-        statusDock.AccessibleRole = System.Windows.Forms.AccessibleRole.StatusBar;
-        statusDock.Manager = statusManager;
         statusManager.Bars.Add(statusBar);
-        statusManager.DockControls.Add(statusDock);
         statusManager.Form = this;
         statusManager.Items.Add(statusText);
         statusManager.MaxItemId = 1;
         statusManager.StatusBar = statusBar;
         statusBar.BarName = "Statusleiste";
-        statusBar.DockStyle = DevExpress.XtraBars.BarDockStyle.Standalone;
-        statusBar.StandaloneBarDockControl = statusDock;
+        statusBar.DockStyle = DevExpress.XtraBars.BarDockStyle.Bottom;
         statusBar.OptionsBar.AllowQuickCustomization = false;
         statusBar.OptionsBar.DrawBorder = true;
         statusBar.OptionsBar.DrawDragBorder = false;
@@ -78,5 +68,4 @@ partial class FrmCallerLookup
     private DevExpress.XtraBars.BarManager statusManager;
     private DevExpress.XtraBars.Bar statusBar;
     private DevExpress.XtraBars.BarStaticItem statusText;
-    private DevExpress.XtraBars.StandaloneBarDockControl statusDock;
 }

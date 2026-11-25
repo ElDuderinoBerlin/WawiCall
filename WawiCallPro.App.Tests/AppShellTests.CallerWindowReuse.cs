@@ -93,9 +93,11 @@ public sealed partial class AppShellTests
         Assert.AreSame(Field<Bar>(original, "statusBar"), status.Manager.StatusBar);
         original.PerformLayout();
         Application.DoEvents();
-        var dock = Field<StandaloneBarDockControl>(original, "statusDock");
-        Assert.AreSame(dock, status.Manager.StatusBar.StandaloneBarDockControl);
-        Assert.IsGreaterThan(0, dock.Height);
+        var dock = original.Controls.OfType<BarDockControl>()
+            .Single(control => control.Dock == DockStyle.Bottom && control.Height > 0);
+        Assert.AreEqual(BarDockStyle.Bottom, status.Manager.StatusBar.DockStyle);
+        Assert.AreEqual(original.ClientSize.Height, dock.Bottom);
+        Assert.AreEqual(Field<TableLayoutPanel>(original, "layout").Bottom, dock.Top);
         if (reuse)
         {
             original.ClientSize = new Size(680, 500);
