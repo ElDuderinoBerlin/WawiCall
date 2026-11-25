@@ -89,14 +89,11 @@ public sealed partial class AppShellTests
         Assert.DoesNotContain("Hamburg", concurrent.Text);
         await main.ObserveCallAsync(first with { Revision = 3, State = CallState.Ended, EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Completed });
         var status = Field<BarStaticItem>(original, "statusText");
-        Assert.Contains("Gespräch beendet", status.Caption);
-        Assert.Contains("Die bisherige Auswahl bleibt in der Historie erhalten.", status.Caption);
+        Assert.IsTrue(string.IsNullOrWhiteSpace(status.Caption));
         Assert.AreSame(Field<Bar>(original, "statusBar"), status.Manager.StatusBar);
+        Assert.IsGreaterThan(0, Field<BarDockControl>(original, "statusDock").Height);
         if (reuse)
         {
-            var recording = Field<LabelControl>(Field<CallControlPanel>(original, "callControls"), "recordingStatus");
-            recording.Text = "Aufnahme gespeichert · Stereo: eigene Stimme links, Gegenstelle rechts.";
-            Assert.Contains(recording.Text, status.Caption);
             original.ClientSize = new Size(680, 500);
             original.PerformLayout();
             Application.DoEvents();

@@ -117,7 +117,7 @@ public partial class CallerLookupPage : XtraUserControl
     }
 
     internal async Task EndCallAsync()
-    { _callEnded = true; await StopAsync(); chooseButton.Enabled = searchButton.Enabled = cancelButton.Enabled = false; ShowStatus("Die bisherige Auswahl bleibt in der Historie erhalten."); }
+    { _callEnded = true; await StopAsync(); chooseButton.Enabled = searchButton.Enabled = cancelButton.Enabled = false; }
     internal Task StopAsync() => _operation?.StopAsync() ?? Task.CompletedTask;
     private void DisposePage()
     {

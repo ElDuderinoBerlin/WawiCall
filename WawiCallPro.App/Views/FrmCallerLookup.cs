@@ -85,7 +85,11 @@ public partial class FrmCallerLookup : XtraForm
     {
         if (CallId != id || _ended) return;
         await Task.WhenAll(callerPage.EndCallAsync(), callControls.StopAsync());
-        if (CallId == id && !IsDisposed) _ended = true;
+        if (CallId == id && !IsDisposed)
+        {
+            _ended = true;
+            UpdateStatusBar();
+        }
     }
 
     private void CallerPage_StatusChanged(object? sender, EventArgs e) => UpdateStatusBar();
@@ -94,6 +98,7 @@ public partial class FrmCallerLookup : XtraForm
     {
         statusText.ItemAppearance.Normal.Font = Font;
         statusText.ItemAppearance.Normal.Options.UseFont = true;
+        statusDock.MinimumSize = new Size(0, Font.Height);
     }
 
     private void DisplayCallStatus(string status)
@@ -105,7 +110,7 @@ public partial class FrmCallerLookup : XtraForm
     private void UpdateStatusBar()
     {
         var lookupStatus = callerPage.StatusText;
-        statusText.Caption = _callStatus.Length == 0 ? lookupStatus :
+        statusText.Caption = _ended ? "" : _callStatus.Length == 0 ? lookupStatus :
             lookupStatus.Length == 0 ? _callStatus : _callStatus + "\n" + lookupStatus;
         statusText.Hint = statusText.Caption;
     }
