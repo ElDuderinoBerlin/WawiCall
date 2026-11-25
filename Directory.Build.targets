@@ -97,8 +97,11 @@
     </PropertyGroup>
     <ItemGroup>
       <_WawiStaleEditionOutput Include="$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(_WawiOtherEdition)\**\*" />
-      <_WawiStaleEditionOutput Include="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).dll;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).exe;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).pdb;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).deps.json;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).runtimeconfig.json" />
+      <_WawiStaleEditionOutput Include="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).pdb;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).deps.json;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).runtimeconfig.json" />
     </ItemGroup>
+    <!-- A running host locks its executable. Stop cleanup before deleting its startup metadata. -->
+    <Delete Files="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).exe" />
+    <Delete Files="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).dll" />
     <Delete Files="@(_WawiStaleEditionOutput)" />
   </Target>
   <Target Name="DeployWawiPlugins" AfterTargets="Build" DependsOnTargets="PrepareWawiSharedPackageAssemblies" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
