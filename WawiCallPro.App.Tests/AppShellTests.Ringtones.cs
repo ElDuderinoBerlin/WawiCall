@@ -119,6 +119,14 @@ public sealed partial class AppShellTests
             dialog.PerformLayout();
             Application.DoEvents();
             CheckTableBounds(dialog);
+            foreach (var (volumeSlider, labelName) in new[] { (microphone, "micVolumeLabel"), (outputVolume, "playVolumeLabel"), (slider, "ringVolumeLabel") })
+            {
+                var label = Field<LabelControl>(page, labelName);
+                var track = ((DevExpress.XtraEditors.ViewInfo.TrackBarViewInfo)volumeSlider.GetViewInfo()).TrackLineRect;
+                var distance = Math.Abs(volumeSlider.Top + track.Top + track.Height / 2 - (label.Top + label.Height / 2));
+                Assert.IsLessThanOrEqualTo(2, distance, label.Text);
+                Assert.IsLessThanOrEqualTo(Field<LookUpEdit>(page, "captureDeviceEdit").Height + 2, volumeSlider.Height, label.Text);
+            }
             Assert.AreEqual(Field<LookUpEdit>(page, "ringDeviceEdit").Left, ringtone.Left);
             Assert.IsGreaterThan(Field<ProgressBarControl>(page, "ringPeak").Width, ringtone.Width);
             Assert.IsGreaterThan(0, Field<ProgressBarControl>(page, "ringPeak").Height);

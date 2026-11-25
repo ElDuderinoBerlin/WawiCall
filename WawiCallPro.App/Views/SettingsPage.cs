@@ -75,6 +75,7 @@ public partial class SettingsPage : XtraUserControl
         UiButtonSizing.Attach(this);
         transportEdit.Properties.Items.AddRange(new object[] { "UDP", "TCP", "TLS" });
         FontChanged += ButtonLayout_Changed;
+        DpiChangedAfterParent += ButtonLayout_Changed;
         cacheLayout.SizeChanged += ButtonLayout_Changed;
         matchingLayout.SizeChanged += ButtonLayout_Changed;
         var appearance = LookAndFeel;
@@ -105,6 +106,9 @@ public partial class SettingsPage : XtraUserControl
             UiButtonSizing.Apply(logDirectoryBrowseButton);
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
+            var volumeSliderHeight = captureDeviceEdit.PreferredSize.Height;
+            foreach (var slider in new[] { micVolumeSlider, playVolumeSlider, ringVolumeSlider })
+                slider.Height = volumeSliderHeight;
             var cacheButtons = new[] { loadCompaniesButton, refreshCacheButton, cancelCacheButton };
             foreach (var button in new[] { loadMatchingCompaniesButton, loadMatchingRuleButton, saveMatchingRuleButton })
             {

@@ -968,6 +968,8 @@ partial class SettingsPage
         micVolumeSlider.Properties.SmallChange = 1;
         micVolumeSlider.Properties.LargeChange = 10;
         micVolumeSlider.Properties.TickStyle = System.Windows.Forms.TickStyle.None;
+        micVolumeSlider.Properties.AutoSize = false;
+        micVolumeSlider.Properties.Alignment = DevExpress.Utils.VertAlignment.Center;
         micVolumeSlider.Properties.ShowValueToolTip = true;
         micVolumeSlider.Value = 100;
         micVolumeSlider.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -988,6 +990,8 @@ partial class SettingsPage
         playVolumeSlider.Properties.SmallChange = 1;
         playVolumeSlider.Properties.LargeChange = 10;
         playVolumeSlider.Properties.TickStyle = System.Windows.Forms.TickStyle.None;
+        playVolumeSlider.Properties.AutoSize = false;
+        playVolumeSlider.Properties.Alignment = DevExpress.Utils.VertAlignment.Center;
         playVolumeSlider.Properties.ShowValueToolTip = true;
         playVolumeSlider.Value = 100;
         playVolumeSlider.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -999,7 +1003,7 @@ partial class SettingsPage
         ringVolumeLabel.Text = "Klingellautstärke";
         ringVolumeLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         ringVolumeLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        ringVolumeLabel.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+        ringVolumeLabel.Margin = new System.Windows.Forms.Padding(4, 4, 12, 4);
         ringVolumeLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
         ringVolumeLabel.Appearance.Options.UseFont = true;
         ringVolumeLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Default;
@@ -1011,6 +1015,8 @@ partial class SettingsPage
         ringVolumeSlider.Properties.SmallChange = 1;
         ringVolumeSlider.Properties.LargeChange = 10;
         ringVolumeSlider.Properties.TickStyle = System.Windows.Forms.TickStyle.None;
+        ringVolumeSlider.Properties.AutoSize = false;
+        ringVolumeSlider.Properties.Alignment = DevExpress.Utils.VertAlignment.Center;
         ringVolumeSlider.Properties.ShowValueToolTip = true;
         ringVolumeSlider.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         ringVolumeSlider.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
