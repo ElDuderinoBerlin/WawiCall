@@ -3856,6 +3856,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Loopback-Aufnahme als Geräteverlust zu verwerfen. Ein Regressionstest mit `VoIPMediaSession.Close`
   reproduzierte den fälschlichen Abbruch vor der Korrektur. Gerätewechsel und tatsächlicher Verlust
   beenden weiterhin das betroffene Segment. Der korrigierte Ablauf ist mit echter Sprache erneut zu prüfen.
+  Beim nächsten Pro-Liveanruf am 25.11.2026 wurde die 16,98 Sekunden lange Stereo-WAV erfolgreich
+  abgeschlossen. Die Mikrofonspur enthielt Signal, der Loopback-Kanal der Gegenstelle blieb stumm.
+  Der beidseitige Sprachnachweis und die Wiederanbindung im laufenden Gespräch stehen weiter aus.
   ✅ Die Loopback-Zeitachse weist rückwärts laufende WASAPI-QPC-Zeitstempel auch innerhalb der
   bestehenden 50-ms-Drifttoleranz zurück. Gerätezähler und Zeitstempel müssen in derselben
   Reihenfolge voranschreiten. Ein Regressionstest weist einen Zeitstempelsprung um 1 ms nach.
