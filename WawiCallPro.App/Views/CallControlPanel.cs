@@ -17,15 +17,20 @@ public partial class CallControlPanel : XtraUserControl
     private readonly Queue<char> _dtmfQueue = new();
     private bool _dtmfOpen;
     private bool _recordingBusy;
+    private bool _confirmingRecording;
+    private readonly Func<bool> _confirmRecordingConsent;
     private LiveRecordingState _displayedRecordingState;
     private readonly CancellationTokenSource _lifetime = new();
     private Task? _stopTask;
     private bool _busy;
     private bool _disposed;
 
-    public CallControlPanel()
+    public CallControlPanel() : this(null) { }
+
+    internal CallControlPanel(Func<bool>? confirmRecordingConsent)
     {
         InitializeComponent();
+        _confirmRecordingConsent = confirmRecordingConsent ?? ConfirmRecordingConsent;
         UiButtonSizing.Attach(this);
         _operation = new(this, statusLabel);
         _recordingOperation = new(this, recordingStatus);
@@ -154,9 +159,22 @@ public partial class CallControlPanel : XtraUserControl
     private async void Recording_Click(object? sender, EventArgs e) => await ToggleRecordingAsync();
     internal Task ToggleRecordingAsync()
     {
-        if (!recordingButton.Enabled || _call is null || _telephony is not ILiveCallRecordingService recordings) return Task.CompletedTask;
+        if (_disposed || _confirmingRecording || !recordingButton.Enabled || _call is null
+            || _telephony is not ILiveCallRecordingService recordings)
+            return Task.CompletedTask;
         var id = _call.Id;
         var stop = _displayedRecordingState is LiveRecordingState.Starting or LiveRecordingState.Recording;
+        if (!stop)
+        {
+            _confirmingRecording = true;
+            try { if (!_confirmRecordingConsent()) return Task.CompletedTask; }
+            finally { _confirmingRecording = false; }
+
+            if (_disposed || _stopTask is not null || _call is not { State: CallState.Connected } currentCall
+                || currentCall.Id != id || !ReferenceEquals(_telephony, recordings) || !recordingButton.Enabled)
+                return Task.CompletedTask;
+        }
+
         return _recordingOperation.RunAsync(async token =>
         {
             _recordingBusy = true; recordingButton.Enabled = false;
@@ -171,6 +189,13 @@ public partial class CallControlPanel : XtraUserControl
             finally { _recordingBusy = false; UpdateRecording(); }
         });
     }
+    private bool ConfirmRecordingConsent() => XtraMessageBox.Show(this,
+        "Das unbefugte Aufnehmen nichtöffentlich gesprochener Worte kann nach § 201 Abs. 1 StGB "
+        + "(Verletzung der Vertraulichkeit des Wortes) strafbar sein.\n\n"
+        + "Haben alle Gesprächsteilnehmer der Aufnahme zugestimmt?",
+        "Gesprächsaufnahme bestätigen", MessageBoxButtons.YesNo, MessageBoxIcon.Warning,
+        MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+
     private async void Call_Changed(object? sender, CallChangedEventArgs e)
     {
         if (_disposed || _stopTask is not null || !IsHandleCreated) return;

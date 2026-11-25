@@ -91,7 +91,9 @@ public sealed partial class AppShellTests
     {
         var call = CommandCall() with { State = CallState.Connected };
         var service = new RecordingTelephony(call);
-        using var first = new CallControlPanel(); using var second = new CallControlPanel(); first.CreateControl(); second.CreateControl();
+        using var first = new CallControlPanel(() => true);
+        using var second = new CallControlPanel(() => throw new InvalidOperationException("Stopping does not require consent."));
+        first.CreateControl(); second.CreateControl();
         first.Bind(service, call); second.Bind(service, call);
         service.StartRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var start = first.ToggleRecordingAsync();
@@ -110,10 +112,32 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task RecordingRequiresConsentAndAnOngoingCallAfterThePrompt() => RunStaAsync(async () =>
+    {
+        var call = CommandCall() with { State = CallState.Connected };
+        var service = new RecordingTelephony(call);
+        using var declined = new CallControlPanel(() => false);
+        declined.Bind(service, call);
+        await declined.ToggleRecordingAsync();
+        Assert.AreEqual(0, service.Starts);
+
+        CallControlPanel? endingPanel = null;
+        using var ending = new CallControlPanel(() =>
+        {
+            endingPanel!.Observe(call with { State = CallState.Ended, Revision = call.Revision + 1 });
+            return true;
+        });
+        endingPanel = ending;
+        ending.Bind(service, call);
+        await ending.ToggleRecordingAsync();
+        Assert.AreEqual(0, service.Starts);
+    });
+
+    [TestMethod]
     public Task ClosingRecordingControlsCancelsOnlyTheirPendingStartAndUnsubscribes() => RunStaAsync(async () =>
     {
         var call = CommandCall() with { State = CallState.Connected }; var service = new RecordingTelephony(call);
-        using var panel = new CallControlPanel(); panel.CreateControl(); panel.Bind(service, call);
+        using var panel = new CallControlPanel(() => true); panel.CreateControl(); panel.Bind(service, call);
         service.StartRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
         var start = panel.ToggleRecordingAsync(); await panel.StopAsync(); await start;
         Assert.AreEqual(0, service.RecordingSubscribers); Assert.IsTrue(service.StartCancelled);
