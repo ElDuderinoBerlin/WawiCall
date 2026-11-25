@@ -185,6 +185,8 @@ function Start-DebugBuild([bool]$WithGate) {
     $start.CreateNoWindow = $true
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
+    $start.StandardOutputEncoding = [Text.Encoding]::UTF8
+    $start.StandardErrorEncoding = [Text.Encoding]::UTF8
     foreach ($argument in 'build', $app, '-c', 'Debug', '-p:Platform=AnyCPU', "-p:LexwareProductLine=$edition", '--nologo') { $start.ArgumentList.Add($argument) }
     if ($WithGate) {
         $start.ArgumentList.Add("-p:CustomAfterMicrosoftCommonTargets=$hook")
