@@ -1,4 +1,6 @@
+using Quantarix.Windows.Win32;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.App.Views;
 using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App;
@@ -36,7 +38,9 @@ public partial class MainForm
         base.WndProc(ref message);
     }
 
-    private void ExecuteHotkey(AppHotkeyAction action)
+    private void ExecuteHotkey(AppHotkeyAction action) => ExecuteHotkey(action, User32.GetForegroundWindow());
+
+    internal void ExecuteHotkey(AppHotkeyAction action, IntPtr foreground)
     {
         if (_closing || !_loaded || IsDisposed) return;
         if (_settingsDialog is { ContainsFocus: true } settings && Form.ActiveForm == settings)
@@ -45,7 +49,26 @@ public partial class MainForm
             var value = action == AppHotkeyAction.ShowWindow ? _hotkeySettings?.ShowWindowHotkey : _hotkeySettings?.DialHotkey;
             if (settings.TryCaptureRegisteredHotkey(value)) return;
         }
-        if (!ReferenceEquals(RestoreFromTray(), this)) return;
-        if (action == AppHotkeyAction.OpenDial) Dial_Click(this, null!);
+        if (FindModalWindow() is not null)
+        {
+            RestoreFromTray();
+            return;
+        }
+
+        if (action == AppHotkeyAction.ShowWindow)
+        {
+            if (Visible && WindowState != FormWindowState.Minimized && foreground == Handle) MoveToTray();
+            else RestoreFromTray();
+            return;
+        }
+
+        var dial = OwnedForms.OfType<FrmDial>().FirstOrDefault(form => form.Visible && form.IsHandleCreated && form.Handle == foreground);
+        if (dial is not null)
+        {
+            dial.Close();
+            return;
+        }
+
+        if (ReferenceEquals(RestoreFromTray(), this)) Dial_Click(this, null!);
     }
 }

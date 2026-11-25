@@ -11,6 +11,7 @@ using DevExpress.XtraGrid;
 using DevExpress.XtraTab;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Views;
@@ -518,6 +519,30 @@ public sealed partial class AppShellTests
     });
 
     [TestMethod]
+    public Task GlobalHotkeysToggleOnlyTheForegroundTarget() => WithWorkspace(async (workspace, services, plugin) =>
+    {
+        using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
+        form.PrepareForBackgroundRun();
+        form.Show();
+
+        form.ExecuteHotkey(AppHotkeyAction.ShowWindow, IntPtr.Zero);
+        Assert.IsTrue(form.Visible);
+        form.ExecuteHotkey(AppHotkeyAction.ShowWindow, form.Handle);
+        Assert.IsFalse(form.Visible);
+        form.ExecuteHotkey(AppHotkeyAction.OpenDial, IntPtr.Zero);
+        var dial = form.OwnedForms.OfType<FrmDial>().Single();
+        Assert.IsTrue(form.Visible);
+        Assert.IsTrue(dial.Visible);
+        form.ExecuteHotkey(AppHotkeyAction.OpenDial, form.Handle);
+        Assert.AreSame(dial, form.OwnedForms.OfType<FrmDial>().Single());
+        form.ExecuteHotkey(AppHotkeyAction.OpenDial, dial.Handle);
+        await WaitForDialStateAsync(() => dial.IsDisposed);
+        Assert.IsTrue(form.Visible);
+        Assert.AreEqual(0, workspace.Telephony!.GetCalls().Length);
+        await form.PrepareToCloseAsync();
+    });
+
+    [TestMethod]
     public Task GlobalHotkeysRespectModalDialogsAndLexwareAvailability() => WithWorkspace(async (workspace, services, plugin) =>
     {
         var backend = new HotkeyBackendDouble();
@@ -556,23 +581,26 @@ public sealed partial class AppShellTests
     {
         using var settings = new FrmSettings(workspace); var page = Field<SettingsPage>(settings, "settingsPage");
         await page.ReloadAsync();
-        var show = Field<ComboBoxEdit>(page, "showWindowHotkeyEdit"); var dial = Field<ComboBoxEdit>(page, "dialHotkeyEdit");
-        Assert.AreEqual(0, show.SelectedIndex); Assert.AreEqual(12, show.Properties.Items.Count);
-        show.SelectedIndex = 3; dial.SelectedIndex = 4; await page.ReloadAsync(); Assert.AreEqual(0, show.SelectedIndex);
-        show.SelectedIndex = 3; dial.SelectedIndex = 4; var prompts = 0;
+        var show = Field<HotkeyCaptureEdit>(page, "showWindowHotkeyEdit"); var dial = Field<HotkeyCaptureEdit>(page, "dialHotkeyEdit");
+        var showBinding = Keys.Control | Keys.Alt | Keys.F1;
+        Assert.AreEqual(Keys.None, show.Hotkey);
+        show.Hotkey = showBinding; dial.Hotkey = Keys.F2;
+        await page.ReloadAsync(); Assert.AreEqual(Keys.None, show.Hotkey);
+        show.Hotkey = showBinding; dial.Hotkey = Keys.F2;
+        var prompts = 0;
         await page.SaveAndOfferRestartAsync(() =>
         {
-            prompts++; Assert.AreEqual("Ctrl+Alt+F3", workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.ShowWindowHotkey);
+            prompts++; Assert.AreEqual("Ctrl+Alt+F1", workspace.Settings.LoadAsync().GetAwaiter().GetResult().Options.User.ShowWindowHotkey);
             return false;
         }, CancellationToken.None);
         Assert.AreEqual(1, prompts); Assert.IsFalse(settings.RestartRequested);
         Assert.IsNull(workspace.Configuration.Current.Options.User.ShowWindowHotkey);
         await page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None); Assert.AreEqual(1, prompts);
-        dial.SelectedIndex = 3;
+        dial.Hotkey = showBinding;
         await Assert.ThrowsExactlyAsync<ConfigurationException>(() => page.SaveAndOfferRestartAsync(() => { prompts++; return true; }, CancellationToken.None));
-        Assert.AreEqual(3, show.SelectedIndex); Assert.AreEqual(3, dial.SelectedIndex); Assert.AreEqual(1, prompts);
-        await page.ReloadAsync(); Assert.AreEqual(4, dial.SelectedIndex);
-        show.SelectedIndex = dial.SelectedIndex = 0; await page.SaveAsync(CancellationToken.None);
+        Assert.AreEqual(showBinding, show.Hotkey); Assert.AreEqual(showBinding, dial.Hotkey); Assert.AreEqual(1, prompts);
+        await page.ReloadAsync(); Assert.AreEqual(Keys.F2, dial.Hotkey);
+        show.Hotkey = dial.Hotkey = Keys.None; await page.SaveAsync(CancellationToken.None);
         Assert.IsNull((await workspace.Settings.LoadAsync()).Options.User.DialHotkey);
         await settings.StopAsync();
     });
@@ -599,8 +627,8 @@ public sealed partial class AppShellTests
                 settings.MinimumSize = Size.Empty; settings.ClientSize = new(width, 580);
                 var page = Field<SettingsPage>(settings, "settingsPage");
                 page.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "hotkeysTab");
-                Field<ComboBoxEdit>(page, "showWindowHotkeyEdit").SelectedIndex = enabled ? 11 : 0;
-                Field<ComboBoxEdit>(page, "dialHotkeyEdit").SelectedIndex = enabled ? 10 : 0;
+                Field<HotkeyCaptureEdit>(page, "showWindowHotkeyEdit").Hotkey = enabled ? Keys.Control | Keys.Alt | Keys.F1 : Keys.None;
+                Field<HotkeyCaptureEdit>(page, "dialHotkeyEdit").Hotkey = enabled ? Keys.F2 : Keys.None;
                 if (scale != 1F) settings.Scale(new SizeF(scale, scale)); settings.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(settings);
                 Assert.IsTrue(Field<LabelControl>(page, "hotkeysHint").Bottom <= Field<TableLayoutPanel>(page, "hotkeysLayout").Height);
@@ -673,8 +701,8 @@ public sealed partial class AppShellTests
         using var settings = new FrmSettings(workspace);
         var page = Field<SettingsPage>(settings, "settingsPage");
         await page.ReloadAsync();
-        var showWindow = Field<Quantarix.DevExpressExtensions.Controls.HotkeyCaptureEdit>(page, "showWindowHotkeyEdit");
-        var dial = Field<Quantarix.DevExpressExtensions.Controls.HotkeyCaptureEdit>(page, "dialHotkeyEdit");
+        var showWindow = Field<HotkeyCaptureEdit>(page, "showWindowHotkeyEdit");
+        var dial = Field<HotkeyCaptureEdit>(page, "dialHotkeyEdit");
         Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F3, showWindow.Hotkey);
         Assert.AreEqual(Keys.Control | Keys.Alt | Keys.F4, dial.Hotkey);
 

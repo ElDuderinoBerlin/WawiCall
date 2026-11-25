@@ -858,10 +858,11 @@ erst nach erfolgreichem Speichern angeboten; aktive Gespräche und ungespeichert
 Der App-Composition-Root injiziert eine Hotkey-Factory mit Windows-Adapter. Jede erzeugte Sitzung
 gehört genau einem Hauptfensterhandle; Handlewechsel melden alte Registrierungen ab und erzeugen neue
 IDs. Veraltete/fremde Nachrichten und unerwartete Modifikatoren lösen keine Aktion aus.
-Diagnosen und Audits reservieren keine Systemtasten. Der Anzeigen-Befehl verwendet den gemeinsamen
-Tray-Wiederherstellungspfad; ein offener modaler Dialog bleibt das bedienbare Ziel. Der Wähl-Befehl
-öffnet höchstens einen vorhandenen Wähldialog und beachtet dieselbe Lexware-Freigabe wie das Ribbon;
-er startet keinen Anruf. Reservierungsfehler deaktivieren nur die betroffene Kombination und erzeugen
+Diagnosen und Audits reservieren keine Systemtasten. Ein Hotkey holt das zugehörige Fenster aus dem
+Infobereich oder Hintergrund nach vorn. Ist das Hauptfenster bereits im Vordergrund, verschiebt sein
+Hotkey es in den Infobereich. Ist der Wähldialog im Vordergrund, schließt sein Hotkey den Dialog.
+Ein modaler Dialog bleibt vorrangig. Das Öffnen des Wähldialogs verwendet dieselbe Lexware-Freigabe
+wie das Ribbon und startet keinen Anruf. Reservierungsfehler deaktivieren nur die betroffene Kombination und erzeugen
 eine verständliche Warnung im Log-Fenster sowie ein festes, datenfreies Betriebsevent.
 
 Die Registrierung nutzt `RegisterHotKey` mit `MOD_NOREPEAT` und die Fenster-Nachricht `WM_HOTKEY`.

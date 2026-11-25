@@ -287,7 +287,7 @@ partial class SettingsPage
         dialHotkeyEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         hotkeysLayout.Controls.Add(dialHotkeyEdit, 1, 1);
         hotkeysHint.Name = "hotkeysHint";
-        hotkeysHint.Text = "Ins Feld klicken und F1 bis F11 drücken, bei Bedarf mit Strg, Alt oder Umschalt. Entf oder die Löschen-Schaltfläche deaktiviert das Kürzel. Die Kürzel wirken nach einem Neustart auch im Tray und bei minimiertem Fenster. Warnungen zu belegten Kombinationen stehen im Log-Fenster. Der Wähldialog öffnet sich ohne automatischen Anruf. Offene Dialoge bleiben vorrangig.";
+        hotkeysHint.Text = "Ins Feld klicken und F1 bis F11 drücken, bei Bedarf mit Strg, Alt oder Umschalt. Entf oder die Löschen-Schaltfläche deaktiviert das Kürzel. Nach dem Neustart holen die Kürzel das jeweilige Fenster nach vorn. Ist es bereits aktiv, wandert das Hauptfenster in den Infobereich oder der Wähldialog schließt sich. Offene modale Dialoge haben Vorrang. Warnungen zu belegten Kürzeln stehen im Log-Fenster.";
         hotkeysHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         hotkeysHint.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         hotkeysHint.Margin = new System.Windows.Forms.Padding(4, 12, 4, 6);
