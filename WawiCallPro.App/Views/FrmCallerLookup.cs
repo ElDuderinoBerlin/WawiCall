@@ -14,7 +14,16 @@ public partial class FrmCallerLookup : XtraForm
     private AppWorkspace? _workspace;
     private AppUiState? _state;
     private WawiCallPro.Interfaces.Telephony.ITelephonyService? _telephony;
-    public FrmCallerLookup() { InitializeComponent(); UiButtonSizing.Attach(this); AppIconHelper.Apply(this); }
+    private string _callStatus = "";
+    public FrmCallerLookup()
+    {
+        InitializeComponent();
+        callerPage.StatusChanged += CallerPage_StatusChanged;
+        Caller_FontChanged(this, EventArgs.Empty);
+        UpdateStatusBar();
+        UiButtonSizing.Attach(this);
+        AppIconHelper.Apply(this);
+    }
     public FrmCallerLookup(AppWorkspace workspace, AppUiState? state) : this()
     {
         _workspace = workspace;
@@ -32,7 +41,7 @@ public partial class FrmCallerLookup : XtraForm
         CallId = call.Id;
         _ended = false;
         callerPage.BindCall(call, accept);
-        callControls.UseStatusBar(callerPage.DisplayCallStatus);
+        callControls.UseStatusBar(DisplayCallStatus);
         callControls.Bind(_telephony, call);
         callControls.Visible = true;
         UpdateCaption(call);
@@ -50,10 +59,14 @@ public partial class FrmCallerLookup : XtraForm
             layout.Controls.Remove(callerPage);
             layout.Controls.Remove(callControls);
             callControls.Dispose();
+            callerPage.StatusChanged -= CallerPage_StatusChanged;
             callerPage.Dispose();
             callControls = new CallControlPanel { Dock = DockStyle.Fill, Visible = false };
             callerPage = new CallerLookupPage { Dock = DockStyle.Fill };
             callerPage.Bind(_workspace!, _state);
+            callerPage.StatusChanged += CallerPage_StatusChanged;
+            _callStatus = "";
+            UpdateStatusBar();
             layout.Controls.Add(callControls, 0, 0);
             layout.Controls.Add(callerPage, 0, 1);
         }
@@ -73,6 +86,28 @@ public partial class FrmCallerLookup : XtraForm
         if (CallId != id || _ended) return;
         await Task.WhenAll(callerPage.EndCallAsync(), callControls.StopAsync());
         if (CallId == id && !IsDisposed) _ended = true;
+    }
+
+    private void CallerPage_StatusChanged(object? sender, EventArgs e) => UpdateStatusBar();
+
+    private void Caller_FontChanged(object? sender, EventArgs e)
+    {
+        statusText.ItemAppearance.Normal.Font = Font;
+        statusText.ItemAppearance.Normal.Options.UseFont = true;
+    }
+
+    private void DisplayCallStatus(string status)
+    {
+        _callStatus = status;
+        UpdateStatusBar();
+    }
+
+    private void UpdateStatusBar()
+    {
+        var lookupStatus = callerPage.StatusText;
+        statusText.Caption = _callStatus.Length == 0 ? lookupStatus :
+            lookupStatus.Length == 0 ? _callStatus : _callStatus + "\n" + lookupStatus;
+        statusText.Hint = statusText.Caption;
     }
 
     private void UpdateCaption(CallSnapshot call)

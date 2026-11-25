@@ -1,4 +1,5 @@
 using System.Globalization;
+using DevExpress.XtraBars;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
@@ -87,10 +88,15 @@ public sealed partial class AppShellTests
         Assert.Contains("+80012345678 ·", concurrent.Text);
         Assert.DoesNotContain("Hamburg", concurrent.Text);
         await main.ObserveCallAsync(first with { Revision = 3, State = CallState.Ended, EndedAtUtc = DateTimeOffset.UtcNow, EndReason = CallEndReason.Completed });
-        Assert.Contains("Gespräch beendet", Field<LabelControl>(original.Page, "callStatusLabel").Text);
-        Assert.AreSame(Field<TableLayoutPanel>(original.Page, "statusBar"), Field<LabelControl>(original.Page, "statusLabel").Parent);
+        var status = Field<BarStaticItem>(original, "statusText");
+        Assert.Contains("Gespräch beendet", status.Caption);
+        Assert.Contains("Die bisherige Auswahl bleibt in der Historie erhalten.", status.Caption);
+        Assert.AreSame(Field<Bar>(original, "statusBar"), status.Manager.StatusBar);
         if (reuse)
         {
+            var recording = Field<LabelControl>(Field<CallControlPanel>(original, "callControls"), "recordingStatus");
+            recording.Text = "Aufnahme gespeichert · Stereo: eigene Stimme links, Gegenstelle rechts.";
+            Assert.Contains(recording.Text, status.Caption);
             original.ClientSize = new Size(680, 500);
             original.PerformLayout();
             Application.DoEvents();
@@ -99,6 +105,13 @@ public sealed partial class AppShellTests
             Directory.CreateDirectory(output);
             using var screenshot = UiAudit.Capture(original);
             screenshot.Save(Path.Combine(output, "ended.png"), System.Drawing.Imaging.ImageFormat.Png);
+            using var largeFont = new Font(original.Font.FontFamily, 16);
+            original.Font = largeFont;
+            original.ClientSize = new Size(680, 500);
+            original.PerformLayout();
+            Application.DoEvents();
+            using var largeScreenshot = UiAudit.Capture(original);
+            largeScreenshot.Save(Path.Combine(output, "ended-large.png"), System.Drawing.Imaging.ImageFormat.Png);
         }
 
         var third = (await CreateWorkspaceCallAsync(services)) with
@@ -111,6 +124,7 @@ public sealed partial class AppShellTests
         Assert.Contains("Rufnummer unterdrückt", selected.Text);
         Assert.DoesNotContain("030555555", selected.Text);
         Assert.DoesNotContain("Berlin", selected.Text);
+        Assert.DoesNotContain("Gespräch beendet", Field<BarStaticItem>(selected, "statusText").Caption);
         Assert.AreEqual(second.Id, concurrent.CallId);
         await main.PrepareToCloseAsync();
     });

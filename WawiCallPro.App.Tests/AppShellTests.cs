@@ -1288,7 +1288,7 @@ public sealed partial class AppShellTests
         var controls = Field<CallControlPanel>(popup, "callControls");
         Assert.IsTrue(controls.Visible); Assert.IsTrue(Field<SimpleButton>(controls, "answerButton").Enabled);
         Assert.IsFalse(Field<SimpleButton>(popup.Page, "searchButton").Enabled);
-        StringAssert.Contains(Field<LabelControl>(popup.Page, "statusLabel").Text, "Log-Fenster");
+        StringAssert.Contains(popup.Page.StatusText, "Log-Fenster");
         Assert.AreEqual(0, reads);
         await form.ObserveCallAsync(call with { Revision = 2, State = CallState.Ended });
         Assert.IsFalse(Field<SimpleButton>(controls, "answerButton").Enabled);
@@ -2171,7 +2171,7 @@ public sealed partial class AppShellTests
         await workspace.PhoneSearch.RefreshAsync();
         view.FocusedRowHandle = view.LocateByValue("Name", "Firma B Kontakt");
         Field<SimpleButton>(page, "chooseButton").PerformClick();
-        Assert.Contains("Suchstand geändert", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.Contains("Suchstand geändert", page.StatusText);
         Assert.IsFalse(Field<SimpleButton>(page, "chooseButton").Enabled);
         await form.PrepareToCloseAsync();
     });
@@ -2199,7 +2199,7 @@ public sealed partial class AppShellTests
         Assert.IsTrue(Field<SimpleButton>(page, "searchButton").Enabled);
         Assert.IsFalse(Field<SimpleButton>(page, "chooseButton").Enabled);
         Assert.IsNull(page.Decision);
-        Assert.Contains("abgebrochen", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.Contains("abgebrochen", page.StatusText);
         await form.PrepareToCloseAsync();
     });
 

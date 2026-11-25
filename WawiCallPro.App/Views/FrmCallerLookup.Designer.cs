@@ -16,6 +16,11 @@ partial class FrmCallerLookup
         layout = new System.Windows.Forms.TableLayoutPanel();
         callControls = new WawiCallPro.App.Views.CallControlPanel();
         callerPage = new WawiCallPro.App.Views.CallerLookupPage();
+        statusManager = new DevExpress.XtraBars.BarManager(components);
+        statusBar = new DevExpress.XtraBars.Bar();
+        statusText = new DevExpress.XtraBars.BarStaticItem();
+        statusDock = new DevExpress.XtraBars.BarDockControl();
+        ((System.ComponentModel.ISupportInitialize)statusManager).BeginInit();
         SuspendLayout();
         layout.Dock = System.Windows.Forms.DockStyle.Fill;
         layout.ColumnCount = 1;
@@ -29,6 +34,27 @@ partial class FrmCallerLookup
         layout.Controls.Add(callControls, 0, 0);
         layout.Controls.Add(callerPage, 0, 1);
         Controls.Add(layout);
+        Controls.Add(statusDock);
+        statusDock.Name = "statusDock";
+        statusDock.Dock = System.Windows.Forms.DockStyle.Bottom;
+        statusDock.AccessibleRole = System.Windows.Forms.AccessibleRole.StatusBar;
+        statusDock.Manager = statusManager;
+        statusManager.Bars.Add(statusBar);
+        statusManager.DockControls.Add(statusDock);
+        statusManager.Form = this;
+        statusManager.Items.Add(statusText);
+        statusManager.MaxItemId = 1;
+        statusManager.StatusBar = statusBar;
+        statusBar.BarName = "Statusleiste";
+        statusBar.DockStyle = DevExpress.XtraBars.BarDockStyle.Bottom;
+        statusBar.OptionsBar.AllowQuickCustomization = false;
+        statusBar.OptionsBar.DrawDragBorder = false;
+        statusBar.OptionsBar.UseWholeRow = true;
+        statusBar.ItemLinks.Add(statusText);
+        statusText.Id = 0;
+        statusText.Name = "statusText";
+        statusText.AutoSize = DevExpress.XtraBars.BarStaticItemSize.Spring;
+        statusText.ItemAppearance.Normal.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
         ClientSize = new System.Drawing.Size(960, 640);
         MinimumSize = new System.Drawing.Size(600, 440);
         Text = "WawiCallPro – Anrufzuordnung";
@@ -36,10 +62,16 @@ partial class FrmCallerLookup
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         FormClosing += Caller_FormClosing;
+        FontChanged += Caller_FontChanged;
         Name = "FrmCallerLookup";
+        ((System.ComponentModel.ISupportInitialize)statusManager).EndInit();
         ResumeLayout(false);
     }
     private System.Windows.Forms.TableLayoutPanel layout;
     private WawiCallPro.App.Views.CallerLookupPage callerPage;
     private WawiCallPro.App.Views.CallControlPanel callControls;
+    private DevExpress.XtraBars.BarManager statusManager;
+    private DevExpress.XtraBars.Bar statusBar;
+    private DevExpress.XtraBars.BarStaticItem statusText;
+    private DevExpress.XtraBars.BarDockControl statusDock;
 }

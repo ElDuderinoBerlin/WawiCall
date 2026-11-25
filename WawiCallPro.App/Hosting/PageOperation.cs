@@ -10,11 +10,12 @@ namespace WawiCallPro.App.Hosting;
 internal sealed class PageOperation : IDisposable
 {
     private readonly Control owner;
-    private readonly LabelControl? status;
+    private readonly Action<string>? showStatus;
     private readonly Action<WawiCallPro.Utilities.Operations.OperationEvent>? report;
     private readonly bool useWaitCursor = true;
-    internal PageOperation(Control owner, LabelControl status) { this.owner = owner; this.status = status; }
+    internal PageOperation(Control owner, LabelControl status) : this(message => status.Text = message, owner) { }
     internal PageOperation(Control owner, LabelControl status, bool useWaitCursor) : this(owner, status) => this.useWaitCursor = useWaitCursor;
+    internal PageOperation(Action<string> showStatus, Control owner) { this.owner = owner; this.showStatus = showStatus; }
     internal PageOperation(Control owner, Action<WawiCallPro.Utilities.Operations.OperationEvent> report) { this.owner = owner; this.report = report; }
     private readonly CancellationTokenSource _stopping = new();
     private Task _running = Task.CompletedTask;
@@ -32,7 +33,7 @@ internal sealed class PageOperation : IDisposable
     {
         using var waiting = useWaitCursor ? new UiWaitCursor(owner) : null;
         if (report is not null) report(WawiCallPro.Utilities.Operations.OperationEvent.SettingsWaiting);
-        else status!.Text = "Bitte warten …";
+        else showStatus!("Bitte warten …");
         try { await operation(_stopping.Token); }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
         catch (Exception exception)
@@ -41,7 +42,7 @@ internal sealed class PageOperation : IDisposable
             {
                 if (report is not null) report(exception is ConfigurationException or WawiCallPro.Interfaces.Plugins.PluginSettingsValidationException
                     ? WawiCallPro.Utilities.Operations.OperationEvent.SettingsValidationFailed : WawiCallPro.Utilities.Operations.OperationEvent.SettingsFailed);
-                else status!.Text = Describe(exception);
+                else showStatus!(Describe(exception));
             }
         }
     }
