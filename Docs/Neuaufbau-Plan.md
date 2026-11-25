@@ -2508,6 +2508,9 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   Keine Produktionsanrufe, Audiogeräte oder sichtbare Desktopbedienung; echte FRITZ!Box-Abnahme bleibt offen.
 - [x] ✅ Teilpunkt Gesprächsbedienung im Anruferfenster und in der Gesprächsdetailansicht (13.11.2026):
   Gemeinsames designerfähiges `CallControlPanel` mit Annehmen, Ablehnen/Auflegen und Halten/Fortsetzen.
+  ✅ Gesprächs-, Aufnahme- und Tonwahlaktionen teilen eine kompakte Tabellenleiste. Bei wenig
+  Platz rücken Aufnahme und Tonwahl in die nächste Zeile. Lautstärke und Mikrofon-Stummschaltung
+  stehen zusammen über den Pegelanzeigen. Beide Ansichten in Pro und FinOffice im Hintergrund geprüft.
   Befehle laufen über den injizierten vorhandenen Telefoniedienst und die feste Gesprächs-ID. Nur beobachtete
   Dienstzustände ändern die verfügbaren Aktionen; veraltete/fremde Ereignisse und ein Wiederbeleben beendeter
   Gespräche bleiben wirkungslos. Laufende Aktionen sperren Doppelaufrufe. Beim Schließen werden Befehle

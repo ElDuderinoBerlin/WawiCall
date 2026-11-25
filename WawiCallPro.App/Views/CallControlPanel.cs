@@ -88,6 +88,18 @@ public partial class CallControlPanel : XtraUserControl
         UpdateAudio();
     }
 
+    private void ActionStrip_Layout(object? sender, LayoutEventArgs e) => ArrangeActionGroups();
+
+    private void ArrangeActionGroups()
+    {
+        if (!IsHandleCreated || _disposed) return;
+        var width = new[] { answerButton, endButton, holdButton, recordingButton, dtmfButton }
+            .Sum(button => button.Width + button.Margin.Horizontal);
+        var availableWidth = ClientSize.Width - layout.Padding.Horizontal;
+        var cell = width <= availableWidth ? new TableLayoutPanelCellPosition(1, 0) : new TableLayoutPanelCellPosition(0, 1);
+        if (!actionStrip.GetCellPosition(recordingActions).Equals(cell)) actionStrip.SetCellPosition(recordingActions, cell);
+    }
+
     private bool CanSendDtmf => !_disposed && _stopTask is null && !_lifetime.IsCancellationRequested
         && _telephony is not null && _call?.State == CallState.Connected;
 
@@ -148,6 +160,7 @@ public partial class CallControlPanel : XtraUserControl
             _ => "Keine Aufnahme"
         };
         UiButtonSizing.Apply(recordingButton, dtmfButton);
+        ArrangeActionGroups();
     }
     private async void Recording_Changed(object? sender, LiveRecordingChangedEventArgs e)
     {

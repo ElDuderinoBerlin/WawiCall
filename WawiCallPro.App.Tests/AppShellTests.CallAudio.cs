@@ -25,7 +25,7 @@ public sealed partial class AppShellTests
         try
         {
             foreach (var (fontSize, scale, width, height, skin) in new[]
-                { (10F, 1F, 800, 550, "Basic"), (16F, 1F, 650, 690, "Office 2019 Black"), (10F, 1.5F, 780, 630, "Basic") })
+                { (10F, 1F, 1120, 550, "Basic"), (16F, 1F, 650, 690, "Office 2019 Black"), (10F, 1.5F, 780, 630, "Basic") })
             {
                 if (skin == "Basic") look.SetSkinStyle(skin, "Blue Dark"); else look.SetSkinStyle(skin);
                 using var font = new Font("Segoe UI", fontSize);
@@ -54,6 +54,8 @@ public sealed partial class AppShellTests
                 if (scale != 1F) { dialog.Scale(new SizeF(scale, scale)); detailsHost.Scale(new SizeF(scale, scale)); }
                 details.PerformLayout(); dialog.PerformLayout();
                 CheckTableBounds(panel); CheckTableBounds(detailsPanel);
+                if (scale == 1F && fontSize == 10F)
+                    Assert.AreEqual(0, Field<TableLayoutPanel>(panel, "actionStrip").GetRow(Field<TableLayoutPanel>(panel, "recordingActions")));
 
                 var volume = Field<SpinEdit>(panel, "conversationVolume");
                 var mute = Field<SimpleButton>(detailsPanel, "muteMicrophone");
