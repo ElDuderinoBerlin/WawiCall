@@ -62,6 +62,36 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 - [ ] Bei vergleichbarer Lautstärke blind anhören. Natürlichkeit, Worttreue und Verständlichkeit jeweils von 1 bis 5 bewerten. Zusätzlich über das Headset und mit schmalbandiger Telefonkodierung anhören.
 - [ ] Region, Stimme, Ausgabeformat, Zeit bis zur fertigen Datei und Kosten festhalten. Azure wählen, wenn es bei der telefonischen Verständlichkeit mindestens gleichauf liegt und einen hörbaren Vorteil gegenüber Windows bietet. Andernfalls Google prüfen oder bei Windows bleiben.
 
+#### Zwischenstand am 25. November 2026
+
+| Testfall | Identischer Eingabetext je Stimme |
+| --- | --- |
+| 01 – Begrüßung | Guten Tag und herzlich willkommen bei der Musterwerk GmbH. Bitte bleiben Sie am Apparat. Wir sind gleich für Sie da. |
+| 02 – Erreichbarkeit | Sie erreichen uns Montag bis Donnerstag von 8:30 bis 17:15 Uhr und freitags bis 14 Uhr. Am 24. Dezember bleibt unser Büro geschlossen. |
+| 03 – Telefonmenü | Für den Vertrieb drücken Sie die 1. Für Fragen zu Ihrer Bestellung drücken Sie die 2. Für Frau Özdemir wählen Sie die Durchwahl 307. Halten Sie bitte Ihre Kundennummer 50428 bereit. |
+
+- [x] ✅ Neun Windows-Proben über die WawiCallPro-Diagnosekonsole erzeugt. Microsoft Hedda, Katja
+  und Stefan sind jeweils `de-DE`. Die Originale sind Mono-PCM-WAV mit 16 kHz und 16 Bit.
+  Die Dateierzeugung inklusive Konsolenstart dauerte je Probe 414–708 ms. API-Kosten fallen lokal
+  keine an.
+- [x] ✅ Blindproben für Windows erstellt. Je Testtext zufällig mit A, B und C beschriftet.
+  Der Headset-Satz ist auf −20 LUFS Zielwert normalisiert. Für die Telefonprobe wurde zusätzlich auf
+  300–3400 Hz gefiltert und über G.711 A-law (PCMA, 8 kHz, mono) kodiert und wieder in WAV
+  dekodiert. Das Telefonformat wurde mit `ffprobe` geprüft. Die integrierte Lautheit der
+  Telefonproben liegt bei −20,3 bis −19,3 LUFS. Es handelt sich um eine Simulation.
+  Die Hördateien, Playlists, Messdaten und getrennte Auflösung liegen lokal unter
+  `.artifacts/tts-phase-1/`.
+- [ ] Azure-Proben für `de-DE-KatjaNeural` und `de-DE-ConradNeural` erzeugen. Der lokale Azure-Zugang
+  reichte für keine bestätigte Speech-Ressource aus. Die öffentliche Galerie zeigte für
+  die gewählte Stimme nur die vorgegebene Sprachprobe an. [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery)
+- [ ] Google-Proben für `de-DE-Chirp3-HD-Achernar` und eine deutsche Neural2-Stimme erzeugen.
+  Für die Chirp-Demo mit aktuellem Testtext erschien vor der Synthese ein CAPTCHA. Ein
+  nutzbarer lokaler Google-Cloud-Zugang war nicht verfügbar. [Google Cloud TTS-Demo](https://cloud.google.com/text-to-speech#demo)
+- [ ] Nach Erzeugung der Cloud-Dateien alle Proben nach demselben Verfahren aufbereiten, blind
+  mischen und bewerten. Für Erreichbarkeit und Menü die verstandenen Uhrzeiten, Tasten,
+  Durchwahl und Kundennummer vor Auflösung notieren. Natürlichkeit und Verständlichkeit
+  sind bislang offen. Es gibt noch keine Rangfolge oder Anbieterentscheidung aus dem Hörtest.
+
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
 - [ ] Azure-Synthese per REST und Dependency Injection anbinden. Den vorhandenen WAV-Entwurf als Übergabe an Wiedergabe und Export nutzen. Für den Pilot zwei freigegebene `de-DE`-Stimmen hinterlegen, damit der Dialog auch ohne Stimmenabfrage starten kann.
