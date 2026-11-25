@@ -219,26 +219,71 @@ public sealed partial class SipRuntimeTests
     }
 
     [TestMethod]
-    public async Task RemoteCancelAndExplicitRejectHaveDifferentEndReasonsAndNeverCreateAudio()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task IncomingTcpCallCanBeEndedByRemoteBye(bool synchronousMediaCloseFails)
     {
         await using var fixture = await Fixture.CreateAsync();
+        await fixture.UseTcpAsync();
+        FaultingCloseMedia? faultingMedia = null;
+        if (synchronousMediaCloseFails) fixture.Media.Wrap = media => faultingMedia = new FaultingCloseMedia(media);
         await fixture.Runtime.ConnectAsync();
         await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
-        using (var peer = new SIPUserAgent())
+        using var transport = new SIPTransport();
+        transport.AddSIPChannel(new SIPTCPChannel(new IPEndPoint(IPAddress.Loopback, 0)));
+        using var peer = new SIPUserAgent(transport, null, false);
+        using var media = new TestMedia();
+        var outgoing = peer.Call(fixture.Destination + ";transport=tcp", "caller", "synthetic", media.Session, 5);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        var incoming = fixture.Runtime.GetCalls().Single();
+        await fixture.Runtime.AnswerAsync(incoming.Id).WaitAsync(TimeSpan.FromSeconds(8));
+        Assert.IsTrue(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(SIPProtocolsEnum.tcp, peer.Dialogue.RemoteTarget.Protocol);
+        if (synchronousMediaCloseFails)
+        {
+            // Send the SIP BYE without first closing the test peer's RTP session.
+            var bye = peer.Dialogue.GetInDialogRequest(SIPMethodsEnum.BYE);
+            var transaction = new SIPNonInviteTransaction(transport, bye, null);
+            transaction.SendRequest();
+        }
+        else peer.Hangup();
+        await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Ended);
+        await UntilAsync(() => fixture.Media.Closed == fixture.Media.Created);
+        Assert.AreEqual(CallEndReason.RemoteHangup, fixture.Runtime.GetCalls().Single().EndReason);
+        if (faultingMedia is not null) Assert.IsTrue(faultingMedia.CloseFailed);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task RemoteCancelAndExplicitRejectHaveDifferentEndReasonsAndNeverCreateAudio(bool tcp)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        if (tcp) await fixture.UseTcpAsync();
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        using var transport = new SIPTransport();
+        var bind = new IPEndPoint(IPAddress.Loopback, 0);
+        transport.AddSIPChannel(tcp ? new SIPTCPChannel(bind) : new SIPUDPChannel(bind));
+        var destination = tcp ? fixture.Destination + ";transport=tcp" : fixture.Destination;
+        using (var peer = new SIPUserAgent(transport, null, false))
         using (var media = new TestMedia())
         {
-            var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+            var ringing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            peer.ClientCallRinging += (_, _) => ringing.TrySetResult();
+            var outgoing = peer.Call(destination, "caller", "synthetic", media.Session, 5);
+            await ringing.Task.WaitAsync(TimeSpan.FromSeconds(5));
             await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
             peer.Cancel();
             Assert.IsFalse(await outgoing.WaitAsync(TimeSpan.FromSeconds(5)));
             await UntilAsync(() => fixture.Runtime.GetCalls().Single().EndReason == CallEndReason.Missed);
         }
-        using (var peer = new SIPUserAgent())
+        using (var peer = new SIPUserAgent(transport, null, false))
         using (var media = new TestMedia())
         {
             var reply = new TaskCompletionSource<SIPResponseStatusCodesEnum>(TaskCreationOptions.RunContinuationsAsynchronously);
             peer.ClientCallFailed += (_, _, response) => { if (response is not null) reply.TrySetResult(response.Status); };
-            var outgoing = peer.Call(fixture.Destination, "caller", "synthetic", media.Session, 5);
+            var outgoing = peer.Call(destination, "caller", "synthetic", media.Session, 5);
             await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
             await fixture.Runtime.RejectAsync(fixture.Runtime.GetCalls().Single(call => call.State == CallState.Ringing).Id);
             Assert.AreEqual(SIPResponseStatusCodesEnum.Decline, await reply.Task.WaitAsync(TimeSpan.FromSeconds(3)));
@@ -655,5 +700,33 @@ public sealed partial class SipRuntimeTests
         public void ApplyPlaybackSettings() { }
         public void Dispose() { if (Interlocked.Exchange(ref _disposed, 1) == 0) { _session.Close("test"); closed?.Invoke(); } }
         public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+    }
+
+    private sealed class FaultingCloseMedia(ISipMediaSession inner) : ISipMediaSession
+    {
+        private readonly FaultingCloseSession _session = new();
+        internal bool CloseFailed => _session.CloseFailed;
+        public IMediaSession Session => _session;
+        public void ApplyPlaybackSettings() { }
+        public ValueTask DisposeAsync()
+        {
+            _session.Close("test disposal");
+            return inner.DisposeAsync();
+        }
+    }
+
+    private sealed class FaultingCloseSession()
+        : VoIPMediaSession(format => format.Codec is SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMA or SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMU)
+    {
+        internal volatile bool CloseFailed;
+        public override void Close(string reason)
+        {
+            if (reason == "normal")
+            {
+                CloseFailed = true;
+                throw new IOException("Isolated synchronous media close failure.");
+            }
+            base.Close(reason);
+        }
     }
 }

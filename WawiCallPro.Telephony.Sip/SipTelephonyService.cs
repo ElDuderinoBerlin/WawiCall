@@ -134,6 +134,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             catch { throw new TelephonyException("DatabaseNotReady"); }
             _transport = _transports.Create(account);
             var activeTransport = _transport;
+            activeTransport.SIPRequestInTraceEvent += (_, _, request) =>
+            {
+                if (request.Method is SIPMethodsEnum.BYE or SIPMethodsEnum.CANCEL)
+                    _log.LogDebug("SIP-Abbruchsignal empfangen ({Method}).", request.Method);
+            };
+            activeTransport.SIPResponseOutTraceEvent += (_, _, response) => ObserveByeResponse(activeTransport, response);
             _transport.SIPTransportRequestReceived += async (_, _, request) =>
             {
                 if (_stopping || !ReferenceEquals(_transport, activeTransport)) return;
@@ -141,7 +147,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 {
                     Agent? incoming;
                     lock (_gate) incoming = _agent;
-                    if (incoming is not null) Track(() => IncomingAsync(incoming, request));
+                    if (incoming is not null)
+                    {
+                        // Register the INVITE transaction before the transport can process a following CANCEL.
+                        var processing = IncomingAsync(incoming, request);
+                        Track(() => processing);
+                    }
                 }
                 else if (request.Method == SIPMethodsEnum.OPTIONS && _transport is { } transport)
                     await transport.SendResponseAsync(SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ok, null)).ConfigureAwait(false);
@@ -427,12 +438,8 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             agent.Incoming = agent.UserAgent.AcceptCall(request);
         }
         await EnqueueAsync(() => ChangeAsync(agent, CallState.Ringing)).ConfigureAwait(false);
-        try { agent.Incoming.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null); }
-        catch
-        {
-            await EnqueueAsync(() => ChangeAsync(agent, CallState.Failed, CallEndReason.Error)).ConfigureAwait(false);
-            throw;
-        }
+        // AcceptCall has already sent the provisional responses and owns the transaction.
+        if (agent.Stopping.IsCancellationRequested) return;
         Track(async () =>
         {
             try { await Task.Delay(TimeSpan.FromSeconds(_account!.Connection.RingTimeoutSeconds), agent.Stopping.Token).ConfigureAwait(false); }
