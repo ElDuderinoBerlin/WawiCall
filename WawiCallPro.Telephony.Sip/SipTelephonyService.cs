@@ -49,6 +49,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     private RegistrationSnapshot _registration = new(RegistrationState.Stopped, DateTimeOffset.UtcNow);
     private SIPTransport? _transport;
     private SIPRegistrationUserAgent? _registrar;
+    private SIPEndPoint? _registeredPeer;
     private IDisposable? _lease;
     private SipAccountOptions? _account;
     private Guid? _sipProfileId;
@@ -157,7 +158,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 account.Connection.RegistrationExpirySeconds, null, account.Connection.RegistrationTimeoutSeconds,
                 account.Connection.RetryIntervalSeconds, 3, true);
             _registrar = registrar;
-            registrar.RegistrationSuccessful += (_, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Registered); };
+            registrar.RegistrationSuccessful += (_, response) =>
+            {
+                if (!ReferenceEquals(_registrar, registrar) || _stopping) return;
+                Volatile.Write(ref _registeredPeer, response.RemoteSIPEndPoint);
+                SetRegistration(RegistrationState.Registered);
+            };
             registrar.RegistrationTemporaryFailure += (_, _, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Reconnecting, "RegistrationRetry"); };
             registrar.RegistrationFailed += (_, _, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Failed, "RegistrationFailed"); };
             registrar.RegistrationRemoved += (_, _) => { if (ReferenceEquals(_registrar, registrar) && !_stopping) SetRegistration(RegistrationState.Stopped); };
@@ -405,11 +411,10 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 if (transport is not null) Track(async () => await transport.SendResponseAsync(SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.BusyHere, null)).ConfigureAwait(false));
                 return;
             }
-            var number = request.Header.From.FromURI.User;
-            var withheld = string.Equals(number, "anonymous", StringComparison.OrdinalIgnoreCase);
-            if (withheld) number = null;
-            Begin(agent, CallDirection.Incoming, number, null);
-            if (withheld) agent.State = _states.Create(agent.State!.Current with { RemoteAddress = new(NumberPresentation.Withheld) });
+            var caller = SipCallerIdentity.Read(request, Volatile.Read(ref _registeredPeer));
+            Begin(agent, CallDirection.Incoming, caller.OriginalValue, null);
+            if (caller.Presentation == NumberPresentation.Withheld)
+                agent.State = _states.Create(agent.State!.Current with { RemoteAddress = caller });
             Queue(() => PublishAsync(agent));
             agent.Incoming = agent.UserAgent.AcceptCall(request);
         }
@@ -689,6 +694,7 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
     {
         _registrar?.Stop(false);
         _registrar = null;
+        Volatile.Write(ref _registeredPeer, null);
         _agent?.UserAgent.Dispose(); _agent = null;
         _transport?.Shutdown(); _transport = null;
         _lease?.Dispose(); _lease = null;

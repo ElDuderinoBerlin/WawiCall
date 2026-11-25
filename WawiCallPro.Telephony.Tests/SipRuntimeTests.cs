@@ -342,6 +342,7 @@ public sealed partial class SipRuntimeTests
         internal SipTelephonyService Runtime = null!;
         internal readonly MemoryPersistence Persistence = new();
         internal readonly MediaFactory Media = new();
+        internal SIPTransport RegistrarTransport => _registrar;
         internal readonly LeaseFactory Leases = new();
         internal int LocalPort;
         internal int Registers;

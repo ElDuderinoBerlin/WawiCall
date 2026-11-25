@@ -1980,6 +1980,9 @@ die Firmenauswahl und Trefferansicht bestehen die gezielte Designer-/DPI-/Schrif
   Audiogeräte und keine sichtbare GUI verwendet. Echte FRITZ!Box-/Geräteabnahme sowie TLS-/NAT-/
   IPv6-Profile bleiben offen; Phase 7 bleibt bis zur vollständigen Abnahme unvollständig.
 - [x] ✅ Eingehendes und ausgehendes Wählen, Annehmen, Ablehnen, Auflegen, Halten/Fortsetzen, Weiterleiten und DTMF implementieren.
+  ✅ Bei anonymem SIP-From kann die Rufnummer aus der vom registrierten SIP-Gegenpunkt gelieferten
+  Identität übernommen werden. Explizite Privacy-Kennzeichen haben Vorrang. Drei UDP-Loopback-Fälle
+  je Edition bestanden. Bestätigung über die echte Telefonanlage steht aus.
   DTMF zunächst über ausgehandelte RTP-Telefonieereignisse und SIPSorcery SendDtmf/OnDtmfTone anbinden;
   keine zusätzliche Audio-Erkennungsbibliothek aus WawiCallPro.old.sln für diesen Pfad übernehmen.
   Gemeinsamen Empfangsvertrag für Telefonmenüs ergänzen und Gesprächszuordnung/Mehrfachmeldungen prüfen.
