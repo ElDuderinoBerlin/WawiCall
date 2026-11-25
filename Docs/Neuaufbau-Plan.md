@@ -3678,7 +3678,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   oder ist ihre WAV-Struktur ungültig, bleibt die Auswahl sichtbar und die Wiedergabe nutzt den
   eingebauten Ton. **Abspielen** wiederholt den Klingelton bis zu 30 Sekunden auf der gewählten
   Klingelausgabe. **Stopp** beendet die Wiedergabe. Der Regler bleibt bedienbar, Änderungen wirken
-  im laufenden WASAPI-Stream, und der Status erscheint im Audio-Reiter. Ein Wartecursor erscheint
+  im laufenden WASAPI-Stream. Die Schaltfläche zeigt den Wiedergabezustand, die Statuszeile meldet
+  bei der Wiedergabe nur Fehler oder den Einsatz des eingebauten Ersatztons. Ein Wartecursor erscheint
   bei der Dateiauswahl, während der Wiedergabe bleibt der normale Cursor sichtbar.
   Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
   Windows-Geräteereignisse aktualisieren die Liste bei geöffneten Einstellungen automatisch.

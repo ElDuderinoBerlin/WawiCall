@@ -122,17 +122,13 @@ public partial class SettingsPage
         _ringtonePreviewVolume = new AudioPlaybackVolume(volume);
         browseRingtoneButton.Enabled = false;
         previewRingtoneButton.Text = "Stopp";
-        var deviceStatus = _meterFactory is { } factory ? " " + EndpointMeterDisplay.Describe(_ringMeter?.Update(factory, settings.RingDeviceId)) : "";
-        audioStatus.Text = "Klingelton wird abgespielt …" + deviceStatus;
+        audioStatus.Text = "";
         try
         {
             var selected = await player.PreviewAsync(settings, _ringtonePreviewVolume, stop.Token);
-            if (!_audioStopped) audioStatus.Text = (selected ? "Klingelton abgespielt." : "Klingeldatei nicht verfügbar. Eingebauten Ton abgespielt.") + deviceStatus;
+            if (!selected && !_audioStopped) audioStatus.Text = "Klingeldatei nicht verfügbar. Eingebauten Ton abgespielt.";
         }
-        catch (OperationCanceledException) when (stop.IsCancellationRequested)
-        {
-            if (!_audioStopped) audioStatus.Text = "Wiedergabe beendet." + deviceStatus;
-        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         catch (Exception) { if (!_audioStopped) audioStatus.Text = "Klingelton konnte nicht abgespielt werden. Klingelausgabe und Windows-Lautstärke prüfen."; }
         finally
         {

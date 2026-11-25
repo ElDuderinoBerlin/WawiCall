@@ -62,7 +62,8 @@ public sealed partial class AppShellTests
             var notice = page.LastSettingsNotice;
             await page.PreviewRingtoneAsync();
             Assert.AreEqual(notice, page.LastSettingsNotice);
-            Assert.Contains("Windows", Field<LabelControl>(page, "audioStatus").Text);
+            var status = Field<LabelControl>(page, "audioStatus");
+            Assert.AreEqual("", status.Text);
             Assert.AreEqual(22050, output.SampleRate);
             Assert.AreEqual(35, output.Volume);
             output.Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -71,11 +72,13 @@ public sealed partial class AppShellTests
             Assert.IsFalse(dialog.UseWaitCursor);
             Assert.IsTrue(slider.Enabled);
             Assert.AreEqual("Stopp", button.Text);
+            Assert.AreEqual("", status.Text);
             slider.Value = 57;
             Assert.AreEqual(57, liveVolume.Percent);
             button.PerformClick();
             await playing.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.AreEqual("Abspielen", button.Text);
+            Assert.AreEqual("", status.Text);
             output.Started = null;
             slider.Value = 35;
             Assert.AreEqual("RingPrevious.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
