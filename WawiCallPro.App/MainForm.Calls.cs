@@ -130,16 +130,29 @@ public partial class MainForm
     }
     internal void EnsureViewsCanClose()
     {
-        EnsureCallsAreIdle();
         if (_callPages.Values.Any(entry => entry.Page.HasUnsavedNotes) || HasUnsavedHistoryNotes) throw new UnsavedCallNotesException();
         if (_pluginPages.Values.Any(view => view.HasUnsavedChanges) || _callPages.Values.Any(entry => entry.Page.HasUnsavedChanges))
             throw new UnsavedPluginChangesException();
+    }
+    private async Task EndActiveCallsAsync()
+    {
+        if (_workspace?.Telephony is not { } phone) return;
+        foreach (var call in phone.GetCalls().Where(AppTelephonyService.IsActive))
+        {
+            try { await phone.HangUpAsync(call.Id); }
+            catch (TelephonyException error) when (error.Code == "CallNotActive"
+                && !phone.GetCalls().Any(current => current.Id == call.Id && AppTelephonyService.IsActive(current)))
+            {
+                // The remote party ended this call before our command reached the service.
+            }
+        }
+        EnsureCallsAreIdle();
     }
     private void EnsureCallsAreIdle(Guid? callId = null)
     {
         // The service is authoritative even before queued UI events create or update a call page.
         if (_workspace?.Telephony?.GetCalls().Any(call => (callId is null || call.Id == callId)
-            && call.State is not (CallState.Ended or CallState.Failed)) != true) return;
+            && AppTelephonyService.IsActive(call)) != true) return;
         RestartRequested = false;
         throw new ActiveCallCloseException();
     }

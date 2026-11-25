@@ -941,7 +941,7 @@ public sealed partial class AppShellTests
     [DataRow(CallState.Ringing)]
     [DataRow(CallState.Connected)]
     [DataRow(CallState.Held)]
-    public Task ActiveCallsBlockShutdownRestartPluginSwitchAndTheirDocument(CallState state)
+    public Task RestartEndsActiveCallsButClosingAnIndividualDocumentLeavesItsCallActive(CallState state)
     {
         var telephony = new CommandTelephony();
         return WithWorkspace(async (workspace, services, plugin) =>
@@ -956,19 +956,14 @@ public sealed partial class AppShellTests
             await form.ObserveCallAsync(call with { Revision = call.Revision + 1, State = CallState.Ended });
             telephony.Current = call with { State = state };
             form.RestartRequested = true;
-            await Assert.ThrowsAsync<ActiveCallCloseException>(() => form.PrepareToCloseAsync());
-            Assert.IsFalse(form.RestartRequested); Assert.IsFalse(Field<bool>(form, "_closing"));
-            Assert.IsFalse(entry.Page.Notes.IsStopping);
             await Assert.ThrowsAsync<ActiveCallCloseException>(() => (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [entry.Document])!);
-            await Assert.ThrowsAsync<ActiveCallCloseException>(() => (Task)typeof(MainForm).GetMethod("PreparePluginSwitchAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, null)!);
             Assert.IsFalse(popup.IsDisposed); Assert.IsFalse(entry.Page.IsDisposed); Assert.IsFalse(entry.Page.Notes.IsStopping);
-            Assert.AreEqual("Test.Lexware", ((TestRuntime)workspace.Plugins).ActivePluginId);
             Assert.IsEmpty(telephony.Commands, "Blocked requests must not issue a phone command.");
-            form.ReportActiveCall();
-            Assert.AreEqual(new ActiveCallCloseException().Message, Field<LabelControl>(form, "connectionLabel").Text);
-            Assert.AreEqual(new ActiveCallCloseException().Message, PageOperation.Describe(new ActiveCallCloseException()));
-            telephony.Current = call with { State = CallState.Ended };
+            form.RestartRequested = true;
+            telephony.Execute = (_, _) => { telephony.Current = call with { State = CallState.Ended }; return Task.CompletedTask; };
             await form.PrepareToCloseAsync(); Assert.IsTrue(entry.Page.Notes.IsStopping);
+            Assert.IsTrue(form.RestartRequested);
+            CollectionAssert.AreEqual(new[] { ("HangUp", call.Id) }, telephony.Commands);
         }, telephony);
     }
 
@@ -1007,13 +1002,14 @@ public sealed partial class AppShellTests
             await (Task)typeof(MainForm).GetMethod("CloseDocumentAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, [pages[first.Id].Document])!;
             Assert.IsTrue(closedPage.IsDisposed); Assert.IsFalse(activePage.IsDisposed); Assert.IsFalse(activePage.Notes.IsStopping);
             Assert.HasCount(1, pages); Assert.IsEmpty(telephony.Commands);
-            await Assert.ThrowsAsync<ActiveCallCloseException>(() => form.PrepareToCloseAsync());
-            telephony.Current = null; await form.PrepareToCloseAsync();
+            telephony.Execute = (_, _) => { telephony.Current = null; return Task.CompletedTask; };
+            await form.PrepareToCloseAsync();
+            CollectionAssert.AreEqual(new[] { ("HangUp", second.Id) }, telephony.Commands);
         }, telephony);
     }
 
     [TestMethod]
-    public Task ActiveCallWithoutUiDocumentBlocksActualPluginActivationAndAllowsRetryAfterEnding()
+    public Task PluginActivationEndsActiveCallEvenWithoutUiDocument()
     {
         var telephony = new CommandTelephony();
         return WithWorkspace(async (workspace, services, plugin) =>
@@ -1021,18 +1017,14 @@ public sealed partial class AppShellTests
             using var form = new MainForm(workspace.Application, workspace.Configuration, workspace, services.GetRequiredService<AppUiState>());
             form.PrepareForBackgroundRun(); form.Show(); Application.DoEvents();
             telephony.Current = CommandCall(); // The notification has not yet reached the UI.
-            Assert.ThrowsExactly<ActiveCallCloseException>(form.EnsureViewsCanClose);
+            var call = telephony.Current;
+            telephony.Execute = (_, _) => { telephony.Current = null; return Task.CompletedTask; };
             using var settings = form.CreateSettingsDialog(true); settings.PrepareForBackgroundRun(); settings.Show(form);
             var settingsPage = Field<SettingsPage>(settings, "settingsPage"); await settingsPage.ReloadAsync();
             var management = Field<PluginPage>(settingsPage, "pluginPage");
             await management.HandleCardActionAsync("activate", 1);
-            Assert.AreEqual("Test.Lexware", ((TestRuntime)workspace.Plugins).ActivePluginId);
-            Assert.AreEqual(new ActiveCallCloseException().Message, settingsPage.LastSettingsNoticeText);
             Assert.IsTrue(Field<SimpleButton>(settingsPage, "saveButton").Enabled);
-            Assert.AreNotEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
-            Assert.IsEmpty(telephony.Commands);
-            telephony.Current = null;
-            await management.HandleCardActionAsync("activate", 1);
+            CollectionAssert.AreEqual(new[] { ("HangUp", call.Id) }, telephony.Commands);
             Assert.AreEqual("Test.Dummy", ((TestRuntime)workspace.Plugins).ActivePluginId);
             Assert.AreEqual("Test.Dummy", (await workspace.Settings.LoadAsync()).Options.User.ActivePluginId);
             await settings.StopAsync(); await form.PrepareToCloseAsync();

@@ -239,6 +239,7 @@ public partial class MainForm : RibbonForm
     internal async Task PrepareToCloseAsync()
     {
         EnsureViewsCanClose();
+        await EndActiveCallsAsync();
         _closing = true; tray.Visible = false;
         if (_settingsDialog is { Visible: false } preparingSettings) await preparingSettings.StopAsync();
         await StopPluginShellAsync();
@@ -395,6 +396,7 @@ public partial class MainForm : RibbonForm
     private async Task PreparePluginSwitchAsync()
     {
         EnsureViewsCanClose();
+        await EndActiveCallsAsync();
         var resetCompanies = StopCompanyRestoreAsync();
         var stopParties = StopPartyOpeningAsync();
         await Task.WhenAll(resetCompanies, stopParties);
