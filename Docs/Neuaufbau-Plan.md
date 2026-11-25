@@ -1811,7 +1811,11 @@ implementieren die Planung; Offline-Parser und Nummernkontext aus Punkten 1–2 
   CallerLookupPage: gruppierter GridView, eingebaute Suche, versioniertes Spaltenlayout, Suchfirmen-/Cache-
   und Herkunftsdetails. Suche, Abbruch und Schließen sind abwartbar; Hauptansichten bleiben erhalten.
   Bei eingehenden Anrufen zeigt der Fenstertitel die per libphonenumber ermittelte Region neben der Rufnummer,
-  sofern die öffentliche Nummer aufgelöst werden kann.
+  sofern die öffentliche Nummer aufgelöst werden kann. Fehlt im SIP-Leitungskontext die Region, verwendet die
+  Anzeige bei vollständigen Nummern mit führender Null die Windows-Formatregion. Der Stammdatenabgleich
+  benötigt weiterhin den expliziten Leitungskontext.
+  ✅ Am 25.11.2026 zeigte Pro im Debug-Build bei einem echten eingehenden SIP-Anruf die national
+  signalisierte Rufnummer mit „Berlin“ im Titel. Je Edition drei gezielte App-Tests bestanden.
   Der frühere Untertab „Leitungsfirma“ wurde am 22.11.2026 entfernt. Persönliche Cacheauswahl und
   Berechtigungen bleiben bestehen; alte gespeicherte Zuordnungen bleiben lesbar, beeinflussen neue
   Anrufentscheidungen aber nicht. Historische Gesprächszuordnungen bleiben erhalten.

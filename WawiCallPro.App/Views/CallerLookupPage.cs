@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Base;
 using WawiCallPro.App.Hosting;
@@ -90,6 +91,21 @@ public partial class CallerLookupPage : XtraUserControl
         if (address.Presentation == NumberPresentation.Available && string.IsNullOrWhiteSpace(address.OriginalValue))
             address = address with { OriginalValue = address.E164 };
         return _workspace?.PhoneInterpreter.InterpretIncoming(address, _boundLine);
+    }
+
+    internal string? DescribeIncomingRegion(CallAddress address)
+    {
+        if (InterpretAddress(address) is { Kind: PhoneNumberAddressKind.Public } interpreted)
+            return interpreted.Parsed?.RegionDescription;
+
+        // The caption can use the Windows format region for a complete national number. Caller matching requires explicit line settings.
+        if (_boundLine is not { DefaultRegion: null } line || address.OriginalValue?.TrimStart().StartsWith('0') != true ||
+            CultureInfo.CurrentCulture is not { IsNeutralCulture: false, Name.Length: > 0 } culture)
+            return null;
+
+        var region = new RegionInfo(culture.Name).TwoLetterISORegionName;
+        var national = _workspace?.PhoneInterpreter.InterpretIncoming(address, line with { DefaultRegion = region }, PhoneNumberInputKind.National);
+        return national is { Kind: PhoneNumberAddressKind.Public } ? national.Parsed?.RegionDescription : null;
     }
 
     internal void DisplayCallStatus(string status)

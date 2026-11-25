@@ -1,14 +1,38 @@
+using System.Globalization;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Telephony;
 
 namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    [TestMethod]
+    public Task CallerCaptionUsesWindowsRegionForNationalSipNumberWithoutChangingMatching() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var culture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            using var window = new FrmCallerLookup(workspace, null);
+            window.PrepareForBackgroundRun();
+            var call = CommandCall() with { RemoteAddress = new(NumberPresentation.Available, "0301234567") };
+            window.BindCall(call, (_, _) => Task.CompletedTask);
+            Assert.Contains("0301234567 (Berlin)", window.Text);
+            Assert.AreEqual(PhoneNumberAddressKind.Unresolved, window.Page.InterpretAddress(call.RemoteAddress)?.Kind);
+            var shortNumber = call with { RemoteAddress = new(NumberPresentation.Available, "030") };
+            window.ObserveCall(shortNumber);
+            Assert.Contains("030 ·", window.Text);
+            Assert.DoesNotContain("Berlin", window.Text);
+            await window.StopAsync();
+        }
+        finally { CultureInfo.CurrentCulture = culture; }
+    }, new ComTelephonyFixture.Backend { Line = new("sip:test", "test") });
+
     [TestMethod]
     public Task IncomingCallToastPreferenceCanBeSavedIndependentlyOfTheCallerWindow() => WithWorkspace(async (workspace, _, _) =>
     {
