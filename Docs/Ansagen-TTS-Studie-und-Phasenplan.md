@@ -221,6 +221,14 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
 - [x] ✅ Ein Testtext lässt sich im Einstellungsdialog mit der gewählten Stimme vertonen und abspielen.
   Für Cloud-Proben gelten die gespeicherten Zugangsdaten und Monatsbudgets. Die Vorschau verwendet das für
   Ansagen ausgewählte Windows-Ausgabegerät und entfernt die temporäre WAV nach der Wiedergabe.
+- [x] ✅ Live-Test im regulären Pro-Debug-Einstellungsdialog am 26.11.2026. Unter
+  **Audio → Cloud-Ansagen** lieferte **Stimmen laden** 32 deutsche Google-Stimmen. Der Listenabruf
+  änderte den lokalen Kontingentzähler nicht. Anschließend wurde Achernar ausgewählt und
+  „Guten Tag. Dies ist eine deutsche Testansage.“ über **Kopfhörer (Jabra Link 380)** abgespielt.
+  Der automatisierte Hintergrundtest leitete die reguläre WASAPI-Ausgabe auf das Jabra, ohne
+  die Gerätewahl zu speichern. Die Wiedergabe war nach 3,64 s Audio beendet und erreichte 66 %
+  Spitzenpegel. Der Test bestätigte die Löschung der Vorschau-WAV und einen Zählerstand von
+  124 statt zuvor 79 reservierten Zeichen bei einem Monatsbudget von 1.000.
 - [x] ✅ Deutsche Standardstimme im lokalen Pro-Profil auf **Google Cloud**,
   `de-DE-Chirp3-HD-Achernar`, gesetzt und für Google Chirp 3 HD ein lokales Monatsbudget
   von **1.000 Zeichen** freigegeben. Am 26.11.2026 mit dem regulären Pro-Debug-Build
