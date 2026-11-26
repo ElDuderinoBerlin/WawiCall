@@ -4960,6 +4960,24 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   wiedergefundene Datei mit dem ursprünglichen SHA-256 setzt das Artefakt wieder auf verfügbar.
   Abgleich und erneute Zustellung erhalten die ursprüngliche Zuordnung und vermeiden doppelte
   Artefakte. In den Console-, Utilities-, Database- und App-Läufen beider Editionen enthalten.
+- [x] ✅ Mandantenname und Historienwiedergabe mit echten SIP-Gesprächen prüfen (26.11.2026).
+  Zuerst Pro, danach FinOffice. Je Edition verband sich ein isolierter Debug-Prüfhost mit dem
+  SIP-Konto und führte ein ausgehendes G.711-Gespräch mit ausdrücklich zugeordnetem Testmandanten.
+  Beide bestätigten WAV-Dateien tragen den jeweiligen Testmandanten und den lokalen Aufnahmestart
+  im Standardmuster. Die Aufnahmen dauerten jeweils rund acht Sekunden. Bytezahl und SHA-256
+  stimmen mit den gespeicherten Artefakten überein. Ein frischer Prozess fand und spielte jede Datei
+  über den unveränderten Historien-Dienst mit Fortschritt vollständig ab. Ein paralleler WASAPI-
+  Loopback am Jabra Link 380 maß bei beiden Wiedergaben Signal bis zum Ende.
+  Der Nachweis umfasst den Historien-Dienst und das Ausgabegerät. Die Raster-Bedienung war wegen
+  eines Startfehlers des Desktophelfers nicht prüfbar. In beiden WAVs enthält die Spur der
+  Gegenstelle Signal. Die Mikrofonspur enthält Nullen. Windows meldete das Jabra-Mikrofon bei
+  der anschließenden Geräteprüfung als stumm. Der beidseitige Sprachnachweis bleibt offen.
+  Mit G.722 brach die RTP-Aufnahme zuvor in beiden Editionen ab. Der Pro-Diagnoselauf maß beim
+  Übergang zwischen zwei aufeinanderfolgenden Paketen derselben Quelle 512 PCM-Samples bei
+  16 kHz und einen RTP-Timestamp-Abstand von 160 Einheiten bei 8 kHz, entsprechend 320 PCM-Samples.
+  Der RTP-Feed meldete Überlappung. Der separate Pro-WASAPI-Aufnahmeversuch im Gespräch endete
+  ebenfalls mit einem Zeitachsenfehler. G.722, WASAPI-Aufnahme im Gespräch und Wiederanbindung
+  bleiben Teil der Phase-9-Abnahme. Nachweise unter `.artifacts/phase9-recording-name-live/`.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem
