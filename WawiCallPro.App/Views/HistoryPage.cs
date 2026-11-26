@@ -1,6 +1,7 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.Audio;
 using WawiCallPro.App.Hosting;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
@@ -23,6 +24,7 @@ public partial class HistoryPage : XtraUserControl
     private CallNotesSessionFactory? _notesFactory;
     private AppUiState? _state;
     private ILogWindowService? _log;
+    private ICompanyRepository? _callCompanies;
     private PageOperation? _operation;
     private bool _arranging;
     private Guid? _selected;
@@ -43,12 +45,14 @@ public partial class HistoryPage : XtraUserControl
         var history = await _history.GetCallAsync(id, token);
         if (history?.Call.Id != id) throw new Hosting.AutomationCallNotFoundException();
         var call = history.Call;
+        var companyName = history.Parties.FirstOrDefault(party => party.IsSelected)?.CompanyDisplayName
+            ?? await ReadCompanyNameAsync(call.Company, token);
         await ReadRecordingAvailabilityAsync([id], token);
         _binding = true;
         try
         {
             ClosePlayer();
-            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>([ToRow(call)]);
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>([ToRow(call, companyName)]);
             grid.ForceInitialize();
             view.FocusedRowHandle = 0;
         }
@@ -115,15 +119,17 @@ public partial class HistoryPage : XtraUserControl
         SetMinimum(startedColumn, new DateTime(2000, 12, 28, 23, 59, 0).ToString("g"));
         SetMinimum(directionColumn, "Ausgehend");
         SetMinimum(numberColumn, "+49 30 123456789");
+        SetMinimum(companyColumn, "Beispielmandant");
+        SetMinimum(machineColumn, "DESKTOP-1234567");
         SetMinimum(stateColumn, "Verbunden");
         SetMinimum(durationColumn, "00:00:00");
-        SetMinimum(playbackColumn, "Abspielen", 20);
+        SetMinimum(playbackColumn, "Aufnahme");
 
-        void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample, int iconSpace = 0)
+        void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
         {
             var header = TextRenderer.MeasureText(column.Caption, view.Appearance.HeaderPanel.Font).Width;
             var cell = TextRenderer.MeasureText(sample, view.Appearance.Row.Font).Width;
-            column.MinWidth = Math.Max(header, cell + LogicalToDeviceUnits(iconSpace)) + LogicalToDeviceUnits(24);
+            column.MinWidth = Math.Max(header, cell) + LogicalToDeviceUnits(24);
             if (column.Width < column.MinWidth) column.Width = column.MinWidth;
         }
     }
@@ -132,11 +138,13 @@ public partial class HistoryPage : XtraUserControl
     {
         _state = state;
         _log = workspace.LogWindow;
+        _callCompanies = workspace.CallCompanies;
         _playback = workspace.RecordingPlayback;
         _recordingFiles = workspace.RecordingFiles;
         BindHistory(workspace.History, workspace.CallNotes);
         state?.AttachTabs(historyTabs, "History");
         _state?.Restore(view, "CallHistory-v2");
+        playbackColumn.Fixed = DevExpress.XtraGrid.Columns.FixedStyle.Right;
         FitColumns();
     }
     public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
@@ -205,6 +213,9 @@ public partial class HistoryPage : XtraUserControl
             _log?.LogWarning("Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.");
             return;
         }
+        var companyNames = new Dictionary<CompanyKey, string?>();
+        foreach (var key in calls.Select(call => call.Company).OfType<CompanyKey>().Distinct())
+            companyNames.Add(key, await ReadCompanyNameAsync(key, token));
         await ReadRecordingAvailabilityAsync(loadedIds, token);
         var previous = (view.GetFocusedRow() as HistoryRow)?.Id;
         _binding = true;
@@ -215,7 +226,8 @@ public partial class HistoryPage : XtraUserControl
             ActivateNotes(null);
             saveNoteButton.Enabled = false;
             ClosePlayer();
-            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>(calls.Select(ToRow).ToList());
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>(calls.Select(call =>
+                ToRow(call, call.Company is { } key ? companyNames.GetValueOrDefault(key) : null)).ToList());
             if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
                 view.FocusedRowHandle = handle;
         }
@@ -228,6 +240,9 @@ public partial class HistoryPage : XtraUserControl
         _playable = _playback is null ? new HashSet<Guid>() : await _playback.FindAsync(ids, token);
         token.ThrowIfCancellationRequested();
     }
+
+    private async Task<string?> ReadCompanyNameAsync(CompanyKey? key, CancellationToken token) =>
+        key is not null && _callCompanies is not null ? (await _callCompanies.GetAsync(key, token))?.Company.DisplayName : null;
 
     private void View_PlaybackEditor(object? sender, DevExpress.XtraGrid.Views.Grid.CustomRowCellEditEventArgs e)
     {
@@ -387,14 +402,17 @@ public partial class HistoryPage : XtraUserControl
         });
     }
 
-    private HistoryRow ToRow(CallSnapshot call) => new(call.Id, call.StartedAtUtc.LocalDateTime,
+    private HistoryRow ToRow(CallSnapshot call, string? companyName) => new(call.Id, call.StartedAtUtc.LocalDateTime,
         call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
         call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "",
+        companyName ?? "", call.Origin?.MachineName ?? "", call.Origin?.WindowsUserName ?? "",
+        call.AnsweredAtUtc?.LocalDateTime, call.EndedAtUtc?.LocalDateTime, call.EndReason is { } reason ? EndReasonName(reason) : "",
         _playable.Contains(call.Id) ? [new(call.Id)] : []);
 
     private static string DisplayNumber(CallAddress address) => address.Presentation == NumberPresentation.Withheld ? "Unterdrückt" : address.OriginalValue ?? address.E164 ?? "Unbekannt";
     private static string StateName(CallState state) => state switch { CallState.Created => "Angelegt", CallState.Dialing => "Wählt", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" };
-    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer, List<PlayerRow> PlayerDetails)
+    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer,
+        string Mandant, string Rechner, string WindowsBenutzer, DateTime? Angenommen, DateTime? Ende, string Endgrund, List<PlayerRow> PlayerDetails)
     {
         public string Playback => "";
     }

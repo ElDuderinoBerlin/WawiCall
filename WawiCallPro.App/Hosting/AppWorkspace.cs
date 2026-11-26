@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WawiCallPro.Core.Companies;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
 using WawiCallPro.Interfaces.History;
@@ -57,9 +58,11 @@ public sealed class AppWorkspace(
     IRecordingDirectoryInventory? recordingInventory = null,
     WawiCallPro.Audio.IAnnouncementAudio? announcementAudio = null,
     WawiCallPro.Audio.IAnnouncementSpeech? announcementSpeech = null,
-    ILogWindowService? logWindow = null)
+    ILogWindowService? logWindow = null,
+    ICompanyRepository? callCompanies = null)
 {
     internal ILogWindowService? LogWindow => logWindow;
+    internal ICompanyRepository? CallCompanies => callCompanies;
 
     public void ReportSettings(OperationEvent notice)
     {

@@ -3614,6 +3614,10 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
   Aufnahme geöffnet. Debug-Builds, Darstellung in dunklen Skins und automatisierte
   Prüfungen einschließlich Pause und Spulen über stummes WASAPI in Pro und FinOffice.
 
+- [x] ✅ Gesprächshistorie zeigt Mandant und Rechner. Windows-Benutzer, Annahmezeit,
+  Ende und Endgrund stehen in der Spaltenauswahl. Bestehende Spaltenlayouts behalten
+  ihre Einstellungen und nehmen die beiden sichtbaren Spalten auf.
+
 - [x] ✅ **Audio → Audiodatei konvertieren** bereitet lokale Audiodateien für Ansagen auf.
   WAV, MP3, Ogg/Vorbis und WMA als Quelle, PCM16-WAV als Ergebnis. Quelle und Ergebnis
   lassen sich über das konfigurierte Ausgabegerät anhören. Abtastrate, Mono/Stereo und

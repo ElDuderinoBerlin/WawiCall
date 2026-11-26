@@ -4,7 +4,9 @@ using DevExpress.XtraGrid.Views.Grid;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Common;
+using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 
@@ -39,10 +41,12 @@ public sealed partial class AppShellTests
         var start = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(date, TimeZoneInfo.Local));
         var end = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(date.AddDays(1), TimeZoneInfo.Local));
         if (TimeZoneInfo.Local.Id == "W. Europe Standard Time") Assert.AreEqual(TimeSpan.FromHours(berlinHours), end - start);
+        var company = new Company(new(LexwareProductLine.Pro, "test-history", "1"), "Testmandant");
+        await services.GetRequiredService<ICompanyRepository>().WriteAsync(new(company, null, start));
         var ids = new List<Guid>();
         foreach (var time in new[] { start.AddTicks(-1), start, end.AddTicks(-1), end })
         {
-            var call = await services.GetRequiredService<ICallJournal>().BeginAsync(new() { Id = Guid.NewGuid(), Revision = 0,
+            var call = await services.GetRequiredService<ICallJournal>().BeginAsync(new() { Id = Guid.NewGuid(), Revision = 0, Company = company.Key,
                 Direction = CallDirection.Incoming, State = CallState.Created, StartedAtUtc = time, StateChangedAtUtc = time,
                 LocalAddress = new(NumberPresentation.Unknown), RemoteAddress = new(NumberPresentation.Withheld) });
             ids.Add(call.Id);
@@ -52,6 +56,27 @@ public sealed partial class AppShellTests
         await InvokeActionAsync(page, "Refresh_Click"); var grid = Field<GridView>(page, "view"); Assert.AreEqual(2, grid.DataRowCount);
         CollectionAssert.AreEquivalent(new[] { ids[1], ids[2] }, Enumerable.Range(0, grid.DataRowCount).Select(row => (Guid)grid.GetRowCellValue(row, "Id")).ToArray());
         Assert.AreEqual("Unterdrückt", grid.GetRowCellValue(0, "Rufnummer"));
+        Assert.AreEqual("Testmandant", grid.GetRowCellValue(0, "Mandant"));
+        Assert.AreEqual(Environment.MachineName, grid.GetRowCellValue(0, "Rechner"));
+        Assert.IsFalse(grid.Columns["WindowsBenutzer"].Visible);
+        Assert.IsTrue(grid.Columns["WindowsBenutzer"].OptionsColumn.ShowInCustomizationForm);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(grid.GetRowCellValue(0, "WindowsBenutzer") as string));
+
+        using var legacy = new HistoryPage();
+        CreateHandles(legacy);
+        var legacyView = Field<GridView>(legacy, "view");
+        foreach (var field in new[] { "Mandant", "Rechner", "WindowsBenutzer", "Angenommen", "Ende", "Endgrund" })
+            legacyView.Columns.Remove(legacyView.Columns[field]);
+        legacyView.OptionsLayout.Columns.StoreAllOptions = true;
+        grid.OptionsLayout.Columns.StoreAllOptions = true;
+        legacyView.Columns["Rufnummer"].Width = 219;
+        using var legacyLayout = new MemoryStream();
+        legacyView.SaveLayoutToStream(legacyLayout);
+        legacyLayout.Position = 0;
+        grid.RestoreLayoutFromStream(legacyLayout);
+        Assert.AreEqual(219, grid.Columns["Rufnummer"].Width);
+        Assert.IsTrue(grid.Columns["Mandant"].Visible);
+        Assert.IsTrue(grid.Columns["Rechner"].Visible);
         await page.StopAsync();
     });
 
