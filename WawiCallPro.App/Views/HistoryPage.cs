@@ -52,7 +52,7 @@ public partial class HistoryPage : XtraUserControl
         try
         {
             ClosePlayer();
-            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>([ToRow(call, companyName)]);
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>([ToRow(new(call, history.Storage), companyName)]);
             grid.ForceInitialize();
             view.FocusedRowHandle = 0;
         }
@@ -197,24 +197,24 @@ public partial class HistoryPage : XtraUserControl
         }
         var start = new DateTimeOffset(DateTime.SpecifyKind(fromEdit.DateTime.Date, DateTimeKind.Local)).ToUniversalTime();
         var end = new DateTimeOffset(DateTime.SpecifyKind(toEdit.DateTime.Date.AddDays(1), DateTimeKind.Local)).ToUniversalTime();
-        var calls = new List<CallSnapshot>();
+        var calls = new List<CallHistoryEntry>();
         while (true)
         {
             token.ThrowIfCancellationRequested();
-            var batch = await _history!.GetCallsAsync(new CallHistoryQuery(new PageRequest(calls.Count, 500), StartedFromUtc: start, StartedToUtc: end), token);
+            var batch = await _history!.GetEntriesAsync(new CallHistoryQuery(new PageRequest(calls.Count, 500), StartedFromUtc: start, StartedToUtc: end), token);
             calls.AddRange(batch.Items);
             if (!batch.HasMore) break;
             if (batch.Items.IsEmpty) throw new InvalidOperationException("Call history did not advance.");
         }
         token.ThrowIfCancellationRequested();
-        var loadedIds = calls.Select(call => call.Id).ToHashSet();
+        var loadedIds = calls.Select(entry => entry.Call.Id).ToHashSet();
         if (_notes.Values.Any(notes => notes.HasUnsavedChanges && !loadedIds.Contains(notes.CallId)))
         {
             _log?.LogWarning("Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.");
             return;
         }
         var companyNames = new Dictionary<CompanyKey, string?>();
-        foreach (var key in calls.Select(call => call.Company).OfType<CompanyKey>().Distinct())
+        foreach (var key in calls.Select(entry => entry.Call.Company).OfType<CompanyKey>().Distinct())
             companyNames.Add(key, await ReadCompanyNameAsync(key, token));
         await ReadRecordingAvailabilityAsync(loadedIds, token);
         var previous = (view.GetFocusedRow() as HistoryRow)?.Id;
@@ -226,8 +226,8 @@ public partial class HistoryPage : XtraUserControl
             ActivateNotes(null);
             saveNoteButton.Enabled = false;
             ClosePlayer();
-            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>(calls.Select(call =>
-                ToRow(call, call.Company is { } key ? companyNames.GetValueOrDefault(key) : null)).ToList());
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>(calls.Select(entry =>
+                ToRow(entry, entry.Call.Company is { } key ? companyNames.GetValueOrDefault(key) : null)).ToList());
             if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
                 view.FocusedRowHandle = handle;
         }
@@ -402,18 +402,48 @@ public partial class HistoryPage : XtraUserControl
         });
     }
 
-    private HistoryRow ToRow(CallSnapshot call, string? companyName) => new(call.Id, call.StartedAtUtc.LocalDateTime,
-        call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
-        call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "",
-        companyName ?? "", call.Origin?.MachineName ?? "", call.Origin?.WindowsUserName ?? "",
-        call.AnsweredAtUtc?.LocalDateTime, call.EndedAtUtc?.LocalDateTime, call.EndReason is { } reason ? EndReasonName(reason) : "",
-        _playable.Contains(call.Id) ? [new(call.Id)] : []);
+    private HistoryRow ToRow(CallHistoryEntry entry, string? companyName) =>
+        new(entry, companyName ?? "", _playable.Contains(entry.Call.Id) ? [new(entry.Call.Id)] : []);
 
     private static string DisplayNumber(CallAddress address) => address.Presentation == NumberPresentation.Withheld ? "Unterdrückt" : address.OriginalValue ?? address.E164 ?? "Unbekannt";
     private static string StateName(CallState state) => state switch { CallState.Created => "Angelegt", CallState.Dialing => "Wählt", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" };
-    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer,
-        string Mandant, string Rechner, string WindowsBenutzer, DateTime? Angenommen, DateTime? Ende, string Endgrund, List<PlayerRow> PlayerDetails)
+    private sealed class HistoryRow(CallHistoryEntry entry, string companyName, List<PlayerRow> playerDetails)
     {
+        private CallSnapshot Call => entry.Call;
+        public Guid Id => Call.Id;
+        public DateTime Beginn => Call.StartedAtUtc.LocalDateTime;
+        public string Richtung => Call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend";
+        public string Rufnummer => DisplayNumber(Call.RemoteAddress);
+        public string Zustand => HistoryState(Call);
+        public string Dauer => Call.AnsweredAtUtc is { } answered && Call.EndedAtUtc is { } ended
+            ? (ended - answered).ToString(@"hh\:mm\:ss") : "";
+        public string Mandant => companyName;
+        public string Rechner => Call.Origin?.MachineName ?? "";
+        public string WindowsBenutzer => Call.Origin?.WindowsUserName ?? "";
+        public DateTime? Angenommen => Call.AnsweredAtUtc?.LocalDateTime;
+        public DateTime? Ende => Call.EndedAtUtc?.LocalDateTime;
+        public string Endgrund => Call.EndReason is { } reason ? EndReasonName(reason) : "";
+        public Guid? CompanyId => entry.Storage?.CompanyId;
+        public long? WriteVersion => entry.Storage?.WriteVersion;
+        public long Revision => Call.Revision;
+        public Guid? WorkstationId => Call.Origin?.WorkstationId;
+        public string LocalPresentation => PresentationName(Call.LocalAddress.Presentation);
+        public string? LocalOriginalValue => Call.LocalAddress.OriginalValue;
+        public string? LocalE164 => Call.LocalAddress.E164;
+        public string? LocalExtension => Call.LocalAddress.Extension;
+        public string RemotePresentation => PresentationName(Call.RemoteAddress.Presentation);
+        public string? RemoteOriginalValue => Call.RemoteAddress.OriginalValue;
+        public string? RemoteE164 => Call.RemoteAddress.E164;
+        public string? RemoteExtension => Call.RemoteAddress.Extension;
+        public DateTime StateChangedAt => Call.StateChangedAtUtc.LocalDateTime;
+        public List<PlayerRow> PlayerDetails => playerDetails;
         public string Playback => "";
+
+        private static string PresentationName(NumberPresentation presentation) => presentation switch
+        {
+            NumberPresentation.Available => "Verfügbar",
+            NumberPresentation.Withheld => "Unterdrückt",
+            _ => "Unbekannt"
+        };
     }
 }

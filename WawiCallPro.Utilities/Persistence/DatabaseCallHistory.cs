@@ -8,6 +8,8 @@ namespace WawiCallPro.Utilities.Persistence;
 public sealed class DatabaseCallHistory(ICallRepository calls, ICallNoteRepository notes, TimeProvider clock) : ICallHistoryService
 {
     public Task<Page<CallSnapshot>> GetCallsAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) => calls.GetPageAsync(query, cancellationToken);
+    public Task<Page<CallHistoryEntry>> GetEntriesAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) =>
+        calls.GetHistoryPageAsync(query, cancellationToken);
     public async Task<CallHistory?> GetCallAsync(Guid callId, CancellationToken cancellationToken = default) =>
         (await calls.GetAsync(callId, cancellationToken).ConfigureAwait(false))?.History;
     public async Task<CallNote> SaveNoteAsync(Guid callId, Guid noteId, string text, CancellationToken cancellationToken = default)

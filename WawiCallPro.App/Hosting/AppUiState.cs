@@ -254,9 +254,19 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
 
     internal void Restore(GridView view, string name)
     {
+        view.OptionsMenu.EnableColumnMenu = true;
+        view.OptionsCustomization.AllowColumnMoving = true;
+        view.OptionsCustomization.AllowColumnResizing = true;
         view.OptionsLayout.StoreAllOptions = false;
         view.OptionsLayout.StoreDataSettings = false;
-        view.OptionsLayout.Columns.StoreAllOptions = true;
+        view.OptionsLayout.StoreAppearance = false;
+        view.OptionsLayout.StoreFormatRules = false;
+        view.OptionsLayout.StoreVisualOptions = false;
+        view.OptionsLayout.Columns.StoreAllOptions = false;
+        view.OptionsLayout.Columns.StoreAppearance = false;
+        view.OptionsLayout.Columns.StoreLayout = true;
+        view.OptionsLayout.Columns.AddNewColumns = true;
+        view.OptionsLayout.Columns.RemoveOldColumns = true;
         if (Enabled) view.RestoreLayoutFromRegistry(KeyPath + @"\Grids\" + name);
     }
     internal void Save(GridView view, string name)

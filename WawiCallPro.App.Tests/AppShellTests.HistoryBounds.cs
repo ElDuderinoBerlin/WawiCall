@@ -48,7 +48,8 @@ public sealed partial class AppShellTests
         {
             var call = await services.GetRequiredService<ICallJournal>().BeginAsync(new() { Id = Guid.NewGuid(), Revision = 0, Company = company.Key,
                 Direction = CallDirection.Incoming, State = CallState.Created, StartedAtUtc = time, StateChangedAtUtc = time,
-                LocalAddress = new(NumberPresentation.Unknown), RemoteAddress = new(NumberPresentation.Withheld) });
+                LocalAddress = new(NumberPresentation.Available, "030123456", "+4930123456", "23"),
+                RemoteAddress = new(NumberPresentation.Withheld) });
             ids.Add(call.Id);
         }
         using var page = new HistoryPage(); page.Bind(workspace, null); CreateHandles(page);
@@ -61,6 +62,24 @@ public sealed partial class AppShellTests
         Assert.IsFalse(grid.Columns["WindowsBenutzer"].Visible);
         Assert.IsTrue(grid.Columns["WindowsBenutzer"].OptionsColumn.ShowInCustomizationForm);
         Assert.IsFalse(string.IsNullOrWhiteSpace(grid.GetRowCellValue(0, "WindowsBenutzer") as string));
+        CollectionAssert.AreEqual(new[] { "Beginn", "Richtung", "Rufnummer", "Mandant", "Rechner", "Zustand", "Dauer", "Playback" },
+            grid.VisibleColumns.Select(column => column.FieldName).ToArray());
+        CollectionAssert.AreEquivalent(new[]
+        {
+            "WindowsBenutzer", "Angenommen", "Ende", "Endgrund", "StateChangedAt",
+            "LocalOriginalValue", "LocalE164", "LocalExtension", "LocalPresentation",
+            "RemoteOriginalValue", "RemoteE164", "RemoteExtension", "RemotePresentation",
+            "Id", "CompanyId", "WorkstationId", "Revision", "WriteVersion"
+        }, grid.Columns.Where(column => !column.Visible && column.OptionsColumn.ShowInCustomizationForm)
+            .Select(column => column.FieldName).ToArray());
+        Assert.AreEqual((await workspace.History.GetCallAsync(ids[2]))!.Storage!.CompanyId, grid.GetRowCellValue(0, "CompanyId"));
+        Assert.IsInstanceOfType<Guid>(grid.GetRowCellValue(0, "CompanyId"));
+        Assert.AreEqual(1L, grid.GetRowCellValue(0, "WriteVersion"));
+        Assert.AreEqual(0L, grid.GetRowCellValue(0, "Revision"));
+        Assert.AreEqual("+4930123456", grid.GetRowCellValue(0, "LocalE164"));
+        Assert.AreEqual("23", grid.GetRowCellValue(0, "LocalExtension"));
+        Assert.AreEqual("Unterdrückt", grid.GetRowCellValue(0, "RemotePresentation"));
+        Assert.IsNull(grid.GetRowCellValue(0, "RemoteOriginalValue"));
 
         using var legacy = new HistoryPage();
         CreateHandles(legacy);
@@ -78,6 +97,55 @@ public sealed partial class AppShellTests
         Assert.IsTrue(grid.Columns["Mandant"].Visible);
         Assert.IsTrue(grid.Columns["Rechner"].Visible);
         await page.StopAsync();
+    });
+
+    [TestMethod]
+    public Task HistoryColumnLayoutSurvivesReopeningWithoutSessionFilters() => WithWorkspace((workspace, _, _) =>
+    {
+        var key = @"Software\WawiCallPro.Tests\Grids\" + Guid.NewGuid().ToString("N");
+        var state = new AppUiState(workspace.Application, new(false), key);
+        try
+        {
+            using (var page = new HistoryPage())
+            {
+                page.Bind(workspace, state);
+                CreateHandles(page);
+                var view = Field<GridView>(page, "view");
+                Assert.IsTrue(view.OptionsMenu.EnableColumnMenu);
+                Assert.IsTrue(view.OptionsCustomization.AllowColumnMoving);
+                view.Columns["LocalE164"].VisibleIndex = 1;
+                view.Columns["LocalE164"].Width = 219;
+                view.Columns["Rechner"].Visible = false;
+                view.ActiveFilterString = "[Richtung] = 'Eingehend'";
+                view.ApplyFindFilter("Sitzung");
+            }
+
+            using var host = new FrmSettings();
+            host.PrepareForBackgroundRun();
+            host.ClientSize = new Size(1000, 650);
+            using var reopened = new HistoryPage { Dock = DockStyle.Fill };
+            reopened.Bind(workspace, state);
+            host.Controls.Add(reopened);
+            reopened.BringToFront();
+            host.Show();
+            CreateHandles(reopened);
+            var restored = Field<GridView>(reopened, "view");
+            Assert.AreEqual(1, restored.Columns["LocalE164"].VisibleIndex);
+            Assert.AreEqual(219, restored.Columns["LocalE164"].Width);
+            Assert.IsFalse(restored.Columns["Rechner"].Visible);
+            Assert.IsTrue(restored.Columns["Rechner"].OptionsColumn.ShowInCustomizationForm);
+            Assert.AreEqual(reopened.LogicalToDeviceUnits(36), restored.Columns["Playback"].Width);
+            Assert.IsTrue(string.IsNullOrEmpty(restored.ActiveFilterString));
+            Assert.IsTrue(string.IsNullOrEmpty(restored.FindFilterText));
+            Assert.AreEqual(0, restored.DataRowCount);
+            var output = Path.Combine(RenderOutput(), "history-layout");
+            Directory.CreateDirectory(output);
+            using var bitmap = new Bitmap(reopened.Width, reopened.Height);
+            reopened.DrawToBitmap(bitmap, reopened.ClientRectangle);
+            bitmap.Save(Path.Combine(output, $"history-column-layout-empty-{typeof(HistoryPage).Assembly.GetName().Name}.png"));
+        }
+        finally { state.Reset(); }
+        return Task.CompletedTask;
     });
 
     [TestMethod]

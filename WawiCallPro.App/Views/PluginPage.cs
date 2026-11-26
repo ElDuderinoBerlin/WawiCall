@@ -227,10 +227,15 @@ public partial class PluginPage : XtraUserControl
                 rows.AddRange(Enum.GetValues<BusinessFeature>().Select(feature => new CapabilityRow(company.DisplayName ?? "Gespeicherter Mandant", FeatureName(feature),
                     report.GetAvailability(feature) switch { FeatureAvailability.Supported => "Unterstützt", FeatureAvailability.Partial => "Teilweise", _ => "Nicht verfügbar" }, report.Entries.GetValueOrDefault(feature)?.Details ?? "")));
             }
+            var firstLoad = grid.DataSource is null;
             grid.DataSource = rows;
+            if (firstLoad)
+            {
+                grid.ForceInitialize();
+                _state?.Restore(view, "PluginCapabilities");
+            }
             capabilitiesTab.PageVisible = true;
             pluginTabs.SelectedTabPage = capabilitiesTab;
-            _state?.Restore(view, "PluginCapabilities");
             _report?.Invoke(OperationEvent.SettingsPluginCapabilitiesLoaded);
         });
     }

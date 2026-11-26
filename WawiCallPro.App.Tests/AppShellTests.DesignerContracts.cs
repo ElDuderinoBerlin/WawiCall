@@ -83,6 +83,7 @@ public sealed partial class AppShellTests
                 var view = new GridView(grid);
                 grid.MainView = view;
                 view.Columns.AddVisible("Name"); view.Columns.AddVisible("Number");
+                view.Columns.AddField("Additional");
                 _ = grid.Handle; grid.ForceInitialize();
                 return grid;
             }
@@ -93,6 +94,7 @@ public sealed partial class AppShellTests
                 view.OptionsView.ColumnAutoWidth = false;
                 view.Columns["Name"].Width = 231;
                 view.Columns["Number"].VisibleIndex = 0;
+                view.Columns["Additional"].VisibleIndex = 1;
                 view.ActiveFilterString = "[Number] = 1";
                 view.ApplyFindFilter("One");
                 state.Save(view, "Columns");
@@ -105,6 +107,8 @@ public sealed partial class AppShellTests
                 state.Restore(view, "Columns");
                 Assert.AreEqual(231, view.Columns["Name"].Width);
                 Assert.AreEqual(0, view.Columns["Number"].VisibleIndex);
+                Assert.AreEqual(1, view.Columns["Additional"].VisibleIndex);
+                Assert.IsTrue(view.OptionsMenu.EnableColumnMenu);
                 Assert.IsTrue(string.IsNullOrEmpty(view.ActiveFilterString));
                 Assert.IsTrue(string.IsNullOrEmpty(view.FindFilterText));
                 Assert.IsFalse(view.OptionsLayout.StoreDataSettings);

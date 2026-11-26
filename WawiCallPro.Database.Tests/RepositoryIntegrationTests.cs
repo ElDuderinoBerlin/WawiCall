@@ -200,6 +200,8 @@ public static class RepositoryAcceptance
         var entry = new CallEvent(Guid.NewGuid(), call.Id, 10, Time, "call.ringing", CallState.Ringing);
         var saved = await calls.WriteAsync(new(call, null, [candidate, alternative], [entry], origin, lookup));
         Assert.AreEqual(1L, saved.Version); Assert.AreEqual(origin, saved.History.Call.Origin); Assert.AreEqual(candidate, saved.History.Parties[0]);
+        var historyQuery = new CallHistoryQuery(new(0, 10)) { WorkstationId = origin.WorkstationId };
+        Assert.AreEqual(new CallHistoryStorage(null, 1), (await calls.GetHistoryPageAsync(historyQuery)).Items.Single().Storage);
         var notes = new DapperCallNoteRepository(context); var noteId = Guid.NewGuid();
         var note = await notes.WriteAsync(new(call.Id, noteId, "Notiz\r\nÄ 电话 ' ", null, Time));
         var recording = new Recording(Guid.NewGuid(), call.Id, "2026/01/anruf.mp3", "mp3", TimeSpan.FromTicks(123456789), RecordingAvailability.Missing);
@@ -213,6 +215,11 @@ public static class RepositoryAcceptance
         var connected = call with { Company = other, Revision = 5, State = CallState.Connected, AnsweredAtUtc = Time.AddTicks(1), StateChangedAtUtc = Time.AddTicks(1) };
         saved = await calls.WriteAsync(new(connected, 2, [alternative with { IsSelected = true }], [new(Guid.NewGuid(), call.Id, 11, Time.AddTicks(1), "call.connected", CallState.Connected)], origin));
         Assert.AreEqual(5L, saved.History.Call.Revision);
+        var listed = (await calls.GetHistoryPageAsync(historyQuery)).Items.Single();
+        Assert.AreEqual(saved.History.Call, listed.Call);
+        Assert.AreEqual(saved.History.Storage, listed.Storage);
+        Assert.IsNotNull(listed.Storage!.CompanyId);
+        Assert.AreEqual(3L, listed.Storage.WriteVersion);
         await Conflict(() => calls.WriteAsync(new(connected, 3, [], [entry with { Code = "changed" }], origin)), RepositoryConflictKind.AppendConflict);
         Assert.AreEqual(3L, (await calls.GetAsync(call.Id))!.Version);
         await Conflict(() => notes.WriteAsync(new(call.Id, noteId, "stale", null, Time)), RepositoryConflictKind.AlreadyExists);

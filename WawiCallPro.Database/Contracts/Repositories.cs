@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Directory;
@@ -32,6 +33,12 @@ public interface ICallRepository
 {
     Task<StoredCall?> GetAsync(Guid callId, CancellationToken cancellationToken = default);
     Task<Page<CallSnapshot>> GetPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default);
+    async Task<Page<CallHistoryEntry>> GetHistoryPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default)
+    {
+        var page = await GetPageAsync(query, cancellationToken).ConfigureAwait(false);
+        return new(page.Items.Select(call => new CallHistoryEntry(call)).ToImmutableArray(), page.HasMore);
+    }
+
     Task<StoredCall> WriteAsync(CallWrite write, CancellationToken cancellationToken = default);
 }
 

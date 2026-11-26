@@ -42,12 +42,19 @@ public sealed record Recording(
 public sealed record CallHistory
 {
     public required CallSnapshot Call { get; init; }
+    public CallHistoryStorage? Storage { get; init; }
     public ImmutableArray<CallPartySnapshot> Parties { get; init; } = [];
     public ImmutableArray<CallNote> Notes { get; init; } = [];
     public ImmutableArray<CallEvent> Events { get; init; } = [];
     public ImmutableArray<Recording> Recordings { get; init; } = [];
     public CallerLookupSnapshot? Lookup { get; init; }
 }
+
+/// <summary>Database identifiers and optimistic write version for a persisted history entry.</summary>
+public sealed record CallHistoryStorage(Guid? CompanyId, long WriteVersion);
+
+/// <summary>History list projection without notes, events or recordings.</summary>
+public sealed record CallHistoryEntry(CallSnapshot Call, CallHistoryStorage? Storage = null);
 
 /// <summary>
 /// Company=null includes all companies and unassigned calls. Date bounds are UTC, from inclusive/to exclusive.

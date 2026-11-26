@@ -16,7 +16,13 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
         return context.RunAsync(false, db => LoadAsync(db, id), cancellationToken);
     }
 
-    public Task<Page<CallSnapshot>> GetPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default)
+    public Task<Page<CallSnapshot>> GetPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) =>
+        ReadPageAsync(query, (call, _) => call, cancellationToken);
+
+    public Task<Page<CallHistoryEntry>> GetHistoryPageAsync(CallHistoryQuery query, CancellationToken cancellationToken = default) =>
+        ReadPageAsync(query, (call, row) => new CallHistoryEntry(call, ReadStorage(row)), cancellationToken);
+
+    private Task<Page<T>> ReadPageAsync<T>(CallHistoryQuery query, Func<CallSnapshot, RepositoryRow, T> project, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query); ArgumentNullException.ThrowIfNull(query.Page);
         if (query.Company is { } company) StorageContract.CompanyKey(company);
@@ -33,7 +39,7 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
             if (query.Company is not null)
             {
                 var owner = await RepositoryData.FindCompanyAsync(db, query.Company).ConfigureAwait(false);
-                if (owner is null) return new Page<CallSnapshot>([], false);
+                if (owner is null) return new Page<T>([], false);
                 companyId = owner.Text("id"); where.Add("c.companyid=@company");
             }
             if (query.Party is not null) where.Add($"EXISTS(SELECT 1 FROM {db.T("callparties")} p WHERE p.callid=c.id AND p.partykeyhash=@hash)");
@@ -45,7 +51,7 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
             var rows = await db.RowsAsync(db.PageSql($"SELECT c.* FROM {db.T("phonecalls")} c WHERE {string.Join(" AND ", where)}", "c.startedatutc DESC,c.id ASC", query.Page),
                 new { company = companyId, hash = query.Party is null ? null : SourceIdentityHash.Party(query.Party), from = query.StartedFromUtc?.Ticks,
                     to = query.StartedToUtc?.Ticks, workstation = query.WorkstationId is { } key ? DatabaseId.Encode(key) : null, machine = query.MachineName, user = query.WindowsUserName }).ConfigureAwait(false);
-            var result = new List<CallSnapshot>();
+            var result = new List<T>();
             foreach (var row in rows)
             {
                 if (query.Party is not null)
@@ -53,7 +59,7 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
                     var candidates = await CandidatesAsync(db, row.Text("id")).ConfigureAwait(false);
                     if (!candidates.Any(candidate => candidate.Party == query.Party)) RepositoryData.Collision();
                 }
-                result.Add(await SnapshotAsync(db, row).ConfigureAwait(false));
+                result.Add(project(await SnapshotAsync(db, row).ConfigureAwait(false), row));
             }
             return RepositorySession.Page(result, query.Page);
         }, cancellationToken);
@@ -224,6 +230,14 @@ public sealed class DapperCallRepository(DatabaseRepositoryContext context) : IC
         var notes = (await db.RowsAsync($"SELECT * FROM {db.T("callnotes")} WHERE callid=@id ORDER BY createdatutc,id", new { id }).ConfigureAwait(false)).Select(row => DapperCallNoteRepository.Read(row).Note).ToImmutableArray();
         var recordings = (await db.RowsAsync($"SELECT * FROM {db.T("recordings")} WHERE callid=@id ORDER BY id", new { id }).ConfigureAwait(false)).Select(row => DapperRecordingRepository.Read(row).Recording).ToImmutableArray();
         var lookup = await db.OneAsync($"SELECT * FROM {db.T("calllookups")} WHERE callid=@id", new { id }).ConfigureAwait(false);
-        return new(new() { Call = call, Parties = candidates, Events = events, Notes = notes, Recordings = recordings, Lookup = lookup is null ? null : RepositoryData.DecodeLookup(lookup) }, row.Long("writeversion"));
+        var storage = ReadStorage(row);
+        return new(new()
+        {
+            Call = call, Storage = storage, Parties = candidates, Events = events, Notes = notes, Recordings = recordings,
+            Lookup = lookup is null ? null : RepositoryData.DecodeLookup(lookup)
+        }, storage.WriteVersion);
     }
+
+    private static CallHistoryStorage ReadStorage(RepositoryRow row) =>
+        new(row.OptionalText("companyid") is null ? null : row.Id("companyid"), row.Long("writeversion"));
 }

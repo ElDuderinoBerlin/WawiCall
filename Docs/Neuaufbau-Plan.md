@@ -3637,6 +3637,14 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
   Ende und Endgrund stehen in der Spaltenauswahl. Bestehende Spaltenlayouts behalten
   ihre Einstellungen und nehmen die beiden sichtbaren Spalten auf.
 
+- [x] ✅ Alle 22 Felder aus `phonecalls` in der Gesprächshistorie verfügbar machen.
+  Standardmäßig sind Beginn, Richtung, Rufnummer, Mandant, Rechner, Zustand, Dauer und
+  Aufnahme sichtbar. Weitere Felder stehen in der DevExpress-Spaltenauswahl.
+  Die tabellarischen Grids speichern Sichtbarkeit, Reihenfolge und Breite pro Ansicht und Edition
+  im versionierten HKCU-Pfad. Sitzungsfilter und Suchtexte werden nicht übernommen.
+  Registry-Rundlauf, alte Spaltenlayouts und aufgelöste Historienwerte in Pro und FinOffice
+  im Debug geprüft. Die Datenbankprüfung lief auf SQLite, SQL Server, PostgreSQL, MySQL und MariaDB.
+
 - [x] ✅ **Audio → Audiodatei konvertieren** bereitet lokale Audiodateien für Ansagen auf.
   WAV, MP3, Ogg/Vorbis und WMA als Quelle, PCM16-WAV als Ergebnis. Quelle und Ergebnis
   lassen sich über das konfigurierte Ausgabegerät anhören. Abtastrate, Mono/Stereo und

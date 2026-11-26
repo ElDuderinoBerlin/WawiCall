@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using WawiCallPro.Interfaces.Common;
 using WawiCallPro.Interfaces.Telephony;
 
@@ -7,6 +8,12 @@ namespace WawiCallPro.Interfaces.History;
 public interface ICallHistoryService
 {
     Task<Page<CallSnapshot>> GetCallsAsync(CallHistoryQuery query, CancellationToken cancellationToken = default);
+    async Task<Page<CallHistoryEntry>> GetEntriesAsync(CallHistoryQuery query, CancellationToken cancellationToken = default)
+    {
+        var page = await GetCallsAsync(query, cancellationToken).ConfigureAwait(false);
+        return new(page.Items.Select(call => new CallHistoryEntry(call)).ToImmutableArray(), page.HasMore);
+    }
+
     Task<CallHistory?> GetCallAsync(Guid callId, CancellationToken cancellationToken = default);
 
     /// <summary>
