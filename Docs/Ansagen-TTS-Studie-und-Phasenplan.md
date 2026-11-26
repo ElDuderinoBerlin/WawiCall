@@ -106,6 +106,21 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
   Application Default Credentials. Es liegen daher keine vergleichbaren Cloud-Telefonproben und
   keine Bewertung der Stimmqualität vor.
 
+#### Azure-Live-Synthese im Pro-Debug-Stand
+
+- [x] ✅ Eine separate Azure-Speech-Ressource im Tarif **Free F0** in **Germany West Central**
+  eingerichtet und die Anmeldung über Entra mit der ressourcenbezogenen Rolle
+  **Cognitive Services Speech User** nachgewiesen. Der Test lief über die WawiCallPro-DI-Adapter
+  aus einem Debug-Prüfprogramm.
+- [x] ✅ Alle drei Testtexte mit `de-DE-KatjaNeural` und `de-DE-ConradNeural` erzeugt. Alle sechs
+  Ausgaben waren gültige Mono-PCM-WAV-Dateien mit 16 kHz und 16 Bit. Die Synthese dauerte
+  1342–2611 ms je Probe. Nach derselben Telefonaufbereitung wie bei Windows liegen die Proben
+  bei −20,5 bis −19,6 LUFS. Die 15 anonymisierten Windows- und Azure-Proben, Wiedergabeliste
+  und Bewertungsbogen liegen lokal unter `.artifacts/tts-phase-1/`.
+- [ ] Google Cloud mit dem Testprojekt und der lokalen Google-Anmeldung verbinden. Die portable CLI
+  steht bereit. Anschließend die sechs Google-Proben erzeugen und in denselben Blindtest aufnehmen.
+- [ ] Sprachqualität bewerten. Eine Rangfolge zwischen Azure, Google und Windows steht aus.
+
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
 - [x] ✅ Auf Nutzerwunsch die offiziellen Azure- und Google-SDKs einsetzen und beide Adapter separat per DI registrierbar machen. Je Anbieter stehen zwei deutsche Stimmen zur Auswahl. Der gemeinsame Vertrag schreibt Mono-PCM-WAV mit 16 kHz und 16 Bit.
