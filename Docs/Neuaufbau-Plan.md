@@ -4978,6 +4978,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Der RTP-Feed meldete Überlappung. Der separate Pro-WASAPI-Aufnahmeversuch im Gespräch endete
   ebenfalls mit einem Zeitachsenfehler. G.722, WASAPI-Aufnahme im Gespräch und Wiederanbindung
   bleiben Teil der Phase-9-Abnahme. Nachweise unter `.artifacts/phase9-recording-name-live/`.
+- [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
+  Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
+  Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
+  der Signalpause sichtbar ab. Pause, Spulen und Abschluss leeren die Anzeige.
+  Die Regression prüft gegenphasiges Stereo, den Pegelabfall und sichtbare Balken im Raster.
+  Pro und FinOffice in Debug gebaut und mit je sieben gezielten Tests geprüft. Bei der nativen
+  Wiedergabe einer echten 3,65-Sekunden-Aufnahme zeigten beide Editionen neun aktive Messintervalle.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem

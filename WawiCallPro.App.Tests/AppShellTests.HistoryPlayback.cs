@@ -150,6 +150,10 @@ public sealed partial class AppShellTests
                 using var bitmap = new Bitmap(page.Width, page.Height);
                 page.DrawToBitmap(bitmap, page.ClientRectangle);
                 rendered.CustomDrawCardFieldValue -= InspectPlayer;
+                var spectrum = Field<Bitmap>(page, "_spectrumImage");
+                Assert.IsTrue(Enumerable.Range(0, spectrum.Width).Any(x =>
+                    Enumerable.Range(0, spectrum.Height / 2).Any(y => spectrum.GetPixel(x, y).A != 0)),
+                    "The inline meter must paint a bar above the baseline while stereo audio is playing.");
                 bitmap.Save(Path.Combine(output, $"history-recording-inline-{typeof(MainForm).Assembly.GetName().Name}-{width}-{fontSize:0}-{scale:0.0}.png"));
                 Assert.IsTrue(closeBounds.Width > 0 && closeBounds.Right <= grid.ClientSize.Width,
                     $"Close button {closeBounds} exceeds grid width {grid.ClientSize.Width} at {width}/{fontSize}/{scale}.");
@@ -229,8 +233,14 @@ public sealed partial class AppShellTests
 
         public void FeedSpectrum()
         {
-            short[] samples = Enumerable.Range(0, 2048).Select(index => (short)(24000 * Math.Sin(Math.Tau * 700 * index / 8000))).ToArray();
-            Transport!.AddSamples(8000, 1, samples);
+            var samples = new short[4096];
+            for (var frame = 0; frame < samples.Length / 2; frame++)
+            {
+                var sample = (short)(24000 * Math.Sin(Math.Tau * 700 * frame / 8000));
+                samples[2 * frame] = sample;
+                samples[2 * frame + 1] = (short)-sample;
+            }
+            Transport!.AddSamples(8000, 2, samples);
         }
     }
 }

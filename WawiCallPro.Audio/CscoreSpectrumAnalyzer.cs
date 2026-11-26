@@ -19,7 +19,9 @@ internal sealed class CscoreSpectrumAnalyzer(TimeProvider clock)
     private ImmutableArray<int> _bands = AudioSpectrum.Silence;
     private int _lastGain = 100;
 
-    internal void Add(int sampleRate, int channels, ReadOnlySpan<short> pcm)
+    internal void Add(int sampleRate, int channels, ReadOnlySpan<short> pcm) => Add(sampleRate, channels, pcm, null);
+
+    internal void Add(int sampleRate, int channels, ReadOnlySpan<short> pcm, int? selectedChannel)
     {
         if (sampleRate <= 0 || channels <= 0 || pcm.Length < channels) return;
         lock (_gate)
@@ -35,6 +37,12 @@ internal sealed class CscoreSpectrumAnalyzer(TimeProvider clock)
             var offset = (frames - count) * channels;
             for (var frame = 0; frame < count; frame++)
             {
+                if (selectedChannel is { } selected)
+                {
+                    _mono[frame] = pcm[offset + selected] / 32768f;
+                    offset += channels;
+                    continue;
+                }
                 var sum = 0;
                 for (var channel = 0; channel < channels; channel++) sum += pcm[offset++];
                 _mono[frame] = sum / (32768f * channels);
