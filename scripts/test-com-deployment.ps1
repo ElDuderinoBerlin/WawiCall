@@ -120,7 +120,7 @@ try {
         [IO.Directory]::CreateDirectory($full) | Out-Null
         Get-ChildItem -LiteralPath $source -Force | Copy-Item -Destination $full -Recurse -Force
         $exe=Join-Path $full "$baseName.exe"
-        @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.Dummy'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
+        @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.JtlWawi'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
         Invoke-App @('--com-fixture',$profile,'/regserver')
         $sample=Join-Path $output 'automation-example-fixture.js'
         $sampleText=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'ComExamples/automation.js')).Replace('WawiCallPro.Pro.Application.1',$progId).Replace('WawiCallPro.FinOffice.Application.1',$progId)

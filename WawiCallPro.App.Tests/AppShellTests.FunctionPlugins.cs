@@ -29,7 +29,7 @@ public sealed partial class AppShellTests
         CollectionAssert.AreEquivalent(new[] { clock, status }, catalog.Select(plugin => plugin.Id).ToArray());
         Assert.IsTrue(catalog.All(plugin => !plugin.Enabled));
         Assert.IsTrue(catalog.All(plugin => plugin.Name.StartsWith("Dummy", StringComparison.Ordinal)));
-        await Assert.ThrowsExactlyAsync<FunctionPluginException>(() => runtime.SetEnabledAsync("WawiCallPro.Plugins.Dummy", true));
+        await Assert.ThrowsExactlyAsync<FunctionPluginException>(() => runtime.SetEnabledAsync("WawiCallPro.Plugins.JtlWawi", true));
 
         using var normalFont = new Font("Segoe UI", 10F);
         using var largeFont = new Font("Segoe UI", 16F);

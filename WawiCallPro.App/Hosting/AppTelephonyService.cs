@@ -46,8 +46,8 @@ internal sealed class AppTelephonyAccess(IProductLicenseService licenses, Licens
     private void CheckSource()
     {
         var installed = installation.Check();
-        var dummy = (runtime as IProductPluginSelection)?.ActivePluginId == "WawiCallPro.Plugins.Dummy";
-        if (!dummy && !installed.IsAvailable) throw new LexwareUnavailableException();
+        var testSource = (runtime as IProductPluginSelection)?.ActivePluginId == ProductPluginIds.JtlWawi;
+        if (!testSource && !installed.IsAvailable) throw new LexwareUnavailableException();
         if (!runtime.IsLoaded || runtime is IProductPluginAvailability availability && !availability.CanUseActivePlugin)
             throw new UnauthorizedAccessException();
     }

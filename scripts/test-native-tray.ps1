@@ -10,7 +10,7 @@ if (!(Test-Path -LiteralPath $executable)) { throw "Die aktive Debug-Ausgabe fü
 $run = Join-Path $repository ('.artifacts/tray-native/' + $ProductLine + '/' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N'))
 $profile = Join-Path $run 'profile'
 New-Item -ItemType Directory -Path $profile -Force | Out-Null
-@{ formatVersion = 6; settings = @{ user = @{ activePluginId = 'WawiCallPro.Plugins.Dummy' } } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json') -Encoding utf8NoBOM
+@{ formatVersion = 6; settings = @{ user = @{ activePluginId = 'WawiCallPro.Plugins.JtlWawi' } } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json') -Encoding utf8NoBOM
 $start = [Diagnostics.ProcessStartInfo]::new($executable)
 $start.UseShellExecute = $false
 $start.CreateNoWindow = $true

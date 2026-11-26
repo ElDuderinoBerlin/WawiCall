@@ -186,7 +186,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Quantarix.License.Core", ".
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugins.Lexware.FinOffice.Tests", "WawiCallPro.Plugins.Lexware.FinOffice.Tests\WawiCallPro.Plugins.Lexware.FinOffice.Tests.csproj", "{634B951E-956E-4B2F-9F28-170D000CD8D5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugins.Dummy", "WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj", "{0EF3374D-5190-4980-B155-A7F771D9A470}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WawiCallPro.Plugins.JtlWawi", "WawiCallPro.Plugins.JtlWawi\WawiCallPro.Plugins.JtlWawi.csproj", "{0EF3374D-5190-4980-B155-A7F771D9A470}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SIPSorceryMedia.Windows.CSCore", "..\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj", "{2185EB62-2832-4473-BDDB-67B96A2C90C3}"
 EndProject

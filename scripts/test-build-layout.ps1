@@ -39,8 +39,8 @@ try {
             if (Test-Path -LiteralPath (Join-Path $output "WawiCallPro.$hostName.$other.dll")) { throw 'Stale other-edition host remains.' }
             $plugins = @(Get-ChildItem -LiteralPath (Join-Path $output 'plugins') -Directory |
                 Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName ($_.Name + '.dll')) })
-            if ($plugins.Count -ne 2 -or "WawiCallPro.Plugins.Lexware.$edition" -notin $plugins.Name -or 'WawiCallPro.Plugins.Dummy' -notin $plugins.Name) {
-                throw 'Selected plugin and Dummy are not isolated from the previous edition.'
+            if ($plugins.Count -ne 2 -or "WawiCallPro.Plugins.Lexware.$edition" -notin $plugins.Name -or 'WawiCallPro.Plugins.JtlWawi' -notin $plugins.Name) {
+                throw 'Selected plugin and JTL-Wawi are not isolated from the previous edition.'
             }
             $env:WAWICALLPRO_CONFIG_DIR = Join-Path $artifacts "diagnostic-config/$hostName-$edition"
             $diagnosticText = & dotnet (Join-Path $output "WawiCallPro.$hostName.$edition.dll") --diagnostics

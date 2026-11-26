@@ -47,10 +47,11 @@ public sealed class ProductPluginRuntime(
         return Directory.EnumerateDirectories(location.Directory).Select(directory =>
         {
             var id = Path.GetFileName(directory);
+            if (id == ProductPluginIds.LegacyDummy) return null;
             var file = Path.Combine(directory, id + ".dll");
             if (!File.Exists(file)) return null;
             var version = AssemblyName.GetAssemblyName(file).Version?.ToString() ?? "";
-            var name = id.EndsWith(".Dummy", StringComparison.Ordinal) ? "Dummy-Plugin (Testbetrieb)"
+            var name = id == ProductPluginIds.JtlWawi ? "JTL-Wawi"
                 : id.EndsWith(".FinOffice", StringComparison.Ordinal) ? "Lexware Financial Office"
                 : id.EndsWith(".Pro", StringComparison.Ordinal) ? "Lexware Pro" : id;
             return new ProductPluginChoice(id, name, version);
@@ -59,7 +60,9 @@ public sealed class ProductPluginRuntime(
 
     public async Task SwitchAsync(string id, CancellationToken cancellationToken = default)
     {
-        var choice = GetAvailablePlugins().SingleOrDefault(choice => choice.Id == id) ?? throw new PluginRuntimeException();
+        var requested = ProductPluginIds.FromSavedSelection(id);
+        var choice = GetAvailablePlugins().SingleOrDefault(choice => choice.Id == requested)
+            ?? throw new PluginRuntimeException();
         await _switchGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -128,10 +131,11 @@ public sealed class ProductPluginRuntime(
             try
             {
                 var choices = GetAvailablePlugins();
-                var requested = configuration?.Current.Options.User.ActivePluginId;
-                if (_session is ISelectedPluginSession selected && (requested is not null || choices.Count > 1))
+                var requested = ProductPluginIds.FromSavedSelection(configuration?.Current.Options.User.ActivePluginId);
+                if (_session is ISelectedPluginSession selected && (requested is not null || choices.Count > 0
+                    || Directory.Exists(Path.Combine(location.Directory, ProductPluginIds.LegacyDummy))))
                 {
-                    var choice = requested is null ? choices.FirstOrDefault(choice => !choice.Id.EndsWith(".Dummy", StringComparison.Ordinal))
+                    var choice = requested is null ? choices.FirstOrDefault(choice => choice.Id != ProductPluginIds.JtlWawi) ?? choices.SingleOrDefault()
                         : choices.SingleOrDefault(choice => choice.Id == requested);
                     if (choice is null) throw new PluginRuntimeException();
                     await selected.LoadSelectedAsync(Path.Combine(location.Directory, choice.Id)).ConfigureAwait(false);

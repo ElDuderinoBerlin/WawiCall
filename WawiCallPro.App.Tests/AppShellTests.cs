@@ -2737,6 +2737,7 @@ public sealed partial class AppShellTests
     public Task PluginCardsRenderInSettingsWithEmptyCatalogBothSkinsAndLargeFonts() => WithWorkspace(async (workspace, services, plugin) =>
     {
         AppUiStartup.Apply();
+        ((TestRuntime)workspace.Plugins).TestSource = new("WawiCallPro.Plugins.JtlWawi", "JTL-Wawi", "1.0");
         var fontBefore = WindowsFormsSettings.DefaultFont;
         var appearanceBefore = AppearanceObject.DefaultFont;
         var skinBefore = DevExpress.LookAndFeel.UserLookAndFeel.Default.ActiveSkinName;
@@ -2775,6 +2776,8 @@ public sealed partial class AppShellTests
                 bitmap.Save(Path.Combine(output, $"Plugins-{skin}-{fontSize}-{small}-{populated}.png"), ImageFormat.Png);
                 if (populated)
                 {
+                    Assert.AreEqual("JTL-Wawi", cards.GetRowCellValue(1, "Plugin"));
+                    Assert.AreEqual("Testbetrieb", cards.GetRowCellValue(1, "Status"));
                     await management.HandleCardActionAsync("details", 1);
                     Assert.IsTrue(Field<GroupControl>(management, "detailsGroup").Visible);
                     Assert.IsFalse(Field<SimpleButton>(management, "capabilitiesButton").Enabled);
@@ -3886,8 +3889,9 @@ public sealed partial class AppShellTests
     private sealed class TestRuntime(TestPlugin plugin) : IProductPluginRuntime, IProductPluginSelection, IProductPluginAvailability
     {
         internal bool BusinessAvailable = true;
-        public bool CanUseActivePlugin => BusinessAvailable || ActivePluginId == "Test.Dummy";
-        public bool CanActivate(string id) => BusinessAvailable || id == "Test.Dummy";
+        internal ProductPluginChoice TestSource { get; set; } = new("Test.Dummy", "Dummy-Plugin (Testbetrieb)", "1.0");
+        public bool CanUseActivePlugin => BusinessAvailable || ActivePluginId == TestSource.Id;
+        public bool CanActivate(string id) => BusinessAvailable || id == TestSource.Id;
         internal bool HasCatalog = true;
         public bool IsLoaded => true;
         public string? ActivePluginId { get; private set; } = "Test.Lexware";
@@ -3895,7 +3899,7 @@ public sealed partial class AppShellTests
         public IReadOnlyList<ProductPluginChoice> GetAvailablePlugins()
         {
             ReadCatalog?.Invoke();
-            return !HasCatalog ? [] : [new("Test.Lexware", "Lexware – Testadapter", "1.0"), new("Test.Dummy", "Dummy-Plugin (Testbetrieb)", "1.0")];
+            return !HasCatalog ? [] : [new("Test.Lexware", "Lexware – Testadapter", "1.0"), TestSource];
         }
         public Task SwitchAsync(string id, CancellationToken cancellationToken = default) { cancellationToken.ThrowIfCancellationRequested(); ActivePluginId = id; return Task.CompletedTask; }
         public Task<T> UseAsync<T>(Func<IWawiCallPlugin, CancellationToken, Task<T>> operation, CancellationToken cancellationToken = default) => operation(plugin, cancellationToken);

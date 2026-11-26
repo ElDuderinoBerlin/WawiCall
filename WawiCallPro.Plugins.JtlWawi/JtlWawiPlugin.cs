@@ -8,16 +8,17 @@ using WawiCallPro.Interfaces.Hosting;
 using WawiCallPro.Interfaces.Parties;
 using WawiCallPro.Interfaces.Plugins;
 
-namespace WawiCallPro.Plugins.Dummy;
+namespace WawiCallPro.Plugins.JtlWawi;
 
-/// <summary>Explicit test source without ERP, network or database access.</summary>
-public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCallPluginWorkspaces, IWawiCallPluginShell
+/// <summary>JTL-Wawi test source with local sample data.</summary>
+public sealed class JtlWawiPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCallPluginWorkspaces, IWawiCallPluginShell
 {
     private readonly CompanyKey _company;
-    public DummyPlugin() => _company = new(ProductLine, "dummy-test-installation", "demo");
+    // These source keys associate existing configurations, cached parties and recordings with the same test data.
+    public JtlWawiPlugin() => _company = new(ProductLine, "dummy-test-installation", "demo");
     private bool _initialized;
     private bool _configured;
-    public string Name => "Dummy-Plugin (Testbetrieb)";
+    public string Name => "JTL-Wawi";
     public Version Version { get; } = new(1, 0);
 #if LX_PRO
     public LexwareProductLine ProductLine => LexwareProductLine.Pro;
@@ -30,9 +31,9 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
     public void Configure(IWawiCallHostServices services) { if (!_initialized) throw new InvalidOperationException(); _configured = true; }
     public void RegisterShell(IPluginShellUi host)
     {
-        host.RegisterGroup(new("testbetrieb", "Testbetrieb"));
+        host.RegisterGroup(new("testbetrieb", "JTL-Wawi"));
         host.RegisterNavigation(new("testkunden", "Testkunden suchen",
-            "Geschäftspartner aus dem Dummy-Testbestand öffnen.", PluginShellIcon.Test, PluginNavigationTarget.PartySearch));
+            "Geschäftspartner aus dem JTL-Wawi-Testbestand öffnen.", PluginShellIcon.Test, PluginNavigationTarget.PartySearch));
         host.RegisterButton(new("testkunden", "testbetrieb", "testkunden"));
     }
     public void Shutdown() { _configured = false; _initialized = false; }
@@ -40,13 +41,13 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
         ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");
     public void Execute() => throw new NotSupportedException("Explizite Testquelle über den Datenadapter verwenden.");
     public Task<ImmutableArray<Company>> GetCompaniesAsync(CancellationToken cancellationToken = default)
-    { Check(cancellationToken); return Task.FromResult(ImmutableArray.Create(new Company(Company, "Dummy – Testmandant"))); }
+    { Check(cancellationToken); return Task.FromResult(ImmutableArray.Create(new Company(Company, "JTL-Wawi – Testmandant"))); }
     public Task<CapabilitySet> GetCapabilitiesAsync(CompanyKey company, CancellationToken cancellationToken = default)
     {
         CheckCompany(company, cancellationToken);
         var entries = Enum.GetValues<BusinessFeature>().ToImmutableDictionary(feature => feature,
             feature => new CapabilitySupport(feature is BusinessFeature.Customers or BusinessFeature.MasterData ? FeatureAvailability.Partial : FeatureAvailability.Unsupported,
-                "Explizite Dummy-Testdaten; keine Verbindung zu einer Warenwirtschaft."));
+                "JTL-Wawi-Testdaten aus dem lokalen Beispielbestand."));
         var report = new CapabilitySet(entries);
         return Task.FromResult(new CapabilitySet(company, report, new CapabilitySet(ImmutableDictionary<BusinessFeature, CapabilitySupport>.Empty)));
     }
@@ -63,8 +64,8 @@ public sealed class DummyPlugin : IWawiCallPlugin, IBusinessDirectory, IWawiCall
     }
     public Task<Party?> GetPartyAsync(PartyKey key, CancellationToken cancellationToken = default)
     { CheckCompany(key.Company, cancellationToken); return Task.FromResult<Party?>(key == CreateParty().Key ? CreateParty() : null); }
-    private Party CreateParty() => new() { Key = new(Company, PartyKind.Customer, "dummy-customer"), DisplayName = "Dummy – Beispielkunde", Number = "TEST-001",
+    private Party CreateParty() => new() { Key = new(Company, PartyKind.Customer, "dummy-customer"), DisplayName = "JTL-Wawi – Beispielkunde", Number = "TEST-001",
         Phones = [new("0123 456789", PhoneKind.Telephone, new("Dummy", "dummy-customer", "Telefon"))] };
     private void Check(CancellationToken token) { token.ThrowIfCancellationRequested(); if (!_configured) throw new InvalidOperationException("Plugin is not configured."); }
-    private void CheckCompany(CompanyKey company, CancellationToken token) { Check(token); if (company != Company) throw new InvalidOperationException("Fremder Dummy-Mandant."); }
+    private void CheckCompany(CompanyKey company, CancellationToken token) { Check(token); if (company != Company) throw new InvalidOperationException("Fremder JTL-Wawi-Testmandant."); }
 }

@@ -92,7 +92,7 @@ function Uninstall-Entry {
 function Activate-Installed([string]$Version) {
     if (-not $RuntimeDirectory) { return }
     foreach ($name in @('com-runtime.json','com-stopped.json')) { Remove-Item -LiteralPath (Join-Path $profile $name) -ErrorAction SilentlyContinue }
-    @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.Dummy'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
+    @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.JtlWawi'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json')
     foreach ($bits in @('x86','x64')) {
         $prefix=Join-Path $profile "$Version-$bits-$([Guid]::NewGuid().ToString('N'))-"
         $start=[Diagnostics.ProcessStartInfo]::new((Join-Path $env:WINDIR $(if ($bits -eq 'x86') {'SysWOW64/cscript.exe'} else {'System32/cscript.exe'})))

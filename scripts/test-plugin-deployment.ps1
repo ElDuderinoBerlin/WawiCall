@@ -26,8 +26,8 @@ $shared += @($items.SharedPackage | ForEach-Object {
 $preloaded = @($items.SharedProjectAssembly | Where-Object { $_.PSObject.Properties['Preload'] -and $_.Preload -eq 'true' } | ForEach-Object { $_.Identity })
 foreach ($variant in @($ProductLine)) {
     $productPlugin = if ($variant -eq 'Pro') { 'WawiCallPro.Plugins.Lexware.Pro' } else { 'WawiCallPro.Plugins.Lexware.FinOffice' }
-    foreach ($plugin in @($productPlugin, 'WawiCallPro.Plugins.Dummy')) {
-        $framework = if ($plugin -eq 'WawiCallPro.Plugins.Dummy') { 'net11.0' } else { 'net11.0-windows' }
+    foreach ($plugin in @($productPlugin, 'WawiCallPro.Plugins.JtlWawi')) {
+        $framework = if ($plugin -eq 'WawiCallPro.Plugins.JtlWawi') { 'net11.0' } else { 'net11.0-windows' }
         $source = Join-Path $root "$plugin/bin/$Configuration/$framework"
         foreach ($hostName in @('App','Console')) {
             $hostRoot = if ($HostOutputRoot) { Join-Path $HostOutputRoot $hostName } else { Join-Path $root "WawiCallPro.$hostName/bin/$Configuration/net11.0-windows10.0.19041.0" }

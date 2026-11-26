@@ -10,6 +10,7 @@ using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Capabilities;
 using WawiCallPro.Interfaces.Plugins;
 using WawiCallPro.Utilities.Operations;
+using WawiCallPro.Utilities.Plugins;
 
 namespace WawiCallPro.App.Views;
 
@@ -23,7 +24,7 @@ public partial class PluginPage : XtraUserControl
     private readonly HtmlTemplate _activeCard = new();
     private readonly HtmlTemplate _unavailableCard = new();
     private static readonly Lazy<SvgImage> PluginIcon = new(() => LoadIcon("Plugin"));
-    private static readonly Lazy<SvgImage> DummyIcon = new(() => LoadIcon("Settings"));
+    private static readonly Lazy<SvgImage> TestSourceIcon = new(() => LoadIcon("Settings"));
     public PluginPage()
     {
         InitializeComponent();
@@ -121,10 +122,12 @@ public partial class PluginPage : XtraUserControl
     {
         public string Plugin => WebUtility.HtmlEncode(Name);
         public string Version => WebUtility.HtmlEncode("Version " + RawVersion);
-        public string Status => !IsAvailable ? "Lexware nicht verfügbar" : IsActive ? "Aktiv" : IsDummy ? "Testbetrieb" : "Verfügbar";
-        private bool IsDummy => Id.Contains("Dummy", StringComparison.OrdinalIgnoreCase);
-        public string Description => IsDummy ? "Mit Beispieldaten testen – ohne Zugriff auf eine Warenwirtschaft." : "Kunden, Lieferanten und Mandanten aus der Warenwirtschaft verwenden.";
-        public SvgImage Icon => IsDummy ? DummyIcon.Value : PluginIcon.Value;
+        public string Status => !IsAvailable ? "Lexware nicht verfügbar" : IsTestSource
+            ? IsActive ? "Aktiv · Testbetrieb" : "Testbetrieb"
+            : IsActive ? "Aktiv" : "Verfügbar";
+        private bool IsTestSource => Id == ProductPluginIds.JtlWawi;
+        public string Description => IsTestSource ? "Mit Beispieldaten testen – ohne Zugriff auf eine Warenwirtschaft." : "Kunden, Lieferanten und Mandanten aus der Warenwirtschaft verwenden.";
+        public SvgImage Icon => IsTestSource ? TestSourceIcon.Value : PluginIcon.Value;
     }
     private void Catalog_QueryItemTemplate(object sender, QueryItemTemplateEventArgs e)
     {

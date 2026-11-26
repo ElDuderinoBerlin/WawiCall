@@ -6,7 +6,7 @@
   <ItemGroup>
     <!-- Headless runtime tests load the actual Windows plugin; they do not implement WinForms UI. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
-    <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\WawiCallPro.Plugins.JtlWawi\WawiCallPro.Plugins.JtlWawi.csproj" ReferenceOutputAssembly="false" Private="false" />
     <Compile Remove="Fixtures/**/*.cs" />
     <!-- Mixed-edition fixture tests deliberately reference both; production hosts do not. -->
     <ProjectReference Include="..\..\Quantarix.Lexware.Core\Quantarix.Lexware.Core.csproj" />

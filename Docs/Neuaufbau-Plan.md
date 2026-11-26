@@ -4,6 +4,10 @@ Verbindliches Zielbild: [Architektur](Architektur.md). Hauptprogramm mit allgeme
 Plugin-Manager und SIPSorcery-Einstellungen; Fachviews laut erweitertem LxOutlook-Katalog im jeweiligen Warenwirtschaftsplugin.
 Alle Anwendungsdienste per DI, eigene Telefonie-Dienstklassen immer hinter technikunabhängigen Interfaces.
 
+✅ Das Warenwirtschafts-Testplugin heißt JTL-Wawi. Solution, signiertes Pluginpaket, Auslieferung
+und Oberfläche verwenden die neue Kennung. Eine gespeicherte Auswahl des früheren Plugins wird
+beim Laden auf JTL-Wawi aufgelöst. Die Quellkennungen gespeicherter Testdaten bleiben gültig.
+
 ✅ App-Buttons über die zentrale Größenhilfe um vier logische Pixel erhöht. Der Durchsuchen-Button
 am Log-Verzeichnis erhält einen schmaleren seitlichen Innenabstand und behält dieselbe Höhe wie die
 übrigen Aktionen. Einstellungen, Historie und Wahldialog im Hintergrund mit kleinen Fenstergrößen,
@@ -2428,7 +2432,7 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   dem zentralen Tabdialog aus LxTranslate.App. Allgemein, Plugins, SIP-Konto, Datenbank, Audio und
   Telefon-Cache liegen im selben Einstellungsdialog. Ribbon/Navigation öffnen ihn direkt;
   Pluginverwaltung und allgemeine Einstellungen erzeugen keine Dokument-Tabs mehr.
-  Signiertes `WawiCallPro.Plugins.Dummy` als zweiter echter Listeneintrag in beiden Produktbuilds
+  Signiertes `WawiCallPro.Plugins.JtlWawi` als zweiter echter Listeneintrag in beiden Produktbuilds
   ergänzt. Eigene markierte Testdaten ohne Warenwirtschaftszugriff; Lexware- und Dummy-Plugin
   sind wechselweise aktiv. Weiterhin genau eine geladene Sitzung: laufende Abrufe werden
   abgebrochen/abgewartet, verspätete Rückgaben verworfen und Fachansichten/Ressourcen vor dem

@@ -41,12 +41,12 @@ mit Tabs nach LxTranslate.App. Pluginliste, Aktivierung und Fähigkeitsprüfung 
 **Einstellungen → Plugins**. Hierfür wird kein Dokument im Hauptarbeitsbereich geöffnet;
 Ribbon und Navigation öffnen unmittelbar den passenden Einstellungen-Tab.
 Jeder Produktbuild enthält sein Lexware-Plugin und das klar als Testbetrieb bezeichnete
-`WawiCallPro.Plugins.Dummy`. Die Liste zeigt beide, während stets nur eine Pluginsitzung aktiv ist.
+`WawiCallPro.Plugins.JtlWawi`. Die Liste zeigt beide, während stets nur eine Pluginsitzung aktiv ist.
 Vor dem Wechsel werden laufende Abrufe abgebrochen/abgewartet und alte Fachansichten geschlossen.
 Eine fehlgeschlagene Freigabe sperrt das Nachladen. Firmen-/Cache-Ladezustände werden verworfen;
 noch nicht gespeicherte allgemeine Eingaben bleiben erhalten. Die aktive Kennung wird getrennt
 von der Mandantenauswahl als `user.activePluginId` im Einstellungsformat 4 gespeichert.
-Das Dummy-Plugin nutzt eigene Testidentitäten und ausschließlich explizite Testdaten, ohne ERP-,
+Das JTL-Wawi-Plugin nutzt eigene Testidentitäten und ausschließlich explizite Testdaten, ohne ERP-,
 Netzwerk- oder Datenbankzugriffe. Nach Auswahl lädt der nächste Start genau dieses Plugin.
 
 Der Plugin-Manager verwendet die vorhandene Quantarix-Pluginlaufzeit. Seine Oberfläche verwaltet

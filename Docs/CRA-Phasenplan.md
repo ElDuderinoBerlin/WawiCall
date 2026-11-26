@@ -41,7 +41,7 @@ ausgeliefert oder zur Verarbeitung von Produktdaten verwendet werden.
 | Hauptprogramme | `WawiCallPro.App`, `WawiCallPro.Console` | Eigene Eintrittspunkte und Hostnachweise |
 | Gemeinsame Basis | `WawiCallPro.Core`, `WawiCallPro.Interfaces`, `WawiCallPro.Utilities` | Konfiguration, Secrets, Logging, Persistenz, Mandanten, Lizenzierung, Crashberichte, Threading |
 | Datenbank | `WawiCallPro.Database` | Schema, Migrationen, Abfragen, Rechte, Backup/Restore, alle fünf Provider |
-| Plugins | `WawiCallPro.Plugin.Windows`, `WawiCallPro.Plugins.Lexware.Pro`, `WawiCallPro.Plugins.Lexware.FinOffice`, `WawiCallPro.Plugins.Dummy` | Vertrauensgrenzen, Abhängigkeiten, Lebenszyklus; Dummy-Auslieferung ausdrücklich bewerten |
+| Plugins | `WawiCallPro.Plugin.Windows`, `WawiCallPro.Plugins.Lexware.Pro`, `WawiCallPro.Plugins.Lexware.FinOffice`, `WawiCallPro.Plugins.JtlWawi` | Vertrauensgrenzen, Abhängigkeiten, Lebenszyklus und Auslieferung des JTL-Wawi-Testplugins |
 | Telefonie und Medien | `WawiCallPro.Telephony`, `WawiCallPro.Telephony.Sip`, `WawiCallPro.Audio` | Bestehende Verträge sowie spätere SIP-/RTP-/Audioimplementierung |
 | Weitere Fachmodule | `WawiCallPro.Office`, `WawiCallPro.PhoneMenu` | Implementierungs-/Auslieferungsstatus erfassen; spätere Funktionen vor Auslieferung prüfen |
 | Eigene Tests | `WawiCallPro.App.Tests`, `WawiCallPro.Console.Tests`, `WawiCallPro.Core.Tests`, `WawiCallPro.Interfaces.Tests`, `WawiCallPro.Utilities.Tests`, `WawiCallPro.Database.Tests`, `WawiCallPro.Telephony.Tests`, `WawiCallPro.Plugins.Lexware.Pro.Tests`, `WawiCallPro.Plugins.Lexware.FinOffice.Tests` | Nachweisträger; synthetische Daten und sichere Testisolation |

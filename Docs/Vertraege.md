@@ -121,7 +121,7 @@ Keine Schema-/Konfigurationsänderung. Rollback durch Rücknahme dieses Teilpunk
 ### Plugin-Arbeitsbereich für freie Geschäftspartnersuche
 
 Seit dem UI-Teilpunkt vom 14.11.2026 öffnen Ribbon und Navigation **Kunden und Lieferanten** genau
-einen Arbeitsbereich des aktiven Plugins. Pro, FinOffice und Dummy implementieren dafür das optionale
+einen Arbeitsbereich des aktiven Plugins. Pro, FinOffice und JTL-Wawi implementieren dafür das optionale
 `IWawiCallPluginWorkspaces`. Die typisierte `IPartySearchWorkspaceFactory` hält Windows-/DevExpress-Typen
 aus den Quellplugins und der gemeinsamen Fachvertragsschnittstelle heraus. Die konkrete designerfähige
 `PartySearchPage` liegt in `WawiCallPro.Plugin.Windows`; die App liefert DI-Dienste, Buttonmetriken und
@@ -1256,8 +1256,8 @@ im Katalog erkennbar. Allgemeine, noch nicht gespeicherte Eingaben bleiben im Di
 Seit Formatversion 4 gibt es das optionale Feld `user.activePluginId`. Null übernimmt beim
 Erststart das mitgelieferte Lexware-Plugin; eine gespeicherte Kennung muss tatsächlich vorhanden sein.
 Fehlt das ausgewählte Plugin, wird der Start abgewiesen statt still auf eine andere Quelle zu wechseln.
-`WawiCallPro.Plugins.Dummy` wird für beide Produktlinien signiert mitgeliefert und klar als Testbetrieb
-angezeigt. Sein Testmandant und Beispielkunde verwenden eigene Dummy-Quellkennungen. Es greift
+`WawiCallPro.Plugins.JtlWawi` wird für beide Produktlinien signiert mitgeliefert und klar als Testbetrieb
+angezeigt. Die bisherigen Quellkennungen für Beispielmandant und Beispielkunde bleiben für gespeicherte Zuordnungen gültig. Es greift
 weder auf ERP, Netzwerk noch Datenbanken zu. Fachansichten des aktiven Wawi-Plugins bleiben weiterhin
 Dokumente im Hauptfenster; nur ihre Verwaltung gehört in den Einstellungsdialog.
 

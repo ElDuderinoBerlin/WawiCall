@@ -353,7 +353,7 @@ die freigegebenen Ziele (Geschäftspartnersuche oder Lexware-Einstellungen) übe
 Beim Umschalten verschwinden die Beiträge und Ansichten der alten Sitzung. Der Host zeigt im Ribbon
 und links in der Navigation die Beiträge der neuen Sitzung an.
 
-- Dummy zeigt „Testkunden suchen“ in der Gruppe „Testbetrieb“.
+- JTL-Wawi zeigt „Testkunden suchen“ in der Gruppe „JTL-Wawi“.
 - Lexware Pro und FinOffice zeigen „Kunden und Lieferanten suchen“ sowie den Einstieg in ihre Lexware-Einstellungen.
 - Die isolierten App-Tests decken den Hin- und Rückwechsel, Ribbon-Klicks, Zurück/Vorwärts,
   ungültige Registrierungen und die Freigabe der alten Sitzung ab. Die Renderprüfung erfasst den Wechsel

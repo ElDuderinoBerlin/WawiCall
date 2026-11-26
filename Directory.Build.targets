@@ -98,6 +98,7 @@
     </PropertyGroup>
     <ItemGroup>
       <_WawiStaleEditionOutput Include="$(TargetDir)plugins\WawiCallPro.Plugins.Lexware.$(_WawiOtherEdition)\**\*" />
+      <_WawiStaleEditionOutput Include="$(TargetDir)plugins\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.*" Condition="'$(TargetDir)' != ''" />
       <_WawiStaleEditionOutput Include="$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).pdb;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).deps.json;$(TargetDir)$(MSBuildProjectName).$(_WawiOtherEdition).runtimeconfig.json" />
     </ItemGroup>
     <!-- A running host locks its executable. Stop cleanup before deleting its startup metadata. -->
@@ -119,6 +120,10 @@
     <Delete Files="@(_WawiDuplicatePluginFiles)" />
   </Target>
   <Target Name="PublishWawiPlugins" AfterTargets="Publish" DependsOnTargets="DeployWawiPlugins" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
+    <ItemGroup>
+      <_WawiRetiredPluginFiles Include="$(PublishDir)plugins\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.*" Condition="'$(PublishDir)' != ''" />
+    </ItemGroup>
+    <Delete Files="@(_WawiRetiredPluginFiles)" />
     <Copy SourceFiles="@(_WawiPluginFiles)" DestinationFiles="@(_WawiPluginFiles->'$(PublishDir)%(PluginRoot)\%(PluginName)\%(PluginRelativePath)')" SkipUnchangedFiles="true" />
     <Delete Files="@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(SharedProjectAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />
     <Delete Files="@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).dll');@(_WawiSharedPackageAssembly->'$(PublishDir)plugins\WawiCallPro.Plugins.Lexware.$(LexwareProductLine)\%(Identity).pdb')" />

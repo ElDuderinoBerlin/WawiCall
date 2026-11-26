@@ -67,7 +67,7 @@ public sealed class LexwareInstallationTests
     public async Task StartupAndDirectCallsAreBlockedWhileDummyRemainsUsableAndSwitchDoesNotDiscardIt()
     {
         const string lexware = "WawiCallPro.Plugins.Lexware.Pro";
-        const string dummy = "WawiCallPro.Plugins.Dummy";
+        const string dummy = "WawiCallPro.Plugins.JtlWawi";
         using var fixture = new Fixture(lexware);
         var registry = new RegistryProbe();
         var log = new CaptureLog();
@@ -129,7 +129,7 @@ public sealed class LexwareInstallationTests
         internal Sessions Sessions { get; } = new();
         internal Fixture(string pluginId)
         {
-            foreach (var id in new[] { pluginId, "WawiCallPro.Plugins.Dummy" })
+            foreach (var id in new[] { pluginId, "WawiCallPro.Plugins.JtlWawi" })
             {
                 var target = Path.Combine(Root, id); Directory.CreateDirectory(target);
                 File.Copy(typeof(Fixture).Assembly.Location, Path.Combine(target, id + ".dll"));

@@ -25,7 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../WawiCallPro.Automation/WawiCallPro.Automation.csproj" />
-    <ProjectReference Include="..\WawiCallPro.Plugins.Dummy\WawiCallPro.Plugins.Dummy.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <ProjectReference Include="..\WawiCallPro.Plugins.JtlWawi\WawiCallPro.Plugins.JtlWawi.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\WawiCallPro.Functions.DummyStatus\WawiCallPro.Functions.DummyStatus.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="..\WawiCallPro.Functions.DummyClock\WawiCallPro.Functions.DummyClock.csproj" ReferenceOutputAssembly="false" Private="false" />
     <ProjectReference Include="../WawiCallPro.Plugin.Windows/WawiCallPro.Plugin.Windows.csproj" />

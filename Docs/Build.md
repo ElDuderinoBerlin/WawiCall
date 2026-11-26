@@ -627,9 +627,9 @@ Hostdiagnosestart belegt keine Anmeldung am tatsächlichen Lexware-Server.
 
 ## Pluginverwaltung und Testplugin (09.11.2026)
 
-Beide Hosts stellen neben dem passenden Lexware-Plugin das signierte `WawiCallPro.Plugins.Dummy`
+Beide Hosts stellen neben dem passenden Lexware-Plugin das signierte `WawiCallPro.Plugins.JtlWawi`
 im eigenen Plugin-Unterordner bereit. Es ist kein zweites aktives Plugin: die Auswahl erfolgt unter
-Einstellungen → Plugins in `FrmSettings`, der Loader lädt genau einen Eintrag. Das Dummy liefert nur
+Einstellungen → Plugins in `FrmSettings`, der Loader lädt genau einen Eintrag. JTL-Wawi liefert im Testbetrieb nur
 markierte Testdaten. `scripts/test-plugin-deployment.ps1` prüft beide Bundles für beide Hosts und Linien.
 Format 4 ergänzt `user.activePluginId`; alle bisherigen Einstellungsformate bleiben lesbar.
 Die gezielte Dialogrenderprüfung verwendet `LX_UI_AUDIT_SURFACES=FrmSettings`; alte Dokumentrouten

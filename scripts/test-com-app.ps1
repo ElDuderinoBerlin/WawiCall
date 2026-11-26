@@ -80,7 +80,7 @@ function New-Fixture([string]$Name, [bool]$Invalid = $false) {
     $fixtures.Add($fixture)
     @{ClassId=$id; ProgId=$fixture.ProgId} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $profile 'com-fixture.json')
     if ($Invalid) { '{invalid' | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json') }
-    else { @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.Dummy'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json') }
+    else { @{formatVersion=6;settings=@{user=@{activePluginId='WawiCallPro.Plugins.JtlWawi'}}} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $profile 'connection.local.json') }
     foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64,[Microsoft.Win32.RegistryView]::Registry32)) {
         $root = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser,$view)
         try {

@@ -577,8 +577,9 @@ public sealed class PluginRuntimeTests
     }
 
     [TestMethod]
-    public async Task RealDummySwitchWaitsForOldCallsDisposesResourcesAndCanSwitchBack()
+    public async Task JtlWawiSwitchWaitsForOldCallsDisposesResourcesAndRestoresLegacySelection()
     {
+        const string legacyId = "WawiCallPro.Plugins.Dummy";
         var directory = DeploySignedFixture();
         var variant = ApplicationIdentity.GetProductLine(Assembly.GetExecutingAssembly());
         var config = typeof(PluginRuntimeTests).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
@@ -586,10 +587,12 @@ public sealed class PluginRuntimeTests
         var repository = new DirectoryInfo(AppContext.BaseDirectory);
         while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "WawiCallProSolution.sln"))) repository = repository.Parent;
         Assert.IsNotNull(repository);
-        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.Dummy", "bin", config, "net11.0");
-        var target = Path.Combine(directory, "WawiCallPro.Plugins.Dummy");
+        var source = Path.Combine(repository.FullName, "WawiCallPro.Plugins.JtlWawi", "bin", config, "net11.0");
+        var target = Path.Combine(directory, "WawiCallPro.Plugins.JtlWawi");
         Directory.CreateDirectory(target);
         foreach (var file in System.IO.Directory.GetFiles(source)) File.Copy(file, Path.Combine(target, Path.GetFileName(file)));
+        var retired = Directory.CreateDirectory(Path.Combine(directory, legacyId));
+        File.Copy(Path.Combine(target, ProductPluginIds.JtlWawi + ".dll"), Path.Combine(retired.FullName, legacyId + ".dll"));
         var host = CreateHost();
         await HostExecution.RunAsync(host, async _ =>
         {
@@ -599,22 +602,24 @@ public sealed class PluginRuntimeTests
             var epoch = changes.PluginEpoch;
             var originalId = runtime.ActivePluginId;
             Assert.AreEqual(2, runtime.GetAvailablePlugins().Count);
+            Assert.AreEqual("JTL-Wawi", runtime.GetAvailablePlugins().Single(choice => choice.Id == ProductPluginIds.JtlWawi).DisplayName);
             var resource = new SwitchResource();
             await runtime.UseAsync((_, _) => Task.FromResult(resource));
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var oldCall = runtime.UseAsync(async (_, token) => { entered.SetResult(); await release.Task; return 42; });
             await entered.Task;
-            var switching = runtime.SwitchAsync("WawiCallPro.Plugins.Dummy");
+            var switching = runtime.SwitchAsync("WawiCallPro.Plugins.JtlWawi");
             Assert.IsTrue(changes.PluginEpoch > epoch, "Old phone indexes must be invalidated before the previous callback drains.");
             Assert.IsFalse(switching.IsCompleted);
             release.SetResult();
             await Assert.ThrowsAsync<OperationCanceledException>(() => oldCall);
             await switching;
             Assert.IsTrue(resource.Disposed);
-            Assert.AreEqual("WawiCallPro.Plugins.Dummy", runtime.ActivePluginId);
+            Assert.AreEqual("WawiCallPro.Plugins.JtlWawi", runtime.ActivePluginId);
             var companies = await runtime.UseAsync((plugin, token) => plugin.Directory.GetCompaniesAsync(token));
-            Assert.AreEqual("Dummy – Testmandant", companies.Single().DisplayName);
+            Assert.AreEqual("JTL-Wawi – Testmandant", companies.Single().DisplayName);
+            Assert.AreEqual("dummy-test-installation", companies.Single().Key.InstallationId);
             await runtime.SwitchAsync(originalId!);
             Assert.AreEqual(originalId, runtime.ActivePluginId);
             Assert.IsTrue(runtime.IsLoaded);
@@ -623,12 +628,13 @@ public sealed class PluginRuntimeTests
             await runtime.StopAsync(default);
             var store = host.Services.GetRequiredService<ConfigurationStore>();
             var snapshot = await store.LoadAsync();
-            await store.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ActivePluginId = "WawiCallPro.Plugins.Dummy" } }, snapshot);
-            var startup = host.Services.GetRequiredService<ApplicationConfigurationService>();
+            await store.SaveAsync(snapshot.Options with { User = snapshot.Options.User with { ActivePluginId = legacyId } }, snapshot);
+            var startup = new ApplicationConfigurationService(store);
             await startup.StartAsync(default);
+            Assert.AreEqual(legacyId, startup.Current.Options.User.ActivePluginId);
             await using var restarted = new ProductPluginRuntime(host.Services.GetRequiredService<IPluginSessionFactory>(), new ProductPluginLocation(directory), startup, null);
             await restarted.StartAsync(default);
-            Assert.AreEqual("WawiCallPro.Plugins.Dummy", restarted.ActivePluginId);
+            Assert.AreEqual("WawiCallPro.Plugins.JtlWawi", restarted.ActivePluginId);
             var failingResource = new SwitchResource { Fail = true };
             await restarted.UseAsync((_, _) => Task.FromResult(failingResource));
             await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => restarted.SwitchAsync(originalId!));
@@ -637,6 +643,7 @@ public sealed class PluginRuntimeTests
             failingResource.Fail = false;
             await Assert.ThrowsExactlyAsync<PluginRuntimeException>(() => restarted.SwitchAsync(originalId!));
             await restarted.StopAsync(default);
+            await startup.StopAsync(default);
         });
     }
 

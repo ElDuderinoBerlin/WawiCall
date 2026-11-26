@@ -45,8 +45,8 @@ internal sealed class AppAutomationBusinessAccess(AppAutomationState state, IPro
     private void CheckSource()
     {
         var installed = installation.Check();
-        var dummy = (runtime as IProductPluginSelection)?.ActivePluginId == "WawiCallPro.Plugins.Dummy";
-        if (!dummy && !installed.IsAvailable || !runtime.IsLoaded
+        var testSource = (runtime as IProductPluginSelection)?.ActivePluginId == ProductPluginIds.JtlWawi;
+        if (!testSource && !installed.IsAvailable || !runtime.IsLoaded
             || runtime is IProductPluginAvailability availability && !availability.CanUseActivePlugin)
             throw new AutomationFault(AutomationFailure.AccessDenied);
     }
