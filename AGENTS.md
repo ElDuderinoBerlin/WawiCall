@@ -265,6 +265,14 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Neue und überarbeitete Bilder, Illustrationen und Symbole der Anwendungsoberfläche
   ausschließlich als SVG einbinden. Das gilt auch für Splash-Bilder und Icons.
 
+### Kombinationsfelder
+
+- DevExpress-Kombinationsfelder standardmäßig als reine Auswahl einrichten. Bei `ComboBoxEdit`
+  und `LookUpEdit` dafür `Properties.TextEditStyle = TextEditStyles.DisableTextEditor` setzen.
+  Texteingabe gezielt freigeben, wenn eigene Werte oder die Suche im Eingabefeld fachlich benötigt werden.
+- Bei `LookUpEdit` mit kurzen Listen `UseDropDownRowsAsMaxCount = true` verwenden, damit das
+  Popup nur so viele Zeilen wie vorhandene Einträge anzeigt.
+
 ### Bündige Eingabefelder in Dialogen
 
 - Die Anrufzuordnung verwendet kompakte, zusammenhängende Aktionszeilen in einem
