@@ -189,6 +189,11 @@ oder abgebrochene Cloud-Aufrufe behalten ihre Reservierung. Google-Synthese wird
 automatisch wiederholt. Die lokale Monatsgrenze ist bei Azure UTC und bei Google US Pacific.
 Die beiden regulär installierten Editionen teilen sich den Zähler beim selben Windows-Benutzer.
 
+- [x] ✅ Die Kontingentsperre über die reguläre Desktop-Dienstregistrierung in Debug Pro und
+  FinOffice geprüft. Azure und Google erhielten bei Budget 0 und nach Ausschöpfung des gespeicherten
+  Budgets keinen Syntheseaufruf. Je ein Aufruf an der Budgetgrenze wurde akzeptiert und separat gezählt.
+  Die Provider wurden durch Test-Doubles ersetzt.
+
 Die Anzeige erfasst WawiCallPro-Anfragen ab Einführung der Sperre. Anbieterabrechnung und Nutzung
 außerhalb der App sind darin nicht enthalten. Anbieterpreise können sich ändern. Das Vorhören und der
 Export vorhandener WAV-Dateien brauchen keine weitere Reservierung.
