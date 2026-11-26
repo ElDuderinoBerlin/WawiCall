@@ -260,6 +260,11 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Bilder und Symbole
+
+- Neue und überarbeitete Bilder, Illustrationen und Symbole der Anwendungsoberfläche
+  ausschließlich als SVG einbinden. Das gilt auch für Splash-Bilder und Icons.
+
 ### Bündige Eingabefelder in Dialogen
 
 - Die Anrufzuordnung verwendet kompakte, zusammenhängende Aktionszeilen in einem
