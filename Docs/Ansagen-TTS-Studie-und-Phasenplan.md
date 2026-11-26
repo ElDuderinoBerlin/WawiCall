@@ -169,9 +169,20 @@ steht **17:15 Uhr**.
 - [x] ✅ Die englische Variante `en-GB-Chirp3-HD-Achernar` im Google-Stimmenkatalog des
   Testprojekts abgefragt und bestätigt. Für die drei englischen WAVs ist dieselbe
   Telefonaufbereitung mit G.711 A-law bei 8 kHz und Wiedergabe über das Jabra vorgesehen.
-- [ ] Die drei deutschen Testtexte mit DeepL ins britische Englisch übersetzen, mit Google
-  vertonen und über das Jabra anhören. Dabei besonders auf die Öffnungszeiten, die Tasten,
-  die Durchwahl und die Kundennummer achten. DeepL-Übersetzungen und Hörurteil stehen aus.
+- [x] ✅ Alle drei Testtexte mit DeepL ins britische Englisch übersetzt, mit
+  `en-GB-Chirp3-HD-Achernar` vertont und über **Kopfhörer (Jabra Link 380)** abgespielt.
+  Die Synthese dauerte 1,05 bis 1,69 Sekunden je Datei. Nach G.711 A-law bei 8 kHz
+  lagen die drei Mono-Hörproben zwischen −20,8 und −20,2 LUFS. Übersetzungen und WAV-Dateien
+  liegen unter `.artifacts/tts-phase-1/deepl-english/`.
+
+DeepL hat die Uhrzeiten einschließlich **5.15 pm**, das Datum, beide Menütasten, die Durchwahl
+**307** und die Kundennummer **50428** im englischen Text erhalten. Für „Guten Tag“ wählte DeepL
+„Good afternoon“. In der englischen Hörprobe wurde die Sprache bei der Erreichbarkeitsansage
+bestätigt. Für die gesprochenen Uhrzeiten und Nummern liegt aus dieser Probe keine Mitschrift vor.
+
+WawiCallPro richtet sich an deutschsprachige Kunden. Nach der anschließenden Wiedergabe der
+drei deutschen Proben bestätigte der Nutzer **`de-DE-Chirp3-HD-Achernar` als erste Wahl**.
+Der englische Ablauf ist als Test für mehrsprachige Ansagen dokumentiert.
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
