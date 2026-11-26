@@ -17,7 +17,7 @@ partial class FrmStartupSplashScreen
         System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmStartupSplashScreen));
         rootLayout = new System.Windows.Forms.TableLayoutPanel();
         contentLayout = new System.Windows.Forms.TableLayoutPanel();
-        splashArtwork = new System.Windows.Forms.PictureBox();
+        splashArtwork = new DevExpress.XtraEditors.SvgImageBox();
         lblTitle = new DevExpress.XtraEditors.LabelControl();
         lblSubtitle = new DevExpress.XtraEditors.LabelControl();
         lblStatus = new DevExpress.XtraEditors.LabelControl();
@@ -40,8 +40,9 @@ partial class FrmStartupSplashScreen
         rootLayout.Controls.Add(contentLayout, 1, 0);
         splashArtwork.Name = "splashArtwork";
         splashArtwork.Dock = System.Windows.Forms.DockStyle.Fill;
-        splashArtwork.Image = (System.Drawing.Image)resources.GetObject("splashArtwork.Image");
-        splashArtwork.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+        splashArtwork.BackColor = System.Drawing.Color.Transparent;
+        splashArtwork.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("splashArtwork.SvgImage");
+        splashArtwork.SizeMode = DevExpress.XtraEditors.SvgImageSizeMode.Zoom;
         splashArtwork.Margin = new System.Windows.Forms.Padding(8, 8, 24, 8);
         splashArtwork.TabStop = false;
         contentLayout.Name = "contentLayout";
@@ -121,7 +122,7 @@ partial class FrmStartupSplashScreen
     }
     private System.Windows.Forms.TableLayoutPanel rootLayout;
     private System.Windows.Forms.TableLayoutPanel contentLayout;
-    private System.Windows.Forms.PictureBox splashArtwork;
+    private DevExpress.XtraEditors.SvgImageBox splashArtwork;
     private DevExpress.XtraEditors.LabelControl lblTitle;
     private DevExpress.XtraEditors.LabelControl lblSubtitle;
     private DevExpress.XtraEditors.LabelControl lblStatus;

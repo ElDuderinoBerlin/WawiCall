@@ -92,9 +92,9 @@ public sealed class StartupSplashTests
                 Assert.AreEqual(AutoScaleMode.Dpi, form.AutoScaleMode);
                 Assert.IsTrue(form.Width <= 480 * form.DeviceDpi / 96 + 2);
                 Assert.IsNotNull(form.IconOptions.SvgImage);
-                var artwork = Field<PictureBox>(form, "splashArtwork");
-                Assert.IsNotNull(artwork.Image);
-                Assert.AreEqual(PictureBoxSizeMode.Zoom, artwork.SizeMode);
+                var artwork = Field<SvgImageBox>(form, "splashArtwork");
+                Assert.IsNotNull(artwork.SvgImage);
+                Assert.AreEqual(SvgImageSizeMode.Zoom, artwork.SizeMode);
                 form.SetStatus(filled ? "Warenwirtschaftsplugin und Kommunikationsdienste werden vorbereitet. Bitte einen Moment warten …" : "", 2, 5);
                 Assert.AreEqual(40, Field<PulsingProgressBarControl>(form, "progressBar").Position);
                 CreateHandles(form);

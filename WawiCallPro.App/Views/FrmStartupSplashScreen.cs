@@ -14,8 +14,6 @@ public sealed partial class FrmStartupSplashScreen : XtraForm
     {
         InitializeComponent();
         AppIconHelper.Apply(this);
-        var artwork = splashArtwork.Image;
-        Disposed += (_, _) => artwork?.Dispose();
         lblVersion.Text = "v" + ApplicationVersion.Display;
         LookAndFeel.StyleChanged += LookAndFeel_StyleChanged;
         Disposed += (_, _) => LookAndFeel.StyleChanged -= LookAndFeel_StyleChanged;

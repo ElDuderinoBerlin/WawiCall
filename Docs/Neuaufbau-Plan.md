@@ -2419,6 +2419,8 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   ist in der App eingebettet und wird proportional in die linke Spalte eingepasst.
   Pro und FinOffice im Debug mit hellem und dunklem Skin, langen Statuszeilen,
   beiden Fenstergrößen und 150-%-Layoutskalierung geprüft.
+  ✅ Das Telefonmotiv als SVG mit zwei DevExpress-Palettenrollen umgesetzt.
+  Der Hörer und die Signalwellen übernehmen die Farben des aktiven Skins.
 
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Logbereich entsprechend LxTranslate als DevExpress-Liste
   mit Zeitstempeln, Warn-/Fehlerfarben, Strg+F-Suche, Treffermarkierung/-navigation,
