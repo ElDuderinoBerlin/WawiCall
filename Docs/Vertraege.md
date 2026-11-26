@@ -341,9 +341,12 @@ zum konfigurierten Aufnahmeverzeichnis. Implementierungen müssen diese Grenze b
 Seit Einstellungsformat 21 enthält der lokale Abschnitt `recordingStorage` das Dateinamensmuster,
 den aktiven Ordner und gegebenenfalls das vorgemerkte Ziel. Unter **Einstellungen → Audio → Aufnahme**
 lassen sich Ordner, Platzhalter und Vorschau bearbeiten. Ohne eigene Einstellung gelten der Profilordner
-`recordings` und `{AufnahmeId}`. Verfügbare Platzhalter sind Datum, Uhrzeit, Richtung, Rufnummer und
-Aufnahme-ID. Fehlt die Aufnahme-ID im Muster, fügt WawiCallPro sie an. Die Vorschau nutzt feste Beispieldaten,
-die Aufnahme verwendet die Metadaten des zugehörigen Gesprächs. Dateiendungen werden aus dem Format abgeleitet.
+`recordings` und `{Mandant}_{Datum}_{Timestamp}`, zum Beispiel `Musterfirma_2026-11-25_10-44-16-000.wav`.
+Der bisherige gespeicherte Standard `{AufnahmeId}` wird als neuer Standard gelesen. Eigene Muster bleiben
+erhalten. Weitere Platzhalter sind Uhrzeit, Richtung, Rufnummer und die ausdrücklich angegebene Aufnahme-ID.
+Ohne Mandantenzuordnung lautet der Namensbestandteil `OhneMandant`. Datum und Zeitstempel beziehen sich auf
+den lokalen Aufnahmestart. Bei belegten Namen wird eine laufende Nummer angefügt.
+Die Vorschau nutzt feste Beispieldaten. Dateiendungen werden aus dem Format abgeleitet.
 Muster und Ordner werden nach einem Neustart wirksam. Das Muster betrifft neue Aufnahmen.
 
 Beim Start kopiert WawiCallPro für einen vorgemerkten Ordnerwechsel die Dateien mit ihren relativen

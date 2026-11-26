@@ -4953,7 +4953,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Debug/Any CPU ohne Warnungen und Fehler, je 61 bestandene Telefonietests für Pro und FinOffice.
   Hörprobe und Aufnahmesignal während des Haltens bleiben Teil der echten Geräteabnahme G1.
 - [x] ✅ Dateinamen, Dateischutz und Metadatenkonsistenz für Aufnahmen prüfen (24.11.2026).
-  Live-Aufnahmen verwenden die Aufnahme-ID als WAV-Dateinamen. Die Mix- und Exportprüfungen bestätigen
+  Live-Aufnahmen verwenden das konfigurierte Dateinamensmuster. Standard ist `{Mandant}_{Datum}_{Timestamp}`.
+  Die Mix- und Exportprüfungen bestätigen
   den Schutz vorhandener und gleichzeitig angelegter Ziele. Fehlende oder veränderte Aufnahmen werden
   als nicht verfügbar erkannt und mit einem Hinweis im Ausgabefenster gemeldet. Ausschließlich die
   wiedergefundene Datei mit dem ursprünglichen SHA-256 setzt das Artefakt wieder auf verfügbar.

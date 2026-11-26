@@ -11,6 +11,7 @@ using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Tests;
 
@@ -37,25 +38,58 @@ public sealed partial class AppShellTests
     public Task LiveRecordingPersistsTheActualTwoSideWaveInTheExistingSqliteHistory() => WithWorkspace(async (workspace, services, _) =>
     {
         await workspace.Database.CreateAndMigrateAsync();
-        var now = DateTimeOffset.UtcNow;
-        var call = await services.GetRequiredService<ISipCallPersistence>().SaveAsync(CommandCall() with
-        { State = CallState.Connected, StartedAtUtc = now.AddSeconds(-1), StateChangedAtUtc = now, AnsweredAtUtc = now });
+        var clock = new LiveRecordingClock();
+        var now = clock.GetUtcNow();
+        var companies = services.GetRequiredService<ICompanyRepository>();
+        var company = new Company(new(LexwareProductLine.Pro, "test-recordings", "1"), "Musterfirma");
+        await companies.WriteAsync(new(company, null, now));
+        var calls = services.GetRequiredService<ISipCallPersistence>();
+        var connected = CommandCall() with
+        { Company = company.Key, State = CallState.Connected, StartedAtUtc = now.AddSeconds(-1), StateChangedAtUtc = now, AnsweredAtUtc = now };
+        var call = await calls.SaveAsync(connected);
+        var otherCall = await calls.SaveAsync(connected with { Id = Guid.NewGuid() });
         using var audio = new ServiceCollection().AddAudioConversion().BuildServiceProvider();
         var persisted = new PersistedDuplexPcmRecordingFactory(audio.GetRequiredService<IDuplexPcmRecordingFactory>(),
-            services.GetRequiredService<IRecordingJournal>(), workspace.Paths, TimeProvider.System);
-        var factory = new LivePcmRecordingFactory(persisted, TimeProvider.System);
-        var source = new LiveRecordingSourceDouble(); var id = Guid.NewGuid();
-        var path = workspace.Paths.ResolveRecordingPath(id.ToString("N") + ".wav");
-        var start = factory.StartAsync(source, new(call.Id, id, path));
-        source.Send(1000, 1234); source.Receive(1, 2000, 2345);
-        await using var recording = await start;
-        await Task.Delay(60); await recording.StopAsync();
+            services.GetRequiredService<IRecordingJournal>(), workspace.Paths, clock);
+        var source = new LiveRecordingSourceDouble();
+        var otherSource = new LiveRecordingSourceDouble();
+        var factory = new LivePcmRecordingFactory(persisted, clock);
+        var callRepository = services.GetRequiredService<ICallRepository>();
+        await using var media = new LiveRecordingMediaSession(new LiveRecordingTests.NativeMedia(source), persisted, factory, workspace.Paths,
+            callRepository, clock, companies);
+        await using var otherMedia = new LiveRecordingMediaSession(new LiveRecordingTests.NativeMedia(otherSource), persisted, factory, workspace.Paths,
+            callRepository, clock, companies);
+        var stem = RecordingFileName.Format(RecordingFileName.DefaultPattern, clock.GetLocalNow(), null, Guid.Empty, null, company.DisplayName);
+        Directory.CreateDirectory(workspace.Paths.RecordingsDirectory);
+        var existingPath = workspace.Paths.ResolveRecordingPath(stem + ".wav");
+        await File.WriteAllTextAsync(existingPath, "vorhandene Datei");
+        await StartAsync(media, source, call.Id);
+        await StartAsync(otherMedia, otherSource, otherCall.Id);
+        var id = media.RecordingStatus.RecordingId;
+        clock.Advance(60);
+        await media.StopLiveAsync(CancellationToken.None);
+        await otherMedia.StopLiveAsync(CancellationToken.None);
         var history = (await workspace.History.GetCallAsync(call.Id))!;
         var stored = history.Recordings.Single();
         Assert.AreEqual(id, stored.Id); Assert.AreEqual(RecordingAvailability.Available, stored.Availability);
-        Assert.IsTrue(stored.Duration > TimeSpan.Zero); Assert.IsTrue(File.Exists(path));
-        Assert.AreEqual(id.ToString("N") + ".wav", stored.RelativePath);
+        Assert.IsTrue(stored.Duration > TimeSpan.Zero);
+        Assert.AreEqual(stem + "_2.wav", stored.RelativePath);
+        Assert.IsTrue(File.Exists(workspace.Paths.ResolveRecordingPath(stored.RelativePath)));
+        Assert.AreEqual("vorhandene Datei", await File.ReadAllTextAsync(existingPath));
         Assert.AreEqual(0, source.Subscribers);
+        var otherRecording = (await workspace.History.GetCallAsync(otherCall.Id))!.Recordings.Single();
+        Assert.AreEqual(stem + "_3.wav", otherRecording.RelativePath);
+        Assert.IsTrue(File.Exists(workspace.Paths.ResolveRecordingPath(otherRecording.RelativePath)));
+
+        static async Task StartAsync(LiveRecordingMediaSession session, LiveRecordingSourceDouble input, Guid callId)
+        {
+            var start = session.StartLiveAsync(callId, CancellationToken.None);
+            for (var attempt = 0; attempt < 100 && input.Subscribers == 0 && !start.IsCompleted; attempt++) await Task.Delay(10);
+            Assert.AreEqual(1, input.Subscribers);
+            input.Send(1000, 1234);
+            input.Receive(1, 2000, 2345);
+            await start;
+        }
     });
 
     [TestMethod]

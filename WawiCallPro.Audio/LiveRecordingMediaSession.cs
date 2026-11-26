@@ -1,4 +1,8 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using WawiCallPro.Interfaces.Audio;
+using WawiCallPro.Interfaces.History;
 using WawiCallPro.Utilities.Operations;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
@@ -11,13 +15,17 @@ namespace WawiCallPro.Audio;
 public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplexPcmRecordingFactory recordings,
     LivePcmRecordingFactory live, ApplicationPaths paths) : ISipLiveRecordingMediaSession
 {
+    private static readonly string[] RecordingExtensions = Enum.GetValues<RecordingArtifactFormat>()
+        .Select(format => format.Extension()).ToArray();
     private readonly RecordingSipMediaSession _legacy = new(inner, recordings);
     private readonly ICallRepository? _calls;
+    private readonly ICompanyRepository? _companies;
     private readonly TimeProvider _clock = TimeProvider.System;
     private readonly SemaphoreSlim _commands = new(1);
     private readonly object _gate = new();
     private readonly CancellationTokenSource _closing = new();
     private LivePcmRecording? _recording;
+    private Semaphore? _wavePathReservation;
     private IDuplexPcmRecording? _legacyRecording;
     private Task? _dispose;
     private Task _watch = Task.CompletedTask;
@@ -26,10 +34,18 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
 
     internal LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplexPcmRecordingFactory recordings,
         LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository? calls, TimeProvider clock)
+        : this(inner, recordings, live, paths, calls, clock, null)
+    {
+    }
+
+    internal LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplexPcmRecordingFactory recordings,
+        LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository? calls, TimeProvider clock,
+        ICompanyRepository? companies)
         : this(inner, recordings, live, paths)
     {
         _calls = calls;
         _clock = clock;
+        _companies = companies;
     }
     public SIPSorcery.SIP.App.IMediaSession Session => inner.Session;
     public ISipConversationAudio? ConversationAudio => inner.ConversationAudio;
@@ -65,14 +81,27 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
             {
                 if (inner.PcmSource is not IConversationPcmFailureSource source) throw new TelephonyException("RecordingUnavailable");
                 var pattern = paths.RecordingFileNamePattern;
-                CallSnapshot? metadata = null;
-                if (_calls is not null && (pattern.Contains("{Richtung}", StringComparison.Ordinal) || pattern.Contains("{Rufnummer}", StringComparison.Ordinal)))
+                var started = _clock.GetLocalNow();
+                CallHistory? history = null;
+                string? companyName = null;
+                var usesCompany = pattern.Contains("{Mandant}", StringComparison.Ordinal);
+                if (_calls is not null && (usesCompany || pattern.Contains("{Richtung}", StringComparison.Ordinal) || pattern.Contains("{Rufnummer}", StringComparison.Ordinal)))
                 {
-                    try { metadata = (await _calls.GetAsync(callId, linked.Token).ConfigureAwait(false))?.History.Call; }
+                    try
+                    {
+                        history = (await _calls.GetAsync(callId, linked.Token).ConfigureAwait(false))?.History;
+                        if (usesCompany && history is not null)
+                        {
+                            companyName = history.Parties.FirstOrDefault(party => party.IsSelected)?.CompanyDisplayName;
+                            if (string.IsNullOrWhiteSpace(companyName) && history.Call.Company is { } key && _companies is not null)
+                                companyName = (await _companies.GetAsync(key, linked.Token).ConfigureAwait(false))?.Company.DisplayName;
+                        }
+                    }
                     catch (WawiCallPro.Database.DatabaseOperationException) { }
                 }
-                var fileName = RecordingFileName.Format(pattern, _clock.GetLocalNow(), metadata?.Direction, id, metadata?.RemoteAddress) + ".wav";
-                _recording = await live.StartAsync(source, new(callId, id, paths.ResolveRecordingPath(fileName)), linked.Token).ConfigureAwait(false);
+                var stem = RecordingFileName.Format(pattern, started, history?.Call.Direction, id, history?.Call.RemoteAddress, companyName);
+                var wavePath = ReserveWavePath(stem, linked.Token);
+                _recording = await live.StartAsync(source, new(callId, id, wavePath), linked.Token).ConfigureAwait(false);
                 linked.Token.ThrowIfCancellationRequested();
                 SetStatus(LiveRecordingState.Recording);
                 _watch = WatchInputAsync(_recording, _closing.Token);
@@ -80,11 +109,44 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
             catch (Exception error)
             {
                 SetStatus(LiveRecordingState.Failed, ClassifyFailure(error));
-                if (_recording is { } late) { _recording = null; await late.DisposeAsync().ConfigureAwait(false); }
+                try
+                {
+                    if (_recording is { } late) { _recording = null; await late.DisposeAsync().ConfigureAwait(false); }
+                }
+                finally { ReleaseWavePath(); }
                 throw;
             }
         }
         finally { lock (_gate) _startup = null; _commands.Release(); }
+    }
+
+    private string ReserveWavePath(string stem, CancellationToken token)
+    {
+        for (var number = 1; ; number++)
+        {
+            token.ThrowIfCancellationRequested();
+            var candidate = number == 1 ? stem : stem + "_" + number.ToString(CultureInfo.InvariantCulture);
+            var path = paths.ResolveRecordingPath(candidate + ".wav");
+            var pathHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(path.ToUpperInvariant())));
+            // Keep the named handle open until the recording finishes so other hosts can choose another name.
+            var reservation = new Semaphore(1, 1, @"Global\WawiCallPro.RecordingName." + pathHash, out var created);
+            if (created && !RecordingExtensions.Any(extension =>
+            {
+                var artifact = Path.ChangeExtension(path, extension);
+                return File.Exists(artifact) || Directory.Exists(artifact);
+            }))
+            {
+                _wavePathReservation = reservation;
+                return path;
+            }
+            reservation.Dispose();
+        }
+    }
+
+    private void ReleaseWavePath()
+    {
+        _wavePathReservation?.Dispose();
+        _wavePathReservation = null;
     }
     public void CancelPendingStart() { lock (_gate) _startup?.Cancel(); }
     private async Task WatchInputAsync(LivePcmRecording recording, CancellationToken closing)
@@ -130,7 +192,7 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
             SetStatus(LiveRecordingState.Failed, ClassifyFailure(error));
             throw;
         }
-        finally { _recording = null; }
+        finally { _recording = null; ReleaseWavePath(); }
     }
     private static LiveRecordingFailure ClassifyFailure(Exception error) => error switch
     {
@@ -177,16 +239,25 @@ public sealed class LivePersistedSipMediaSessionFactory(WindowsSipMediaSessionFa
     IPersistedDuplexPcmRecordingFactory recordings, LivePcmRecordingFactory live, ApplicationPaths paths) : ISipMediaSessionFactory
 {
     private readonly ICallRepository? _calls;
+    private readonly ICompanyRepository? _companies;
     private readonly TimeProvider _clock = TimeProvider.System;
 
     public LivePersistedSipMediaSessionFactory(WindowsSipMediaSessionFactory media, IPersistedDuplexPcmRecordingFactory recordings,
         LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository calls, TimeProvider clock)
+        : this(media, recordings, live, paths, calls, clock, null)
+    {
+    }
+
+    public LivePersistedSipMediaSessionFactory(WindowsSipMediaSessionFactory media, IPersistedDuplexPcmRecordingFactory recordings,
+        LivePcmRecordingFactory live, ApplicationPaths paths, ICallRepository calls, TimeProvider clock,
+        ICompanyRepository? companies)
         : this(media, recordings, live, paths)
     {
         _calls = calls;
         _clock = clock;
+        _companies = companies;
     }
 
     public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices) =>
-        new LiveRecordingMediaSession((ISipPcmMediaSession)media.Create(account, devices), recordings, live, paths, _calls, _clock);
+        new LiveRecordingMediaSession((ISipPcmMediaSession)media.Create(account, devices), recordings, live, paths, _calls, _clock, _companies);
 }

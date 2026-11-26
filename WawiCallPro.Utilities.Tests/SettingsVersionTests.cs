@@ -86,10 +86,29 @@ public sealed class SettingsVersionTests
         var date = new DateTimeOffset(2026, 11, 25, 10, 44, 16, TimeSpan.Zero);
         var stem = RecordingFileName.Format("{Datum}_{Uhrzeit}_{Rufnummer}", date, Interfaces.Telephony.CallDirection.Incoming, id,
             new(Interfaces.Telephony.NumberPresentation.Available, "030 123-456"));
-        Assert.AreEqual("2026-11-25_10-44-16_030123456_" + id.ToString("N"), stem);
+        Assert.AreEqual("2026-11-25_10-44-16_030123456", stem);
+        Assert.AreEqual("{Mandant}_{Datum}_{Timestamp}", new RecordingStorageSettings().FileNamePattern);
+        Assert.AreEqual("Beispiel_Nord_2026-11-25_10-44-16-000",
+            RecordingFileName.Format(RecordingFileName.DefaultPattern, date, null, id, null, "Beispiel/Nord"));
+        Assert.AreEqual("OhneMandant_2026-11-25_10-44-16-000",
+            RecordingFileName.Format(RecordingFileName.DefaultPattern, date, null, id));
         Assert.AreEqual(id.ToString("N"), RecordingFileName.Format(RecordingFileName.IdPattern, date, null, id));
         Assert.ThrowsExactly<FormatException>(() => RecordingFileName.Format("../{AufnahmeId}", date, null, id));
         Assert.ThrowsExactly<FormatException>(() => RecordingFileName.Format("{NichtVorhanden}", date, null, id));
+    }
+
+    [TestMethod]
+    public async Task RecordingPatternReadsOldDefaultAsNewDefaultAndKeepsCustomPatterns()
+    {
+        using var directory = new SettingsDirectory();
+        const string json = """{"formatVersion":21,"settings":{"recordingStorage":{"fileNamePattern":"{AufnahmeId}"}}}""";
+        await File.WriteAllTextAsync(directory.Location.FilePath, json);
+        var legacy = await directory.Store.LoadAsync();
+        Assert.AreEqual(RecordingFileName.DefaultPattern, legacy.Options.RecordingStorage.FileNamePattern);
+        Assert.AreEqual(json, await File.ReadAllTextAsync(directory.Location.FilePath));
+        const string customPattern = "{Rufnummer}_{Datum}";
+        await directory.Store.SaveAsync(legacy.Options with { RecordingStorage = new() { FileNamePattern = customPattern } }, legacy);
+        Assert.AreEqual(customPattern, (await directory.Store.LoadAsync()).Options.RecordingStorage.FileNamePattern);
     }
 
     private static WawiCallPro.Utilities.Operations.RecordingArchive NewArchive(WawiCallPro.Utilities.Operations.ApplicationPaths paths, ConfigurationStore store) =>

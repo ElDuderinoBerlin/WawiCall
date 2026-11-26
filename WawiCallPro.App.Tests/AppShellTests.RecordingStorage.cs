@@ -41,7 +41,11 @@ public sealed partial class AppShellTests
                 var preview = Field<LabelControl>(page, "recordingPreviewValue");
                 var destination = Path.Combine(workspace.Paths.RootDirectory, "Aufnahmen");
                 folder.Text = destination;
-                Field<ComboBoxEdit>(page, "recordingPatternChoices").SelectedIndex = 3;
+                var choices = Field<ComboBoxEdit>(page, "recordingPatternChoices");
+                choices.SelectedIndex = 1;
+                Assert.AreEqual("{Mandant}_{Datum}_{Timestamp}", pattern.Text);
+                Assert.Contains("Musterfirma_2026-11-25_10-44-16-000.wav", preview.Text);
+                choices.SelectedIndex = 3;
                 Assert.Contains("{Rufnummer}", pattern.Text);
                 pattern.Text = "{Datum}_{Rufnummer}";
                 Field<ComboBoxEdit>(page, "recordingFormatEdit").SelectedIndex = 1;

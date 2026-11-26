@@ -12,16 +12,17 @@ public partial class SettingsPage
 {
     private static readonly (string Caption, string Value, bool Template)[] RecordingNameChoices =
     [
-        ("Aufnahme-ID", RecordingFileName.IdPattern, true),
+        ("Mandant, Datum und Zeitstempel (Standard)", RecordingFileName.DefaultPattern, true),
         ("Datum, Uhrzeit und Richtung", RecordingFileName.DescriptivePattern, true),
-        ("Datum, Uhrzeit und Rufnummer", "{Datum}_{Uhrzeit}_{Rufnummer}_{AufnahmeId}", true),
+        ("Datum, Uhrzeit und Rufnummer", "{Datum}_{Timestamp}_{Rufnummer}", true),
+        ("{Mandant}", "{Mandant}", false),
+        ("{Timestamp}", "{Timestamp}", false),
         ("{Datum:yyyy-MM-dd}", "{Datum:yyyy-MM-dd}", false),
         ("{Datum:yyyyMMdd}", "{Datum:yyyyMMdd}", false),
         ("{Uhrzeit:HH-mm-ss}", "{Uhrzeit:HH-mm-ss}", false),
         ("{Uhrzeit:HHmmss}", "{Uhrzeit:HHmmss}", false),
         ("{Richtung}", "{Richtung}", false),
-        ("{Rufnummer}", "{Rufnummer}", false),
-        ("{AufnahmeId}", "{AufnahmeId}", false)
+        ("{Rufnummer}", "{Rufnummer}", false)
     ];
     private static readonly Guid ExampleRecordingId = Guid.Parse("a31f0e03-3d61-4e74-8288-0abf04700102");
     private const string ExampleSipNumber = "03025776817";
@@ -31,7 +32,7 @@ public partial class SettingsPage
         recordingPatternChoices.Properties.Items.Add("Platzhalter oder Vorlage …");
         recordingPatternChoices.Properties.Items.AddRange(RecordingNameChoices.Select(choice => (object)choice.Caption).ToArray());
         recordingPatternChoices.SelectedIndex = 0;
-        recordingPatternEdit.Text = RecordingFileName.IdPattern;
+        recordingPatternEdit.Text = RecordingFileName.DefaultPattern;
     }
 
     private void ApplyRecordingStorage(RecordingStorageSettings settings)
@@ -80,7 +81,7 @@ public partial class SettingsPage
         try
         {
             var stem = RecordingFileName.Format(recordingPatternEdit.Text, new DateTimeOffset(2026, 11, 25, 10, 44, 16, TimeSpan.Zero),
-                CallDirection.Incoming, ExampleRecordingId, new(NumberPresentation.Available, ExampleSipNumber));
+                CallDirection.Incoming, ExampleRecordingId, new(NumberPresentation.Available, ExampleSipNumber), "Musterfirma");
             var folder = string.IsNullOrWhiteSpace(recordingFolderEdit.Text)
                 ? _workspace?.Paths.DefaultRecordingsDirectory ?? "recordings"
                 : RecordingArchive.NormalizeDirectory(recordingFolderEdit.Text.Trim());

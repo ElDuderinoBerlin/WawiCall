@@ -7,22 +7,34 @@ namespace WawiCallPro.Utilities.Configuration;
 /// <summary>Local archive settings. A requested destination becomes active after verification.</summary>
 public sealed record RecordingStorageSettings
 {
+    private string _fileNamePattern = RecordingFileName.DefaultPattern;
+
     public string? Directory { get; init; }
     public string? PendingDirectory { get; init; }
-    public string FileNamePattern { get; init; } = RecordingFileName.IdPattern;
+    public string FileNamePattern
+    {
+        get => _fileNamePattern;
+        init => _fileNamePattern = value == RecordingFileName.IdPattern ? RecordingFileName.DefaultPattern : value;
+    }
 }
 
 public static class RecordingFileName
 {
     public const string IdPattern = "{AufnahmeId}";
-    public const string DescriptivePattern = "{Datum:yyyy-MM-dd}_{Uhrzeit:HH-mm-ss}_{Richtung}_{AufnahmeId}";
+    public const string DefaultPattern = "{Mandant}_{Datum}_{Timestamp}";
+    public const string DescriptivePattern = "{Datum}_{Timestamp}_{Richtung}";
+    private const string InvalidCharacters = "<>:\"/\\|?*{}";
     private static readonly Regex Placeholder = new(@"\{([^{}]+)\}", RegexOptions.CultureInvariant);
 
-    /// <summary>Builds a Windows-compatible stem with the full recording ID for collision protection.</summary>
+    /// <summary>Builds the Windows-compatible filename stem from the configured placeholders.</summary>
     public static string Format(string pattern, DateTimeOffset time, CallDirection? direction, Guid recordingId)
         => Format(pattern, time, direction, recordingId, null);
 
     public static string Format(string pattern, DateTimeOffset time, CallDirection? direction, Guid recordingId, CallAddress? remoteAddress)
+        => Format(pattern, time, direction, recordingId, remoteAddress, null);
+
+    public static string Format(string pattern, DateTimeOffset time, CallDirection? direction, Guid recordingId,
+        CallAddress? remoteAddress, string? companyName)
     {
         if (string.IsNullOrWhiteSpace(pattern) || pattern.Length > 200)
             throw new FormatException("Das Dateinamensmuster muss 1 bis 200 Zeichen enthalten.");
@@ -30,6 +42,8 @@ public static class RecordingFileName
         var stem = Placeholder.Replace(pattern, match => match.Groups[1].Value switch
         {
             "AufnahmeId" => identifier,
+            "Mandant" => FormatCompany(companyName),
+            "Timestamp" => time.ToString("HH-mm-ss-fff", CultureInfo.InvariantCulture),
             "Datum" or "Datum:yyyy-MM-dd" => time.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             "Datum:yyyyMMdd" => time.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             "Uhrzeit" or "Uhrzeit:HH-mm-ss" => time.ToString("HH-mm-ss", CultureInfo.InvariantCulture),
@@ -38,17 +52,31 @@ public static class RecordingFileName
             "Rufnummer" => FormatNumber(remoteAddress),
             _ => throw new FormatException("Das Dateinamensmuster enthält einen unbekannten Platzhalter.")
         });
-        if (stem.IndexOfAny(['<', '>', ':', '"', '/', '\\', '|', '?', '*', '{', '}']) >= 0 || stem.Any(char.IsControl)
+        if (stem.Any(character => InvalidCharacters.Contains(character) || char.IsControl(character))
             || stem[0] is '.' or ' ' || stem[^1] is '.' or ' ')
             throw new FormatException("Dateinamen dürfen keine Pfadtrenner, Sonderzeichen oder Punkte und Leerzeichen am Rand enthalten.");
-        var firstSegment = stem.Split('.', 2)[0].TrimEnd().ToUpperInvariant();
-        if (firstSegment is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$"
-            || firstSegment.Length == 4 && (firstSegment.StartsWith("COM", StringComparison.Ordinal) || firstSegment.StartsWith("LPT", StringComparison.Ordinal))
-                && "123456789¹²³".Contains(firstSegment[3]))
+        if (IsReservedName(stem))
             throw new FormatException("Das Dateinamensmuster ergibt einen unter Windows reservierten Namen.");
-        if (!pattern.Contains(IdPattern, StringComparison.Ordinal)) stem += "_" + identifier;
         if (stem.Length > 240) throw new FormatException("Der erzeugte Dateiname ist zu lang.");
         return stem;
+    }
+
+    private static string FormatCompany(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "OhneMandant";
+        var safe = string.Concat(name.EnumerateRunes().Take(64).Select(rune =>
+            System.Text.Rune.IsControl(rune) || (rune.IsAscii && InvalidCharacters.Contains((char)rune.Value))
+                ? "_" : rune.ToString())).Trim(' ', '.');
+        if (safe.Length == 0) return "OhneMandant";
+        return IsReservedName(safe) ? "_" + safe : safe;
+    }
+
+    private static bool IsReservedName(string stem)
+    {
+        var firstSegment = stem.Split('.', 2)[0].TrimEnd().ToUpperInvariant();
+        return firstSegment is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$"
+            || firstSegment.Length == 4 && (firstSegment.StartsWith("COM", StringComparison.Ordinal) || firstSegment.StartsWith("LPT", StringComparison.Ordinal))
+                && "123456789¹²³".Contains(firstSegment[3]);
     }
 
     private static string FormatNumber(CallAddress? address)
