@@ -12,6 +12,13 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'COM activation uses a per-user registration (HKCU). Open PowerShell without "Run as administrator" and repeat this command.'
+    }
+} finally { $identity.Dispose() }
 # WSH provides native late binding for the COM return objects on both Windows PowerShell 5.1 and PowerShell 7.
 # No registration, type library, credentials, server shutdown or automatic telephone action.
 $bits = if ($ClientBitness -eq 'Auto') { if ([Environment]::Is64BitOperatingSystem) { '64' } else { '32' } } else { $ClientBitness }

@@ -75,6 +75,10 @@ begrenztes Warten auf Startbereitschaft, Status und verfügbarer Viewkatalog. Es
 geöffnet und keine Telefonaktion angefordert. Ein bereits laufender Benutzerbetrieb bleibt erhalten.
 Die Skripte registrieren nichts und ändern weder Zugangsdaten noch das aktive Profil.
 
+Bei `activation: HRESULT=0x000001AD` aus einer administrativen Shell den Aufruf in einer
+normal geöffneten PowerShell wiederholen. Die COM-Registrierung liegt unter HKCU.
+Der PowerShell-Client erkennt eine administrative Sitzung vor der Aktivierung.
+
 ```powershell
 cscript.exe //nologo .\scripts\ComExamples\automation.vbs Pro
 & .\scripts\ComExamples\automation.ps1 -ProductLine Pro -ClientBitness 64
