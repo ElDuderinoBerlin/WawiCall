@@ -92,7 +92,9 @@ public sealed class StartupSplashTests
                 Assert.AreEqual(AutoScaleMode.Dpi, form.AutoScaleMode);
                 Assert.IsTrue(form.Width <= 480 * form.DeviceDpi / 96 + 2);
                 Assert.IsNotNull(form.IconOptions.SvgImage);
-                Assert.IsNotNull(Field<SvgImageBox>(form, "svgLogo").SvgImage);
+                var artwork = Field<PictureBox>(form, "splashArtwork");
+                Assert.IsNotNull(artwork.Image);
+                Assert.AreEqual(PictureBoxSizeMode.Zoom, artwork.SizeMode);
                 form.SetStatus(filled ? "Warenwirtschaftsplugin und Kommunikationsdienste werden vorbereitet. Bitte einen Moment warten …" : "", 2, 5);
                 Assert.AreEqual(40, Field<PulsingProgressBarControl>(form, "progressBar").Position);
                 CreateHandles(form);
@@ -102,6 +104,9 @@ public sealed class StartupSplashTests
                 Application.DoEvents();
                 form.PerformLayout();
                 CheckBounds(form);
+                Assert.IsTrue(artwork.Width > 0 && artwork.Height > 0);
+                Assert.IsTrue(artwork.Parent!.ClientRectangle.Contains(artwork.Bounds));
+                Assert.IsTrue(artwork.Right < Field<TableLayoutPanel>(form, "contentLayout").Left);
                 var progress = Field<PulsingProgressBarControl>(form, "progressBar");
                 var deadline = DateTime.UtcNow.AddSeconds(2);
                 while (progress.DisplayedPosition != 40 && DateTime.UtcNow < deadline) await Task.Delay(30);

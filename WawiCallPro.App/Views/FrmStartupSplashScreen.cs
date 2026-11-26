@@ -1,11 +1,10 @@
 using DevExpress.Skins;
-using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
 
 namespace WawiCallPro.App.Views;
 
-/// <summary>Startup logo, status and animated progress, following the LxTranslate splash.</summary>
+/// <summary>Startup artwork, status and animated progress, following the LxTranslate splash.</summary>
 public sealed partial class FrmStartupSplashScreen : XtraForm
 {
     private bool _backgroundRun;
@@ -15,8 +14,8 @@ public sealed partial class FrmStartupSplashScreen : XtraForm
     {
         InitializeComponent();
         AppIconHelper.Apply(this);
-        svgLogo.SvgImage = AppIconHelper.ApplicationSvg;
-        svgLogo.SvgImageColorizationMode = SvgImageColorizationMode.None;
+        var artwork = splashArtwork.Image;
+        Disposed += (_, _) => artwork?.Dispose();
         lblVersion.Text = "v" + ApplicationVersion.Display;
         LookAndFeel.StyleChanged += LookAndFeel_StyleChanged;
         Disposed += (_, _) => LookAndFeel.StyleChanged -= LookAndFeel_StyleChanged;

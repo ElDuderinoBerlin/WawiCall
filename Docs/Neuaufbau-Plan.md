@@ -2414,6 +2414,12 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   Ein sichtbarer Explorer-Start mit/ohne bewussten Programmwechsel wurde nicht durchgeführt und ist
   damit noch kein nativer Nachweis der sichtbaren Fokusübergabe. Nachweise `.artifacts/lx-startup-log`.
 
+- [x] ✅ Eigenes Telefonmotiv für den Startbildschirm (26.11.2026).
+  Der Splash zeigt links einen abstrakten Telefonhörer mit Signalwellen. Die Bildressource
+  ist in der App eingebettet und wird proportional in die linke Spalte eingepasst.
+  Pro und FinOffice im Debug mit hellem und dunklem Skin, langen Statuszeilen,
+  beiden Fenstergrößen und 150-%-Layoutskalierung geprüft.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Logbereich entsprechend LxTranslate als DevExpress-Liste
   mit Zeitstempeln, Warn-/Fehlerfarben, Strg+F-Suche, Treffermarkierung/-navigation,
   Mehrfachauswahl, Kopieren/Löschen und vollständigem Tooltip übernommen. Designerfähiges

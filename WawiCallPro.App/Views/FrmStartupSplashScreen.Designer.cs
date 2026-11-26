@@ -14,16 +14,17 @@ partial class FrmStartupSplashScreen
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmStartupSplashScreen));
         rootLayout = new System.Windows.Forms.TableLayoutPanel();
         contentLayout = new System.Windows.Forms.TableLayoutPanel();
-        svgLogo = new DevExpress.XtraEditors.SvgImageBox();
+        splashArtwork = new System.Windows.Forms.PictureBox();
         lblTitle = new DevExpress.XtraEditors.LabelControl();
         lblSubtitle = new DevExpress.XtraEditors.LabelControl();
         lblStatus = new DevExpress.XtraEditors.LabelControl();
         lblVersion = new DevExpress.XtraEditors.LabelControl();
         lblPlugins = new DevExpress.XtraEditors.LabelControl();
         progressBar = new Quantarix.DevExpressExtensions.Controls.PulsingProgressBarControl();
-        ((System.ComponentModel.ISupportInitialize)svgLogo).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)splashArtwork).BeginInit();
         rootLayout.SuspendLayout();
         contentLayout.SuspendLayout();
         SuspendLayout();
@@ -35,12 +36,14 @@ partial class FrmStartupSplashScreen
         rootLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 72F));
         rootLayout.RowCount = 1;
         rootLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        rootLayout.Controls.Add(svgLogo, 0, 0);
+        rootLayout.Controls.Add(splashArtwork, 0, 0);
         rootLayout.Controls.Add(contentLayout, 1, 0);
-        svgLogo.Name = "svgLogo";
-        svgLogo.Dock = System.Windows.Forms.DockStyle.Fill;
-        svgLogo.SizeMode = DevExpress.XtraEditors.SvgImageSizeMode.Zoom;
-        svgLogo.Margin = new System.Windows.Forms.Padding(8, 8, 24, 8);
+        splashArtwork.Name = "splashArtwork";
+        splashArtwork.Dock = System.Windows.Forms.DockStyle.Fill;
+        splashArtwork.Image = (System.Drawing.Image)resources.GetObject("splashArtwork.Image");
+        splashArtwork.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+        splashArtwork.Margin = new System.Windows.Forms.Padding(8, 8, 24, 8);
+        splashArtwork.TabStop = false;
         contentLayout.Name = "contentLayout";
         contentLayout.Dock = System.Windows.Forms.DockStyle.Fill;
         contentLayout.ColumnCount = 1;
@@ -110,7 +113,7 @@ partial class FrmStartupSplashScreen
         StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
         Text = "WawiCallPro";
         Name = "FrmStartupSplashScreen";
-        ((System.ComponentModel.ISupportInitialize)svgLogo).EndInit();
+        ((System.ComponentModel.ISupportInitialize)splashArtwork).EndInit();
         contentLayout.ResumeLayout(false);
         contentLayout.PerformLayout();
         rootLayout.ResumeLayout(false);
@@ -118,7 +121,7 @@ partial class FrmStartupSplashScreen
     }
     private System.Windows.Forms.TableLayoutPanel rootLayout;
     private System.Windows.Forms.TableLayoutPanel contentLayout;
-    private DevExpress.XtraEditors.SvgImageBox svgLogo;
+    private System.Windows.Forms.PictureBox splashArtwork;
     private DevExpress.XtraEditors.LabelControl lblTitle;
     private DevExpress.XtraEditors.LabelControl lblSubtitle;
     private DevExpress.XtraEditors.LabelControl lblStatus;

@@ -4,4 +4,7 @@
   <resheader name="version"><value>2.0</value></resheader>
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="splashArtwork.Image" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\StartupSplashPhone.png;System.Drawing.Bitmap, System.Drawing.Common</value>
+  </data>
 </root>
