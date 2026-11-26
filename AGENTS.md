@@ -406,6 +406,8 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 - Bis auf ausdrückliche neue Anweisung des Nutzers ausschließlich Debug kompilieren und prüfen.
   Kein Release-Build und kein Release-Publish. Diese projektspezifische Vorgabe hat insoweit Vorrang
   vor der gemeinsamen Regel zur aktiven IDE-Konfiguration. Die gewählte Plattform beibehalten.
+- Bei editionsbezogenen Builds und Prüfungen standardmäßig nur Pro verwenden.
+  FinOffice nur auf ausdrücklichen Auftrag kompilieren und prüfen.
 - Hauptsolution: `WawiCallProSolution.sln`; neue Projektdokumentation dort unter `Docs` referenzieren.
 - `Solution.props` folgt der LxTranslate-Struktur und hält die Editions-/Demo-/Lizenzschalter zentral.
   Normale Produktionsausgaben unter `bin/<Konfiguration>/<Framework>` ohne Pro-/FinOffice-Unterordner
