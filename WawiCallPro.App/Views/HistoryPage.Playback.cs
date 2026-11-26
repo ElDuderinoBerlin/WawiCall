@@ -78,10 +78,10 @@ public partial class HistoryPage
         {
             if (!_draggingPosition) SeekFromEditor();
         };
-        _startIcon = RibbonIconHelper.Load("PlaybackStart");
+        _startIcon = RibbonIconHelper.Load("PlaybackPlay");
         _pauseIcon = RibbonIconHelper.Load("PlaybackPause");
         playbackColumn.ImageOptions.SvgImageSize = new Size(16, 16);
-        playbackColumn.ImageOptions.SvgImage = _startIcon;
+        playbackColumn.ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStart");
         playbackColumn.ImageOptions.Alignment = StringAlignment.Center;
         var toggle = PlayerButton("Abspielen", (_, _) => TogglePlayer());
         toggle.Buttons[0].ImageOptions.SvgImageSize = new Size(16, 16);

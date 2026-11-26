@@ -5091,7 +5091,7 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Plus öffnet den Player ohne Wiedergabe. Minus schließt ihn und beendet eine laufende
   Wiedergabe. Der Play-Button öffnet den Player und spielt die Aufnahme direkt ab.
   Native Rasterklicks wurden in Pro und FinOffice im Debug-Build geprüft.
-  ✅ Aufnahmespalte und Inline-Player zeigen zum Abspielen einen Telefonhörer mit Wellenform als SVG.
+  ✅ Die Aufnahmespalte zeigt den Telefonhörer mit Wellenform, der Inline-Player ein Play-Dreieck. Beide Symbole sind SVGs.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem
