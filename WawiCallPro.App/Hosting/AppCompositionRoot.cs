@@ -108,11 +108,30 @@ internal static class AppCompositionRoot
         if (!string.IsNullOrWhiteSpace(quotaProject))
             services.AddGoogleAnnouncementSpeech(quotaProject.Trim());
 
-        services.AddSingleton<Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>>(provider => selection => selection switch
+        services.AddSingleton<Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>>(provider => selection =>
         {
-            AnnouncementSpeechProvider.AzureSpeech => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.AzureSpeech),
-            AnnouncementSpeechProvider.GoogleCloud => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.GoogleCloud),
-            _ => null
+            var store = provider.GetRequiredService<ConfigurationStore>();
+            var cloud = store.LoadAsync().GetAwaiter().GetResult().Options.Devices.Announcements.Cloud;
+            var protector = provider.GetRequiredService<WawiCallPro.Utilities.Security.ISecretProtector>();
+            if (selection == AnnouncementSpeechProvider.AzureSpeech && cloud is { AzureRegion: { } region, AzureKey: { } key })
+            {
+                using var secret = protector.Unprotect(key, AnnouncementCloudSettings.AzureKeyPurpose);
+                return CloudAnnouncementSpeechServices.CreateAzureWithKey(region, secret.Reveal());
+            }
+            if (selection == AnnouncementSpeechProvider.GoogleCloud && cloud.GoogleProjectId is { } project)
+            {
+                if (cloud.GoogleCredential is not { } credential)
+                    return CloudAnnouncementSpeechServices.CreateGoogleForProject(project, null);
+                using var secret = protector.Unprotect(credential, AnnouncementCloudSettings.GoogleCredentialPurpose);
+                return CloudAnnouncementSpeechServices.CreateGoogleForProject(project,
+                    CloudAnnouncementSpeechServices.ReadGoogleServiceAccount(secret.Reveal()));
+            }
+            return selection switch
+            {
+                AnnouncementSpeechProvider.AzureSpeech => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.AzureSpeech),
+                AnnouncementSpeechProvider.GoogleCloud => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.GoogleCloud),
+                _ => null
+            };
         });
     }
 }

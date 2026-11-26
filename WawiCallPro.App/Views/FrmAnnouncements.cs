@@ -124,13 +124,13 @@ public partial class FrmAnnouncements : XtraForm
             available = _selectedSpeech?.GetVoices() ?? [];
             if (!windows && _selectedSpeech is null)
                 hint = provider == AnnouncementSpeechProvider.AzureSpeech
-                    ? "Azure Speech ist nicht eingerichtet. Die Umgebungsvariable WAWICALLPRO_AZURE_SPEECH_ENDPOINT prüfen."
-                    : "Google Cloud ist nicht eingerichtet. Die Umgebungsvariable WAWICALLPRO_GOOGLE_TTS_PROJECT prüfen.";
+                    ? "Azure Speech unter Einstellungen → Audio → Cloud-Ansagen einrichten."
+                    : "Google Cloud unter Einstellungen → Audio → Cloud-Ansagen einrichten.";
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
             _selectedSpeech = null;
-            hint = "Der Sprachanbieter konnte nicht geladen werden. Lokale Anmeldung und Einrichtung prüfen.";
+            hint = "Sprachanbieter konnte nicht geladen werden. Zugang unter Einstellungen → Audio → Cloud-Ansagen prüfen.";
         }
         token.ThrowIfCancellationRequested();
         _speechAvailable = available.Count > 0;
@@ -262,7 +262,8 @@ public partial class FrmAnnouncements : XtraForm
         {
             using var waiting = new UiWaitCursor(this);
             var current = await _settings!.LoadAsync(token);
-            await _settings.SaveAsync(current.Options with { Devices = current.Options.Devices with { Announcements = selections } }, current, token);
+            await _settings.SaveAsync(current.Options with { Devices = current.Options.Devices with
+                { Announcements = selections with { Cloud = current.Options.Devices.Announcements.Cloud } } }, current, token);
             statusLabel.Text = "Sprachanbieter, Stimme und Audiogeräte gespeichert.";
         });
     }

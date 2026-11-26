@@ -4,8 +4,11 @@ using System.Runtime.InteropServices;
 
 namespace WawiCallPro.Audio;
 
-internal sealed class AzureAnnouncementSpeech(Uri endpoint, TokenCredential credential) : CloudAnnouncementSpeech(Voices)
+internal sealed class AzureAnnouncementSpeech(Func<SpeechConfig> createConfig) : CloudAnnouncementSpeech(Voices)
 {
+    internal AzureAnnouncementSpeech(Uri endpoint, TokenCredential credential)
+        : this(() => SpeechConfig.FromEndpoint(endpoint, credential)) { }
+
     private static readonly IReadOnlyList<AnnouncementVoice> Voices = Array.AsReadOnly<AnnouncementVoice>(
         [new("de-DE-KatjaNeural", "Katja (Neural)", "de-DE"), new("de-DE-ConradNeural", "Conrad (Neural)", "de-DE")]);
 
@@ -16,7 +19,7 @@ internal sealed class AzureAnnouncementSpeech(Uri endpoint, TokenCredential cred
 
         try
         {
-            var config = SpeechConfig.FromEndpoint(endpoint, credential);
+            var config = createConfig();
             config.SpeechSynthesisVoiceName = voice.Id;
             config.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm);
             using var synthesizer = new SpeechSynthesizer(config, audioConfig: null);

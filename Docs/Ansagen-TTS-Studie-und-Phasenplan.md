@@ -153,11 +153,16 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
 ### Phase 3 – Anbieterwahl im Dialog
 
 - [x] ✅ **Sprachanbieter** und **Stimme** im Ansagendialog ergänzt. Windows ist die Voreinstellung. Die Stimmenliste wechselt mit dem Anbieter. Der Dialog weist vor einer Cloud-Vertonung auf die Textübertragung hin.
-- [x] ✅ **Auswahl speichern** übernimmt Anbieter, Stimme und Audiogeräte in die lokale Konfiguration. Die Cloud-Zielsysteme kommen aus der Prozessumgebung. Die SDKs verwenden Azure Entra beziehungsweise Google ADC für die Anmeldung.
+- [x] ✅ **Auswahl speichern** übernimmt Anbieter, Stimme und Audiogeräte in die lokale Konfiguration. Die Zugänge lassen sich unter **Einstellungen → Audio → Cloud-Ansagen** hinterlegen.
 - [ ] Live-Wiedergabe und Export eines Cloud-Entwurfs bei abgeschaltetem Netzwerk nachweisen. Die automatisierten Dialogtests prüfen Anbieterwechsel, gespeicherte Auswahl, lokale Aufnahme, Wiedergabe und Export mit Test-Doubles.
 
-Für die Cloud-Anbieter die folgenden Werte vor dem App-Start setzen. Die Platzhalter durch die
-eingerichtete Speech-Ressource und die Google-Projekt-ID ersetzen.
+Unter **Einstellungen → Audio → Cloud-Ansagen** für Azure die Region und einen Speech-API-Schlüssel
+eingeben. Für Google die Projekt-ID eintragen und entweder eine Dienstkonto-JSON importieren oder
+die lokale Google-Anmeldung (ADC) verwenden. Der Einstellungsdialog verschlüsselt Schlüssel und
+Dienstkonto-Daten per Windows DPAPI für den aktuellen Benutzer. Der portable Export lässt sie aus.
+
+Für bestehende lokale Testabläufe stehen die folgenden Umgebungsvariablen weiterhin zur Verfügung.
+Die in der App gespeicherten Angaben haben Vorrang.
 
 ```powershell
 $env:WAWICALLPRO_AZURE_SPEECH_ENDPOINT = 'https://<speech-ressource>.cognitiveservices.azure.com/'

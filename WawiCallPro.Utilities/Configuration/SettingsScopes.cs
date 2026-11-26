@@ -46,6 +46,20 @@ public sealed record AnnouncementAudioSettings
     public string? VoiceId { get; init; }
     public string? CaptureDeviceId { get; init; }
     public string? PlaybackDeviceId { get; init; }
+    public AnnouncementCloudSettings Cloud { get; init; } = new();
+}
+
+/// <summary>Speech credentials scoped to the Windows user and omitted from portable preferences.</summary>
+public sealed record AnnouncementCloudSettings
+{
+    public const string AzureKeyPurpose = "announcement.azure.key";
+    public const string GoogleCredentialPurpose = "announcement.google.credential";
+
+    public string? AzureRegion { get; init; }
+    public ProtectedSecret? AzureKey { get; init; }
+    public string? GoogleProjectId { get; init; }
+    public ProtectedSecret? GoogleCredential { get; init; }
+    public override string ToString() => nameof(AnnouncementCloudSettings);
 }
 
 /// <summary>Local CSCore/MMDevice endpoint IDs, never enumeration indexes. Null selects the system default later.</summary>

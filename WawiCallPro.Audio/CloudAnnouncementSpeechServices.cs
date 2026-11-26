@@ -1,8 +1,11 @@
 using Azure.Core;
 using Azure.Identity;
 using Google.Cloud.TextToSpeech.V1;
+using Google.Apis.Auth.OAuth2;
+using Microsoft.CognitiveServices.Speech;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Text.Json;
 
 namespace WawiCallPro.Audio;
 
@@ -11,6 +14,27 @@ public static class CloudAnnouncementSpeechServices
 {
     public const string AzureSpeech = "AzureSpeech";
     public const string GoogleCloud = "GoogleCloud";
+
+    /// <summary>Creates the same Azure adapter with a regional resource key.</summary>
+    public static IAnnouncementSpeech CreateAzureWithKey(string region, string key) =>
+        new AzureAnnouncementSpeech(() => SpeechConfig.FromSubscription(key, region));
+
+    /// <summary>Creates the Google adapter for the specified project, using an optional service account or local ADC.</summary>
+    public static IAnnouncementSpeech CreateGoogleForProject(string project, GoogleCredential? credential) =>
+        new GoogleAnnouncementSpeech(new TextToSpeechClientBuilder { QuotaProject = project, GoogleCredential = credential }.Build());
+
+    /// <summary>Accepts only a Google service account credential with Google's token endpoint.</summary>
+    public static GoogleCredential ReadGoogleServiceAccount(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("token_uri", out var tokenUri)
+            || tokenUri.ValueKind != JsonValueKind.String || tokenUri.GetString() != "https://oauth2.googleapis.com/token"
+            || (root.TryGetProperty("universe_domain", out var universe)
+                && (universe.ValueKind != JsonValueKind.String || universe.GetString() != "googleapis.com")))
+            throw new FormatException("Die Datei enthält keine unterstützten Google-Dienstkonto-Anmeldedaten.");
+        return GoogleCredential.FromServiceAccountCredential(CredentialFactory.FromJson<ServiceAccountCredential>(json));
+    }
 
     /// <summary>Registers Azure Speech for a public Azure resource with a custom endpoint and Entra authentication.</summary>
     public static IServiceCollection AddAzureAnnouncementSpeech(this IServiceCollection services, Uri endpoint,

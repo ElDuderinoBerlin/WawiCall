@@ -346,7 +346,7 @@ public sealed partial class AppShellTests
         Assert.AreEqual("google-voice", Field<LookUpEdit>(reopened, "voiceEdit").EditValue);
         Field<MemoEdit>(reopened, "textEdit").Text = "Ansage";
         Assert.IsFalse(Field<SimpleButton>(reopened, "speechButton").Enabled);
-        Assert.Contains("WAWICALLPRO_GOOGLE_TTS_PROJECT", Field<LabelControl>(reopened, "providerHint").Text);
+        Assert.Contains("Cloud-Ansagen", Field<LabelControl>(reopened, "providerHint").Text);
     });
 
     private sealed class AnnouncementSpeechDouble : IAnnouncementSpeech

@@ -48,6 +48,8 @@ public partial class SettingsPage : XtraUserControl
         var content = Math.Max(generalLayout.GetPreferredSize(new(width, 0)).Height,
             Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
             + audioDevicesTab.Top + audioDevicesTab.Left);
+        if (tabs.SelectedTabPage == audioTab && audioPages.SelectedTabPage == speechCloudTab)
+            content = Math.Max(content, speechCloudLayout.GetPreferredSize(new(width, 0)).Height + speechCloudTab.Top + speechCloudTab.Left);
         if (tabs.SelectedTabPage == sipTab)
             content = Math.Max(content, sipProfilesLayout.GetPreferredSize(new(width, 0)).Height
                 + sipLayout.GetPreferredSize(new(width, 0)).Height
@@ -110,6 +112,7 @@ public partial class SettingsPage : XtraUserControl
             UiButtonSizing.Apply(recordingFolderBrowse, recordingFolderReset);
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
+            UiButtonSizing.Apply(speechGoogleBrowse);
             var volumeSliderHeight = captureDeviceEdit.PreferredSize.Height;
             foreach (var slider in new[] { micVolumeSlider, playVolumeSlider, ringVolumeSlider })
                 slider.Height = volumeSliderHeight;
@@ -327,6 +330,7 @@ public partial class SettingsPage : XtraUserControl
         ApplyRecordingStorage(options.RecordingStorage);
         recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
+        ApplyAnnouncementCloud(options.Devices.Announcements.Cloud);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
         _cacheCompanies.AddRange(options.Companies.Where(company => !known.Contains(company.Company))
             .Select(company => new CacheCompanyRow(company.Company, company.DisplayName ?? "Gespeicherter Mandant", company.IncludeInPhoneCache, false)));
@@ -356,7 +360,8 @@ public partial class SettingsPage : XtraUserControl
                 PlaybackVolumePercent = playVolumeSlider.Value, RingVolumePercent = ringVolumeSlider.Value, MicrophoneMuted = mutedEdit.Checked,
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
-                WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone },
+                WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
+                Announcements = old.Devices.Announcements with { Cloud = ReadAnnouncementCloud(old.Devices.Announcements.Cloud) } },
             RecordingOutput = output,
             RecordingStorage = ReadRecordingStorage(old.RecordingStorage),
             AutomaticMp3 = new(),

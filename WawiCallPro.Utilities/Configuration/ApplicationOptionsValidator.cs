@@ -242,7 +242,21 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("devices.announcements", "Für Ansagen sind nur gültige Stimmen- und Gerätekennungen zulässig."));
         else if (!Enum.IsDefined(announcements.SpeechProvider))
             issues.Add(new("devices.announcements.speechProvider", "Einen gültigen Sprachanbieter für Ansagen auswählen."));
+        else
+        {
+            var cloud = announcements.Cloud;
+            if (cloud is null || !ValidSpeechIdentifier(cloud.AzureRegion, 2, 40)
+                || (cloud.AzureKey is not null && cloud.AzureRegion is null)
+                || !ValidSpeechIdentifier(cloud.GoogleProjectId, 6, 30)
+                || (cloud.GoogleCredential is not null && cloud.GoogleProjectId is null))
+                issues.Add(new("devices.announcements.cloud", "Für die Cloud-Ansagen eine gültige Azure-Region bzw. Google-Projekt-ID angeben."));
+        }
     }
+
+    private static bool ValidSpeechIdentifier(string? value, int minimum, int maximum) =>
+        value is null || (value.Length >= minimum && value.Length <= maximum
+            && char.IsAsciiLetterLower(value[0]) && char.IsAsciiLetterOrDigit(value[^1])
+            && value.All(character => char.IsAsciiLetterLower(character) || char.IsAsciiDigit(character) || character == '-'));
 
     private void ValidateDatabase(CommunicationDatabaseSettings? database, ImmutableArray<ConfigurationIssue>.Builder issues)
     {
