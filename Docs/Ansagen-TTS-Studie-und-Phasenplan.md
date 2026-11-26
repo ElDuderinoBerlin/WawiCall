@@ -58,7 +58,7 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 
 ### Phase 1 – Hörprobe und Anbieterentscheidung
 
-- [ ] Dieselben drei synthetischen deutschen Testansagen mit Windows, Azure und Google erzeugen. Einen Begrüßungstext, eine Erreichbarkeitsansage mit Uhrzeiten sowie ein Menü mit Zahlen, Eigennamen und Abkürzungen verwenden.
+- [x] ✅ Dieselben drei synthetischen deutschen Testansagen mit Windows, Azure und Google erzeugt. Der Satz enthält eine Begrüßung, eine Erreichbarkeitsansage mit Uhrzeiten und ein Menü mit Zahlen, Namen und Abkürzungen.
 - [ ] Bei vergleichbarer Lautstärke blind anhören. Natürlichkeit, Worttreue und Verständlichkeit jeweils von 1 bis 5 bewerten. Zusätzlich über das Headset und mit schmalbandiger Telefonkodierung anhören.
 - [ ] Region, Stimme, Ausgabeformat, Zeit bis zur fertigen Datei und Kosten festhalten. Azure wählen, wenn es bei der telefonischen Verständlichkeit mindestens gleichauf liegt und einen hörbaren Vorteil gegenüber Windows bietet. Andernfalls Google prüfen oder bei Windows bleiben.
 
@@ -117,8 +117,13 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
   1342–2611 ms je Probe. Nach derselben Telefonaufbereitung wie bei Windows liegen die Proben
   bei −20,5 bis −19,6 LUFS. Die 15 anonymisierten Windows- und Azure-Proben, Wiedergabeliste
   und Bewertungsbogen liegen lokal unter `.artifacts/tts-phase-1/`.
-- [ ] Google Cloud mit dem Testprojekt und der lokalen Google-Anmeldung verbinden. Die portable CLI
-  steht bereit. Anschließend die sechs Google-Proben erzeugen und in denselben Blindtest aufnehmen.
+- [x] ✅ Google Cloud im freigegebenen Projekt `wawi-proapp` mit lokaler Google-Anmeldung verbunden.
+  Alle drei Texte mit `de-DE-Neural2-G` und `de-DE-Chirp3-HD-Achernar` über den WawiCallPro-Adapter
+  erzeugt. Synthesezeit 466–1553 ms, Lautheit nach Telefonaufbereitung −20,8 bis −19,6 LUFS.
+  Die sechs Proben wurden mit Windows und Azure gemischt. Die 21 G.711-A-law-Proben, die
+  Wiedergabeliste `blind-telefon-alle.m3u8` und der Bogen `bewertung-telefon-alle.csv` liegen unter
+  `.artifacts/tts-phase-1/`. Bei den drei Testtexten waren beide Google-Stimmen jeweils kürzer als
+  die Windows-Proben. Die Dauer allein bewertet die Verständlichkeit nicht.
 - [ ] Sprachqualität bewerten. Eine Rangfolge zwischen Azure, Google und Windows steht aus.
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
