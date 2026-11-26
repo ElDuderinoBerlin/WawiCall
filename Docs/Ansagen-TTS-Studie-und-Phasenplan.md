@@ -59,8 +59,9 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 ### Phase 1 – Hörprobe und Anbieterentscheidung
 
 - [x] ✅ Dieselben drei synthetischen deutschen Testansagen mit Windows, Azure und Google erzeugt. Der Satz enthält eine Begrüßung, eine Erreichbarkeitsansage mit Uhrzeiten und ein Menü mit Zahlen, Namen und Abkürzungen.
-- [ ] Bei vergleichbarer Lautstärke blind anhören. Natürlichkeit, Worttreue und Verständlichkeit jeweils von 1 bis 5 bewerten. Zusätzlich über das Headset und mit schmalbandiger Telefonkodierung anhören.
-- [ ] Region, Stimme, Ausgabeformat, Zeit bis zur fertigen Datei und Kosten festhalten. Azure wählen, wenn es bei der telefonischen Verständlichkeit mindestens gleichauf liegt und einen hörbaren Vorteil gegenüber Windows bietet. Andernfalls Google prüfen oder bei Windows bleiben.
+- [x] ✅ Alle 21 Proben mit vergleichbarer Lautstärke und schmalbandiger Telefonkodierung über das Jabra-Headset blind angehört. Natürlichkeit und Verständlichkeit jeweils von 1 bis 5 bewertet.
+- [ ] Worttreue separat prüfen. Bei Erreichbarkeit und Telefonmenü Uhrzeiten, Tasten, Durchwahl und Kundennummer wörtlich erfassen.
+- [x] ✅ Stimme für den Telefonpilot anhand der Hörnoten ausgewählt. Anbieter, Formate, Synthesezeiten und Preisgrundlagen sind in den Testabschnitten dokumentiert.
 
 #### Zwischenstand am 25. November 2026
 
@@ -127,10 +128,30 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 - [x] ✅ Den anonymisierten Telefonsatz und den Bewertungsbogen erneut abgeglichen. Die
   Wiedergabeliste enthält für jeden der drei Texte sieben unterschiedliche, lesbare Mono-WAVs
   mit 8 kHz und 16 Bit PCM nach der G.711-Aufbereitung. Jede Datei hat eine Zeile im Bewertungsbogen.
-- [ ] Sprachqualität im Blindhörtest bewerten. Im Bewertungsbogen liegen 0 von 21 Hörbewertungen
-  vor. Für Natürlichkeit und Verständlichkeit die Hörnoten vor der Auflösung der Dateikürzel
-  erfassen. Bei Erreichbarkeit und Telefonmenü die verstandenen Zahlen zusätzlich notieren.
-  Die Rangfolge zwischen den Stimmen bleibt bis zu dieser Hörprüfung offen.
+
+#### Blindhörvergleich am 26. November 2026
+
+Eine Person bewertete die 21 anonymisierten Proben über **Kopfhörer (Jabra Link 380)**.
+Die Proben waren nach Begrüßung, Erreichbarkeit und Telefonmenü gruppiert und simulierten
+schmalbandige Telefonqualität mit G.711 A-law bei 8 kHz. Die Zuordnung wurde nach der letzten
+Bewertung geöffnet. Die Mittelwerte gewichten die drei Ansagen gleich. Eine wörtliche
+Mitschrift von Uhrzeiten und Nummern wurde in dieser Sitzung nicht erhoben.
+
+| Anbieter | Stimme | Begrüßung N/V | Erreichbarkeit N/V | Telefonmenü N/V | Ø Natürlichkeit | Ø Verständlichkeit |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Google Cloud | `de-DE-Chirp3-HD-Achernar` | 4/4 | 3/3 | 5/4 | **4,00** | **3,67** |
+| Azure Speech | `de-DE-ConradNeural` | 4/1 | 4/4 | 4/3 | **4,00** | 2,67 |
+| Azure Speech | `de-DE-KatjaNeural` | 3/1 | 3/3 | 4/4 | 3,33 | 2,67 |
+| Google Cloud | `de-DE-Neural2-G` | 3/1 | 3/4 | 3/3 | 3,00 | 2,67 |
+| Windows | Stefan | 2/3 | 2/2 | 2/2 | 2,00 | 2,33 |
+| Windows | Hedda | 1/3 | 2/2 | 2/2 | 1,67 | 2,33 |
+| Windows | Katja | 2/2 | 2/2 | 2/2 | 2,00 | 2,00 |
+
+N/V steht für Natürlichkeit und Verständlichkeit auf der Skala von 1 bis 5. **Google Chirp 3 HD
+Achernar** war in diesem Durchlauf am verständlichsten und teilte sich mit **Azure Conrad**
+den ersten Platz für Natürlichkeit. Achernar ist für den Telefonpilot ausgewählt. Die Noten gelten
+für diese drei Texte und diese Hörsitzung. Die Einzelnoten mit aufgelösten Stimmen stehen lokal in
+`.artifacts/tts-phase-1/jabra-blind-bewertung.csv`.
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
