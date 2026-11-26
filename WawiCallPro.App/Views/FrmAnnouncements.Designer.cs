@@ -74,6 +74,7 @@ partial class FrmAnnouncements
         captureEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         captureEdit.Properties.ShowHeader = false;
         captureEdit.Properties.ShowFooter = false;
+        captureEdit.Properties.UseDropDownRowsAsMaxCount = true;
         captureEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
         captureEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         choicesLayout.Controls.Add(captureLabel, 0, 0);
@@ -91,6 +92,7 @@ partial class FrmAnnouncements
         playbackEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         playbackEdit.Properties.ShowHeader = false;
         playbackEdit.Properties.ShowFooter = false;
+        playbackEdit.Properties.UseDropDownRowsAsMaxCount = true;
         playbackEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
         playbackEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         choicesLayout.Controls.Add(playbackLabel, 0, 1);
@@ -109,6 +111,7 @@ partial class FrmAnnouncements
         providerEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         providerEdit.Properties.ShowHeader = false;
         providerEdit.Properties.ShowFooter = false;
+        providerEdit.Properties.UseDropDownRowsAsMaxCount = true;
         providerEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         providerEdit.Properties.DisplayMember = "Name";
         providerEdit.Properties.ValueMember = "Id";

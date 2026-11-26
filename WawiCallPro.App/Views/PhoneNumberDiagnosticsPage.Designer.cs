@@ -63,6 +63,7 @@ partial class PhoneNumberDiagnosticsPage
         companyEdit.Properties.DisplayMember = "DisplayName";
         companyEdit.Properties.ValueMember = "Key";
         companyEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        companyEdit.Properties.UseDropDownRowsAsMaxCount = true;
         companyEdit.Properties.ShowHeader = false;
         companyEdit.Properties.ShowFooter = false;
         companyEdit.Properties.NullText = "Mandant auswählen";

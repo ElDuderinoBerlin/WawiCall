@@ -52,6 +52,7 @@ partial class CompanySelector
         companyEdit.Properties.ShowHeader = false;
         companyEdit.Properties.ShowFooter = false;
         companyEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        companyEdit.Properties.UseDropDownRowsAsMaxCount = true;
         companyEdit.Properties.NullText = "Mandant auswählen";
         companyEdit.Properties.Buttons.Add(new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo));
         companyEdit.EditValueChanged += Company_Changed;

@@ -3486,6 +3486,8 @@ Die Renderprüfung der gefüllten Historie umfasst 501 Gespräche und die eingeb
 - [x] ✅ Die 31 DevExpress-Kombos und zugehörigen Repository-Editoren der Main-App geprüft.
   Feste Listen verwenden `DisableTextEditor`. Mandantensuche und Outlook-Speichersuche
   verwenden weiterhin `AutoSearch`. Die Designer-Prüfung kontrolliert beide Verhaltensweisen.
+  ✅ Bei allen 18 `LookUpEdit`-Feldern begrenzt `UseDropDownRowsAsMaxCount` die Popup-Höhe
+  auf die vorhandenen Einträge. Lange Listen behalten ihre bisherige maximale Zeilenzahl.
 
 **G1-Nachkorrektur einheitlicher Dialogbuttons (20.11.2026):** Der Benutzerbefund zeigt die verbleibende
 Inkonsistenz zwischen kompakten Ansichtsbuttons und größeren Dialog-/Browse-Aktionen. Auf ausdrücklichen

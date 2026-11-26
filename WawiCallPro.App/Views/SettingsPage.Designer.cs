@@ -541,6 +541,7 @@ partial class SettingsPage
         sipProfileEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         sipProfileEdit.Properties.ShowHeader = false;
         sipProfileEdit.Properties.ShowFooter = false;
+        sipProfileEdit.Properties.UseDropDownRowsAsMaxCount = true;
         sipProfileEdit.Properties.NullText = "SIP-Profil auswählen";
         sipProfileEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name", "Profil"));
         sipProfileEdit.EditValueChanged += SipProfile_Changed;
@@ -1235,6 +1236,7 @@ partial class SettingsPage
         captureDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         captureDeviceEdit.Properties.ShowHeader = false;
         captureDeviceEdit.Properties.ShowFooter = false;
+        captureDeviceEdit.Properties.UseDropDownRowsAsMaxCount = true;
         captureDeviceEdit.Properties.NullText = "Systemstandard";
         captureDeviceEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name", "Gerät"));
         captureDeviceEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -1255,6 +1257,7 @@ partial class SettingsPage
         playbackDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         playbackDeviceEdit.Properties.ShowHeader = false;
         playbackDeviceEdit.Properties.ShowFooter = false;
+        playbackDeviceEdit.Properties.UseDropDownRowsAsMaxCount = true;
         playbackDeviceEdit.Properties.NullText = "Systemstandard";
         playbackDeviceEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name", "Gerät"));
         playbackDeviceEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -1275,6 +1278,7 @@ partial class SettingsPage
         ringDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         ringDeviceEdit.Properties.ShowHeader = false;
         ringDeviceEdit.Properties.ShowFooter = false;
+        ringDeviceEdit.Properties.UseDropDownRowsAsMaxCount = true;
         ringDeviceEdit.Properties.NullText = "Systemstandard";
         ringDeviceEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name", "Gerät"));
         ringDeviceEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -1301,6 +1305,7 @@ partial class SettingsPage
         windowsRingtoneEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         windowsRingtoneEdit.Properties.ShowHeader = false;
         windowsRingtoneEdit.Properties.ShowFooter = false;
+        windowsRingtoneEdit.Properties.UseDropDownRowsAsMaxCount = true;
         windowsRingtoneEdit.Properties.NullText = "Eingebauter Klingelton";
         windowsRingtoneEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name"));
         windowsRingtoneEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -1695,6 +1700,7 @@ partial class SettingsPage
         matchingCompaniesEdit.Properties.ValueMember = "Key";
         matchingCompaniesEdit.Properties.ShowHeader = false;
         matchingCompaniesEdit.Properties.ShowFooter = false;
+        matchingCompaniesEdit.Properties.UseDropDownRowsAsMaxCount = true;
         matchingCompaniesEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
         matchingCompaniesEdit.Properties.NullText = "Mandant auswählen";
         matchingCompaniesEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Mandant", "Mandant"));

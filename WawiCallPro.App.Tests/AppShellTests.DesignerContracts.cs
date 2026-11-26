@@ -48,6 +48,8 @@ public sealed partial class AppShellTests
                 var editor = field.GetValue(control);
                 var properties = editor is BaseEdit edit ? edit.Properties : editor as RepositoryItem;
                 var name = type.Name + "." + field.Name;
+                if (type.Assembly == typeof(MainForm).Assembly && properties is RepositoryItemLookUpEdit popupOptions)
+                    Assert.IsTrue(popupOptions.UseDropDownRowsAsMaxCount, name);
                 if (properties is RepositoryItemLookUpEdit lookup && searchableLookups.Remove(name))
                 {
                     Assert.AreEqual(SearchMode.AutoSearch, lookup.SearchMode, name);

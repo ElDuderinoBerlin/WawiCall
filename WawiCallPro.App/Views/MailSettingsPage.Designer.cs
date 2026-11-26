@@ -73,8 +73,10 @@ partial class MailSettingsPage
         secretEdit.Name = "secretEdit";
         storeEdit = new DevExpress.XtraEditors.LookUpEdit();
         storeEdit.Name = "storeEdit";
+        storeEdit.Properties.UseDropDownRowsAsMaxCount = true;
         companyEdit = new DevExpress.XtraEditors.LookUpEdit();
         companyEdit.Name = "companyEdit";
+        companyEdit.Properties.UseDropDownRowsAsMaxCount = true;
         daysEdit = new DevExpress.XtraEditors.SpinEdit();
         daysEdit.Name = "daysEdit";
         maximumEdit = new DevExpress.XtraEditors.SpinEdit();
