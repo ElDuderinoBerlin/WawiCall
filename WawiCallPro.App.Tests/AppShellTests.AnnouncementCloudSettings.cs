@@ -37,6 +37,9 @@ public sealed partial class AppShellTests
             await page.RefreshAnnouncementVoicesAsync();
             Assert.AreEqual("Stimmenliste geladen.", Field<LabelControl>(page, "speechTestStatus").Text);
             var voices = Field<LookUpEdit>(page, "standardSpeechVoiceEdit");
+            Assert.AreEqual(DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor, voices.Properties.TextEditStyle);
+            Assert.IsTrue(voices.Properties.UseDropDownRowsAsMaxCount);
+            Assert.IsFalse(voices.Properties.ReadOnly);
             Assert.IsNotNull(voices.Properties.GetDataSourceRowByKeyValue(speech.Voice.Id));
             voices.EditValue = speech.Voice.Id;
             Field<TextEdit>(page, "speechTestEdit").Text = "Guten Tag.";
@@ -52,7 +55,10 @@ public sealed partial class AppShellTests
             using var dialog = new FrmAnnouncements(output, new AnnouncementSpeechDouble(), new AnnouncementConversionDouble(),
                 new AnnouncementCatalogDouble(), workspace.Settings, null) { ResolveCloudSpeech = _ => speech };
             await dialog.LoadAsync();
-            Assert.AreEqual(speech.Voice.Id, Field<LookUpEdit>(dialog, "voiceEdit").EditValue);
+            var selectedVoice = Field<LookUpEdit>(dialog, "voiceEdit");
+            Assert.AreEqual(speech.Voice.Id, selectedVoice.EditValue);
+            Assert.AreEqual(DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor, selectedVoice.Properties.TextEditStyle);
+            Assert.IsTrue(selectedVoice.Properties.UseDropDownRowsAsMaxCount);
             await form.StopAsync();
         }, configure: services => services.AddSingleton<IAnnouncementAudio>(output));
     }

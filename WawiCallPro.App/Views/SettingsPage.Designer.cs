@@ -905,14 +905,17 @@ partial class SettingsPage
         standardSpeechProviderEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name"));
         standardSpeechProviderEdit.Properties.ShowHeader = false;
         standardSpeechProviderEdit.Properties.ShowFooter = false;
+        standardSpeechProviderEdit.Properties.UseDropDownRowsAsMaxCount = true;
         standardSpeechVoiceEdit.Properties.DisplayMember = "Name";
         standardSpeechVoiceEdit.Properties.ValueMember = "Id";
         standardSpeechVoiceEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name"));
         standardSpeechVoiceEdit.Properties.ShowHeader = false;
         standardSpeechVoiceEdit.Properties.ShowFooter = false;
+        standardSpeechVoiceEdit.Properties.UseDropDownRowsAsMaxCount = true;
         standardSpeechProviderEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         standardSpeechProviderEdit.EditValueChanged += StandardSpeechProvider_Changed;
-        standardSpeechVoiceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        standardSpeechVoiceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        standardSpeechVoiceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         speechTestEdit.Properties.MaxLength = 4000;
         speechTestEdit.EditValueChanged += SpeechTestText_Changed;
         refreshSpeechVoicesButton.Name = "refreshSpeechVoicesButton";

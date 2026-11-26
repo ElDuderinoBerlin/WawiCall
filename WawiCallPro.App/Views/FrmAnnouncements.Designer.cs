@@ -121,7 +121,9 @@ partial class FrmAnnouncements
         voiceEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         voiceEdit.Properties.ShowHeader = false;
         voiceEdit.Properties.ShowFooter = false;
-        voiceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        voiceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        voiceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
+        voiceEdit.Properties.UseDropDownRowsAsMaxCount = true;
         choicesLayout.Controls.Add(voiceLabel, 0, 3);
         choicesLayout.Controls.Add(voiceEdit, 1, 3);
         choicesLayout.SetColumnSpan(voiceEdit, 2);

@@ -216,6 +216,8 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
   wählen. **Stimmen laden** fragt die deutschen Stimmen über die jeweiligen SDKs ab. Mit den Pro-Testzugängen
   wurden 17 deutsche Azure-Neural-Stimmen und 32 deutsche Google-Stimmen der Familien Neural2 und Chirp 3 HD
   geladen. Windows verwendet die lokal installierten Stimmen.
+  ✅ Anbieter- und Stimmauswahl verwenden reine Auswahlfelder mit datenabhängiger Popup-Höhe.
+  Im nativen DevExpress-Vergleich füllt eine Liste mit drei Einträgen genau drei Zeilen.
 - [x] ✅ Ein Testtext lässt sich im Einstellungsdialog mit der gewählten Stimme vertonen und abspielen.
   Für Cloud-Proben gelten die gespeicherten Zugangsdaten und Monatsbudgets. Die Vorschau verwendet das für
   Ansagen ausgewählte Windows-Ausgabegerät und entfernt die temporäre WAV nach der Wiedergabe.
