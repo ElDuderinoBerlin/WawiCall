@@ -56,8 +56,11 @@ public sealed class AppWorkspace(
     WawiCallPro.Utilities.Licensing.IProductLicenseService? licenses = null,
     IRecordingDirectoryInventory? recordingInventory = null,
     WawiCallPro.Audio.IAnnouncementAudio? announcementAudio = null,
-    WawiCallPro.Audio.IAnnouncementSpeech? announcementSpeech = null)
+    WawiCallPro.Audio.IAnnouncementSpeech? announcementSpeech = null,
+    ILogWindowService? logWindow = null)
 {
+    internal ILogWindowService? LogWindow => logWindow;
+
     public void ReportSettings(OperationEvent notice)
     {
         if (SettingsMessages.Get(notice) is null) throw new ArgumentOutOfRangeException(nameof(notice));

@@ -22,6 +22,7 @@ public partial class HistoryPage : XtraUserControl
     private Task _playing = Task.CompletedTask;
     private CallNotesSessionFactory? _notesFactory;
     private AppUiState? _state;
+    private ILogWindowService? _log;
     private PageOperation? _operation;
     private bool _arranging;
     private Guid? _selected;
@@ -128,6 +129,7 @@ public partial class HistoryPage : XtraUserControl
     internal void Bind(AppWorkspace workspace, AppUiState? state)
     {
         _state = state;
+        _log = workspace.LogWindow;
         _playback = workspace.RecordingPlayback;
         _recordingFiles = workspace.RecordingFiles;
         BindHistory(workspace.History, workspace.CallNotes);
@@ -136,6 +138,9 @@ public partial class HistoryPage : XtraUserControl
         FitColumns();
     }
     public HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory) : this() => BindHistory(history, notesFactory);
+    internal HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory, ILogWindowService log)
+        : this(history, notesFactory) => _log = log;
+
     internal HistoryPage(ICallHistoryService history, CallNotesSessionFactory notesFactory, IHistoryRecordingPlayback playback)
         : this(history, notesFactory) => _playback = playback;
 
@@ -148,7 +153,7 @@ public partial class HistoryPage : XtraUserControl
         if (_history is not null) throw new InvalidOperationException("The history page is already bound.");
         _history = history ?? throw new ArgumentNullException(nameof(history));
         _notesFactory = notesFactory ?? throw new ArgumentNullException(nameof(notesFactory));
-        _operation = new PageOperation(this, statusLabel);
+        _operation = new PageOperation(_ => _log?.LogWarning("Die Aktion in der Gesprächshistorie ist fehlgeschlagen."), this, showWaiting: false);
     }
     internal Task StopAsync() => _stopTask ??= StopCoreAsync();
     private async Task StopCoreAsync()
@@ -175,7 +180,7 @@ public partial class HistoryPage : XtraUserControl
         if (_stopping) return;
         if (fromEdit.DateTime.Date > toEdit.DateTime.Date)
         {
-            statusLabel.Text = "Der Beginn muss vor dem Ende des Zeitraums liegen.";
+            _log?.LogWarning("Der Beginn muss vor dem Ende des Zeitraums liegen.");
             return;
         }
         var start = new DateTimeOffset(DateTime.SpecifyKind(fromEdit.DateTime.Date, DateTimeKind.Local)).ToUniversalTime();
@@ -193,7 +198,7 @@ public partial class HistoryPage : XtraUserControl
         var loadedIds = calls.Select(call => call.Id).ToHashSet();
         if (_notes.Values.Any(notes => notes.HasUnsavedChanges && !loadedIds.Contains(notes.CallId)))
         {
-            statusLabel.Text = "Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.";
+            _log?.LogWarning("Der Zeitraum würde Gespräche mit ungespeicherten Notizen ausblenden. Bitte zuerst speichern oder die Entwürfe leeren.");
             return;
         }
         await ReadRecordingAvailabilityAsync(loadedIds, token);
@@ -208,7 +213,6 @@ public partial class HistoryPage : XtraUserControl
             grid.DataSource = calls.Select(ToRow).ToArray();
             if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
                 view.FocusedRowHandle = handle;
-            statusLabel.Text = calls.Count == 0 ? "Keine Gespräche im gewählten Zeitraum." : $"{calls.Count} Gespräche · Alle Mandanten. Zeiten werden lokal angezeigt.";
         }
         finally { _binding = false; }
         await LoadFocusedDetailsAsync(token);
@@ -247,19 +251,16 @@ public partial class HistoryPage : XtraUserControl
         _playbackCancellation = cancellation;
         _playingCall = callId;
         RefreshPlaybackRow(callId);
-        statusLabel.Text = "Aufnahme wird geprüft und abgespielt …";
         try
         {
             await _playback!.PlayAsync(callId, cancellation.Token);
-            if (!_stopping) statusLabel.Text = "Wiedergabe beendet.";
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            if (!_stopping) statusLabel.Text = "Wiedergabe gestoppt.";
         }
         catch (Exception)
         {
-            if (!_stopping) statusLabel.Text = "Aufnahme konnte nicht abgespielt werden. Aufnahme und Audioausgabe prüfen.";
+            if (!_stopping) _log?.LogWarning("Aufnahme konnte nicht abgespielt werden. Aufnahme und Audioausgabe prüfen.");
         }
         finally
         {
@@ -339,6 +340,7 @@ public partial class HistoryPage : XtraUserControl
         _selected = current ? notes!.StoredCall?.Id : null;
         noteEdit.Properties.ReadOnly = _stopping || !current || notes!.IsBusy || notes.IsStopping;
         saveNoteButton.Enabled = !noteEdit.Properties.ReadOnly && _selected.HasValue && !string.IsNullOrWhiteSpace(notes!.Draft);
+        statusLabel.Text = current ? notes!.Status : "Wählen Sie ein Gespräch aus.";
         if (!current) return;
         if (noteEdit.Text != notes!.Draft)
         {
@@ -353,7 +355,6 @@ public partial class HistoryPage : XtraUserControl
             detailsEdit.Text = call is null ? "Das Gespräch ist noch nicht verfügbar." : FormatDetails(call, notes.StoredParties, notes.Notes);
             _renderedNotes = notes; _renderedCall = call; _renderedNoteList = notes.Notes; _renderedParties = notes.StoredParties;
         }
-        statusLabel.Text = notes.Status;
     }
 
     private static string FormatDetails(CallSnapshot call, ImmutableArray<CallPartySnapshot> parties, ImmutableArray<CallNote> notes)

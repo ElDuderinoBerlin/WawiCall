@@ -188,7 +188,8 @@ public sealed partial class AppShellTests
     public Task HistoryNotesKeepPerCallDraftsAcrossFocusRefreshAndRangeChanges() => RunStaAsync(async () =>
     {
         var history = new HistoryNotesDouble();
-        using var page = new HistoryPage(history, new CallNotesSessionFactory(history)); CreateHandles(page);
+        var log = new LogWindowService();
+        using var page = new HistoryPage(history, new CallNotesSessionFactory(history), log); CreateHandles(page);
         await InvokeActionAsync(page, "Refresh_Click");
         var editor = Field<MemoEdit>(page, "noteEdit");
         await FocusHistoryCallAsync(page, history.Calls[0].Id); editor.Text = "Entwurf eins · Ä 电话";
@@ -200,7 +201,7 @@ public sealed partial class AppShellTests
         Field<DateEdit>(page, "toEdit").DateTime = DateTime.Today.AddDays(-5);
         await InvokeActionAsync(page, "Refresh_Click");
         Assert.AreEqual(2, Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view").DataRowCount);
-        Assert.AreEqual("Entwurf eins · Ä 电话", editor.Text); Assert.Contains("ausblenden", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.AreEqual("Entwurf eins · Ä 电话", editor.Text); Assert.Contains("ausblenden", log.Drain().Single().Message);
         await FocusHistoryCallAsync(page, history.Calls[1].Id); Assert.AreEqual("Entwurf zwei", editor.Text); editor.Text = "";
         await FocusHistoryCallAsync(page, history.Calls[0].Id); editor.Text = ""; Assert.IsFalse(page.HasUnsavedNotes);
         await InvokeActionAsync(page, "Refresh_Click");
@@ -344,6 +345,13 @@ public sealed partial class AppShellTests
                 await InvokeActionAsync(page, "Refresh_Click");
                 if (state != "empty") Field<MemoEdit>(page, "noteEdit").Text = "Historiennotiz · Ä 电话\r\nEin Entwurf bleibt dem gewählten Gespräch zugeordnet.";
                 if (state is "failure" or "saved") await InvokeActionAsync(page, "SaveNote_Click");
+                if (state is "empty" or "draft")
+                {
+                    page.PerformLayout(); Application.DoEvents(); CheckTableBounds(page);
+                    using var calls = new Bitmap(page.Width, page.Height);
+                    page.DrawToBitmap(calls, page.ClientRectangle);
+                    calls.Save(Path.Combine(output, $"history-calls-{state}-{width}-{fontSize:0}-{scale:0.0}-{skin}.png"), ImageFormat.Png);
+                }
                 Field<XtraTabControl>(page, "historyTabs").SelectedTabPage = Field<XtraTabPage>(page, "notesTab");
                 page.PerformLayout(); Application.DoEvents(); CheckTableBounds(page);
                 Assert.IsFalse(host.ShowInTaskbar); Assert.AreEqual(0D, host.Opacity);

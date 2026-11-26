@@ -50,6 +50,8 @@ public sealed partial class AppShellTests
         view.ShowEditor();
         Assert.IsNull(view.ActiveEditor);
 
+        Assert.AreEqual(2, Field<TableLayoutPanel>(page, "layout").RowCount);
+        Assert.AreSame(Field<TableLayoutPanel>(page, "notesLayout"), Field<LabelControl>(page, "statusLabel").Parent);
         var output = Path.Combine(RenderOutput(), "history-layout");
         Directory.CreateDirectory(output);
         using (var bitmap = new Bitmap(page.Width, page.Height))

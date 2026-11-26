@@ -68,12 +68,12 @@ public partial class HistoryPage
                 try
                 {
                     var message = await action(files, row.Id, token);
-                    if (!_stopping) statusLabel.Text = message;
+                    if (!_stopping) _log?.LogNormal(message);
                 }
-                catch (HistoryRecordingFileException error) { if (!_stopping) statusLabel.Text = error.Message; }
-                catch (Mp3ConversionException error) { if (!_stopping) statusLabel.Text = error.Message; }
-                catch (IOException) { if (!_stopping) statusLabel.Text = "Die Datei ist belegt oder der Speicherort ist nicht erreichbar."; }
-                catch (UnauthorizedAccessException) { if (!_stopping) statusLabel.Text = "Der Dateizugriff wurde verweigert."; }
+                catch (HistoryRecordingFileException error) { if (!_stopping) _log?.LogWarning(error.Message); }
+                catch (Mp3ConversionException error) { if (!_stopping) _log?.LogWarning(error.Message); }
+                catch (IOException) { if (!_stopping) _log?.LogWarning("Die Datei ist belegt oder der Speicherort ist nicht erreichbar."); }
+                catch (UnauthorizedAccessException) { if (!_stopping) _log?.LogWarning("Der Dateizugriff wurde verweigert."); }
             });
         }
         finally

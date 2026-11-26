@@ -13,9 +13,10 @@ internal sealed class PageOperation : IDisposable
     private readonly Action<string>? showStatus;
     private readonly Action<WawiCallPro.Utilities.Operations.OperationEvent>? report;
     private readonly bool useWaitCursor = true;
+    private readonly bool showWaiting = true;
     internal PageOperation(Control owner, LabelControl status) : this(message => status.Text = message, owner) { }
     internal PageOperation(Control owner, LabelControl status, bool useWaitCursor) : this(owner, status) => this.useWaitCursor = useWaitCursor;
-    internal PageOperation(Action<string> showStatus, Control owner) { this.owner = owner; this.showStatus = showStatus; }
+    internal PageOperation(Action<string> showStatus, Control owner, bool showWaiting = true) { this.owner = owner; this.showStatus = showStatus; this.showWaiting = showWaiting; }
     internal PageOperation(Control owner, Action<WawiCallPro.Utilities.Operations.OperationEvent> report) { this.owner = owner; this.report = report; }
     private readonly CancellationTokenSource _stopping = new();
     private Task _running = Task.CompletedTask;
@@ -33,7 +34,7 @@ internal sealed class PageOperation : IDisposable
     {
         using var waiting = useWaitCursor ? new UiWaitCursor(owner) : null;
         if (report is not null) report(WawiCallPro.Utilities.Operations.OperationEvent.SettingsWaiting);
-        else showStatus!("Bitte warten …");
+        else if (showWaiting) showStatus!("Bitte warten …");
         try { await operation(_stopping.Token); }
         catch (OperationCanceledException) when (_stopping.IsCancellationRequested) { }
         catch (Exception exception)

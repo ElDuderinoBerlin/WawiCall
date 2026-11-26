@@ -58,13 +58,14 @@ public sealed partial class AppShellTests
     [TestMethod]
     public Task HistoryInvalidRangeAndEmptyResultsRemainExplicit() => RunStaAsync(async () =>
     {
-        var source = new PagedHistory(1); using var page = new HistoryPage(source, new CallNotesSessionFactory(source)); CreateHandles(page);
+        var source = new PagedHistory(1); var log = new LogWindowService();
+        using var page = new HistoryPage(source, new CallNotesSessionFactory(source), log); CreateHandles(page);
         await InvokeActionAsync(page, "Refresh_Click"); var view = Field<GridView>(page, "view"); var queries = source.Queries.Count;
         Field<DateEdit>(page, "fromEdit").DateTime = DateTime.Today.AddDays(1); Field<DateEdit>(page, "toEdit").DateTime = DateTime.Today;
         await InvokeActionAsync(page, "Refresh_Click"); Assert.AreEqual(queries, source.Queries.Count); Assert.AreEqual(1, view.DataRowCount);
-        Assert.Contains("Beginn", Field<LabelControl>(page, "statusLabel").Text);
+        Assert.Contains("Beginn", log.Drain().Single().Message);
         Field<DateEdit>(page, "fromEdit").DateTime = DateTime.Today; source.Calls = [];
-        await InvokeActionAsync(page, "Refresh_Click"); Assert.AreEqual(0, view.DataRowCount); Assert.Contains("Keine Gespräche", Field<LabelControl>(page, "statusLabel").Text);
+        await InvokeActionAsync(page, "Refresh_Click"); Assert.AreEqual(0, view.DataRowCount);
         Assert.AreEqual("", Field<MemoEdit>(page, "detailsEdit").Text); Assert.IsFalse(Field<SimpleButton>(page, "saveNoteButton").Enabled);
         await page.StopAsync();
     });
