@@ -5004,6 +5004,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   lieferte Signal und lief in beiden Editionen rund 12,21 s bis zum Wiedergabeende.
   Die Nachweise stehen in den Dateien `Pro-reopen.log` und `FinOffice-reopen.log` des G.722-Testlaufs.
   Die WASAPI-Aufnahmequelle im laufenden Gespräch sowie physischer Geräteverlust bleiben offen.
+- [x] ✅ Pro mit WASAPI-Aufnahmequelle im echten Gespräch bis zum Jabra-Geräteverlust prüfen.
+  Vor dem Abziehen des Jabra Link 380 wurde eine 6,096 s lange Stereo-WAV mit Signal auf beiden
+  Spuren abgeschlossen. Anschließend verschwanden Windows-Aufnahme- und Wiedergabeendpunkt beim
+  physischen Abziehen. Beide Gesprächspegel fielen auf null, das SIP-Gespräch blieb verbunden.
+  Das laufende Loopback-Segment endete mit `InputFailed`, ohne eine Teil-WAV als abspielbare
+  Aufnahme freizugeben. Im 45-Sekunden-Fenster wurde der Adapter nicht wieder als aktiv erkannt.
+  Wiederanbindung in Pro und der komplette FinOffice-Lauf sind offen.
+  Nachweis unter `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/Pro-Retry.log`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
