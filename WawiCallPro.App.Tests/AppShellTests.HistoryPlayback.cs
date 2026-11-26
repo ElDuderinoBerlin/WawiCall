@@ -69,7 +69,13 @@ public sealed partial class AppShellTests
             page.DrawToBitmap(bitmap, page.ClientRectangle);
             bitmap.Save(Path.Combine(output, "history-recording-buttons.png"));
         }
-
+        ClickDetailButton(otherRow);
+        Assert.IsFalse(view.GetMasterRowExpanded(otherRow));
+        ClickDetailButton(recordedRow);
+        Assert.IsTrue(view.GetMasterRowExpanded(recordedRow));
+        Assert.IsFalse(player.Started.Task.IsCompleted);
+        ClickDetailButton(recordedRow);
+        Assert.IsFalse(view.GetMasterRowExpanded(recordedRow));
 
         view.FocusedColumn = view.Columns["Rufnummer"];
         ClickPlaybackCell(recordedRow);
@@ -224,19 +230,46 @@ public sealed partial class AppShellTests
         Assert.IsTrue(view.GetMasterRowExpanded(nextRow));
         Assert.AreEqual(1, player.CancelledCount);
 
+        ClickDetailButton(nextRow);
+        Assert.IsFalse(view.GetMasterRowExpanded(nextRow));
+        var stoppingPlayback = Field<Task>(page, "_playing");
+        await stoppingPlayback.WaitAsync(TimeSpan.FromSeconds(3));
+        Assert.AreEqual(2, player.CancelledCount);
+        ClickPlaybackCell(nextRow);
+        Assert.IsTrue(view.GetMasterRowExpanded(nextRow));
+
         await page.StopAsync();
         Assert.IsFalse(view.GetMasterRowExpanded(nextRow));
-        Assert.AreEqual(2, player.CancelledCount);
+        Assert.AreEqual(3, player.CancelledCount);
         await host.StopAsync();
 
         void ClickPlaybackCell(int rowHandle)
         {
-            const uint leftButtonDown = 0x0201;
-            const uint leftButtonUp = 0x0202;
             view.MakeRowVisible(rowHandle);
             var bounds = ((GridViewInfo)view.GetViewInfo()).GetGridCellInfo(rowHandle, column).Bounds;
             Assert.IsTrue(bounds.Width > 0 && bounds.Height > 0);
-            var point = (nint)(((bounds.Top + bounds.Height / 2) << 16) | (bounds.Left + bounds.Width / 2));
+            ClickGrid(new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2));
+        }
+
+        void ClickDetailButton(int rowHandle)
+        {
+            view.MakeRowVisible(rowHandle);
+            var bounds = ((GridViewInfo)view.GetViewInfo()).GetGridCellInfo(rowHandle, column).Bounds;
+            var y = bounds.Top + bounds.Height / 2;
+            var x = Enumerable.Range(0, bounds.Left).FirstOrDefault(x =>
+            {
+                var hit = view.CalcHitInfo(new Point(x, y));
+                return hit.RowHandle == rowHandle && hit.HitTest == GridHitTest.CellButton;
+            }, -1);
+            Assert.IsGreaterThanOrEqualTo(0, x, "Das native Detail-Symbol muss per Maus erreichbar sein.");
+            ClickGrid(new Point(x, y));
+        }
+
+        void ClickGrid(Point location)
+        {
+            const uint leftButtonDown = 0x0201;
+            const uint leftButtonUp = 0x0202;
+            var point = (nint)((location.Y << 16) | location.X);
             var handle = view.GridControl.Handle;
             SendHistoryGridMouseMessage(handle, leftButtonDown, 1, point);
             SendHistoryGridMouseMessage(handle, leftButtonUp, 0, point);

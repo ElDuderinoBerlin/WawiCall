@@ -5054,6 +5054,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   ein neues Bitmap für den DevExpress-Renderer. Der Rastertest prüft zwei vom Wiedergabetimer
   aktualisierte Bilder mit unterschiedlichen Frequenzbändern bei stehender TrackBar.
   Die Aufnahmespalte bleibt rechts angeheftet und ist auf 36 logische Pixel begrenzt.
+- [x] ✅ Plus und Minus in der Gesprächshistorie bedienen den Inline-Player.
+  Plus öffnet den Player ohne Wiedergabe. Minus schließt ihn und beendet eine laufende
+  Wiedergabe. Der Play-Button öffnet den Player und spielt die Aufnahme direkt ab.
+  Native Rasterklicks wurden in Pro und FinOffice im Debug-Build geprüft.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem

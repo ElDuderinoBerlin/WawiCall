@@ -111,11 +111,29 @@ public partial class HistoryPage
 
         view.OptionsDetail.EnableMasterViewMode = true;
         view.OptionsDetail.AllowOnlyOneMasterRowExpanded = true;
+        view.OptionsDetail.AllowExpandEmptyDetails = false;
         view.OptionsDetail.ShowDetailTabs = false;
-        view.OptionsView.ShowDetailButtons = false;
+        view.OptionsView.ShowDetailButtons = true;
         view.DetailVerticalIndent = 0;
-        view.MasterRowExpanding += (_, e) => e.Allow = PlayerForRow(e.RowHandle) is not null;
-        view.MasterRowCollapsing += (_, e) => e.Allow = PlayerForRow(e.RowHandle) is null;
+        view.MasterRowExpanding += (_, e) => e.Allow = !_stopping
+            && view.GetRow(e.RowHandle) is HistoryRow { PlayerDetails.Count: > 0 };
+        view.MasterRowExpanded += (_, e) =>
+        {
+            if (view.GetRow(e.RowHandle) is not HistoryRow { PlayerDetails.Count: > 0 } row) return;
+            if (_player?.Id != row.Id)
+            {
+                ClearPlayer();
+                _player = row.PlayerDetails[0];
+                _transport = new HistoryPlaybackTransport();
+            }
+            SizePlayer(detail);
+            RenderPlayer();
+        };
+        view.MasterRowCollapsed += (_, e) =>
+        {
+            if (_player is { } player && view.GetRow(e.RowHandle) is HistoryRow row && row.Id == player.Id)
+                ClearPlayer();
+        };
         view.ColumnFilterChanged += (_, _) => RestorePlayerView();
         grid.SizeChanged += QueuePlayerLayout;
         FontChanged += QueuePlayerLayout;
@@ -201,9 +219,6 @@ public partial class HistoryPage
         }
     }
 
-    private PlayerRow? PlayerForRow(int rowHandle) =>
-        _player is { } player && view.GetRow(rowHandle) is HistoryRow row && row.Id == player.Id ? player : null;
-
     private LayoutView? ActivePlayerView()
     {
         if (_player is not { } player) return null;
@@ -229,9 +244,9 @@ public partial class HistoryPage
     private async void Playback_Click(object? sender, ButtonPressedEventArgs e)
     {
         if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;
-        if (_player?.Id == row.Id)
+        if (_player is { } player && player.Id == row.Id)
         {
-            if (!_playing.IsCompleted) ClosePlayer();
+            if (player.Playing) ClosePlayer();
             else await StartPlayerAsync(row.Id);
             return;
         }
@@ -243,32 +258,29 @@ public partial class HistoryPage
         await StartPlayerAsync(row.Id);
     }
 
-    private Task StartPlayerAsync(Guid callId)
+    private async Task StartPlayerAsync(Guid callId)
     {
         var handle = view.LocateByValue(nameof(HistoryRow.Id), callId);
-        if (handle < 0 || view.GetRow(handle) is not HistoryRow row || row.PlayerDetails.Count == 0) return Task.CompletedTask;
-        if (_player is null)
+        if (handle < 0 || view.GetRow(handle) is not HistoryRow { PlayerDetails.Count: > 0 }) return;
+        if (!view.GetMasterRowExpanded(handle)) view.ExpandMasterRow(handle);
+        if (_player is not { } player || player.Id != callId || ActivePlayerView() is null)
         {
-            _player = row.PlayerDetails[0];
-            if (grid.LevelTree.Nodes[PlaybackRelation].LevelTemplate is LayoutView detail) SizePlayer(detail);
-        }
-        if (ActivePlayerView() is null)
-        {
-            view.ExpandMasterRow(handle);
-            if (ActivePlayerView() is null)
-            {
-                ClosePlayer();
-                _log?.LogWarning("Der Player konnte in der Gesprächshistorie nicht geöffnet werden.");
-                return Task.CompletedTask;
-            }
+            _log?.LogWarning("Der Player konnte in der Gesprächshistorie nicht geöffnet werden.");
+            return;
         }
         view.MakeRowVisible(handle);
+        if (!_playing.IsCompleted)
+        {
+            var request = ++_playbackRequest;
+            await _playing;
+            if (_stopping || request != _playbackRequest) return;
+        }
         _transport = new HistoryPlaybackTransport();
-        _player.Playing = true;
+        player.Playing = true;
         playerTimer.Start();
         _playing = PlayRecordingAsync(callId, _transport);
         RenderPlayer();
-        return _playing;
+        await _playing;
     }
 
     private async Task PlayRecordingAsync(Guid callId, HistoryPlaybackTransport transport)
@@ -293,10 +305,10 @@ public partial class HistoryPage
             if (!_stopping)
             {
                 RefreshPlaybackRow(callId);
-                if (_player?.Id == callId)
+                if (_player is { } player && ReferenceEquals(_transport, transport))
                 {
                     playerTimer.Stop();
-                    _player.Playing = false;
+                    player.Playing = false;
                     RenderPlayer();
                 }
             }
@@ -305,13 +317,8 @@ public partial class HistoryPage
 
     private void ClosePlayer()
     {
-        _playbackRequest++;
-        _playbackCancellation?.Cancel();
-        playerTimer.Stop();
-        _draggingPosition = false;
         var active = _player;
-        _player = null;
-        _transport = null;
+        ClearPlayer();
         if (active is not null)
         {
             var handle = view.LocateByValue(nameof(HistoryRow.Id), active.Id);
@@ -319,10 +326,22 @@ public partial class HistoryPage
         }
     }
 
+    private void ClearPlayer()
+    {
+        _playbackRequest++;
+        playerTimer.Stop();
+        _draggingPosition = false;
+        var active = _player;
+        _player = null;
+        _transport = null;
+        if (active is not null) active.Playing = false;
+        _playbackCancellation?.Cancel();
+    }
+
     private void TogglePlayer()
     {
         if (_stopping || _player is not { } player || _transport is not { } transport) return;
-        if (!_playing.IsCompleted)
+        if (player.Playing)
         {
             transport.Paused = !transport.Paused;
             RenderPlayer();
