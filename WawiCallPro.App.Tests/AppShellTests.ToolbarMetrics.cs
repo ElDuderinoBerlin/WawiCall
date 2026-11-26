@@ -39,7 +39,7 @@ public sealed partial class AppShellTests
             Console.WriteLine($"{skin}/{fontSize}pt: host={button.FindForm()?.GetType().FullName}, DPI={button.DeviceDpi}, button={button.Size}, editors={from.Height}/{to.Height}, padding={button.Padding}");
             using var image = WawiCallPro.App.Diagnostics.UiAudit.Capture(host);
             image.Save(Path.Combine(output, $"history-{skin}-{fontSize}.png"));
-            Assert.IsTrue(button.Height <= Math.Max(from.Height, to.Height) + button.LogicalToDeviceUnits(8),
+            Assert.IsTrue(button.Height <= Math.Max(from.Height, to.Height) + button.LogicalToDeviceUnits(4),
                 $"Toolbar action {button.Height}px is too tall next to editors {from.Height}/{to.Height}px at {button.DeviceDpi} DPI.");
             Assert.IsTrue(button.Height >= button.CalcBestSize().Height, "Native skin and text must fit.");
             var firstSize = button.Size;

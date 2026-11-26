@@ -42,37 +42,46 @@ internal static class ToolbarButtonLayoutHelper
         if (live.Length == 0) return Size.Empty;
         var group = new ButtonGroup(live);
         foreach (var button in live)
-        {
-            if (!Buttons.TryGetValue(button, out var binding))
-            {
-                binding = new ButtonBinding();
-                Buttons.Add(button, binding);
-                EventHandler changed = (_, _) => binding.Group?.Resize();
-                button.FontChanged += changed;
-                button.Appearance.Changed += changed;
-                button.TextChanged += changed;
-                button.HandleCreated += changed;
-                button.DpiChangedAfterParent += changed;
-                UserLookAndFeel.Default.StyleChanged += changed;
-                button.Disposed += (_, _) => UserLookAndFeel.Default.StyleChanged -= changed;
-            }
-            binding.Group = group;
-        }
+            GetBinding(button).Group = group;
         return group.Resize();
     }
+
+    internal static void UseNativeHeight(SimpleButton button)
+    {
+        var binding = GetBinding(button);
+        binding.UseNativeHeight = true;
+        binding.Group?.Resize();
+    }
+
+    private static ButtonBinding GetBinding(SimpleButton button) => Buttons.GetValue(button, static control =>
+    {
+        var binding = new ButtonBinding();
+        EventHandler changed = (_, _) => binding.Group?.Resize();
+        control.FontChanged += changed;
+        control.Appearance.Changed += changed;
+        control.TextChanged += changed;
+        control.HandleCreated += changed;
+        control.DpiChangedAfterParent += changed;
+        UserLookAndFeel.Default.StyleChanged += changed;
+        control.Disposed += (_, _) => UserLookAndFeel.Default.StyleChanged -= changed;
+        return binding;
+    });
 
     internal static Size GetPreferredSize(SimpleButton button)
     {
         var text = TextRenderer.MeasureText(button.Text, button.Font);
         var best = button.CalcBestSize();
+        var extraHeight = Buttons.TryGetValue(button, out var binding) && binding.UseNativeHeight
+            ? 0 : button.LogicalToDeviceUnits(AdditionalHeight);
         return new Size(
             Math.Max(best.Width, text.Width + button.Padding.Horizontal),
-            Math.Max(best.Height, text.Height) + button.LogicalToDeviceUnits(AdditionalHeight));
+            Math.Max(best.Height, text.Height) + extraHeight);
     }
 
     private sealed class ButtonBinding
     {
         internal ButtonGroup? Group;
+        internal bool UseNativeHeight;
     }
 
     private sealed class ButtonGroup(SimpleButton[] buttons)

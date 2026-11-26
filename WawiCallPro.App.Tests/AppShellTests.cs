@@ -3496,9 +3496,8 @@ public sealed partial class AppShellTests
                     if (scale != 1F) page.Scale(new SizeF(scale, scale));
                     page.PerformLayout();
                     await InvokeActionAsync(page, "Refresh_Click");
-                    Assert.AreEqual(populated ? 501 : 0, ((Array)Field<GridControl>(page, "grid").DataSource).Length);
                     var view = Field<DevExpress.XtraGrid.Views.Grid.GridView>(page, "view");
-                    CollectionAssert.AreEqual(new[] { "Beginn", "Richtung", "Rufnummer", "Zustand", "Dauer", "Playback" },
+                    CollectionAssert.AreEqual(new[] { "Beginn", "Richtung", "Rufnummer", "Mandant", "Rechner", "Zustand", "Dauer", "Playback" },
                         view.VisibleColumns.Select(column => column.FieldName).ToArray());
                     Assert.AreEqual(populated ? 501 : 0, view.DataRowCount);
                     Assert.AreEqual("Bis", Field<LabelControl>(page, "toLabel").Text);

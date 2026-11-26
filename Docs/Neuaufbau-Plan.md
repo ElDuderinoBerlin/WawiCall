@@ -3471,6 +3471,12 @@ Nachweise `.toolbar-height-build-{pro,fin}.log`, `.toolbar-height-tests-{pro,fin
 und den jeweiligen bestehenden zielgerichteten Renderordnern. Keine Änderung der Windows-Skalierung,
 keine echten Konten oder Anrufe, kein behaupteter 200-%-/Mehrmonitorwechsel. G1/G5 bleiben gemeinsam offen.
 
+**G1-Nachkorrektur Historien-Ladebutton (26.11.2026).** „Gespräche laden“ verwendet wieder
+die native Skinhöhe. Die Toolbar berechnet den Umbruch mit den tatsächlichen Breiten der
+Datumseditoren. In Pro und FinOffice misst der Button bei Tahoma 8 pt und 144 DPI 32 statt
+38 Pixel. Je sechs native Fälle mit 8/10/16 pt und zwei Fensterbreiten bestanden.
+Die Renderprüfung der gefüllten Historie umfasst 501 Gespräche und die eingebaute Suche.
+
 **G1-Nachkorrektur einheitlicher Dialogbuttons (20.11.2026):** Der Benutzerbefund zeigt die verbleibende
 Inkonsistenz zwischen kompakten Ansichtsbuttons und größeren Dialog-/Browse-Aktionen. Auf ausdrücklichen
 Auftrag jetzt dieselben nativen Maße für alle Textbuttons verwenden; die projektspezifische Vorgabe steht

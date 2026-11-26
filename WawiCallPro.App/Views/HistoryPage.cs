@@ -67,6 +67,7 @@ public partial class HistoryPage : XtraUserControl
         stopEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStop");
         grid.DataSource = Array.Empty<HistoryRow>();
         UiButtonSizing.Attach(this);
+        UiButtonSizing.UseNativeHeight(refreshButton);
         fromEdit.DateTime = DateTime.Today.AddDays(-30);
         toEdit.DateTime = DateTime.Today;
         saveNoteButton.Enabled = false;
@@ -92,9 +93,11 @@ public partial class HistoryPage : XtraUserControl
             UiButtonSizing.Apply(saveNoteButton);
             UiButtonSizing.Apply(exportRecordingButton, convertRecordingButton);
             FitColumns();
-            var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal + editorWidth + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;
-            var toWidth = toLabel.GetPreferredSize(Size.Empty).Width + toLabel.Margin.Horizontal + editorWidth + toEdit.Margin.Horizontal + toGroup.Margin.Horizontal;
-            var required = fromWidth + toWidth + refreshButton.GetPreferredSize(Size.Empty).Width + LogicalToDeviceUnits(8);
+            var fromWidth = fromLabel.GetPreferredSize(Size.Empty).Width + fromLabel.Margin.Horizontal
+                + Math.Max(editorWidth, fromEdit.Width) + fromEdit.Margin.Horizontal + fromGroup.Margin.Horizontal;
+            var toWidth = toLabel.GetPreferredSize(Size.Empty).Width + toLabel.Margin.Horizontal
+                + Math.Max(editorWidth, toEdit.Width) + toEdit.Margin.Horizontal + toGroup.Margin.Horizontal;
+            var required = fromWidth + toWidth + refreshButton.Width + 2 * LogicalToDeviceUnits(4);
             var columns = filters.ClientSize.Width >= required ? 3 : filters.ClientSize.Width >= fromWidth + toWidth ? 2 : 1;
             fromGroup.ColumnStyles[0].SizeType = toGroup.ColumnStyles[0].SizeType = columns == 1 ? SizeType.Absolute : SizeType.AutoSize;
             if (columns == 1)
