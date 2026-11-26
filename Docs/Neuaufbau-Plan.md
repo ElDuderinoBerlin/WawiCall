@@ -2398,6 +2398,10 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   App/Console über Rider in der aktiven Debug-/Any-CPU-Konfiguration rekompiliert.
   Render- und Testnachweise: `.artifacts/layout-reference`.
 
+- [x] ✅ Darstellung im Ribbon entsprechend LxTranslate um die Akzentfarben ergänzt.
+  Skin und Palette stehen neben Windows-App-Modus, Originalpalette, Windows-Akzentfarbe und zwei
+  benutzerdefinierten Farben. WawiCallPro speichert die Auswahl je Edition und stellt sie beim Start wieder her.
+
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Splash entsprechend LxTranslate mit SVG-Logo,
   Anwendungstitel, Status, Version und animiertem Quantarix-Fortschrittsbalken ergänzt.
   Eigener STA-Thread hält die Animation während des Hoststarts am Leben. Gespeicherte Schrift,

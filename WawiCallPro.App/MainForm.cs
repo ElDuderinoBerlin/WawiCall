@@ -1,5 +1,6 @@
 using System.Reflection;
 using DevExpress.XtraBars;
+using DevExpress.XtraBars.Helpers;
 using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraEditors;
 using DevExpress.XtraTab;
@@ -102,7 +103,11 @@ public partial class MainForm : RibbonForm
         BindTelephony();
         UpdateBusinessActions();
         UpdateDatabaseActions();
+        ConfigureAppearanceRibbon();
         _state?.Restore(this);
+        windowsAppModeItem.Checked = WindowsFormsSettings.TrackWindowsAppMode == DevExpress.Utils.DefaultBoolean.True;
+        windowsAccentItem.Checked = WindowsFormsSettings.TrackWindowsAccentColor == DevExpress.Utils.DefaultBoolean.True;
+        windowsAccentItem.CheckedChanged += WindowsAccent_CheckedChanged;
         _state?.Restore(dockManager);
         var workspaceTab = _state?.ReadTab("MainWorkspace");
         if (_configuration?.Current.Options.User.ShowStartPage != false) Navigate("home");
@@ -118,6 +123,32 @@ public partial class MainForm : RibbonForm
         AppendOutput(_workspace?.CanUseBusinessDirectory == true
             ? "Anwendung gestartet. Ausgewählte Telefon-Cachequellen werden im Hintergrund aktualisiert."
             : "Anwendung gestartet. Lexware-abhängige Cacheaktualisierung ist gesperrt.");
+    }
+
+    private void ConfigureAppearanceRibbon()
+    {
+        SkinHelper.InitTrackWindowsAppMode(windowsAppModeItem);
+        SkinHelper.InitResetToOriginalPalette(originalPaletteItem);
+        SkinHelper.InitTrackWindowsAccentColor(windowsAccentItem);
+        SkinHelper.InitCustomAccentColor(ribbon.Manager, customAccentItem);
+        SkinHelper.InitCustomAccentColor2(ribbon.Manager, customAccent2Item);
+        windowsAppModeItem.Caption = "Windows-App-Modus verwenden";
+        originalPaletteItem.Caption = "Originale Palette";
+        windowsAccentItem.Caption = "Windows-Akzentfarbe";
+        customAccentItem.Caption = "Benutzerdefinierte Farbe";
+        customAccent2Item.Caption = "Benutzerdefinierte Farbe 2";
+        windowsAppModeItem.Hint = "Hellen oder dunklen Windows-App-Modus übernehmen.";
+        originalPaletteItem.Hint = "Die ursprünglichen Akzentfarben der Palette wiederherstellen.";
+        windowsAccentItem.Hint = "Die Akzentfarbe aus den Windows-Einstellungen übernehmen.";
+        customAccentItem.Hint = "Die erste Akzentfarbe auswählen.";
+        customAccent2Item.Hint = "Die zweite Akzentfarbe für den Bézier-Skin auswählen.";
+    }
+
+    private void WindowsAccent_CheckedChanged(object? sender, ItemClickEventArgs e)
+    {
+        if (!windowsAccentItem.Checked) return;
+        WindowsFormsSettings.SetAccentColor(Color.Empty);
+        WindowsFormsSettings.SetAccentColor2(Color.Empty);
     }
 
     private async Task LoadWindowCaptionAsync(ApplicationDescriptor app, IProductLicenseService licenses)

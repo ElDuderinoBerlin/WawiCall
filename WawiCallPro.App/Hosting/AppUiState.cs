@@ -1,5 +1,6 @@
 using System.Globalization;
 using DevExpress.LookAndFeel;
+using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraBars.Docking;
@@ -114,17 +115,39 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
 
     private static void ApplyAppearance(Form? form, RegistryKey? key)
     {
+        if (ReadTracking("TrackWindowsAppMode") is { } appMode)
+            WindowsFormsSettings.TrackWindowsAppMode = appMode;
         if (key?.GetValue("Skin") is string skin)
         {
             if (key.GetValue("Palette") is string palette && palette.Length != 0) UserLookAndFeel.Default.SetSkinStyle(skin, palette);
             else UserLookAndFeel.Default.SetSkinStyle(skin);
         }
+        if (ReadTracking("TrackWindowsAccentColor") is { } accentMode)
+            WindowsFormsSettings.TrackWindowsAccentColor = accentMode;
+        if (ReadAccent("AccentColor") is { } accent)
+            WindowsFormsSettings.SetAccentColor(accent);
+        if (ReadAccent("AccentColor2") is { } secondAccent)
+            WindowsFormsSettings.SetAccentColor2(secondAccent);
 
         if (key?.GetValue("Font") is string text && new FontConverter().ConvertFromInvariantString(text) is Font font)
         {
             WindowsFormsSettings.DefaultFont = DevExpress.Utils.AppearanceObject.DefaultFont = font;
             if (form is not null) form.Font = font;
         }
+
+        DefaultBoolean? ReadTracking(string name) => key?.GetValue(name) switch
+        {
+            0 => DefaultBoolean.False,
+            1 => DefaultBoolean.True,
+            _ => null
+        };
+
+        Color? ReadAccent(string name) => key?.GetValue(name) switch
+        {
+            0 => Color.Empty,
+            int argb => Color.FromArgb(argb),
+            _ => null
+        };
     }
 
     internal void Save(Form form)
@@ -138,6 +161,10 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
             key.SetValue("Maximized", form.WindowState == FormWindowState.Maximized ? 1 : 0);
             key.SetValue("Skin", UserLookAndFeel.Default.SkinName);
             key.SetValue("Palette", UserLookAndFeel.Default.ActiveSvgPaletteName ?? "");
+            key.SetValue("TrackWindowsAppMode", WindowsFormsSettings.TrackWindowsAppMode == DefaultBoolean.True ? 1 : 0);
+            key.SetValue("TrackWindowsAccentColor", WindowsFormsSettings.TrackWindowsAccentColor == DefaultBoolean.True ? 1 : 0);
+            key.SetValue("AccentColor", WindowsFormsSettings.GetAccentColor().ToArgb());
+            key.SetValue("AccentColor2", WindowsFormsSettings.GetAccentColor2().ToArgb());
             key.SetValue("Font", new FontConverter().ConvertToInvariantString(WindowsFormsSettings.DefaultFont) ?? "");
             SaveWindow(form, "MainForm");
         }
