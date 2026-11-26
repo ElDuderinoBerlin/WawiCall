@@ -161,6 +161,15 @@ und die Kundennummer **50428** richtig. Bei der Erreichbarkeit verstand er **8:3
 **14:00 Uhr** richtig. Für das Ende von Montag bis Donnerstag gab er **17:00 Uhr** an. Im Testtext
 steht **17:15 Uhr**.
 
+#### Mehrsprachige Ansagen mit DeepL und Google
+
+- [x] ✅ Die englische Variante `en-GB-Chirp3-HD-Achernar` im Google-Stimmenkatalog des
+  Testprojekts abgefragt und bestätigt. Für die drei englischen WAVs ist dieselbe
+  Telefonaufbereitung mit G.711 A-law bei 8 kHz und Wiedergabe über das Jabra vorgesehen.
+- [ ] Die drei deutschen Testtexte mit DeepL ins britische Englisch übersetzen, mit Google
+  vertonen und über das Jabra anhören. Dabei besonders auf die Öffnungszeiten, die Tasten,
+  die Durchwahl und die Kundennummer achten. DeepL-Übersetzungen und Hörurteil stehen aus.
+
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
 - [x] ✅ Auf Nutzerwunsch die offiziellen Azure- und Google-SDKs einsetzen und beide Adapter separat per DI registrierbar machen. Je Anbieter stehen zwei deutsche Stimmen zur Auswahl. Der gemeinsame Vertrag schreibt Mono-PCM-WAV mit 16 kHz und 16 Bit.
