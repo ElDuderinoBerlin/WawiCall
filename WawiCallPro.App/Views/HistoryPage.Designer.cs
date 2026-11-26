@@ -19,6 +19,9 @@ partial class HistoryPage
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        playerTimer = new System.Windows.Forms.Timer(components);
+        playerTimer.Interval = 80;
+        playerTimer.Tick += PlayerTimer_Tick;
         historyTabs = new DevExpress.XtraTab.XtraTabControl();
         callsTab = new DevExpress.XtraTab.XtraTabPage();
         callsTab.Name = "callsTab";
@@ -245,6 +248,7 @@ partial class HistoryPage
         playbackColumn.Name = "playbackColumn";
         playbackColumn.FieldName = "Playback";
         playbackColumn.Caption = "Aufnahme";
+        playbackColumn.Fixed = DevExpress.XtraGrid.Columns.FixedStyle.Right;
         playbackColumn.Visible = true;
         playbackColumn.VisibleIndex = 5;
         playbackColumn.OptionsColumn.AllowSort = DevExpress.Utils.DefaultBoolean.False;
@@ -295,6 +299,7 @@ partial class HistoryPage
         ResumeLayout(false);
     }
     private System.Windows.Forms.TableLayoutPanel layout;
+    private System.Windows.Forms.Timer playerTimer;
     private System.Windows.Forms.TableLayoutPanel filters;
     private System.Windows.Forms.TableLayoutPanel fromGroup;
     private System.Windows.Forms.TableLayoutPanel toGroup;

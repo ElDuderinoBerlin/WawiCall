@@ -15,6 +15,58 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public async Task NativeHistoryTransportPausesAndSeeksWithSilentWasapiOutput()
+    {
+        if (Environment.GetEnvironmentVariable("WCP_VERIFY_RECORDING_OUTPUT_DEVICE") != "1")
+            Assert.Inconclusive("Requires a Windows playback endpoint.");
+
+        const int rate = 16000;
+        var duration = TimeSpan.FromSeconds(6);
+        using var source = new CSCore.Codecs.RAW.RawDataReader(new MemoryStream(new byte[6 * rate * 2]), new WaveFormat(rate, 16, 1));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var transport = new HistoryPlaybackTransport();
+        transport.SetMedia(new(RecordingArtifactFormat.Wave, rate, 1, 16, duration, true, null));
+        var output = new WasapiHistoryRecordingOutput();
+        var playing = Task.Run(() => output.Play(source, new AudioDeviceSettings { PlaybackVolumePercent = 0 }, transport, timeout.Token));
+        try
+        {
+            await WaitForAsync(() => transport.Position >= TimeSpan.FromMilliseconds(250));
+            transport.Paused = true;
+            await Task.Delay(250, timeout.Token);
+            var pausedAt = transport.Position;
+            await Task.Delay(200, timeout.Token);
+            Assert.AreEqual(pausedAt, transport.Position);
+
+            var seekTo = TimeSpan.FromSeconds(4);
+            transport.Seek(seekTo);
+            await WaitForAsync(() => transport.Position >= seekTo);
+            Assert.AreEqual(seekTo, transport.Position);
+            transport.Paused = false;
+            await playing.WaitAsync(timeout.Token);
+            Assert.AreEqual(duration, transport.Position);
+        }
+        finally
+        {
+            await timeout.CancelAsync();
+            try { await playing; }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested) { }
+        }
+
+        async Task WaitForAsync(Func<bool> condition)
+        {
+            while (!condition())
+            {
+                if (playing.IsCompleted)
+                {
+                    await playing;
+                    Assert.Fail("The playback endpoint stopped before the requested position was reached.");
+                }
+                await Task.Delay(25, timeout.Token);
+            }
+        }
+    }
+
+    [TestMethod]
     [DataRow(8000, 2)]
     [DataRow(16000, 1)]
     [DataRow(48000, 2)]
@@ -76,7 +128,14 @@ public sealed partial class AppShellTests
             Assert.AreEqual(format, (await catalog.FindAsync(local, [callId], preferredFormat: format))[callId].Format);
             Assert.IsTrue((await playback.FindAsync([callId], default)).Contains(callId));
             output.Reset();
-            await playback.PlayAsync(callId, default);
+            var transport = new HistoryPlaybackTransport();
+            await playback.PlayAsync(callId, transport, default);
+            Assert.IsNotNull(transport.Media);
+            Assert.AreEqual(format, transport.Media.Format);
+            Assert.AreEqual(output.SampleRate, transport.Media.SampleRate);
+            Assert.AreEqual(channels, transport.Media.Channels);
+            Assert.AreEqual(workspace.Paths.ResolveRecordingPath(created.Artifact.RelativePath), transport.Media.FilePath);
+            Assert.IsTrue(transport.Media.Duration > TimeSpan.FromMilliseconds(500));
             Assert.AreEqual(channels, output.Channels);
             Assert.IsTrue(output.Frames >= output.SampleRate / 2, $"Decoded frames for {format}: {output.Frames}");
             Assert.IsTrue(output.ContainsAudio, $"Decoded PCM was silent for {format}.");

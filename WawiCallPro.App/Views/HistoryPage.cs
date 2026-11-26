@@ -47,7 +47,8 @@ public partial class HistoryPage : XtraUserControl
         _binding = true;
         try
         {
-            grid.DataSource = new[] { ToRow(call) };
+            ClosePlayer();
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>([ToRow(call)]);
             grid.ForceInitialize();
             view.FocusedRowHandle = 0;
         }
@@ -57,6 +58,7 @@ public partial class HistoryPage : XtraUserControl
     public HistoryPage()
     {
         InitializeComponent();
+        ConfigurePlayer();
         playEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStart");
         stopEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStop");
         grid.DataSource = Array.Empty<HistoryRow>();
@@ -159,7 +161,7 @@ public partial class HistoryPage : XtraUserControl
     private async Task StopCoreAsync()
     {
         _stopping = true;
-        _playbackCancellation?.Cancel();
+        ClosePlayer();
         UpdateNotes();
         var notes = _notes.Values.Select(session => session.StopAsync()).ToArray();
         if (_operation is not null) await _operation.StopAsync();
@@ -168,10 +170,12 @@ public partial class HistoryPage : XtraUserControl
     private void DisposePage()
     {
         _stopping = true;
-        _playbackCancellation?.Cancel();
+        ClosePlayer();
         foreach (var notes in _notes.Values) { notes.Changed -= Notes_Changed; notes.Dispose(); }
         _notes.Clear(); _activeNotes = null;
         _operation?.Dispose();
+        _recordingSpectrum.Dispose();
+        _spectrumImage?.Dispose();
         if (view.Columns.Count != 0) _state?.Save(view, "CallHistory-v2");
     }
 
@@ -210,7 +214,8 @@ public partial class HistoryPage : XtraUserControl
             detailsEdit.Text = "";
             ActivateNotes(null);
             saveNoteButton.Enabled = false;
-            grid.DataSource = calls.Select(ToRow).ToArray();
+            ClosePlayer();
+            grid.DataSource = new System.ComponentModel.BindingList<HistoryRow>(calls.Select(ToRow).ToList());
             if (previous is { } id && view.LocateByValue(nameof(HistoryRow.Id), id) is var handle && handle >= 0)
                 view.FocusedRowHandle = handle;
         }
@@ -232,43 +237,6 @@ public partial class HistoryPage : XtraUserControl
 
     private void View_ShowingEditor(object? sender, System.ComponentModel.CancelEventArgs e) =>
         e.Cancel = view.FocusedColumn != playbackColumn || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id);
-
-    private async void Playback_Click(object? sender, DevExpress.XtraEditors.Controls.ButtonPressedEventArgs e)
-    {
-        if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;
-        if (!_playing.IsCompleted)
-        {
-            if (_playingCall == row.Id) _playbackCancellation?.Cancel();
-            return;
-        }
-
-        await (_playing = PlayRecordingAsync(row.Id));
-    }
-
-    private async Task PlayRecordingAsync(Guid callId)
-    {
-        using var cancellation = new CancellationTokenSource();
-        _playbackCancellation = cancellation;
-        _playingCall = callId;
-        RefreshPlaybackRow(callId);
-        try
-        {
-            await _playback!.PlayAsync(callId, cancellation.Token);
-        }
-        catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
-        {
-        }
-        catch (Exception)
-        {
-            if (!_stopping) _log?.LogWarning("Aufnahme konnte nicht abgespielt werden. Aufnahme und Audioausgabe prüfen.");
-        }
-        finally
-        {
-            _playbackCancellation = null;
-            _playingCall = null;
-            if (!_stopping) RefreshPlaybackRow(callId);
-        }
-    }
 
     private void RefreshPlaybackRow(Guid callId)
     {
@@ -419,13 +387,14 @@ public partial class HistoryPage : XtraUserControl
         });
     }
 
-    private static HistoryRow ToRow(CallSnapshot call) => new(call.Id, call.StartedAtUtc.LocalDateTime,
+    private HistoryRow ToRow(CallSnapshot call) => new(call.Id, call.StartedAtUtc.LocalDateTime,
         call.Direction == CallDirection.Incoming ? "Eingehend" : "Ausgehend", DisplayNumber(call.RemoteAddress), HistoryState(call),
-        call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "");
+        call.AnsweredAtUtc is { } answered && call.EndedAtUtc is { } ended ? (ended - answered).ToString(@"hh\:mm\:ss") : "",
+        _playable.Contains(call.Id) ? [new(call.Id)] : []);
 
     private static string DisplayNumber(CallAddress address) => address.Presentation == NumberPresentation.Withheld ? "Unterdrückt" : address.OriginalValue ?? address.E164 ?? "Unbekannt";
     private static string StateName(CallState state) => state switch { CallState.Created => "Angelegt", CallState.Dialing => "Wählt", CallState.Ringing => "Klingelt", CallState.Connected => "Verbunden", CallState.Held => "Gehalten", CallState.Ended => "Beendet", _ => "Fehlgeschlagen" };
-    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer)
+    private sealed record HistoryRow(Guid Id, DateTime Beginn, string Richtung, string Rufnummer, string Zustand, string Dauer, List<PlayerRow> PlayerDetails)
     {
         public string Playback => "";
     }
