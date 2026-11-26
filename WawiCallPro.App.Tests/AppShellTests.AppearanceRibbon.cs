@@ -1,5 +1,8 @@
+using System.Reflection;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
+using DevExpress.Utils.Colors;
+using DevExpress.Utils.Drawing.Helpers;
 using DevExpress.XtraBars;
 using DevExpress.XtraBars.Ribbon;
 using DevExpress.XtraEditors;
@@ -32,7 +35,7 @@ public sealed partial class AppShellTests
         {
             WindowsFormsSettings.TrackWindowsAppMode = DefaultBoolean.False;
             WindowsFormsSettings.TrackWindowsAccentColor = DefaultBoolean.False;
-            look.SetSkinStyle("The Bezier");
+            look.SetSkinStyle("The Bezier", "Twenty Gold");
             WindowsFormsSettings.SetAccentColor(primary);
             WindowsFormsSettings.SetAccentColor2(secondary);
 
@@ -58,9 +61,27 @@ public sealed partial class AppShellTests
             appMode.PerformClick();
             Assert.AreEqual(DefaultBoolean.False, WindowsFormsSettings.TrackWindowsAppMode);
             track.PerformClick();
+            var windowsAccent = NativeMethods.GetWindowsAccentColor();
             Assert.AreEqual(DefaultBoolean.True, WindowsFormsSettings.TrackWindowsAccentColor);
-            Assert.IsTrue(WindowsFormsSettings.GetAccentColor().IsEmpty);
+            Assert.AreEqual(windowsAccent.ToArgb(), WindowsFormsSettings.GetAccentColor().ToArgb());
             Assert.IsTrue(WindowsFormsSettings.GetAccentColor2().IsEmpty);
+            var windowsPaletteColor = ReadPaletteAccent();
+            Assert.IsFalse(windowsPaletteColor.IsEmpty);
+            state.Save(form);
+            WindowsFormsSettings.TrackWindowsAccentColor = DefaultBoolean.False;
+            WindowsFormsSettings.SetAccentColor(Color.Empty);
+            state.RestoreAppearance();
+            Assert.AreEqual(DefaultBoolean.True, WindowsFormsSettings.TrackWindowsAccentColor);
+            Assert.AreEqual(windowsAccent.ToArgb(), WindowsFormsSettings.GetAccentColor().ToArgb());
+
+            var gallery = ((GalleryDropDown)firstCustom.DropDownControl).Gallery;
+            var swatch = gallery.Groups[0].Items.Cast<GalleryItem>().First(item => item.Tag is Color color && color != windowsAccent);
+            // Run the gallery's normal click dispatch without putting a popup on the user's desktop.
+            gallery.GetType().GetMethod("OnItemClick", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(gallery, [null, gallery, swatch]);
+            Assert.AreEqual(((Color)swatch.Tag).ToArgb(), WindowsFormsSettings.GetAccentColor().ToArgb());
+            Assert.AreEqual(DefaultBoolean.False, WindowsFormsSettings.TrackWindowsAccentColor);
+            Assert.AreNotEqual(windowsPaletteColor.ToArgb(), ReadPaletteAccent().ToArgb());
             original.PerformClick();
             Assert.IsFalse(track.Checked);
             Assert.IsTrue(WindowsFormsSettings.GetAccentColor().IsEmpty);
@@ -102,5 +123,8 @@ public sealed partial class AppShellTests
             WindowsFormsSettings.SetAccentColor2(originalSecondAccent);
             Registry.CurrentUser.DeleteSubKeyTree(key, false);
         }
+
+        Color ReadPaletteAccent() => DXSkinColorHelper.GetDXSkinColor(DXSkinColors.FillColors.Primary,
+            look.ActiveSkinName, look.ActiveSvgPaletteName);
     });
 }

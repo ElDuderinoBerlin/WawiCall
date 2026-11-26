@@ -122,9 +122,10 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
             if (key.GetValue("Palette") is string palette && palette.Length != 0) UserLookAndFeel.Default.SetSkinStyle(skin, palette);
             else UserLookAndFeel.Default.SetSkinStyle(skin);
         }
-        if (ReadTracking("TrackWindowsAccentColor") is { } accentMode)
-            WindowsFormsSettings.TrackWindowsAccentColor = accentMode;
-        if (ReadAccent("AccentColor") is { } accent)
+        var accentMode = ReadTracking("TrackWindowsAccentColor");
+        if (accentMode is { } tracking)
+            WindowsFormsSettings.TrackWindowsAccentColor = tracking;
+        if (accentMode != DefaultBoolean.True && ReadAccent("AccentColor") is { } accent)
             WindowsFormsSettings.SetAccentColor(accent);
         if (ReadAccent("AccentColor2") is { } secondAccent)
             WindowsFormsSettings.SetAccentColor2(secondAccent);
@@ -162,8 +163,9 @@ public sealed class AppUiState(ApplicationDescriptor application, StartupExecuti
             key.SetValue("Skin", UserLookAndFeel.Default.SkinName);
             key.SetValue("Palette", UserLookAndFeel.Default.ActiveSvgPaletteName ?? "");
             key.SetValue("TrackWindowsAppMode", WindowsFormsSettings.TrackWindowsAppMode == DefaultBoolean.True ? 1 : 0);
-            key.SetValue("TrackWindowsAccentColor", WindowsFormsSettings.TrackWindowsAccentColor == DefaultBoolean.True ? 1 : 0);
-            key.SetValue("AccentColor", WindowsFormsSettings.GetAccentColor().ToArgb());
+            var trackWindowsAccent = WindowsFormsSettings.TrackWindowsAccentColor == DefaultBoolean.True;
+            key.SetValue("TrackWindowsAccentColor", trackWindowsAccent ? 1 : 0);
+            key.SetValue("AccentColor", trackWindowsAccent ? 0 : WindowsFormsSettings.GetAccentColor().ToArgb());
             key.SetValue("AccentColor2", WindowsFormsSettings.GetAccentColor2().ToArgb());
             key.SetValue("Font", new FontConverter().ConvertToInvariantString(WindowsFormsSettings.DefaultFont) ?? "");
             SaveWindow(form, "MainForm");

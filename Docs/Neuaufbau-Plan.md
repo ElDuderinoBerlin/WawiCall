@@ -2401,6 +2401,8 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
 - [x] ✅ Darstellung im Ribbon entsprechend LxTranslate um die Akzentfarben ergänzt.
   Skin und Palette stehen neben Windows-App-Modus, Originalpalette, Windows-Akzentfarbe und zwei
   benutzerdefinierten Farben. WawiCallPro speichert die Auswahl je Edition und stellt sie beim Start wieder her.
+  ✅ Der Wechsel zur Windows-Akzentfarbe behält die von DevExpress gesetzte Primärfarbe. Beim Wiederherstellen
+  übernimmt der Windows-Modus die aktuelle Systemfarbe. Die Farbauswahl im Ribbon wurde mit Bézier / Twenty Gold geprüft.
 
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Splash entsprechend LxTranslate mit SVG-Logo,
   Anwendungstitel, Status, Version und animiertem Quantarix-Fortschrittsbalken ergänzt.

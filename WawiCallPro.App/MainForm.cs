@@ -147,7 +147,7 @@ public partial class MainForm : RibbonForm
     private void WindowsAccent_CheckedChanged(object? sender, ItemClickEventArgs e)
     {
         if (!windowsAccentItem.Checked) return;
-        WindowsFormsSettings.SetAccentColor(Color.Empty);
+        // DevExpress has already installed the current Windows color in the primary accent.
         WindowsFormsSettings.SetAccentColor2(Color.Empty);
     }
 
