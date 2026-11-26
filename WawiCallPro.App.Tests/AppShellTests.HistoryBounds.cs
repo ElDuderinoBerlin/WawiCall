@@ -118,6 +118,11 @@ public sealed partial class AppShellTests
                 view.Columns["Rechner"].Visible = false;
                 view.ActiveFilterString = "[Richtung] = 'Eingehend'";
                 view.ApplyFindFilter("Sitzung");
+                var legacyPlayback = view.Columns["Playback"];
+                legacyPlayback.MaxWidth = 0;
+                legacyPlayback.MinWidth = 20;
+                legacyPlayback.Width = 120;
+                Assert.AreEqual(120, legacyPlayback.Width);
             }
 
             using var host = new FrmSettings();
@@ -134,7 +139,14 @@ public sealed partial class AppShellTests
             Assert.AreEqual(219, restored.Columns["LocalE164"].Width);
             Assert.IsFalse(restored.Columns["Rechner"].Visible);
             Assert.IsTrue(restored.Columns["Rechner"].OptionsColumn.ShowInCustomizationForm);
-            Assert.AreEqual(reopened.LogicalToDeviceUnits(36), restored.Columns["Playback"].Width);
+            var playback = restored.Columns["Playback"];
+            var playbackWidth = reopened.LogicalToDeviceUnits(28);
+            Assert.AreEqual(playbackWidth, playback.Width);
+            Assert.AreEqual(playbackWidth, playback.MinWidth);
+            Assert.AreEqual(playbackWidth, playback.MaxWidth);
+            Assert.AreEqual(playbackWidth, playback.VisibleWidth);
+            playback.Width = 120;
+            Assert.AreEqual(playbackWidth, playback.VisibleWidth);
             Assert.IsTrue(string.IsNullOrEmpty(restored.ActiveFilterString));
             Assert.IsTrue(string.IsNullOrEmpty(restored.FindFilterText));
             Assert.AreEqual(0, restored.DataRowCount);

@@ -371,7 +371,9 @@ partial class HistoryPage
         playbackColumn.Fixed = DevExpress.XtraGrid.Columns.FixedStyle.Right;
         playbackColumn.Visible = true;
         playbackColumn.VisibleIndex = 7;
-        playbackColumn.Width = 36;
+        playbackColumn.MinWidth = 28;
+        playbackColumn.MaxWidth = 28;
+        playbackColumn.Width = 28;
         playbackColumn.OptionsColumn.AllowSize = false;
         playbackColumn.OptionsColumn.FixedWidth = true;
         playbackColumn.OptionsColumn.ShowCaption = false;

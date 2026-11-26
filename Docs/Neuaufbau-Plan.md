@@ -5075,7 +5075,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   ✅ Bei geänderten Frequenzbändern wird das Spektrometerfeld separat neu gezeichnet und erhält
   ein neues Bitmap für den DevExpress-Renderer. Der Rastertest prüft zwei vom Wiedergabetimer
   aktualisierte Bilder mit unterschiedlichen Frequenzbändern bei stehender TrackBar.
-  Die Aufnahmespalte bleibt rechts angeheftet und ist auf 36 logische Pixel begrenzt.
+  ✅ Die Aufnahmespalte bleibt rechts angeheftet. Mindest- und Höchstbreite sind auf
+  28 logische Pixel gesetzt. Ein gespeichertes breiteres Layout wird beim Öffnen korrigiert.
 - [x] ✅ Plus und Minus in der Gesprächshistorie bedienen den Inline-Player.
   Plus öffnet den Player ohne Wiedergabe. Minus schließt ihn und beendet eine laufende
   Wiedergabe. Der Play-Button öffnet den Player und spielt die Aufnahme direkt ab.

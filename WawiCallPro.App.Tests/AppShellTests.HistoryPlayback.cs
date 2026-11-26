@@ -48,7 +48,7 @@ public sealed partial class AppShellTests
         var view = Field<GridView>(page, "view");
         var grid = view.GridControl;
         var column = view.Columns["Playback"];
-        Assert.AreEqual(page.LogicalToDeviceUnits(36), column.Width);
+        Assert.AreEqual(page.LogicalToDeviceUnits(28), column.VisibleWidth);
         Assert.IsTrue(column.OptionsColumn.FixedWidth);
         Assert.IsFalse(column.OptionsColumn.AllowSize);
         var recordedRow = view.LocateByValue("Id", available);
@@ -205,7 +205,7 @@ public sealed partial class AppShellTests
                 Assert.IsTrue(closeBounds.Width > 0 && closeBounds.Right <= grid.ClientSize.Width,
                     $"Close button {closeBounds} exceeds grid width {grid.ClientSize.Width} at {width}/{fontSize}/{scale}.");
                 Assert.IsGreaterThan(60, trackBounds.Width);
-                Assert.AreEqual(page.LogicalToDeviceUnits(36), column.Width);
+                Assert.AreEqual(page.LogicalToDeviceUnits(28), column.VisibleWidth);
                 page.Font = originalFont;
                 WindowsFormsSettings.DefaultFont = defaultFont;
                 DevExpress.Utils.AppearanceObject.DefaultFont = defaultAppearance;
@@ -247,6 +247,7 @@ public sealed partial class AppShellTests
         {
             view.MakeRowVisible(rowHandle);
             var bounds = ((GridViewInfo)view.GetViewInfo()).GetGridCellInfo(rowHandle, column).Bounds;
+            Assert.AreEqual(column.MaxWidth, bounds.Width);
             Assert.IsTrue(bounds.Width > 0 && bounds.Height > 0);
             ClickGrid(new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2));
         }

@@ -14,6 +14,7 @@ namespace WawiCallPro.App.Views;
 
 public partial class HistoryPage : XtraUserControl
 {
+    private const int PlaybackColumnLogicalWidth = 28;
     private ICallHistoryService? _history;
     private IHistoryRecordingPlayback? _playback;
     private HistoryRecordingFiles? _recordingFiles;
@@ -126,7 +127,11 @@ public partial class HistoryPage : XtraUserControl
         SetMinimum(machineColumn, "DESKTOP-1234567");
         SetMinimum(stateColumn, "Verbunden");
         SetMinimum(durationColumn, "00:00:00");
-        playbackColumn.Width = LogicalToDeviceUnits(36);
+        var playbackWidth = LogicalToDeviceUnits(PlaybackColumnLogicalWidth);
+        playbackColumn.MinWidth = Math.Min(playbackColumn.MinWidth, playbackWidth);
+        playbackColumn.MaxWidth = playbackWidth;
+        playbackColumn.MinWidth = playbackWidth;
+        playbackColumn.Width = playbackWidth;
 
         void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
         {
