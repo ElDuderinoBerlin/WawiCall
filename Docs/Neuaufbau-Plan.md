@@ -2604,6 +2604,15 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   Beide Solution-Editionen mit App/Console in Debug/Any CPU rekompiliert, FinOffice als Startausgabe
   wiederhergestellt. Logs `.phase8-notifications-*.log`. Keine Layoutänderung oder sichtbare Desktopbedienung.
   Native Vordergrund-/Trayprüfung, globale Hotkeys, Autostart und echte Kernproduktabnahme bleiben offen.
+- [x] ✅ Anpassbaren Anruf-Toast mit direkter Gesprächsbedienung bereitstellen (26.11.2026).
+  Die separate Option „Toast bei eingehenden Anrufen anzeigen“ öffnet beim Klingeln ein passives
+  Fenster im App-Skin, auch wenn das Hauptfenster im Tray liegt oder minimiert ist.
+  Es zeigt Rufnummer, verfügbare Region und Uhrzeit. Annehmen und Ablehnen verwenden die
+  aktuelle Gesprächs-ID. Details öffnet die Anrufzuordnung. Schließen blendet den Toast aus.
+  Bei einem Zustandswechsel aus dem Klingeln schließt der Toast automatisch.
+  `AppToast` erhält Titel, Inhalt und Aktionen vom Aufrufer. Die isolierten UI-Tests prüfen
+  Tray, Aktualisierung der Rufnummer, Aktionen und Lebensdauer. Die sichtbare Desktop-
+  und SIP-Abnahme bleibt in G3.
 - [x] ✅ Teilpunkt Autostartoption in den allgemeinen Einstellungen (13.11.2026):
   „Mit Windows starten“ liest den tatsächlichen editionsbezogenen HKCU-Run-Eintrag über einen injizierten
   Windows-Adapter. Keine zweite Autostartwahrheit in JSON und keine automatische Aktivierung beim Start.

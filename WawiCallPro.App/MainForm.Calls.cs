@@ -10,6 +10,7 @@ public partial class MainForm
 {
     private readonly Dictionary<Guid, (BaseDocument Document, CallDetailsPage Page)> _callPages = [];
     private readonly HashSet<Guid> _callNotificationsHandled = [];
+    private readonly Dictionary<Guid, FrmToast> _callToasts = [];
     private AppToast? _incomingCallToast;
     private readonly List<Task> _callUpdates = [];
     private Task _pendingCallUpdates = Task.CompletedTask;
@@ -33,6 +34,12 @@ public partial class MainForm
         if (_callPages.TryGetValue(call.Id, out var existing))
         {
             await existing.Page.ObserveAsync(call);
+            var current = existing.Page.Call;
+            if (_callToasts.TryGetValue(current.Id, out var toast))
+            {
+                if (current.State == CallState.Ringing) UpdateIncomingToast(toast, current, FindCallLookup(current.Id));
+                else toast.Close();
+            }
             foreach (var lookup in OwnedForms.OfType<FrmCallerLookup>().Where(form => form.CallId == call.Id).ToArray())
             {
                 lookup.ObserveCall(existing.Page.Call);
@@ -102,31 +109,74 @@ public partial class MainForm
     private async Task ShowCallNotificationAsync(CallDetailsPage page)
     {
         if (_closing || page.IsDisposed || page.Call.Direction != CallDirection.Incoming || page.Call.State != CallState.Ringing
-            || !OwnedForms.OfType<FrmCallerLookup>().Any(form => form.CallId == page.Call.Id && !form.IsDisposed)
+            || FindCallLookup(page.Call.Id) is null
             || !_callNotificationsHandled.Add(page.Call.Id)) return;
         try
         {
             var settings = await _workspace!.Settings.LoadAsync(_telephonyUiLifetime.Token);
             if (_closing || page.IsDisposed || page.Call.State != CallState.Ringing) return;
-            if (settings.Options.User.ShowCallNotifications
-                && OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == page.Call.Id && !form.IsDisposed) is { Visible: false } lookup)
-                lookup.ShowForIncoming(this);
-            if (settings.Options.User.ShowIncomingCallToasts && !_backgroundRun)
-                ShowIncomingCallToast(page.Call.RemoteAddress);
+            var lookup = FindCallLookup(page.Call.Id);
+            if (settings.Options.User.ShowIncomingCallToasts)
+            {
+                try { ShowIncomingCallToast(page, lookup); }
+                catch (Exception) { _workspace!.LogWindow?.LogWarning("Anruf-Toast konnte nicht angezeigt werden."); }
+            }
+            if (settings.Options.User.ShowCallNotifications && lookup is { Visible: false }) lookup.ShowForIncoming(this);
         }
         catch (OperationCanceledException) when (_closing || IsDisposed) { }
         catch (Exception exception) { if (!_closing && !IsDisposed) connectionLabel.Text = PageOperation.Describe(exception); }
     }
 
-    private void ShowIncomingCallToast(CallAddress address)
+    private FrmCallerLookup? FindCallLookup(Guid id) =>
+        OwnedForms.OfType<FrmCallerLookup>().FirstOrDefault(form => form.CallId == id && !form.IsDisposed);
+
+    private void ShowIncomingCallToast(CallDetailsPage page, FrmCallerLookup? lookup)
     {
+        var call = page.Call;
+        var card = (_incomingCallToast ??= new AppToast(components)).ShowCard(this, "Eingehender Anruf",
+            DescribeIncomingCaller(call, lookup), call.StartedAtUtc.LocalDateTime.ToString("T"),
+            [
+                new("Annehmen", _ => RunIncomingToastCommandAsync(call.Id, answer: true)),
+                new("Ablehnen", _ => RunIncomingToastCommandAsync(call.Id, answer: false)),
+                new("Details", _ => OpenIncomingToastDetailsAsync(page))
+            ], _backgroundRun);
+        _callToasts.Add(call.Id, card);
+        card.FormClosed += (_, _) => _callToasts.Remove(call.Id);
+    }
+
+    private static void UpdateIncomingToast(FrmToast toast, CallSnapshot call, FrmCallerLookup? lookup) =>
+        toast.SetContent("Eingehender Anruf", DescribeIncomingCaller(call, lookup), call.StartedAtUtc.LocalDateTime.ToString("T"));
+
+    private static string DescribeIncomingCaller(CallSnapshot call, FrmCallerLookup? lookup)
+    {
+        var address = call.RemoteAddress;
         var source = address.Presentation == NumberPresentation.Available
             ? string.IsNullOrWhiteSpace(address.OriginalValue) ? address.E164 : address.OriginalValue
             : null;
-        var number = string.Concat((source ?? "").Where(character => !char.IsControl(character))).Trim();
-        var message = address.Presentation == NumberPresentation.Withheld ? "Rufnummer unterdrückt"
-            : number.Length == 0 ? "Rufnummer unbekannt" : number;
-        (_incomingCallToast ??= new AppToast(components)).Show(this, "Eingehender Anruf", message);
+        if (address.Presentation == NumberPresentation.Withheld) return "Rufnummer unterdrückt";
+        var number = string.Concat((source ?? "").Where(character => !char.IsControl(character)).Take(96)).Trim();
+        if (number.Length == 0) return "Rufnummer unbekannt";
+        return lookup?.Page.DescribeIncomingRegion(address) is { Length: > 0 } region ? number + " (" + region + ")" : number;
+    }
+
+    private async Task RunIncomingToastCommandAsync(Guid id, bool answer)
+    {
+        if (_closing || _workspace?.Telephony is not { } phone) return;
+        if (!phone.GetCalls().Any(call => call.Id == id && call.Direction == CallDirection.Incoming && call.State == CallState.Ringing))
+        {
+            if (_callToasts.TryGetValue(id, out var stale)) stale.Close();
+            return;
+        }
+        if (answer) await phone.AnswerAsync(id, _telephonyUiLifetime.Token);
+        else await phone.RejectAsync(id, _telephonyUiLifetime.Token);
+        if (_callToasts.TryGetValue(id, out var toast)) toast.Close();
+    }
+
+    private async Task OpenIncomingToastDetailsAsync(CallDetailsPage page)
+    {
+        if (page.IsDisposed || !ReferenceEquals(RestoreFromTray(), this)) return;
+        await OpenCallLookupAsync(page, false);
+        if (_callToasts.TryGetValue(page.Call.Id, out var toast)) toast.Close();
     }
     internal void EnsureViewsCanClose()
     {
