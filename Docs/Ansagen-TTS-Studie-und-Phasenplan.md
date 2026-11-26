@@ -124,7 +124,13 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
   Wiedergabeliste `blind-telefon-alle.m3u8` und der Bogen `bewertung-telefon-alle.csv` liegen unter
   `.artifacts/tts-phase-1/`. Bei den drei Testtexten waren beide Google-Stimmen jeweils kürzer als
   die Windows-Proben. Die Dauer allein bewertet die Verständlichkeit nicht.
-- [ ] Sprachqualität bewerten. Eine Rangfolge zwischen Azure, Google und Windows steht aus.
+- [x] ✅ Den anonymisierten Telefonsatz und den Bewertungsbogen erneut abgeglichen. Die
+  Wiedergabeliste enthält für jeden der drei Texte sieben unterschiedliche, lesbare Mono-WAVs
+  mit 8 kHz und 16 Bit PCM nach der G.711-Aufbereitung. Jede Datei hat eine Zeile im Bewertungsbogen.
+- [ ] Sprachqualität im Blindhörtest bewerten. Im Bewertungsbogen liegen 0 von 21 Hörbewertungen
+  vor. Für Natürlichkeit und Verständlichkeit die Hörnoten vor der Auflösung der Dateikürzel
+  erfassen. Bei Erreichbarkeit und Telefonmenü die verstandenen Zahlen zusätzlich notieren.
+  Die Rangfolge zwischen den Stimmen bleibt bis zu dieser Hörprüfung offen.
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
