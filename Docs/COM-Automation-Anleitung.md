@@ -75,9 +75,12 @@ begrenztes Warten auf Startbereitschaft, Status und verfügbarer Viewkatalog. Es
 geöffnet und keine Telefonaktion angefordert. Ein bereits laufender Benutzerbetrieb bleibt erhalten.
 Die Skripte registrieren nichts und ändern weder Zugangsdaten noch das aktive Profil.
 
-Bei `activation: HRESULT=0x000001AD` aus einer administrativen Shell den Aufruf in einer
-normal geöffneten PowerShell wiederholen. Die COM-Registrierung liegt unter HKCU.
-Der PowerShell-Client erkennt eine administrative Sitzung vor der Aktivierung.
+`automation.ps1` kann auch aus einem erhöhten Rider-Terminal gestartet werden. Bei einem erhöhten
+Token startet das Skript über den Windows-Desktop eine normale PowerShell desselben Benutzerkontos.
+Diese verwendet die HKCU-Registrierung und gibt das Ergebnis an das aufrufende Terminal zurück.
+Der Windows-Desktop des Benutzers muss dafür verfügbar sein. Bei direktem `cscript`-Aufruf aus einer
+erhöhten Shell kann `activation: HRESULT=0x000001AD` auftreten. Diesen Aufruf in einer normalen
+PowerShell ausführen.
 
 ```powershell
 cscript.exe //nologo .\scripts\ComExamples\automation.vbs Pro
