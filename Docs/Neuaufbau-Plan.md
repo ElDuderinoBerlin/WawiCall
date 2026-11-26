@@ -3483,6 +3483,10 @@ Datumseditoren. In Pro und FinOffice misst der Button bei Tahoma 8 pt und 144 DP
 38 Pixel. Je sechs native Fälle mit 8/10/16 pt und zwei Fensterbreiten bestanden.
 Die Renderprüfung der gefüllten Historie umfasst 501 Gespräche und die eingebaute Suche.
 
+- [x] ✅ Die 31 DevExpress-Kombos und zugehörigen Repository-Editoren der Main-App geprüft.
+  Feste Listen verwenden `DisableTextEditor`. Mandantensuche und Outlook-Speichersuche
+  verwenden weiterhin `AutoSearch`. Die Designer-Prüfung kontrolliert beide Verhaltensweisen.
+
 **G1-Nachkorrektur einheitlicher Dialogbuttons (20.11.2026):** Der Benutzerbefund zeigt die verbleibende
 Inkonsistenz zwischen kompakten Ansichtsbuttons und größeren Dialog-/Browse-Aktionen. Auf ausdrücklichen
 Auftrag jetzt dieselben nativen Maße für alle Textbuttons verwenden; die projektspezifische Vorgabe steht

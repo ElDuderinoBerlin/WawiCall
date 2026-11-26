@@ -5,6 +5,8 @@ using System.Resources;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
+using DevExpress.XtraEditors.Repository;
 using DevExpress.XtraGrid;
 using DevExpress.XtraGrid.Views.Grid;
 using Microsoft.Win32;
@@ -29,12 +31,32 @@ public sealed partial class AppShellTests
             "PhoneNumberDiagnosticsPage", "PluginPage", "SettingsPage", "StartPage", "UcDbStep1DbType", "UcDbStep2Connection",
             "UcDbStep3Migration", "UcConMyPg", "UcConSqlite", "UcConSqlServer", "PartySearchPage", "PluginCompanySettingsPage" }, surfaces.Select(type => type.Name).ToArray(),
             "Neue direkte oder indirekte Oberflächen auch in die Nachweismatrix aufnehmen.");
+        var searchableLookups = new HashSet<string>
+        {
+            "CompanySelector.companyEdit", "FrmDial.companyEdit", "MailSettingsPage.companyEdit",
+            "MailSettingsPage.storeEdit", "PhoneNumberDiagnosticsPage.companyEdit",
+            "SettingsPage.matchingCompaniesEdit", "PartySearchPage.companyEdit", "PluginCompanySettingsPage.companyEdit"
+        };
         foreach (var type in surfaces.OrderBy(type => type.Name))
         {
             Assert.IsNotNull(type.GetConstructor(Type.EmptyTypes), type.FullName);
             using var control = (Control)Activator.CreateInstance(type)!;
             if (control is Form form) Assert.IsFalse(form.Visible, type.FullName);
             Assert.IsFalse(control.IsHandleCreated, type.FullName + " erstellt im Designer-Konstruktor ein natives Fenster.");
+            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            {
+                var editor = field.GetValue(control);
+                var properties = editor is BaseEdit edit ? edit.Properties : editor as RepositoryItem;
+                var name = type.Name + "." + field.Name;
+                if (properties is RepositoryItemLookUpEdit lookup && searchableLookups.Remove(name))
+                {
+                    Assert.AreEqual(SearchMode.AutoSearch, lookup.SearchMode, name);
+                    Assert.AreEqual(TextEditStyles.Standard, lookup.TextEditStyle, name);
+                }
+                else if (properties is RepositoryItemButtonEdit combo
+                    && properties is RepositoryItemComboBox or RepositoryItemImageComboBox or RepositoryItemLookUpEditBase)
+                    Assert.AreEqual(TextEditStyles.DisableTextEditor, combo.TextEditStyle, name);
+            }
             var manager = new ResourceManager(type);
             try
             {
@@ -49,6 +71,7 @@ public sealed partial class AppShellTests
             }
             finally { manager.ReleaseAllResources(); }
         }
+        Assert.IsEmpty(searchableLookups);
         return Task.CompletedTask;
     });
 

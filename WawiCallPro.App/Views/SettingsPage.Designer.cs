@@ -537,7 +537,8 @@ partial class SettingsPage
         sipProfileEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         sipProfileEdit.Properties.DisplayMember = "Name";
         sipProfileEdit.Properties.ValueMember = "Id";
-        sipProfileEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        sipProfileEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        sipProfileEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         sipProfileEdit.Properties.ShowHeader = false;
         sipProfileEdit.Properties.ShowFooter = false;
         sipProfileEdit.Properties.NullText = "SIP-Profil auswählen";
@@ -585,6 +586,7 @@ partial class SettingsPage
         sipCodecOrderEdit.Name = "sipCodecOrderEdit";
         sipCodecOrderEdit.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         sipDtmfMethodEdit.Name = "sipDtmfMethodEdit";
+        sipDtmfMethodEdit.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         sipDtmfMethodEdit.Items.AddRange(new DevExpress.XtraEditors.Controls.ImageComboBoxItem[] {
             new DevExpress.XtraEditors.Controls.ImageComboBoxItem("RTP (Standard)", WawiCallPro.Utilities.Configuration.SipDtmfMethod.Rtp),
             new DevExpress.XtraEditors.Controls.ImageComboBoxItem("SIP INFO", WawiCallPro.Utilities.Configuration.SipDtmfMethod.SipInfo) });
@@ -1229,7 +1231,8 @@ partial class SettingsPage
         captureDeviceEdit.Name = "captureDeviceEdit";
         captureDeviceEdit.Properties.DisplayMember = "Name";
         captureDeviceEdit.Properties.ValueMember = "Id";
-        captureDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        captureDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        captureDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         captureDeviceEdit.Properties.ShowHeader = false;
         captureDeviceEdit.Properties.ShowFooter = false;
         captureDeviceEdit.Properties.NullText = "Systemstandard";
@@ -1248,7 +1251,8 @@ partial class SettingsPage
         playbackDeviceEdit.Name = "playbackDeviceEdit";
         playbackDeviceEdit.Properties.DisplayMember = "Name";
         playbackDeviceEdit.Properties.ValueMember = "Id";
-        playbackDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        playbackDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        playbackDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         playbackDeviceEdit.Properties.ShowHeader = false;
         playbackDeviceEdit.Properties.ShowFooter = false;
         playbackDeviceEdit.Properties.NullText = "Systemstandard";
@@ -1267,7 +1271,8 @@ partial class SettingsPage
         ringDeviceEdit.Name = "ringDeviceEdit";
         ringDeviceEdit.Properties.DisplayMember = "Name";
         ringDeviceEdit.Properties.ValueMember = "Id";
-        ringDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        ringDeviceEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        ringDeviceEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         ringDeviceEdit.Properties.ShowHeader = false;
         ringDeviceEdit.Properties.ShowFooter = false;
         ringDeviceEdit.Properties.NullText = "Systemstandard";
@@ -1292,7 +1297,8 @@ partial class SettingsPage
         windowsRingtoneEdit.Name = "windowsRingtoneEdit";
         windowsRingtoneEdit.Properties.DisplayMember = "Name";
         windowsRingtoneEdit.Properties.ValueMember = "Id";
-        windowsRingtoneEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        windowsRingtoneEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        windowsRingtoneEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         windowsRingtoneEdit.Properties.ShowHeader = false;
         windowsRingtoneEdit.Properties.ShowFooter = false;
         windowsRingtoneEdit.Properties.NullText = "Eingebauter Klingelton";

@@ -69,6 +69,7 @@ namespace WawiCallPro.App.Views
             cmbDbType.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             cmbDbType.Name = "cmbDbType";
             cmbDbType.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] { new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.DropDown) });
+            cmbDbType.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
 
             cmbDbType.Size = new System.Drawing.Size(622, 26);
             cmbDbType.TabIndex = 1;

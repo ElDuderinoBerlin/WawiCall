@@ -74,7 +74,8 @@ partial class FrmAnnouncements
         captureEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         captureEdit.Properties.ShowHeader = false;
         captureEdit.Properties.ShowFooter = false;
-        captureEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        captureEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        captureEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         choicesLayout.Controls.Add(captureLabel, 0, 0);
         choicesLayout.Controls.Add(captureEdit, 1, 0);
         capturePeak.Name = "capturePeak";
@@ -90,7 +91,8 @@ partial class FrmAnnouncements
         playbackEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         playbackEdit.Properties.ShowHeader = false;
         playbackEdit.Properties.ShowFooter = false;
-        playbackEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.AutoSearch;
+        playbackEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        playbackEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         choicesLayout.Controls.Add(playbackLabel, 0, 1);
         choicesLayout.Controls.Add(playbackEdit, 1, 1);
         playbackPeak.Name = "playbackPeak";
@@ -107,6 +109,7 @@ partial class FrmAnnouncements
         providerEdit.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         providerEdit.Properties.ShowHeader = false;
         providerEdit.Properties.ShowFooter = false;
+        providerEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         providerEdit.Properties.DisplayMember = "Name";
         providerEdit.Properties.ValueMember = "Id";
         providerEdit.Properties.Columns.Add(new DevExpress.XtraEditors.Controls.LookUpColumnInfo("Name"));

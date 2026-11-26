@@ -320,6 +320,8 @@ partial class MailPage
         attachmentEdit.Properties.ValueMember = "Id";
         attachmentEdit.Properties.ShowHeader = false;
         attachmentEdit.Properties.ShowFooter = false;
+        attachmentEdit.Properties.SearchMode = DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup;
+        attachmentEdit.Properties.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
         attachmentEdit.Properties.NullText = "Anhang auswählen";
         saveAttachmentButton.Text = "Anhang speichern …";
         saveAttachmentButton.AutoSize = true;
