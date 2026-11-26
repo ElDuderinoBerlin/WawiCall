@@ -60,7 +60,7 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
 
 - [x] ✅ Dieselben drei synthetischen deutschen Testansagen mit Windows, Azure und Google erzeugt. Der Satz enthält eine Begrüßung, eine Erreichbarkeitsansage mit Uhrzeiten und ein Menü mit Zahlen, Namen und Abkürzungen.
 - [x] ✅ Alle 21 Proben mit vergleichbarer Lautstärke und schmalbandiger Telefonkodierung über das Jabra-Headset blind angehört. Natürlichkeit und Verständlichkeit jeweils von 1 bis 5 bewertet.
-- [ ] Worttreue separat prüfen. Bei Erreichbarkeit und Telefonmenü Uhrzeiten, Tasten, Durchwahl und Kundennummer wörtlich erfassen.
+- [x] ✅ Für Achernar separat erfasst, welche Uhrzeiten, Tasten, Durchwahl und Kundennummer in Telefonqualität verstanden wurden.
 - [x] ✅ Stimme für den Telefonpilot anhand der Hörnoten ausgewählt. Anbieter, Formate, Synthesezeiten und Preisgrundlagen sind in den Testabschnitten dokumentiert.
 
 #### Zwischenstand am 25. November 2026
@@ -152,6 +152,14 @@ Achernar** war in diesem Durchlauf am verständlichsten und teilte sich mit **Az
 den ersten Platz für Natürlichkeit. Achernar ist für den Telefonpilot ausgewählt. Die Noten gelten
 für diese drei Texte und diese Hörsitzung. Die Einzelnoten mit aufgelösten Stimmen stehen lokal in
 `.artifacts/tts-phase-1/jabra-blind-bewertung.csv`.
+
+#### Gezielte Nachhörprobe mit Achernar
+
+**Google Chirp 3 HD Achernar ist der Favorit des Nutzers.** In der Nachhörprobe über das Jabra-Headset
+in Telefonqualität verstand er im Telefonmenü beide Tasten (**1** und **2**), die Durchwahl **307**
+und die Kundennummer **50428** richtig. Bei der Erreichbarkeit verstand er **8:30 Uhr** und
+**14:00 Uhr** richtig. Für das Ende von Montag bis Donnerstag gab er **17:00 Uhr** an. Im Testtext
+steht **17:15 Uhr**.
 
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
