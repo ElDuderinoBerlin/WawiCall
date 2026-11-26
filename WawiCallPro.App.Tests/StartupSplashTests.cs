@@ -144,7 +144,29 @@ public sealed class StartupSplashTests
         await splash.ShowAsync(CancellationToken.None, hidden: true);
         Assert.AreNotEqual(nint.Zero, splash.WindowHandle);
         Assert.AreNotEqual(splash.WindowHandle, User32.GetForegroundWindow());
-        await splash.UpdateAsync("Hintergrundprüfung", 3);
+        var splashForm = await Field<TaskCompletionSource<FrmStartupSplashScreen>>(splash, "_ready").Task;
+        using var resumeSplash = new ManualResetEventSlim();
+        var splashBlocked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var blockingRender = splashForm.InvokeAsync(() =>
+        {
+            splashBlocked.SetResult();
+            resumeSplash.Wait(TimeSpan.FromSeconds(10));
+        }, CancellationToken.None);
+        try
+        {
+            await splashBlocked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(splash.UpdateDetailedAsync("Früherer Status", 20, "Testplugin").IsCompletedSuccessfully);
+            Assert.IsTrue(splash.UpdateAsync("Hintergrundprüfung", 3).IsCompletedSuccessfully);
+        }
+        finally
+        {
+            resumeSplash.Set();
+            await blockingRender;
+        }
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!await splashForm.InvokeAsync(() => Field<LabelControl>(splashForm, "lblStatus").Text == "Hintergrundprüfung", timeout.Token))
+            await Task.Delay(20, timeout.Token);
+        Assert.AreEqual("Testplugin", await splashForm.InvokeAsync(() => Field<LabelControl>(splashForm, "lblPlugins").Text, timeout.Token));
         using var main = new MainForm();
         main.PrepareForBackgroundRun();
         main.ShowAfterStartup(splash.ShouldPreserveForeground());

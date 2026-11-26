@@ -2212,6 +2212,10 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   Nachweise `.lexware-install-*.log` und `.artifacts/lexware-installation`. Keine Produktionsdaten,
   Registry-Änderungen, Migrationen oder sichtbare Desktopbedienung; FinOffice bleibt lokale Startausgabe.
 
+- [x] ✅ Splash-Fortschritt aus dem Startpfad entkoppelt. Der Splash zeigt den jeweils
+  neuesten Status auf seinem eigenen UI-Thread. Der Start wartet nicht darauf, dass
+  schnelle Zwischenmeldungen einzeln angezeigt werden.
+
 - [x] ✅ Runden Splash-Blur wie in LxTranslate wiederhergestellt: im gleichen
   PulsingProgressBarControl seitlich je 36 logische Pixel Abstand und 88 Pixel Zeichenhöhe
   für den vollständig auslaufenden Lichtschein. Die vorherigen Nullabstände schnitten

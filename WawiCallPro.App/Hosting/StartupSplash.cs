@@ -14,6 +14,8 @@ internal sealed class StartupSplash : IAsyncDisposable
 {
     private readonly TaskCompletionSource<FrmStartupSplashScreen> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly Lock _progressGate = new();
+    private ProgressUpdate? _pendingProgress;
     private Thread? _thread;
     private nint _handle;
     private int _closeRequested;
@@ -59,10 +61,24 @@ internal sealed class StartupSplash : IAsyncDisposable
             form.Font = font;
             if (hidden) form.PrepareForBackgroundRun();
             form.SetStatus("Startanzeige wird vorbereitet …", 1, 100);
+            using var progressTimer = new System.Windows.Forms.Timer { Interval = 50 };
+            progressTimer.Tick += (_, _) =>
+            {
+                ProgressUpdate? update;
+                lock (_progressGate)
+                {
+                    update = _pendingProgress;
+                    _pendingProgress = null;
+                }
+                if (update is null) return;
+                form.SetStatus(update.Text, update.Percent, 100);
+                if (update.Plugins is not null) form.SetLoadedPlugins(update.Plugins);
+            };
             form.Shown += (_, _) =>
             {
                 // Never access this control's Handle from the main thread.
                 Volatile.Write(ref _handle, form.Handle);
+                progressTimer.Start();
                 _ready.TrySetResult(form);
                 if (Volatile.Read(ref _closeRequested) != 0) form.Close();
             };
@@ -79,16 +95,15 @@ internal sealed class StartupSplash : IAsyncDisposable
     internal async Task UpdateAsync(string text, int step, CancellationToken cancellationToken = default)
         => await UpdateDetailedAsync(text, Math.Clamp(step, 0, 5) * 20, null, cancellationToken);
 
-    internal async Task UpdateDetailedAsync(string text, int percent, string? plugins = null, CancellationToken cancellationToken = default)
+    internal Task UpdateDetailedAsync(string text, int percent, string? plugins = null, CancellationToken cancellationToken = default)
     {
-        if (_thread is null || Volatile.Read(ref _closeRequested) != 0) return;
-        var form = await _ready.Task.WaitAsync(cancellationToken);
-        if (!form.IsDisposed)
-            await form.InvokeAsync(() =>
-            {
-                form.SetStatus(text, percent, 100);
-                if (plugins is not null) form.SetLoadedPlugins(plugins);
-            }, cancellationToken);
+        if (_thread is null || Volatile.Read(ref _closeRequested) != 0) return Task.CompletedTask;
+        if (cancellationToken.IsCancellationRequested) return Task.FromCanceled(cancellationToken);
+
+        // The splash consumes the latest status on its own STA, without delaying service startup.
+        lock (_progressGate)
+            _pendingProgress = new(text, percent, plugins ?? _pendingProgress?.Plugins);
+        return Task.CompletedTask;
     }
 
     internal Task CompleteAsync(Form mainForm) => StartupFocusHandoff.CompleteAsync(
@@ -122,6 +137,8 @@ internal sealed class StartupSplash : IAsyncDisposable
     }
 
     public ValueTask DisposeAsync() => new(CloseAsync());
+
+    private sealed record ProgressUpdate(string Text, int Percent, string? Plugins);
 }
 
 /// <summary>Runs after DevExpress initialization and before licensing; diagnostic and tray starts stay hidden.</summary>
