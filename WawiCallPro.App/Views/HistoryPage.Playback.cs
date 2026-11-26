@@ -80,6 +80,9 @@ public partial class HistoryPage
         };
         _startIcon = RibbonIconHelper.Load("PlaybackStart");
         _pauseIcon = RibbonIconHelper.Load("PlaybackPause");
+        playbackColumn.ImageOptions.SvgImageSize = new Size(16, 16);
+        playbackColumn.ImageOptions.SvgImage = _startIcon;
+        playbackColumn.ImageOptions.Alignment = StringAlignment.Center;
         var toggle = PlayerButton("Abspielen", (_, _) => TogglePlayer());
         toggle.Buttons[0].ImageOptions.SvgImageSize = new Size(16, 16);
         toggle.Buttons[0].ImageOptions.SvgImage = _startIcon;

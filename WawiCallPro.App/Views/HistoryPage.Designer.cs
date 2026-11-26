@@ -286,9 +286,14 @@ partial class HistoryPage
         playbackColumn.Name = "playbackColumn";
         playbackColumn.FieldName = "Playback";
         playbackColumn.Caption = "Aufnahme";
+        playbackColumn.ToolTip = "Gesprächsaufnahme";
         playbackColumn.Fixed = DevExpress.XtraGrid.Columns.FixedStyle.Right;
         playbackColumn.Visible = true;
         playbackColumn.VisibleIndex = 7;
+        playbackColumn.Width = 36;
+        playbackColumn.OptionsColumn.AllowSize = false;
+        playbackColumn.OptionsColumn.FixedWidth = true;
+        playbackColumn.OptionsColumn.ShowCaption = false;
         playbackColumn.OptionsColumn.AllowSort = DevExpress.Utils.DefaultBoolean.False;
         playbackColumn.OptionsColumn.AllowGroup = DevExpress.Utils.DefaultBoolean.False;
         playbackColumn.OptionsFilter.AllowFilter = false;

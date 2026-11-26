@@ -123,7 +123,7 @@ public partial class HistoryPage : XtraUserControl
         SetMinimum(machineColumn, "DESKTOP-1234567");
         SetMinimum(stateColumn, "Verbunden");
         SetMinimum(durationColumn, "00:00:00");
-        SetMinimum(playbackColumn, "Aufnahme");
+        playbackColumn.Width = LogicalToDeviceUnits(36);
 
         void SetMinimum(DevExpress.XtraGrid.Columns.GridColumn column, string sample)
         {

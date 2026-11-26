@@ -48,6 +48,9 @@ public sealed partial class AppShellTests
         var view = Field<GridView>(page, "view");
         var grid = view.GridControl;
         var column = view.Columns["Playback"];
+        Assert.AreEqual(page.LogicalToDeviceUnits(36), column.Width);
+        Assert.IsTrue(column.OptionsColumn.FixedWidth);
+        Assert.IsFalse(column.OptionsColumn.AllowSize);
         var recordedRow = view.LocateByValue("Id", available);
         var otherRow = view.LocateByValue("Id", unavailable);
         Assert.IsTrue(recordedRow >= 0 && otherRow >= 0);
@@ -196,6 +199,7 @@ public sealed partial class AppShellTests
                 Assert.IsTrue(closeBounds.Width > 0 && closeBounds.Right <= grid.ClientSize.Width,
                     $"Close button {closeBounds} exceeds grid width {grid.ClientSize.Width} at {width}/{fontSize}/{scale}.");
                 Assert.IsGreaterThan(60, trackBounds.Width);
+                Assert.AreEqual(page.LogicalToDeviceUnits(36), column.Width);
                 page.Font = originalFont;
                 WindowsFormsSettings.DefaultFont = defaultFont;
                 DevExpress.Utils.AppearanceObject.DefaultFont = defaultAppearance;

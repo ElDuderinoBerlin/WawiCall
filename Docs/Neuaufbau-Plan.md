@@ -5053,6 +5053,7 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   ✅ Bei geänderten Frequenzbändern wird das Spektrometerfeld separat neu gezeichnet und erhält
   ein neues Bitmap für den DevExpress-Renderer. Der Rastertest prüft zwei vom Wiedergabetimer
   aktualisierte Bilder mit unterschiedlichen Frequenzbändern bei stehender TrackBar.
+  Die Aufnahmespalte bleibt rechts angeheftet und ist auf 36 logische Pixel begrenzt.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem
