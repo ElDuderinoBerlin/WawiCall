@@ -4977,8 +4977,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Übergang zwischen zwei aufeinanderfolgenden Paketen derselben Quelle 512 PCM-Samples bei
   16 kHz und einen RTP-Timestamp-Abstand von 160 Einheiten bei 8 kHz, entsprechend 320 PCM-Samples.
   Der RTP-Feed meldete Überlappung. Der separate Pro-WASAPI-Aufnahmeversuch im Gespräch endete
-  ebenfalls mit einem Zeitachsenfehler. G.722, WASAPI-Aufnahme im Gespräch und Wiederanbindung
-  bleiben Teil der Phase-9-Abnahme. Nachweise unter `.artifacts/phase9-recording-name-live/`.
+  ebenfalls mit einem Zeitachsenfehler. Die G.722-Wiederholung steht unten. WASAPI-Aufnahme
+  im Gespräch und Wiederanbindung bleiben Teil der Phase-9-Abnahme.
+  Nachweise unter `.artifacts/phase9-recording-name-live/`.
 - [x] ✅ Kurze G.722-Empfangsüberlappung aus dem Live-Test abfangen (26.11.2026).
   Die lokal verankerte RTP-Aufnahme behält bei unmittelbar aufeinanderfolgenden Paketen den
   bereits aufgenommenen Abschnitt. Sie schneidet bis zu 20 ms aus dem überlappenden Anfang des
@@ -4997,6 +4998,12 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Dateien über CSCore vollständig ab. In diesen zwei Anrufen wurde keine RTP-Überlappung gemessen.
   Für den zuvor beobachteten Überlappungsfall gilt der vorstehende gezielte UDP-Nachweis.
   Nachweise unter `.artifacts/phase9-recording-name-live/g722-fix-20261126-135332/`.
+- [x] ✅ G.722-Aufnahmen nach Neustart am Jabra-Ausgang per WASAPI-Loopback prüfen (26.11.2026).
+  Je Edition öffnete ein frischer Prüfhost die bestätigte Aufnahme aus der Gesprächshistorie.
+  Die Wiedergabeposition erreichte die volle WAV-Dauer. Der native Loopback des Jabra Link 380
+  lieferte Signal und lief in beiden Editionen rund 12,21 s bis zum Wiedergabeende.
+  Die Nachweise stehen in den Dateien `Pro-reopen.log` und `FinOffice-reopen.log` des G.722-Testlaufs.
+  Die WASAPI-Aufnahmequelle im laufenden Gespräch sowie physischer Geräteverlust bleiben offen.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
