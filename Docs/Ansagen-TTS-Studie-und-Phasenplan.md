@@ -154,7 +154,19 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
 
 - [x] ✅ **Sprachanbieter** und **Stimme** im Ansagendialog ergänzt. Windows ist die Voreinstellung. Die Stimmenliste wechselt mit dem Anbieter. Der Dialog weist vor einer Cloud-Vertonung auf die Textübertragung hin.
 - [x] ✅ **Auswahl speichern** übernimmt Anbieter, Stimme und Audiogeräte in die lokale Konfiguration. Die Zugänge lassen sich unter **Einstellungen → Audio → Cloud-Ansagen** hinterlegen.
-- [ ] Live-Wiedergabe und Export eines Cloud-Entwurfs bei abgeschaltetem Netzwerk nachweisen. Die automatisierten Dialogtests prüfen Anbieterwechsel, gespeicherte Auswahl, lokale Aufnahme, Wiedergabe und Export mit Test-Doubles.
+- [x] ✅ Vorhandenen Cloud-Entwurf offline über einen echten Audioausgang wiedergegeben und als WAV exportiert.
+  Der Pro-Debug-Test am 26.11.2026 spielte `AzureSpeech-de-DE-ConradNeural-01-begruessung.wav`
+  über **Kopfhörer (Jabra Link 380)** ab. Der WASAPI-Spitzenpegel betrug 18 %, der Dialog meldete
+  nach 9,18 s „Wiedergabe beendet“. Der Export enthält 144.800 Samples in Mono-PCM16 mit 16 kHz
+  (9,05 s). Gegenüber der Quelle beträgt die größte Abweichung eine PCM-Stufe durch die erneute Quantisierung.
+  Der Test nutzte den isolierten Desktop-Host im Modus `SuppressNetwork`, ohne Hintergrunddienste
+  zu starten. Ein lokaler Testadapter übernahm die vorhandene WAV als Entwurf, da der Dialog
+  keinen WAV-Import anbietet. Dialog, WASAPI-Ausgabe und WAV-Konverter entsprachen dem regulären
+  Pro-Debug-Build. Die Windows-Netzverbindung blieb aktiv.
+
+Der Hardwaretest `ExistingCloudAnnouncementPlaysAndExportsWithoutCloudServices` ist optional. Er verwendet
+`WCP_OFFLINE_ANNOUNCEMENT_SOURCE` für die vorhandene Azure-WAV, `WCP_OFFLINE_ANNOUNCEMENT_EXPORT` für einen
+neuen WAV-Zielpfad und `WCP_ANNOUNCEMENT_PLAYBACK_DEVICE` für den Windows-Namen des Ausgabegeräts.
 
 Unter **Einstellungen → Audio → Cloud-Ansagen** für Azure die Region und einen Speech-API-Schlüssel
 eingeben. Für Google die Projekt-ID eintragen und entweder eine Dienstkonto-JSON importieren oder
