@@ -5023,8 +5023,17 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Vor dem Abziehen wurde eine 6,137 s lange Stereo-WAV mit Signal auf beiden Spuren gespeichert.
   Ein zweiter Aufnahmestart meldete bereits vor dem Abziehen `TimelineConflict`. Das SIP-Gespräch
   blieb während des physischen Geräteverlusts verbunden. Windows meldete die Endpunkte im
-  110-Sekunden-Fenster nicht zurück. Die FinOffice-Wiederanbindung ist noch offen.
+  110-Sekunden-Fenster nicht zurück. Die Wiederanbindung wurde im Folgelauf geprüft.
   Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/FinOffice.log`.
+- [x] ✅ FinOffice nach Wiedereinstecken des Jabra Link 380 im selben SIP-Gespräch neu anbinden.
+  Der erste Wiederholungsanruf endete durch die Gegenstelle, bevor der Prüfhost beide Endpunkte
+  als entfernt erkannt hatte. Im zweiten Anruf fehlten beim Start bereits beide Jabra-Endpunkte.
+  Das SIP-Gespräch blieb verbunden. Beim Wiedereinstecken erschienen beide Endpunkte erneut.
+  Eine neue WASAPI-Aufnahme wurde begonnen, als 25,169 s lange Stereo-WAV gespeichert und
+  aus der Gesprächshistorie vollständig abgespielt.
+  Die Spitzenwerte der PCM-Spuren betrugen links 2141 und rechts 15 von 32768. Die Spur der
+  Gegenstelle blieb nahezu stumm. Der beidseitige Sprachnachweis nach Wiederanbindung ist offen.
+  Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/FinOffice-Reconnect-180347.log`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
