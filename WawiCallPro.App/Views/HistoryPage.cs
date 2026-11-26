@@ -64,7 +64,7 @@ public partial class HistoryPage : XtraUserControl
     {
         InitializeComponent();
         ConfigurePlayer();
-        playEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStart");
+        playEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackPlay");
         stopEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStop");
         grid.DataSource = Array.Empty<HistoryRow>();
         UiButtonSizing.Attach(this);
