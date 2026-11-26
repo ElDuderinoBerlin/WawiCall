@@ -5019,6 +5019,12 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Die Aufnahme nach der Wiederanbindung enthielt nur geringen Pegel auf beiden Spuren. Ein
   verständlicher Sprachmitschnitt nach Wiederanbindung ist damit noch offen.
   Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/Pro-Reconnect.log`.
+- [x] ✅ FinOffice mit WASAPI-Aufnahmequelle im echten Gespräch bis zum Jabra-Geräteverlust prüfen.
+  Vor dem Abziehen wurde eine 6,137 s lange Stereo-WAV mit Signal auf beiden Spuren gespeichert.
+  Ein zweiter Aufnahmestart meldete bereits vor dem Abziehen `TimelineConflict`. Das SIP-Gespräch
+  blieb während des physischen Geräteverlusts verbunden. Windows meldete die Endpunkte im
+  110-Sekunden-Fenster nicht zurück. Die FinOffice-Wiederanbindung ist noch offen.
+  Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/FinOffice.log`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
