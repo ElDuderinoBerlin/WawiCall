@@ -85,6 +85,7 @@ public sealed class AppWorkspace(
     internal WawiCallPro.Audio.IAudioFileConversion? AudioFiles { get; } = audioFiles;
     internal WawiCallPro.Audio.IAnnouncementAudio? AnnouncementAudio { get; } = announcementAudio;
     internal WawiCallPro.Audio.IAnnouncementSpeech? AnnouncementSpeech { get; } = announcementSpeech;
+    internal AnnouncementCloudQuota? AnnouncementQuota { get; set; }
     internal WawiCallPro.Utilities.Licensing.IProductLicenseService? Licenses => licenses;
     public IProductPluginRuntime Plugins { get; } = plugins;
     public WawiCallPro.Utilities.Plugins.IFunctionPluginRuntime? FunctionPlugins { get; } = functionPlugins;

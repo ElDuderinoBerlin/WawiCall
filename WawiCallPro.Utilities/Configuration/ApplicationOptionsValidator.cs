@@ -250,6 +250,10 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
                 || !ValidSpeechIdentifier(cloud.GoogleProjectId, 6, 30)
                 || (cloud.GoogleCredential is not null && cloud.GoogleProjectId is null))
                 issues.Add(new("devices.announcements.cloud", "Für die Cloud-Ansagen eine gültige Azure-Region bzw. Google-Projekt-ID angeben."));
+            else if (cloud.AzureMonthlyAllowance is < 0 or > AnnouncementCloudSettings.AzureFreeCharacters
+                || cloud.GoogleNeural2MonthlyAllowance is < 0 or > AnnouncementCloudSettings.GoogleFreeCharactersPerVoiceFamily
+                || cloud.GoogleChirpMonthlyAllowance is < 0 or > AnnouncementCloudSettings.GoogleFreeCharactersPerVoiceFamily)
+                issues.Add(new("devices.announcements.cloud", "Das Monatsbudget für Cloud-Ansagen liegt außerhalb des Freikontingents."));
         }
     }
 

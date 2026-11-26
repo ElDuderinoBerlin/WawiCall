@@ -2,6 +2,8 @@ using Azure.Core;
 using Azure.Identity;
 using Google.Cloud.TextToSpeech.V1;
 using Google.Apis.Auth.OAuth2;
+using Google.Api.Gax;
+using Google.Api.Gax.Grpc;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,7 +23,7 @@ public static class CloudAnnouncementSpeechServices
 
     /// <summary>Creates the Google adapter for the specified project, using an optional service account or local ADC.</summary>
     public static IAnnouncementSpeech CreateGoogleForProject(string project, GoogleCredential? credential) =>
-        new GoogleAnnouncementSpeech(new TextToSpeechClientBuilder { QuotaProject = project, GoogleCredential = credential }.Build());
+        new GoogleAnnouncementSpeech(BuildGoogleClient(project, credential));
 
     /// <summary>Accepts only a Google service account credential with Google's token endpoint.</summary>
     public static GoogleCredential ReadGoogleServiceAccount(string json)
@@ -55,9 +57,21 @@ public static class CloudAnnouncementSpeechServices
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(quotaProject);
         services.TryAddKeyedSingleton<TextToSpeechClient>(GoogleCloud,
-            (_, _) => new TextToSpeechClientBuilder { QuotaProject = quotaProject }.Build());
+            (_, _) => BuildGoogleClient(quotaProject, null));
         services.TryAddKeyedSingleton<IAnnouncementSpeech>(GoogleCloud,
             (provider, key) => new GoogleAnnouncementSpeech(provider.GetRequiredKeyedService<TextToSpeechClient>(key)));
         return services;
     }
+
+    private static TextToSpeechClient BuildGoogleClient(string project, GoogleCredential? credential) =>
+        new TextToSpeechClientBuilder
+        {
+            QuotaProject = project,
+            GoogleCredential = credential,
+            Settings = new TextToSpeechSettings
+            {
+                // Reserve each billable attempt explicitly. Don't let GAX retry synthesis behind the limiter.
+                SynthesizeSpeechSettings = CallSettings.FromExpiration(Expiration.FromTimeout(TimeSpan.FromSeconds(30)))
+            }
+        }.Build();
 }

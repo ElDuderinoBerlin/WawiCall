@@ -173,6 +173,30 @@ Aus derselben PowerShell starten, damit der App-Prozess diese Werte übernimmt. 
 enthalten nur Zielangaben. Die lokalen SDK-Anmeldungen werden separat eingerichtet. Fehlende
 Einrichtung wird im Dialog angezeigt. Der Wechsel zu Windows bleibt möglich.
 
+### Freikontingent und lokale Sperre
+
+Unter **Einstellungen → Audio → Cloud-Ansagen** zeigt WawiCallPro die veröffentlichten
+Freikontingente und die lokal reservierten Zeichen für Azure Neural F0, Google Neural2 und
+Google Chirp 3 HD an. Das freigegebene Zeichenbudget rechts beginnt je Kategorie bei **0**.
+Bei einem vorhandenen Azure-Konto gilt die Freigabe für eine geprüfte **F0-Ressource**.
+Für Google nur den Anteil freigeben, der nach Verbrauch durch andere Programme, Computer,
+Projekte und Benutzer im zugehörigen Abrechnungskonto für WawiCallPro übrig ist.
+
+WawiCallPro reserviert jedes Budget vor der Synthese und sperrt den Aufruf, wenn die Reservierung
+das freigegebene Budget überschreitet oder der Zähler nicht gespeichert werden kann. Der Zähler
+ist konservativ. UTF-8-Zeichen werden bei Bedarf mit mehreren Einheiten reserviert, und fehlgeschlagene
+oder abgebrochene Cloud-Aufrufe behalten ihre Reservierung. Google-Synthese wird vom SDK nicht
+automatisch wiederholt. Die lokale Monatsgrenze ist bei Azure UTC und bei Google US Pacific.
+Die beiden regulär installierten Editionen teilen sich den Zähler beim selben Windows-Benutzer.
+
+Die Anzeige erfasst WawiCallPro-Anfragen ab Einführung der Sperre. Anbieterabrechnung und Nutzung
+außerhalb der App sind darin nicht enthalten. Anbieterpreise können sich ändern. Das Vorhören und der
+Export vorhandener WAV-Dateien brauchen keine weitere Reservierung.
+[Azure-F0-Preise](https://azure.microsoft.com/de-de/pricing/details/speech/) ·
+[Azure-Abrechnungsregeln](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech#pricing-note) ·
+[Google-TTS-Preise](https://cloud.google.com/text-to-speech/pricing) ·
+[Google-Abrechnungszeitzone](https://docs.cloud.google.com/billing/docs/how-to/reports)
+
 ### Phase 4 – Betriebsfreigabe und optionale Erweiterungen
 
 - [ ] Preise, Kontingent, Textübertragung, Datenverarbeitungsregion und Fehlermeldungen dokumentieren. Betriebsfreigabe für die gewählte Konfiguration festhalten. [Azure-Datenverarbeitung](https://learn.microsoft.com/en-us/azure/foundry/responsible-ai/speech-service/text-to-speech/data-privacy-security)

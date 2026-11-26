@@ -3,6 +3,7 @@ using System.Text.Json;
 using DevExpress.XtraEditors;
 using DevExpress.XtraTab;
 using WawiCallPro.App.Diagnostics;
+using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Utilities.Configuration;
 
@@ -26,6 +27,10 @@ public sealed partial class AppShellTests
             token_uri = "https://oauth2.googleapis.com/token"
         });
         const string azureKey = "not-a-real-azure-access-key";
+        workspace.AnnouncementQuota = new AnnouncementCloudQuota(
+            Path.Combine(workspace.Paths.RootDirectory, "announcement-quota-fixture.json"), TimeProvider.System);
+        workspace.AnnouncementQuota.Reserve(AnnouncementSpeechProvider.AzureSpeech,
+            new AnnouncementCloudSettings { AzureMonthlyAllowance = 100 }, "azure", "Hallo", default);
         using var font = new Font("Segoe UI", points);
         using var form = new FrmSettings(workspace);
         form.LookAndFeel.UseDefaultLookAndFeel = false;
@@ -39,6 +44,9 @@ public sealed partial class AppShellTests
         Field<TextEdit>(page, "speechAzureRegionEdit").Text = "GermanyWestCentral";
         Field<TextEdit>(page, "speechAzureKeyEdit").Text = azureKey;
         Field<TextEdit>(page, "speechGoogleProjectEdit").Text = "example-tts";
+        Field<SpinEdit>(page, "quotaAzureEdit").Value = 45_000;
+        Field<SpinEdit>(page, "quotaNeural2Edit").Value = 50_000;
+        Field<SpinEdit>(page, "quotaChirpEdit").Value = 60_000;
         Assert.Throws<FormatException>(() => page.SetGoogleSpeechCredential(credential.Replace(
             "https://oauth2.googleapis.com/token", "https://example.invalid/token", StringComparison.Ordinal)));
         page.SetGoogleSpeechCredential(credential);
@@ -46,6 +54,11 @@ public sealed partial class AppShellTests
         var cloud = (await workspace.Settings.LoadAsync()).Options.Devices.Announcements.Cloud;
         Assert.AreEqual("germanywestcentral", cloud.AzureRegion);
         Assert.AreEqual("example-tts", cloud.GoogleProjectId);
+        Assert.AreEqual(45_000, cloud.AzureMonthlyAllowance);
+        Assert.AreEqual(50_000, cloud.GoogleNeural2MonthlyAllowance);
+        Assert.AreEqual(60_000, cloud.GoogleChirpMonthlyAllowance);
+        Assert.Contains("lokal reserviert", Field<LabelControl>(page, "quotaAzureUsed").Text);
+        Assert.EndsWith("5", Field<LabelControl>(page, "quotaAzureUsed").Text);
         Assert.IsNotNull(cloud.AzureKey);
         Assert.IsNotNull(cloud.GoogleCredential);
         using (var secret = workspace.Secrets.Unprotect(cloud.AzureKey, AnnouncementCloudSettings.AzureKeyPurpose))

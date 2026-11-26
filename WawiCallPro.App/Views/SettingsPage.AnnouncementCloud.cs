@@ -25,6 +25,10 @@ public partial class SettingsPage
         speechGoogleCredentialEdit.Text = settings.GoogleCredential is null ? "Keine JSON gespeichert" : "Gespeichert";
         speechGoogleClear.Checked = false;
         speechGoogleClear.Enabled = settings.GoogleCredential is not null;
+        quotaAzureEdit.Value = settings.AzureMonthlyAllowance;
+        quotaNeural2Edit.Value = settings.GoogleNeural2MonthlyAllowance;
+        quotaChirpEdit.Value = settings.GoogleChirpMonthlyAllowance;
+        UpdateAnnouncementUsage();
     }
 
     private AnnouncementCloudSettings ReadAnnouncementCloud(AnnouncementCloudSettings existing)
@@ -39,8 +43,25 @@ public partial class SettingsPage
             AzureRegion = azureRegion.Length == 0 ? null : azureRegion,
             AzureKey = azureKey,
             GoogleProjectId = googleProject.Length == 0 ? null : googleProject,
-            GoogleCredential = speechGoogleClear.Checked ? null : _importedGoogleSpeechCredential ?? existing.GoogleCredential
+            GoogleCredential = speechGoogleClear.Checked ? null : _importedGoogleSpeechCredential ?? existing.GoogleCredential,
+            AzureMonthlyAllowance = (int)quotaAzureEdit.Value,
+            GoogleNeural2MonthlyAllowance = (int)quotaNeural2Edit.Value,
+            GoogleChirpMonthlyAllowance = (int)quotaChirpEdit.Value
         };
+    }
+
+    private void UpdateAnnouncementUsage()
+    {
+        (int Azure, int Neural2, int Chirp)? usage = null;
+        try { usage = _workspace?.AnnouncementQuota?.Read(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { }
+        quotaAzureUsed.Text = UsageText(AnnouncementCloudSettings.AzureFreeCharacters, usage?.Azure);
+        quotaNeural2Used.Text = UsageText(AnnouncementCloudSettings.GoogleFreeCharactersPerVoiceFamily, usage?.Neural2);
+        quotaChirpUsed.Text = UsageText(AnnouncementCloudSettings.GoogleFreeCharactersPerVoiceFamily, usage?.Chirp);
+
+        static string UsageText(int free, int? used) => used is { } count
+            ? $"Frei: {free:N0} · Diesen Monat lokal reserviert: {count:N0}"
+            : $"Frei: {free:N0} · Lokaler Monatsverbrauch nicht verfügbar";
     }
 
     private async void SpeechGoogleBrowse_Click(object? sender, EventArgs e)

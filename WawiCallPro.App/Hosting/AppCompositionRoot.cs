@@ -14,6 +14,7 @@ using WawiCallPro.Utilities.Plugins;
 using WawiCallPro.Utilities.Diagnostics;
 using WawiCallPro.Utilities.Persistence;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.App.Hosting;
 
@@ -35,7 +36,22 @@ internal static class AppCompositionRoot
                 services.AddSingleton(exceptions);
                 services.AddSingleton(instance);
                 services.AddSingleton(new AppWindowOptions());
-                services.AddSingleton<AppWorkspace>();
+                services.AddSingleton(provider =>
+                {
+                    var workspace = ActivatorUtilities.CreateInstance<AppWorkspace>(provider);
+                    workspace.AnnouncementQuota = provider.GetRequiredService<AnnouncementCloudQuota>();
+                    return workspace;
+                });
+                services.AddSingleton(provider =>
+                {
+                    var directory = provider.GetRequiredService<ApplicationPaths>().RootDirectory;
+                    var userRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WawiCallPro");
+                    if (string.Equals(directory, Path.Combine(userRoot, "Pro"), StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(directory, Path.Combine(userRoot, "FinOffice"), StringComparison.OrdinalIgnoreCase))
+                        directory = userRoot;
+                    return new AnnouncementCloudQuota(Path.Combine(directory, "announcement-cloud-usage.json"),
+                        provider.GetRequiredService<TimeProvider>());
+                });
                 if (mode.DocumentationProfileDirectory is { } profile)
                     services.Replace(ServiceDescriptor.Singleton(new WawiCallPro.Utilities.Configuration.ConfigurationLocation(profile)));
                 services.AddSingleton(_ => new WawiCallPro.Utilities.Configuration.ProductAppSettings(
@@ -113,25 +129,29 @@ internal static class AppCompositionRoot
             var store = provider.GetRequiredService<ConfigurationStore>();
             var cloud = store.LoadAsync().GetAwaiter().GetResult().Options.Devices.Announcements.Cloud;
             var protector = provider.GetRequiredService<WawiCallPro.Utilities.Security.ISecretProtector>();
+            var quota = provider.GetRequiredService<AnnouncementCloudQuota>();
             if (selection == AnnouncementSpeechProvider.AzureSpeech && cloud is { AzureRegion: { } region, AzureKey: { } key })
             {
                 using var secret = protector.Unprotect(key, AnnouncementCloudSettings.AzureKeyPurpose);
-                return CloudAnnouncementSpeechServices.CreateAzureWithKey(region, secret.Reveal());
+                return Guard(CloudAnnouncementSpeechServices.CreateAzureWithKey(region, secret.Reveal()));
             }
             if (selection == AnnouncementSpeechProvider.GoogleCloud && cloud.GoogleProjectId is { } project)
             {
                 if (cloud.GoogleCredential is not { } credential)
-                    return CloudAnnouncementSpeechServices.CreateGoogleForProject(project, null);
+                    return Guard(CloudAnnouncementSpeechServices.CreateGoogleForProject(project, null));
                 using var secret = protector.Unprotect(credential, AnnouncementCloudSettings.GoogleCredentialPurpose);
-                return CloudAnnouncementSpeechServices.CreateGoogleForProject(project,
-                    CloudAnnouncementSpeechServices.ReadGoogleServiceAccount(secret.Reveal()));
+                return Guard(CloudAnnouncementSpeechServices.CreateGoogleForProject(project,
+                    CloudAnnouncementSpeechServices.ReadGoogleServiceAccount(secret.Reveal())));
             }
-            return selection switch
+            return Guard(selection switch
             {
                 AnnouncementSpeechProvider.AzureSpeech => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.AzureSpeech),
                 AnnouncementSpeechProvider.GoogleCloud => provider.GetKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.GoogleCloud),
                 _ => null
-            };
+            });
+
+            IAnnouncementSpeech? Guard(IAnnouncementSpeech? speech) =>
+                speech is null ? null : new QuotaProtectedAnnouncementSpeech(speech, quota, selection, cloud);
         });
     }
 }
