@@ -5010,8 +5010,15 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   physischen Abziehen. Beide Gesprächspegel fielen auf null, das SIP-Gespräch blieb verbunden.
   Das laufende Loopback-Segment endete mit `InputFailed`, ohne eine Teil-WAV als abspielbare
   Aufnahme freizugeben. Im 45-Sekunden-Fenster wurde der Adapter nicht wieder als aktiv erkannt.
-  Wiederanbindung in Pro und der komplette FinOffice-Lauf sind offen.
+  In diesem Lauf stand die Wiederanbindung noch aus.
   Nachweis unter `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/Pro-Retry.log`.
+- [x] ✅ Pro nach Wiedereinstecken des Jabra Link 380 im selben SIP-Gespräch neu anbinden.
+  Im Folgelauf erkannte Windows beide Endpunkte nach dem physischen Wiedereinstecken im selben
+  USB-Port. Das SIP-Gespräch blieb verbunden. Der Prüfhost startete eine neue WASAPI-Aufnahme,
+  schloss die 8,161 s lange Stereo-WAV ab und spielte sie über die Historie vollständig ab.
+  Die Aufnahme nach der Wiederanbindung enthielt nur geringen Pegel auf beiden Spuren. Ein
+  verständlicher Sprachmitschnitt nach Wiederanbindung ist damit noch offen.
+  Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/Pro-Reconnect.log`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
