@@ -74,12 +74,37 @@ public sealed partial class AppShellTests
         Assert.IsNotNull(detail);
         Assert.AreEqual(DevExpress.XtraEditors.Controls.BorderStyles.NoBorder, detail.BorderStyle);
         Assert.IsFalse(detail.OptionsView.ShowCardBorderIfCaptionHidden);
+        Assert.IsFalse(detail.OptionsCustomization.AllowFilter);
+        Assert.IsFalse(detail.OptionsCustomization.AllowSort);
         Assert.AreEqual("00:14", detail.GetRowCellValue(0, "Elapsed"));
         Assert.AreEqual("00:27", detail.GetRowCellValue(0, "Duration"));
         Assert.AreEqual(RecordingArtifactFormat.Wave, player.Transport!.Media!.Format);
+        var renderPlayer = typeof(HistoryPage).GetMethod("RenderPlayer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var paintedPosition = -1;
+        void InspectPosition(object sender, DevExpress.XtraGrid.Views.Base.RowCellCustomDrawEventArgs e)
+        {
+            if (e.Column.FieldName == "Progress" && e.CellValue is int position) paintedPosition = position;
+        }
+        detail.CustomDrawCardFieldValue += InspectPosition;
+        using (var frame = new Bitmap(page.Width, page.Height))
+            foreach (var (seconds, expected) in new[] { (3, 1111), (9, 3333), (18, 6666) })
+            {
+                player.Transport.SetPosition(TimeSpan.FromSeconds(seconds));
+                paintedPosition = -1;
+                renderPlayer.Invoke(page, []);
+                page.DrawToBitmap(frame, page.ClientRectangle);
+                Assert.AreEqual(expected, paintedPosition);
+            }
+        detail.CustomDrawCardFieldValue -= InspectPosition;
         detail.FocusedColumn = detail.Columns["Progress"];
         detail.ShowEditor();
         Assert.IsInstanceOfType<TrackBarControl>(detail.ActiveEditor);
+        Assert.AreEqual(6666, ((TrackBarControl)detail.ActiveEditor!).Value);
+        Assert.AreEqual(-1L, player.Transport.TakeSeek());
+        player.Transport.SetPosition(TimeSpan.FromSeconds(17));
+        renderPlayer.Invoke(page, []);
+        Assert.AreEqual(6296, ((TrackBarControl)detail.ActiveEditor!).Value);
+        Assert.AreEqual(-1L, player.Transport.TakeSeek());
         ((TrackBarControl)detail.ActiveEditor!).Value = 5000;
         Assert.AreEqual(TimeSpan.FromSeconds(13.5).Ticks, player.Transport.TakeSeek());
         detail.HideEditor();
@@ -119,8 +144,7 @@ public sealed partial class AppShellTests
                 var rendered = view.GetDetailView(recordedRow, 0) as LayoutView;
                 Assert.IsNotNull(rendered);
                 player.FeedSpectrum();
-                typeof(HistoryPage).GetMethod("RenderPlayer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                    .Invoke(page, []);
+                renderPlayer.Invoke(page, []);
                 closeBounds = trackBounds = Rectangle.Empty;
                 rendered.CustomDrawCardFieldValue += InspectPlayer;
                 using var bitmap = new Bitmap(page.Width, page.Height);

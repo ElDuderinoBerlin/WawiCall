@@ -41,6 +41,8 @@ public partial class HistoryPage
         detail.BorderStyle = BorderStyles.NoBorder;
         detail.OptionsBehavior.AutoPopulateColumns = false;
         detail.OptionsBehavior.AllowRuntimeCustomization = false;
+        detail.OptionsCustomization.AllowFilter = false;
+        detail.OptionsCustomization.AllowSort = false;
         detail.OptionsBehavior.EditorShowMode = EditorShowMode.MouseDown;
         detail.OptionsView.ShowHeaderPanel = false;
         detail.OptionsView.ShowCardCaption = false;
@@ -364,28 +366,36 @@ public partial class HistoryPage
     {
         if (ActivePlayerView() is not { } detail || _player is not { } player || _transport is not { } transport) return;
         var media = transport.Media;
-        player.Elapsed = DisplayTime(transport.Position);
-        player.Duration = media is null ? "–" : DisplayTime(media.Duration);
-        player.Format = media is null ? "" : DescribeMedia(media);
+        var position = transport.Position;
+        UpdateField(nameof(PlayerRow.Elapsed), DisplayTime(position));
+        UpdateField(nameof(PlayerRow.Duration), media is null ? "–" : DisplayTime(media.Duration));
+        UpdateField(nameof(PlayerRow.Format), media is null ? "" : DescribeMedia(media));
         var action = (RepositoryItemButtonEdit)detail.Columns[nameof(PlayerRow.Action)].ColumnEdit;
         var playing = player.Playing && !transport.Paused;
         action.Buttons[0].Caption = action.Buttons[0].ToolTip = playing ? "Pause" : "Abspielen";
         action.Buttons[0].ImageOptions.SvgImage = playing ? _pauseIcon : _startIcon;
-        player.File = media?.FilePath is null ? "" : "Datei anzeigen";
+        UpdateField(nameof(PlayerRow.File), media?.FilePath is null ? "" : "Datei anzeigen");
         if (!_draggingPosition)
         {
             var length = media?.Duration.Ticks ?? 0;
-            player.Progress = length > 0 ? (int)Math.Clamp(transport.Position.Ticks * (double)SeekScale / length, 0, SeekScale) : 0;
-            if (detail.ActiveEditor is TrackBarControl editor)
+            var progress = length > 0 ? (int)Math.Clamp(position.Ticks * (double)SeekScale / length, 0, SeekScale) : 0;
+            _updatingPlayer = true;
+            try
             {
-                _updatingPlayer = true;
-                try { editor.Value = player.Progress; }
-                finally { _updatingPlayer = false; }
+                UpdateField(nameof(PlayerRow.Progress), progress);
+                if (detail.ActiveEditor is TrackBarControl editor) editor.Value = progress;
             }
+            finally { _updatingPlayer = false; }
         }
         detail.Columns[nameof(PlayerRow.Progress)].OptionsColumn.AllowEdit = player.Playing && media?.CanSeek == true;
         _recordingSpectrum.SetSpectrum((player.Playing ? transport.ReadSpectrum() : AudioSpectrum.Silence).AsSpan());
         detail.InvalidateCard(0);
+
+        void UpdateField(string field, object value)
+        {
+            var column = detail.Columns[field];
+            if (!Equals(detail.GetRowCellValue(0, column), value)) detail.SetRowCellValue(0, column, value);
+        }
     }
 
     private void Player_DrawSpectrum(object sender, RowCellCustomDrawEventArgs e)

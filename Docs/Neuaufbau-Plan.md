@@ -3619,6 +3619,8 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 - [x] ✅ Gesprächsaufnahmen direkt in der Historienspalte „Aufnahme“ abspielen.
   Der erste Klick auf Play öffnet die Zeile und startet die Wiedergabe. Der rahmenlose Player
   zeigt Pause, Trackbar, Zeitangaben, CSCore-Spektrum, Dateilink und Formatdaten der geprüften Aufnahme.
+  Der Positionsregler zeigt auch bei inaktivem Editor die laufende Position. Die Playerkarte blendet
+  die Filter- und Sortierschaltflächen aus.
   Beim Wechsel bleibt nur die neue Aufnahme geöffnet. Debug-Builds, Darstellung in dunklen Skins und automatisierte
   Prüfungen einschließlich Pause und Spulen über stummes WASAPI in Pro und FinOffice.
 
