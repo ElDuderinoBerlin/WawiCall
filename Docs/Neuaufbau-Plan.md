@@ -4988,7 +4988,15 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Die Regression kodiert und dekodiert die beobachteten Blockgrößen mit SIPSorcery und vergleicht
   die Übergänge in der fertigen Stereo-WAV samplegenau. Dieselbe Paketfolge wurde über UDP-Loopback
   durch den Medienadapter getestet. App und Konsole wurden für Pro und FinOffice in Debug gebaut.
-  Je Edition bestanden 115 gezielte Tests. Die erneute Live-Abnahme ist offen.
+  Je Edition bestanden 115 gezielte Tests.
+- [x] ✅ G.722-Stereoaufnahmen im echten SIP-Gespräch erneut prüfen (26.11.2026).
+  Zuerst Pro, danach FinOffice. Beide isolierten Debug-Prüfhosts boten ausschließlich G.722 an.
+  Beide Gespräche wurden verbunden und die RTP-Aufnahmen liefen bis zum geplanten Stopp durch.
+  Die WAVs dauerten 12,064 s (Pro) und 12,074 s (FinOffice). Jeweils enthielten die linke
+  Mikrofonspur und die rechte Spur der Gegenstelle Signal. Der Historien-Dienst spielte beide
+  Dateien über CSCore vollständig ab. In diesen zwei Anrufen wurde keine RTP-Überlappung gemessen.
+  Für den zuvor beobachteten Überlappungsfall gilt der vorstehende gezielte UDP-Nachweis.
+  Nachweise unter `.artifacts/phase9-recording-name-live/g722-fix-20261126-135332/`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
