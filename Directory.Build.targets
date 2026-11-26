@@ -265,8 +265,22 @@
   <Target Name="InitializeWawiPublishedAppSettings" AfterTargets="Publish" DependsOnTargets="InitializeWawiAppSettings" Condition="'$(DesignTimeBuild)' != 'true' and ('$(MSBuildProjectName)' == 'WawiCallPro.App' or '$(MSBuildProjectName)' == 'WawiCallPro.Console')">
     <Copy SourceFiles="$(TargetDir)appsettings.json" DestinationFiles="$(PublishDir)appsettings.json" />
   </Target>
+  <Target Name="PrepareWawiProDebugComHost" AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(Configuration)' == 'Debug' and '$(DesignTimeBuild)' != 'true'
+            and '$(LexwareProductLinePro)' == 'true' and '$(OS)' == 'Windows_NT' and '$(DemoBuild)' != 'true'
+            and '$(WawiUseVelopackAppSettings)' != 'true' and '$(WawiRegisterDebugCom)' != 'false'">
+    <PropertyGroup>
+      <_WawiDebugComBuildId>$(WawiDebugComGeneration)</_WawiDebugComBuildId>
+      <_WawiDebugComBuildId Condition="'$(_WawiDebugComBuildId)' == ''">$([System.Guid]::NewGuid().ToString('N'))</_WawiDebugComBuildId>
+      <_WawiDebugComHost>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'WawiDebugCom-$(_WawiDebugComBuildId).exe'))</_WawiDebugComHost>
+      <_WawiDebugComHost Condition="'$(WawiDebugComGeneration)' != ''">$([MSBuild]::NormalizePath('$(TargetDir)', '..', 'WawiDebugComHost.exe'))</_WawiDebugComHost>
+    </PropertyGroup>
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)" AppHostDestinationPath="$(_WawiDebugComHost)"
+                   AppBinaryName="$(_WawiDebugComBuildId)\$(TargetFramework)\$(TargetFileName)"
+                   IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')" WindowsGraphicalUserInterface="true" />
+  </Target>
   <Target Name="RefreshWawiDebugCom" AfterTargets="Build"
-          DependsOnTargets="DeployWawiPlugins;RemoveWawiOtherLexwareAssemblies;CopyWawiSqliteInterop;InitializeWawiAppSettings"
+          DependsOnTargets="DeployWawiPlugins;RemoveWawiOtherLexwareAssemblies;CopyWawiSqliteInterop;InitializeWawiAppSettings;PrepareWawiProDebugComHost"
           Condition="'$(MSBuildProjectName)' == 'WawiCallPro.App' and '$(Configuration)' == 'Debug' and '$(DesignTimeBuild)' != 'true'
             and '$(WawiDebugComGeneration)' == '' and '$(OS)' == 'Windows_NT' and '$(DemoBuild)' != 'true'
             and '$(WawiUseVelopackAppSettings)' != 'true' and '$(WawiRegisterDebugCom)' != 'false'">
@@ -280,6 +294,10 @@
     </FindUnderPath>
     <WriteLinesToFile File="$(IntermediateOutputPath)WawiDebugComFiles.txt" Lines="@(_WawiDebugComOutputFiles)"
                       Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
-    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)scripts\register-debug-com.ps1&quot; -ProductLine $(LexwareProductLine) -CompletedBuildDirectory &quot;$(TargetDir).&quot; -BuildFileList &quot;$(IntermediateOutputPath)WawiDebugComFiles.txt&quot;" />
+    <PropertyGroup>
+      <_WawiDebugComHostArgs Condition="'$(_WawiDebugComHost)' != ''"> -DebugGeneration $(_WawiDebugComBuildId) -PreparedHost &quot;$(_WawiDebugComHost)&quot;</_WawiDebugComHostArgs>
+    </PropertyGroup>
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="pwsh -NoProfile -File &quot;$(MSBuildThisFileDirectory)scripts\register-debug-com.ps1&quot; -ProductLine $(LexwareProductLine) -CompletedBuildDirectory &quot;$(TargetDir).&quot; -BuildFileList &quot;$(IntermediateOutputPath)WawiDebugComFiles.txt&quot;$(_WawiDebugComHostArgs)" />
+    <Delete Files="$(_WawiDebugComHost)" Condition="'$(_WawiDebugComHost)' != ''" />
   </Target>
 </Project>

@@ -1,7 +1,7 @@
 [CmdletBinding(DefaultParameterSetName = 'Test')]
 param(
     [Parameter(ParameterSetName = 'Test')]
-    [ValidateSet('All', 'Pro', 'FinOffice')][string]$ProductLine = 'All',
+    [ValidateSet('All', 'Pro', 'FinOffice')][string]$ProductLine = 'Pro',
     [Parameter(ParameterSetName = 'Test')][string]$OutputDirectory,
     [Parameter(ParameterSetName = 'Test')][switch]$FromDesktop,
     [Parameter(Mandatory, ParameterSetName = 'Gate')][switch]$BuildGate
@@ -143,11 +143,28 @@ function Get-Registration([string]$Edition) {
         } finally { $root.Dispose() }
     }
     if ($paths.Count -ne 2 -or $paths[0] -ne $paths[1]) { throw "$Edition HKCU registration views differ." }
-    $expected = [WildcardPattern]::Escape((Join-Path $repository "WawiCallPro.App\bin\ComDebug\$Edition"))
-    if ($paths[0] -notlike "$expected\*\WawiCallPro.App.$Edition.exe" -or -not (Test-Path -LiteralPath $paths[0] -PathType Leaf)) {
+    $editionRoot = Join-Path $repository "WawiCallPro.App\bin\ComDebug\$Edition"
+    $expected = if ($Edition -eq 'Pro') { Join-Path $editionRoot 'WawiCallPro.App.Pro.exe' }
+        else { [WildcardPattern]::Escape($editionRoot) + '\*\WawiCallPro.App.FinOffice.exe' }
+    $pathMatches = if ($Edition -eq 'Pro') { $paths[0] -eq $expected } else { $paths[0] -like $expected }
+    if (-not $pathMatches -or -not (Test-Path -LiteralPath $paths[0] -PathType Leaf)) {
         throw "$Edition COM must point to a completed Debug output of this repository. Run register-debug-com.ps1 first."
     }
     return $paths[0]
+}
+
+function Get-RegisteredAssembly([string]$Executable) {
+    if ($edition -ne 'Pro') { return [IO.Path]::ChangeExtension($Executable, '.dll') }
+    $root = Split-Path -Parent $Executable
+    $active = [IO.File]::ReadAllText((Join-Path $root '.wawi-debug-com-active'))
+    if ($active -cnotmatch '^[a-f0-9]{32}$') { throw 'Invalid active Pro generation.' }
+    $assemblies = @(Get-ChildItem -LiteralPath (Join-Path $root $active) -Recurse -File -Filter 'WawiCallPro.App.Pro.dll')
+    if ($assemblies.Count -ne 1) { throw 'No unique assembly in the active Pro generation.' }
+    $relative = [IO.Path]::GetRelativePath($root, $assemblies[0].FullName)
+    if (-not [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($Executable)).Contains($relative + [char]0)) {
+        throw 'The stable apphost targets a different assembly than the active generation.'
+    }
+    return $assemblies[0].FullName
 }
 
 function Wait-ForProof([scriptblock]$Condition, [int]$Seconds, [string]$Description) {
@@ -240,11 +257,15 @@ function Test-Edition([string]$Edition) {
     $activations = [Collections.Generic.List[object]]::new()
     $clients = [Collections.Generic.List[object]]::new()
     $before = $null; $after = $null; $restored = $null; $build = $null; $old = $null; $cold = $null; $failedBuild = $null
+    $beforeAssembly = $null
+    $registeredAssembly = $null
     $windows = [DebugComWindows]::new()
     try {
-        $running = @(Get-Process -Name 'WawiCallPro.App.Pro', 'WawiCallPro.App.FinOffice' -ErrorAction SilentlyContinue)
+        $running = @(Get-Process -Name "WawiCallPro.App.$edition" -ErrorAction SilentlyContinue)
         if ($running.Count) { throw "Close running WawiCallPro instances before the test. PIDs: $($running.Id -join ', ')." }
         $before = Get-Registration $Edition
+        $beforeAssembly = Get-RegisteredAssembly $before
+        $beforeHash = (Get-FileHash -LiteralPath $beforeAssembly).Hash
         $old = Start-ComClient 'before' 'x64' $before
         $held = $clients[0]
         $build = Start-DebugBuild Refresh
@@ -254,7 +275,12 @@ function Test-Edition([string]$Edition) {
         [IO.File]::WriteAllText((Join-Path $editionOutput 'continue'), [DateTimeOffset]::UtcNow.ToString('o'))
         try { Finish-DebugBuild $build 'build.log' } finally { $build = $null }
         $after = Get-Registration $Edition
-        if ($after -eq $before -or -not (Test-Path -LiteralPath $before -PathType Leaf)) { throw 'The registration did not switch or the previous generation disappeared.' }
+        $registeredAssembly = Get-RegisteredAssembly $after
+        $registeredHash = (Get-FileHash -LiteralPath $registeredAssembly).Hash
+        if (($edition -eq 'Pro') -ne ($before -eq $after)) { throw 'Unexpected registered executable path after refresh.' }
+        if ($registeredHash -eq $beforeHash -or (Get-FileHash -LiteralPath $beforeAssembly).Hash -ne $beforeHash) {
+            throw 'The new generation did not become active or the old generation changed.'
+        }
         (Start-ComClient 'after-refresh' 'x86' $before $old.Id).Dispose()
         [IO.File]::WriteAllText(($held.Prefix + 'ping'), '')
         Wait-ForProof { Test-Path -LiteralPath ($held.Prefix + 'pong') } 10 'the original client status after refresh'
@@ -264,11 +290,10 @@ function Test-Edition([string]$Edition) {
         Wait-ForProof { $old.HasExited } 80 'natural exit of the original server'
         if ($old.ExitCode -ne 0) { throw 'The original server did not exit cleanly.' }
 
-        $registeredAssembly = [IO.Path]::ChangeExtension($after, '.dll')
-        $registeredHash = (Get-FileHash -LiteralPath $registeredAssembly).Hash
         $failedExitCode = Finish-DebugBuild (Start-DebugBuild Fail) 'failed-build.log' -ExpectFailure
         $afterFailure = Get-Registration $Edition
-        $assemblyUnchanged = $afterFailure -eq $after -and (Get-FileHash -LiteralPath $registeredAssembly).Hash -eq $registeredHash
+        $assemblyUnchanged = $afterFailure -eq $after -and (Get-RegisteredAssembly $afterFailure) -eq $registeredAssembly -and
+            (Get-FileHash -LiteralPath $registeredAssembly).Hash -eq $registeredHash
         $failedBuild = [ordered]@{
             ExitCode = $failedExitCode; ErrorCode = 'WAWICOM001'; RegisteredBefore = $after
             RegisteredAfter = $afterFailure; AssemblyUnchanged = $assemblyUnchanged
@@ -298,13 +323,14 @@ function Test-Edition([string]$Edition) {
             if ($cold) { $cold.Dispose() }
             $windows.Dispose()
             try {
-                if ($before -and (Get-Registration $Edition) -ne $before) {
+                if ($after) {
                     Finish-DebugBuild (Start-DebugBuild Restore) 'restore.log'
                     $restored = Get-Registration $Edition
                 }
             } finally {
                 [ordered]@{
                     Edition = $Edition; Before = $before; Updated = $after; FailedBuild = $failedBuild; Restored = $restored
+                    BeforeAssembly = $beforeAssembly; UpdatedAssembly = $registeredAssembly
                     UnattributedWindowEvents = $windows.UnresolvedEvents; Activations = $activations.ToArray()
                 } |
                     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $editionOutput 'results.json')

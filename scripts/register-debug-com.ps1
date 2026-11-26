@@ -4,16 +4,21 @@ param(
     [ValidateSet('Pro', 'FinOffice')][string]$ProductLine,
     [Parameter(ParameterSetName = 'Build')][switch]$PrepareOnly,
     [Parameter(Mandatory, ParameterSetName = 'Refresh')][string]$CompletedBuildDirectory,
-    [Parameter(Mandatory, ParameterSetName = 'Refresh')][string]$BuildFileList
+    [Parameter(Mandatory, ParameterSetName = 'Refresh')][string]$BuildFileList,
+    [Parameter(ParameterSetName = 'Refresh')][ValidatePattern('^[a-f0-9]{32}$')][string]$DebugGeneration,
+    [Parameter(ParameterSetName = 'Refresh')][string]$PreparedHost
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repository = Split-Path $PSScriptRoot -Parent
 $app = Join-Path $repository 'WawiCallPro.App'
-$generation = [Guid]::NewGuid().ToString('N')
-$output = Join-Path $app "bin/ComDebug/$ProductLine/$generation"
+$generation = if ($DebugGeneration) { $DebugGeneration } else { [Guid]::NewGuid().ToString('N') }
+$editionRoot = Join-Path $app "bin/ComDebug/$ProductLine"
+$output = Join-Path $editionRoot $generation
 $name = "WawiCallPro.App.$ProductLine"
+$stableHost = Join-Path $editionRoot "$name.exe"
+$activeGenerationFile = Join-Path $editionRoot '.wawi-debug-com-active'
 $required = @("$name.exe", "$name.dll", "$name.deps.json", "$name.runtimeconfig.json", 'appsettings.json')
 $refresh = $PSCmdlet.ParameterSetName -eq 'Refresh'
 
@@ -55,11 +60,13 @@ function Copy-CompletedBuild([string]$Source, [string]$Destination, [string]$Reg
             [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($streams[$_])) + ' ' + $_
         }))
         $manifestName = '.wawi-debug-com-files'
-        $previous = Split-Path -Parent $RegisteredExecutable
-        $previousManifest = Join-Path $previous $manifestName
-        if ((Test-Path -LiteralPath $previousManifest -PathType Leaf) -and
-            $manifest -ceq [IO.File]::ReadAllText($previousManifest) -and
-            @( $relativePaths | Where-Object { -not (Test-Path -LiteralPath (Join-Path $previous $_) -PathType Leaf) } ).Count -eq 0) { return $false }
+        if ($RegisteredExecutable) {
+            $previous = Split-Path -Parent $RegisteredExecutable
+            $previousManifest = Join-Path $previous $manifestName
+            if ((Test-Path -LiteralPath $previousManifest -PathType Leaf) -and
+                $manifest -ceq [IO.File]::ReadAllText($previousManifest) -and
+                @( $relativePaths | Where-Object { -not (Test-Path -LiteralPath (Join-Path $previous $_) -PathType Leaf) } ).Count -eq 0) { return $false }
+        }
 
         foreach ($relative in $relativePaths) {
             $path = Join-Path $Destination $relative
@@ -77,32 +84,8 @@ function Copy-CompletedBuild([string]$Source, [string]$Destination, [string]$Reg
     }
 }
 
-if ($refresh) {
-    $source = [IO.Path]::GetFullPath($CompletedBuildDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar)
-    if ((Split-Path -Parent $source) -ne (Join-Path $app 'bin\Debug')) { return }
-    $registered = Get-RegisteredDebugExecutable $source
-    if (-not $registered) { return }
-    if (-not (Copy-CompletedBuild $source (Join-Path $output (Split-Path -Leaf $source)) $registered)) { return }
-} else {
-    Push-Location $repository
-    try {
-        & dotnet build (Join-Path $app 'WawiCallPro.App.csproj') -c Debug --nologo `
-            "-p:LexwareProductLine=$ProductLine" "-p:WawiDebugComGeneration=$generation" | Out-Host
-        if ($LASTEXITCODE -ne 0) { throw "Debug-Build für COM fehlgeschlagen (Exitcode $LASTEXITCODE)." }
-    } finally { Pop-Location }
-}
-
-$executables = @(Get-ChildItem -LiteralPath $output -Recurse -File -Filter "$name.exe")
-if ($executables.Count -ne 1) { throw "Die COM-Ausgabe enthält keine eindeutige $name.exe." }
-$executable = $executables[0]
-foreach ($file in $required) {
-    if (-not (Test-Path -LiteralPath (Join-Path $executable.DirectoryName $file) -PathType Leaf)) {
-        throw "Die COM-Ausgabe ist unvollständig. Es fehlt $file."
-    }
-}
-
-if (-not $PrepareOnly) {
-    $start = [Diagnostics.ProcessStartInfo]::new($executable.FullName)
+function Register-DebugHost([string]$Executable) {
+    $start = [Diagnostics.ProcessStartInfo]::new($Executable)
     $start.UseShellExecute = $false
     if ($refresh) {
         $start.ArgumentList.Add('--refresh-debug-com')
@@ -118,4 +101,98 @@ if (-not $PrepareOnly) {
     } finally { $registration.Dispose() }
 }
 
-$executable.FullName
+function Publish-ProDebugHost([string]$HostImage) {
+    # The apphost embeds the immutable generation's DLL path. Replace only the launch image,
+    # leaving a running process and all of its managed and native dependencies in place.
+    $pendingHost = Join-Path $editionRoot "$generation.pending.exe"
+    $backupHost = Join-Path $output 'WawiDebugComPrevious.exe'
+    [IO.File]::Copy($HostImage, $pendingHost)
+    $replacing = [IO.File]::Exists($stableHost)
+    $published = $false
+    try {
+        if ($replacing) {
+            [IO.File]::Copy($stableHost, $backupHost)
+            [IO.File]::Replace($pendingHost, $stableHost, [NullString]::Value)
+        }
+        else { [IO.File]::Move($pendingHost, $stableHost) }
+
+        try { Register-DebugHost $stableHost }
+        catch {
+            if ($replacing) { [IO.File]::Replace($backupHost, $stableHost, [NullString]::Value) }
+            else { [IO.File]::Delete($stableHost) }
+            throw
+        }
+        $published = $true
+        try { [IO.File]::WriteAllText($activeGenerationFile, $generation) }
+        catch { Write-Warning 'Die COM-Ausgabe wurde aktualisiert. Der Build-Marker konnte nicht gespeichert werden.' }
+        return $stableHost
+    } finally {
+        Remove-Item -LiteralPath $pendingHost -ErrorAction SilentlyContinue
+        if ($published) { Remove-Item -LiteralPath $backupHost -ErrorAction SilentlyContinue }
+    }
+}
+
+function Deploy-DebugBuild {
+    if ($refresh) {
+        $source = [IO.Path]::GetFullPath($CompletedBuildDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar)
+        if ((Split-Path -Parent $source) -ne (Join-Path $app 'bin\Debug')) { return }
+        $registered = Get-RegisteredDebugExecutable $source
+        if (-not $registered) { return }
+        $framework = Split-Path -Leaf $source
+        $previous = $registered
+        if ($ProductLine -eq 'Pro') {
+            if (-not $DebugGeneration -or -not $PreparedHost) { throw 'Der vorbereitete Pro-COM-Apphost fehlt.' }
+            # Force the first publication from a legacy registration even for an identical build.
+            $previous = $null
+            if ($registered -eq $stableHost -and [IO.File]::Exists($stableHost) -and [IO.File]::Exists($activeGenerationFile)) {
+                $active = [IO.File]::ReadAllText($activeGenerationFile)
+                $managedPath = "$active\$framework\$name.dll" + [char]0
+                # After an interrupted publication the cache may still describe the previous image.
+                if ($active -cmatch '^[a-f0-9]{32}$' -and
+                    [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($stableHost)).Contains($managedPath)) {
+                    $previous = Join-Path $editionRoot "$active/$framework/$name.exe"
+                }
+            }
+        }
+        if (-not (Copy-CompletedBuild $source (Join-Path $output $framework) $previous)) { return }
+    } else {
+        Push-Location $repository
+        try {
+            & dotnet build (Join-Path $app 'WawiCallPro.App.csproj') -c Debug --nologo `
+                "-p:LexwareProductLine=$ProductLine" "-p:WawiDebugComGeneration=$generation" | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "Debug-Build für COM fehlgeschlagen (Exitcode $LASTEXITCODE)." }
+        } finally { Pop-Location }
+    }
+
+    $executables = @(Get-ChildItem -LiteralPath $output -Recurse -File -Filter "$name.exe")
+    if ($executables.Count -ne 1) { throw "Die COM-Ausgabe enthält keine eindeutige $name.exe." }
+    $executable = $executables[0]
+    foreach ($file in $required) {
+        if (-not (Test-Path -LiteralPath (Join-Path $executable.DirectoryName $file) -PathType Leaf)) {
+            throw "Die COM-Ausgabe ist unvollständig. Es fehlt $file."
+        }
+    }
+
+    if ($PrepareOnly) { return $executable.FullName }
+    if ($ProductLine -eq 'Pro') {
+        $hostImage = if ($refresh) { $PreparedHost } else { Join-Path $output 'WawiDebugComHost.exe' }
+        return (Publish-ProDebugHost $hostImage)
+    }
+
+    Register-DebugHost $executable.FullName
+    return $executable.FullName
+}
+
+if ($ProductLine -ne 'Pro') { Deploy-DebugBuild; return }
+$rootHash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($editionRoot.ToUpperInvariant())))
+$publishLock = [Threading.Mutex]::new($false, "Local\WawiCallPro.DebugCom.$rootHash")
+$ownsLock = $false
+try {
+    try { $ownsLock = $publishLock.WaitOne([TimeSpan]::FromMinutes(2)) }
+    catch [Threading.AbandonedMutexException] { $ownsLock = $true }
+    if (-not $ownsLock) { throw 'Die Veröffentlichung der COM-Debug-Ausgabe ist belegt.' }
+    Deploy-DebugBuild
+} finally {
+    if ($ownsLock) { $publishLock.ReleaseMutex() }
+    $publishLock.Dispose()
+}

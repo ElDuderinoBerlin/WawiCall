@@ -86,6 +86,16 @@ internal static class AppComDeployment
 #if DEBUG
         var debugRoot = installationRoot is null ? DebugBuildRoot(content, line) : null;
         installationRoot ??= debugRoot;
+#if LX_PRO
+        if (debugRoot is not null && fixture is null)
+        {
+            // The Pro apphost is outside the immutable generation that contains this assembly.
+            var editionRoot = new DirectoryInfo(content).Parent!.Parent!.FullName;
+            var stableHost = Path.Combine(editionRoot, Path.GetFileName(executable));
+            if (string.Equals(Environment.ProcessPath, stableHost, StringComparison.OrdinalIgnoreCase))
+                executable = stableHost;
+        }
+#endif
 #endif
         return new(clsid, progId, line, executable, version, Path.GetFullPath(installationRoot ?? directory).TrimEnd(Path.DirectorySeparatorChar), arguments)
         {

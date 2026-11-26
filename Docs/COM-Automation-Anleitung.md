@@ -40,21 +40,29 @@ vollständigen Debug-Ausgabe. Die Registrierung wird erst nach dem erfolgreichen
 .\scripts\register-debug-com.ps1 -ProductLine FinOffice
 ```
 
-Die registrierte EXE liegt unter `WawiCallPro.App/bin/ComDebug/<Edition>/<Generation>/<Framework>`.
-Nach der Erstregistrierung übernimmt jeder erfolgreiche reguläre Debug-Build der Edition seine fertige
-Ausgabe automatisch. Bei identischen Dateien wird die vorhandene Generation weiterverwendet. Laufende
-Server und ihre Clients bleiben verbunden, auch neue Clients werden weiterhin vom laufenden Server
-bedient. Sobald der Server regulär beendet ist, lädt der nächste Kaltstart die neu registrierte Ausgabe.
-Frühere Generationen bleiben für laufende oder gerade startende Prozesse verfügbar. Erst nach dem Ende
-aller betreffenden Prozesse und nach Prüfung des registrierten `LocalServer32`-Pfads alte Generationen entfernen.
+Die Pro-Registrierung verwendet den festen Pfad
+`WawiCallPro.App/bin/ComDebug/Pro/WawiCallPro.App.Pro.exe`. Diese EXE startet .NET im eigenen Prozess
+mit der vollständigen Ausgabe unter `Pro/<Generation>/<Framework>`. Nach einem erfolgreichen
+regulären Pro-Debug-Build wird die EXE am selben Pfad durch die Startdatei für die aktuelle Generation
+ersetzt. FinOffice registriert weiterhin die EXE aus seinem Generationsordner.
+
+Eine vorhandene Pro-Debug-Registrierung aus diesem Repository zieht beim nächsten erfolgreichen
+regulären Pro-Debug-Build automatisch auf den festen Pfad um. Windows kann die Netzwerkfreigabe beim
+ersten Start von diesem Pfad erneut abfragen. Weitere Pro-Builds verwenden denselben Programmpfad.
+
+Bei identischen Dateien wird die vorhandene Generation weiterverwendet. Laufende Server und ihre
+Clients behalten ihre Generation. Nach dem regulären Prozessende startet der nächste Kaltstart
+die aktuelle Ausgabe. Schlägt die Registrierung nach dem Austausch fehl, stellt das Skript den
+bisherigen Apphost wieder her. Alte Generationen erst nach dem Ende aller betreffenden Prozesse entfernen
+und dabei die aktive Pro-Generation aus `Pro/.wawi-debug-com-active` erhalten.
 
 Eine bisherige Debug-Registrierung aus demselben Repository kann das Skript übernehmen. Eine Registrierung
 aus einer anderen Installation bleibt geschützt. `-PrepareOnly` erstellt die separate Ausgabe ohne
 Registrierung. Zum gezielten Entfernen die zuletzt registrierte EXE mit `/unregserver /user` aufrufen.
 
 Der native Regressionstest verwendet die registrierten Debug-Ausgaben dieses Repositorys. Vor dem Test
-laufende WawiCallPro-Instanzen regulär schließen. Standardmäßig werden FinOffice und Pro nacheinander
-geprüft. Für eine einzelne Edition `-ProductLine FinOffice` oder `-ProductLine Pro` angeben.
+laufende Instanzen der betroffenen Edition regulär schließen. Standardmäßig wird Pro geprüft.
+FinOffice kann mit `-ProductLine FinOffice` ausdrücklich gewählt werden.
 
 ```powershell
 .\scripts\test-debug-com-refresh.ps1
@@ -62,8 +70,9 @@ geprüft. Für eine einzelne Edition `-ProductLine FinOffice` oder `-ProductLine
 
 Der Test hält einen VBScript-Client geöffnet und aktiviert mit einem zweiten Client während des Debug-Builds.
 Nach dem regulären Prozessende bricht er einen weiteren Build gezielt vor der COM-Aktualisierung ab.
-Er prüft die unveränderte HKCU-Registrierung, die Prüfsumme der registrierten Assembly und einen
-fensterlosen Kaltstart aus der weiterhin registrierten Ausgabe. Windows-Fensterereignisse, EXE-Pfade und
+Er prüft für Pro den festen EXE-Pfad beim Wechsel der Assembly und nach dem absichtlich
+fehlgeschlagenen Build. Ein fensterloser Kaltstart prüft die weiterhin registrierte Ausgabe.
+Windows-Fensterereignisse, EXE-Pfade und
 `CreateObject`-Zeiten stehen unter `artifacts/com-debug-refresh`. Der Test verwendet die echten ProgIDs,
 prüft `Ready` und registriert am Ende wieder die Ausgabe eines regulären Debug-Builds ohne Testmarker.
 
