@@ -346,7 +346,7 @@ Der bisherige gespeicherte Standard `{AufnahmeId}` wird als neuer Standard geles
 erhalten. Weitere Platzhalter sind Uhrzeit, Richtung, Rufnummer und die ausdrücklich angegebene Aufnahme-ID.
 Ohne Mandantenzuordnung lautet der Namensbestandteil `OhneMandant`. Datum und Zeitstempel beziehen sich auf
 den lokalen Aufnahmestart. Bei belegten Namen wird eine laufende Nummer angefügt.
-Die Vorschau nutzt feste Beispieldaten. Dateiendungen werden aus dem Format abgeleitet.
+Die Vorschau nutzt feste Beispieldaten und zeigt einen Pfad mit der Endung des gewählten Formats.
 Muster und Ordner werden nach einem Neustart wirksam. Das Muster betrifft neue Aufnahmen.
 
 Beim Start kopiert WawiCallPro für einen vorgemerkten Ordnerwechsel die Dateien mit ihren relativen

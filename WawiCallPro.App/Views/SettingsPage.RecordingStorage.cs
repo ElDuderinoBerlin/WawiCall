@@ -85,9 +85,8 @@ public partial class SettingsPage
             var folder = string.IsNullOrWhiteSpace(recordingFolderEdit.Text)
                 ? _workspace?.Paths.DefaultRecordingsDirectory ?? "recordings"
                 : RecordingArchive.NormalizeDirectory(recordingFolderEdit.Text.Trim());
-            var wave = Path.Combine(folder, stem + ".wav");
             var format = (RecordingArtifactFormat)(recordingFormatEdit.SelectedIndex + 1);
-            preview = format == RecordingArtifactFormat.Wave ? wave : wave + Environment.NewLine + Path.ChangeExtension(wave, format.Extension());
+            preview = Path.Combine(folder, stem + "." + format.Extension());
         }
         catch (FormatException error) { preview = error.Message; }
         recordingPreviewValue.Text = preview;

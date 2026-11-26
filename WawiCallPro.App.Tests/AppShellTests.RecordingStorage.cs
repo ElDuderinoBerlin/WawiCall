@@ -42,17 +42,22 @@ public sealed partial class AppShellTests
                 var destination = Path.Combine(workspace.Paths.RootDirectory, "Aufnahmen");
                 folder.Text = destination;
                 var choices = Field<ComboBoxEdit>(page, "recordingPatternChoices");
+                var format = Field<ComboBoxEdit>(page, "recordingFormatEdit");
+                format.SelectedIndex = 0;
                 choices.SelectedIndex = 1;
                 Assert.AreEqual("{Mandant}_{Datum}_{Timestamp}", pattern.Text);
                 Assert.Contains("Musterfirma_2026-11-25_10-44-16-000.wav", preview.Text);
                 choices.SelectedIndex = 3;
                 Assert.Contains("{Rufnummer}", pattern.Text);
                 pattern.Text = "{Datum}_{Rufnummer}";
-                Field<ComboBoxEdit>(page, "recordingFormatEdit").SelectedIndex = 1;
-                Assert.StartsWith(destination, preview.Text);
-                Assert.Contains("03025776817", preview.Text);
-                Assert.Contains(".wav", preview.Text);
-                Assert.EndsWith(".mp3", preview.Text);
+                foreach (var (index, extension) in new[] { (0, "wav"), (1, "mp3"), (2, "ogg"), (3, "wma"), (0, "wav") })
+                {
+                    format.SelectedIndex = index;
+                    var expectedPath = Path.Combine(destination, "2026-11-25_03025776817." + extension);
+                    Assert.AreEqual(expectedPath, preview.Text);
+                    Assert.AreEqual(expectedPath, preview.ToolTip);
+                }
+                format.SelectedIndex = 1;
                 settings.PerformLayout();
                 Application.DoEvents();
                 CheckTableBounds(settings);
