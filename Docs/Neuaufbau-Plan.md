@@ -2421,6 +2421,8 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   beiden Fenstergrößen und 150-%-Layoutskalierung geprüft.
   ✅ Das Telefonmotiv als SVG mit zwei DevExpress-Palettenrollen umgesetzt.
   Der Hörer und die Signalwellen übernehmen die Farben des aktiven Skins.
+  ✅ Das Motiv mit geschwungenen, halbtransparenten Flächen und einem mehrschichtigen Hörer
+  überarbeitet. Renderfälle umfassen Basic, Office 2019 Black und The Bezier mit Twenty Gold.
 
 - [x] ✅ Nutzerauftrag vom 09.11.2026: Logbereich entsprechend LxTranslate als DevExpress-Liste
   mit Zeitstempeln, Warn-/Fehlerfarben, Strg+F-Suche, Treffermarkierung/-navigation,

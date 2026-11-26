@@ -80,12 +80,13 @@ public sealed class StartupSplashTests
         var originalPalette = UserLookAndFeel.Default.ActiveSvgPaletteName;
         try
         {
-            foreach (var skin in new[] { originalSkin, "Office 2019 Black" }.Distinct())
+            foreach (var (skin, palette) in new[] { ("Basic", ""), ("Office 2019 Black", ""), ("The Bezier", "Twenty Gold") })
             foreach (var size in new[] { 10F, 16F })
             foreach (var small in new[] { true, false })
             foreach (var filled in new[] { false, true })
             {
-                UserLookAndFeel.Default.SetSkinStyle(skin);
+                if (palette.Length == 0) UserLookAndFeel.Default.SetSkinStyle(skin);
+                else UserLookAndFeel.Default.SetSkinStyle(skin, palette);
                 using var font = new Font("Segoe UI", size);
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 using var form = new FrmStartupSplashScreen();
