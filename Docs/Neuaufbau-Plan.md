@@ -2613,6 +2613,8 @@ Konfiguration; Profildaten werden nicht in das portable Exportformat aufgenommen
   `AppToast` erhält Titel, Inhalt und Aktionen vom Aufrufer. Die isolierten UI-Tests prüfen
   Tray, Aktualisierung der Rufnummer, Aktionen und Lebensdauer. Die sichtbare Desktop-
   und SIP-Abnahme bleibt in G3.
+  ✅ `FrmToast` ist auch in der Designer-Prüfmatrix erfasst. Der parameterlose
+  Konstruktor, die eingebettete Ressource und die Designer-Eigenschaften werden geprüft.
 - [x] ✅ Teilpunkt Autostartoption in den allgemeinen Einstellungen (13.11.2026):
   „Mit Windows starten“ liest den tatsächlichen editionsbezogenen HKCU-Run-Eintrag über einen injizierten
   Windows-Adapter. Keine zweite Autostartwahrheit in JSON und keine automatische Aktivierung beim Start.
