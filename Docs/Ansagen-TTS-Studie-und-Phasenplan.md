@@ -92,6 +92,20 @@ Cloud-Ressourcen. Für OpenAI erst im Pilot mit gemessenen Audioausgabetokens ka
   Durchwahl und Kundennummer vor Auflösung notieren. Natürlichkeit und Verständlichkeit
   sind bislang offen. Es gibt noch keine Rangfolge oder Anbieterentscheidung aus dem Hörtest.
 
+#### Nachprüfung im Pro-Debug-Build am 26. November 2026
+
+- [x] ✅ Die drei unveränderten Testtexte mit Hedda, Katja und Stefan erneut synthetisiert.
+  Die neun G.711-A-law-Telefonproben sind nach Dekodierung bitgleich mit den Proben vom
+  25. November. Die Synthese einschließlich Konsolenstart dauerte 661–1219 ms je Probe.
+  Dateien und Messwerte liegen unter `.artifacts/tts-phase-1/debug-2026-11-26/`.
+- [x] ✅ Fünf gezielte Tests für die Anbieterauswahl, die lokale Ansagenfunktion und die
+  Cloud-Adapter im vorhandenen Pro-Debug-Testbuild bestanden. Die Cloud-Fälle verwenden Test-Doubles.
+- [ ] Live-Synthese im Ansagendialog und Blindvergleich stehen aus. Für Azure fehlte der konfigurierte
+  Speech-Endpunkt. Zwei Azure-Abonnements ließen sich nicht abfragen, im abfragbaren Abonnement wurde
+  keine Speech-kompatible Ressource gefunden. Für Google fehlten die Projekt-ID und lokal verfügbare
+  Application Default Credentials. Es liegen daher keine vergleichbaren Cloud-Telefonproben und
+  keine Bewertung der Stimmqualität vor.
+
 ### Phase 2 – Azure-Adapter und WAV-Entwurf
 
 - [x] ✅ Auf Nutzerwunsch die offiziellen Azure- und Google-SDKs einsetzen und beide Adapter separat per DI registrierbar machen. Je Anbieter stehen zwei deutsche Stimmen zur Auswahl. Der gemeinsame Vertrag schreibt Mono-PCM-WAV mit 16 kHz und 16 Bit.
