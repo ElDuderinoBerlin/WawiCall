@@ -4985,6 +4985,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Die Regression prüft gegenphasiges Stereo, den Pegelabfall und sichtbare Balken im Raster.
   Pro und FinOffice in Debug gebaut und mit je sieben gezielten Tests geprüft. Bei der nativen
   Wiedergabe einer echten 3,65-Sekunden-Aufnahme zeigten beide Editionen neun aktive Messintervalle.
+  ✅ Bei geänderten Frequenzbändern wird das Spektrometerfeld separat neu gezeichnet und erhält
+  ein neues Bitmap für den DevExpress-Renderer. Der Rastertest prüft zwei vom Wiedergabetimer
+  aktualisierte Bilder mit unterschiedlichen Frequenzbändern bei stehender TrackBar.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem

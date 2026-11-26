@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using DevExpress.Utils;
@@ -26,6 +27,8 @@ public partial class HistoryPage
     private PlayerRow? _player;
     private HistoryPlaybackTransport? _transport;
     private Bitmap? _spectrumImage;
+    private ImmutableArray<int> _spectrumBands = AudioSpectrum.Silence;
+    private bool _spectrumImageDirty = true;
     private bool _updatingPlayer;
     private bool _draggingPosition;
     private bool _playerLayoutPending;
@@ -58,6 +61,7 @@ public partial class HistoryPage
         detail.HiddenEditor += (_, _) => _draggingPosition = false;
         _recordingSpectrum.LookAndFeel.ParentLookAndFeel = grid.LookAndFeel;
         _recordingSpectrum.BackColor = Color.Magenta;
+        _recordingSpectrum.SetSpectrum(_spectrumBands.AsSpan());
 
         var seek = new RepositoryItemTrackBar
         {
@@ -120,6 +124,7 @@ public partial class HistoryPage
 
         void QueuePlayerLayout(object? sender, EventArgs e)
         {
+            _spectrumImageDirty = true;
             if (_playerLayoutPending || !IsHandleCreated || Disposing || IsDisposed) return;
             _playerLayoutPending = true;
             BeginInvoke(() =>
@@ -388,7 +393,14 @@ public partial class HistoryPage
             finally { _updatingPlayer = false; }
         }
         detail.Columns[nameof(PlayerRow.Progress)].OptionsColumn.AllowEdit = player.Playing && media?.CanSeek == true;
-        _recordingSpectrum.SetSpectrum((player.Playing ? transport.ReadSpectrum() : AudioSpectrum.Silence).AsSpan());
+        var bands = playing ? transport.ReadSpectrum() : AudioSpectrum.Silence;
+        if (!bands.AsSpan().SequenceEqual(_spectrumBands.AsSpan()))
+        {
+            _spectrumBands = bands;
+            _recordingSpectrum.SetSpectrum(bands.AsSpan());
+            _spectrumImageDirty = true;
+            detail.InvalidateCardField(0, detail.Columns[nameof(PlayerRow.Spectrum)]);
+        }
         detail.InvalidateCard(0);
 
         void UpdateField(string field, object value)
@@ -405,14 +417,25 @@ public partial class HistoryPage
         var size = new Size(Math.Min(LogicalToDeviceUnits(90), e.Bounds.Width - 4),
             Math.Min(LogicalToDeviceUnits(13), e.Bounds.Height - 4));
         if (size.Width <= 0 || size.Height <= 0) return;
-        if (_spectrumImage?.Size != size)
+        if (_spectrumImageDirty || _spectrumImage?.Size != size)
         {
+            // DirectX can retain a texture for an Image instance. Publish a fresh bitmap when the bands change.
+            var frame = new Bitmap(size.Width, size.Height);
+            try
+            {
+                _recordingSpectrum.Size = size;
+                _recordingSpectrum.DrawToBitmap(frame, new Rectangle(Point.Empty, size));
+                frame.MakeTransparent(Color.Magenta);
+            }
+            catch
+            {
+                frame.Dispose();
+                throw;
+            }
             _spectrumImage?.Dispose();
-            _spectrumImage = new Bitmap(size.Width, size.Height);
+            _spectrumImage = frame;
+            _spectrumImageDirty = false;
         }
-        _recordingSpectrum.Size = size;
-        _recordingSpectrum.DrawToBitmap(_spectrumImage, new Rectangle(Point.Empty, size));
-        _spectrumImage.MakeTransparent(Color.Magenta);
         e.Cache.DrawImage(_spectrumImage, e.Bounds.X + 2, e.Bounds.Y + (e.Bounds.Height - size.Height) / 2);
         e.Handled = true;
     }

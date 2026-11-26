@@ -35,6 +35,8 @@ public sealed partial class AppShellTests
         var unavailable = await SaveCallAsync("not-recorded");
         var player = new HistoryPlaybackDouble(available, next);
         using var page = new HistoryPage(workspace.History, workspace.CallNotes, player) { Dock = DockStyle.Fill };
+        if (Environment.GetEnvironmentVariable("WCP_VERIFY_HISTORY_DIRECTX") == "1")
+            Field<DevExpress.XtraGrid.GridControl>(page, "grid").UseDirectXPaint = DevExpress.Utils.DefaultBoolean.True;
         using var host = new FrmSettings(workspace);
         host.PrepareForBackgroundRun();
         host.Controls.Add(page);
@@ -44,6 +46,7 @@ public sealed partial class AppShellTests
         await page.LoadAsync();
 
         var view = Field<GridView>(page, "view");
+        var grid = view.GridControl;
         var column = view.Columns["Playback"];
         var recordedRow = view.LocateByValue("Id", available);
         var otherRow = view.LocateByValue("Id", unavailable);
@@ -115,13 +118,48 @@ public sealed partial class AppShellTests
         Assert.IsFalse(player.Transport.Paused);
         Assert.AreEqual("Datei anzeigen", detail.GetRowCellValue(0, "File"));
         Assert.AreEqual("WAV · PCM 16 Bit · 8 kHz · Stereo", detail.GetRowCellValue(0, "Format"));
+
+        // Advance through two PCM inputs with a stationary TrackBar; only the player's timer may update the meter.
+        var lowFrame = await CaptureSpectrumFrameAsync(350);
+        var highFrame = await CaptureSpectrumFrameAsync(2400);
+        Assert.AreNotSame(lowFrame.Image, highFrame.Image, "The renderer must get a new image when the bands change.");
+        Assert.IsGreaterThan(lowFrame.FirstBar, highFrame.FirstBar, "The strong band must move to the right for the higher tone.");
+
+        async Task<(Bitmap Image, int FirstBar)> CaptureSpectrumFrameAsync(int frequency)
+        {
+            player.Transport.ClearSpectrum();
+            player.FeedSpectrum(frequency);
+            await Task.Delay(200);
+            var spectrumBounds = Rectangle.Empty;
+            detail.CustomDrawCardFieldValue += InspectSpectrum;
+            using var frame = new Bitmap(page.Width, page.Height);
+            try { page.DrawToBitmap(frame, page.ClientRectangle); }
+            finally { detail.CustomDrawCardFieldValue -= InspectSpectrum; }
+            var image = Field<Bitmap>(page, "_spectrumImage");
+            var firstBar = Enumerable.Range(0, image.Width).FirstOrDefault(x =>
+                Enumerable.Range(0, image.Height / 2).Any(y => image.GetPixel(x, y).A != 0), -1);
+            Assert.IsGreaterThanOrEqualTo(0, firstBar);
+            Assert.IsFalse(spectrumBounds.IsEmpty);
+            var top = Enumerable.Range(0, image.Height / 2).First(y => image.GetPixel(firstBar, y).A != 0);
+            var centerOffset = (spectrumBounds.Height - image.Height) / 2;
+            var gridOrigin = page.PointToClient(grid.PointToScreen(Point.Empty));
+            Assert.AreEqual(image.GetPixel(firstBar, top).ToArgb(),
+                frame.GetPixel(gridOrigin.X + spectrumBounds.X + 2 + firstBar,
+                    gridOrigin.Y + spectrumBounds.Y + centerOffset + top).ToArgb());
+            return (image, firstBar);
+
+            void InspectSpectrum(object sender, DevExpress.XtraGrid.Views.Base.RowCellCustomDrawEventArgs e)
+            {
+                if (e.Column.FieldName == "Spectrum") spectrumBounds = e.Bounds;
+            }
+        }
+
         var originalFont = page.Font;
         var defaultFont = WindowsFormsSettings.DefaultFont;
         var defaultAppearance = DevExpress.Utils.AppearanceObject.DefaultFont;
         var look = DevExpress.LookAndFeel.UserLookAndFeel.Default;
         var originalSkin = look.ActiveSkinName;
         var originalPalette = look.ActiveSvgPaletteName;
-        var grid = view.GridControl;
         Rectangle closeBounds = Rectangle.Empty, trackBounds = Rectangle.Empty;
         void InspectPlayer(object sender, DevExpress.XtraGrid.Views.Base.RowCellCustomDrawEventArgs e)
         {
@@ -231,12 +269,14 @@ public sealed partial class AppShellTests
             return PlayAsync(callId, token);
         }
 
-        public void FeedSpectrum()
+        public void FeedSpectrum() => FeedSpectrum(700);
+
+        public void FeedSpectrum(int frequency)
         {
             var samples = new short[4096];
             for (var frame = 0; frame < samples.Length / 2; frame++)
             {
-                var sample = (short)(24000 * Math.Sin(Math.Tau * 700 * frame / 8000));
+                var sample = (short)(24000 * Math.Sin(Math.Tau * frequency * frame / 8000));
                 samples[2 * frame] = sample;
                 samples[2 * frame + 1] = (short)-sample;
             }
