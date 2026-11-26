@@ -163,6 +163,9 @@ steht **17:15 Uhr**.
 
 #### Mehrsprachige Ansagen mit DeepL und Google
 
+- [x] ✅ DeepL-API-Schlüssel unter **Einstellungen → Audio → Cloud-Ansagen → DeepL** konfigurierbar
+  gemacht. Die App speichert ihn wie den Azure-Schlüssel und die Google-Dienstkonto-JSON
+  mit Windows DPAPI im Benutzerkontext. Der portable Export enthält keine dieser Zugangsdaten.
 - [x] ✅ Die englische Variante `en-GB-Chirp3-HD-Achernar` im Google-Stimmenkatalog des
   Testprojekts abgefragt und bestätigt. Für die drei englischen WAVs ist dieselbe
   Telefonaufbereitung mit G.711 A-law bei 8 kHz und Wiedergabe über das Jabra vorgesehen.
@@ -212,10 +215,17 @@ Der Hardwaretest `ExistingCloudAnnouncementPlaysAndExportsWithoutCloudServices` 
 `WCP_OFFLINE_ANNOUNCEMENT_SOURCE` für die vorhandene Azure-WAV, `WCP_OFFLINE_ANNOUNCEMENT_EXPORT` für einen
 neuen WAV-Zielpfad und `WCP_ANNOUNCEMENT_PLAYBACK_DEVICE` für den Windows-Namen des Ausgabegeräts.
 
-Unter **Einstellungen → Audio → Cloud-Ansagen** für Azure die Region und einen Speech-API-Schlüssel
-eingeben. Für Google die Projekt-ID eintragen und entweder eine Dienstkonto-JSON importieren oder
-die lokale Google-Anmeldung (ADC) verwenden. Der Einstellungsdialog verschlüsselt Schlüssel und
-Dienstkonto-Daten per Windows DPAPI für den aktuellen Benutzer. Der portable Export lässt sie aus.
+Unter **Einstellungen → Audio → Cloud-Ansagen** gibt es die Reiter **Azure Speech**, **Google Cloud**
+und **DeepL**. Für Azure die Region und einen Schlüssel derselben
+Azure-Speech-Ressource eingeben, zum Beispiel `germanywestcentral` und `KEY 1` oder `KEY 2` aus dem
+Azure-Portal. Für Google die Projekt-ID eines Projekts mit aktivierter Cloud Text-to-Speech API
+und verknüpftem Abrechnungskonto eintragen. Zur Authentifizierung eine Dienstkonto-JSON mit
+Zugriff auf das Projekt importieren oder die lokale Google-Anmeldung (ADC) verwenden. Für den
+Übersetzungspilot den DeepL-API-Schlüssel eintragen. Der Einstellungsdialog verschlüsselt Schlüssel
+und Dienstkonto-Daten per Windows DPAPI für den aktuellen Benutzer. Der portable Export lässt sie aus.
+[Azure Speech](https://learn.microsoft.com/azure/ai-services/speech-service/get-started-text-to-speech) ·
+[Google Cloud Text-to-Speech einrichten](https://docs.cloud.google.com/text-to-speech/docs/setup) ·
+[DeepL-API-Schlüssel](https://support.deepl.com/hc/en-us/articles/360020695820-API-key-for-DeepL-API)
 
 Für bestehende lokale Testabläufe stehen die folgenden Umgebungsvariablen weiterhin zur Verfügung.
 Die in der App gespeicherten Angaben haben Vorrang.

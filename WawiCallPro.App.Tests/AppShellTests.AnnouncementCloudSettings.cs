@@ -12,6 +12,36 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public Task AnnouncementCloudProviderTabSurvivesReopening() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var state = new AppUiState(workspace.Application, new(false), @"Software\WawiCallPro.Tests\CloudTabs\" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (var form = new FrmSettings(workspace))
+            {
+                form.PrepareForBackgroundRun();
+                form.ConfigureLayoutPersistence(state);
+                await form.PrepareAsync();
+                form.Show();
+                var page = Field<SettingsPage>(form, "settingsPage");
+                form.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "audioTab");
+                Field<XtraTabControl>(page, "audioPages").SelectedTabPage = Field<XtraTabPage>(page, "speechCloudTab");
+                Field<XtraTabControl>(page, "speechProviderPages").SelectedTabPage = Field<XtraTabPage>(page, "speechDeepLTab");
+                Assert.AreEqual("speechDeepLTab", state.ReadTab("Settings.Audio.Cloud"));
+                await form.StopAsync();
+            }
+
+            using var reopened = new FrmSettings(workspace);
+            reopened.ConfigureLayoutPersistence(state);
+            await reopened.PrepareAsync();
+            var reopenedPage = Field<SettingsPage>(reopened, "settingsPage");
+            Assert.AreEqual("speechDeepLTab", Field<XtraTabControl>(reopenedPage, "speechProviderPages").SelectedTabPage.Name);
+            await reopened.StopAsync();
+        }
+        finally { state.Reset(); }
+    });
+
+    [TestMethod]
     [DataRow("Basic", 10F, 1.5F)]
     [DataRow("Office 2019 Black", 15F, 1F)]
     public Task AnnouncementCloudSettingsProtectSecretsAndExcludeThemFromExport(string skin, float points, float scale) => WithWorkspace(async (workspace, _, _) =>
@@ -27,6 +57,7 @@ public sealed partial class AppShellTests
             token_uri = "https://oauth2.googleapis.com/token"
         });
         const string azureKey = "not-a-real-azure-access-key";
+        const string deepLKey = "not-a-real-deepl-access-key";
         workspace.AnnouncementQuota = new AnnouncementCloudQuota(
             Path.Combine(workspace.Paths.RootDirectory, "announcement-quota-fixture.json"), TimeProvider.System);
         workspace.AnnouncementQuota.Reserve(AnnouncementSpeechProvider.AzureSpeech,
@@ -41,9 +72,13 @@ public sealed partial class AppShellTests
         var page = Field<SettingsPage>(form, "settingsPage");
         Field<XtraTabControl>(page, "tabs").SelectedTabPage = Field<XtraTabPage>(page, "audioTab");
         Field<XtraTabControl>(page, "audioPages").SelectedTabPage = Field<XtraTabPage>(page, "speechCloudTab");
+        var providerPages = Field<XtraTabControl>(page, "speechProviderPages");
         Field<TextEdit>(page, "speechAzureRegionEdit").Text = "GermanyWestCentral";
         Field<TextEdit>(page, "speechAzureKeyEdit").Text = azureKey;
         Field<TextEdit>(page, "speechGoogleProjectEdit").Text = "example-tts";
+        var deepLEdit = Field<TextEdit>(page, "speechDeepLKeyEdit");
+        Assert.IsTrue(deepLEdit.Properties.UseSystemPasswordChar);
+        deepLEdit.Text = deepLKey;
         Field<SpinEdit>(page, "quotaAzureEdit").Value = 45_000;
         Field<SpinEdit>(page, "quotaNeural2Edit").Value = 50_000;
         Field<SpinEdit>(page, "quotaChirpEdit").Value = 60_000;
@@ -61,10 +96,18 @@ public sealed partial class AppShellTests
         Assert.EndsWith("5", Field<LabelControl>(page, "quotaAzureUsed").Text);
         Assert.IsNotNull(cloud.AzureKey);
         Assert.IsNotNull(cloud.GoogleCredential);
+        Assert.IsNotNull(cloud.DeepLKey);
         using (var secret = workspace.Secrets.Unprotect(cloud.AzureKey, AnnouncementCloudSettings.AzureKeyPurpose))
             Assert.AreEqual(azureKey, secret.Reveal());
         using (var secret = workspace.Secrets.Unprotect(cloud.GoogleCredential, AnnouncementCloudSettings.GoogleCredentialPurpose))
             Assert.AreEqual(credential, secret.Reveal());
+        using (var secret = workspace.Secrets.Unprotect(cloud.DeepLKey, AnnouncementCloudSettings.DeepLKeyPurpose))
+            Assert.AreEqual(deepLKey, secret.Reveal());
+        Assert.Throws<Utilities.Security.SecretProtectionException>(() =>
+            workspace.Secrets.Unprotect(cloud.DeepLKey, AnnouncementCloudSettings.AzureKeyPurpose));
+        Assert.DoesNotContain(deepLKey, await File.ReadAllTextAsync(Path.Combine(workspace.Paths.RootDirectory, "appsettings.json")));
+        Assert.AreEqual("", deepLEdit.Text);
+        Assert.AreEqual("Gespeichert", deepLEdit.Properties.NullValuePrompt);
         Assert.AreEqual("", Field<TextEdit>(page, "speechAzureKeyEdit").Text);
         Assert.AreEqual("Gespeichert", Field<LabelControl>(page, "speechGoogleCredentialEdit").Text);
         var output = Path.Combine(RenderOutput(), "announcements", workspace.Application.ProductLine);
@@ -74,20 +117,34 @@ public sealed partial class AppShellTests
         var exported = await File.ReadAllTextAsync(portable);
         Assert.DoesNotContain("azureKey", exported);
         Assert.DoesNotContain("googleCredential", exported);
+        Assert.DoesNotContain("deepLKey", exported);
+        Assert.DoesNotContain(deepLKey, exported);
         Assert.DoesNotContain("example-tts", exported);
         form.ClientSize = new Size(690, 570);
         form.Show();
         if (scale != 1F) form.Scale(new SizeF(scale, scale));
-        form.PerformLayout();
-        Application.DoEvents();
-        CheckTableBounds(form);
-        using (var bitmap = UiAudit.Capture(form)) bitmap.Save(Path.Combine(output, $"cloud-settings-{points:0}.png"));
+        foreach (XtraTabPage provider in providerPages.TabPages)
+        {
+            providerPages.SelectedTabPage = provider;
+            form.PerformLayout();
+            Application.DoEvents();
+            CheckTableBounds(form);
+            using var bitmap = UiAudit.Capture(form);
+            bitmap.Save(Path.Combine(output, $"cloud-settings-{provider.Name}-{points:0}.png"));
+        }
         Field<CheckEdit>(page, "speechAzureClear").Checked = true;
         Field<CheckEdit>(page, "speechGoogleClear").Checked = true;
+        await page.SaveAsync(default);
+        var retained = (await workspace.Settings.LoadAsync()).Options.Devices.Announcements.Cloud.DeepLKey;
+        Assert.IsNotNull(retained);
+        using (var secret = workspace.Secrets.Unprotect(retained, AnnouncementCloudSettings.DeepLKeyPurpose))
+            Assert.AreEqual(deepLKey, secret.Reveal());
+        Field<CheckEdit>(page, "speechDeepLClear").Checked = true;
         await page.SaveAsync(default);
         cloud = (await workspace.Settings.LoadAsync()).Options.Devices.Announcements.Cloud;
         Assert.IsNull(cloud.AzureKey);
         Assert.IsNull(cloud.GoogleCredential);
+        Assert.IsNull(cloud.DeepLKey);
         await form.StopAsync();
     });
 }

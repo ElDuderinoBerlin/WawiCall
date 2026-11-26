@@ -49,7 +49,12 @@ public partial class SettingsPage : XtraUserControl
             Math.Max(audioLayout.GetPreferredSize(new(width, 0)).Height, audioLevelsLayout.GetPreferredSize(new(width, 0)).Height)
             + audioDevicesTab.Top + audioDevicesTab.Left);
         if (tabs.SelectedTabPage == audioTab && audioPages.SelectedTabPage == speechCloudTab)
-            content = Math.Max(content, speechCloudLayout.GetPreferredSize(new(width, 0)).Height + speechCloudTab.Top + speechCloudTab.Left);
+        {
+            var providerPage = speechProviderPages.SelectedTabPage;
+            if (providerPage?.Controls[0] is TableLayoutPanel providerLayout)
+                content = Math.Max(content, providerLayout.GetPreferredSize(new(width, 0)).Height
+                    + speechCloudTab.Top + speechCloudTab.Left + providerPage.Top + providerPage.Left);
+        }
         if (tabs.SelectedTabPage == sipTab)
             content = Math.Max(content, sipProfilesLayout.GetPreferredSize(new(width, 0)).Height
                 + sipLayout.GetPreferredSize(new(width, 0)).Height
@@ -71,6 +76,7 @@ public partial class SettingsPage : XtraUserControl
         footer.Layout += General_Layout;
         generalLayout.Layout += General_Layout;
         tabs.SelectedPageChanged += SettingsTab_Changed;
+        speechProviderPages.SelectedPageChanged += SettingsTab_Changed;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
         sipProfilesLayout.Layout += General_Layout;
@@ -283,6 +289,7 @@ public partial class SettingsPage : XtraUserControl
         state?.AttachTabs(pluginPages, "Settings.Plugins");
         state?.AttachTabs(sipPages, "Settings.Sip");
         state?.AttachTabs(audioPages, "Settings.Audio");
+        state?.AttachTabs(speechProviderPages, "Settings.Audio.Cloud");
         state?.AttachTabs(cachePages, "Settings.PhoneCache");
         pluginPage.ConfigureLayoutPersistence(state);
         functionPluginsPage.ConfigureLayoutPersistence(state);
@@ -300,6 +307,8 @@ public partial class SettingsPage : XtraUserControl
         if (page == pluginTab) _state?.SaveTab("Settings.Plugins", pluginPages.SelectedTabPage?.Name);
         if (page == sipTab) _state?.SaveTab("Settings.Sip", sipPages.SelectedTabPage?.Name);
         if (page == audioTab) _state?.SaveTab("Settings.Audio", audioPages.SelectedTabPage?.Name);
+        if (page == audioTab && audioPages.SelectedTabPage == speechCloudTab)
+            _state?.SaveTab("Settings.Audio.Cloud", speechProviderPages.SelectedTabPage?.Name);
         if (page == cacheTab) _state?.SaveTab("Settings.PhoneCache", cachePages.SelectedTabPage?.Name);
     }
 

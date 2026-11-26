@@ -54,6 +54,7 @@ public sealed record AnnouncementCloudSettings
 {
     public const string AzureKeyPurpose = "announcement.azure.key";
     public const string GoogleCredentialPurpose = "announcement.google.credential";
+    public const string DeepLKeyPurpose = "announcement.deepl.key";
     public const int AzureFreeCharacters = 500_000;
     public const int GoogleFreeCharactersPerVoiceFamily = 1_000_000;
 
@@ -61,6 +62,7 @@ public sealed record AnnouncementCloudSettings
     public ProtectedSecret? AzureKey { get; init; }
     public string? GoogleProjectId { get; init; }
     public ProtectedSecret? GoogleCredential { get; init; }
+    public ProtectedSecret? DeepLKey { get; init; }
     public int AzureMonthlyAllowance { get; init; }
     public int GoogleNeural2MonthlyAllowance { get; init; }
     public int GoogleChirpMonthlyAllowance { get; init; }

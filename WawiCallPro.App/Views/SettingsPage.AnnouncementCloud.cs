@@ -25,6 +25,10 @@ public partial class SettingsPage
         speechGoogleCredentialEdit.Text = settings.GoogleCredential is null ? "Keine JSON gespeichert" : "Gespeichert";
         speechGoogleClear.Checked = false;
         speechGoogleClear.Enabled = settings.GoogleCredential is not null;
+        speechDeepLKeyEdit.Text = "";
+        speechDeepLKeyEdit.Properties.NullValuePrompt = settings.DeepLKey is null ? "" : "Gespeichert";
+        speechDeepLClear.Checked = false;
+        speechDeepLClear.Enabled = settings.DeepLKey is not null;
         quotaAzureEdit.Value = settings.AzureMonthlyAllowance;
         quotaNeural2Edit.Value = settings.GoogleNeural2MonthlyAllowance;
         quotaChirpEdit.Value = settings.GoogleChirpMonthlyAllowance;
@@ -36,6 +40,7 @@ public partial class SettingsPage
         var enteredKey = speechAzureKeyEdit.Text.Trim();
         var azureRegion = speechAzureRegionEdit.Text.Trim().ToLowerInvariant();
         var googleProject = speechGoogleProjectEdit.Text.Trim();
+        var enteredDeepLKey = speechDeepLKeyEdit.Text.Trim();
         var azureKey = speechAzureClear.Checked ? null : enteredKey.Length == 0 ? existing.AzureKey
             : _workspace!.Secrets.Protect(enteredKey, AnnouncementCloudSettings.AzureKeyPurpose);
         return new()
@@ -44,6 +49,8 @@ public partial class SettingsPage
             AzureKey = azureKey,
             GoogleProjectId = googleProject.Length == 0 ? null : googleProject,
             GoogleCredential = speechGoogleClear.Checked ? null : _importedGoogleSpeechCredential ?? existing.GoogleCredential,
+            DeepLKey = speechDeepLClear.Checked ? null : enteredDeepLKey.Length == 0 ? existing.DeepLKey
+                : _workspace!.Secrets.Protect(enteredDeepLKey, AnnouncementCloudSettings.DeepLKeyPurpose),
             AzureMonthlyAllowance = (int)quotaAzureEdit.Value,
             GoogleNeural2MonthlyAllowance = (int)quotaNeural2Edit.Value,
             GoogleChirpMonthlyAllowance = (int)quotaChirpEdit.Value
