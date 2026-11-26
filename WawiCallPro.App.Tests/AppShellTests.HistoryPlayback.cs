@@ -1,6 +1,7 @@
+using System.Runtime.InteropServices;
 using DevExpress.XtraEditors;
-using DevExpress.XtraEditors.Controls;
 using DevExpress.XtraGrid.Views.Grid;
+using DevExpress.XtraGrid.Views.Grid.ViewInfo;
 using DevExpress.XtraGrid.Views.Layout;
 using WawiCallPro.Database.Contracts;
 using WawiCallPro.App.Views;
@@ -64,19 +65,15 @@ public sealed partial class AppShellTests
         }
 
 
-        view.FocusedRowHandle = recordedRow;
-        await WaitForOperationAsync(page);
-        view.ShowEditor();
-        Assert.IsInstanceOfType<ButtonEdit>(view.ActiveEditor);
-        Assert.AreEqual("Abspielen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
-        Assert.IsNotNull(((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].ImageOptions.SvgImage);
-        var click = typeof(HistoryPage).GetMethod("Playback_Click", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-        click.Invoke(page, [view.ActiveEditor, new ButtonPressedEventArgs(((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0])]);
+        view.FocusedColumn = view.Columns["Rufnummer"];
+        ClickPlaybackCell(recordedRow);
         Assert.AreEqual(available, await player.Started.Task.WaitAsync(TimeSpan.FromSeconds(3)));
         Assert.IsTrue(view.GetMasterRowExpanded(recordedRow));
         Assert.IsFalse(view.GetMasterRowExpanded(otherRow));
         var detail = view.GetDetailView(recordedRow, 0) as LayoutView;
         Assert.IsNotNull(detail);
+        Assert.AreEqual(DevExpress.XtraEditors.Controls.BorderStyles.NoBorder, detail.BorderStyle);
+        Assert.IsFalse(detail.OptionsView.ShowCardBorderIfCaptionHidden);
         Assert.AreEqual("00:14", detail.GetRowCellValue(0, "Elapsed"));
         Assert.AreEqual("00:27", detail.GetRowCellValue(0, "Duration"));
         Assert.AreEqual(RecordingArtifactFormat.Wave, player.Transport!.Media!.Format);
@@ -151,10 +148,7 @@ public sealed partial class AppShellTests
         Assert.IsInstanceOfType<ButtonEdit>(view.ActiveEditor);
         Assert.AreEqual("Stoppen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
         var nextRow = view.LocateByValue("Id", next);
-        view.FocusedRowHandle = nextRow;
-        view.FocusedColumn = column;
-        view.ShowEditor();
-        click.Invoke(page, [view.ActiveEditor, new ButtonPressedEventArgs(((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0])]);
+        ClickPlaybackCell(nextRow);
         await player.NextStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.IsFalse(view.GetMasterRowExpanded(recordedRow));
         Assert.IsTrue(view.GetMasterRowExpanded(nextRow));
@@ -164,7 +158,23 @@ public sealed partial class AppShellTests
         Assert.IsFalse(view.GetMasterRowExpanded(nextRow));
         Assert.AreEqual(2, player.CancelledCount);
         await host.StopAsync();
+
+        void ClickPlaybackCell(int rowHandle)
+        {
+            const uint leftButtonDown = 0x0201;
+            const uint leftButtonUp = 0x0202;
+            view.MakeRowVisible(rowHandle);
+            var bounds = ((GridViewInfo)view.GetViewInfo()).GetGridCellInfo(rowHandle, column).Bounds;
+            Assert.IsTrue(bounds.Width > 0 && bounds.Height > 0);
+            var point = (nint)(((bounds.Top + bounds.Height / 2) << 16) | (bounds.Left + bounds.Width / 2));
+            var handle = view.GridControl.Handle;
+            SendHistoryGridMouseMessage(handle, leftButtonDown, 1, point);
+            SendHistoryGridMouseMessage(handle, leftButtonUp, 0, point);
+        }
     });
+
+    [DllImport("user32.dll", EntryPoint = "SendMessageW", ExactSpelling = true)]
+    private static extern nint SendHistoryGridMouseMessage(nint handle, uint message, nint flags, nint point);
 
     private sealed class HistoryPlaybackDouble(Guid available, Guid? next = null) : IHistoryRecordingPlayback
     {

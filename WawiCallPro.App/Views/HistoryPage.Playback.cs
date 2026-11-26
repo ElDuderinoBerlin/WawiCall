@@ -38,11 +38,13 @@ public partial class HistoryPage
         var detail = new LayoutView(grid);
         grid.ViewCollection.Add(detail);
         grid.LevelTree.Nodes.Add(PlaybackRelation, detail);
+        detail.BorderStyle = BorderStyles.NoBorder;
         detail.OptionsBehavior.AutoPopulateColumns = false;
         detail.OptionsBehavior.AllowRuntimeCustomization = false;
         detail.OptionsBehavior.EditorShowMode = EditorShowMode.MouseDown;
         detail.OptionsView.ShowHeaderPanel = false;
         detail.OptionsView.ShowCardCaption = false;
+        detail.OptionsView.ShowCardBorderIfCaptionHidden = false;
         detail.OptionsView.ShowCardExpandButton = false;
         detail.OptionsView.ShowCardFieldBorders = false;
         detail.OptionsView.ViewMode = LayoutViewMode.SingleRecord;
@@ -102,6 +104,7 @@ public partial class HistoryPage
         view.OptionsDetail.AllowOnlyOneMasterRowExpanded = true;
         view.OptionsDetail.ShowDetailTabs = false;
         view.OptionsView.ShowDetailButtons = false;
+        view.DetailVerticalIndent = 0;
         view.MasterRowExpanding += (_, e) => e.Allow = PlayerForRow(e.RowHandle) is not null;
         view.MasterRowCollapsing += (_, e) => e.Allow = PlayerForRow(e.RowHandle) is null;
         view.ColumnFilterChanged += (_, _) => RestorePlayerView();
@@ -198,6 +201,21 @@ public partial class HistoryPage
         return handle >= 0 && view.GetDetailView(handle, 0) is LayoutView { Columns.Count: > 0 } detail ? detail : null;
     }
 
+    private void View_PlaybackMouseDown(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left || _stopping || _playback is null) return;
+        var hit = view.CalcHitInfo(e.Location);
+        if (!hit.InRowCell || hit.Column != playbackColumn || view.GetRow(hit.RowHandle) is not HistoryRow row
+            || !_playable.Contains(row.Id)) return;
+
+        var mouse = DXMouseEventArgs.GetMouseArgs(e);
+        mouse.Handled = true;
+        view.FocusedRowHandle = hit.RowHandle;
+        view.FocusedColumn = playbackColumn;
+        view.ShowEditor();
+        if (view.ActiveEditor is ButtonEdit editor) editor.PerformClick(editor.Properties.Buttons[0]);
+    }
+
     private async void Playback_Click(object? sender, ButtonPressedEventArgs e)
     {
         if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;
@@ -217,12 +235,15 @@ public partial class HistoryPage
 
     private Task StartPlayerAsync(Guid callId)
     {
+        var handle = view.LocateByValue(nameof(HistoryRow.Id), callId);
+        if (handle < 0 || view.GetRow(handle) is not HistoryRow row || row.PlayerDetails.Count == 0) return Task.CompletedTask;
         if (_player is null)
         {
-            var handle = view.LocateByValue(nameof(HistoryRow.Id), callId);
-            if (handle < 0 || view.GetRow(handle) is not HistoryRow row || row.PlayerDetails.Count == 0) return Task.CompletedTask;
             _player = row.PlayerDetails[0];
             if (grid.LevelTree.Nodes[PlaybackRelation].LevelTemplate is LayoutView detail) SizePlayer(detail);
+        }
+        if (ActivePlayerView() is null)
+        {
             view.ExpandMasterRow(handle);
             if (ActivePlayerView() is null)
             {
@@ -230,8 +251,8 @@ public partial class HistoryPage
                 _log?.LogWarning("Der Player konnte in der Gesprächshistorie nicht geöffnet werden.");
                 return Task.CompletedTask;
             }
-            view.MakeRowVisible(handle);
         }
+        view.MakeRowVisible(handle);
         _transport = new HistoryPlaybackTransport();
         _player.Playing = true;
         playerTimer.Start();

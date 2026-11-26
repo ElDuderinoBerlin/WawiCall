@@ -319,6 +319,7 @@ partial class HistoryPage
         view.CustomRowCellEdit += View_PlaybackEditor;
         view.CustomRowCellEditForEditing += View_PlaybackEditor;
         view.ShowingEditor += View_ShowingEditor;
+        view.MouseDown += View_PlaybackMouseDown;
         view.AutoFillColumn = numberColumn;
         view.FocusedRowChanged += View_FocusedRowChanged;
         detailsEdit.Dock = System.Windows.Forms.DockStyle.Fill;

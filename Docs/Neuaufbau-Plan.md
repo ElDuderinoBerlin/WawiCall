@@ -3613,9 +3613,9 @@ größerer Schrift, höherer DPI und aktivem Skin rendern und visuell prüfen.
 ### Phase 9 – Audio, Aufzeichnung und Ansagen 🟨
 
 - [x] ✅ Gesprächsaufnahmen direkt in der Historienspalte „Aufnahme“ abspielen.
-  Die Zeile öffnet den Player mit Pause, Trackbar, Zeitangaben, CSCore-Spektrum,
-  Dateilink und Formatdaten der geprüften Aufnahme. Beim Wechsel bleibt nur die neue
-  Aufnahme geöffnet. Debug-Builds, Darstellung in dunklen Skins und automatisierte
+  Der erste Klick auf Play öffnet die Zeile und startet die Wiedergabe. Der rahmenlose Player
+  zeigt Pause, Trackbar, Zeitangaben, CSCore-Spektrum, Dateilink und Formatdaten der geprüften Aufnahme.
+  Beim Wechsel bleibt nur die neue Aufnahme geöffnet. Debug-Builds, Darstellung in dunklen Skins und automatisierte
   Prüfungen einschließlich Pause und Spulen über stummes WASAPI in Pro und FinOffice.
 
 - [x] ✅ Gesprächshistorie zeigt Mandant und Rechner. Windows-Benutzer, Annahmezeit,
