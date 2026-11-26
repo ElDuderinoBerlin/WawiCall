@@ -9,6 +9,46 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    public Task AudioAutomationOpensDevicesEvenWhenCloudAnnouncementsWereLastSelected() => WithWorkspace(async (workspace, _, _) =>
+    {
+        var key = @"Software\WawiCallPro.Tests\Tabs\" + Guid.NewGuid().ToString("N");
+        var state = new AppUiState(workspace.Application, new(false), key);
+        state.SaveTab("Settings", "audioTab");
+        state.SaveTab("Settings.Audio", "speechCloudTab");
+        try
+        {
+            using var owner = new MainForm(workspace.Application, workspace.Configuration, workspace, state);
+            owner.PrepareForBackgroundRun();
+            owner.Show();
+            var shown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var opening = owner.ShowSettingsAsync("settings-audio", () =>
+            {
+                var dialog = owner.OwnedForms.OfType<FrmSettings>().Single();
+                try
+                {
+                    var page = Field<SettingsPage>(dialog, "settingsPage");
+                    Assert.AreEqual("audioTab", dialog.SettingsTabs.SelectedTabPage.Name);
+                    Assert.AreEqual("audioDevicesTab",
+                        Field<DevExpress.XtraTab.XtraTabControl>(page, "audioPages").SelectedTabPage.Name);
+                    shown.SetResult();
+                }
+                catch (Exception exception) { shown.SetException(exception); }
+                finally { dialog.BeginInvoke(dialog.Close); }
+            });
+            var pending = Field<FrmSettings>(owner, "_settingsDialog");
+            pending.Load += (_, _) =>
+            {
+                var page = Field<SettingsPage>(pending, "settingsPage");
+                state.RestoreTab(Field<DevExpress.XtraTab.XtraTabControl>(page, "audioPages"), "Settings.Audio");
+            };
+            await shown.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(await opening);
+            await owner.PrepareToCloseAsync();
+        }
+        finally { state.Reset(); }
+    });
+
+    [TestMethod]
     public Task SettingsOpensWithLoadedValuesAndKeepsItsOwnerResponsiveWhilePreparing() => WithWorkspace(async (workspace, services, _) =>
     {
         using (var unopened = new FrmSettings())

@@ -98,6 +98,9 @@ Mandantenkennung. PowerShell hat dafür `-ViewId`, `-ContextJson` bzw. `-Company
 gewählte Aktion `dial` eine GUID und zeigt sie vor dem Aufruf an. Bei unklarem Ausgang dieselbe ID
 aufbewahren und vorhandenen Auftrag prüfen; kein Skript wiederholt eine Telefonaktion automatisch.
 
+`settings-audio` öffnet **Audio → Geräte**, auch wenn zuletzt ein anderer Audio-Untertab
+gespeichert war. `settings-audio-levels` öffnet **Audio → Aufnahme**.
+
 PowerShell 5.1 und 7 steuern den ausgewählten nativen VBS-WSH-Client. Das umgeht das beobachtete
 Problem beim direkten Marshaling der COM-Rückgabeobjekte in PowerShell 7; es ist kein Nachweis
 eines direkten PowerShell-COM-Binders. x86/x64 werden ausdrücklich über den WSH-Host gewählt.
