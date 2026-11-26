@@ -8,6 +8,7 @@ public sealed record AnnouncementVoice(string Id, string DisplayName, string Lan
 public interface IAnnouncementSpeech
 {
     IReadOnlyList<AnnouncementVoice> GetVoices();
+    Task<IReadOnlyList<AnnouncementVoice>> LoadVoicesAsync(CancellationToken token) => Task.FromResult(GetVoices());
     Task<AnnouncementVoice> WriteWaveAsync(string text, string? voiceId, string destination, CancellationToken token);
 }
 

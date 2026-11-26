@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Audio;
 using WawiCallPro.Utilities.Configuration;
@@ -12,6 +13,145 @@ public partial class SettingsPage
 {
     private const int MaxGoogleCredentialBytes = 16_384;
     private ProtectedSecret? _importedGoogleSpeechCredential;
+    private Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>? _resolveAnnouncementSpeech;
+    private CancellationTokenSource? _announcementPreviewStop;
+    private bool _announcementVoiceBusy;
+
+    private sealed record AnnouncementProviderChoice(AnnouncementSpeechProvider Id, string Name);
+    private sealed record AnnouncementVoiceChoice(string Id, string Name);
+
+    internal void ConfigureAnnouncementSpeech(Func<AnnouncementSpeechProvider, IAnnouncementSpeech?>? resolve) =>
+        _resolveAnnouncementSpeech = resolve;
+
+    private AnnouncementSpeechProvider StandardAnnouncementProvider =>
+        standardSpeechProviderEdit.EditValue is AnnouncementSpeechProvider provider ? provider : AnnouncementSpeechProvider.Windows;
+
+    private string? StandardAnnouncementVoice => standardSpeechVoiceEdit.EditValue is string { Length: > 0 } voice ? voice : null;
+
+    private void ApplyAnnouncementVoice(AnnouncementAudioSettings settings)
+    {
+        if (standardSpeechProviderEdit.Properties.DataSource is null)
+        {
+            standardSpeechProviderEdit.Properties.DataSource = new AnnouncementProviderChoice[]
+            {
+                new(AnnouncementSpeechProvider.Windows, "Windows"),
+                new(AnnouncementSpeechProvider.AzureSpeech, "Azure Speech"),
+                new(AnnouncementSpeechProvider.GoogleCloud, "Google Cloud")
+            };
+        }
+        standardSpeechProviderEdit.EditValue = settings.SpeechProvider;
+        BindStandardAnnouncementVoices(PresetAnnouncementVoices(), settings.VoiceId);
+        UpdateAnnouncementVoiceActions();
+    }
+
+    private IReadOnlyList<AnnouncementVoice> PresetAnnouncementVoices()
+    {
+        var provider = StandardAnnouncementProvider;
+        if (provider != AnnouncementSpeechProvider.Windows) return CloudAnnouncementSpeechServices.GetPresetVoices(provider);
+        try { return _workspace?.AnnouncementSpeech?.GetVoices() ?? []; }
+        catch (Exception) { return []; }
+    }
+
+    private void BindStandardAnnouncementVoices(IReadOnlyList<AnnouncementVoice> voices, string? selected)
+    {
+        var choices = new List<AnnouncementVoiceChoice>
+        {
+            new("", StandardAnnouncementProvider == AnnouncementSpeechProvider.Windows ? "Systemstandard" : "Standardstimme des Anbieters")
+        };
+        choices.AddRange(voices.Select(voice => new AnnouncementVoiceChoice(voice.Id, $"{voice.DisplayName} ({voice.Language})")));
+        if (selected is not null && choices.All(voice => voice.Id != selected))
+            choices.Add(new(selected, $"{selected} (gespeichert)"));
+        standardSpeechVoiceEdit.Properties.DataSource = choices;
+        standardSpeechVoiceEdit.EditValue = selected ?? "";
+    }
+
+    private void StandardSpeechProvider_Changed(object? sender, EventArgs e)
+    {
+        BindStandardAnnouncementVoices(PresetAnnouncementVoices(), null);
+        speechTestStatus.Text = "";
+        UpdateAnnouncementVoiceActions();
+    }
+
+    private void SpeechTestText_Changed(object? sender, EventArgs e) => UpdateAnnouncementVoiceActions();
+
+    private void UpdateAnnouncementVoiceActions()
+    {
+        var ready = _workspace is not null && !_stoppingTabs && !_announcementVoiceBusy;
+        standardSpeechProviderEdit.Enabled = standardSpeechVoiceEdit.Enabled = speechTestEdit.Enabled = ready;
+        refreshSpeechVoicesButton.Enabled = ready && _resolveAnnouncementSpeech is not null
+            && StandardAnnouncementProvider != AnnouncementSpeechProvider.Windows;
+        speechTestButton.Enabled = (_announcementPreviewStop is not null && !_stoppingTabs)
+            || ready && _workspace?.AnnouncementAudio is not null && !string.IsNullOrWhiteSpace(speechTestEdit.Text);
+    }
+
+    internal Task RefreshAnnouncementVoicesAsync() => RunAnnouncementVoiceActionAsync(async token =>
+    {
+        var voice = StandardAnnouncementVoice;
+        var speech = await ResolveAnnouncementSpeechAsync(StandardAnnouncementProvider, token);
+        BindStandardAnnouncementVoices(await speech.LoadVoicesAsync(token), voice);
+        speechTestStatus.Text = "Stimmenliste geladen.";
+    });
+
+    internal Task PreviewAnnouncementVoiceAsync() => RunAnnouncementVoiceActionAsync(async token =>
+    {
+        if (_workspace?.AnnouncementAudio is not { } audio || string.IsNullOrWhiteSpace(speechTestEdit.Text)) return;
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+        _announcementPreviewStop = stop;
+        speechTestButton.Text = "Stopp";
+        UpdateAnnouncementVoiceActions();
+        var path = Path.Combine(Path.GetTempPath(), $"WawiCallPro-voice-preview-{Guid.NewGuid():N}.wav");
+        try
+        {
+            var devices = (await _workspace.Settings.LoadAsync(stop.Token)).Options.Devices;
+            var speech = await ResolveAnnouncementSpeechAsync(StandardAnnouncementProvider, stop.Token);
+            await speech.WriteWaveAsync(speechTestEdit.Text, StandardAnnouncementVoice, path, stop.Token);
+            await audio.PreviewAsync(path, devices with { PlaybackDeviceId = devices.Announcements.PlaybackDeviceId }, stop.Token);
+            speechTestStatus.Text = "Wiedergabe beendet.";
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            speechTestStatus.Text = "Vorschau abgebrochen.";
+        }
+        finally
+        {
+            _announcementPreviewStop = null;
+            speechTestButton.Text = "Vertonen und abspielen";
+            try { File.Delete(path); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            UpdateAnnouncementUsage();
+        }
+    });
+
+    private Task RunAnnouncementVoiceActionAsync(Func<CancellationToken, Task> action) => _operation?.RunAsync(async token =>
+    {
+        _announcementVoiceBusy = true;
+        UpdateAnnouncementVoiceActions();
+        speechTestStatus.Text = "Bitte warten …";
+        try { await action(token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (AnnouncementSpeechException error) { speechTestStatus.Text = error.Message; }
+        catch (Exception) { speechTestStatus.Text = "Stimmenprobe fehlgeschlagen. Zugang und Audiogerät prüfen."; }
+        finally
+        {
+            _announcementVoiceBusy = false;
+            UpdateAnnouncementVoiceActions();
+        }
+    }) ?? Task.CompletedTask;
+
+    private async Task<IAnnouncementSpeech> ResolveAnnouncementSpeechAsync(AnnouncementSpeechProvider provider, CancellationToken token)
+    {
+        var speech = provider == AnnouncementSpeechProvider.Windows ? _workspace?.AnnouncementSpeech
+            : await Task.Run(() => _resolveAnnouncementSpeech?.Invoke(provider), token);
+        return speech ?? throw new AnnouncementSpeechException("Für den gewählten Anbieter zuerst den Zugang speichern.");
+    }
+
+    private async void RefreshSpeechVoices_Click(object? sender, EventArgs e) => await RefreshAnnouncementVoicesAsync();
+
+    private async void SpeechTest_Click(object? sender, EventArgs e)
+    {
+        if (_announcementPreviewStop is { } stop) await stop.CancelAsync();
+        else await PreviewAnnouncementVoiceAsync();
+    }
 
     private void ApplyAnnouncementCloud(AnnouncementCloudSettings settings)
     {

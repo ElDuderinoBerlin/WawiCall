@@ -2,15 +2,60 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using DevExpress.XtraEditors;
 using DevExpress.XtraTab;
+using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
+using WawiCallPro.Audio;
 using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    [TestMethod]
+    public Task AnnouncementSettingsLoadPreviewAndSaveTheSelectedVoice()
+    {
+        var output = new AnnouncementAudioDouble();
+        return WithWorkspace(async (workspace, _, _) =>
+        {
+            var speech = new AnnouncementSpeechDouble { Voice = new("de-DE-Chirp3-HD-Puck", "Puck", "de-DE") };
+            var saved = await workspace.Settings.LoadAsync();
+            await workspace.Settings.SaveAsync(saved.Options with
+            {
+                Devices = saved.Options.Devices with { Announcements = new() { PlaybackDeviceId = "speaker" } }
+            }, saved);
+            using var form = new FrmSettings(workspace);
+            form.ConfigureAnnouncementSpeech(provider => provider == AnnouncementSpeechProvider.GoogleCloud ? speech : null);
+            form.PrepareForBackgroundRun();
+            await form.PrepareAsync();
+            var page = Field<SettingsPage>(form, "settingsPage");
+            form.SettingsTabs.SelectedTabPage = Field<XtraTabPage>(page, "audioTab");
+            Field<XtraTabControl>(page, "audioPages").SelectedTabPage = Field<XtraTabPage>(page, "speechCloudTab");
+            form.Show();
+            Field<LookUpEdit>(page, "standardSpeechProviderEdit").EditValue = AnnouncementSpeechProvider.GoogleCloud;
+            await page.RefreshAnnouncementVoicesAsync();
+            Assert.AreEqual("Stimmenliste geladen.", Field<LabelControl>(page, "speechTestStatus").Text);
+            var voices = Field<LookUpEdit>(page, "standardSpeechVoiceEdit");
+            Assert.IsNotNull(voices.Properties.GetDataSourceRowByKeyValue(speech.Voice.Id));
+            voices.EditValue = speech.Voice.Id;
+            Field<TextEdit>(page, "speechTestEdit").Text = "Guten Tag.";
+            await page.PreviewAnnouncementVoiceAsync();
+            Assert.AreEqual("Wiedergabe beendet.", Field<LabelControl>(page, "speechTestStatus").Text);
+            Assert.AreEqual(speech.Voice.Id, speech.SelectedVoice);
+            Assert.AreEqual("speaker", output.PreviewDevice);
+            Assert.IsNotNull(output.Draft);
+            Assert.IsFalse(File.Exists(output.Draft));
+
+            await page.SaveAsync(default);
+            Assert.AreEqual(AnnouncementSpeechProvider.GoogleCloud, (await workspace.Settings.LoadAsync()).Options.Devices.Announcements.SpeechProvider);
+            using var dialog = new FrmAnnouncements(output, new AnnouncementSpeechDouble(), new AnnouncementConversionDouble(),
+                new AnnouncementCatalogDouble(), workspace.Settings, null) { ResolveCloudSpeech = _ => speech };
+            await dialog.LoadAsync();
+            Assert.AreEqual(speech.Voice.Id, Field<LookUpEdit>(dialog, "voiceEdit").EditValue);
+            await form.StopAsync();
+        }, configure: services => services.AddSingleton<IAnnouncementAudio>(output));
+    }
     [TestMethod]
     public Task AnnouncementCloudProviderTabSurvivesReopening() => WithWorkspace(async (workspace, _, _) =>
     {

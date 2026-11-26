@@ -212,6 +212,13 @@ Das Azure Speech SDK enthält Windows-Laufzeiten für x64 und ARM64.
 
 - [x] ✅ **Sprachanbieter** und **Stimme** im Ansagendialog ergänzt. Windows ist die Voreinstellung. Die Stimmenliste wechselt mit dem Anbieter. Der Dialog weist vor einer Cloud-Vertonung auf die Textübertragung hin.
 - [x] ✅ **Auswahl speichern** übernimmt Anbieter, Stimme und Audiogeräte in die lokale Konfiguration. Die Zugänge lassen sich unter **Einstellungen → Audio → Cloud-Ansagen** hinterlegen.
+- [x] ✅ Standardanbieter und Standardstimme lassen sich unter **Einstellungen → Audio → Cloud-Ansagen**
+  wählen. **Stimmen laden** fragt die deutschen Stimmen über die jeweiligen SDKs ab. Mit den Pro-Testzugängen
+  wurden 17 deutsche Azure-Neural-Stimmen und 32 deutsche Google-Stimmen der Familien Neural2 und Chirp 3 HD
+  geladen. Windows verwendet die lokal installierten Stimmen.
+- [x] ✅ Ein Testtext lässt sich im Einstellungsdialog mit der gewählten Stimme vertonen und abspielen.
+  Für Cloud-Proben gelten die gespeicherten Zugangsdaten und Monatsbudgets. Die Vorschau verwendet das für
+  Ansagen ausgewählte Windows-Ausgabegerät und entfernt die temporäre WAV nach der Wiedergabe.
 - [x] ✅ Deutsche Standardstimme im lokalen Pro-Profil auf **Google Cloud**,
   `de-DE-Chirp3-HD-Achernar`, gesetzt und für Google Chirp 3 HD ein lokales Monatsbudget
   von **1.000 Zeichen** freigegeben. Am 26.11.2026 mit dem regulären Pro-Debug-Build

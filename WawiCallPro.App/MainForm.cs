@@ -390,6 +390,7 @@ public partial class MainForm : RibbonForm
         settings.FormClosed += MailSettingsClosed;
         settings.FormClosed += CompanySettings_Closed;
         if (_audioDevices is not null) settings.ConfigureAudioDevices(_audioDevices);
+        settings.ConfigureAnnouncementSpeech(ResolveCloudAnnouncementSpeech);
         if (plugins) settings.SelectPluginsTab();
         return settings;
     }

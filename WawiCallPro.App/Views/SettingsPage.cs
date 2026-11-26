@@ -53,6 +53,7 @@ public partial class SettingsPage : XtraUserControl
             var providerPage = speechProviderPages.SelectedTabPage;
             if (providerPage?.Controls[0] is TableLayoutPanel providerLayout)
                 content = Math.Max(content, providerLayout.GetPreferredSize(new(width, 0)).Height
+                    + standardSpeechLayout.GetPreferredSize(new(width, 0)).Height
                     + speechCloudTab.Top + speechCloudTab.Left + providerPage.Top + providerPage.Left);
         }
         if (tabs.SelectedTabPage == sipTab)
@@ -77,6 +78,7 @@ public partial class SettingsPage : XtraUserControl
         generalLayout.Layout += General_Layout;
         tabs.SelectedPageChanged += SettingsTab_Changed;
         speechProviderPages.SelectedPageChanged += SettingsTab_Changed;
+        standardSpeechLayout.Layout += General_Layout;
         audioLayout.Layout += General_Layout;
         audioLevelsLayout.Layout += General_Layout;
         sipProfilesLayout.Layout += General_Layout;
@@ -119,6 +121,7 @@ public partial class SettingsPage : XtraUserControl
             UiButtonSizing.Apply(databaseSetupButton);
             UiButtonSizing.Apply(previewRingtoneButton, browseRingtoneButton);
             UiButtonSizing.Apply(speechGoogleBrowse);
+            UiButtonSizing.Apply(refreshSpeechVoicesButton, speechTestButton);
             var volumeSliderHeight = captureDeviceEdit.PreferredSize.Height;
             foreach (var slider in new[] { micVolumeSlider, playVolumeSlider, ringVolumeSlider })
                 slider.Height = volumeSliderHeight;
@@ -340,6 +343,7 @@ public partial class SettingsPage : XtraUserControl
         recordingSourceEdit.SelectedIndex = (int)options.Devices.RecordingReceiveSource;
         ApplyAudioDevices(options.Devices);
         ApplyAnnouncementCloud(options.Devices.Announcements.Cloud);
+        ApplyAnnouncementVoice(options.Devices.Announcements);
         var known = _cacheCompanies.Select(row => row.Key).ToHashSet();
         _cacheCompanies.AddRange(options.Companies.Where(company => !known.Contains(company.Company))
             .Select(company => new CacheCompanyRow(company.Company, company.DisplayName ?? "Gespeicherter Mandant", company.IncludeInPhoneCache, false)));
@@ -370,7 +374,12 @@ public partial class SettingsPage : XtraUserControl
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
                 WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
-                Announcements = old.Devices.Announcements with { Cloud = ReadAnnouncementCloud(old.Devices.Announcements.Cloud) } },
+                Announcements = old.Devices.Announcements with
+                {
+                    Cloud = ReadAnnouncementCloud(old.Devices.Announcements.Cloud),
+                    SpeechProvider = StandardAnnouncementProvider,
+                    VoiceId = StandardAnnouncementVoice
+                } },
             RecordingOutput = output,
             RecordingStorage = ReadRecordingStorage(old.RecordingStorage),
             AutomaticMp3 = new(),

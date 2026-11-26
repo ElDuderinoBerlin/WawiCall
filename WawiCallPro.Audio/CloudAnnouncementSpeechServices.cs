@@ -8,6 +8,7 @@ using Microsoft.CognitiveServices.Speech;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Text.Json;
+using WawiCallPro.Utilities.Configuration;
 
 namespace WawiCallPro.Audio;
 
@@ -16,6 +17,14 @@ public static class CloudAnnouncementSpeechServices
 {
     public const string AzureSpeech = "AzureSpeech";
     public const string GoogleCloud = "GoogleCloud";
+
+    /// <summary>Preset voices available for selection before a provider's catalog has been loaded.</summary>
+    public static IReadOnlyList<AnnouncementVoice> GetPresetVoices(AnnouncementSpeechProvider provider) => provider switch
+    {
+        AnnouncementSpeechProvider.AzureSpeech => AzureAnnouncementSpeech.Voices,
+        AnnouncementSpeechProvider.GoogleCloud => GoogleAnnouncementSpeech.Voices,
+        _ => []
+    };
 
     /// <summary>Creates the same Azure adapter with a regional resource key.</summary>
     public static IAnnouncementSpeech CreateAzureWithKey(string region, string key) =>

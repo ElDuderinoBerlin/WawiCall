@@ -6,8 +6,17 @@ namespace WawiCallPro.Audio;
 
 internal sealed class GoogleAnnouncementSpeech(TextToSpeechClient client) : CloudAnnouncementSpeech(Voices)
 {
-    private static readonly IReadOnlyList<AnnouncementVoice> Voices = Array.AsReadOnly<AnnouncementVoice>(
+    internal static readonly IReadOnlyList<AnnouncementVoice> Voices = Array.AsReadOnly<AnnouncementVoice>(
         [new("de-DE-Neural2-G", "G (Neural2)", "de-DE"), new("de-DE-Chirp3-HD-Achernar", "Achernar (Chirp 3 HD)", "de-DE")]);
+
+    protected override async Task<IEnumerable<AnnouncementVoice>> QueryVoicesAsync(CancellationToken token)
+    {
+        var response = await client.ListVoicesAsync(new ListVoicesRequest { LanguageCode = GermanLocale }, token).ConfigureAwait(false);
+        return response.Voices.Where(voice => voice.LanguageCodes.Contains(GermanLocale)
+            && (voice.Name.StartsWith("de-DE-Neural2-", StringComparison.Ordinal)
+                || voice.Name.StartsWith("de-DE-Chirp3-HD-", StringComparison.Ordinal)))
+            .Select(voice => new AnnouncementVoice(voice.Name, voice.Name[(GermanLocale.Length + 1)..], GermanLocale)).ToArray();
+    }
 
     protected override async Task<byte[]> SynthesizeAsync(string text, AnnouncementVoice voice, CancellationToken token)
     {

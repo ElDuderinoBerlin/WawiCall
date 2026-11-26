@@ -9,8 +9,19 @@ internal sealed class AzureAnnouncementSpeech(Func<SpeechConfig> createConfig) :
     internal AzureAnnouncementSpeech(Uri endpoint, TokenCredential credential)
         : this(() => SpeechConfig.FromEndpoint(endpoint, credential)) { }
 
-    private static readonly IReadOnlyList<AnnouncementVoice> Voices = Array.AsReadOnly<AnnouncementVoice>(
+    internal static readonly IReadOnlyList<AnnouncementVoice> Voices = Array.AsReadOnly<AnnouncementVoice>(
         [new("de-DE-KatjaNeural", "Katja (Neural)", "de-DE"), new("de-DE-ConradNeural", "Conrad (Neural)", "de-DE")]);
+
+    protected override async Task<IEnumerable<AnnouncementVoice>> QueryVoicesAsync(CancellationToken token)
+    {
+        using var synthesizer = new SpeechSynthesizer(createConfig(), audioConfig: null);
+        using var result = await synthesizer.GetVoicesAsync(GermanLocale).WaitAsync(token).ConfigureAwait(false);
+        if (result.Reason != ResultReason.VoicesListRetrieved)
+            throw new AnnouncementSpeechException("Azure Speech konnte die Stimmenliste nicht abrufen.");
+        return result.Voices.Where(voice => voice.Locale == GermanLocale && voice.VoiceType == SynthesisVoiceType.OnlineNeural
+            && voice.ShortName.EndsWith("Neural", StringComparison.Ordinal))
+            .Select(voice => new AnnouncementVoice(voice.ShortName, voice.LocalName, voice.Locale)).ToArray();
+    }
 
     protected override async Task<byte[]> SynthesizeAsync(string text, AnnouncementVoice voice, CancellationToken token)
     {

@@ -122,6 +122,11 @@ public partial class FrmAnnouncements : XtraForm
             _selectedSpeech = windows ? _speech : await Task.Run(() => ResolveCloudSpeech?.Invoke(provider), token);
             token.ThrowIfCancellationRequested();
             available = _selectedSpeech?.GetVoices() ?? [];
+            if (!windows && _selectedSpeech is { } cloud)
+            {
+                try { available = await cloud.LoadVoicesAsync(token); }
+                catch (AnnouncementSpeechException) { }
+            }
             if (!windows && _selectedSpeech is null)
                 hint = provider == AnnouncementSpeechProvider.AzureSpeech
                     ? "Azure Speech unter Einstellungen → Audio → Cloud-Ansagen einrichten."

@@ -66,6 +66,25 @@ public sealed class CloudAnnouncementSpeechTests
         finally { folder.Delete(recursive: true); }
     }
 
+    [TestMethod]
+    public async Task GoogleVoiceCatalogAddsOnlyGermanVoicesWithSupportedBudgets()
+    {
+        var client = new GoogleSpeechDouble((_, _) => Task.FromResult(TestWave()));
+        using var services = CreateServices(client);
+        var google = services.GetRequiredKeyedService<IAnnouncementSpeech>(CloudAnnouncementSpeechServices.GoogleCloud);
+        var voices = await google.LoadVoicesAsync(default);
+        Assert.AreEqual("de-DE", client.ListLocale);
+        CollectionAssert.AreEquivalent(new[] { "de-DE-Neural2-G", "de-DE-Chirp3-HD-Achernar", "de-DE-Chirp3-HD-Puck" },
+            voices.Select(voice => voice.Id).ToArray());
+        var folder = Directory.CreateTempSubdirectory();
+        try
+        {
+            await google.WriteWaveAsync("Guten Tag.", "de-DE-Chirp3-HD-Puck", Path.Combine(folder.FullName, "puck.wav"), default);
+            Assert.AreEqual("de-DE-Chirp3-HD-Puck", client.LastRequest!.Voice.Name);
+        }
+        finally { folder.Delete(recursive: true); }
+    }
+
     private static ServiceProvider CreateServices(TextToSpeechClient google)
     {
         var services = new ServiceCollection();
@@ -90,6 +109,21 @@ public sealed class CloudAnnouncementSpeechTests
     {
         internal SynthesizeSpeechRequest? LastRequest { get; private set; }
         internal int Calls { get; private set; }
+        internal string? ListLocale { get; private set; }
+
+        public override Task<ListVoicesResponse> ListVoicesAsync(ListVoicesRequest request, CallSettings callSettings)
+        {
+            ListLocale = request.LanguageCode;
+            return Task.FromResult(new ListVoicesResponse
+            {
+                Voices =
+                {
+                    new Voice { Name = "de-DE-Chirp3-HD-Puck", LanguageCodes = { "de-DE" } },
+                    new Voice { Name = "de-DE-Standard-A", LanguageCodes = { "de-DE" } },
+                    new Voice { Name = "en-GB-Chirp3-HD-Achernar", LanguageCodes = { "en-GB" } }
+                }
+            });
+        }
 
         public override async Task<SynthesizeSpeechResponse> SynthesizeSpeechAsync(SynthesizeSpeechRequest request, CallSettings callSettings)
         {
