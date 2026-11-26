@@ -66,7 +66,10 @@ public sealed class LiveRecordingPreparation : IConversationPcmFailureSource, IS
     {
         lock (_gate)
         {
-            _received ??= new(position.SynchronizationSource, position.SequenceNumber, position.Timestamp, position.RtpClockRate, Offset());
+            _received ??= new(position.SynchronizationSource, position.SequenceNumber, position.Timestamp, position.RtpClockRate, Offset())
+            {
+                TrimShortG722Overlap = position.RtpClockRate == 8000 && rate == 16000
+            };
             return Observe(ConversationAudioSide.Received, rate, channels, samples, null, position);
         }
     }

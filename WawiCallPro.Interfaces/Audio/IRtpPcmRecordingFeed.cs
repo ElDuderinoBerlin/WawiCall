@@ -5,6 +5,9 @@ namespace WawiCallPro.Interfaces.Audio;
 public sealed record RtpPcmTimelineAnchor(uint SynchronizationSource, ushort SequenceNumber, uint Timestamp,
     int RtpClockRate, TimeSpan RecordingOffset)
 {
+    /// <summary>Permits bounded clipping of overlapping G.722 receive samples on a locally observed timeline.</summary>
+    public bool TrimShortG722Overlap { get; init; }
+
     public override string ToString() => nameof(RtpPcmTimelineAnchor);
 }
 

@@ -22,6 +22,45 @@ public sealed class RtpPcmRecordingFeedTests
     }
 
     [TestMethod]
+    public async Task LiveG722KeepsEarlierSamplesAndClipsOnlyTheOverlappingPrefix()
+    {
+        var session = new Session();
+        await using var feed = new RtpPcmRecordingFeedFactory().Create(session, ConversationAudioSide.Received,
+            Anchor with { TrimShortG722Overlap = true });
+        Assert.AreEqual(RtpPcmAppendResult.Accepted, feed.TryAppend(Packet(10, 1000), 16000, Samples(512)));
+        var input = Enumerable.Range(0, 320).Select(value => (short)value).ToArray();
+        Assert.AreEqual(RtpPcmAppendResult.Accepted, feed.TryAppend(Packet(11, 1160), 16000, input));
+        Assert.AreEqual(RtpPcmAppendResult.Accepted, feed.TryAppend(Packet(13, 1480), 16000, Samples(320)));
+        var blocks = session.Blocks.ToArray();
+        Assert.AreEqual(512, blocks[0].Samples.Length);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(32), blocks[1].Start);
+        CollectionAssert.AreEqual(input[192..], blocks[1].Samples);
+        Assert.AreEqual(192L, feed.TrimmedSamples);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(60), blocks[2].Start);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(80), feed.LastPacketEnd);
+    }
+
+    [TestMethod]
+    [DataRow(true, 11, 160, 16_000, 700, 640)]
+    [DataRow(true, 11, 160, 16_000, 512, 192)]
+    [DataRow(true, 12, 160, 16_000, 512, 320)]
+    [DataRow(true, 11, 0, 16_000, 512, 640)]
+    [DataRow(true, 11, 160, 8_000, 512, 320)]
+    [DataRow(false, 11, 160, 16_000, 512, 320)]
+    public async Task G722KeepsRejectingAmbiguousOrLargeOverlaps(bool allowTrim, int sequence, int delta, int rate,
+        int precedingSamples, int currentSamples)
+    {
+        var session = new Session();
+        await using var feed = new RtpPcmRecordingFeedFactory().Create(session, ConversationAudioSide.Received,
+            Anchor with { TrimShortG722Overlap = allowTrim });
+        Assert.AreEqual(RtpPcmAppendResult.Accepted, feed.TryAppend(Packet(10, 1000), 16000, Samples(precedingSamples)));
+        Assert.AreEqual(RtpPcmAppendResult.Failed, feed.TryAppend(Packet((ushort)sequence, (uint)(1000 + delta)), rate, Samples(currentSamples)));
+        Assert.AreEqual(RtpPcmFeedFailure.Overlap, feed.Failure);
+        Assert.AreEqual(PcmRecordingFailure.TimelineConflict, session.Failure);
+        Assert.HasCount(1, session.Blocks);
+    }
+
+    [TestMethod]
     public async Task TwoSidesUseTheSameExplicitRecordingEpochWithoutConsultingArrivalTime()
     {
         var session = new Session(); var factory = new RtpPcmRecordingFeedFactory();

@@ -4979,6 +4979,16 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Der RTP-Feed meldete Überlappung. Der separate Pro-WASAPI-Aufnahmeversuch im Gespräch endete
   ebenfalls mit einem Zeitachsenfehler. G.722, WASAPI-Aufnahme im Gespräch und Wiederanbindung
   bleiben Teil der Phase-9-Abnahme. Nachweise unter `.artifacts/phase9-recording-name-live/`.
+- [x] ✅ Kurze G.722-Empfangsüberlappung aus dem Live-Test abfangen (26.11.2026).
+  Die lokal verankerte RTP-Aufnahme behält bei unmittelbar aufeinanderfolgenden Paketen den
+  bereits aufgenommenen Abschnitt. Sie schneidet bis zu 20 ms aus dem überlappenden Anfang des
+  nächsten G.722-Blocks ab. Im gemessenen Fall sind das 192 Samples. Zeitstempel und Paketlücken
+  bleiben erhalten. Größere und vollständige Überdeckungen, Überlappungen über Paketlücken
+  hinweg und widersprüchliche Zeitstempel bleiben Fehler.
+  Die Regression kodiert und dekodiert die beobachteten Blockgrößen mit SIPSorcery und vergleicht
+  die Übergänge in der fertigen Stereo-WAV samplegenau. Dieselbe Paketfolge wurde über UDP-Loopback
+  durch den Medienadapter getestet. App und Konsole wurden für Pro und FinOffice in Debug gebaut.
+  Je Edition bestanden 115 gezielte Tests. Die erneute Live-Abnahme ist offen.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach

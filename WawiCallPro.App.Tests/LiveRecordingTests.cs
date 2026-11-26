@@ -63,6 +63,48 @@ public sealed class LiveRecordingTests
     }
 
     [TestMethod]
+    public async Task LiveRtpRecordingPublishesStereoWaveAfterTheObservedG722Overlap()
+    {
+        using var fixture = new Fixture();
+        using var encoder = new SIPSorcery.Media.AudioEncoder();
+        var format = encoder.SupportedFormats.Single(candidate => candidate.Codec == SIPSorceryMedia.Abstractions.AudioCodecsEnum.G722);
+        var first = Decode(512, 1200);
+        var second = Decode(320, 730);
+        var third = Decode(320, 480);
+        var start = fixture.Factory.StartAsync(fixture.Source, fixture.Request() with { SampleRate = 16000 });
+        fixture.Source.Send(1000, 1234);
+        fixture.Source.ReceiveWideband(10, 1000, first);
+        await using var recording = await start;
+        fixture.Clock.Advance(20);
+        fixture.Source.ReceiveWideband(11, 1160, second);
+        fixture.Clock.Advance(20);
+        fixture.Source.ReceiveWideband(12, 1320, third);
+        fixture.Clock.Advance(20);
+        await recording.StopAsync();
+
+        using var wave = new WaveFileReader(fixture.Path);
+        Assert.AreEqual(2, wave.WaveFormat.Channels);
+        Assert.AreEqual(16000, wave.WaveFormat.SampleRate);
+        byte[] bytes = new byte[960 * 4];
+        Assert.AreEqual(bytes.Length, wave.Read(bytes, 0, bytes.Length));
+        Assert.AreNotEqual((short)0, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(64 * 4)));
+        Assert.AreEqual(first[511], ReadReceived(511));
+        Assert.AreEqual(second[192], ReadReceived(512));
+        Assert.AreEqual(second[319], ReadReceived(639));
+        Assert.AreEqual(third[0], ReadReceived(640));
+
+        short ReadReceived(int frame) => BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(frame * 4 + 2));
+        short[] Decode(int sampleCount, int frequency)
+        {
+            var pcm = Enumerable.Range(0, sampleCount)
+                .Select(frame => (short)(12000 * Math.Sin(Math.Tau * frequency * frame / 16000))).ToArray();
+            var decoded = encoder.DecodeAudio(encoder.EncodeAudio(pcm, format), format);
+            Assert.HasCount(sampleCount, decoded);
+            return decoded;
+        }
+    }
+
+    [TestMethod]
     public async Task ExplicitPendingStartCancellationKeepsTheConversationMediaAlive()
     {
         using var fixture = new Fixture(); var native = new NativeMedia(fixture.Source);
@@ -405,6 +447,8 @@ internal sealed class LiveRecordingSourceDouble : IConversationPcmFailureSource
     { if (_lease is not null) throw new InvalidOperationException(); return _lease = new(this, observer); }
     internal void Send(uint timestamp, short sample) => (_lease?.Observer as ISentRtpPcmObserver)?.TryObserveSent(new(7, timestamp, 8000, 160), 8000, 1, Enumerable.Repeat(sample, 160).ToArray());
     internal void Receive(ushort sequence, uint timestamp, short sample) => (_lease?.Observer as IReceivedRtpPcmObserver)?.TryObserveReceived(new(9, sequence, timestamp, 8000), 8000, 1, Enumerable.Repeat(sample, 160).ToArray());
+    internal void ReceiveWideband(ushort sequence, uint timestamp, short[] samples) =>
+        (_lease?.Observer as IReceivedRtpPcmObserver)?.TryObserveReceived(new(9, sequence, timestamp, 8000), 16000, 1, samples);
     internal void Fail()
     {
         var lease = _lease;

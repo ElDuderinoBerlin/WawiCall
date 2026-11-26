@@ -5,6 +5,7 @@ namespace WawiCallPro.Core.Audio;
 internal sealed class RtpPcmRecordingFeed(IPcmRecordingSession session, IPcmRecordingInputGuard guard,
     ConversationAudioSide side, RtpPcmTimelineAnchor anchor) : IRtpPcmRecordingFeed
 {
+    private const int MaxG722OverlapSamples = 320; // 20 ms at the G.722 PCM rate.
     private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _closed, _busy, _failure;
     private bool _started;
@@ -51,14 +52,24 @@ internal sealed class RtpPcmRecordingFeed(IPcmRecordingSession session, IPcmReco
             }
             if (timestampDelta < 0 || timestampDelta > anchor.RtpClockRate * 300L)
                 return Fail(RtpPcmFeedFailure.TimestampDiscontinuity);
+            var overlap = 0;
             if (_started && (long)timestampDelta * _previousRate < (long)_previousSamples * anchor.RtpClockRate)
-                return Fail(RtpPcmFeedFailure.Overlap);
+            {
+                if (!anchor.TrimShortG722Overlap || side != ConversationAudioSide.Received || sequenceDelta != 1
+                    || timestampDelta == 0 || anchor.RtpClockRate != 8000 || _previousRate != 16000 || pcmSampleRate != 16000)
+                    return Fail(RtpPcmFeedFailure.Overlap);
+                overlap = _previousSamples - 2 * timestampDelta;
+                if (overlap > MaxG722OverlapSamples || overlap >= samples.Length)
+                    return Fail(RtpPcmFeedFailure.Overlap);
+            }
 
             var units = _rtpUnits + timestampDelta;
             var start = anchor.RecordingOffset.Ticks + RoundedTicks(units, anchor.RtpClockRate);
             var end = start + RoundedTicks(samples.Length, pcmSampleRate);
             if (end > TimeSpan.FromHours(8).Ticks) return Fail(RtpPcmFeedFailure.InvalidPacket);
-            var trim = start >= 0 ? 0L : Math.Min(samples.Length, (-start * pcmSampleRate + TimeSpan.TicksPerSecond - 1) / TimeSpan.TicksPerSecond);
+            var beforeStart = start >= 0 ? 0L : Math.Min(samples.Length, (-start * pcmSampleRate + TimeSpan.TicksPerSecond - 1) / TimeSpan.TicksPerSecond);
+            // The earlier packet has already supplied the common interval. Keep the original clock for all remaining samples.
+            var trim = Math.Max(beforeStart, overlap);
             var position = (int)trim;
             if (position < samples.Length)
             {
