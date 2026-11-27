@@ -538,3 +538,13 @@ Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
   → Ehrlich als Verschleierung dokumentieren oder echten Schutz einführen: DPAPI `CurrentUser` bzw.
   `LocalMachine` je Installationsart oder Bereitstellung über den Lizenzserver. Den produktspezifischen
   Seed nicht aus LxTranslate übernehmen. Die Abwägung in der CRA-Akte festhalten.
+- ⬜ **UT-02 · Niedrig · Einstellungsdatei nicht dauerhaft gespeichert vor dem Ersetzen** –
+  `ConfigurationStore.SaveCoreAsync` ([Z. 172–176](../WawiCallPro.Utilities/Configuration/ConfigurationStore.cs))
+  schreibt die temporäre Datei mit `File.WriteAllBytesAsync` **ohne** `Flush(flushToDisk: true)` und
+  ersetzt anschließend per `File.Move(…, true)`. Bei einem Stromausfall kann die ersetzte Datei leer oder
+  abgeschnitten sein. Weil ungültige Einstellungen bewusst nicht repariert werden, startet die App danach
+  nicht mehr. Die anderen Schreibpfade der Solution (Outbox, Journal, Crash-Reports) spülen dagegen
+  ausdrücklich auf die Platte. → `FileStream` mit `Flush(true)` verwenden. Außerdem wird
+  `ProductClientKeyEdit.Commit()` erst **nach** dem Ersetzen ausgeführt (Z. 174–176). Ein Fehler dort
+  meldet „nicht gespeichert“, obwohl die Einstellungen bereits ersetzt sind. → Reihenfolge und Meldung
+  angleichen bzw. beide Dateien vorbereiten und dann nacheinander veröffentlichen.
