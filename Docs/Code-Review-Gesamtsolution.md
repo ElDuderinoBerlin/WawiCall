@@ -707,3 +707,12 @@ Zugriffe auf echte Profile unter `%LocalAppData%`.
   `scripts/test-headless.ps1` bereitstellen. 102 Stellen mit
   `Task.Delay`/`Thread.Sleep` auf mögliche Zeitabhängigkeit (Flakiness) prüfen und, wo möglich, auf
   `TimeProvider` umstellen.
+- ⬜ **AP-06 · Niedrig · Einstellungsdialog verwirft Änderungen ohne Rückfrage** – „Abbrechen“ und das
+  Fenster-X schließen `FrmSettings` über `Settings_FormClosing`
+  ([`FrmSettings.cs:110–124`](../WawiCallPro.App/Views/FrmSettings.cs)) und `SettingsPage.StopAsync`
+  (Z. 180–203) **ohne Prüfung auf Änderungen** an den allgemeinen Tabs (SIP, Audio, Aufnahme, Mail, Abgleich).
+  Nur Plugin-Entwürfe werden über `RequireCleanPluginDraft` geschützt, und das nur beim Pluginwechsel bzw.
+  Import. Zudem läuft `StopAsync` im `async void`-Handler ohne `try/catch`. Ein Fehler beim Schließen,
+  etwa beim Aufräumen des Plugin-Editors, landet in `AppExceptionBoundary` und beendet die App (AP-01).
+  → Dirty-Erkennung (Snapshot-Vergleich wie in `SaveMailSettingsAsync`) mit Rückfrage
+  Speichern/Verwerfen/Abbrechen. Fehler beim Schließen lokal behandeln und im Log-Fenster melden.
