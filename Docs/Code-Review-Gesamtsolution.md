@@ -615,3 +615,9 @@ URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Ab
   fehlt, etwa bei einem archivierten, verschobenen oder gelöschten Mandanten. Danach stehen Rufnummernsuche
   und Mandantenauswahl für alle Mandanten nicht mehr zur Verfügung. → Betroffenen Mandanten als nicht
   verfügbar kennzeichnen und die übrigen weiter anbieten. Strukturelle Katalogfehler bleiben fehlersperrend.
+- ⬜ **LX-03 · Niedrig · Katalog wird bei jedem Lesezugriff neu ermittelt** –
+  `FinOfficeCompanySession.ReadAsync` ([Z. 23](../WawiCallPro.Plugins.Lexware.FinOffice/FinOfficeCompanySession.cs))
+  ruft vor **jeder** Operation `DetectAsync` auf. Das bedeutet jedes Mal Registry-Erkennung, Lesen der
+  Firmen-Datenbank und Dateiprüfungen aller Mandanten. Bei Rufnummernsuchen über viele Mandanten
+  vervielfacht sich das. → Installation mit kurzer Gültigkeit oder Änderungsprüfung (Dateizeitstempel)
+  zwischenspeichern und nur bei Fehlern sofort neu ermitteln.
