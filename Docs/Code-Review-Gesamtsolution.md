@@ -526,3 +526,15 @@ Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
   offenen Konvertierungsauftrag einzeln ab. → Gesammelte Abfragen über `In(...)` bzw. `= ANY(...)`.
 - ⬜ **DB-04 · Verweis** – Direkte ADO.NET-Ausführung trotz Dapper-Regel: siehe **R-07**. Beim Umbau von DB-01
   gleich mit umstellen.
+
+## B7 – WawiCallPro.Utilities ⬜ in Arbeit (Stand 27.11.2026)
+
+- ⬜ **UT-01 · Mittel · Client-Key-„Verschlüsselung“ mit eingebautem Schlüssel** –
+  [`ClientKeyEncryptor`](../WawiCallPro.Utilities/Configuration/ClientKeyEncryptor.cs) (Z. 13–14) leitet den
+  AES-128-Schlüssel aus der Konstante `"LxTranslate.LexwareClientKey.AES128.v1"` ab. Jeder, der die DLL
+  hat, kann damit jeden „verschlüsselten“ `LexwareApi.ClientKey` aus `appsettings.json` entschlüsseln. CBC
+  ohne MAC bietet außerdem keinen Integritätsschutz, und der Seed stammt erkennbar aus LxTranslate. Die
+  UI und AGENTS.md sprechen von „verschlüsselt“ (`ClientKeyExitPrompt`, Debug-Pro-Buildaktion).
+  → Ehrlich als Verschleierung dokumentieren oder echten Schutz einführen: DPAPI `CurrentUser` bzw.
+  `LocalMachine` je Installationsart oder Bereitstellung über den Lizenzserver. Den produktspezifischen
+  Seed nicht aus LxTranslate übernehmen. Die Abwägung in der CRA-Akte festhalten.
