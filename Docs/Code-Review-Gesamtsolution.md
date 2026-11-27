@@ -104,6 +104,7 @@ gegen HEAD und gegen jeden einzelnen Arbeitsbaum-Commit, vor allem die Paketupda
   `FragmentedSourceBlockRetainsOnePcmWindowWithoutInventingPacketSequenceNumbers` (`packetCount > 1` falsch),
   `AFragmentedSourceBlockIsRecordedAsOneContinuousPcmWindow` (`Codec.Encodes` erwartet 1, tatsächlich 25),
   beide in `SentRtpPcmTests*.cs`, sowie `DiagnosticLogTests.ReaderSharesFilesWithActiveWritersAndReturnsAllCompletedRecords`.
+  Für den Log-Test ist die Ursache geklärt: Das Log-Schema wurde in `230af10` erweitert, der Leser nicht (siehe **CN-01**).
   Betroffen ist die gesendete RTP/PCM-Aufnahme, also die fachlich kritische Gesprächsaufzeichnung.
   Im Arbeitsbaum geändert: `PcmObservingAudioEncoder` (`object` → `Lock`, alle Zugriffe nur über `lock`,
   semantisch gleich) und `ConversationWaveMixer` (`using` → `await using`); `RtpPcmRecordingFeed` und
@@ -284,7 +285,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
 | WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ✅ (B9) |
 | WawiCallPro.Plugin.Windows | PW | ~1 110 | ⬜ |
-| WawiCallPro.Console | CN | ~880 | ⬜ |
+| WawiCallPro.Console | CN | ~880 | ✅ (B10) |
 | WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ⬜ |
 | Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ⬜ |
 | ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ⬜ |
