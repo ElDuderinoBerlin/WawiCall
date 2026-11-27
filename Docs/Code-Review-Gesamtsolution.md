@@ -279,3 +279,56 @@ Befundnummern: `<Kürzel>-NN`.
 | Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ⬜ |
 | ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ⬜ |
 | Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ⬜ |
+
+## B1 – WawiCallPro.Audio ✅ gelesen (64 Dateien, Stand 27.11.2026)
+
+Insgesamt sehr defensiv gebaut: begrenzte Warteschlangen, atomare Veröffentlichung von Dateien
+(`CreateNew` mit anschließendem `Move` ohne Überschreiben), Prüfung auf Reparse-Points im Aufnahmepfad,
+keine Payloads oder Gerätedetails im Log, klare Besitzregeln beim Dispose.
+
+- ⬜ **AU-01 · Mittel · Echtzeitpfad blockiert** – In
+  [`RecoveringConversationAudio.cs`](../WawiCallPro.Audio/RecoveringConversationAudio.cs) nutzen der
+  RTP-Empfang (`GotEncodedMediaFrame`, Z. 175–197) und der sekündliche Geräte-Monitor (`RefreshDevices`,
+  Z. 224–247) denselben Lock `_commands`. Unter diesem Lock laufen synchron:
+  - je Gerät `Resolve` mit neuem `MMDeviceEnumerator` und gegebenenfalls `EnumAudioEndpoints`
+    ([`WindowsAudioDeviceNames.ResolveId`](../WawiCallPro.Audio/WindowsAudioDeviceNames.cs), Z. 40–62),
+  - das Öffnen eines WASAPI-Endpunkts (`ConversationAudioHardware.Open`, Z. 42–63),
+  - `PauseAudio/ResumeAudio().GetAwaiter().GetResult()` (Z. 146, 163, 268, 272, 284).
+
+  `GotEncodedMediaFrame` öffnet bei einem Formatwechsel selbst ein Ausgabegerät (Z. 187). Folge: Der
+  SIPSorcery-Empfangsthread wartet jede Sekunde auf COM-Enumerationen. Lässt sich ein Gerät nicht öffnen,
+  wiederholt der Monitor den Öffnungsversuch jede Sekunde, und jedes Mal stockt der Empfang. Das ist eine
+  plausible Ursache für Jitter und Aussetzer.
+  → Auflösen und Öffnen außerhalb des Locks durchführen und nur das Ergebnis mit Generationsprüfung unter
+  dem Lock tauschen. Formatwechsel im Empfangspfad nur vormerken und vom Monitor-Thread umsetzen lassen.
+  Für den Ablauf „Gerät fehlt oder lässt sich nicht öffnen“ einen Test mit verzögertem Test-Double ergänzen.
+- ⬜ **AU-02 · Niedrig · Datenschutz bei der Loopback-Aufnahme** – Mit
+  `RecordingReceiveSource.PlaybackLoopback` zeichnet
+  [`CscorePlaybackCaptureFactory`](../WawiCallPro.Audio/CscorePlaybackCaptureFactory.cs) (Z. 56–60,
+  `StreamFlagsLoopback`) **alles** auf, was auf dem Ausgabegerät wiedergegeben wird. Dazu gehören andere
+  Programme, Systemtöne und weitere Gespräche, nicht nur die Gegenstelle. Standard ist RTP.
+  → In der Einstellung und in der Dokumentation (DSGVO/CRA) deutlich darauf hinweisen. Optional ein
+  eigenes Ausgabegerät für Gespräche empfehlen, wenn Loopback gewählt ist.
+- ⬜ **AU-03 · Niedrig · Namensreservierung** – `LiveRecordingMediaSession.ReserveWavePath`
+  ([Z. 394–415](../WawiCallPro.Audio/LiveRecordingMediaSession.cs)) hält je Zielpfad ein benanntes
+  `Global\`-Semaphore. Auf einem Terminalserver mit gemeinsamem Aufnahmeordner kann das Öffnen eines von
+  einem anderen Benutzer erzeugten Objekts mit `UnauthorizedAccessException` fehlschlagen. Der Start wird
+  dann als `StorageFailed` gemeldet, statt einen anderen Namen zu wählen (plausibel, nicht nachgestellt).
+  Außerdem führt ein `StartLiveAsync` nach `DisposeAsync` zu einer `ObjectDisposedException` aus `_closing.Token`.
+  → `UnauthorizedAccessException` wie ein belegtes Objekt behandeln (nächste Nummer). Nach dem Dispose eine
+  definierte `TelephonyException` werfen.
+- ⬜ **AU-04 · Niedrig · Ansage-Aufnahme** – `WindowsAnnouncementAudio.CaptureAsync`
+  ([Z. 64–71](../WawiCallPro.Audio/WindowsAnnouncementAudio.cs)) beendet die Mikrofonaufnahme nach
+  5 Minuten still und speichert sie wie eine reguläre Aufnahme. → Das Erreichen des Limits melden.
+- ⬜ **AU-05 · Info · Netzwerkpfade** – `ConversationWaveMixValidation.ValidatePath` und
+  `WavToMp3Converter.ValidatePath` lehnen UNC-Pfade (`\server\…`) ab. Aufnahmen auf Freigaben sind
+  damit nur über einen verbundenen Laufwerksbuchstaben möglich. → Fachlich entscheiden und in
+  `Docs/Build.md` oder der Benutzerhilfe dokumentieren.
+- ⬜ **AU-06 · Info · Dauerhaft zurückgestellte Wiederherstellung** –
+  `InterruptedRecordingRecovery` ([Z. 424–425](../WawiCallPro.Audio/InterruptedRecordingRecovery.cs))
+  stellt Aufnahmen mit vorhandener Datei, aber ohne Journal-Abschluss, bei jedem Start erneut zurück
+  (`RecordingArtifactRequiresReview`). Es gibt keine Benutzeraktion dafür. → Prüf- oder Freigabeweg in der UI oder Console vorsehen.
+- ⬜ **AU-07 · Niedrig · Cloud-Stimmenkatalog** – `CloudAnnouncementSpeech._loadedVoices` wird pro
+  Instanz zwischengespeichert. Die Factory in `AppCompositionRoot.cs:129–147` erzeugt aber bei jeder
+  Auflösung eine neue Azure- oder Google-Instanz. Dadurch wird der Katalog jedes Mal neu geladen, und die
+  Zwischenspeicherung ist nicht threadsicher. → Instanz je Konfigurationsstand wiederverwenden (siehe auch R-13).
