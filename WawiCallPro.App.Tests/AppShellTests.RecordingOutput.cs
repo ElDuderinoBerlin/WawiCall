@@ -15,6 +15,55 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
+    [DataRow("selected-headset")]
+    [DataRow(null)]
+    public void HistoryPlaybackRetriesOnlyTheRequestedEndpoint(string? preferred)
+    {
+        var attempts = new List<string?>();
+        var result = WasapiHistoryRecordingOutput.PlayWithDeviceRecovery(preferred, endpoint =>
+        {
+            attempts.Add(endpoint);
+            if (attempts.Count == 1) throw new WasapiHistoryRecordingOutput.PlaybackDeviceActivationException();
+            return true;
+        }, CancellationToken.None);
+        Assert.IsTrue(result);
+        CollectionAssert.AreEqual(new[] { preferred, preferred }, attempts);
+    }
+
+    [TestMethod]
+    public void HistoryPlaybackNativeDistinguishesDisconnectedAndActiveHeadphones()
+    {
+        if (Environment.GetEnvironmentVariable("WCP_VERIFY_RECORDING_ENDPOINT_SWITCH") != "1")
+            Assert.Inconclusive("Requires the disconnected INZONE endpoint and active Jabra headphones.");
+        using var enumerator = new CSCore.CoreAudioAPI.MMDeviceEnumerator();
+        using var devices = enumerator.EnumAudioEndpoints(CSCore.CoreAudioAPI.DataFlow.Render, CSCore.CoreAudioAPI.DeviceState.All);
+        string? inzone = null, jabra = null;
+        foreach (var endpoint in devices)
+        {
+            using (endpoint)
+            {
+                if (endpoint.FriendlyName.Equals("Kopfhörer (INZONE Buds)", StringComparison.OrdinalIgnoreCase)
+                    && endpoint.DeviceState != CSCore.CoreAudioAPI.DeviceState.Active) inzone = endpoint.DeviceID;
+                if (endpoint.FriendlyName.Contains("Jabra Link 380", StringComparison.OrdinalIgnoreCase)
+                    && endpoint.DeviceState == CSCore.CoreAudioAPI.DeviceState.Active) jabra = endpoint.DeviceID;
+            }
+        }
+        Assert.IsNotNull(inzone);
+        Assert.IsNotNull(jabra);
+        using var source = new CSCore.Codecs.RAW.RawDataReader(new MemoryStream(new byte[16000]), new WaveFormat(16000, 16, 1));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        var output = new WasapiHistoryRecordingOutput();
+        var transport = new HistoryPlaybackTransport();
+        var requested = new AudioDeviceSettings { PlaybackDeviceId = inzone, PlaybackVolumePercent = 0 };
+        var failure = Assert.ThrowsExactly<RecordingPlaybackDeviceUnavailableException>(
+            () => output.Play(source, requested, transport, timeout.Token));
+        Assert.Contains("gewählte Gesprächsausgabe", failure.Message);
+        Assert.AreEqual(0L, source.Position);
+        output.Play(source, requested with { PlaybackDeviceId = jabra }, transport, timeout.Token);
+        Assert.AreEqual(source.Length, source.Position);
+    }
+
+    [TestMethod]
     public async Task NativeHistoryTransportPausesAndSeeksWithSilentWasapiOutput()
     {
         if (Environment.GetEnvironmentVariable("WCP_VERIFY_RECORDING_OUTPUT_DEVICE") != "1")

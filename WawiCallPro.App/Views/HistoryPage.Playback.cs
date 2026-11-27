@@ -305,7 +305,9 @@ public partial class HistoryPage
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception error)
         {
-            if (!_stopping) _log?.LogWarning("Aufnahme konnte nicht abgespielt werden.", error);
+            if (!_stopping)
+                _log?.LogWarning(error is RecordingPlaybackDeviceUnavailableException
+                    ? error.Message : "Aufnahme konnte nicht abgespielt werden.", error);
         }
         finally
         {

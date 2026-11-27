@@ -111,6 +111,15 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
 
 }
 
+/// <summary>The requested Windows render endpoint could not be opened or was disconnected.</summary>
+public sealed class RecordingPlaybackDeviceUnavailableException : Exception
+{
+    internal RecordingPlaybackDeviceUnavailableException(bool explicitDevice, Exception? cause = null)
+        : base(explicitDevice
+            ? "Die gewählte Gesprächsausgabe ist nicht verfügbar. Gerät verbinden oder unter Einstellungen → Audio → Geräte eine verfügbare Gesprächsausgabe wählen."
+            : "Die Windows-Standardausgabe ist nicht verfügbar. Windows-Audioausgabe prüfen.", cause) { }
+}
+
 internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
 {
     public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token) => PlayCore(source, settings, null, token);
@@ -120,9 +129,6 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
 
     public void Play(IWaveSource source, AudioDeviceSettings settings, HistoryPlaybackTransport transport, CancellationToken token)
     {
-        using var enumerator = new MMDeviceEnumerator();
-        using var device = settings.PlaybackDeviceId is { } deviceId ? enumerator.GetDevice(deviceId)
-            : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
         using var measured = new MeteredSource(source, transport) { DisposeBaseSource = false };
         transport.SetGain(settings.PlaybackVolumePercent);
         while (true)
@@ -141,7 +147,11 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
                 continue;
             }
             if (measured.CanSeek && measured.Position >= measured.Length) return;
-            if (PlaySegment(device, measured, settings.PlaybackVolumePercent, null, transport, token, settings.PlaybackBufferMilliseconds)) return;
+            if (PlayWithDeviceRecovery(settings.PlaybackDeviceId, deviceId =>
+            {
+                using var device = OpenDevice(deviceId);
+                return PlaySegment(device, measured, settings.PlaybackVolumePercent, null, transport, token, settings.PlaybackBufferMilliseconds);
+            }, token)) return;
         }
     }
 
@@ -155,7 +165,11 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
             if (args.Exception is { } error) stopped.TrySetException(error);
             else stopped.TrySetResult();
         };
-        output.Initialize(source);
+        try { output.Initialize(source); }
+        catch (CoreAudioAPIException error) when (error.ErrorCode == DeviceInvalidated)
+        {
+            throw new PlaybackDeviceActivationException(error);
+        }
         output.Volume = (liveVolume?.Percent ?? volume) / 100F;
         token.ThrowIfCancellationRequested();
         output.Play();
@@ -207,9 +221,66 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
 
     private static void PlayCore(IWaveSource source, AudioDeviceSettings settings, AudioPlaybackVolume? volume, CancellationToken token)
     {
-        using var enumerator = new MMDeviceEnumerator();
-        using var device = settings.PlaybackDeviceId is { } deviceId ? enumerator.GetDevice(deviceId)
-            : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        PlaySegment(device, source, settings.PlaybackVolumePercent, volume, null, token, settings.PlaybackBufferMilliseconds);
+        PlayWithDeviceRecovery(settings.PlaybackDeviceId, deviceId =>
+        {
+            using var device = OpenDevice(deviceId);
+            return PlaySegment(device, source, settings.PlaybackVolumePercent, volume, null, token, settings.PlaybackBufferMilliseconds);
+        }, token);
     }
+
+    private const int DeviceInvalidated = unchecked((int)0x88890004);
+    private const int DeviceNotFound = unchecked((int)0x80070490);
+
+    private static MMDevice OpenDevice(string? deviceId)
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        MMDevice device;
+        try
+        {
+            device = deviceId is not null ? enumerator.GetDevice(deviceId)
+                : enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        }
+        catch (CoreAudioAPIException error) when (error.ErrorCode is DeviceInvalidated or DeviceNotFound)
+        {
+            throw new PlaybackDeviceActivationException(error);
+        }
+
+        try
+        {
+            if (device.DeviceState == DeviceState.Active) return device;
+            throw new PlaybackDeviceActivationException();
+        }
+        catch (CoreAudioAPIException error) when (error.ErrorCode == DeviceInvalidated)
+        {
+            device.Dispose();
+            throw new PlaybackDeviceActivationException(error);
+        }
+        catch
+        {
+            device.Dispose();
+            throw;
+        }
+    }
+
+    internal static bool PlayWithDeviceRecovery(string? deviceId, Func<string?, bool> play, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        try { return play(deviceId); }
+        catch (PlaybackDeviceActivationException) { }
+        catch (CoreAudioAPIException error) when (error.ErrorCode == DeviceInvalidated)
+        {
+            throw new RecordingPlaybackDeviceUnavailableException(deviceId is not null, error);
+        }
+
+        // Resolve the same endpoint again. For a system selection, use the current default endpoint.
+        token.ThrowIfCancellationRequested();
+        try { return play(deviceId); }
+        catch (Exception error) when (error is PlaybackDeviceActivationException or CoreAudioAPIException { ErrorCode: DeviceInvalidated })
+        {
+            throw new RecordingPlaybackDeviceUnavailableException(deviceId is not null, error.InnerException ?? error);
+        }
+    }
+
+    internal sealed class PlaybackDeviceActivationException(Exception? cause = null)
+        : Exception("The Windows playback endpoint could not be activated.", cause);
 }
