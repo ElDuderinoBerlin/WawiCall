@@ -477,12 +477,14 @@ Arbeitsbereich angepasst. Browse-Dialoge laufen über `XtraOpen/SaveFileDialog` 
   laufen, bis zufällig eine GC die Fassaden finalisiert hat. Zusätzlich wird im Finalizer-Thread ein
   Lock genommen. → Clients über das deterministische native `Release` (`AutomationDispatch`/`ServerLock`)
   zählen und auf den Finalizer verzichten.
-- ⬜ **AP-99 · Offen · Restliche Views und `MainForm.*` inhaltlich lesen** – Noch offen sind `SettingsPage*`, `HistoryPage*`,
-  `FrmAnnouncements`, `FrmDial*`, `CallerLookupPage`, `FrmAudioSelfTest`, `FrmAudioConvert`, `PluginPage`,
-  `FunctionPluginsPage`, `CompanySelector`, `CallDetailsPage`, `HomeDashboard`, `FrmDatabaseSetup` mit
-  Schritten sowie `MainForm.cs`, `.Calls`, `.Telephony`, `.Database`, `.Mail`, `.PluginShell`, `.Automation`.
-  Schwerpunkte: Datenverlust beim Schließen, Lexware-Sperre vor Aktionen, Grid- und Layoutregeln,
-  Designer-Konformität.
+- 🟨 **AP-99 · Teilweise · Restliche Views und `MainForm.*`** – Inzwischen ebenfalls gelesen:
+  `MainForm.cs` (Start, Schließpfad `PrepareToCloseAsync`), `MainForm.PluginShell`/`.Companies` (abgesicherte
+  Hintergrundaufgaben), `FrmSettings` und `SettingsPage` (Speichern/Schließen, siehe AP-06), `FrmDial` und
+  `.Search` (abgesicherte Suche, geordnetes Schließen), `FrmAnnouncements` (Entwurfsdateien) sowie die
+  Lexware-Sperre (`AppWorkspace.CanUseBusinessDirectory` → `ProductPluginRuntime.CanActivate`/`EnsureAvailable`,
+  Warnung über `LexwareMissing`/`LexwareCheckFailed`, AGENTS.md-konform). Nur über Musterprüfungen erfasst sind
+  noch `HistoryPage*` (UI-Logik), `CallerLookupPage`, `PluginPage`, `FunctionPluginsPage`, `CompanySelector`,
+  `CallDetailsPage`, `HomeDashboard` und der Datenbank-Assistent (`FrmDatabaseSetup`, `UcDb*`, `UcCon*`).
 
 ## B5 – WawiCallPro.Core ✅ gelesen (25 Dateien, Stand 27.11.2026)
 
