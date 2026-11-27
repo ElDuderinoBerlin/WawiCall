@@ -658,3 +658,10 @@ erzeugt und entsorgt, Registrierungen sind begrenzt (32 Sitzungen, 1024 Nutzer),
   keine echte Datenquelle anbinden (CRA: keine unnötigen Komponenten, Irreführung).
   → In Release/Publish ausschließen (Bedingung oder eigenes Test-Paket) und mit einer Prüfung der
   Velopack-Ausgabe belegen. `WawiCallPro.PhoneMenu` ohne Code aus der Solution entfernen oder füllen.
+- ⬜ **KL-02 · Niedrig · Reste der anderen Edition nach Editionswechsel** – Im aktuellen Pro-Debug-Ausgabeordner
+  (`WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0`) liegen nach dem Wechsel von FinOffice auf Pro noch
+  `plugins\WawiCallPro.Plugins.Lexware.FinOffice\runtimes\{x64,x86}` als leere Ordner,
+  `plugins\WawiCallPro.Plugins.Dummy\` (leer) und `System.Data.SQLite.dll.config` im Stamm. Die Assemblies
+  selbst fehlen korrekt. AGENTS.md verlangt, dass Reste der anderen Edition einschließlich alter
+  Plugin- und Runtime-Unterordner entfernt werden. → Bereinigung in `Directory.Build.targets` um leere
+  Verzeichnisse und `System.Data.SQLite.dll.config` ergänzen, für Build und Publish in beiden Wechselrichtungen.
