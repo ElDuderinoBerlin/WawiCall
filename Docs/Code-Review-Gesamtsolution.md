@@ -609,3 +609,9 @@ URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Ab
   Das betrifft eine Netzwerkinstallation mit API-Dienst auf einem Server. → `http` nur für Loopback
   zulassen, sonst `https` verlangen oder deutlich warnen und in der Benutzerdokumentation beschreiben.
   Mit Testdouble für Resolver-Ergebnisse (Loopback, entfernt mit `http`, entfernt mit `https`) belegen.
+- ⬜ **LX-02 · Niedrig · Ein fehlender FinOffice-Mandant sperrt alle Mandanten** –
+  `FinOfficeInstallationSource.Map` ([Z. 102](../WawiCallPro.Plugins.Lexware.FinOffice/FinOfficeInstallationSource.cs))
+  wirft `CompanyUnavailable` für den **gesamten Katalog**, sobald die Datenbankdatei eines einzigen Mandanten
+  fehlt, etwa bei einem archivierten, verschobenen oder gelöschten Mandanten. Danach stehen Rufnummernsuche
+  und Mandantenauswahl für alle Mandanten nicht mehr zur Verfügung. → Betroffenen Mandanten als nicht
+  verfügbar kennzeichnen und die übrigen weiter anbieten. Strukturelle Katalogfehler bleiben fehlersperrend.
