@@ -298,9 +298,53 @@ public partial class SettingsPage
         }
     }
 
+    private void AudioSelfTest_Click(object? sender, EventArgs e)
+    {
+        if (_workspace?.AudioSelfTest is not { } audio || _snapshot is null || FindForm() is not { } owner
+            || _operation?.IsRunning == true || _ringtoneOperation?.IsRunning == true) return;
+        var draft = _snapshot.Options.Devices with
+        {
+            CaptureDeviceId = ReadDevice(captureDeviceEdit),
+            PlaybackDeviceId = ReadDevice(playbackDeviceEdit),
+            CaptureBufferMilliseconds = (int)captureBufferEdit.Value,
+            PlaybackBufferMilliseconds = (int)playbackBufferEdit.Value,
+            MicrophoneVolumePercent = micVolumeSlider.Value,
+            PlaybackVolumePercent = playVolumeSlider.Value,
+            MicrophoneMuted = mutedEdit.Checked
+        };
+        using var wizard = new FrmAudioSelfTest(audio, draft, captureDeviceEdit.Text, playbackDeviceEdit.Text, SaveAudioSelfTestAsync);
+        _state?.AttachWindow(wizard, "FrmAudioSelfTest.v1");
+        StopAudioMeters();
+        try { wizard.ShowDialog(owner); }
+        finally { AudioMeterView_Changed(this, EventArgs.Empty); }
+    }
+
+    internal async Task SaveAudioSelfTestAsync(AudioDeviceSettings draft, CancellationToken token)
+    {
+        var snapshot = _snapshot!;
+        var devices = snapshot.Options.Devices with
+        {
+            CaptureDeviceId = draft.CaptureDeviceId,
+            PlaybackDeviceId = draft.PlaybackDeviceId,
+            CaptureBufferMilliseconds = draft.CaptureBufferMilliseconds,
+            PlaybackBufferMilliseconds = draft.PlaybackBufferMilliseconds,
+            MicrophoneVolumePercent = draft.MicrophoneVolumePercent,
+            PlaybackVolumePercent = draft.PlaybackVolumePercent
+        };
+        await _workspace!.Settings.SaveAsync(snapshot.Options with { Devices = devices }, snapshot, token);
+        _snapshot = await _workspace.Settings.LoadAsync(token);
+        BindDevice(captureDeviceEdit, _audioCatalog?.Capture ?? [], devices.CaptureDeviceId);
+        BindDevice(playbackDeviceEdit, _audioCatalog?.Playback ?? [], devices.PlaybackDeviceId);
+        captureBufferEdit.Value = devices.CaptureBufferMilliseconds;
+        playbackBufferEdit.Value = devices.PlaybackBufferMilliseconds;
+        micVolumeSlider.Value = devices.MicrophoneVolumePercent;
+        playVolumeSlider.Value = devices.PlaybackVolumePercent;
+    }
+
     private void SetDeviceEditorsEnabled(bool enabled)
     {
         captureDeviceEdit.Enabled = playbackDeviceEdit.Enabled = ringDeviceEdit.Enabled = enabled && !_audioStopped;
+        audioSelfTestButton.Enabled = captureDeviceEdit.Enabled && _workspace?.AudioSelfTest is not null;
         windowsRingtoneEdit.Enabled = previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = ringDeviceEdit.Enabled && _ringtones is not null;
         AudioMeterView_Changed(this, EventArgs.Empty);
     }

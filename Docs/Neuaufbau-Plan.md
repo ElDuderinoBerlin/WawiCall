@@ -5075,6 +5075,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   die zuletzt gespeicherte Geräteauswahl und Puffergröße.
   Ein weiterer lokaler RTP-Test mit dem echten Mikrofon übertrug und decodierte 61 G.722-Pakete
   mit durchgängigen RTP-Zeitstempeln.
+- [x] ✅ Audio-Selbsttest unter Einstellungen → Audio → Geräte ergänzen.
+  Der Assistent prüft Testton, Mikrofonprobe mit Live-Spektrum und lokale Kodierung sowie
+  Dekodierung mit G.722 und G.711 (A-law und μ-law). Er zeigt Audioformat, Windows-Pegel,
+  Stummstatus und die tatsächlich verwendeten WASAPI-Puffer an. Übernehmen speichert nur
+  die im Assistenten verwendete Geräteauswahl, Lautstärken und Puffer. Die Probe bleibt im
+  Arbeitsspeicher. Pro Debug mit schmalem Fenster, großer Schrift, Skalierung und echten
+  INZONE-Endpunkten geprüft (70 ms Eingang, 110 ms Ausgabe, Ausgabestream stumm).
 - [x] ✅ G.722-Stereoaufnahmen im echten SIP-Gespräch erneut prüfen (26.11.2026).
   Zuerst Pro, danach FinOffice. Beide isolierten Debug-Prüfhosts boten ausschließlich G.722 an.
   Beide Gespräche wurden verbunden und die RTP-Aufnahmen liefen bis zum geplanten Stopp durch.

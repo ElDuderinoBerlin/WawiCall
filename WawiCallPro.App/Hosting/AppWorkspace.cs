@@ -59,9 +59,11 @@ public sealed class AppWorkspace(
     WawiCallPro.Audio.IAnnouncementAudio? announcementAudio = null,
     WawiCallPro.Audio.IAnnouncementSpeech? announcementSpeech = null,
     ILogWindowService? logWindow = null,
-    ICompanyRepository? callCompanies = null)
+    ICompanyRepository? callCompanies = null,
+    WawiCallPro.Audio.IAudioSelfTest? audioSelfTest = null)
 {
     internal ILogWindowService? LogWindow => logWindow;
+    internal WawiCallPro.Audio.IAudioSelfTest? AudioSelfTest => audioSelfTest;
     internal ICompanyRepository? CallCompanies => callCompanies;
 
     public void ReportSettings(OperationEvent notice)

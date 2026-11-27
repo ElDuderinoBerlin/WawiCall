@@ -108,7 +108,7 @@
       "workspaceSubdir": "src",
       "url": "https://github.com/filoe/cscore.git",
       "branch": "master",
-      "revision": "8ccf18d25163f4049624df632ca1f31504e3aeb2",
+      "revision": "6c7ab4167104840fd9fd0b11dde6bfa624de3452",
       "bundle": "dependency-patches/CSCore-Wasapi.bundle",
       "projects": [
         "CSCore/CSCore.csproj"

@@ -210,6 +210,7 @@ partial class SettingsPage
         windowsRingtoneLabel = new DevExpress.XtraEditors.LabelControl();
         windowsRingtoneEdit = new DevExpress.XtraEditors.LookUpEdit();
         previewRingtoneButton = new DevExpress.XtraEditors.SimpleButton();
+        audioSelfTestButton = new DevExpress.XtraEditors.SimpleButton();
         customRingtoneLabel = new DevExpress.XtraEditors.LabelControl();
         customRingtoneInfo = new DevExpress.XtraEditors.LabelControl();
         browseRingtoneButton = new DevExpress.XtraEditors.SimpleButton();
@@ -1197,7 +1198,7 @@ partial class SettingsPage
         audioLayout.Dock = System.Windows.Forms.DockStyle.Top;
         audioLayout.MaximumSize = new System.Drawing.Size(800, 0);
         audioLayout.ColumnCount = 3;
-        audioLayout.RowCount = 11;
+        audioLayout.RowCount = 12;
         audioLayout.Padding = new System.Windows.Forms.Padding(12);
         audioLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         audioLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
@@ -1375,6 +1376,17 @@ partial class SettingsPage
         recordingSourceHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         audioLayout.Controls.Add(recordingSourceHint, 0, 10);
         audioLayout.SetColumnSpan(recordingSourceHint, 3);
+        audioLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        audioSelfTestButton.Name = "audioSelfTestButton";
+        audioSelfTestButton.Text = "Audio-Selbsttest …";
+        audioSelfTestButton.ToolTip = "Kopfhörer, Mikrofon und Telefonie-Codecs testen.";
+        audioSelfTestButton.AutoSize = true;
+        audioSelfTestButton.Anchor = System.Windows.Forms.AnchorStyles.Left;
+        audioSelfTestButton.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);
+        audioSelfTestButton.Enabled = false;
+        audioSelfTestButton.Click += AudioSelfTest_Click;
+        audioLayout.Controls.Add(audioSelfTestButton, 1, 11);
+        audioLayout.SetColumnSpan(audioSelfTestButton, 2);
         micVolumeLabel.Name = "micVolumeLabel";
         micVolumeLabel.Text = "Mikrofonlautstärke";
         micVolumeLabel.Appearance.FontStyleDelta = System.Drawing.FontStyle.Bold;
@@ -2025,6 +2037,7 @@ partial class SettingsPage
     private DevExpress.XtraEditors.LabelControl windowsRingtoneLabel;
     private DevExpress.XtraEditors.LookUpEdit windowsRingtoneEdit;
     private DevExpress.XtraEditors.SimpleButton previewRingtoneButton;
+    private DevExpress.XtraEditors.SimpleButton audioSelfTestButton;
     private DevExpress.XtraEditors.LabelControl customRingtoneLabel;
     private DevExpress.XtraEditors.LabelControl customRingtoneInfo;
     private DevExpress.XtraEditors.SimpleButton browseRingtoneButton;
