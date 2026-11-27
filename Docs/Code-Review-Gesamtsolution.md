@@ -625,3 +625,19 @@ FinOffice-Zugriffe laufen nur lesend, Redirects sind deaktiviert. Siehe auch T-0
   Firmen-Datenbank und Dateiprüfungen aller Mandanten. Bei Rufnummernsuchen über viele Mandanten
   vervielfacht sich das. → Installation mit kurzer Gültigkeit oder Änderungsprüfung (Dateizeitstempel)
   zwischenspeichern und nur bei Fehlern sofort neu ermitteln.
+
+## B10 – WawiCallPro.Console ✅ gelesen (15 Dateien, Stand 27.11.2026)
+
+Gut gelöst: Zugangsdaten werden nur interaktiv und verdeckt erfasst, niemals über Argumente oder Umleitung.
+Die N/P/G/Q-Navigation passt sich der Terminalgröße an, und umgeleitete Ausgaben werden vollständig ohne
+Tastaturabfragen geschrieben (AGENTS.md-konform). Leere Tabellen sind abgefangen.
+
+- ⬜ **CN-01 · Mittel · Console kann aktuelle Betriebsprotokolle nicht mehr lesen** –
+  [`DiagnosticLogReader.Parse`](../WawiCallPro.Console/Diagnostics/DiagnosticLogReader.cs) (Z. 51–53)
+  verlangt **genau** sieben Eigenschaften (`TimestampUtc, RunId, ProcessId, Level, Event, EventId,
+  ExceptionType`). `SafeFileLoggerProvider` schreibt seit `230af10` („Show exact file-backed diagnostics…“,
+  27.11.2026) zusätzlich `Sequence` und `Details` (Z. 103–114). Jede aktuelle Zeile führt damit zu
+  „Betriebsprotokoll konnte nicht vollständig gelesen werden“: Die Diagnose-Logauswertung der Console ist
+  ausgefallen. Das erklärt den roten Test `DiagnosticLogTests.ReaderSharesFilesWithActiveWritersAndReturnsAllCompletedRecords` (T-02).
+  → Leser auf das neue Schema anheben, `Sequence` prüfen und `Details` begrenzt zulassen. Schreiber und
+  Leser über einen gemeinsamen Schema-Vertrag in `WawiCallPro.Utilities` koppeln und mit einem Test absichern.
