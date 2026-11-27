@@ -282,13 +282,13 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Database | DB | ~5 500 | ✅ (B6) |
 | WawiCallPro.Utilities | UT | ~8 380 | ✅ (B7) |
 | WawiCallPro.Office | OF | ~1 740 | ✅ (B8) |
-| WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
+| WawiCallPro.Interfaces | IF | ~2 140 | ✅ (B13) |
 | WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ✅ (B9) |
 | WawiCallPro.Plugin.Windows | PW | ~1 110 | ✅ (B11) |
 | WawiCallPro.Console | CN | ~880 | ✅ (B10) |
 | WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ✅ (B11) |
-| Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ⬜ |
-| ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ⬜ |
+| Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ✅ (B12) |
+| ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ✅ (B13) |
 | Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ⬜ |
 
 ## B1 – WawiCallPro.Audio ✅ gelesen (64 Dateien, Stand 27.11.2026)
@@ -678,3 +678,13 @@ erzeugt und entsorgt, Registrierungen sind begrenzt (32 Sitzungen, 1024 Nutzer),
   Debug-Builds, deshalb ist das ungetestet. → Mit ausdrücklicher Freigabe einen Release-Build auf einer
   sauberen VM ohne DevExpress-Installation starten und auf Trial-Hinweise prüfen. Zweck und Rechtsgrundlage
   (z. B. Schutz personenbezogener Lizenzdaten) dokumentieren bzw. bei DevExpress bestätigen lassen.
+
+`ComPrototype.TestWorker` ist als nicht veröffentlichbares Testwerkzeug gekennzeichnet (`IsPublishable=false`),
+`OutlookImport.Tests` ist ein reiner Testcontainer. Keine weiteren Befunde.
+
+## B13 – WawiCallPro.Interfaces und ThirdParty/DtmfDetection ✅ gelesen (Stand 27.11.2026)
+
+`WawiCallPro.Interfaces` enthält nur Verträge, Records und Enums (207 Typen) ohne Logik. Einzige Ausnahme ist
+die Standardimplementierung `IFunctionPlugin.Execute` mit Sync-over-Async, die vom Host nicht genutzt wird.
+`ThirdParty/DtmfDetection` (mit `LICENSE`) wird nur von `WawiCallPro.App.Tests` referenziert und nicht
+ausgeliefert. Die DTMF-Erkennung im Produkt läuft über SIPSorcery (`OnDtmfTone`). Keine Befunde.
