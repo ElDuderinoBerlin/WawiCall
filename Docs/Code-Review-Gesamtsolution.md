@@ -108,7 +108,10 @@ gegen HEAD und gegen jeden einzelnen Arbeitsbaum-Commit, vor allem die Paketupda
   Im Arbeitsbaum geändert: `PcmObservingAudioEncoder` (`object` → `Lock`, alle Zugriffe nur über `lock`,
   semantisch gleich) und `ConversationWaveMixer` (`using` → `await using`); `RtpPcmRecordingFeed` und
   `SentPcmRecordingBinding` unterscheiden sich nur in Leerraum/Zeilenenden. Verdacht: Verhaltensänderung durch die
-  Paketupdates 11.0.0 (R-05) oder ein bereits zuvor roter Test. → Ursache gegen HEAD eingrenzen, dann den
+  Paketupdates 11.0.0 (R-05) oder ein bereits zuvor roter Test. Zusätzliche Spur: Commit `94d43d8`
+  („Pin the warning-free local CSCore revision“, 27.11.2026) hat die lokale CSCore-WASAPI-Revision
+  (`deps.json`, `dependency-patches/CSCore-Wasapi.bundle`) geändert. Beide Aufnahme-Tests betreffen fragmentierte
+  Quellblöcke der Aufnahmequelle. → Ursache gegen HEAD eingrenzen, dann den
   Produktfehler beheben, nicht die Erwartung.
 - ⬜ **T-03 · Hoch · Fehlerklassifikation Pro-API** – `WawiCallPro.Plugins.Lexware.Pro.Tests/ProAdapterTests.cs:259`
   (`MalformedPartialOrInconsistentResultsNeverBecomeEmptySuccess`, `IncompletePartyResponsesNeverBecomeSuccessfulEmptySnapshots`):
@@ -267,7 +270,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ✅ (B2) |
 | WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ✅ (B3) |
 | WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | 🟨 (B4, Views offen) |
-| WawiCallPro.Core | CO | ~1 940 | ⬜ |
+| WawiCallPro.Core | CO | ~1 940 | ✅ (B5) |
 | WawiCallPro.Database | DB | ~5 500 | ⬜ |
 | WawiCallPro.Utilities | UT | ~8 380 | ⬜ |
 | WawiCallPro.Office | OF | ~1 740 | ⬜ |
@@ -472,3 +475,11 @@ Arbeitsbereich angepasst. Browse-Dialoge laufen über `XtraOpen/SaveFileDialog` 
   Schritten sowie `MainForm.cs`, `.Calls`, `.Telephony`, `.Database`, `.Mail`, `.PluginShell`, `.Automation`.
   Schwerpunkte: Datenverlust beim Schließen, Lexware-Sperre vor Aktionen, Grid- und Layoutregeln,
   Designer-Konformität.
+
+## B5 – WawiCallPro.Core ✅ gelesen (25 Dateien, Stand 27.11.2026)
+
+RTP- und PCM-Zeitachsen (`RtpPcmRecordingFeed`, `SentPcmRecordingBinding`, `RtpAudioPacketBuffer`), die
+WAV-Validierung (`PcmWaveHeader`), Rufnummerninterpretation, Trefferentscheidung und UI-Dispatcher sind
+streng begrenzt und schlagen bei Unklarheit fehl statt zu raten (fail-closed): SSRC-, Takt- und
+Sequenzwechsel, Überlappungen, Puffergrenzen und unvollständige Suchbereiche führen zu definierten Fehlern
+statt zu stillen Reparaturen. Keine eigenständigen Befunde. Die roten Aufnahme-Tests werden unter T-02 verfolgt.
