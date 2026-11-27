@@ -65,7 +65,8 @@ internal static class AppCompositionRoot
                 services.AddSingleton<IAppAutoStart, WindowsAppAutoStart>();
                 services.AddSingleton<LogWindowService>();
                 services.AddSingleton<ILogWindowService>(provider => provider.GetRequiredService<LogWindowService>());
-                services.AddSingleton<ILoggerProvider, UiLogProvider>();
+                services.AddSingleton<SafeFileLoggerProvider>();
+                services.Replace(ServiceDescriptor.Singleton<ILoggerProvider, UiLogProvider>());
                 services.AddSingleton<IWindowDisplayEnvironment, WindowDisplayEnvironment>();
                 services.AddSingleton(provider => new AppUiState(provider.GetRequiredService<ApplicationDescriptor>(), mode,
                     provider.GetRequiredService<IWindowDisplayEnvironment>()));

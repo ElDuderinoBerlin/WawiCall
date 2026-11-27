@@ -146,5 +146,29 @@ public static class OperationEvents
         return false;
     }
 
-    internal sealed record SafeOperationRecord(OperationEvent Event);
+    internal static void WriteConversionQueueWarning(ILogger logger, int completed, int failed, int deferred)
+    {
+        const OperationEvent operation = OperationEvent.RecordingConversionQueueIncomplete;
+        var record = new SafeOperationRecord(operation)
+        {
+            Diagnostic = $"Abgeschlossen: {completed} · Fehlgeschlagen: {failed} · Zurückgestellt: {deferred}"
+        };
+        logger.Log(LogLevel.Warning, new EventId((int)operation), record, null, static (state, _) => state.Event.ToString());
+    }
+
+    internal static void WriteConversionQueueWarning(ILogger logger, Exception error)
+    {
+        const OperationEvent operation = OperationEvent.RecordingConversionQueueIncomplete;
+        var id = new EventId((int)operation);
+        var record = new SafeOperationRecord(operation)
+        {
+            Diagnostic = SafeLogDiagnostics.DescribeException(error)
+        };
+        logger.Log(LogLevel.Warning, id, record, null, static (state, _) => state.Event.ToString());
+    }
+
+    internal sealed record SafeOperationRecord(OperationEvent Event)
+    {
+        internal string? Diagnostic { get; init; }
+    }
 }

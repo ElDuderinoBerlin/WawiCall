@@ -4,14 +4,18 @@ using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.App.Hosting;
 
-/// <summary>One transient display entry, independent of persisted structured logs.</summary>
-public sealed record UiLogEntry(DateTimeOffset Timestamp, LogLevel Level, string Message);
+/// <summary>One transient display entry with an optional reference to its persisted diagnosis.</summary>
+public sealed record UiLogEntry(DateTimeOffset Timestamp, LogLevel Level, string Message)
+{
+    public FileLogReference? FileRecord { get; init; }
+}
 
 /// <summary>UI log messages and a bounded startup queue; callers supply display-safe text.</summary>
 public interface ILogWindowService
 {
     void LogNormal(string message);
     void LogWarning(string message);
+    void LogWarning(string message, Exception error) => LogWarning(message);
     void LogError(string message);
     IReadOnlyList<UiLogEntry> Drain();
 }
@@ -20,12 +24,21 @@ public interface ILogWindowService
 internal sealed class LogWindowService : ILogWindowService
 {
     private readonly ConcurrentQueue<UiLogEntry> _pending = new();
+    private readonly SafeFileLoggerProvider? _file;
+
+    public LogWindowService() { }
+    public LogWindowService(SafeFileLoggerProvider file) => _file = file;
     public void LogNormal(string message) => Append(LogLevel.Information, message);
-    public void LogWarning(string message) => Append(LogLevel.Warning, message);
-    public void LogError(string message) => Append(LogLevel.Error, message);
-    internal void Append(LogLevel level, string message)
+    public void LogWarning(string message) => LogWarningCore(message, null);
+    public void LogWarning(string message, Exception error) => LogWarningCore(message, error);
+    private void LogWarningCore(string message, Exception? error) =>
+        Append(LogLevel.Warning, message, _file?.WriteDisplayWarning(LogLevel.Warning, message, error));
+    public void LogError(string message) => Append(LogLevel.Error, message, _file?.WriteDisplayWarning(LogLevel.Error, message, null));
+
+    internal void Append(LogLevel level, string message) => Append(level, message, null);
+    internal void Append(LogLevel level, string message, FileLogReference? reference)
     {
-        _pending.Enqueue(new(DateTimeOffset.Now, level, message));
+        _pending.Enqueue(new(DateTimeOffset.Now, level, message) { FileRecord = reference });
         while (_pending.Count > 2000) _pending.TryDequeue(out _);
     }
     public IReadOnlyList<UiLogEntry> Drain()
@@ -36,22 +49,29 @@ internal sealed class LogWindowService : ILogWindowService
     }
 }
 
-/// <summary>UI counterpart of the safe file provider; arbitrary messages, formatters and exception text stay excluded.</summary>
+/// <summary>Writes app logger events once and supplies their corresponding short display entries.</summary>
 internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
 {
-    public ILogger CreateLogger(string categoryName) => new Logger(logs);
+    private readonly SafeFileLoggerProvider? _file;
+
+    public UiLogProvider(LogWindowService logs, SafeFileLoggerProvider file) : this(logs) => _file = file;
+
+    public ILogger CreateLogger(string categoryName) => new Logger(logs, _file, categoryName);
     public void Dispose() { }
-    private sealed class Logger(LogWindowService logs) : ILogger
+    private sealed class Logger(LogWindowService logs, SafeFileLoggerProvider? file, string category) : ILogger
     {
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
+        public bool IsEnabled(LogLevel logLevel) => logLevel is >= LogLevel.Information and < LogLevel.None
+            || file?.Accepts(logLevel, category) == true;
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             if (!IsEnabled(logLevel)) return;
+            var reference = file?.WriteWithReference(logLevel, eventId, state, exception, category);
+            if (logLevel < LogLevel.Information) return;
             var operation = OperationEvents.TryGetEvent(state, out var value) ? value : OperationEvent.FrameworkMessage;
             if (operation is OperationEvent.FrameworkMessage or OperationEvent.PluginMessage && logLevel < LogLevel.Warning) return;
             if ((SettingsMessages.Get(operation) ?? RecordingConversionMessages.Get(operation) ?? SipRegistrationMessages.Get(operation)) is { } status)
-            { logs.Append(logLevel, status); return; }
+            { logs.Append(logLevel, status, reference); return; }
             var message = operation switch
             {
                 OperationEvent.HostStarting => "Anwendungsdienste werden gestartet.",
@@ -84,7 +104,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.ConversationPlaybackUnavailable => "Die Gesprächsausgabe konnte nicht gestartet werden. WawiCallPro versucht, sie erneut zu verbinden.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
-            logs.Append(logLevel, message);
+            logs.Append(logLevel, message, reference);
         }
     }
 }

@@ -25,13 +25,23 @@ public partial class LogPanel : XtraUserControl
     private void Append(UiLogEntry entry)
     {
         var text = WebUtility.HtmlDecode(entry.Message).Replace("<", "‹", StringComparison.Ordinal);
+        var shortText = text;
+        if (entry.Level >= LogLevel.Warning && text.Length > 115)
+        {
+            var firstSentence = text.IndexOf(". ", StringComparison.Ordinal);
+            shortText = firstSentence is > 15 and < 115 ? text[..(firstSentence + 1)] : text[..112].TrimEnd() + " …";
+        }
         var body = entry.Level switch
         {
-            LogLevel.Warning => $"<b><color=Gold>Warnung:</color></b> <color=Gold>{text}</color>",
-            LogLevel.Error or LogLevel.Critical => $"<b><color=Red>Fehler:</color></b> <color=Red>{text}</color>",
+            LogLevel.Warning => $"<b><color=Gold>Warnung:</color></b> <color=Gold>{shortText}</color>",
+            LogLevel.Error or LogLevel.Critical => $"<b><color=Red>Fehler:</color></b> <color=Red>{shortText}</color>",
             _ => text
         };
-        listLog.Items.Add(new LogListBoxItem($"<color=Gray>{entry.Timestamp:HH:mm:ss}</color>: {body}"));
+        listLog.Items.Add(new LogListBoxItem($"<color=Gray>{entry.Timestamp:HH:mm:ss}</color>: {body}")
+        {
+            FileRecord = entry.FileRecord,
+            FullText = entry.Level >= LogLevel.Warning ? text : null
+        });
         while (listLog.ItemCount > 2000) listLog.Items.RemoveAt(0);
     }
     internal void Drain()

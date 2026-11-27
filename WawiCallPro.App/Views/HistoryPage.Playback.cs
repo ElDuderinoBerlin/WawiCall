@@ -303,9 +303,9 @@ public partial class HistoryPage
             await _playback!.PlayAsync(callId, transport, cancellation.Token);
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-        catch (Exception)
+        catch (Exception error)
         {
-            if (!_stopping) _log?.LogWarning("Aufnahme konnte nicht abgespielt werden. Aufnahme und Audioausgabe prüfen.");
+            if (!_stopping) _log?.LogWarning("Aufnahme konnte nicht abgespielt werden.", error);
         }
         finally
         {

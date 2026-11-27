@@ -102,15 +102,15 @@ public sealed class RecordingConversionQueue(IRecordingConversionBatch batch, IL
                     if (result.Failed > 0 || result.Deferred > 0 &&
                         (result.Completed > 0 || previousDeferred != result.Deferred))
                     {
-                        OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete);
+                        OperationEvents.WriteConversionQueueWarning(log, result.Completed, result.Failed, result.Deferred);
                     }
                     previousDeferred = result.Deferred > 0 ? result.Deferred : null;
                     batchUnavailable = false;
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-                catch (Exception)
+                catch (Exception error)
                 {
-                    if (!batchUnavailable) OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete);
+                    if (!batchUnavailable) OperationEvents.WriteConversionQueueWarning(log, error);
                     batchUnavailable = true;
                     previousDeferred = null;
                 }

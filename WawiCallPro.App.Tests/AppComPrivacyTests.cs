@@ -42,8 +42,12 @@ public sealed class AppComPrivacyTests
             {
                 Assert.DoesNotContain(privateData, line); Assert.DoesNotContain("Credentials", line);
                 using var json = JsonDocument.Parse(line);
-                CollectionAssert.AreEquivalent(new[] { "TimestampUtc", "RunId", "ProcessId", "Level", "Event", "EventId", "ExceptionType" },
+                CollectionAssert.AreEquivalent(new[] { "TimestampUtc", "RunId", "ProcessId", "Level", "Event", "EventId", "ExceptionType", "Sequence", "Details" },
                     json.RootElement.EnumerateObject().Select(property => property.Name).ToArray());
+                Assert.IsGreaterThan(0L, json.RootElement.GetProperty("Sequence").GetInt64());
+                var details = json.RootElement.GetProperty("Details").GetString()!;
+                Assert.Contains("HRESULT 0x", details);
+                Assert.DoesNotContain("synthetic-secret", details);
             }
             Assert.IsInstanceOfType<OperationException>(failures.Failure);
         }

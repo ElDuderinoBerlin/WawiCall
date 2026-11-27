@@ -43,17 +43,20 @@ internal static class LogListBoxToolTipHelper
         var plainText = LogListBoxText.ToPlainText(htmlText);
         var itemBounds = listLog.GetItemRectangle(index);
 
-        if (!IsClipped(listLog, plainText, itemBounds))
+        var details = (item as LogListBoxItem)?.GetDetails();
+        if (details is null && !IsClipped(listLog, plainText, itemBounds))
             return;
 
+        var toolTipText = details ?? plainText;
         var identity = new LogItemToolTipIdentity(index, item);
         var superTip = new SuperToolTip
         {
-            MaxWidth = ScaleToDpi(listLog, ToolTipMaxWidth)
+            MaxWidth = ScaleToDpi(listLog, ToolTipMaxWidth),
+            AllowHtmlText = DefaultBoolean.False
         };
-        superTip.Items.Add(new ToolTipItem { Text = plainText });
+        superTip.Items.Add(new ToolTipItem { Text = toolTipText });
 
-        e.Info = new ToolTipControlInfo(identity, plainText)
+        e.Info = new ToolTipControlInfo(identity, toolTipText)
         {
             ObjectBounds = listLog.RectangleToScreen(itemBounds),
             SuperTip = superTip
