@@ -272,7 +272,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | 🟨 (B4, Views offen) |
 | WawiCallPro.Core | CO | ~1 940 | ✅ (B5) |
 | WawiCallPro.Database | DB | ~5 500 | ✅ (B6) |
-| WawiCallPro.Utilities | UT | ~8 380 | ⬜ |
+| WawiCallPro.Utilities | UT | ~8 380 | ✅ (B7) |
 | WawiCallPro.Office | OF | ~1 740 | ⬜ |
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
 | WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ⬜ |
@@ -527,7 +527,14 @@ Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
 - ⬜ **DB-04 · Verweis** – Direkte ADO.NET-Ausführung trotz Dapper-Regel: siehe **R-07**. Beim Umbau von DB-01
   gleich mit umstellen.
 
-## B7 – WawiCallPro.Utilities ⬜ in Arbeit (Stand 27.11.2026)
+## B7 – WawiCallPro.Utilities ✅ gelesen (Kernpfade, Stand 27.11.2026)
+
+Gelesen: `ConfigurationStore`, `ClientKeyEncryptor`, `ProductLicenseService` (Aktivierung/Validierung),
+`CrashReporting`/`CrashReportUploader`, `SafeFileLoggerProvider`, `ProductPluginRuntime`, `PluginTrust`,
+`FunctionPluginRuntime`, `LexwareInstallation`, `RecordingArchive`, `RecordingConversionBatch`; übrige
+Persistence-Dienste per Musterprüfung (gekapselte Fehlercodes, keine verschluckten Abbrüche).
+Positiv: Crash-Reports ohne Meldungstexte/Argumente/Pfade, Upload nur bei aktivierter Produktkonfiguration;
+Log nur strukturiert ohne fremde Meldungen; Einstellungen mit Hash-Konfliktschutz.
 
 - ⬜ **UT-01 · Mittel · Client-Key-„Verschlüsselung“ mit eingebautem Schlüssel** –
   [`ClientKeyEncryptor`](../WawiCallPro.Utilities/Configuration/ClientKeyEncryptor.cs) (Z. 13–14) leitet den
