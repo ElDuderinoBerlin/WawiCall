@@ -688,3 +688,19 @@ erzeugt und entsorgt, Registrierungen sind begrenzt (32 Sitzungen, 1024 Nutzer),
 die Standardimplementierung `IFunctionPlugin.Execute` mit Sync-over-Async, die vom Host nicht genutzt wird.
 `ThirdParty/DtmfDetection` (mit `LICENSE`) wird nur von `WawiCallPro.App.Tests` referenziert und nicht
 ausgeliefert. Die DTMF-Erkennung im Produkt läuft über SIPSorcery (`OnDtmfTone`). Keine Befunde.
+
+## B14 – Testprojekte ✅ geprüft (11 Projekte, ca. 1 440 Testmethoden, Stand 27.11.2026)
+
+Gut: Registry-Tests verwenden zufällige, isolierte Pfade unter `Software\WawiCallPro\Tests\…` und räumen
+gezielt auf, mit Präfixprüfung vor `DeleteSubKeyTree`. Hardware- und Audiotests sind ausdrücklich opt-in
+(`Assert.Inconclusive` ohne Umgebungsvariable), DPAPI-Tests sind auf Windows beschränkt. Es gibt keine
+Zugriffe auf echte Profile unter `%LocalAppData%`.
+
+- ⬜ **TE-01 · Mittel · Rote Tests bleiben unbemerkt** – `MailCacheTests` ist seit `ccd3d53` (23.11.2026)
+  rot (T-01), `DiagnosticLogTests` seit `230af10` (27.11.2026, CN-01), dazu kommen T-02 und T-03. Es gibt
+  keinen automatischen Testlauf vor dem Commit (kein CI-Workflow, kein Git-Hook, keine Testaufgabe in
+  `scripts/`). AGENTS.md verlangt „Erst fertigmelden, wenn die erforderlichen Prüfungen abgeschlossen sind“.
+  → Ein Skript `scripts/test-headless.ps1` (Debug, Pro, alle fensterlosen Testprojekte) einführen und als
+  verbindlichen Schritt vor jedem Commit bzw. in einer lokalen CI verankern. 102 Stellen mit
+  `Task.Delay`/`Thread.Sleep` auf mögliche Zeitabhängigkeit (Flakiness) prüfen und, wo möglich, auf
+  `TimeProvider` umstellen.
