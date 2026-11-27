@@ -724,3 +724,10 @@ Zugriffe auf echte Profile unter `%LocalAppData%`.
   benutzerdefinierte ID, sowie interne Cache- und Regelrevisionen an. AGENTS.md: „Nur den Mandantennamen
   anzeigen; technische IDs bleiben intern.“ → Firmenname aus der Gruppe anzeigen. Technische Angaben nur
   im Log oder in der Diagnoseansicht (`PhoneNumberDiagnosticsPage`) ausgeben.
+- ⬜ **AP-08 · Niedrig · Doppelte Einträge in der Gesprächshistorie beim Laden** – `HistoryPage.LoadCallsAsync`
+  ([Z. 207–214](../WawiCallPro.App/Views/HistoryPage.cs)) lädt den ganzen Zeitraum per
+  **OFFSET**-Paging in 500er-Seiten (`ORDER BY startedatutc DESC`). Beginnt während des Ladens ein neues
+  Gespräch, auch an einem anderen Arbeitsplatz, verschieben sich die Offsets: Ein Eintrag erscheint doppelt
+  im Grid, oder einer am Seitenrand fehlt. Große Zeiträume werden außerdem vollständig in den Speicher
+  geladen. → Keyset-Paging verwenden (`startedatutc, id` als Fortsetzungsschlüssel) und optional die
+  Anzeige begrenzen bzw. nachladen.
