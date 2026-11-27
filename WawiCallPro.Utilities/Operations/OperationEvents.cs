@@ -99,7 +99,9 @@ public enum OperationEvent
     RecordingArchiveSwitchPending,
     SettingsProApiAccessSucceeded,
     SettingsProApiAccessFailed,
-    SettingsProApiAccessDisabled
+    SettingsProApiAccessDisabled,
+    ConversationMicrophoneUnavailable,
+    ConversationPlaybackUnavailable
 }
 
 /// <summary>Closed event vocabulary. No user-provided message or state is included.</summary>
@@ -125,6 +127,7 @@ public static class OperationEvents
             or OperationEvent.RecordingDirectoryReviewRequired or OperationEvent.RecordingDirectoryInventoryIncomplete or OperationEvent.RecordingArchiveSwitchPending
             or OperationEvent.LiveRecordingSignalMissing or OperationEvent.LiveRecordingInputFailed
             or OperationEvent.LiveRecordingStorageFailed or OperationEvent.LiveRecordingUnavailable or OperationEvent.LiveRecordingFailed
+            or OperationEvent.ConversationMicrophoneUnavailable or OperationEvent.ConversationPlaybackUnavailable
             or OperationEvent.RecordingConversionSchemaUpdateRequired or OperationEvent.RecordingConversionNewerSchema
             or OperationEvent.RecordingConversionDatabaseUnavailable or OperationEvent.RecordingConversionCheckFailed
             or OperationEvent.RecordingConversionWorkstationMissing

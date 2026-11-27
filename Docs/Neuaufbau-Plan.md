@@ -5064,6 +5064,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   die Übergänge in der fertigen Stereo-WAV samplegenau. Dieselbe Paketfolge wurde über UDP-Loopback
   durch den Medienadapter getestet. App und Konsole wurden für Pro und FinOffice in Debug gebaut.
   Je Edition bestanden 115 gezielte Tests.
+  ✅ Beim Sony-INZONE-Mikrofon lieferte der WASAPI-Resampler einen ungeraden G.722-Block
+  mit 129 Samples. Der Encoder brach daraufhin vor dem ersten Sendepaket ab.
+  Der Medienadapter sammelt G.722 jetzt zu vollständigen 20-ms-Paketen. Mit dem echten
+  INZONE-Endpunkt wurden 65 Pakete mit je 320 PCM-Samples ohne Encoderfehler erzeugt.
 - [x] ✅ G.722-Stereoaufnahmen im echten SIP-Gespräch erneut prüfen (26.11.2026).
   Zuerst Pro, danach FinOffice. Beide isolierten Debug-Prüfhosts boten ausschließlich G.722 an.
   Beide Gespräche wurden verbunden und die RTP-Aufnahmen liefen bis zum geplanten Stopp durch.

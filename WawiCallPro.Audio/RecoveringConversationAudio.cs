@@ -4,6 +4,7 @@ using SIPSorceryMedia.Abstractions;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
+using WawiCallPro.Utilities.Operations;
 
 namespace WawiCallPro.Audio;
 
@@ -385,7 +386,8 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
         if (unavailable != available) return;
         unavailable = !available;
         if (available) _log.LogInformation("{AudioDirection} ist wieder verbunden.", direction);
-        else _log.LogWarning("{AudioDirection} kann nicht verbunden werden. Die App versucht es erneut.", direction);
+        else OperationEvents.Write(_log, direction == "Mikrofon"
+            ? OperationEvent.ConversationMicrophoneUnavailable : OperationEvent.ConversationPlaybackUnavailable);
     }
 
     public Task CloseAudio()

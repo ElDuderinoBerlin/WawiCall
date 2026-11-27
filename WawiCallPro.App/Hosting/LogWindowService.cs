@@ -80,6 +80,8 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.LiveRecordingStorageFailed => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.StorageFailed),
                 OperationEvent.LiveRecordingUnavailable => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.Unavailable),
                 OperationEvent.LiveRecordingFailed => LiveRecordingMessages.Failure(null),
+                OperationEvent.ConversationMicrophoneUnavailable => "Das Mikrofon konnte für das Gespräch nicht gestartet werden. WawiCallPro versucht, es erneut zu verbinden.",
+                OperationEvent.ConversationPlaybackUnavailable => "Die Gesprächsausgabe konnte nicht gestartet werden. WawiCallPro versucht, sie erneut zu verbinden.",
                 _ => exception is null ? "Anwendungsmeldung." : "Ein Anwendungsvorgang ist fehlgeschlagen."
             };
             logs.Append(logLevel, message);
