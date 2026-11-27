@@ -77,6 +77,16 @@ public sealed partial class AppShellTests
         ClickDetailButton(recordedRow);
         Assert.IsFalse(view.GetMasterRowExpanded(recordedRow));
 
+        DoubleClickCallRow(otherRow);
+        Assert.IsFalse(view.GetMasterRowExpanded(otherRow));
+        DoubleClickCallRow(recordedRow);
+        Assert.IsTrue(view.GetMasterRowExpanded(recordedRow));
+        Assert.IsFalse(player.Started.Task.IsCompleted);
+        DoubleClickCallRow(recordedRow);
+        Assert.IsTrue(view.GetMasterRowExpanded(recordedRow));
+        ClickDetailButton(recordedRow);
+        Assert.IsFalse(view.GetMasterRowExpanded(recordedRow));
+
         view.FocusedColumn = view.Columns["Rufnummer"];
         ClickPlaybackCell(recordedRow);
         Assert.AreEqual(available, await player.Started.Task.WaitAsync(TimeSpan.FromSeconds(3)));
@@ -264,6 +274,21 @@ public sealed partial class AppShellTests
             }, -1);
             Assert.IsGreaterThanOrEqualTo(0, x, "Das native Detail-Symbol muss per Maus erreichbar sein.");
             ClickGrid(new Point(x, y));
+        }
+
+        void DoubleClickCallRow(int rowHandle)
+        {
+            view.MakeRowVisible(rowHandle);
+            var bounds = ((GridViewInfo)view.GetViewInfo()).GetGridCellInfo(rowHandle, view.Columns["Rufnummer"]).Bounds;
+            Assert.IsTrue(bounds.Width > 0 && bounds.Height > 0);
+            var target = new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+            var hit = view.CalcHitInfo(target);
+            Assert.AreEqual(rowHandle, hit.RowHandle);
+            Assert.IsTrue(hit.InRowCell);
+            // Dispatch the view event without moving the desktop cursor over the hidden test window.
+            var mouse = DevExpress.Utils.DXMouseEventArgs.GetMouseArgs(new MouseEventArgs(MouseButtons.Left, 2, target.X, target.Y, 0));
+            typeof(GridView).GetMethod("RaiseDoubleClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(view, [mouse]);
         }
 
         void ClickGrid(Point location)

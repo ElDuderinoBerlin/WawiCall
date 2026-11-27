@@ -241,6 +241,17 @@ public partial class HistoryPage
         if (view.ActiveEditor is ButtonEdit editor) editor.PerformClick(editor.Properties.Buttons[0]);
     }
 
+    private void View_PlaybackDoubleClick(object? sender, EventArgs e)
+    {
+        if (_stopping || e is not DXMouseEventArgs { Button: MouseButtons.Left } mouse) return;
+        var hit = view.CalcHitInfo(mouse.Location);
+        if (!hit.InRowCell || hit.Column == playbackColumn
+            || view.GetRow(hit.RowHandle) is not HistoryRow { PlayerDetails.Count: > 0 }) return;
+
+        mouse.Handled = true;
+        if (!view.GetMasterRowExpanded(hit.RowHandle)) view.ExpandMasterRow(hit.RowHandle);
+    }
+
     private async void Playback_Click(object? sender, ButtonPressedEventArgs e)
     {
         if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;

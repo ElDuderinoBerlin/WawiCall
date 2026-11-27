@@ -222,7 +222,7 @@ partial class HistoryPage
         grid.MainView = view;
         grid.ViewCollection.AddRange(new DevExpress.XtraGrid.Views.Base.BaseView[] { view });
         view.GridControl = grid;
-        view.OptionsBehavior.EditorShowMode = DevExpress.Utils.EditorShowMode.MouseDown;
+        view.OptionsBehavior.EditorShowMode = DevExpress.Utils.EditorShowMode.Click;
         view.OptionsBehavior.AutoPopulateColumns = false;
         view.OptionsView.ShowColumnHeaders = true;
         view.OptionsView.ColumnAutoWidth = false;
@@ -415,6 +415,7 @@ partial class HistoryPage
         view.CustomRowCellEditForEditing += View_PlaybackEditor;
         view.ShowingEditor += View_ShowingEditor;
         view.MouseDown += View_PlaybackMouseDown;
+        view.DoubleClick += View_PlaybackDoubleClick;
         view.AutoFillColumn = numberColumn;
         view.FocusedRowChanged += View_FocusedRowChanged;
         detailsEdit.Dock = System.Windows.Forms.DockStyle.Fill;

@@ -5098,6 +5098,7 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Wiedergabe. Der Play-Button öffnet den Player und spielt die Aufnahme direkt ab.
   Native Rasterklicks wurden in Pro und FinOffice im Debug-Build geprüft.
   ✅ Der Kopf der Aufnahmespalte zeigt den Telefonhörer mit Wellenform. Der Wiedergabebutton jeder Aufnahme und der Inline-Player verwenden ein Play-Dreieck als SVG.
+  ✅ Ein Doppelklick auf eine Gesprächszeile mit Aufnahme klappt den Inline-Player auf. Die Wiedergabe startet über den Play-Button.
 - [x] ✅ Expliziten Dienst für den unveränderten Export bestätigter Originale ergänzen (19.11.2026).
   `IRecordingExport` über den gemeinsamen DI-Aufbau bereitstellen; keine automatische Ausführung.
   Export einer Artefakt-ID nur bei vorhandenem lokalem Arbeitsplatz, abgeschlossenem/fehlgeschlagenem
