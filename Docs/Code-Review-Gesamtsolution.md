@@ -642,3 +642,19 @@ Tastaturabfragen geschrieben (AGENTS.md-konform). Leere Tabellen sind abgefangen
   ausgefallen. Das erklärt den roten Test `DiagnosticLogTests.ReaderSharesFilesWithActiveWritersAndReturnsAllCompletedRecords` (T-02).
   → Leser auf das neue Schema anheben, `Sequence` prüfen und `Details` begrenzt zulassen. Schreiber und
   Leser über einen gemeinsamen Schema-Vertrag in `WawiCallPro.Utilities` koppeln und mit einem Test absichern.
+
+## B11 – Plugin.Windows, PhoneMenu, Plugins.JtlWawi, Functions.Dummy* ✅ gelesen (Stand 27.11.2026)
+
+`WawiCallPro.Plugin.Windows` ist sauber: Views und Einstellungen werden über Leases auf dem UI-Dispatcher
+erzeugt und entsorgt, Registrierungen sind begrenzt (32 Sitzungen, 1024 Nutzer), Fehlertexte fest.
+`WawiCallPro.PhoneMenu` enthält derzeit keinen Code, nur eine Projektreferenz.
+
+- ⬜ **KL-01 · Mittel · Test- und Beispielplugins werden mit ausgeliefert** – `WawiCallPro.App.csproj`
+  (Z. 28–30) referenziert `Plugins.JtlWawi` (nur lokale Beispieldaten „JTL-Wawi – Beispielkunde“),
+  `Functions.DummyStatus` und `Functions.DummyClock`. `GetWawiPluginDeploymentFiles`
+  (`Directory.Build.targets`, Z. 52–60) kopiert alle Plugin-Projekte ohne Konfigurations- oder
+  Editionsbedingung nach `plugins\` bzw. `function-plugins\`, im Debug-Ausgabeordner nachweisbar. Damit
+  erscheinen „JTL-Wawi“ und die Dummy-Funktionen beim Kunden in Pluginliste und Pluginwechsel, obwohl sie
+  keine echte Datenquelle anbinden (CRA: keine unnötigen Komponenten, Irreführung).
+  → In Release/Publish ausschließen (Bedingung oder eigenes Test-Paket) und mit einer Prüfung der
+  Velopack-Ausgabe belegen. `WawiCallPro.PhoneMenu` ohne Code aus der Solution entfernen oder füllen.
