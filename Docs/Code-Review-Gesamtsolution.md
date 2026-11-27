@@ -119,7 +119,14 @@ gegen HEAD und gegen jeden einzelnen Arbeitsbaum-Commit, vor allem die Paketupda
   Sicherheitsziel bleibt erhalten, denn es entsteht kein leerer Erfolg. Die Diagnose lenkt den Benutzer aber auf
   „Dienst nicht erreichbar“ statt auf „ungültige Antwort“. Möglicher Auslöser: der Stand von
   `Quantarix.Lexware.APIService` (`b7d3bc4`, 26.11.2026, „Align Professional finalization …“) oder
-  System.Text.Json 11. → Fehlerabbildung in `ProApiSession`/`ProDirectory` gegen die Bibliotheksausnahmen prüfen.
+  System.Text.Json 11. **Ursache (Codeanalyse):** `ProResponseGuard` (Z. 45–57) setzt für ein `errors`-Objekt bzw. einen
+  fehlerhaften Inhalt korrekt `Failure = InvalidResponse`. Wirft danach jedoch der API-Client beim
+  Deserialisieren selbst, z. B. wegen `errors` als Objekt statt Array, landet die Ausnahme im pauschalen
+  `catch` von [`ProApiSession.cs`](../WawiCallPro.Plugins.Lexware.Pro/ProApiSession.cs) (Z. 81) und wird
+  unabhängig vom bereits ermittelten Guard-Ergebnis zu `ApiUnavailable`. Ob der Client wirft oder `null`
+  liefert, hängt vom Stand von `Quantarix.Lexware.APIService` bzw. System.Text.Json ab.
+  → Im pauschalen `catch` zuerst `_connection?.Failure` übernehmen (`?? ApiUnavailable`). Danach
+  ProAdapterTests erneut ausführen.
 
 ## Phase 2 – Datenbank und Migrationen
 
