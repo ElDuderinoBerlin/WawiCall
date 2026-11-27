@@ -104,6 +104,34 @@ public sealed partial class AppShellTests
                 if (scale == 1F && fontSize == 10F)
                     Assert.AreEqual(0, Field<TableLayoutPanel>(panel, "actionStrip").GetRow(Field<TableLayoutPanel>(panel, "recordingActions")));
 
+                foreach (var controls in new[] { panel, detailsPanel })
+                {
+                    var level = Field<SpinEdit>(controls, "conversationVolume");
+                    var microphone = Field<AudioLevelMeter>(controls, "microphonePeak");
+                    var microphoneLabel = Field<LabelControl>(controls, "microphonePeakLabel");
+                    var speaker = Field<AudioLevelMeter>(controls, "playbackPeak");
+                    var speakerLabel = Field<LabelControl>(controls, "playbackPeakLabel");
+                    var muteButton = Field<SimpleButton>(controls, "muteMicrophone");
+                    Assert.AreSame(level.Parent, microphone.Parent);
+                    Assert.AreEqual(level.Left, microphone.Left);
+                    Assert.AreEqual(Field<LabelControl>(controls, "volumeLabel").Left, microphoneLabel.Left);
+                    var audioTable = Field<TableLayoutPanel>(controls, "audioLayout");
+                    var wrapped = audioTable.GetRow(speaker) == 2;
+                    Assert.AreEqual(wrapped ? microphoneLabel.Left : muteButton.Left, speakerLabel.Left);
+                    if (wrapped) Assert.AreEqual(microphone.Left, speaker.Left);
+                    if (width == 1120) Assert.IsFalse(wrapped);
+                    Assert.IsTrue(speaker.Left >= speakerLabel.Right && speaker.Right <= audioTable.ClientSize.Width,
+                        $"{width}/{fontSize}/{scale}: {speakerLabel.Bounds}, {speaker.Bounds} in {audioTable.ClientSize}");
+                    Assert.IsTrue(Math.Abs((speakerLabel.Top + speakerLabel.Height / 2) - (speaker.Top + speaker.Height / 2)) <= 1);
+                    if (Field<TableLayoutPanel>(controls, "actionStrip").GetRow(Field<TableLayoutPanel>(controls, "recordingActions")) == 0)
+                    {
+                        var answer = Field<SimpleButton>(controls, "answerButton");
+                        var record = Field<SimpleButton>(controls, "recordingButton");
+                        Assert.AreEqual(answer.PointToScreen(Point.Empty).Y, record.PointToScreen(Point.Empty).Y);
+                        Assert.AreEqual(answer.Height, record.Height);
+                    }
+                }
+
                 var volume = Field<SpinEdit>(panel, "conversationVolume");
                 var mute = Field<SimpleButton>(detailsPanel, "muteMicrophone");
                 Assert.AreEqual(75m, volume.Value);

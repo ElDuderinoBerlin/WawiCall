@@ -100,6 +100,29 @@ public partial class CallControlPanel : XtraUserControl
         if (!actionStrip.GetCellPosition(recordingActions).Equals(cell)) actionStrip.SetCellPosition(recordingActions, cell);
     }
 
+    private void AudioLayout_Layout(object? sender, LayoutEventArgs e)
+    {
+        if (!IsHandleCreated || _disposed || !audioLayout.Visible) return;
+        var labelWidth = Math.Max(volumeLabel.Width + volumeLabel.Margin.Horizontal, microphonePeakLabel.Width + microphonePeakLabel.Margin.Horizontal);
+        var inputWidth = Math.Max(conversationVolume.Width + conversationVolume.Margin.Horizontal, microphonePeak.Width + microphonePeak.Margin.Horizontal);
+        var outputLabelWidth = Math.Max(muteMicrophone.Width + muteMicrophone.Margin.Horizontal, playbackPeakLabel.Width + playbackPeakLabel.Margin.Right);
+        var outputWidth = playbackPeak.PreferredSize.Width + playbackPeak.Margin.Horizontal;
+        var wrap = labelWidth + inputWidth + outputLabelWidth + outputWidth > audioLayout.ClientSize.Width;
+        var row = wrap ? 2 : 1;
+        if (audioLayout.GetRow(playbackPeak) == row) return;
+
+        audioLayout.SuspendLayout();
+        try
+        {
+            audioLayout.SetCellPosition(playbackPeakLabel, new TableLayoutPanelCellPosition(wrap ? 0 : 2, row));
+            audioLayout.SetCellPosition(playbackPeak, new TableLayoutPanelCellPosition(wrap ? 1 : 3, row));
+            var margin = playbackPeakLabel.Margin;
+            margin.Left = wrap ? microphonePeakLabel.Margin.Left : muteMicrophone.Margin.Left;
+            playbackPeakLabel.Margin = margin;
+        }
+        finally { audioLayout.ResumeLayout(true); }
+    }
+
     private bool CanSendDtmf => !_disposed && _stopTask is null && !_lifetime.IsCancellationRequested
         && _telephony is not null && _call?.State == CallState.Connected;
 
