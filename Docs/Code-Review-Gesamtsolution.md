@@ -548,3 +548,10 @@ Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
   `ProductClientKeyEdit.Commit()` erst **nach** dem Ersetzen ausgeführt (Z. 174–176). Ein Fehler dort
   meldet „nicht gespeichert“, obwohl die Einstellungen bereits ersetzt sind. → Reihenfolge und Meldung
   angleichen bzw. beide Dateien vorbereiten und dann nacheinander veröffentlichen.
+- ⬜ **UT-03 · Niedrig · Eine beschädigte Plugin-DLL blendet alle Produktplugins aus** –
+  `ProductPluginRuntime.GetAvailablePlugins` ([Z. 43–58](../WawiCallPro.Utilities/Plugins/ProductPluginRuntime.cs))
+  ruft `AssemblyName.GetAssemblyName` ohne Fehlerbehandlung auf. Eine beschädigte oder gesperrte DLL in
+  einem Unterordner von `plugins` (`BadImageFormatException`, `IOException`) lässt damit die gesamte
+  Pluginliste und den Pluginwechsel fehlschlagen. `FunctionPluginRuntime.ReadChoice` (Z. 136–149) fängt
+  dieselben Fehler dagegen pro Datei ab. → Fehler pro Eintrag abfangen und den Eintrag als nicht verfügbar
+  melden oder auslassen.
