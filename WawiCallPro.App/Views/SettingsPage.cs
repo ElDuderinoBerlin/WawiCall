@@ -380,6 +380,7 @@ public partial class SettingsPage : XtraUserControl
                 PlaybackBufferMilliseconds = decimal.ToInt32(playbackBufferEdit.Value),
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
+                CaptureDeviceName = ReadDeviceName(captureDeviceEdit), PlaybackDeviceName = ReadDeviceName(playbackDeviceEdit), RingDeviceName = ReadDeviceName(ringDeviceEdit),
                 WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
                 Announcements = old.Devices.Announcements with
                 {

@@ -75,6 +75,12 @@ public sealed record AudioDeviceSettings
     public string? CaptureDeviceId { get; init; }
     public string? PlaybackDeviceId { get; init; }
     public string? RingDeviceId { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? CaptureDeviceName { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlaybackDeviceName { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? RingDeviceName { get; init; }
     public string? WindowsRingtoneFile { get; init; }
     public string? CustomRingtonePath { get; init; }
     public int MicrophoneVolumePercent { get; init; } = 100;

@@ -248,7 +248,8 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
 
     private void RefreshCapture(string? preferred, AudioFormat format)
     {
-        var id = Resolve(preferred, ConversationAudioDirection.Capture);
+        var selection = _selection();
+        var id = Resolve(preferred, preferred == selection.CaptureId ? selection.CaptureName : null, ConversationAudioDirection.Capture);
         if (!Healthy(_capture, id, format, ConversationAudioDirection.Capture, _capturePaused)) ReplaceCapture(null);
         if (_capture is { } current && current.Id == id)
         {
@@ -290,7 +291,8 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
 
     private void RefreshPlayback(string? preferred, AudioFormat format)
     {
-        var id = Resolve(preferred, ConversationAudioDirection.Playback);
+        var selection = _selection();
+        var id = Resolve(preferred, preferred == selection.PlaybackId ? selection.PlaybackName : null, ConversationAudioDirection.Playback);
         if (!Healthy(_playback, id, format, ConversationAudioDirection.Playback)) ReplacePlayback(null);
         if (_playback is { } current && current.Id == id)
         {
@@ -319,9 +321,11 @@ internal sealed class RecoveringConversationAudio : IAudioSource, IAudioSink, IS
         current is not null && current.Format.Equals(format) && (paused || current.Device.Running)
         && (current.Id == desired || Resolve(current.Id, direction) == current.Id);
 
-    private string? Resolve(string? id, ConversationAudioDirection direction)
+    private string? Resolve(string? id, ConversationAudioDirection direction) => Resolve(id, null, direction);
+
+    private string? Resolve(string? id, string? name, ConversationAudioDirection direction)
     {
-        try { return _hardware.Resolve(id, direction); }
+        try { return _hardware.Resolve(id, name, direction); }
         catch { return null; }
     }
 

@@ -74,7 +74,7 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
             ? new LoopStream(wave) { DisposeBaseSource = false } : null;
         using var fallback = wave is null ? new RingtoneWaveSource() : null;
         var source = loop ?? wave ?? fallback!;
-        var playback = settings with { PlaybackDeviceId = settings.RingDeviceId, PlaybackVolumePercent = settings.RingVolumePercent };
+        var playback = settings with { PlaybackDeviceId = settings.RingDeviceId, PlaybackDeviceName = settings.RingDeviceName, PlaybackVolumePercent = settings.RingVolumePercent };
         try
         {
             if (!preview) PlayUntilCancelled(source, playback, token);

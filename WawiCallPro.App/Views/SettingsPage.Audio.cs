@@ -48,9 +48,9 @@ public partial class SettingsPage
 
     private void ApplyAudioDevices(AudioDeviceSettings settings)
     {
-        BindDevice(captureDeviceEdit, _audioCatalog?.Capture ?? [], settings.CaptureDeviceId);
-        BindDevice(playbackDeviceEdit, _audioCatalog?.Playback ?? [], settings.PlaybackDeviceId);
-        BindDevice(ringDeviceEdit, _audioCatalog?.Playback ?? [], settings.RingDeviceId);
+        BindDevice(captureDeviceEdit, _audioCatalog?.Capture ?? [], settings.CaptureDeviceId, settings.CaptureDeviceName);
+        BindDevice(playbackDeviceEdit, _audioCatalog?.Playback ?? [], settings.PlaybackDeviceId, settings.PlaybackDeviceName);
+        BindDevice(ringDeviceEdit, _audioCatalog?.Playback ?? [], settings.RingDeviceId, settings.RingDeviceName);
         _customRingtonePath = settings.CustomRingtonePath;
         _customRingtoneFormat = null;
         BindRingtones(_customRingtonePath is null ? settings.WindowsRingtoneFile : CustomRingtone);
@@ -118,7 +118,7 @@ public partial class SettingsPage
         var settings = new AudioDeviceSettings
         {
             WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
-            RingDeviceId = ReadDevice(ringDeviceEdit), RingVolumePercent = volume,
+            RingDeviceId = ReadDevice(ringDeviceEdit), RingDeviceName = ReadDeviceName(ringDeviceEdit), RingVolumePercent = volume,
             PlaybackBufferMilliseconds = decimal.ToInt32(playbackBufferEdit.Value)
         };
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -174,7 +174,9 @@ public partial class SettingsPage
         var selected = new AudioDeviceSettings
         {
             CaptureDeviceId = ReadDevice(captureDeviceEdit),
+            CaptureDeviceName = ReadDeviceName(captureDeviceEdit),
             PlaybackDeviceId = ReadDevice(playbackDeviceEdit),
+            PlaybackDeviceName = ReadDeviceName(playbackDeviceEdit),
             CaptureBufferMilliseconds = (int)captureBufferEdit.Value,
             PlaybackBufferMilliseconds = (int)playbackBufferEdit.Value
         };
@@ -202,17 +204,28 @@ public partial class SettingsPage
 
     private static string? ReadDevice(LookUpEdit editor) => editor.EditValue is string { Length: > 0 } value ? value : null;
 
-    private static void BindDevice(LookUpEdit editor, ImmutableArray<AudioDeviceInfo> devices, string? selected)
+    private static string? ReadDeviceName(LookUpEdit editor)
     {
-        var rows = new List<AudioDeviceChoice> { new("", "Systemstandard") };
-        rows.AddRange(devices.Select(device => new AudioDeviceChoice(device.Id, device.DisplayName)));
-        var activeId = devices.FirstOrDefault(device => string.Equals(device.Id, selected, StringComparison.OrdinalIgnoreCase))?.Id;
-        if (selected is not null && activeId is null)
-            rows.Add(new(selected, "Gerät nicht verfügbar"));
-        editor.Properties.DataSource = rows;
-        editor.EditValue = activeId ?? selected ?? "";
+        if (ReadDevice(editor) is not { } id || editor.Properties.DataSource is not List<AudioDeviceChoice> rows) return null;
+        return rows.FirstOrDefault(row => string.Equals(row.Id, id, StringComparison.OrdinalIgnoreCase))?.DeviceName;
     }
 
+    private static void BindDevice(LookUpEdit editor, ImmutableArray<AudioDeviceInfo> devices, string? selected) =>
+        BindDevice(editor, devices, selected, ReadDeviceName(editor));
+
+    private static void BindDevice(LookUpEdit editor, ImmutableArray<AudioDeviceInfo> devices, string? selected, string? rememberedName)
+    {
+        var rows = new List<AudioDeviceChoice> { new("", "Systemstandard") };
+        rows.AddRange(devices.Select(device => new AudioDeviceChoice(device.Id, device.DisplayName) { DeviceName = device.DisplayName }));
+        var match = AudioDevicePreference.Find(devices, selected, rememberedName);
+        if (selected is not null && match is null)
+        {
+            var label = rememberedName is null ? "Gerät nicht verfügbar" : $"{rememberedName} (nicht verfügbar)";
+            rows.Add(new(selected, label) { DeviceName = rememberedName });
+        }
+        editor.Properties.DataSource = rows;
+        editor.EditValue = match?.Id ?? selected ?? "";
+    }
     private void Device_EditValueChanged(object? sender, EventArgs e)
     {
         if (sender is not LookUpEdit editor || editor.Properties.DataSource is not List<AudioDeviceChoice> rows) return;
@@ -350,7 +363,9 @@ public partial class SettingsPage
         var draft = _snapshot.Options.Devices with
         {
             CaptureDeviceId = ReadDevice(captureDeviceEdit),
+            CaptureDeviceName = ReadDeviceName(captureDeviceEdit),
             PlaybackDeviceId = ReadDevice(playbackDeviceEdit),
+            PlaybackDeviceName = ReadDeviceName(playbackDeviceEdit),
             CaptureBufferMilliseconds = (int)captureBufferEdit.Value,
             PlaybackBufferMilliseconds = (int)playbackBufferEdit.Value,
             MicrophoneVolumePercent = micVolumeSlider.Value,
@@ -375,7 +390,9 @@ public partial class SettingsPage
         var devices = snapshot.Options.Devices with
         {
             CaptureDeviceId = draft.CaptureDeviceId,
+            CaptureDeviceName = draft.CaptureDeviceName,
             PlaybackDeviceId = draft.PlaybackDeviceId,
+            PlaybackDeviceName = draft.PlaybackDeviceName,
             CaptureBufferMilliseconds = draft.CaptureBufferMilliseconds,
             PlaybackBufferMilliseconds = draft.PlaybackBufferMilliseconds,
             MicrophoneVolumePercent = draft.MicrophoneVolumePercent,
@@ -383,8 +400,8 @@ public partial class SettingsPage
         };
         await _workspace!.Settings.SaveAsync(snapshot.Options with { Devices = devices }, snapshot, token);
         _snapshot = await _workspace.Settings.LoadAsync(token);
-        BindDevice(captureDeviceEdit, _audioCatalog?.Capture ?? [], devices.CaptureDeviceId);
-        BindDevice(playbackDeviceEdit, _audioCatalog?.Playback ?? [], devices.PlaybackDeviceId);
+        BindDevice(captureDeviceEdit, _audioCatalog?.Capture ?? [], devices.CaptureDeviceId, devices.CaptureDeviceName);
+        BindDevice(playbackDeviceEdit, _audioCatalog?.Playback ?? [], devices.PlaybackDeviceId, devices.PlaybackDeviceName);
         captureBufferEdit.Value = devices.CaptureBufferMilliseconds;
         playbackBufferEdit.Value = devices.PlaybackBufferMilliseconds;
         micVolumeSlider.Value = devices.MicrophoneVolumePercent;
@@ -431,5 +448,8 @@ public partial class SettingsPage
         _playbackMeter?.Dispose();
         _ringMeter?.Dispose();
     }
-    private sealed record AudioDeviceChoice(string Id, string Name);
+    private sealed record AudioDeviceChoice(string Id, string Name)
+    {
+        internal string? DeviceName { get; init; }
+    }
 }

@@ -45,8 +45,8 @@ internal sealed class WindowsAudioSelfTest(TimeProvider clock) : IAudioSelfTest
         settings = await Task.Run(() =>
         {
             using var enumerator = new MMDeviceEnumerator();
-            using var capture = Resolve(enumerator, settings.CaptureDeviceId, DataFlow.Capture);
-            using var output = Resolve(enumerator, settings.PlaybackDeviceId, DataFlow.Render);
+            using var capture = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.CaptureDeviceId, settings.CaptureDeviceName, DataFlow.Capture), DataFlow.Capture);
+            using var output = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.PlaybackDeviceId, settings.PlaybackDeviceName, DataFlow.Render), DataFlow.Render);
             return settings with { CaptureDeviceId = capture.DeviceID, PlaybackDeviceId = output.DeviceID };
         }, token).ConfigureAwait(false);
 
@@ -145,8 +145,8 @@ internal sealed class WindowsAudioSelfTest(TimeProvider clock) : IAudioSelfTest
     public Task MonitorAsync(AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token) => Task.Run(async () =>
     {
         using var enumerator = new MMDeviceEnumerator();
-        using var microphone = Resolve(enumerator, settings.CaptureDeviceId, DataFlow.Capture);
-        using var speakers = Resolve(enumerator, settings.PlaybackDeviceId, DataFlow.Render);
+        using var microphone = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.CaptureDeviceId, settings.CaptureDeviceName, DataFlow.Capture), DataFlow.Capture);
+        using var speakers = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.PlaybackDeviceId, settings.PlaybackDeviceName, DataFlow.Render), DataFlow.Render);
         var inputBuffer = settings.CaptureBufferMilliseconds;
         var outputBuffer = settings.PlaybackBufferMilliseconds;
         using var capture = new WasapiCapture(inputBuffer == 0, AudioClientShareMode.Shared, inputBuffer == 0 ? 100 : inputBuffer)
@@ -188,7 +188,7 @@ internal sealed class WindowsAudioSelfTest(TimeProvider clock) : IAudioSelfTest
         AudioPlaybackVolume volume, IProgress<AudioSelfTestDevice> opened, CancellationToken token) => Task.Run(() =>
     {
         using var enumerator = new MMDeviceEnumerator();
-        using var device = Resolve(enumerator, settings.PlaybackDeviceId, DataFlow.Render);
+        using var device = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.PlaybackDeviceId, settings.PlaybackDeviceName, DataFlow.Render), DataFlow.Render);
         var buffer = settings.PlaybackBufferMilliseconds;
         using var source = OpenPcm(sample?.Samples ?? CreateTone(), sample?.SampleRate ?? 16000);
         using var output = new WasapiOut(buffer == 0, AudioClientShareMode.Shared, buffer == 0 ? 100 : buffer) { Device = device };
@@ -228,7 +228,7 @@ internal sealed class WindowsAudioSelfTest(TimeProvider clock) : IAudioSelfTest
         Task.Run(async () =>
         {
             using var enumerator = new MMDeviceEnumerator();
-            using var device = Resolve(enumerator, settings.CaptureDeviceId, DataFlow.Capture);
+            using var device = Resolve(enumerator, WindowsAudioDeviceNames.ResolveId(settings.CaptureDeviceId, settings.CaptureDeviceName, DataFlow.Capture), DataFlow.Capture);
             var buffer = settings.CaptureBufferMilliseconds;
             using var capture = new WasapiCapture(buffer == 0, AudioClientShareMode.Shared, buffer == 0 ? 100 : buffer)
                 { Device = device };

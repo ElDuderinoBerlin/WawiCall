@@ -20,6 +20,7 @@ public static class AudioConversionServices
         services.TryAddSingleton<IAnnouncementSpeech, WindowsAnnouncementSpeech>();
         services.TryAddSingleton<IAnnouncementAudio, WindowsAnnouncementAudio>();
         services.TryAddSingleton<IAudioSelfTest, WindowsAudioSelfTest>();
+        services.TryAddSingleton<WawiCallPro.Utilities.Configuration.IAudioDeviceNames, WindowsAudioDeviceNames>();
         services.TryAddSingleton<IConversationWaveRenderer, ConversationWaveRenderer>();
         services.TryAddSingleton<IConversationWaveMixer, ConversationWaveMixer>();
         services.TryAddSingleton<IPcmSegmentSinkFactory, CscorePcmSegmentSinkFactory>();

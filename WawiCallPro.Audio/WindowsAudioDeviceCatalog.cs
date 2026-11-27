@@ -34,7 +34,13 @@ public sealed class WindowsAudioDeviceCatalog(StartupExecutionMode mode) : IAudi
             _enumerator.DeviceAdded += Notify;
             _enumerator.DeviceRemoved += Notify;
             _enumerator.DeviceStateChanged += Notify;
+            _enumerator.DevicePropertyChanged += DevicePropertyChanged;
             _enumerator.DefaultDeviceChanged += Notify;
+        }
+
+        private void DevicePropertyChanged(object? sender, DevicePropertyChangedEventArgs e)
+        {
+            if (e.PropertyKey.Equals(CSCore.Win32.PropertyStore.FriendlyName)) _changed();
         }
 
         private void Notify(object? sender, EventArgs e) => _changed();

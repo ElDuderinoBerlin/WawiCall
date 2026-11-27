@@ -19,6 +19,21 @@ public sealed class ConfigurationStore(
     ApplicationOptionsValidator validator,
     PhoneSearchChanges? phoneSearchChanges = null)
 {
+    private readonly IAudioDeviceNames? _audioDeviceNames;
+
+    public ConfigurationStore(ConfigurationLocation location, ApplicationOptionsValidator validator, PhoneSearchChanges phoneSearchChanges,
+        IAudioDeviceNames audioDeviceNames) : this(location, validator, phoneSearchChanges) => _audioDeviceNames = audioDeviceNames;
+
+    internal async Task<ConfigurationSnapshot> RememberAudioDeviceNamesAsync(ConfigurationSnapshot snapshot, CancellationToken token)
+    {
+        if (!snapshot.FileFound || _audioDeviceNames is null) return snapshot;
+        var devices = _audioDeviceNames.Remember(snapshot.Options.Devices);
+        if (devices == snapshot.Options.Devices) return snapshot;
+        try { await SaveAsync(snapshot.Options with { Devices = devices }, snapshot, token).ConfigureAwait(false); }
+        catch (ConfigurationException) { return snapshot; }
+        return await LoadAsync(token).ConfigureAwait(false);
+    }
+
     private const int MaximumFileSize = 131072;
     public event Action<ErpConnectionSettings, bool>? ErpSaved;
     internal event Action<AudioDeviceSettings>? AudioDevicesSaved;
@@ -138,6 +153,8 @@ public sealed class ConfigurationStore(
     private async Task SaveCoreAsync(ApplicationOptions options, string? expectedHash, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (_audioDeviceNames is not null)
+            options = options with { Devices = _audioDeviceNames.Remember(options.Devices) };
         validator.Validate(options);
         var bytes = ConfigurationFormat.Encode(options);
         if (bytes.Length > MaximumFileSize) throw ConfigurationException.FileError("Die Datei ist zu groß.");

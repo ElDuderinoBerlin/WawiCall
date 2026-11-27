@@ -9,6 +9,7 @@ internal enum ConversationAudioDirection { Capture, Playback }
 internal interface IConversationAudioHardware
 {
     string? Resolve(string? preferred, ConversationAudioDirection direction);
+    string? Resolve(string? preferred, string? name, ConversationAudioDirection direction) => Resolve(preferred, direction);
     IConversationAudioDevice Open(string id, ConversationAudioDirection direction, PcmObservingAudioEncoder encoder, AudioFormat format);
 }
 
@@ -33,6 +34,10 @@ internal sealed class ConversationAudioHardware(int captureBufferMilliseconds = 
         }
         catch (CoreAudioAPIException) { return null; }
     }
+
+    public string? Resolve(string? preferred, string? name, ConversationAudioDirection direction) =>
+        Resolve(WindowsAudioDeviceNames.ResolveId(preferred, name,
+            direction == ConversationAudioDirection.Capture ? DataFlow.Capture : DataFlow.Render), direction);
 
     public IConversationAudioDevice Open(string id, ConversationAudioDirection direction, PcmObservingAudioEncoder encoder, AudioFormat format)
     {

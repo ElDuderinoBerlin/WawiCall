@@ -36,7 +36,11 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
 
     public ISipMediaSession Create(SipAccountOptions account, AudioDeviceSettings devices)
     {
-        var start = new ConversationDeviceSelection(devices.CaptureDeviceId, devices.PlaybackDeviceId);
+        var start = new ConversationDeviceSelection(devices.CaptureDeviceId, devices.PlaybackDeviceId)
+        {
+            CaptureName = devices.CaptureDeviceName,
+            PlaybackName = devices.PlaybackDeviceName
+        };
         var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         var connection = account.Connection;
         var committed = _configuration?.ConversationDevices;

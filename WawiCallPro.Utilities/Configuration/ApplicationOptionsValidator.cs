@@ -223,6 +223,8 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             issues.Add(new("devices", "Geräteeinstellungen dürfen nicht null sein."));
             return;
         }
+        if (!IsValidDeviceId(devices.CaptureDeviceName) || !IsValidDeviceId(devices.PlaybackDeviceName) || !IsValidDeviceId(devices.RingDeviceName))
+            issues.Add(new("devices.names", "Mindestens ein Audiogerätename ist ungültig."));
         if (!IsValidDeviceId(devices.CaptureDeviceId) || !IsValidDeviceId(devices.PlaybackDeviceId) || !IsValidDeviceId(devices.RingDeviceId))
             issues.Add(new("devices", "Gerätekennungen müssen null oder nichtleere Kennungen ohne Steuerzeichen sein."));
         if (devices.WindowsRingtoneFile is { } ringtone && !IsWindowsRingtoneFileName(ringtone))

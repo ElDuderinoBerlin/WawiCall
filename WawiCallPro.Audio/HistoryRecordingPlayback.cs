@@ -86,6 +86,7 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
             var devices = initial with
             {
                 PlaybackDeviceId = committed.PlaybackId,
+                PlaybackDeviceName = committed.PlaybackName,
                 PlaybackVolumePercent = committed.PlaybackVolumePercent ?? initial.PlaybackVolumePercent,
                 PlaybackBufferMilliseconds = committed.PlaybackBufferMilliseconds ?? initial.PlaybackBufferMilliseconds
             };
@@ -149,7 +150,7 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
             if (measured.CanSeek && measured.Position >= measured.Length) return;
             if (PlayWithDeviceRecovery(settings.PlaybackDeviceId, deviceId =>
             {
-                using var device = OpenDevice(deviceId);
+                using var device = OpenDevice(WindowsAudioDeviceNames.ResolveId(deviceId, settings.PlaybackDeviceName, DataFlow.Render));
                 return PlaySegment(device, measured, settings.PlaybackVolumePercent, null, transport, token, settings.PlaybackBufferMilliseconds);
             }, token)) return;
         }
@@ -223,7 +224,7 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
     {
         PlayWithDeviceRecovery(settings.PlaybackDeviceId, deviceId =>
         {
-            using var device = OpenDevice(deviceId);
+            using var device = OpenDevice(WindowsAudioDeviceNames.ResolveId(deviceId, settings.PlaybackDeviceName, DataFlow.Render));
             return PlaySegment(device, source, settings.PlaybackVolumePercent, volume, null, token, settings.PlaybackBufferMilliseconds);
         }, token);
     }

@@ -30,6 +30,7 @@ public sealed class ApplicationConfigurationService : IHostedService
     {
         var loaded = _archive is null ? await _store.LoadAsync(cancellationToken).ConfigureAwait(false)
             : await _archive.OpenAsync(cancellationToken).ConfigureAwait(false);
+        loaded = await _store.RememberAudioDeviceNamesAsync(loaded, cancellationToken).ConfigureAwait(false);
         _logging?.Apply(loaded.Options.User);
         if (loaded.ProductFile is { } product) _logging?.ApplyProduct(new ProductAppSettings(product).Read(), loaded.Options.User);
         ApplyConversationDevices(loaded.Options.Devices);
@@ -47,6 +48,8 @@ public sealed class ApplicationConfigurationService : IHostedService
     private void ApplyConversationDevices(AudioDeviceSettings devices) =>
         Volatile.Write(ref _conversationDevices, new(devices.CaptureDeviceId, devices.PlaybackDeviceId)
         {
+            CaptureName = devices.CaptureDeviceName,
+            PlaybackName = devices.PlaybackDeviceName,
             MicrophoneVolumePercent = devices.MicrophoneVolumePercent,
             PlaybackVolumePercent = devices.PlaybackVolumePercent,
             CaptureBufferMilliseconds = devices.CaptureBufferMilliseconds,
@@ -64,6 +67,8 @@ public sealed class ApplicationConfigurationService : IHostedService
 /// <summary>Committed microphone and render device IDs. A null ID follows the Windows default.</summary>
 public sealed record ConversationDeviceSelection(string? CaptureId, string? PlaybackId)
 {
+    public string? CaptureName { get; init; }
+    public string? PlaybackName { get; init; }
     public int? MicrophoneVolumePercent { get; init; }
     public int? PlaybackVolumePercent { get; init; }
     public int? CaptureBufferMilliseconds { get; init; }

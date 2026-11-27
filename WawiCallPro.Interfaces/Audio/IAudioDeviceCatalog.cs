@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace WawiCallPro.Interfaces.Audio;
 
-/// <summary>A detached active Windows endpoint. Persist Id, never the display name or list position.</summary>
+/// <summary>A detached active Windows endpoint. Use the ID as the primary identity and the display name as an unambiguous recovery hint.</summary>
 public sealed record AudioDeviceInfo(string Id, string DisplayName);
 
 /// <summary>Device discovery does not open capture/playback streams. Suppressed distinguishes audits from an empty device list.</summary>
