@@ -570,3 +570,20 @@ Log nur strukturiert ohne fremde Meldungen; Einstellungen mit Hash-Konfliktschut
   über viele Minuten. Ein Fehler setzt nur `RecordingArchiveSwitchPending` und wiederholt die komplette
   Kopie beim nächsten Start. → Kopie im Hintergrund mit Fortschritt und Abbruch ausführen. Bereits
   kopierte, verifizierte Dateien beim Fortsetzen überspringen.
+
+## B8 – WawiCallPro.Office ✅ gelesen (16 Dateien, Stand 27.11.2026)
+
+Gut gelöst: Tokens und Client-Secrets liegen DPAPI-geschützt im `MailTokenStore`. Interaktive Anmeldung gibt
+es nur bei „Verbinden“. Konto und Identität werden bei stillen Abrufen erneut geprüft (`RemoteIdentity`).
+URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Abfrageparameter werden mit
+`EscapeDataString` kodiert. Siehe auch R-11 (temporäre Outlook-Anhänge).
+
+- ⬜ **OF-01 · Mittel · App-Berechtigung für Microsoft 365 wirkt mandantenweit** – Bei
+  `ApplicationAuthentication` holt `MailAuthentication.MicrosoftAsync`
+  ([Z. 53–61](../WawiCallPro.Office/MailAuthentication.cs)) per Client Credentials ein Token für
+  `https://graph.microsoft.com/.default`. Mit der dafür nötigen Anwendungsberechtigung `Mail.Read` kann das
+  Client-Secret **jedes Postfach des Mandanten** lesen, nicht nur das eingetragene `Mailbox`. Das Secret
+  liegt auf jedem Arbeitsplatz, der das Konto nutzt. → In Einstellungsdialog und Dokumentation verpflichtend
+  auf die Einschränkung per Exchange **RBAC for Applications** bzw. Application Access Policy hinweisen und
+  das in der CRA-Bedrohungsanalyse festhalten. Optional prüfen, ob die Antwort für ein fremdes Postfach
+  abgelehnt wird (Testkonto).
