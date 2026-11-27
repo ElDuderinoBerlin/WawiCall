@@ -284,9 +284,9 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Office | OF | ~1 740 | ✅ (B8) |
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
 | WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ✅ (B9) |
-| WawiCallPro.Plugin.Windows | PW | ~1 110 | ⬜ |
+| WawiCallPro.Plugin.Windows | PW | ~1 110 | ✅ (B11) |
 | WawiCallPro.Console | CN | ~880 | ✅ (B10) |
-| WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ⬜ |
+| WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ✅ (B11) |
 | Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ⬜ |
 | ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ⬜ |
 | Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ⬜ |
