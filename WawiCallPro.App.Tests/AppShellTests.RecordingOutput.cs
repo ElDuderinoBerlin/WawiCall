@@ -110,7 +110,12 @@ public sealed partial class AppShellTests
             var now = DateTimeOffset.UtcNow.AddMinutes(-1).AddSeconds(4 * (int)format);
             await workspace.Settings.SaveAsync(snapshot.Options with
             {
-                RecordingOutput = new(format, format == RecordingArtifactFormat.Wave ? null : now)
+                RecordingOutput = new(format, format == RecordingArtifactFormat.Wave ? null : now),
+                Devices = snapshot.Options.Devices with
+                {
+                    PlaybackDeviceId = nativeOutput is null ? "recording-output" : null,
+                    PlaybackBufferMilliseconds = 90
+                }
             }, snapshot);
 
             var (callId, recordingId) = await RecordSyntheticCallAsync(calls, journal, origin, now, workspace.Paths.RecordingsDirectory, sampleRate, channels);
@@ -130,6 +135,8 @@ public sealed partial class AppShellTests
             output.Reset();
             var transport = new HistoryPlaybackTransport();
             await playback.PlayAsync(callId, transport, default);
+            Assert.AreEqual(nativeOutput is null ? "recording-output" : null, output.Settings?.PlaybackDeviceId);
+            Assert.AreEqual(90, output.Settings?.PlaybackBufferMilliseconds);
             Assert.IsNotNull(transport.Media);
             Assert.AreEqual(format, transport.Media.Format);
             Assert.AreEqual(output.SampleRate, transport.Media.SampleRate);
@@ -200,6 +207,7 @@ public sealed partial class AppShellTests
         public int Channels { get; private set; }
         public int SampleRate { get; private set; }
         public bool ContainsAudio { get; private set; }
+        public AudioDeviceSettings? Settings { get; private set; }
 
         internal void Reset()
         {
@@ -209,6 +217,7 @@ public sealed partial class AppShellTests
 
         public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
         {
+            Settings = settings;
             Channels = source.WaveFormat.Channels;
             SampleRate = source.WaveFormat.SampleRate;
             if (device is not null)

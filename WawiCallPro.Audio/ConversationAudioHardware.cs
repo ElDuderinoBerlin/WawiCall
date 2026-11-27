@@ -20,7 +20,7 @@ internal interface IConversationAudioDevice : IDisposable
     void SetVolume(float volume);
 }
 
-internal sealed class ConversationAudioHardware : IConversationAudioHardware
+internal sealed class ConversationAudioHardware(int captureBufferMilliseconds = 0, int playbackBufferMilliseconds = 0) : IConversationAudioHardware
 {
     public string? Resolve(string? preferred, ConversationAudioDirection direction)
     {
@@ -44,7 +44,7 @@ internal sealed class ConversationAudioHardware : IConversationAudioHardware
         {
             IAudioEncoder deviceEncoder = capture ? encoder : new ConversationPlaybackEncoder(encoder);
             endpoint = new(deviceEncoder, capture ? null : device, capture ? device : null, capture == false, capture,
-                format, allowDeviceFallback: false);
+                format, allowDeviceFallback: false, captureBufferMilliseconds, playbackBufferMilliseconds);
             if (capture ? !endpoint.IsAudioSourceInitialized : !endpoint.IsAudioSinkInitialized)
                 throw new InvalidOperationException("The Windows conversation audio device could not be opened.");
             return new Device(device, endpoint, capture);

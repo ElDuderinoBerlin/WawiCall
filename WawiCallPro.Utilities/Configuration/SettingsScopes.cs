@@ -80,6 +80,8 @@ public sealed record AudioDeviceSettings
     public int MicrophoneVolumePercent { get; init; } = 100;
     public int PlaybackVolumePercent { get; init; } = 100;
     public int RingVolumePercent { get; init; } = 100;
+    public int CaptureBufferMilliseconds { get; init; }
+    public int PlaybackBufferMilliseconds { get; init; }
     public bool MicrophoneMuted { get; init; }
     public bool RecordConnectedCallsAutomatically { get; init; }
     public RecordingReceiveSource RecordingReceiveSource { get; init; } = RecordingReceiveSource.Rtp;

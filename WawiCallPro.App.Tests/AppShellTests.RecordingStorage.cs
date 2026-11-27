@@ -36,6 +36,10 @@ public sealed partial class AppShellTests
                 settings.ClientSize = new(width, 760);
                 if (scale != 1F) settings.Scale(new SizeF(scale, scale));
                 var page = Field<SettingsPage>(settings, "settingsPage");
+                var microphoneBuffer = Field<SpinEdit>(page, "captureBufferEdit");
+                var outputBuffer = Field<SpinEdit>(page, "playbackBufferEdit");
+                microphoneBuffer.Value = 70;
+                outputBuffer.Value = 110;
                 var folder = Field<TextEdit>(page, "recordingFolderEdit");
                 var pattern = Field<TextEdit>(page, "recordingPatternEdit");
                 var preview = Field<LabelControl>(page, "recordingPreviewValue");
@@ -61,11 +65,18 @@ public sealed partial class AppShellTests
                 settings.PerformLayout();
                 Application.DoEvents();
                 CheckTableBounds(settings);
+                Assert.IsGreaterThanOrEqualTo(48, microphoneBuffer.Width);
+                Assert.IsGreaterThanOrEqualTo(48, outputBuffer.Width);
                 using var shot = UiAudit.Capture(settings);
                 shot.Save(Path.Combine(output, $"recording-{width}-{fontSize:0}-{scale:0.0}.png"), ImageFormat.Png);
 
                 await page.SaveAsync(CancellationToken.None);
-                var saved = (await workspace.Settings.LoadAsync()).Options.RecordingStorage;
+                var savedOptions = (await workspace.Settings.LoadAsync()).Options;
+                var saved = savedOptions.RecordingStorage;
+                Assert.AreEqual(70, savedOptions.Devices.CaptureBufferMilliseconds);
+                Assert.AreEqual(110, savedOptions.Devices.PlaybackBufferMilliseconds);
+                Assert.AreEqual(70, workspace.Configuration.ConversationDevices.CaptureBufferMilliseconds);
+                Assert.AreEqual(110, workspace.Configuration.ConversationDevices.PlaybackBufferMilliseconds);
                 Assert.AreEqual(destination, saved.PendingDirectory);
                 Assert.AreEqual("{Datum}_{Rufnummer}", saved.FileNamePattern);
                 Assert.AreEqual(workspace.Paths.DefaultRecordingsDirectory, workspace.Paths.RecordingsDirectory);

@@ -48,7 +48,9 @@ public sealed class ApplicationConfigurationService : IHostedService
         Volatile.Write(ref _conversationDevices, new(devices.CaptureDeviceId, devices.PlaybackDeviceId)
         {
             MicrophoneVolumePercent = devices.MicrophoneVolumePercent,
-            PlaybackVolumePercent = devices.PlaybackVolumePercent
+            PlaybackVolumePercent = devices.PlaybackVolumePercent,
+            CaptureBufferMilliseconds = devices.CaptureBufferMilliseconds,
+            PlaybackBufferMilliseconds = devices.PlaybackBufferMilliseconds
         });
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -64,4 +66,6 @@ public sealed record ConversationDeviceSelection(string? CaptureId, string? Play
 {
     public int? MicrophoneVolumePercent { get; init; }
     public int? PlaybackVolumePercent { get; init; }
+    public int? CaptureBufferMilliseconds { get; init; }
+    public int? PlaybackBufferMilliseconds { get; init; }
 }

@@ -12,7 +12,7 @@ namespace WawiCallPro.Audio;
 /// <summary>Creates one SIP media session with independently recoverable CSCore capture and playback.</summary>
 public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges) : ISipMediaSessionFactory
 {
-    private readonly IConversationAudioHardware _hardware = new ConversationAudioHardware();
+    private readonly IConversationAudioHardware? _hardware;
     private readonly ApplicationConfigurationService? _configuration;
     private readonly TimeProvider _clock = TimeProvider.System;
     private readonly ILogger _log = NullLogger.Instance;
@@ -39,7 +39,11 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         var start = new ConversationDeviceSelection(devices.CaptureDeviceId, devices.PlaybackDeviceId);
         var pcm = new PcmObservingAudioEncoder(new AudioEncoder());
         var connection = account.Connection;
-        var audio = new RecoveringConversationAudio(_hardware, () => _configuration?.ConversationDevices ?? start, pcm,
+        var committed = _configuration?.ConversationDevices;
+        var hardware = _hardware ?? new ConversationAudioHardware(
+            committed?.CaptureBufferMilliseconds ?? devices.CaptureBufferMilliseconds,
+            committed?.PlaybackBufferMilliseconds ?? devices.PlaybackBufferMilliseconds);
+        var audio = new RecoveringConversationAudio(hardware, () => _configuration?.ConversationDevices ?? start, pcm,
             devices, connection.EnableG722 || connection.CodecOrder is not null, _clock, _log);
         VoIPMediaSession? media = null;
         IAsyncDisposable? receive = null;

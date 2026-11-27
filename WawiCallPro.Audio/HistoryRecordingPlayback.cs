@@ -81,7 +81,14 @@ public sealed class HistoryRecordingPlayback(RecordingPlaybackCatalog catalog, I
             }
             await using var observed = await inspector.InspectAsync(artifact, token).ConfigureAwait(false);
             if (observed.VerifiedStream is not { } stream) throw new RecordingOutboxException();
-            var devices = configuration.Current.Options.Devices;
+            var initial = configuration.Current.Options.Devices;
+            var committed = configuration.ConversationDevices;
+            var devices = initial with
+            {
+                PlaybackDeviceId = committed.PlaybackId,
+                PlaybackVolumePercent = committed.PlaybackVolumePercent ?? initial.PlaybackVolumePercent,
+                PlaybackBufferMilliseconds = committed.PlaybackBufferMilliseconds ?? initial.PlaybackBufferMilliseconds
+            };
             await Task.Run(() =>
             {
                 using var source = RecordingFormatConverters.OpenPlayback(stream, artifact.Format, token);
@@ -134,14 +141,14 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
                 continue;
             }
             if (measured.CanSeek && measured.Position >= measured.Length) return;
-            if (PlaySegment(device, measured, settings.PlaybackVolumePercent, null, transport, token)) return;
+            if (PlaySegment(device, measured, settings.PlaybackVolumePercent, null, transport, token, settings.PlaybackBufferMilliseconds)) return;
         }
     }
 
     private static bool PlaySegment(MMDevice device, IWaveSource source, int volume, AudioPlaybackVolume? liveVolume,
-        HistoryPlaybackTransport? transport, CancellationToken token)
+        HistoryPlaybackTransport? transport, CancellationToken token, int bufferMs)
     {
-        using var output = new WasapiOut(true, AudioClientShareMode.Shared, 100) { Device = device };
+        using var output = new WasapiOut(bufferMs == 0, AudioClientShareMode.Shared, bufferMs == 0 ? 100 : bufferMs) { Device = device };
         var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         output.Stopped += (_, args) =>
         {
@@ -203,6 +210,6 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
         using var enumerator = new MMDeviceEnumerator();
         using var device = settings.PlaybackDeviceId is { } deviceId ? enumerator.GetDevice(deviceId)
             : MMDeviceEnumerator.DefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-        PlaySegment(device, source, settings.PlaybackVolumePercent, volume, null, token);
+        PlaySegment(device, source, settings.PlaybackVolumePercent, volume, null, token, settings.PlaybackBufferMilliseconds);
     }
 }

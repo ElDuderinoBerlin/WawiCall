@@ -115,7 +115,8 @@ public partial class SettingsPage
         var settings = new AudioDeviceSettings
         {
             WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
-            RingDeviceId = ReadDevice(ringDeviceEdit), RingVolumePercent = volume
+            RingDeviceId = ReadDevice(ringDeviceEdit), RingVolumePercent = volume,
+            PlaybackBufferMilliseconds = decimal.ToInt32(playbackBufferEdit.Value)
         };
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
         _stopRingtonePreview = stop;

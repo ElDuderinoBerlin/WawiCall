@@ -5068,6 +5068,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   mit 129 Samples. Der Encoder brach daraufhin vor dem ersten Sendepaket ab.
   Der Medienadapter sammelt G.722 jetzt zu vollständigen 20-ms-Paketen. Mit dem echten
   INZONE-Endpunkt wurden 65 Pakete mit je 320 PCM-Samples ohne Encoderfehler erzeugt.
+  ✅ Unter Audio → Aufnahme lassen sich Mikrofon- und Ausgabepuffer lokal speichern.
+  0 ms verwendet die Windows-Standardgröße. Pro Debug maß am INZONE-Gerät tatsächlich
+  70 ms Mikrofonpuffer und 110 ms Ausgabepuffer. Eine bestätigte WAV und ihre MP3 ließen
+  sich mit der eingestellten Ausgabe bis zum Ende abspielen. Die Historie verwendet
+  die zuletzt gespeicherte Geräteauswahl und Puffergröße.
+  Ein weiterer lokaler RTP-Test mit dem echten Mikrofon übertrug und decodierte 61 G.722-Pakete
+  mit durchgängigen RTP-Zeitstempeln.
 - [x] ✅ G.722-Stereoaufnahmen im echten SIP-Gespräch erneut prüfen (26.11.2026).
   Zuerst Pro, danach FinOffice. Beide isolierten Debug-Prüfhosts boten ausschließlich G.722 an.
   Beide Gespräche wurden verbunden und die RTP-Aufnahmen liefen bis zum geplanten Stopp durch.

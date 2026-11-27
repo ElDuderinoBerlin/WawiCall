@@ -338,6 +338,8 @@ public partial class SettingsPage : XtraUserControl
         micVolumeSlider.Value = options.Devices.MicrophoneVolumePercent;
         playVolumeSlider.Value = options.Devices.PlaybackVolumePercent;
         ringVolumeSlider.Value = options.Devices.RingVolumePercent;
+        captureBufferEdit.Value = options.Devices.CaptureBufferMilliseconds;
+        playbackBufferEdit.Value = options.Devices.PlaybackBufferMilliseconds;
         mutedEdit.Checked = options.Devices.MicrophoneMuted;
         automaticRecordingEdit.Checked = options.Devices.RecordConnectedCallsAutomatically;
         recordingFormatEdit.SelectedIndex = (int)options.GetRecordingOutput().Format - 1;
@@ -373,6 +375,8 @@ public partial class SettingsPage : XtraUserControl
                 DialHotkey = ReadHotkey(dialHotkeyEdit) },
             Devices = old.Devices with { MicrophoneVolumePercent = micVolumeSlider.Value,
                 PlaybackVolumePercent = playVolumeSlider.Value, RingVolumePercent = ringVolumeSlider.Value, MicrophoneMuted = mutedEdit.Checked,
+                CaptureBufferMilliseconds = decimal.ToInt32(captureBufferEdit.Value),
+                PlaybackBufferMilliseconds = decimal.ToInt32(playbackBufferEdit.Value),
                 RecordConnectedCallsAutomatically = automaticRecordingEdit.Checked,
                 RecordingReceiveSource = (RecordingReceiveSource)recordingSourceEdit.SelectedIndex, CaptureDeviceId = ReadDevice(captureDeviceEdit), PlaybackDeviceId = ReadDevice(playbackDeviceEdit), RingDeviceId = ReadDevice(ringDeviceEdit),
                 WindowsRingtoneFile = SelectedWindowsRingtone, CustomRingtonePath = SelectedCustomRingtone,
