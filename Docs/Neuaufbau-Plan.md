@@ -3755,6 +3755,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   ✅ Jede neu geöffnete CSCore-Gesprächsausgabe blendet die ersten hörbaren PCM-Frames über
   15 ms ein. Der Pro-Debug-Test vergleicht die vor der Ausgabebearbeitung beobachteten Samples
   mit dem unveränderten RTP-PCM. Ein stummer nativer WASAPI-Test prüft zwei Ausgabegeräte.
+  ✅ Pro und die DTMF-Bibliothek verwenden den lokalen CSCore-Quellstand. Das Medienprojekt
+  SIPSorceryMedia.Windows.CSCore bindet dasselbe Projekt ein. CSCli bearbeitet die Debug-DLL
+  vor dem Kopieren in die App-Ausgabe. Beim Start und nach einem internen WASAPI-Gerätewechsel
+  füllt CSCore den Renderpuffer vor `AudioClient.Start()` mit Stille. Der lokale Commit
+  `8ccf18d` wird beim Einrichten aus dem Bundle in `deps.json` übernommen.
+  Zwei echte SIP-Anrufe verglichen die bisherige Paket-DLL und die lokal gebaute DLL in Pro Debug.
+  Der Knackser blieb im zweiten Anruf hörbar. Der RTP-Mitschnitt brach im ersten Lauf mit
+  `TimelineConflict` ab. Im zweiten Lauf wurden WAV und MP3 erfolgreich gespeichert.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
   `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen

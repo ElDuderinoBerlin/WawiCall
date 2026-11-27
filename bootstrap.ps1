@@ -29,11 +29,22 @@ foreach ($dependency in $manifest.dependencies) {
     if ($dependency.workspaceSubdir -and $dependency.workspaceSubdir -notmatch '^[A-Za-z0-9][A-Za-z0-9_-]*(/[A-Za-z0-9][A-Za-z0-9_-]*)*$') {
         throw "Ungültiger Arbeitsbereichspfad in $($dependency.name): $($dependency.workspaceSubdir)"
     }
+    if ($dependency.bundle -and $dependency.bundle -notmatch '^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\.bundle$') {
+        throw "Ungültiger Bundle-Pfad in $($dependency.name): $($dependency.bundle)"
+    }
     foreach ($project in $dependency.projects) {
         if ([IO.Path]::IsPathRooted($project) -or $project -match '(^|[/\\])\.\.($|[/\\])') {
             throw "Ungültiger Projektpfad in $($dependency.name): $project"
         }
     }
+}
+
+function Import-BundledRevision($dependency, $repositoryPath) {
+    if (-not $dependency.bundle) { return }
+    $bundlePath = Join-Path $manifestDirectory $dependency.bundle
+    if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { throw "Bundle fehlt: $bundlePath" }
+    & git -C $repositoryPath fetch --no-tags -- $bundlePath $dependency.revision
+    if ($LASTEXITCODE -ne 0) { throw "Bundle-Import fehlgeschlagen: $($dependency.name)" }
 }
 
 function Sync-Dependency($dependency) {
@@ -43,8 +54,11 @@ function Sync-Dependency($dependency) {
     if (-not (Test-Path -LiteralPath $repositoryPath)) {
         if ($CheckOnly) { throw "Fehlendes Schwester-Repository: $repositoryPath" }
         [IO.Directory]::CreateDirectory($repositoryRoot) | Out-Null
-        & git clone --no-checkout --filter=blob:none --branch $dependency.branch -- $dependency.url $repositoryPath
+        $cloneOptions = @('--no-checkout')
+        if (-not $dependency.bundle) { $cloneOptions += '--filter=blob:none' }
+        & git clone @cloneOptions --branch $dependency.branch -- $dependency.url $repositoryPath
         if ($LASTEXITCODE -ne 0) { throw "Clone fehlgeschlagen: $($dependency.name)" }
+        Import-BundledRevision $dependency $repositoryPath
         & git -C $repositoryPath checkout --no-overwrite-ignore --detach $dependency.revision
         if ($LASTEXITCODE -ne 0) { throw "Checkout fehlgeschlagen: $($dependency.name)" }
     }
@@ -65,8 +79,13 @@ function Sync-Dependency($dependency) {
         if ($changes.Count -gt 0) { throw "Lokale Änderungen in $($dependency.name); Aktualisierung übersprungen." }
         & git -C $repositoryPath cat-file -e "$($dependency.revision)^{commit}" 2>$null
         if ($LASTEXITCODE -ne 0) {
-            & git -C $repositoryPath fetch --no-tags -- $dependency.url "refs/heads/$($dependency.branch)"
-            if ($LASTEXITCODE -ne 0) { throw "Fetch fehlgeschlagen: $($dependency.name)" }
+            if ($dependency.bundle) {
+                Import-BundledRevision $dependency $repositoryPath
+            }
+            else {
+                & git -C $repositoryPath fetch --no-tags -- $dependency.url "refs/heads/$($dependency.branch)"
+                if ($LASTEXITCODE -ne 0) { throw "Fetch fehlgeschlagen: $($dependency.name)" }
+            }
         }
         & git -C $repositoryPath merge-base --is-ancestor $actualRevision $dependency.revision
         if ($LASTEXITCODE -ne 0) {

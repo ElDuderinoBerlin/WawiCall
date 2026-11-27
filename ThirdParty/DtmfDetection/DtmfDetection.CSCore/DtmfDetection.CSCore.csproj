@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\DtmfDetection\DtmfDetection.csproj" />
-    <PackageReference Include="CSCore" Version="1.2.1.5" />
+    <ProjectReference Include="..\..\..\src\CSCore\CSCore\CSCore.csproj" />
   </ItemGroup>
 </Project>
