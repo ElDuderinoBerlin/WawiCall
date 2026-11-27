@@ -718,3 +718,9 @@ Zugriffe auf echte Profile unter `%LocalAppData%`.
   etwa beim Aufräumen des Plugin-Editors, landet in `AppExceptionBoundary` und beendet die App (AP-01).
   → Dirty-Erkennung (Snapshot-Vergleich wie in `SaveMailSettingsAsync`) mit Rückfrage
   Speichern/Verwerfen/Abbrechen. Fehler beim Schließen lokal behandeln und im Log-Fenster melden.
+- ⬜ **AP-07 · Niedrig · Technische Installations-ID in der Anrufzuordnung sichtbar** –
+  `CallerLookupPage.UpdateFocusedDetails` ([Z. 251](../WawiCallPro.App/Views/CallerLookupPage.cs)) zeigt
+  `"Installation: " + Party.Company.InstallationId`, also z. B. `lexware-pro/<sha256>` bzw. eine
+  benutzerdefinierte ID, sowie interne Cache- und Regelrevisionen an. AGENTS.md: „Nur den Mandantennamen
+  anzeigen; technische IDs bleiben intern.“ → Firmenname aus der Gruppe anzeigen. Technische Angaben nur
+  im Log oder in der Diagnoseansicht (`PhoneNumberDiagnosticsPage`) ausgeben.
