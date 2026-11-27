@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
 
@@ -6,6 +7,7 @@ namespace WawiCallPro.App.Views;
 public partial class DialKeypad : XtraUserControl
 {
     private bool _responsive;
+    private bool _compact;
     public DialKeypad()
     {
         InitializeComponent();
@@ -14,7 +16,21 @@ public partial class DialKeypad : XtraUserControl
     }
 
     internal event Action<char>? DigitPressed;
+    internal int KeyTopInset => one.Margin.Top;
     internal void FocusFirstKey() => one.Select();
+
+    [DefaultValue(false)]
+    public bool Compact
+    {
+        get => _compact;
+        set
+        {
+            if (_compact == value) return;
+            _compact = value;
+            foreach (var button in keys.Controls.OfType<SimpleButton>())
+                button.Appearance.FontSizeDelta = value ? 0 : 6;
+        }
+    }
 
     internal void EnableResponsiveLayout()
     {

@@ -72,11 +72,11 @@ public sealed partial class AppShellTests
         var panel = Field<CallControlPanel>(dialog, "callControls");
         panel.Bind(service, call);
         dialog.Show();
-        var button = Field<SimpleButton>(panel, "dtmfButton");
-        Assert.IsFalse(button.Enabled);
+        var keypad = Field<DialKeypad>(panel, "dtmfKeypad");
+        Assert.IsTrue(keypad.Visible);
+        Assert.IsFalse(keypad.Enabled);
         panel.Observe(call with { State = CallState.Connected, Revision = 2 });
-        button.PerformClick();
-        Assert.IsTrue(Field<DialKeypad>(panel, "dtmfKeypad").Visible);
+        Assert.IsTrue(keypad.Enabled);
         panel.PerformLayout();
         CheckTableBounds(panel);
         var output = Path.Combine(RenderOutput(), "dtmf");
@@ -100,7 +100,8 @@ public sealed partial class AppShellTests
         release.SetResult();
         await pending;
         Assert.HasCount(4, service.Commands);
-        Assert.IsFalse(button.Enabled);
+        Assert.IsTrue(keypad.Visible);
+        Assert.IsFalse(keypad.Enabled);
         await panel.StopAsync();
     });
 

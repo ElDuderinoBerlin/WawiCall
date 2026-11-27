@@ -101,69 +101,56 @@ public sealed partial class AppShellTests
                 if (scale != 1F) { dialog.Scale(new SizeF(scale, scale)); detailsHost.Scale(new SizeF(scale, scale)); }
                 details.PerformLayout(); dialog.PerformLayout();
                 CheckTableBounds(panel); CheckTableBounds(detailsPanel);
-                if (scale == 1F && fontSize == 10F)
-                    Assert.AreEqual(0, Field<TableLayoutPanel>(panel, "actionStrip").GetRow(Field<TableLayoutPanel>(panel, "recordingActions")));
-
                 foreach (var controls in new[] { panel, detailsPanel })
                 {
-                    var level = Field<SpinEdit>(controls, "conversationVolume");
-                    var microphone = Field<AudioLevelMeter>(controls, "microphonePeak");
-                    var microphoneLabel = Field<LabelControl>(controls, "microphonePeakLabel");
-                    var speaker = Field<AudioLevelMeter>(controls, "playbackPeak");
-                    var speakerLabel = Field<LabelControl>(controls, "playbackPeakLabel");
+                    var answer = Field<SimpleButton>(controls, "answerButton");
+                    var end = Field<SimpleButton>(controls, "endButton");
+                    var hold = Field<SimpleButton>(controls, "holdButton");
+                    var record = Field<SimpleButton>(controls, "recordingButton");
+                    var slider = Field<TrackBarControl>(controls, "conversationVolume");
+                    var label = Field<LabelControl>(controls, "volumeLabel");
                     var muteButton = Field<SimpleButton>(controls, "muteMicrophone");
-                    Assert.AreSame(level.Parent, microphone.Parent);
-                    Assert.AreEqual(level.Left, microphone.Left);
-                    Assert.AreEqual(Field<LabelControl>(controls, "volumeLabel").Left, microphoneLabel.Left);
-                    var audioTable = Field<TableLayoutPanel>(controls, "audioLayout");
-                    var wrapped = audioTable.GetRow(speaker) == 2;
-                    Assert.AreEqual(wrapped ? microphoneLabel.Left : muteButton.Left, speakerLabel.Left);
-                    if (wrapped) Assert.AreEqual(microphone.Left, speaker.Left);
-                    if (width == 1120) Assert.IsFalse(wrapped);
-                    Assert.IsTrue(speaker.Left >= speakerLabel.Right && speaker.Right <= audioTable.ClientSize.Width,
-                        $"{width}/{fontSize}/{scale}: {speakerLabel.Bounds}, {speaker.Bounds} in {audioTable.ClientSize}");
-                    Assert.IsTrue(Math.Abs((speakerLabel.Top + speakerLabel.Height / 2) - (speaker.Top + speaker.Height / 2)) <= 1);
-                    if (Field<TableLayoutPanel>(controls, "actionStrip").GetRow(Field<TableLayoutPanel>(controls, "recordingActions")) == 0)
-                    {
-                        var answer = Field<SimpleButton>(controls, "answerButton");
-                        var record = Field<SimpleButton>(controls, "recordingButton");
-                        Assert.AreEqual(answer.PointToScreen(Point.Empty).Y, record.PointToScreen(Point.Empty).Y);
-                        Assert.AreEqual(answer.Height, record.Height);
-                    }
+                    var keypad = Field<DialKeypad>(controls, "dtmfKeypad");
+                    Assert.AreSame(answer.Parent, slider.Parent);
+                    Assert.AreEqual(answer.Size, end.Size);
+                    Assert.AreEqual(answer.Size, record.Size);
+                    Assert.AreEqual(answer.Top, end.Top);
+                    Assert.AreEqual(hold.Top, record.Top);
+                    Assert.AreEqual(answer.Left, hold.Left);
+                    Assert.AreEqual(answer.Left, label.Left);
+                    Assert.AreEqual(answer.Left, muteButton.Left);
+                    Assert.AreEqual(end.Left, record.Left);
+                    Assert.AreEqual(end.Left, slider.Left);
+                    Assert.AreEqual(end.Width, slider.Width);
+                    Assert.IsTrue(keypad.Visible && keypad.Enabled);
+                    Assert.IsTrue(keypad.Right <= keypad.Parent!.ClientSize.Width,
+                        $"{width}/{fontSize}/{scale}: {keypad.Bounds} in {keypad.Parent.ClientSize}");
                 }
 
-                var volume = Field<SpinEdit>(panel, "conversationVolume");
+                var volume = Field<TrackBarControl>(panel, "conversationVolume");
                 var mute = Field<SimpleButton>(detailsPanel, "muteMicrophone");
-                Assert.AreEqual(75m, volume.Value);
-                Assert.AreEqual(43, Field<AudioLevelMeter>(panel, "microphonePeak").Position);
-                Assert.AreEqual(65, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Position);
-                Assert.IsGreaterThanOrEqualTo(56, Field<AudioLevelMeter>(panel, "microphonePeak").Width);
-                Assert.IsGreaterThanOrEqualTo(56, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Width);
-                Assert.IsGreaterThanOrEqualTo(11, Field<AudioLevelMeter>(panel, "microphonePeak").Height);
-                Assert.IsGreaterThanOrEqualTo(11, Field<AudioLevelMeter>(detailsPanel, "playbackPeak").Height);
+                Assert.AreEqual(75, volume.Value);
                 volume.Value = 40;
                 mute.PerformClick();
                 panel.Observe(call);
                 Assert.AreEqual(new(40, true, 0, 65), service.Audio);
                 Assert.AreEqual("Stumm aufheben", Field<SimpleButton>(panel, "muteMicrophone").Text);
-                Assert.AreEqual(0, Field<AudioLevelMeter>(panel, "microphonePeak").Position);
-
-                service.Audio = service.Audio with
-                {
-                    PlaybackSpectrum = [0, 4, 18, 82, 54, 25, 12, 35, 63, 45, 31, 22, 12, 5, 0, 0]
-                };
-                panel.Observe(call);
-                detailsPanel.Observe(call);
 
                 var prefix = $"{typeof(MainForm).Assembly.GetName().Name}-{fontSize:0}-{scale:0.0}";
                 using (var callerImage = UiAudit.Capture(dialog)) callerImage.Save(Path.Combine(output, prefix + "-caller.png"));
                 using (var detailsImage = UiAudit.Capture(detailsHost)) detailsImage.Save(Path.Combine(output, prefix + "-details.png"));
 
+                var keypadBounds = Field<DialKeypad>(panel, "dtmfKeypad").Bounds;
+                var actionBounds = Field<TableLayoutPanel>(panel, "actions").Bounds;
                 panel.Observe(call with { State = CallState.Held, Revision = call.Revision + 1 });
-                Assert.AreEqual(0, Field<AudioLevelMeter>(panel, "playbackPeak").Position);
+                Assert.IsFalse(Field<DialKeypad>(panel, "dtmfKeypad").Enabled);
+                Assert.AreEqual(keypadBounds, Field<DialKeypad>(panel, "dtmfKeypad").Bounds, $"{width}/{fontSize}/{scale}");
+                Assert.AreEqual(actionBounds, Field<TableLayoutPanel>(panel, "actions").Bounds);
                 panel.Observe(call with { State = CallState.Ended, Revision = call.Revision + 2 });
-                Assert.IsFalse(Field<TableLayoutPanel>(panel, "audioLayout").Visible);
+                Assert.IsTrue(Field<DialKeypad>(panel, "dtmfKeypad").Visible);
+                Assert.IsFalse(volume.Enabled);
                 Assert.IsFalse(Field<System.Windows.Forms.Timer>(panel, "audioTimer").Enabled);
+                Assert.AreEqual(keypadBounds, Field<DialKeypad>(panel, "dtmfKeypad").Bounds);
                 await detailsPanel.StopAsync();
                 await dialog.StopAsync();
             }

@@ -1,4 +1,3 @@
-using WawiCallPro.App.Hosting;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.Telephony;
 
@@ -20,12 +19,9 @@ public partial class CallControlPanel
         var canControlAudio = CanControlAudio;
         audioTimer.Enabled = canControlAudio && Visible;
         var audio = canControlAudio ? ((IConversationAudioService)_telephony!).GetAudio(_call!.Id) : null;
-        audioLayout.Visible = canControlAudio;
         conversationVolume.Enabled = audio is not null;
         if (audio is null)
         {
-            microphonePeak.Clear();
-            playbackPeak.Clear();
             muteMicrophone.Enabled = false;
             return;
         }
@@ -34,19 +30,10 @@ public partial class CallControlPanel
         try
         {
             if (!_audioOperation.IsRunning) conversationVolume.Value = audio.PlaybackVolumePercent;
-            var held = _call!.State == CallState.Held;
-            microphonePeak.Position = held ? 0 : audio.MicrophonePeakPercent;
-            playbackPeak.Position = held ? 0 : audio.PlaybackPeakPercent;
-            microphonePeak.SetSpectrum((held ? AudioSpectrum.Silence : audio.MicrophoneSpectrum).AsSpan());
-            playbackPeak.SetSpectrum((held ? AudioSpectrum.Silence : audio.PlaybackSpectrum).AsSpan());
             var text = audio.MicrophoneMuted ? "Stumm aufheben" : "Stummschalten";
             var description = audio.MicrophoneMuted ? "Mikrofon einschalten" : "Mikrofon stummschalten";
             muteMicrophone.ToolTip = muteMicrophone.AccessibleName = description;
-            if (muteMicrophone.Text != text)
-            {
-                muteMicrophone.Text = text;
-                UiButtonSizing.Apply(muteMicrophone);
-            }
+            if (muteMicrophone.Text != text) muteMicrophone.Text = text;
             muteMicrophone.Enabled = !_audioOperation.IsRunning;
         }
         finally { _refreshingAudio = false; }
@@ -61,7 +48,7 @@ public partial class CallControlPanel
     private async void ConversationVolume_EditValueChanged(object? sender, EventArgs e)
     {
         if (_refreshingAudio || !CanControlAudio) return;
-        _pendingVolume = (int)Math.Clamp(conversationVolume.Value, 0, 100);
+        _pendingVolume = Math.Clamp(conversationVolume.Value, 0, 100);
         if (!_audioOperation.IsRunning) await ApplyAudioAsync(null);
     }
 

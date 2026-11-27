@@ -1,7 +1,7 @@
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
-using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Interfaces.Audio;
+using WawiCallPro.Interfaces.Telephony;
 
 namespace WawiCallPro.App.Views;
 
@@ -15,7 +15,6 @@ public partial class CallControlPanel : XtraUserControl
     private readonly PageOperation _dtmfOperation;
     private readonly PageOperation _audioOperation;
     private readonly Queue<char> _dtmfQueue = new();
-    private bool _dtmfOpen;
     private bool _recordingBusy;
     private bool _confirmingRecording;
     private readonly Func<bool> _confirmRecordingConsent;
@@ -34,7 +33,7 @@ public partial class CallControlPanel : XtraUserControl
         UiButtonSizing.Attach(this);
         _operation = new(this, statusLabel);
         _recordingOperation = new(this, recordingStatus);
-        _dtmfOperation = new(this, dtmfStatus);
+        _dtmfOperation = new(message => dtmfStatus.Text = message, this, showWaiting: false);
         _audioOperation = new(this, statusLabel);
         dtmfKeypad.DigitPressed += DtmfDigit_Pressed;
         UpdateButtons();
@@ -81,66 +80,68 @@ public partial class CallControlPanel : XtraUserControl
             || _call.State is CallState.Connected or CallState.Held);
         holdButton.Text = _call?.State == CallState.Held ? "Fortsetzen" : "Halten";
         holdButton.Enabled = available && (_call!.State is CallState.Connected or CallState.Held);
-        UiButtonSizing.Apply(answerButton, endButton, holdButton);
-        if (!CanSendDtmf) _dtmfQueue.Clear();
-        dtmfButton.Enabled = dtmfKeypad.Enabled = CanSendDtmf;
+        if (!CanSendDtmf)
+        {
+            _dtmfQueue.Clear();
+            dtmfStatus.Text = "";
+        }
+        dtmfKeypad.Enabled = CanSendDtmf;
         UpdateRecording();
         UpdateAudio();
     }
 
-    private void ActionStrip_Layout(object? sender, LayoutEventArgs e) => ArrangeActionGroups();
-
-    private void ArrangeActionGroups()
+    private void Actions_Layout(object? sender, LayoutEventArgs e)
     {
         if (!IsHandleCreated || _disposed) return;
-        var width = new[] { answerButton, endButton, holdButton, recordingButton, dtmfButton }
-            .Sum(button => button.Width + button.Margin.Horizontal);
-        var availableWidth = ClientSize.Width - layout.Padding.Horizontal;
-        var cell = width <= availableWidth ? new TableLayoutPanelCellPosition(1, 0) : new TableLayoutPanelCellPosition(0, 1);
-        if (!actionStrip.GetCellPosition(recordingActions).Equals(cell)) actionStrip.SetCellPosition(recordingActions, cell);
-    }
-
-    private void AudioLayout_Layout(object? sender, LayoutEventArgs e)
-    {
-        if (!IsHandleCreated || _disposed || !audioLayout.Visible) return;
-        var labelWidth = Math.Max(volumeLabel.Width + volumeLabel.Margin.Horizontal, microphonePeakLabel.Width + microphonePeakLabel.Margin.Horizontal);
-        var inputWidth = Math.Max(conversationVolume.Width + conversationVolume.Margin.Horizontal, microphonePeak.Width + microphonePeak.Margin.Horizontal);
-        var outputLabelWidth = Math.Max(muteMicrophone.Width + muteMicrophone.Margin.Horizontal, playbackPeakLabel.Width + playbackPeakLabel.Margin.Right);
-        var outputWidth = playbackPeak.PreferredSize.Width + playbackPeak.Margin.Horizontal;
-        var wrap = labelWidth + inputWidth + outputLabelWidth + outputWidth > audioLayout.ClientSize.Width;
-        var row = wrap ? 2 : 1;
-        if (audioLayout.GetRow(playbackPeak) == row) return;
-
-        audioLayout.SuspendLayout();
+        // Reserve the longest action caption so the keypad and slider stay in place as the call changes state.
+        var textWidth = TextRenderer.MeasureText("Aufnahme abbrechen", recordingButton.Font).Width;
+        var width = Math.Max(textWidth + recordingButton.Padding.Horizontal, recordingButton.MinimumSize.Width)
+            + recordingButton.Margin.Horizontal;
+        var margin = endButton.Margin;
+        var sliderHeight = endButton.Height;
+        if (actions.ColumnStyles[0].SizeType == SizeType.Absolute && actions.ColumnStyles[0].Width == width
+            && volumeLabel.Margin == margin && conversationVolume.Margin == margin && conversationVolume.Height == sliderHeight) return;
+        actions.SuspendLayout();
         try
         {
-            audioLayout.SetCellPosition(playbackPeakLabel, new TableLayoutPanelCellPosition(wrap ? 0 : 2, row));
-            audioLayout.SetCellPosition(playbackPeak, new TableLayoutPanelCellPosition(wrap ? 1 : 3, row));
-            var margin = playbackPeakLabel.Margin;
-            margin.Left = wrap ? microphonePeakLabel.Margin.Left : muteMicrophone.Margin.Left;
-            playbackPeakLabel.Margin = margin;
+            foreach (ColumnStyle column in actions.ColumnStyles)
+            {
+                column.SizeType = SizeType.Absolute;
+                column.Width = width;
+            }
+            volumeLabel.Margin = conversationVolume.Margin = margin;
+            conversationVolume.Height = sliderHeight;
         }
-        finally { audioLayout.ResumeLayout(true); }
+        finally { actions.ResumeLayout(true); }
+    }
+
+    private void Layout_Keypad(object? sender, LayoutEventArgs e)
+    {
+        if (!IsHandleCreated || _disposed) return;
+        var gap = LogicalToDeviceUnits(12);
+        var availableWidth = layout.ClientSize.Width - layout.Padding.Horizontal;
+        var sideBySide = actions.GetPreferredSize(Size.Empty).Width + gap + dtmfKeypad.GetPreferredSize(Size.Empty).Width <= availableWidth;
+        var cell = sideBySide ? new TableLayoutPanelCellPosition(1, 0) : new TableLayoutPanelCellPosition(0, 1);
+        var margin = sideBySide ? new Padding(gap, Math.Max(0, answerButton.Margin.Top - dtmfKeypad.KeyTopInset), 0, 0)
+            : new Padding(Math.Max(0, answerButton.Margin.Left - dtmfKeypad.KeyTopInset), gap, 0, 0);
+        if (layout.GetCellPosition(dtmfKeypad).Equals(cell) && dtmfKeypad.Margin == margin) return;
+        layout.SuspendLayout();
+        try
+        {
+            layout.SetCellPosition(dtmfKeypad, cell);
+            dtmfKeypad.Margin = margin;
+        }
+        finally { layout.ResumeLayout(true); }
     }
 
     private bool CanSendDtmf => !_disposed && _stopTask is null && !_lifetime.IsCancellationRequested
         && _telephony is not null && _call?.State == CallState.Connected;
 
-    private void Dtmf_Click(object? sender, EventArgs e)
-    {
-        if (!CanSendDtmf) return;
-        _dtmfOpen = !_dtmfOpen;
-        dtmfKeypad.Visible = _dtmfOpen;
-        dtmfStatus.Visible = _dtmfOpen && _externalStatus is null;
-        PublishExternalStatus();
-        if (_dtmfOpen) dtmfKeypad.FocusFirstKey();
-    }
-
     private async void DtmfDigit_Pressed(char digit) => await SendDtmfAsync(digit);
 
     internal Task SendDtmfAsync(char digit)
     {
-        if (!CanSendDtmf || !_dtmfOpen || _dtmfQueue.Count >= 32 || !"0123456789*#ABCD".Contains(digit))
+        if (!CanSendDtmf || _dtmfQueue.Count >= 32 || !"0123456789*#ABCD".Contains(digit))
             return Task.CompletedTask;
         _dtmfQueue.Enqueue(digit);
         if (_dtmfOperation.IsRunning) return Task.CompletedTask;
@@ -182,8 +183,6 @@ public partial class CallControlPanel : XtraUserControl
             LiveRecordingState.Failed => WawiCallPro.Utilities.Operations.LiveRecordingMessages.Failure(snapshot?.Failure),
             _ => "Keine Aufnahme"
         };
-        UiButtonSizing.Apply(recordingButton, dtmfButton);
-        ArrangeActionGroups();
     }
     private async void Recording_Changed(object? sender, LiveRecordingChangedEventArgs e)
     {
@@ -297,18 +296,22 @@ public partial class CallControlPanel : XtraUserControl
                 LiveRecordingState.Failed => "Aufnahmefehler",
                 _ => ""
             };
-            return recording.Length == 0 ? call : string.Join(" · ", new[] { call, recording }.Where(text => text.Length > 0));
+            return string.Join(" · ", new[] { call, recording, dtmfStatus.Text }.Where(text => text.Length > 0));
         }
     }
 
     internal void UseStatusBar(Action<string> display)
     {
+        var alreadyAttached = _externalStatus is not null;
         _externalStatus = display;
-        foreach (var label in new[] { statusLabel, recordingStatus, dtmfStatus })
+        if (!alreadyAttached)
         {
-            label.Visible = false;
-            layout.Controls.Remove(label);
-            label.TextChanged += (_, _) => PublishExternalStatus();
+            foreach (var label in new[] { statusLabel, recordingStatus, dtmfStatus })
+            {
+                label.Visible = false;
+                layout.Controls.Remove(label);
+                label.TextChanged += (_, _) => PublishExternalStatus();
+            }
         }
         PublishExternalStatus();
     }
@@ -316,7 +319,7 @@ public partial class CallControlPanel : XtraUserControl
     private void PublishExternalStatus()
     {
         if (_externalStatus is null) return;
-        var parts = new[] { statusLabel.Text, recordingStatus.Text, _dtmfOpen ? dtmfStatus.Text : "" };
+        var parts = new[] { statusLabel.Text, recordingStatus.Text, dtmfStatus.Text };
         _externalStatus(string.Join(" · ", parts.Where(text => !string.IsNullOrWhiteSpace(text))));
     }
 
