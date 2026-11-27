@@ -101,7 +101,8 @@ public sealed class LiveRecordingMediaSession(ISipPcmMediaSession inner, IDuplex
                 }
                 var stem = RecordingFileName.Format(pattern, started, history?.Call.Direction, id, history?.Call.RemoteAddress, companyName);
                 var wavePath = ReserveWavePath(stem, linked.Token);
-                _recording = await live.StartAsync(source, new(callId, id, wavePath), linked.Token).ConfigureAwait(false);
+                _recording = await live.StartAsync(source, new(callId, id, wavePath, Layout: ConversationWaveLayout.MixedMono),
+                    linked.Token).ConfigureAwait(false);
                 linked.Token.ThrowIfCancellationRequested();
                 SetStatus(LiveRecordingState.Recording);
                 _watch = WatchInputAsync(_recording, _closing.Token);

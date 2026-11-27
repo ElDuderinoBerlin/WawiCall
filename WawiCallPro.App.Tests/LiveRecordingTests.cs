@@ -21,12 +21,17 @@ public sealed class LiveRecordingTests
         using var services = new ServiceCollection().AddLogging().AddSingleton<TimeProvider>(fixture.Clock)
             .AddAudioConversion().AddSingleton<IPlaybackPcmCaptureFactory>(capture).BuildServiceProvider();
         var factory = new LivePcmRecordingFactory(new ForwardFactory(services.GetRequiredService<IDuplexPcmRecordingFactory>()), fixture.Clock);
-        var start = factory.StartAsync(new PlaybackRecordingSource(fixture.Source, "synthetic-playback"), fixture.Request());
+        var start = factory.StartAsync(new PlaybackRecordingSource(fixture.Source, "synthetic-playback"),
+            fixture.Request() with { Layout = ConversationWaveLayout.MixedMono });
         fixture.Source.Send(1000, 100); fixture.Source.Receive(1, 2000, 200);
         await using var recording = await start;
         fixture.Clock.Advance(40); await recording.StopAsync();
         Assert.AreEqual("synthetic-playback", capture.Endpoint); Assert.AreEqual(1, capture.Stops);
-        Assert.IsTrue(File.Exists(fixture.Path));
+        using var wave = new WaveFileReader(fixture.Path);
+        Assert.AreEqual(1, wave.WaveFormat.Channels);
+        byte[] bytes = new byte[320];
+        Assert.AreEqual(bytes.Length, wave.Read(bytes, 0, bytes.Length));
+        Assert.AreEqual((short)300, BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(160)));
     }
 
     [TestMethod]

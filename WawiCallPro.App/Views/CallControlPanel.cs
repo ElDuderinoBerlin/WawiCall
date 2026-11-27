@@ -155,7 +155,7 @@ public partial class CallControlPanel : XtraUserControl
             LiveRecordingState.Starting => "Aufnahme wird vorbereitet …",
             LiveRecordingState.Recording => "Aufnahme läuft · beide Gesprächsseiten",
             LiveRecordingState.Stopping => "Aufnahme wird abgeschlossen …",
-            LiveRecordingState.Completed => "Aufnahme gespeichert · Stereo: eigene Stimme links, Gegenstelle rechts.",
+            LiveRecordingState.Completed => "Aufnahme gespeichert.",
             LiveRecordingState.Failed => WawiCallPro.Utilities.Operations.LiveRecordingMessages.Failure(snapshot?.Failure),
             _ => "Keine Aufnahme"
         };

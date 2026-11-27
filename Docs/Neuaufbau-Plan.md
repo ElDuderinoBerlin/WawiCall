@@ -5083,6 +5083,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Nachweis `.artifacts/phase9-recording-name-live/wasapi-jabra-20261126-141421/FinOffice-Reconnect-180347.log`.
 - [x] ✅ Spektrometer bei der Wiedergabe im Inline-Player prüfen.
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
+  ✅ Neue Gesprächsaufnahmen überlagern die eigene Stimme und die Gegenstelle mit dem vorhandenen
+  WAV-Mischer auf einem Mono-Kanal. Die Wahl zwischen RTP und Loopback betrifft weiterhin die Empfangsquelle.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
   der Signalpause sichtbar ab. Pause, Spulen und Abschluss leeren die Anzeige.
   Die Regression prüft gegenphasiges Stereo, den Pegelabfall und sichtbare Balken im Raster.

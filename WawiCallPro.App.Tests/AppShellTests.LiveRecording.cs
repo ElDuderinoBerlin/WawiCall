@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Immutable;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
@@ -74,7 +75,13 @@ public sealed partial class AppShellTests
         Assert.AreEqual(id, stored.Id); Assert.AreEqual(RecordingAvailability.Available, stored.Availability);
         Assert.IsTrue(stored.Duration > TimeSpan.Zero);
         Assert.AreEqual(stem + "_2.wav", stored.RelativePath);
-        Assert.IsTrue(File.Exists(workspace.Paths.ResolveRecordingPath(stored.RelativePath)));
+        using var wave = File.OpenRead(workspace.Paths.ResolveRecordingPath(stored.RelativePath));
+        var header = WawiCallPro.Core.Audio.PcmWaveHeader.Read(wave, default);
+        Assert.AreEqual(1, header.Channels);
+        wave.Position = header.DataOffset + header.SampleRate / 100 * sizeof(short);
+        var sample = new byte[sizeof(short)];
+        wave.ReadExactly(sample);
+        Assert.AreEqual(1234 + 2345, BinaryPrimitives.ReadInt16LittleEndian(sample), "Both voices must be present in the same frame.");
         Assert.AreEqual("vorhandene Datei", await File.ReadAllTextAsync(existingPath));
         Assert.AreEqual(0, source.Subscribers);
         var otherRecording = (await workspace.History.GetCallAsync(otherCall.Id))!.Recordings.Single();

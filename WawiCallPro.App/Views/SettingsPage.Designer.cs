@@ -1363,7 +1363,7 @@ partial class SettingsPage
         recordingSourceEdit.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
         audioLayout.Controls.Add(recordingSourceEdit, 1, 9);
         recordingSourceHint.Name = "recordingSourceHint";
-        recordingSourceHint.Text = "RTP erfasst die empfangenen Gesprächsdaten. Loopback erfasst alle Töne der Gesprächsausgabe, auch anderer Programme. Gilt für neue Gespräche.";
+        recordingSourceHint.Text = "Eigene Stimme und Gegenstelle werden auf einem gemeinsamen Audiokanal gespeichert. RTP erfasst die empfangene Stimme. Loopback erfasst alle Töne der Gesprächsausgabe, auch anderer Programme. Gilt für neue Gespräche.";
         recordingSourceHint.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         recordingSourceHint.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         recordingSourceHint.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
