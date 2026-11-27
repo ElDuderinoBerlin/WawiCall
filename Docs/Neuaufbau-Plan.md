@@ -3770,6 +3770,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   RTP-Frames lag der Spitzenwert bei 3 von 32768. Beide digitalen Mitschnitte zeigen für
   den gemeldeten einzelnen Knackser keinen entsprechenden Impuls. Die Ursache
   am tatsächlichen Audioausgang oder an der Gegenstelle bleibt offen.
+  Eine weitere Gegenprobe in Pro Debug mit 0 % Klingellautstärke bestätigte den Knackser
+  am Pro-Ausgang. Die Klingelausgabe war in diesem Lauf geschlossen.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
   `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen
