@@ -64,8 +64,7 @@ public partial class MailSettingsPage : XtraUserControl
         var width = Math.Max(1, Width - layout.Padding.Horizontal);
         return header.GetPreferredSize(new(width, 0)).Height + header.Margin.Vertical + Font.Height * 15
             + cacheLayout.GetPreferredSize(new(width, 0)).Height + cacheLayout.Margin.Vertical
-            + actions.GetPreferredSize(new(width, 0)).Height + actions.Margin.Vertical
-            + statusLabel.GetPreferredSize(new(width, 0)).Height + statusLabel.Margin.Vertical + layout.Padding.Vertical;
+            + actions.GetPreferredSize(new(width, 0)).Height + actions.Margin.Vertical + layout.Padding.Vertical;
     }
     private void BindAccounts(Guid? selected)
     {
@@ -128,7 +127,11 @@ public partial class MailSettingsPage : XtraUserControl
         {
             var old = _accounts.Single(item => item.Id == id);
             if (old.RemoteIdentity is not null || old.FolderIds.Length > 0)
-            { providerEdit.SelectedIndex = (int)old.Provider - 1; statusLabel.Text = "Für einen anderen Anbieter ein neues Postfach anlegen."; return; }
+            {
+                providerEdit.SelectedIndex = (int)old.Provider - 1;
+                _workspace?.LogWindow?.LogWarning("Für einen anderen Anbieter ein neues Postfach anlegen.");
+                return;
+            }
         }
         ShowProvider();
     }
@@ -149,24 +152,29 @@ public partial class MailSettingsPage : XtraUserControl
     private void New_Click(object? sender, EventArgs e)
     {
         SaveDraft(); var account = new MailAccountSettings { Id = Guid.NewGuid(), DisplayName = "Neues Postfach", Enabled = false };
-        _accounts.Add(account); BindAccounts(account.Id); statusLabel.Text = "Anbieter wählen, Verbindung einrichten und anschließend Ordner auswählen.";
+        _accounts.Add(account); BindAccounts(account.Id);
     }
     private void Remove_Click(object? sender, EventArgs e) => Start(async token =>
     {
         if (_selected is not { } id) return;
         await _workspace!.Mail.Accounts.ForgetAuthenticationAsync(_accounts.Single(item => item.Id == id), token);
         _accounts.RemoveAll(item => item.Id == id); _folders.Remove(id); BindAccounts(null);
-        await _save!(token); statusLabel.Text = "Postfach und gespeicherte Anmeldung entfernt. Importierte Inhalte bleiben geschützt in der Datenbank.";
+        await _save!(token);
+        _workspace.LogWindow?.LogNormal("Postfach und gespeicherte Anmeldung entfernt.");
     });
     private void Connect_Click(object? sender, EventArgs e) => Start(async token =>
     {
         var id = _selected!.Value; await _save!(token); await _workspace!.Mail.Accounts.ConnectAsync(id, token); await _reload!(token);
-        await LoadFolders(id, token); statusLabel.Text = "Verbindung und Leserechte geprüft. Ordner auswählen und Einstellungen speichern.";
+        await LoadFolders(id, token);
+        _workspace.LogWindow?.LogNormal("Postfachverbindung und Leserechte geprüft. Ordner auswählen und Einstellungen speichern.");
     });
     private void Disconnect_Click(object? sender, EventArgs e) => Start(async token =>
-    { var id = _selected!.Value; await _save!(token); await _workspace!.Mail.Accounts.DisconnectAsync(id, token); await _reload!(token); statusLabel.Text = "Postfach getrennt, gespeicherte Anmeldung entfernt."; });
+    {
+        var id = _selected!.Value; await _save!(token); await _workspace!.Mail.Accounts.DisconnectAsync(id, token); await _reload!(token);
+        _workspace.LogWindow?.LogNormal("Postfach getrennt, gespeicherte Anmeldung entfernt.");
+    });
     private void LoadFolders_Click(object? sender, EventArgs e) => Start(async token =>
-    { var id = _selected!.Value; await _save!(token); await LoadFolders(id, token); statusLabel.Text = "Zu importierende Ordner über die Checkboxen auswählen. Danach speichern."; detailsTabs.SelectedTabPage = foldersTab; });
+    { var id = _selected!.Value; await _save!(token); await LoadFolders(id, token); detailsTabs.SelectedTabPage = foldersTab; });
     private async Task LoadFolders(Guid id, CancellationToken token)
     {
         var account = await _workspace!.Mail.Accounts.GetAsync(id, token); var folders = await _workspace.Mail.Accounts.GetFoldersAsync(account, token);
@@ -175,23 +183,30 @@ public partial class MailSettingsPage : XtraUserControl
     private void Sync_Click(object? sender, EventArgs e) => Start(async token =>
     {
         var id = _selected!.Value; await _save!(token);
-        if (!await _workspace!.Mail.Cache.IsEnabledAsync(token)) { statusLabel.Text = "Mailcache ist ausgeschaltet. Nachrichten werden in der Mailansicht direkt geladen."; return; }
-        var progress = new Progress<WawiCallPro.Office.MailSyncProgress>(value => { if (!_stopping && !IsDisposed) statusLabel.Text = value.FoldersCompleted + "/" + value.FoldersTotal + " Ordner · " + value.MessagesConfirmed + " Nachrichten bestätigt"; });
-        await _workspace!.Mail.Synchronization.SynchronizeAsync(id, progress, token); statusLabel.Text = "Import abgeschlossen. In der Mailansicht Aktualisieren wählen.";
+        if (!await _workspace!.Mail.Cache.IsEnabledAsync(token))
+        {
+            _workspace.LogWindow?.LogNormal("Mailcache ist ausgeschaltet. Nachrichten werden in der Mailansicht direkt geladen.");
+            return;
+        }
+        await _workspace.Mail.Synchronization.SynchronizeAsync(id, cancellationToken: token);
+        _workspace.LogWindow?.LogNormal("Mailimport abgeschlossen. In der Mailansicht Aktualisieren wählen.");
     });
     private void Stores_Click(object? sender, EventArgs e) => Start(async token =>
     {
         SaveDraft(); var account = _accounts.Single(item => item.Id == _selected);
         var stores = await _workspace!.Mail.Accounts.GetOutlookStoresAsync(account, token);
         storeEdit.Properties.DataSource = new[] { new MailStore("", "Alle Outlook-Postfächer") }.Concat(stores).ToArray();
-        storeEdit.EditValue = account.OutlookStoreId ?? ""; statusLabel.Text = "Outlook-Postfach auswählen. Anschließend verbinden und Ordner laden.";
+        storeEdit.EditValue = account.OutlookStoreId ?? "";
     });
     private void Companies_Click(object? sender, EventArgs e) => Start(async token =>
     {
-        if (_workspace?.CanUseBusinessDirectory != true) { statusLabel.Text = "Lexware-Zugriff ist gesperrt. Details stehen im Log-Fenster."; return; }
+        if (_workspace?.CanUseBusinessDirectory != true)
+        {
+            _workspace?.LogWindow?.LogWarning("Lexware-Zugriff ist gesperrt.");
+            return;
+        }
         var selection = companyEdit.EditValue; var companies = await _workspace.Directory.GetCompaniesAsync(token);
         companyEdit.Properties.DataSource = companies.Select(item => new CompanyRow(item.Key, item.DisplayName)).ToArray(); companyEdit.EditValue = selection;
-        statusLabel.Text = "Mandant für die Anzeige von Kundenmails bei Anrufen auswählen.";
     });
     private void Google_Click(object? sender, EventArgs e) => Browse();
 
@@ -200,7 +215,7 @@ public partial class MailSettingsPage : XtraUserControl
         await Task.Yield(); var owner = (Control?)FindForm() ?? this;
         using var waiting = new UiWaitCursor(owner);
         using var dialog = new XtraOpenFileDialog { Title = "Google Desktop-Client importieren", Filter = "JSON-Dateien (*.json)|*.json", Multiselect = false, CheckFileExists = true, RestoreDirectory = true };
-        if (dialog.ShowDialog(owner) != DialogResult.OK) { statusLabel.Text = "Import abgebrochen."; return; }
+        if (dialog.ShowDialog(owner) != DialogResult.OK) return;
         SaveDraft();
         var imported = new[] { await _workspace!.Mail.Accounts.ReadGoogleClientAsync(dialog.FileName, token) };
         Guid? selected = null;
@@ -209,7 +224,8 @@ public partial class MailSettingsPage : XtraUserControl
             if (_accounts.Any(item => item.Id == account.Id)) { selected = account.Id; continue; }
             _accounts.Add(account with { Enabled = false }); selected = account.Id;
         }
-        BindAccounts(selected); statusLabel.Text = "Clientdaten geschützt übernommen. Verbinden prüft die Leserechte. Es wurden noch keine Mails gelesen.";
+        BindAccounts(selected);
+        _workspace.LogWindow?.LogNormal("Google-Clientdaten übernommen. Verbinden prüft die Leserechte.");
     });
     private void Start(Func<CancellationToken, Task> operation)
     { if (_workspace is not null && !_stopping && _running.IsCompleted) _running = Run(operation); }
@@ -217,10 +233,15 @@ public partial class MailSettingsPage : XtraUserControl
     {
         using var waiting = new UiWaitCursor(this);
         using var request = new CancellationTokenSource(); _request = request;
-        SetBusy(true); statusLabel.Text = "Bitte warten …";
+        SetBusy(true);
         try { await Task.Yield(); await operation(request.Token); }
-        catch (OperationCanceledException) when (request.IsCancellationRequested) { if (!_stopping) statusLabel.Text = "Vorgang abgebrochen. Bereits bestätigte Importseiten bleiben erhalten."; }
-        catch (Exception exception) { if (!_stopping) statusLabel.Text = PageOperation.Describe(exception); }
+        catch (OperationCanceledException) when (request.IsCancellationRequested)
+        { if (!_stopping) _workspace?.LogWindow?.LogNormal("Postfachvorgang abgebrochen. Bereits bestätigte Importseiten bleiben erhalten."); }
+        catch (Exception exception)
+        {
+            if (!_stopping) _workspace?.LogWindow?.LogWarning(exception is MailException mail
+                ? mail.Message : "Der Postfachvorgang ist fehlgeschlagen. Einstellungen und Erreichbarkeit prüfen.");
+        }
         finally { _request = null; if (!IsDisposed && !_stopping) SetBusy(false); }
     }
     private void SetBusy(bool busy)

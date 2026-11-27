@@ -85,8 +85,6 @@ partial class MailSettingsPage
         startupEdit.Name = "startupEdit";
         hintLabel = new DevExpress.XtraEditors.LabelControl();
         hintLabel.Name = "hintLabel";
-        statusLabel = new DevExpress.XtraEditors.LabelControl();
-        statusLabel.Name = "statusLabel";
         folderHint = new DevExpress.XtraEditors.LabelControl();
         folderHint.Name = "folderHint";
         providerLabel = new DevExpress.XtraEditors.LabelControl();
@@ -142,7 +140,7 @@ partial class MailSettingsPage
         connectionLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
         layout.Padding = new System.Windows.Forms.Padding(8);
         layout.ColumnCount = 1;
-        layout.RowCount = 5;
+        layout.RowCount = 4;
         header.ColumnCount = 2;
         header.RowCount = 1;
         content.ColumnCount = 2;
@@ -157,7 +155,6 @@ partial class MailSettingsPage
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-        layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         layout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         header.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
         header.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.AutoSize));
@@ -392,9 +389,6 @@ partial class MailSettingsPage
         hintLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         hintLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
         hintLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        statusLabel.AutoSizeMode = DevExpress.XtraEditors.LabelAutoSizeMode.Vertical;
-        statusLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
-        statusLabel.Text = "Verbindung und Import speichern die Postfachdaten sofort. Zugangsdaten bleiben lokal geschützt.";
         header.Controls.Add(newButton, 0, 0);
         header.Controls.Add(removeButton, 1, 0);
         content.Controls.Add(accountsGrid, 0, 0);
@@ -439,7 +433,6 @@ partial class MailSettingsPage
         layout.Controls.Add(cacheLayout, 0, 1);
         layout.Controls.Add(content, 0, 2);
         layout.Controls.Add(actions, 0, 3);
-        layout.Controls.Add(statusLabel, 0, 4);
         Controls.Add(layout);
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 14F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -478,7 +471,6 @@ partial class MailSettingsPage
     private DevExpress.XtraEditors.SpinEdit maximumEdit;
     private DevExpress.XtraEditors.CheckEdit startupEdit;
     private DevExpress.XtraEditors.LabelControl hintLabel;
-    private DevExpress.XtraEditors.LabelControl statusLabel;
     private DevExpress.XtraEditors.LabelControl folderHint;
     private DevExpress.XtraEditors.LabelControl providerLabel;
     private DevExpress.XtraEditors.LabelControl nameLabel;
