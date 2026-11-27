@@ -599,3 +599,13 @@ URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Ab
   gelöschte Nachrichten landen damit im lokalen Mail-Cache und in der Kundenansicht. Das erhöht das Risiko
   durch Phishing-Inhalte und widerspricht der Datensparsamkeit für bewusst gelöschte Mails.
   → Standardmäßig `false` setzen und höchstens pro Ordner gezielt zulassen.
+
+## B9 – WawiCallPro.Plugins.Lexware.Pro / .FinOffice ⬜ in Arbeit (Stand 27.11.2026)
+
+- ⬜ **LX-01 · Mittel · Zugangsdaten an die Lexware-API ggf. unverschlüsselt im Netz** –
+  `ProInstallationSource.Detect` ([Z. 101–107](../WawiCallPro.Plugins.Lexware.Pro/ProInstallationSource.cs))
+  akzeptiert eine vom `LexwareApiUrlResolver` gelieferte `http://`-Adresse auch für **entfernte** Hosts.
+  `ProApiConnectionFactory` schickt Benutzername, Passwort und Client-Key dann im Klartext über das LAN.
+  Das betrifft eine Netzwerkinstallation mit API-Dienst auf einem Server. → `http` nur für Loopback
+  zulassen, sonst `https` verlangen oder deutlich warnen und in der Benutzerdokumentation beschreiben.
+  Mit Testdouble für Resolver-Ergebnisse (Loopback, entfernt mit `http`, entfernt mit `https`) belegen.
