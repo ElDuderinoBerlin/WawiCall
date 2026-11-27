@@ -289,7 +289,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ✅ (B11) |
 | Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ✅ (B12) |
 | ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ✅ (B13) |
-| Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ⬜ |
+| Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ✅ (B14) |
 
 ## B1 – WawiCallPro.Audio ✅ gelesen (64 Dateien, Stand 27.11.2026)
 
