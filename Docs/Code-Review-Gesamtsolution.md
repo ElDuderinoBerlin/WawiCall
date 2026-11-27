@@ -19,7 +19,7 @@ offizielle DevExpress-Dokumentation (dxdocs, WinForms 26.1).
 
 ## Legende und Abhaken
 
-- ⬜ offen · ✅ erledigt und geprüft · ➖ bewusst nicht umgesetzt (Begründung in der Zeile ergänzen)
+- ⬜ offen · 🟨 teilweise · ✅ erledigt und geprüft · ➖ bewusst nicht umgesetzt (Begründung in der Zeile ergänzen)
 - Schwere: **Hoch** = Datenverlust-, Sicherheits- oder Repository-Risiko · **Mittel** = Regelverstoß
   oder Fehler mit realistischer Auswirkung · **Niedrig** = Robustheit/Konsistenz · **Info** = geprüft, konform
 - Einen Punkt erst auf ✅ setzen, wenn Fix, Build (Debug, Pro) und passende Tests abgeschlossen sind.
@@ -266,7 +266,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Audio | AU | ~6 450 | ✅ (B1) |
 | WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ✅ (B2) |
 | WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ✅ (B3) |
-| WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | ⬜ |
+| WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | 🟨 (B4, Views offen) |
 | WawiCallPro.Core | CO | ~1 940 | ⬜ |
 | WawiCallPro.Database | DB | ~5 500 | ⬜ |
 | WawiCallPro.Utilities | UT | ~8 380 | ⬜ |
@@ -413,3 +413,62 @@ CLR-Schnittstellen. Die Klassenfabrik schreibt keine Registry-Einträge.
   Makros oder Skripte (Risiko Gebührenbetrug, z. B. Mehrwertnummern).
   → Fachlich entscheiden: Telefonie-Automation per Einstellung freischalten (Standard aus), Rückfrage oder
   Sperrliste für Sonderrufnummern, Mengenbegrenzung. Entscheidung in der CRA-Bedrohungsanalyse dokumentieren.
+
+## B4 – WawiCallPro.App 🟨 teilweise gelesen (Stand 27.11.2026)
+
+Vollständig gelesen: `Program.cs`, `AppApplicationContext`, `StartupSplash`/`StartupFocusHandoff`,
+`AppInstanceGuard`, `AppExceptionBoundary`, `AppStartArguments`, `AppComIdentity`, `UserComRegistration`
+(Kern), `PageOperation`, `UiWaitCursor`, `AppSettingsCommand`, `ClientKeyExitProtection`,
+`LicenseStartupGate`, `AppAutomationState`, Fenster-Persistenz in `AppUiState`, Aufnahme-Bestätigung in
+`CallControlPanel` sowie die HTML/Anhang-Behandlung in `MailPage`. Die übrigen Views und
+`MainForm.*`-Teile sind bisher nur über die solutionweiten Musterprüfungen erfasst. Ihre Durchsicht steht
+in AP-99 aus.
+
+Konform: Die Splash-Übergabe hält die Reihenfolge „Erfassen → Aktivieren → Schließen“ ein, mit `finally`.
+Die Zweitinstanz-Aktivierung nutzt `AllowSetForegroundWindow` und ein benanntes Ereignis und merkt
+Anforderungen vor, die vor dem Fenster eintreffen. COM wird nur unter HKCU registriert, ohne rekursives
+Löschen und mit Rollback. Alle Dialoge werden über `AppUiState.AttachWindow` unter
+`Software\WawiCallPro\<Linie>\App\v1\Windows\v2\…` gespeichert und dabei an den sichtbaren
+Arbeitsbereich angepasst. Browse-Dialoge laufen über `XtraOpen/SaveFileDialog` mit Owner und
+`UiWaitCursor`. Mail-HTML lädt keine externen Ressourcen (`BlockedMailResources`) und öffnet keine Links.
+
+- ⬜ **AP-01 · Mittel · Erste UI-Ausnahme beendet die App, alle weiteren bleiben unsichtbar** –
+  [`AppExceptionBoundary.Report`](../WawiCallPro.App/Hosting/AppExceptionBoundary.cs) (Z. 37–49)
+  merkt sich nur die **erste** Ausnahme. Jede spätere wird weder protokolliert noch als Absturzbericht
+  erfasst (`if (Failure is not null) return;`). Gleichzeitig ruft `RuntimeFailureState` über
+  `RuntimeFailureMonitor` `StopApplication()` auf. Eine einzige unbehandelte Ausnahme in einem der
+  115 `async void`-Handler (siehe R-16) beendet die Anwendung damit auch während eines laufenden
+  Gesprächs. → Folgeausnahmen mindestens protokollieren (Zähler mit Kategorie). UI-Fehler unterscheiden:
+  erwartbare Fehler lokal anzeigen und weiterlaufen lassen, nur echte Invarianten- oder
+  Infrastrukturfehler fail-stop behandeln. Ein laufendes Gespräch vor dem Beenden geordnet trennen und den
+  Benutzer informieren.
+- ⬜ **AP-02 · Mittel · Rechtlicher Hinweis bei automatischer Aufnahme fehlt** – Die manuelle Aufnahme fragt
+  bei jedem Start nach der Zustimmung gemäß § 201 StGB (`CallControlPanel.cs:228–233`). Die Einstellung
+  „Verbundene Gespräche automatisch aufzeichnen“ (`SettingsPage.Designer.cs:1490`) startet dagegen
+  **jede** verbundene Aufnahme ohne Bestätigung, ohne Ansage und ohne Hinweis beim Aktivieren
+  (`SipTelephonyService.LiveRecording.cs:32–58`). → Beim Einschalten eine Bestätigung mit Rechtshinweis
+  verlangen und dokumentieren. Optional eine automatische Ansage vor Aufnahmebeginn anbieten. Die Pflichten
+  laut DSGVO und Betriebsvereinbarung in der Benutzerdokumentation beschreiben.
+- ⬜ **AP-03 · Niedrig · Test- und Fixture-Pfade im Produktbinary** – `--com-fixture`, `--ui-audit`,
+  `--automation-docs`, `NativeTrayAudit` und die dateibasierte Steuerung in
+  `AppApplicationContext.CheckIdle` (Z. 228–265: `stop.request`, `close-dialog.request`, `launch.request`
+  mit `Shell.Application.ShellExecute`) sind auch in Release-Builds aktiv. Außer `AppComDeployment` ist
+  nichts mit `#if DEBUG` abgegrenzt. Das betrifft zwar nur denselben Benutzer, vergrößert aber die
+  Angriffs- und Prüffläche (CRA: keine unnötigen Funktionen). → Test-Hooks nur in Debug- oder
+  Test-Konfigurationen kompilieren oder per Build-Schalter entfernen.
+- ⬜ **AP-04 · Niedrig · Splash-Fehler bricht den Start ab** – `StartupSplash.ShowAsync` (Z. 61–62) und
+  `CloseAsync` (Z. 142–149) werfen bei einem Fehler des Splash-Threads oder nach 10 s Zeitüberschreitung. Weil
+  `StartupSplashHost.StartAsync` den Fehler weiterreicht, startet die App dann gar nicht, etwa auf einer
+  langsamen VM beim ersten Laden des DevExpress-Skins. → Splash-Fehler protokollieren und ohne Splash weiterstarten.
+- ⬜ **AP-05 · Niedrig · Idle-Shutdown hängt vom Garbage Collector ab** – `AppAutomationState.Track`
+  zählt COM-Clients über einen Finalizer in `ConditionalWeakTable` (Z. 76–79, `~Lease` mit `lock`).
+  `TryIdleShutdown` wartet auf `_clients == 0`. Ein per COM gestarteter, verborgener Server bleibt deshalb
+  laufen, bis zufällig eine GC die Fassaden finalisiert hat. Zusätzlich wird im Finalizer-Thread ein
+  Lock genommen. → Clients über das deterministische native `Release` (`AutomationDispatch`/`ServerLock`)
+  zählen und auf den Finalizer verzichten.
+- ⬜ **AP-99 · Offen · Restliche Views und `MainForm.*` inhaltlich lesen** – Noch offen sind `SettingsPage*`, `HistoryPage*`,
+  `FrmAnnouncements`, `FrmDial*`, `CallerLookupPage`, `FrmAudioSelfTest`, `FrmAudioConvert`, `PluginPage`,
+  `FunctionPluginsPage`, `CompanySelector`, `CallDetailsPage`, `HomeDashboard`, `FrmDatabaseSetup` mit
+  Schritten sowie `MainForm.cs`, `.Calls`, `.Telephony`, `.Database`, `.Mail`, `.PluginShell`, `.Automation`.
+  Schwerpunkte: Datenverlust beim Schließen, Lexware-Sperre vor Aktionen, Grid- und Layoutregeln,
+  Designer-Konformität.
