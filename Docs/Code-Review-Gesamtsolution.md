@@ -697,10 +697,13 @@ gezielt auf, mit Präfixprüfung vor `DeleteSubKeyTree`. Hardware- und Audiotest
 Zugriffe auf echte Profile unter `%LocalAppData%`.
 
 - ⬜ **TE-01 · Mittel · Rote Tests bleiben unbemerkt** – `MailCacheTests` ist seit `ccd3d53` (23.11.2026)
-  rot (T-01), `DiagnosticLogTests` seit `230af10` (27.11.2026, CN-01), dazu kommen T-02 und T-03. Es gibt
-  keinen automatischen Testlauf vor dem Commit (kein CI-Workflow, kein Git-Hook, keine Testaufgabe in
-  `scripts/`). AGENTS.md verlangt „Erst fertigmelden, wenn die erforderlichen Prüfungen abgeschlossen sind“.
-  → Ein Skript `scripts/test-headless.ps1` (Debug, Pro, alle fensterlosen Testprojekte) einführen und als
-  verbindlichen Schritt vor jedem Commit bzw. in einer lokalen CI verankern. 102 Stellen mit
+  rot (T-01), `DiagnosticLogTests` seit `230af10` (27.11.2026, CN-01), dazu kommen T-02 und T-03. Der
+  vorhandene Workflow [`.github/workflows/debug.yml`](../.github/workflows/debug.yml) läuft nur bei Pushes auf
+  `main` (Feature-Branches wie `feature/mail-connectors` werden nicht geprüft) und ruft nur
+  `scripts/build-debug.ps1` auf, das **keine Tests** ausführt. Es gibt auch keinen Git-Hook.
+  AGENTS.md verlangt „Erst fertigmelden, wenn die erforderlichen Prüfungen abgeschlossen sind“.
+  → Den Workflow um einen Schritt mit den fensterlosen Testprojekten (Debug, Pro und FinOffice laut Matrix)
+  erweitern, auf `pull_request` und Feature-Branches ausdehnen und lokal ein gleichwertiges Skript
+  `scripts/test-headless.ps1` bereitstellen. 102 Stellen mit
   `Task.Delay`/`Thread.Sleep` auf mögliche Zeitabhängigkeit (Flakiness) prüfen und, wo möglich, auf
   `TimeProvider` umstellen.
