@@ -271,7 +271,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ✅ (B3) |
 | WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | 🟨 (B4, Views offen) |
 | WawiCallPro.Core | CO | ~1 940 | ✅ (B5) |
-| WawiCallPro.Database | DB | ~5 500 | ⬜ |
+| WawiCallPro.Database | DB | ~5 500 | ✅ (B6) |
 | WawiCallPro.Utilities | UT | ~8 380 | ⬜ |
 | WawiCallPro.Office | OF | ~1 740 | ⬜ |
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
@@ -483,3 +483,46 @@ WAV-Validierung (`PcmWaveHeader`), Rufnummerninterpretation, Trefferentscheidung
 streng begrenzt und schlagen bei Unklarheit fehl statt zu raten (fail-closed): SSRC-, Takt- und
 Sequenzwechsel, Überlappungen, Puffergrenzen und unvollständige Suchbereiche führen zu definierten Fehlern
 statt zu stillen Reparaturen. Keine eigenständigen Befunde. Die roten Aufnahme-Tests werden unter T-02 verfolgt.
+
+## B6 – WawiCallPro.Database ✅ gelesen (Kernpfade, Stand 27.11.2026)
+
+Gelesen: `DatabaseRepositoryContext`, `DatabaseTarget`, `DatabaseFactory`, `DatabaseMigrationLock`,
+`DatabaseMigrator`, `SqliteDatabaseBackup`, `DatabaseProvisioner`/`Permissions` (Ausschnitte),
+`DapperCallRepository`, `StorageContract`, Migrationen 001/003/006/015. Die übrigen Repositories folgen
+demselben `RepositorySession`-Muster und wurden stichprobenartig geprüft.
+
+Gut gelöst: Verbindungszeichenfolgen werden validiert und normalisiert (keine `AttachDBFilename`, keine
+Systemdatenbanken). Schreibzugriffe sind versioniert (optimistisches Locking über `writeversion`), Commits mit
+unklarem Ausgang werden als `CommitUncertain` gemeldet. SQLite-Backups laufen über die Online-Backup-API mit
+Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
+
+- ⬜ **DB-01 · Hoch · Jede Datenbankoperation läuft unter der exklusiven Migrationssperre** –
+  [`DatabaseRepositoryContext.RunCoreAsync`](../WawiCallPro.Database/Repositories/DatabaseRepositoryContext.cs)
+  (Z. 30) ruft für **jede** Repository-Operation `gate.AcquireAsync(target, 30 s)` auf.
+  [`DatabaseMigrationLock`](../WawiCallPro.Database/DatabaseMigrationLock.cs) ist laut eigener
+  Beschreibung ein „Exclusive cooperating-process gate“: SQL Server mit `sp_getapplock … 'Exclusive'`,
+  MySQL mit `GET_LOCK`, PostgreSQL mit `pg_try_advisory_lock`, jeweils über eine **neue Verbindung ohne
+  Pooling** und mit 50-ms-Polling. Der Kommentar in Z. 12 spricht dagegen von einem „shared gate“. Danach
+  folgen pro Operation die Schemaprüfung (`DatabaseStatusService`, eigene Verbindung), die eigentliche
+  Verbindung mit `Serializable`-Transaktion und `EnsureHeldAsync`. Folgen bei Server-Datenbanken mit
+  mehreren Arbeitsplätzen:
+  - Alle Lese- und Schreibzugriffe **aller** Arbeitsplätze laufen global nacheinander.
+  - Unter Last brechen Zugriffe nach 30 s mit `MigrationLockTimeout` ab. Das verstärkt TS-01 und TS-04.
+  - Jede Operation braucht drei oder mehr Verbindungsaufbauten mit Anmeldung und gegebenenfalls TLS.
+
+  → Für normale Operationen eine **geteilte** Sperre verwenden: `sp_getapplock … 'Shared'`,
+  `pg_try_advisory_lock_shared`; für MySQL ein Muster mit Lese- und Schreibsperre oder eine
+  Schemaversions-Prüfung ohne Sperre. Migration und Restore nehmen weiterhin die exklusive Sperre. Den
+  Schemastatus pro Prozess zwischenspeichern und nur bei Fehlern neu prüfen. Lastnachweis mit mehreren
+  parallelen Clients gegen alle Server-Engines (MySQL und MariaDB getrennt).
+- ⬜ **DB-02 · Mittel · `Serializable` ohne Wiederholungsstrategie (relevant nach DB-01)** – Alle
+  Server-Transaktionen laufen mit `IsolationLevel.Serializable` (Z. 35–36). Sobald DB-01 echte
+  Parallelität zulässt, treten auf PostgreSQL Serialisierungsfehler (`40001`) und auf SQL Server und MySQL
+  Deadlocks auf. Sie werden derzeit nur klassifiziert, nicht wiederholt. → Isolationsstufe je Operation
+  festlegen (meist `ReadCommitted` mit versionierten Updates) und begrenzte Wiederholungen für `40001` und
+  Deadlocks einführen.
+- ⬜ **DB-03 · Niedrig · N+1-Abfragen** – `DapperCallRepository.GetPageAsync` lädt mit Gesprächspartner-Filter
+  die Kandidaten zeilenweise nach (Z. 55–60). `HistoryRecordingPlayback.PlayCoreAsync` fragt jeden
+  offenen Konvertierungsauftrag einzeln ab. → Gesammelte Abfragen über `In(...)` bzw. `= ANY(...)`.
+- ⬜ **DB-04 · Verweis** – Direkte ADO.NET-Ausführung trotz Dapper-Regel: siehe **R-07**. Beim Umbau von DB-01
+  gleich mit umstellen.
