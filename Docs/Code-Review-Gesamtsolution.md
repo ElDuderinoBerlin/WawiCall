@@ -263,8 +263,8 @@ Befundnummern: `<Kürzel>-NN`.
 
 | Projekt | Kürzel | Zeilen ohne Designer | Durchsicht |
 |---|---|---|---|
-| WawiCallPro.Audio | AU | ~6 450 | ⬜ |
-| WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ⬜ |
+| WawiCallPro.Audio | AU | ~6 450 | ✅ (B1) |
+| WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ✅ (B2) |
 | WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ⬜ |
 | WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | ⬜ |
 | WawiCallPro.Core | CO | ~1 940 | ⬜ |
@@ -332,3 +332,61 @@ keine Payloads oder Gerätedetails im Log, klare Besitzregeln beim Dispose.
   Instanz zwischengespeichert. Die Factory in `AppCompositionRoot.cs:129–147` erzeugt aber bei jeder
   Auflösung eine neue Azure- oder Google-Instanz. Dadurch wird der Katalog jedes Mal neu geladen, und die
   Zwischenspeicherung ist nicht threadsicher. → Instanz je Konfigurationsstand wiederverwenden (siehe auch R-13).
+
+## B2 – WawiCallPro.Telephony.Sip / WawiCallPro.Telephony ✅ gelesen (20 Dateien, Stand 27.11.2026)
+
+Gut gelöst: Die Zustandsmaschine bildet dieselben Regeln ab wie die CHECK-Constraints der Datenbank.
+Die geordnete Warteschlange schreibt jede Beobachtung zuerst als DPAPI-geschütztes Journal und erst danach
+in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernommen, Rufnummernunterdrückung
+(`Privacy: id`) wird beachtet. Zugangsdaten werden nur kurzzeitig entschlüsselt.
+
+- ⬜ **TS-01 · Hoch · Fremd-INVITE blockiert die Gesprächsspeicherung (plausibel, nicht nachgestellt)** –
+  Drei Eigenschaften greifen ineinander:
+  1. Der Transport lauscht standardmäßig auf `0.0.0.0:5060`
+     (`ApplicationOptions.cs:73–74`). [`SipTelephonyService.cs:144–156`](../WawiCallPro.Telephony.Sip/SipTelephonyService.cs)
+     nimmt INVITEs **von jeder Quelle** an, nicht nur vom Registrar. Jeder Host im Netz kann damit klingeln
+     lassen, das bekannte Muster der SIP-Scanner-Geisteranrufe.
+  2. [`SipCallerIdentity.Read`](../WawiCallPro.Telephony.Sip/SipCallerIdentity.cs) (Z. 27) übernimmt einen
+     beliebigen From-User **ohne Längen- oder Zeichenprüfung** als `RemoteAddress.OriginalValue`.
+  3. `StorageContract.Address` lehnt mehr als 2048 Zeichen, Steuerzeichen und reinen Leerraum mit
+     `ArgumentException` ab. `FlushPendingAsync` (Z. 603–627) wertet **jeden** Fehler als vorübergehend und
+     verarbeitet die Warteschlange strikt der Reihe nach.
+
+  Folge: Ein einzelner präparierter INVITE blockiert dauerhaft die Speicherung dieses und **aller folgenden**
+  Gespräche. `_pendingWrites` wächst unbegrenzt, und nach einem Neustart spielt das Journal denselben Eintrag
+  wieder ein. Überschreitet ein Journal-Eintrag 64 KiB (`ProtectedSipCallOutbox.cs:45`), schlägt beim
+  nächsten Start sogar `ConnectAsync` mit `DatabaseNotReady` fehl.
+  → (a) INVITEs standardmäßig nur vom registrierten Proxy annehmen, andere mit 403/Ignorieren beantworten,
+  optional per Einstellung zulassen. (b) Die Absenderkennung begrenzen und bereinigen (Länge,
+  Steuerzeichen, sonst `Unknown`). (c) Dauerhafte Validierungs- und Konfliktfehler vom Wiederholen
+  ausnehmen: betroffenen Snapshot in Quarantäne verschieben, sichtbar melden und nachfolgende Einträge
+  weiterverarbeiten. (d) Tests mit überlangem und steuerzeichenhaltigem From-Header sowie mit fremder Quelladresse ergänzen.
+- ⬜ **TS-02 · Mittel · Gespräch bleibt nach eigenem Auflegen „verbunden“ (plausibel)** – `HangUpAsync`
+  (Z. 299–316) berechnet den Endegrund aus dem Stand **vor** der Einreihung. Nimmt die Gegenstelle einen
+  ausgehenden Anruf gleichzeitig mit dem Auflegen an, verarbeitet die Ereignisschleife zuerst `Connected`.
+  Danach weist die Zustandsmaschine `Ended/Cancelled` als `InvalidEndReason` ab, und `ChangeAsync` kehrt
+  still zurück (Z. 549). Weil `LocalHangupRequested` gesetzt ist, ignoriert `OnCallHungup` das eigene BYE
+  (Z. 427). Der Anruf bleibt `Connected`, Medien bleiben offen, und neue Anrufe melden `Busy`, bis der
+  Benutzer erneut auflegt. → Den Endegrund erst in `ChangeAsync` aus dem aktuellen Zustand ableiten oder
+  bei `InvalidEndReason` für einen Endzustand auf einen gültigen Grund zurückfallen. Wettlauftest ergänzen.
+- ⬜ **TS-03 · Mittel · Manueller Aufnahmestart belegt die Ereignisschleife** –
+  `StartLiveRecordingAsync` ([`SipTelephonyService.LiveRecording.cs:14–23`](../WawiCallPro.Telephony.Sip/SipTelephonyService.LiveRecording.cs))
+  führt `StartRecordingOnMediaAsync` **in** der SIP-Ereignisschleife aus und hält dabei `_commands`. Dazu
+  gehören bis zu 5 s Warten auf beide PCM-Eingänge (`LivePcmRecordingFactory`), Datenbankzugriffe und
+  der Journal-Beginn. BYE, Halten und DTMF der Gegenstelle bleiben solange liegen. Der automatische Start
+  vermeidet das ausdrücklich (Z. 45–46). → Manuellen Start wie den automatischen außerhalb der Schleife
+  ausführen und nur die Zustandsprüfung einreihen.
+- ⬜ **TS-04 · Mittel · Wiederherstellung durchläuft die gesamte Historie** – `SipCallPersistence.RecoverAsync`
+  ([Z. 51–68](../WawiCallPro.Telephony.Sip/SipCallPersistence.cs)) lädt bei jedem `ConnectAsync`
+  seitenweise **alle** Gespräche des Arbeitsplatzes und filtert erst im Speicher nach nicht beendeten.
+  Verbindungs- und Startdauer wachsen damit linear mit der Historie, auch beim automatischen Start über
+  `SipHostService.StartAsync`. → Repository-Abfrage mit Filter `state NOT IN (6,7)` und passendem Index verwenden.
+- ⬜ **TS-05 · Niedrig · Wettlauf beim Aufräumen des Agenten** – `CleanupTransport` (Z. 747–757) liest und
+  ersetzt `_agent` ohne `_gate`. `ChangeAsync` (Z. 570–571) kann gleichzeitig mit `_transport!` einen neuen
+  Agenten anlegen. Im Fehlerpfad von `ConnectAsync` kann so ein Agent an einem abgebauten Transport
+  hängen bleiben, ohne entsorgt zu werden. → Agentwechsel und Transportabbau gemeinsam unter `_gate`
+  ausführen. `CreateAgent` nur bei einem gültigen, noch aktuellen Transport aufrufen.
+- ⬜ **TS-06 · Niedrig · Zeitlimits** – `SetHoldAsync` verwendet `RegistrationTimeoutSeconds` als Zeitlimit
+  für Halten und Fortsetzen (Z. 339). Der Klingelton blockiert über das synchrone
+  `WindowsIncomingRingtone.PlayAsync` einen Threadpool-Thread für die gesamte Klingeldauer.
+  → Eigenes Zeitlimit für Re-INVITEs und echtes asynchrones `PlayAsync`.
