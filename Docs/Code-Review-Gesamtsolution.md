@@ -3,9 +3,15 @@
 Stand: 27.11.2026. Branch `feature/mail-connectors`, Ausgangscommit `94d43d8`
 („Pin the warning-free local CSCore revision“) **plus nicht committeter Arbeitsbaum**
 (48 geänderte Dateien, 3 gelöschte Repository-Dateien).
-Umfang: alle Projekte der [WawiCallProSolution.sln](../WawiCallProSolution.sln) ohne die
-eingebundenen Fremdquellen unter `src/` und `ThirdParty/` sowie ohne die externen Quantarix-Projekte
-(diese nur dort, wo WawiCallPro direkt von ihrem Verhalten abhängt).
+Ziel ist die eigene Solution [WawiCallProSolution.sln](../WawiCallProSolution.sln). Ausgenommen sind
+die Fremdquellen unter `src/` und die externen Quantarix-Projekte; diese werden nur dort betrachtet,
+wo WawiCallPro direkt von ihrem Verhalten abhängt.
+
+**Prüftiefe (ehrliche Abgrenzung):** Phasen 0–7 beruhen auf solutionweitem Build, Testläufen,
+Musterprüfungen über alle eigenen Projekte und gezielt gelesenen Einzeldateien. Daraus folgt keine
+vollständige inhaltliche Durchsicht. Die Durchsicht Projekt für Projekt läuft in
+[Teil B](#teil-b--durchsicht-projekt-für-projekt). Ein Projekt gilt erst dann als vollständig geprüft,
+wenn sein Abschnitt dort ✅ trägt.
 
 Grundlage sind die verbindlichen Regeln aus [AGENTS.md](../AGENTS.md), die
 [CRA-Arbeitsanweisung](../../_Agents/CRA-Anleitung-fuer-AGENTS.md) und für DevExpress-Fragen die
@@ -246,3 +252,30 @@ gegen HEAD und gegen jeden einzelnen Arbeitsbaum-Commit, vor allem die Paketupda
 - Telefonie ausschließlich über SIPSorcery; keine NAudio-Referenz in Produktprojekten (nur der Fremdquellordner `src/NAudio`).
 - RTP-Empfang (`SipRtpAudioReceiver`) serialisiert Dekodierung, verhindert Rekursion und loggt keine Payloads.
 - Keine `TODO`/`FIXME`/`HACK`-Marker im Produktcode.
+
+---
+
+# Teil B – Durchsicht Projekt für Projekt
+
+Reihenfolge nach fachlichem Risiko. Ein Abschnitt erhält ✅ in der Überschrift, wenn das Projekt
+vollständig gelesen ist und alle Befunde eingetragen sind; behobene Befunde werden einzeln abgehakt.
+Befundnummern: `<Kürzel>-NN`.
+
+| Projekt | Kürzel | Zeilen ohne Designer | Durchsicht |
+|---|---|---|---|
+| WawiCallPro.Audio | AU | ~6 450 | ⬜ |
+| WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ⬜ |
+| WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ⬜ |
+| WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | ⬜ |
+| WawiCallPro.Core | CO | ~1 940 | ⬜ |
+| WawiCallPro.Database | DB | ~5 500 | ⬜ |
+| WawiCallPro.Utilities | UT | ~8 380 | ⬜ |
+| WawiCallPro.Office | OF | ~1 740 | ⬜ |
+| WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
+| WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ⬜ |
+| WawiCallPro.Plugin.Windows | PW | ~1 110 | ⬜ |
+| WawiCallPro.Console | CN | ~880 | ⬜ |
+| WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ⬜ |
+| Tools (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests) | TL | ~1 500 | ⬜ |
+| ThirdParty/DtmfDetection (nur Anbindung/Änderungen) | DT | ~1 100 | ⬜ |
+| Testprojekte (Qualität, Isolation, Lücken) | TE | ~40 000 | ⬜ |
