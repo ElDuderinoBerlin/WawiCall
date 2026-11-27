@@ -273,7 +273,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Core | CO | ~1 940 | ✅ (B5) |
 | WawiCallPro.Database | DB | ~5 500 | ✅ (B6) |
 | WawiCallPro.Utilities | UT | ~8 380 | ✅ (B7) |
-| WawiCallPro.Office | OF | ~1 740 | ⬜ |
+| WawiCallPro.Office | OF | ~1 740 | ✅ (B8) |
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
 | WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ⬜ |
 | WawiCallPro.Plugin.Windows | PW | ~1 110 | ⬜ |
