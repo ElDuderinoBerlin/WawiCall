@@ -665,3 +665,16 @@ erzeugt und entsorgt, Registrierungen sind begrenzt (32 Sitzungen, 1024 Nutzer),
   selbst fehlen korrekt. AGENTS.md verlangt, dass Reste der anderen Edition einschließlich alter
   Plugin- und Runtime-Unterordner entfernt werden. → Bereinigung in `Directory.Build.targets` um leere
   Verzeichnisse und `System.Data.SQLite.dll.config` ergänzen, für Build und Publish in beiden Wechselrichtungen.
+
+## B12 – Tools ✅ gelesen (StripDxLicenseInformation, ComPrototype.TestWorker, OutlookImport.Tests, Stand 27.11.2026)
+
+- ⬜ **TL-01 · Mittel · Entfernen der DevExpress-Lizenzinformation unbelegt** –
+  `Tools/StripDxLicenseInformation` entfernt in **Release** (`Directory.Build.targets`, Z. 148–175) per Mono.Cecil
+  alle `DXLicenseInformation`-Attribute aus `WawiCallPro*.dll/exe` in Build- und Publish-Ausgabe. Laut
+  DevExpress-Dokumentation („Use DevExpress .NET Products in Popular CI Systems“, v26.1) muss die
+  Lizenzinformation zur Buildzeit **in die Binärartefakte injiziert** werden. Ob die Controls nach dem
+  Entfernen zur Laufzeit lizenziert bleiben (keine Trial-Hinweise) und ob das Entfernen mit der
+  DevExpress-EULA vereinbar ist, ist im Repository nicht belegt. Die Projektregel erlaubt derzeit nur
+  Debug-Builds, deshalb ist das ungetestet. → Mit ausdrücklicher Freigabe einen Release-Build auf einer
+  sauberen VM ohne DevExpress-Installation starten und auf Trial-Hinweise prüfen. Zweck und Rechtsgrundlage
+  (z. B. Schutz personenbezogener Lizenzdaten) dokumentieren bzw. bei DevExpress bestätigen lassen.
