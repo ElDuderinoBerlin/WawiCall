@@ -265,7 +265,7 @@ Befundnummern: `<Kürzel>-NN`.
 |---|---|---|---|
 | WawiCallPro.Audio | AU | ~6 450 | ✅ (B1) |
 | WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ✅ (B2) |
-| WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ⬜ |
+| WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ✅ (B3) |
 | WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | ⬜ |
 | WawiCallPro.Core | CO | ~1 940 | ⬜ |
 | WawiCallPro.Database | DB | ~5 500 | ⬜ |
@@ -390,3 +390,26 @@ in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernomm
   für Halten und Fortsetzen (Z. 339). Der Klingelton blockiert über das synchrone
   `WindowsIncomingRingtone.PlayAsync` einen Threadpool-Thread für die gesamte Klingeldauer.
   → Eigenes Zeitlimit für Re-INVITEs und echtes asynchrones `PlayAsync`.
+
+## B3 – WawiCallPro.Automation / .Automation.Contracts ✅ gelesen (12 Dateien + IDL, Stand 27.11.2026)
+
+Sehr sauber begrenzt: Eingaben haben feste Längen- und Strukturgrenzen. Mandanten-Tokens werden nur aus
+dem aktuellen, autorisierten Katalog aufgelöst, eine Deserialisierung fremder Schlüssel findet nicht statt.
+Nach außen gehen nur feste Fehlertexte. Die `IDispatch`-Hülle hält die Referenzen nativ und exportiert keine
+CLR-Schnittstellen. Die Klassenfabrik schreibt keine Registry-Einträge.
+
+- ⬜ **AT-01 · Niedrig · COM-Zugriffsschutz nur implizit** – Es gibt keinen `CoInitializeSecurity`-Aufruf und
+  kein AppID-`AccessPermission`. Wer den laufenden Server per `CoRegisterClassObject`
+  ([`AutomationClassRegistration.cs:105–113`](../WawiCallPro.Automation/AutomationClassRegistration.cs))
+  aufrufen darf, bestimmen damit die Windows-Standardvorgaben. Laut
+  [COM-Studie](COM-Automation-Studie-und-Phasenplan.md) (Abschnitt Abnahme) wurden andere Konten,
+  RDP-Sitzungen und Prozesse niedrigerer Integrität nicht geprüft.
+  → Vor der ersten Marshalling-Aktion `CoInitializeSecurity` mit einem expliziten Security Descriptor
+  aufrufen (Benutzer-SID und SYSTEM, Mandatory Label Medium, `RPC_C_IMP_LEVEL_IDENTIFY`). Anschließend
+  den Zugriff durch einen Low-IL-Client und durch eine zweite Sitzung negativ testen und in der CRA-Akte festhalten.
+- ⬜ **AT-02 · Niedrig · Wählen per COM ohne Benutzerbestätigung** – `Dial` und `ConnectTelephony` prüfen
+  nur Bereitschaft und Katalog (`AppAutomationState.RequireAccess`). Jeder Prozess desselben Benutzers kann
+  damit ohne Rückfrage, Rufnummernrichtlinie oder Mengenbegrenzung beliebige Nummern wählen, etwa
+  Makros oder Skripte (Risiko Gebührenbetrug, z. B. Mehrwertnummern).
+  → Fachlich entscheiden: Telefonie-Automation per Einstellung freischalten (Standard aus), Rückfrage oder
+  Sperrliste für Sonderrufnummern, Mengenbegrenzung. Entscheidung in der CRA-Bedrohungsanalyse dokumentieren.
