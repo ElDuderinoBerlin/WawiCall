@@ -3748,6 +3748,10 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   im Hintergrund gerendert. Der Hörtest mit FRITZ!Box und den gewählten Geräten bleibt Teil von G1.
   App und Konsole in Debug/Any CPU für Pro und FinOffice ohne Warnungen und Fehler gebaut.
   Je Edition 69 Telefonietests und neun gezielte App- und Audioprüfungen bestanden.
+  ✅ Beim Beenden des Klingelns blendet die CSCore-Quelle den Ton über 15 ms aus und liefert
+  anschließend Stille, damit der WASAPI-Puffer vor dem Öffnen des Gesprächsaudios ablaufen kann.
+  Pro Debug prüft den Stereo-Auslauf samplegenau, die erneute native WASAPI-Initialisierung und
+  die Freigabe bei sechs SIP-Zustandsübergängen.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
   `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen

@@ -77,11 +77,61 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
         var playback = settings with { PlaybackDeviceId = settings.RingDeviceId, PlaybackVolumePercent = settings.RingVolumePercent };
         try
         {
-            if (volume is null) _output.Play(source, playback, token);
+            if (!preview) PlayUntilCancelled(source, playback, token);
+            else if (volume is null) _output.Play(source, playback, token);
             else _output.Play(source, playback, volume, token);
         }
         catch (OperationCanceledException) when (preview && token.IsCancellationRequested && !caller.IsCancellationRequested) { }
         return settings is { WindowsRingtoneFile: null, CustomRingtonePath: null } || wave is not null;
+    }
+
+    private void PlayUntilCancelled(IWaveSource source, AudioDeviceSettings playback, CancellationToken token)
+    {
+        // Keep the device running long enough to play the fade and drain its buffer.
+        using var hardStop = new CancellationTokenSource();
+        using var limit = token.Register(() => hardStop.CancelAfter(TimeSpan.FromMilliseconds(500)));
+        using var normalized = source.WaveFormat.BitsPerSample == 16 &&
+            source.WaveFormat.WaveFormatTag is AudioEncoding.Pcm or AudioEncoding.Extensible ? null
+            : new BorrowedRingtoneWave(source) { DisposeBaseSource = false }.ToSampleSource().ToWaveSource(16);
+        using var fading = new RingtoneFadeOut(normalized ?? source, token) { DisposeBaseSource = false };
+        try { _output.Play(fading, playback, hardStop.Token); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        token.ThrowIfCancellationRequested();
+    }
+
+    private sealed class BorrowedRingtoneWave(IWaveSource source) : WaveAggregatorBase(source);
+
+    private sealed class RingtoneFadeOut(IWaveSource source, CancellationToken stop) : WaveAggregatorBase(source)
+    {
+        private readonly int _fadeFrames = Math.Max(2, source.WaveFormat.SampleRate * 15 / 1000);
+        private int _fadePosition;
+        private int _silentFrames = source.WaveFormat.SampleRate / 10;
+        public override bool CanSeek => false;
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (!stop.IsCancellationRequested) return BaseSource.Read(buffer, offset, count);
+
+            var frameSize = WaveFormat.BlockAlign;
+            var framesToRead = Math.Min(count / frameSize, _fadeFrames - _fadePosition);
+            var read = framesToRead > 0 ? BaseSource.Read(buffer, offset, framesToRead * frameSize) : 0;
+            var bytes = buffer.AsSpan(offset, read);
+            for (var frame = 0; frame < read; frame += frameSize)
+            {
+                var numerator = _fadeFrames - 1 - _fadePosition++;
+                for (var channel = 0; channel < frameSize; channel += sizeof(short))
+                {
+                    var sampleBytes = bytes[(frame + channel)..];
+                    var sample = BinaryPrimitives.ReadInt16LittleEndian(sampleBytes);
+                    BinaryPrimitives.WriteInt16LittleEndian(sampleBytes, (short)(sample * numerator / (_fadeFrames - 1)));
+                }
+            }
+            if (read < framesToRead * frameSize) _fadePosition = _fadeFrames;
+            var silent = Math.Min((count - read) / frameSize, _silentFrames);
+            Array.Clear(buffer, offset + read, silent * frameSize);
+            _silentFrames -= silent;
+            return read + silent * frameSize;
+        }
     }
 
     private sealed class RingtoneWaveSource : IWaveSource

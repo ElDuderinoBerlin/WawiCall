@@ -21,6 +21,52 @@ public sealed class IncomingRingtoneTests
     }
 
     [TestMethod]
+    public async Task EndingRingtoneFadesBothChannelsBeforeReleasingOutput()
+    {
+        var media = Directory.CreateTempSubdirectory("WawiCallPro-ring-fade-");
+        try
+        {
+            const int rate = 16000;
+            var frames = Enumerable.Range(0, rate).SelectMany(_ => new short[] { 16000, -12000 }).ToArray();
+            var bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(frames.AsSpan()).ToArray();
+            using (var writer = new WaveWriter(Path.Combine(media.FullName, "Ring99.wav"), new WaveFormat(rate, 16, 2)))
+                writer.Write(bytes, 0, bytes.Length);
+            using var stop = new CancellationTokenSource();
+            var output = new FadeOutProbe(stop, rate);
+            var player = new WindowsIncomingRingtone(output, media.FullName);
+            await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await player.PlayAsync(new AudioDeviceSettings { WindowsRingtoneFile = "Ring99.wav" }, stop.Token));
+            Assert.IsTrue(output.Drained);
+        }
+        finally { media.Delete(recursive: true); }
+    }
+
+    private sealed class FadeOutProbe(CancellationTokenSource stop, int rate) : IHistoryRecordingOutput
+    {
+        internal bool Drained { get; private set; }
+
+        public void Play(IWaveSource source, AudioDeviceSettings settings, CancellationToken token)
+        {
+            var fadeFrames = rate * 15 / 1000;
+            var silentFrames = rate / 10;
+            var buffer = new byte[(fadeFrames + silentFrames) * 4 + 4];
+            Assert.AreEqual(4, source.Read(buffer, 0, 4));
+            stop.Cancel();
+            Assert.IsFalse(token.IsCancellationRequested);
+            var read = source.Read(buffer, 4, buffer.Length - 4);
+            Assert.AreEqual((fadeFrames + silentFrames) * 4, read);
+            var samples = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, short>(buffer.AsSpan(4, read));
+            Assert.AreEqual((short)16000, samples[0]);
+            Assert.AreEqual((short)-12000, samples[1]);
+            Assert.IsTrue(samples[fadeFrames] is > 0 and < 16000);
+            Assert.IsTrue(samples[fadeFrames + 1] is > -12000 and < 0);
+            Assert.IsFalse(samples.Slice((fadeFrames - 1) * 2).ContainsAnyExcept((short)0));
+            Assert.AreEqual(0, source.Read(buffer, 0, 4));
+            Drained = true;
+        }
+    }
+
+    [TestMethod]
     public async Task WindowsRingtonesAreDiscoveredRepeatedForCallsAndPreviewedOnce()
     {
         var media = Path.Combine(Path.GetTempPath(), "WawiCallPro-ringtones-" + Guid.NewGuid().ToString("N"));
