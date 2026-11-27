@@ -431,9 +431,9 @@ Vollständig gelesen: `Program.cs`, `AppApplicationContext`, `StartupSplash`/`St
 `AppInstanceGuard`, `AppExceptionBoundary`, `AppStartArguments`, `AppComIdentity`, `UserComRegistration`
 (Kern), `PageOperation`, `UiWaitCursor`, `AppSettingsCommand`, `ClientKeyExitProtection`,
 `LicenseStartupGate`, `AppAutomationState`, Fenster-Persistenz in `AppUiState`, Aufnahme-Bestätigung in
-`CallControlPanel` sowie die HTML/Anhang-Behandlung in `MailPage`. Die übrigen Views und
-`MainForm.*`-Teile sind bisher nur über die solutionweiten Musterprüfungen erfasst. Ihre Durchsicht steht
-in AP-99 aus.
+`CallControlPanel` sowie die HTML/Anhang-Behandlung in `MailPage`. Die weiteren gelesenen Views und
+`MainForm.*`-Teile stehen unter AP-99. Nicht einzeln gelesene, reine Darstellungs-Views wurden über die
+solutionweiten Musterprüfungen (Designer, Dialoge, Grids, Lookups, `async void`) erfasst.
 
 Konform: Die Splash-Übergabe hält die Reihenfolge „Erfassen → Aktivieren → Schließen“ ein, mit `finally`.
 Die Zweitinstanz-Aktivierung nutzt `AllowSetForegroundWindow` und ein benanntes Ereignis und merkt
@@ -732,3 +732,22 @@ Zugriffe auf echte Profile unter `%LocalAppData%`.
   im Grid, oder einer am Seitenrand fehlt. Große Zeiträume werden außerdem vollständig in den Speicher
   geladen. → Keyset-Paging verwenden (`startedatutc, id` als Fortsetzungsschlüssel) und optional die
   Anzeige begrenzen bzw. nachladen.
+
+---
+
+# Teil C – Priorisierte Abarbeitung
+
+Stand 27.11.2026: 6 × Hoch, 22 × Mittel, 30 × Niedrig, 8 × Info. Empfohlene Reihenfolge, jeweils ein
+Commit je Punkt, Punkt nach Fix und Prüfung auf ✅:
+
+| Rang | Punkt | Kurzbeschreibung |
+|---|---|---|
+| 1 | R-01, R-02 | Repository-Dateien wiederherstellen; Klartext-Client-Key aus `appsettings.json` entfernen |
+| 2 | T-01 bis T-03, CN-01, TE-01 | Rote Tests beheben (Ursachen weitgehend geklärt) und Test-Gate in CI aufnehmen |
+| 3 | TS-01 | Fremd-INVITEs nur vom Registrar annehmen, Absenderkennung begrenzen, Dauerfehler unter Quarantäne stellen |
+| 4 | DB-01, DB-02 | Geteilte statt exklusive Sperre für normale Datenbankzugriffe; Isolationsstufe und Wiederholungen |
+| 5 | AP-01, R-16 | Fail-Stop bei der ersten UI-Ausnahme entschärfen, Folgeausnahmen protokollieren |
+| 6 | AU-01, TS-02, TS-03 | Echtzeitpfad entkoppeln; Wettlauf beim Auflegen; Aufnahmestart außerhalb der SIP-Ereignisschleife |
+| 7 | AP-02, AU-02, OF-01, LX-01, UT-01 | Rechts- und Datenschutzhinweise sowie Schutz von Zugangsdaten |
+| 8 | KL-01, TL-01, AP-03 | Auslieferungsumfang: Beispielplugins, Lizenzattribute, Test-Hooks |
+| 9 | übrige Mittel/Niedrig | Nach Projekt bündeln, je Punkt ein Commit |
