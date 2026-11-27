@@ -21,7 +21,9 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
     // decides Stop versus callback rejection, so a late callback cannot invalidate a committed stop.
     private int _status;
     private long _inputFrames;
+    private long _stopFrames;
     public long InputFrameCount => Interlocked.Read(ref _inputFrames);
+    private bool UsesAlignedTracks => _request.Layout == ConversationWaveLayout.MixedMono;
 
     internal PcmRecordingSession(PcmRecordingRequest request, IPcmSegmentSinkFactory sinks, IConversationWaveMixer mixer, CancellationToken token)
     {
@@ -53,8 +55,9 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
             start < TimeSpan.Zero || start > TimeSpan.FromHours(8) ||
             start.Ticks * sampleRate + samples.Length * TimeSpan.TicksPerSecond > TimeSpan.FromHours(8).Ticks * sampleRate)
         { Fail(PcmRecordingFailure.InvalidBlock, capturingOnly: true); return false; }
-        var outputEnd = ConversationWaveMixValidation.FrameAt(start, _request.SampleRate) +
-            ((long)samples.Length * _request.SampleRate + sampleRate / 2) / sampleRate;
+        var outputEnd = UsesAlignedTracks ? AlignedEnd(start, sampleRate, samples.Length)
+            : ConversationWaveMixValidation.FrameAt(start, _request.SampleRate) +
+              ((long)samples.Length * _request.SampleRate + sampleRate / 2) / sampleRate;
         var channels = _request.Layout == ConversationWaveLayout.SeparatedStereo ? 2 : 1;
         if (outputEnd * channels * 2 > int.MaxValue - 44)
         { Fail(PcmRecordingFailure.InvalidBlock, capturingOnly: true); return false; }
@@ -78,6 +81,7 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
             if (_stop is not null) return _stop;
             ConversationWaveMixValidation.Validate(new(_request.CallId, _request.RecordingId, [], _request.WavePath,
                 _request.SampleRate, duration, _request.Layout));
+            Interlocked.Exchange(ref _stopFrames, ConversationWaveMixValidation.FrameAt(duration, _request.SampleRate));
             Interlocked.Exchange(ref _accepting, 0);
             Interlocked.CompareExchange(ref _status, (int)PcmRecordingState.Stopping, (int)PcmRecordingState.Capturing);
             _queue.Writer.TryComplete();
@@ -121,13 +125,29 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
             if (!Directory.Exists(parent) || File.Exists(_request.WavePath) || Directory.Exists(_request.WavePath))
                 throw new PcmRecordingException(PcmRecordingFailure.FileFailure);
             Directory.CreateDirectory(SegmentDirectory);
+            if (UsesAlignedTracks)
+            {
+                foreach (var side in Enum.GetValues<ConversationAudioSide>())
+                {
+                    var path = Path.Combine(SegmentDirectory, $"{(int)side:D3}-{side}.wav");
+                    var track = new Segment(_sinks.Open(path, _request.SampleRate), path, side, TimeSpan.Zero, _request.SampleRate);
+                    all.Add(track);
+                    current[(int)side] = track;
+                }
+            }
             _ready.TrySetResult();
             var zeros = new short[1024];
+            var resampled = UsesAlignedTracks ? new short[_request.SampleRate / 10 + 1] : [];
             await foreach (var block in _queue.Reader.ReadAllAsync(_abort.Token).ConfigureAwait(false))
             {
                 _abort.Token.ThrowIfCancellationRequested();
                 ThrowIfFailed();
                 var side = (int)block.Side;
+                if (UsesAlignedTracks)
+                {
+                    AppendAligned(current[side]!, block, zeros, resampled);
+                    continue;
+                }
                 var segment = current[side];
                 if (segment is null || segment.Rate != block.Rate)
                 {
@@ -157,6 +177,15 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
             }
             _abort.Token.ThrowIfCancellationRequested();
             ThrowIfFailed();
+            if (UsesAlignedTracks)
+            {
+                var end = Interlocked.Read(ref _stopFrames);
+                foreach (var track in all)
+                {
+                    if (track.Frames > end) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+                    PadTrack(track, end, zeros);
+                }
+            }
             foreach (var segment in all) segment.Complete();
             return all.Select(segment => new ConversationWaveSegment(segment.Path, segment.Side, segment.Start)).ToImmutableArray();
         }
@@ -183,6 +212,52 @@ internal sealed class PcmRecordingSession : IPcmRecordingSession, IPcmRecordingI
                 catch (Exception) { disposeFailed = true; }
             }
             if (disposeFailed) { Fail(PcmRecordingFailure.FileFailure); throw new PcmRecordingException(Failure!.Value); }
+        }
+    }
+
+    private long AlignedEnd(TimeSpan start, int rate, int samples) =>
+        ConversationWaveMixValidation.FrameAt(start + TimeSpan.FromTicks(
+            ((long)samples * TimeSpan.TicksPerSecond + rate / 2) / rate), _request.SampleRate);
+
+    private void AppendAligned(Segment track, Block block, ReadOnlySpan<short> zeros, Span<short> resampled)
+    {
+        var start = ConversationWaveMixValidation.FrameAt(block.Start, _request.SampleRate);
+        if (start < track.Frames) throw new PcmRecordingException(PcmRecordingFailure.TimelineConflict);
+        PadTrack(track, start, zeros);
+        if (block.Rate == _request.SampleRate)
+        {
+            track.Write(block.Samples);
+            return;
+        }
+        // Convert to the shared rate while keeping the block boundaries on the recording clock.
+        var count = (int)(AlignedEnd(block.Start, block.Rate, block.Samples.Length) - start);
+        for (var i = 0; i < count; i++)
+        {
+            var left = i * block.Samples.Length / count;
+            var right = (i + 1) * block.Samples.Length / count;
+            if (right > left + 1)
+            {
+                var sum = 0;
+                for (var j = left; j < right; j++) sum += block.Samples[j];
+                resampled[i] = (short)(sum / (right - left));
+            }
+            else
+            {
+                var fraction = i * block.Samples.Length % count;
+                var next = Math.Min(left + 1, block.Samples.Length - 1);
+                resampled[i] = (short)((block.Samples[left] * (count - fraction) + block.Samples[next] * fraction) / count);
+            }
+        }
+        if (count > 0) track.Write(resampled[..count]);
+    }
+
+    private void PadTrack(Segment track, long end, ReadOnlySpan<short> zeros)
+    {
+        while (track.Frames < end)
+        {
+            _abort.Token.ThrowIfCancellationRequested();
+            ThrowIfFailed();
+            track.Write(zeros[..(int)Math.Min(zeros.Length, end - track.Frames)]);
         }
     }
 

@@ -15,6 +15,49 @@ namespace WawiCallPro.App.Tests;
 public sealed class LiveRecordingTests
 {
     [TestMethod]
+    public async Task LiveMonoRecordingWritesTwoAlignedWavesAndMixesGapsAndOverlaps()
+    {
+        using var fixture = new Fixture();
+        var start = fixture.Factory.StartAsync(fixture.Source,
+            fixture.Request() with { SampleRate = 16000, Layout = ConversationWaveLayout.MixedMono });
+        fixture.Source.Send(1000, 26000);
+        fixture.Clock.Advance(10);
+        fixture.Source.Receive(1, 2000, 10000);
+        await using var recording = await start;
+        fixture.Clock.Advance(30);
+        fixture.Source.Send(1320, -1234);
+        fixture.Clock.Advance(30);
+        var result = await recording.StopAsync();
+
+        Assert.AreEqual(2, result.Segments.Length);
+        Assert.IsTrue(result.Segments.All(track => track.Start == TimeSpan.Zero));
+        Assert.AreEqual(160L, result.Wave.ClippedSamples);
+        var microphone = ReadSamples(result.Segments.Single(track => track.Side == ConversationAudioSide.Sent).WavePath);
+        var remote = ReadSamples(result.Segments.Single(track => track.Side == ConversationAudioSide.Received).WavePath);
+        var mixed = ReadSamples(fixture.Path);
+        Assert.AreEqual(mixed.Length, microphone.Length);
+        Assert.AreEqual(mixed.Length, remote.Length);
+        Assert.AreEqual((short)26000, mixed[159]);
+        Assert.AreEqual(short.MaxValue, mixed[160]);
+        Assert.AreEqual((short)10000, mixed[320]);
+        Assert.AreEqual((short)0, mixed[480]);
+        Assert.AreEqual((short)-1234, mixed[640]);
+        Assert.AreEqual((short)0, mixed[^1]);
+        for (var i = 0; i < mixed.Length; i++)
+            Assert.AreEqual((short)Math.Clamp(microphone[i] + remote[i], short.MinValue, short.MaxValue), mixed[i]);
+
+        static short[] ReadSamples(string path)
+        {
+            using var reader = new WaveFileReader(path);
+            Assert.AreEqual(1, reader.WaveFormat.Channels);
+            Assert.AreEqual(16000, reader.WaveFormat.SampleRate);
+            var bytes = new byte[reader.Length];
+            Assert.AreEqual(bytes.Length, reader.Read(bytes, 0, bytes.Length));
+            return System.Runtime.InteropServices.MemoryMarshal.Cast<byte, short>(bytes).ToArray();
+        }
+    }
+
+    [TestMethod]
     public async Task LiveLoopbackKeepsTheSelectedEndpointAndDrainsCaptureBeforeChoosingDuration()
     {
         using var fixture = new Fixture(); var capture = new CaptureDouble();
@@ -39,7 +82,11 @@ public sealed class LiveRecordingTests
     {
         using var fixture = new Fixture();
         var paths = new ApplicationPaths(new ConfigurationLocation(fixture.Root));
-        var request = fixture.Request() with { WavePath = Path.Combine(paths.RecordingsDirectory, "live.wav") };
+        var request = fixture.Request() with
+        {
+            WavePath = Path.Combine(paths.RecordingsDirectory, "live.wav"),
+            Layout = ConversationWaveLayout.MixedMono
+        };
         var journal = new RecordingJournalDouble();
         var persisted = new PersistedDuplexPcmRecordingFactory(fixture.Services.GetRequiredService<IDuplexPcmRecordingFactory>(),
             journal, paths, TimeProvider.System);

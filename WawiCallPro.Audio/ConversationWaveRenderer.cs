@@ -31,6 +31,17 @@ public sealed class ConversationWaveRenderer : IConversationWaveRenderer
                 }
             }
             var channels = ConversationWaveMixValidation.Channels(request);
+            if (channels == 1 && sources.Count == 2 && sources[0].Side != sources[1].Side &&
+                sources.All(source => source.Start == 0 && source.End == frames && source.SampleRate == request.SampleRate))
+            {
+                using var alignedOutput = new BorrowedStream(output);
+                using var first = sources[0].OpenAlignedWave();
+                using var second = sources[1].OpenAlignedWave();
+                var clippedSamples = WavMixer.WriteMono(first, second, alignedOutput, cancellationToken);
+                alignedOutput.ThrowIfFaulted();
+                cancellationToken.ThrowIfCancellationRequested();
+                return new ConversationWaveMixResult(request.CallId, request.RecordingId, frames, request.SampleRate, channels, clippedSamples);
+            }
             long clipped = 0;
             using var borrowed = new BorrowedStream(output);
             using (var writer = new WaveWriter(borrowed, new WaveFormat(request.SampleRate, 16, channels)))
@@ -90,6 +101,8 @@ public sealed class ConversationWaveRenderer : IConversationWaveRenderer
         internal ConversationAudioSide Side => side;
         internal long Start => start;
         internal long End => end;
+        internal int SampleRate => header.SampleRate;
+        internal IWaveSource OpenAlignedWave() => new VerifiedPcmSource(stream, header);
 
         internal static Source Open(ConversationWaveSegment segment, int outputRate, long totalFrames, CancellationToken token)
         {

@@ -5085,6 +5085,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Der Historien-Player wertet beide Kanäle einer Stereoaufnahme separat mit CSCore-FFT aus.
   ✅ Neue Gesprächsaufnahmen überlagern die eigene Stimme und die Gegenstelle mit dem vorhandenen
   WAV-Mischer auf einem Mono-Kanal. Die Wahl zwischen RTP und Loopback betrifft weiterhin die Empfangsquelle.
+  ✅ Der Mono-Aufnahmepfad schreibt zwei temporäre PCM-WAVs mit gemeinsamem Zeitnullpunkt. Fehlende
+  Zeitabschnitte bleiben als Stille erhalten. Nach Aufnahmeende überlagert der aus
+  `TestCSCoreRecording` übernommene WavMixer die geschlossenen WAVs auf dem Hintergrundworker.
+  Die Konvertierung nach Ogg, MP3 oder WMA nutzt die veröffentlichte WAV. Danach bleiben im
+  Erfolgsfall nur die bestätigten Aufnahmeformate erhalten.
+  Ein echter eingehender RTP-Anruf in Pro Debug erzeugte eine Mono-WAV mit 16 kHz und 8,79 s sowie
+  die daraus konvertierte Mono-MP3. In diesem Gespräch trat der frühere RTP-Abbruch nicht auf.
   Pro Frequenzband wird der jeweils höhere Pegel dargestellt. Kurze Ausschläge fallen nach
   der Signalpause sichtbar ab. Pause, Spulen und Abschluss leeren die Anzeige.
   Die Regression prüft gegenphasiges Stereo, den Pegelabfall und sichtbare Balken im Raster.
