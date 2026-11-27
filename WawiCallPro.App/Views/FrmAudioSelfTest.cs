@@ -20,6 +20,7 @@ public partial class FrmAudioSelfTest : XtraForm
     private bool _closeRequested;
     private bool _tonePlayed;
     private bool _accepted;
+    private bool _buffersMeasured;
 
     public FrmAudioSelfTest()
     {
@@ -59,10 +60,14 @@ public partial class FrmAudioSelfTest : XtraForm
         layout.SuspendLayout();
         try
         {
-            headphonesStep.Visible = _step == 0;
-            microphoneStep.Visible = _step == 1;
-            codecStep.Visible = _step == 2;
-            stepTitle.Text = _step switch { 0 => "1 von 3 · Kopfhörer", 1 => "2 von 3 · Mikrofon", _ => "3 von 3 · Telefonie-Codecs" };
+            pages.SelectedPage = _step switch { 0 => headphonesPage, 1 => microphonePage, 2 => codecPage, _ => buffersPage };
+            stepTitle.Text = _step switch
+            {
+                0 => "1 von 4 · Kopfhörer",
+                1 => "2 von 4 · Mikrofon",
+                2 => "3 von 4 · Telefonie-Codecs",
+                _ => "4 von 4 · Audiopuffer"
+            };
             statusLabel.Text = "";
             UpdateActions();
         }
@@ -74,8 +79,10 @@ public partial class FrmAudioSelfTest : XtraForm
         var ready = _operation is null && _audio is not null;
         backButton.Enabled = ready && _step > 0;
         nextButton.Enabled = ready;
-        nextButton.Text = _step == 2 ? "Übernehmen" : "Weiter";
+        nextButton.Text = _step == 3 ? "Übernehmen" : "Weiter";
         toneButton.Enabled = ready;
+        monitorButton.Enabled = ready;
+        bufferButton.Enabled = ready;
         heardEdit.Enabled = ready && _tonePlayed;
         recordButton.Enabled = ready;
         sampleButton.Enabled = ready && _sample is not null;
@@ -89,13 +96,59 @@ public partial class FrmAudioSelfTest : XtraForm
     private void Back_Click(object? sender, EventArgs e) { _step--; UpdateStep(); }
     private async void Next_Click(object? sender, EventArgs e)
     {
-        if (_step == 2) await ApplyAsync();
-        else { _step++; UpdateStep(); }
+        if (_step == 3) { await ApplyAsync(); return; }
+        _step++;
+        UpdateStep();
+        if (_step == 2 && _sample is not null && codecDetails.Text.Length == 0) await CheckCodecsAsync();
+        if (_step == 3 && !_buffersMeasured) await MeasureBuffersAsync();
     }
     private async void Tone_Click(object? sender, EventArgs e) => await PlayAsync(null);
     private async void Sample_Click(object? sender, EventArgs e) => await PlayAsync(_sample);
     private async void Record_Click(object? sender, EventArgs e) => await RecordAsync();
     private async void Codec_Click(object? sender, EventArgs e) => await CheckCodecsAsync();
+
+    private async void Buffer_Click(object? sender, EventArgs e) => await MeasureBuffersAsync();
+
+    private async void Monitor_Click(object? sender, EventArgs e)
+    {
+        var draft = Draft;
+        var gain = draft.MicrophoneMuted ? 0 : draft.MicrophoneVolumePercent * draft.PlaybackVolumePercent / 100;
+        await RunAsync("Mikrofon wird live wiedergegeben …", "Mithören fehlgeschlagen. Mikrofon und Ausgabe prüfen.",
+            token => _audio!.MonitorAsync(draft, new(gain), token));
+    }
+
+    private Task MeasureBuffersAsync()
+    {
+        bufferDetails.Text = "";
+        var progress = new Progress<AudioBufferMeasurement>(measurement =>
+        {
+            if (IsDisposed || _operation is null || _step != 3) return;
+            var requested = BufferLabel(measurement.RequestedMilliseconds);
+            var input = measurement.CaptureMilliseconds is { } capture
+                ? $"Mikrofon {capture:0.#} ms{(measurement.CaptureStable ? "" : " · instabil")}" : "";
+            var output = measurement.PlaybackMilliseconds is { } playback
+                ? $"Ausgabe {playback:0.#} ms{(measurement.PlaybackStable ? "" : $" · {measurement.Dropouts} Aussetzer, {measurement.Impulses} Impulse")}" : "";
+            bufferDetails.Text = string.Join(" · ", new[] { requested, input, output }.Where(text => text.Length > 0));
+        });
+        return RunAsync("Puffer werden automatisch gemessen …", "Die Puffer konnten nicht gemessen werden.", async token =>
+        {
+            var result = await _audio!.CheckBuffersAsync(Draft, progress, token);
+            _buffersMeasured = true;
+            if (result.CaptureMilliseconds is { } capture) captureBufferEdit.Value = capture;
+            if (result.PlaybackMilliseconds is { } playback) playbackBufferEdit.Value = playback;
+            var microphone = result.CaptureMilliseconds is { } input ? BufferLabel(input, result.MeasuredCaptureMilliseconds) : "keine Empfehlung";
+            var headphones = result.PlaybackMilliseconds is { } output ? BufferLabel(output, result.MeasuredPlaybackMilliseconds) : "keine Empfehlung";
+            bufferDetails.Text = $"Vorschlag\nMikrofon · {microphone}\nAusgabe · {headphones}";
+            statusLabel.Text = result.CaptureMilliseconds is null || result.PlaybackMilliseconds is null
+                ? "Für eine erneute Messung Geräte, Windows-Lautstärke und Stummstatus prüfen." : "";
+        });
+    }
+
+    private static string BufferLabel(int milliseconds, double? measured = null)
+    {
+        var setting = milliseconds == 0 ? "Windows-Standard" : $"{milliseconds} ms";
+        return measured is { } actual ? $"{setting} ({actual:0.#} ms gemessen)" : setting;
+    }
 
     private Task PlayAsync(AudioSelfTestSample? sample)
     {
@@ -224,7 +277,7 @@ public partial class FrmAudioSelfTest : XtraForm
     private void UpdateLayout()
     {
         var width = Math.Max(1, ClientSize.Width - layout.Padding.Horizontal - LogicalToDeviceUnits(16));
-        foreach (var label in new[] { headphoneDetails, microphoneDetails, codecDetails, statusLabel, headphoneHint, microphoneHint, codecHint, headphonesName, microphoneName })
+        foreach (var label in new[] { headphoneDetails, microphoneDetails, codecDetails, statusLabel, headphoneHint, microphoneHint, codecHint, headphonesName, microphoneName, bufferHint, bufferDetails })
         {
             if (label.MaximumSize.Width != width) label.MaximumSize = new Size(width, 0);
         }

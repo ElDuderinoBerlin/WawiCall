@@ -29,6 +29,9 @@ public partial class SettingsPage
     private string? _customRingtonePath;
     private CSCore.WaveFormat? _customRingtoneFormat;
     private bool _audioStopped;
+    private CancellationTokenSource? _microphoneMonitor;
+    private readonly AudioPlaybackVolume _microphoneMonitorVolume = new(0);
+    private Task _microphoneMonitorTask = Task.CompletedTask;
 
     internal void ConfigureAudioDevices(IAudioDeviceCatalog catalog)
     {
@@ -110,7 +113,7 @@ public partial class SettingsPage
 
     internal Task PreviewRingtoneAsync() => _ringtoneOperation?.RunAsync(async token =>
     {
-        if (!previewRingtoneButton.Enabled || _ringtones is not { } player) return;
+        if (!previewRingtoneButton.Enabled || _microphoneMonitor is not null || _ringtones is not { } player) return;
         var volume = ringVolumeSlider.Value;
         var settings = new AudioDeviceSettings
         {
@@ -151,6 +154,46 @@ public partial class SettingsPage
         if (_ringtonePreviewVolume is { } preview) preview.Percent = ringVolumeSlider.Value;
     }
 
+    private async void MicrophoneMonitor_Click(object? sender, EventArgs e)
+    {
+        if (_microphoneMonitor is { } monitor) monitor.Cancel();
+        else if (_workspace?.AudioSelfTest is { } audio && !_audioStopped && _ringtoneOperation?.IsRunning != true)
+        {
+            _microphoneMonitorTask = MonitorMicrophoneAsync(audio);
+            await _microphoneMonitorTask;
+        }
+    }
+
+    private async Task MonitorMicrophoneAsync(IAudioSelfTest audio)
+    {
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(_audioDeviceLifetime.Token);
+        _microphoneMonitor = stop;
+        MicrophoneMonitorLevel_Changed(this, EventArgs.Empty);
+        microphoneMonitorButton.Text = "Stopp";
+        audioStatus.Text = "";
+        var selected = new AudioDeviceSettings
+        {
+            CaptureDeviceId = ReadDevice(captureDeviceEdit),
+            PlaybackDeviceId = ReadDevice(playbackDeviceEdit),
+            CaptureBufferMilliseconds = (int)captureBufferEdit.Value,
+            PlaybackBufferMilliseconds = (int)playbackBufferEdit.Value
+        };
+        try { await audio.MonitorAsync(selected, _microphoneMonitorVolume, stop.Token); }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+        catch (Exception)
+        {
+            if (!_audioStopped && !IsDisposed) audioStatus.Text = "Mithören fehlgeschlagen. Mikrofon und Gesprächsausgabe prüfen.";
+        }
+        finally
+        {
+            _microphoneMonitor = null;
+            if (!_audioStopped && !IsDisposed) microphoneMonitorButton.Text = "Mithören";
+        }
+    }
+
+    private void MicrophoneMonitorLevel_Changed(object? sender, EventArgs e) =>
+        _microphoneMonitorVolume.Percent = mutedEdit.Checked ? 0 : micVolumeSlider.Value * playVolumeSlider.Value / 100;
+
     private void VolumeSlider_BeforeShowValueToolTip(object? sender, TrackBarValueToolTipEventArgs e)
     {
         if (sender is TrackBarControl slider) e.ShowArgs.ToolTip = $"{slider.Value} %";
@@ -173,6 +216,8 @@ public partial class SettingsPage
     private void Device_EditValueChanged(object? sender, EventArgs e)
     {
         if (sender is not LookUpEdit editor || editor.Properties.DataSource is not List<AudioDeviceChoice> rows) return;
+        if (ReferenceEquals(editor, captureDeviceEdit) || ReferenceEquals(editor, playbackDeviceEdit))
+            _microphoneMonitor?.Cancel();
         var name = rows.FirstOrDefault(row => string.Equals(row.Id, editor.EditValue as string ?? "", StringComparison.OrdinalIgnoreCase))?.Name ?? "Systemstandard";
         editor.ToolTip = name + (ReferenceEquals(editor, ringDeviceEdit)
             ? ". Änderungen gelten nach einem Neustart." : ". Die Gesprächsauswahl gilt nach dem Speichern.");
@@ -298,7 +343,7 @@ public partial class SettingsPage
         }
     }
 
-    private void AudioSelfTest_Click(object? sender, EventArgs e)
+    private async void AudioSelfTest_Click(object? sender, EventArgs e)
     {
         if (_workspace?.AudioSelfTest is not { } audio || _snapshot is null || FindForm() is not { } owner
             || _operation?.IsRunning == true || _ringtoneOperation?.IsRunning == true) return;
@@ -312,6 +357,11 @@ public partial class SettingsPage
             PlaybackVolumePercent = playVolumeSlider.Value,
             MicrophoneMuted = mutedEdit.Checked
         };
+        audioSelfTestButton.Enabled = false;
+        _microphoneMonitor?.Cancel();
+        await _microphoneMonitorTask;
+        if (_audioStopped || IsDisposed) return;
+        audioSelfTestButton.Enabled = captureDeviceEdit.Enabled;
         using var wizard = new FrmAudioSelfTest(audio, draft, captureDeviceEdit.Text, playbackDeviceEdit.Text, SaveAudioSelfTestAsync);
         _state?.AttachWindow(wizard, "FrmAudioSelfTest.v1");
         StopAudioMeters();
@@ -344,7 +394,8 @@ public partial class SettingsPage
     private void SetDeviceEditorsEnabled(bool enabled)
     {
         captureDeviceEdit.Enabled = playbackDeviceEdit.Enabled = ringDeviceEdit.Enabled = enabled && !_audioStopped;
-        audioSelfTestButton.Enabled = captureDeviceEdit.Enabled && _workspace?.AudioSelfTest is not null;
+        audioSelfTestButton.Enabled = microphoneMonitorButton.Enabled = captureDeviceEdit.Enabled && _workspace?.AudioSelfTest is not null;
+        if (!microphoneMonitorButton.Enabled) _microphoneMonitor?.Cancel();
         windowsRingtoneEdit.Enabled = previewRingtoneButton.Enabled = browseRingtoneButton.Enabled = ringDeviceEdit.Enabled && _ringtones is not null;
         AudioMeterView_Changed(this, EventArgs.Empty);
     }
@@ -358,7 +409,11 @@ public partial class SettingsPage
             AudioMeterTimer_Tick(this, EventArgs.Empty);
             audioMeterTimer.Start();
         }
-        else StopAudioMeters();
+        else
+        {
+            _microphoneMonitor?.Cancel();
+            StopAudioMeters();
+        }
     }
 
     private void AudioMeterTimer_Tick(object? sender, EventArgs e)

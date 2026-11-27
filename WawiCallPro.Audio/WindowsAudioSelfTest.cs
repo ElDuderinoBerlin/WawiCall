@@ -5,6 +5,7 @@ using CSCore.Codecs.RAW;
 using CSCore.CoreAudioAPI;
 using CSCore.SoundIn;
 using CSCore.SoundOut;
+using CSCore.Streams;
 using SIPSorcery.Media;
 using SIPSorceryMedia.Abstractions;
 using WawiCallPro.Utilities.Configuration;
@@ -14,6 +15,8 @@ namespace WawiCallPro.Audio;
 /// <summary>Offline audio diagnostics. Each action owns its WASAPI stream and keeps samples in memory.</summary>
 public interface IAudioSelfTest
 {
+    Task<AudioBufferRecommendation> CheckBuffersAsync(AudioDeviceSettings settings, IProgress<AudioBufferMeasurement> progress, CancellationToken token);
+    Task MonitorAsync(AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token);
     Task<AudioSelfTestDevice> PlayAsync(AudioDeviceSettings settings, AudioSelfTestSample? sample,
         AudioPlaybackVolume volume, IProgress<AudioSelfTestDevice> opened, CancellationToken token);
     Task<AudioSelfTestSample> RecordAsync(AudioDeviceSettings settings, IProgress<ImmutableArray<int>> spectrum, CancellationToken token);
@@ -23,10 +26,163 @@ public interface IAudioSelfTest
 public sealed record AudioSelfTestDevice(string Name, int SampleRate, int Channels, int Bits, double BufferMs, int WindowsVolume, bool Muted);
 public sealed record AudioSelfTestSample(short[] Samples, int SampleRate, int Peak, AudioSelfTestDevice Device);
 public sealed record AudioSelfTestCodec(string Name, int Packets, bool Passed);
+public sealed record AudioBufferRecommendation(int? CaptureMilliseconds, int? PlaybackMilliseconds)
+{
+    public double? MeasuredCaptureMilliseconds { get; init; }
+    public double? MeasuredPlaybackMilliseconds { get; init; }
+}
+public sealed record AudioBufferMeasurement(int RequestedMilliseconds, double? CaptureMilliseconds, double? PlaybackMilliseconds,
+    bool CaptureStable, bool PlaybackStable, int Dropouts, int Impulses);
 
 internal sealed class WindowsAudioSelfTest(TimeProvider clock) : IAudioSelfTest
 {
     private static readonly TimeSpan CaptureDuration = TimeSpan.FromSeconds(4);
+
+    public async Task<AudioBufferRecommendation> CheckBuffersAsync(AudioDeviceSettings settings, IProgress<AudioBufferMeasurement> progress,
+        CancellationToken token)
+    {
+        // Resolve system defaults once so the measurement compares buffers on the same endpoints.
+        settings = await Task.Run(() =>
+        {
+            using var enumerator = new MMDeviceEnumerator();
+            using var capture = Resolve(enumerator, settings.CaptureDeviceId, DataFlow.Capture);
+            using var output = Resolve(enumerator, settings.PlaybackDeviceId, DataFlow.Render);
+            return settings with { CaptureDeviceId = capture.DeviceID, PlaybackDeviceId = output.DeviceID };
+        }, token).ConfigureAwait(false);
+
+        int? captureChoice = null, playbackChoice = null;
+        double? measuredCapture = null, measuredPlayback = null;
+        foreach (var milliseconds in new[] { 0, 20, 40, 70, 110 })
+        {
+            var probe = settings with
+            {
+                CaptureBufferMilliseconds = milliseconds,
+                PlaybackBufferMilliseconds = milliseconds,
+                MicrophoneMuted = true
+            };
+            var first = await MeasureBuffersAsync(probe, captureChoice is null, playbackChoice is null, token).ConfigureAwait(false);
+            progress.Report(first);
+            if (!first.CaptureStable && !first.PlaybackStable) continue;
+
+            // A recommendation must pass twice. Input and output can qualify at different sizes.
+            var repeat = await MeasureBuffersAsync(probe, first.CaptureStable, first.PlaybackStable, token).ConfigureAwait(false);
+            progress.Report(repeat);
+            if (repeat.CaptureStable)
+            {
+                captureChoice = milliseconds;
+                measuredCapture = repeat.CaptureMilliseconds;
+            }
+            if (repeat.PlaybackStable)
+            {
+                playbackChoice = milliseconds;
+                measuredPlayback = repeat.PlaybackMilliseconds;
+            }
+            if (captureChoice is not null && playbackChoice is not null) break;
+        }
+        return new(captureChoice, playbackChoice)
+        {
+            MeasuredCaptureMilliseconds = measuredCapture,
+            MeasuredPlaybackMilliseconds = measuredPlayback
+        };
+    }
+
+    private async Task<AudioBufferMeasurement> MeasureBuffersAsync(AudioDeviceSettings settings, bool checkCapture, bool checkPlayback,
+        CancellationToken token)
+    {
+        double? captureMs = null, playbackMs = null;
+        var captureStable = false;
+        var playbackStable = false;
+        var dropouts = 0;
+        var impulses = 0;
+        if (checkCapture)
+        {
+            try
+            {
+                var sample = await RecordAsync(settings, new Progress<ImmutableArray<int>>(), token).ConfigureAwait(false);
+                captureMs = sample.Device.BufferMs;
+                // Starting and stopping mid-period may discard a final partial device buffer.
+                var minimumSeconds = CaptureDuration.TotalSeconds - Math.Max(0.04, captureMs.Value / 1000);
+                captureStable = sample.Samples.Length / (double)sample.SampleRate >= minimumSeconds;
+            }
+            catch (Exception) when (!token.IsCancellationRequested) { }
+        }
+        if (checkPlayback)
+        {
+            try
+            {
+                const int rate = 16000;
+                const int frequency = 1000;
+                var samples = new short[rate * 2];
+                for (var i = 0; i < samples.Length; i++)
+                {
+                    var fade = Math.Min(1, Math.Min(i, samples.Length - i - 1) / (rate * 0.04));
+                    samples[i] = (short)(4000 * fade * Math.Sin(i * (2 * Math.PI * frequency / rate)));
+                }
+                var reference = new AudioSelfTestSample(samples, rate, 4000, new("", rate, 1, 16, 0, 0, false));
+                var trace = new AudioBufferProbeTrace();
+                var loopback = await new CscorePlaybackCaptureFactory(clock).StartAsync(
+                    settings.PlaybackDeviceId, clock.GetUtcNow(), trace, token).ConfigureAwait(false);
+                AudioSelfTestDevice output;
+                try
+                {
+                    output = await PlayAsync(settings, reference, new(12), new Progress<AudioSelfTestDevice>(), token).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromMilliseconds(150), clock, token).ConfigureAwait(false);
+                }
+                finally { await loopback.DisposeAsync().ConfigureAwait(false); }
+                playbackMs = output.BufferMs;
+                var result = trace.Measure(frequency);
+                dropouts = result.Low10MsBlocks + (result.MissingFrames > 0 ? 1 : 0);
+                impulses = result.ImpulseGroups;
+                playbackStable = result.IsClean && loopback.Completion.IsCompletedSuccessfully
+                    && !output.Muted && output.WindowsVolume > 0;
+                _ = loopback.Completion.Exception;
+            }
+            catch (Exception) when (!token.IsCancellationRequested) { }
+        }
+        return new(settings.PlaybackBufferMilliseconds, captureMs, playbackMs, captureStable, playbackStable, dropouts, impulses);
+    }
+
+    public Task MonitorAsync(AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token) => Task.Run(async () =>
+    {
+        using var enumerator = new MMDeviceEnumerator();
+        using var microphone = Resolve(enumerator, settings.CaptureDeviceId, DataFlow.Capture);
+        using var speakers = Resolve(enumerator, settings.PlaybackDeviceId, DataFlow.Render);
+        var inputBuffer = settings.CaptureBufferMilliseconds;
+        var outputBuffer = settings.PlaybackBufferMilliseconds;
+        using var capture = new WasapiCapture(inputBuffer == 0, AudioClientShareMode.Shared, inputBuffer == 0 ? 100 : inputBuffer)
+            { Device = microphone };
+        capture.Initialize();
+        var format = capture.WaveFormat;
+        // Use a short, bounded queue and insert silence when capture has not produced a block yet.
+        var bufferFrames = format.SampleRate * Math.Max(60, Math.Max(inputBuffer, outputBuffer)) / 1000;
+        using var input = new SoundInSource(capture, bufferFrames * format.BlockAlign) { FillWithZeros = true };
+        using var source = new MonitorVolumeSource(input.ToSampleSource(), volume).ToWaveSource(16);
+        using var output = new WasapiOut(outputBuffer == 0, AudioClientShareMode.Shared, outputBuffer == 0 ? 100 : outputBuffer)
+            { Device = speakers };
+        var stopped = new TaskCompletionSource<Exception?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        capture.Stopped += (_, e) => stopped.TrySetResult(e.Exception);
+        output.Stopped += (_, e) => stopped.TrySetResult(e.Exception);
+        output.Initialize(source);
+        token.ThrowIfCancellationRequested();
+        capture.Start();
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            output.Play();
+            var failure = await stopped.Task.WaitAsync(token).ConfigureAwait(false);
+            throw new InvalidOperationException("The microphone monitor stopped.", failure);
+        }
+        finally
+        {
+            try { output.Stop(); }
+            finally { capture.Stop(); }
+        }
+    }, token);
+
+    private sealed class MonitorVolumeSource(ISampleSource source, AudioPlaybackVolume level) : VolumeSource(source)
+    {
+        public override float Volume => level.Percent / 100f;
+    }
 
     public Task<AudioSelfTestDevice> PlayAsync(AudioDeviceSettings settings, AudioSelfTestSample? sample,
         AudioPlaybackVolume volume, IProgress<AudioSelfTestDevice> opened, CancellationToken token) => Task.Run(() =>

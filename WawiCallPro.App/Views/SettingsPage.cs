@@ -189,6 +189,7 @@ public partial class SettingsPage : XtraUserControl
         _audioStopped = true;
         StopAudioDeviceChanges();
         await _audioDeviceRefresh;
+        await _microphoneMonitorTask;
         SetDeviceEditorsEnabled(false);
         if (_ringtoneOperation is not null) await _ringtoneOperation.StopAsync();
         if (_operation is not null) await _operation.StopAsync();

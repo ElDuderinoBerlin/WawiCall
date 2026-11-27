@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using CSCore.CoreAudioAPI;
 using System.Drawing.Imaging;
 using DevExpress.LookAndFeel;
+using DevExpress.XtraBars.Navigation;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,7 @@ namespace WawiCallPro.App.Tests;
 public sealed partial class AppShellTests
 {
     [TestMethod]
-    public Task AudioSelfTestRendersAllStepsAndPersistsOnlyOnApply() => WithWorkspace(async (workspace, _, _) =>
+    public Task AudioSelfTestRendersAllStepsAndPersistsOnlyOnApply() => WithWorkspace(async (workspace, services, _) =>
     {
         var look = UserLookAndFeel.Default;
         var originalSkin = look.ActiveSkinName;
@@ -25,6 +26,8 @@ public sealed partial class AppShellTests
         var originalAppearance = AppearanceObject.DefaultFont;
         var path = Path.Combine(RenderOutput(), "audio-selftest");
         Directory.CreateDirectory(path);
+        using var regularFont = new Font("Segoe UI", 10);
+        using var largeFont = new Font("Segoe UI", 15);
         try
         {
             look.SetSkinStyle("Basic", "Blue Dark");
@@ -39,7 +42,7 @@ public sealed partial class AppShellTests
             var draft = initial.Devices with { CaptureDeviceId = "self-test-mic", PlaybackDeviceId = "self-test-headset" };
             foreach (var (width, fontSize, scale, apply) in new[] { (760, 10F, 1F, false), (560, 15F, 1F, false), (800, 10F, 1.5F, true) })
             {
-                using var font = new Font("Segoe UI", fontSize);
+                var font = fontSize == 15F ? largeFont : regularFont;
                 WindowsFormsSettings.DefaultFont = AppearanceObject.DefaultFont = font;
                 var audio = new AudioSelfTestProbe();
                 using var wizard = new FrmAudioSelfTest(audio, draft, "Sony INZONE Buds – Mikrofon", "Sony INZONE Buds – Kopfhörer",
@@ -47,6 +50,7 @@ public sealed partial class AppShellTests
                 wizard.ShowInTaskbar = false;
                 wizard.Opacity = 0;
                 wizard.Font = font;
+                Field<NavigationFrame>(wizard, "pages").AllowTransitionAnimation = DefaultBoolean.False;
                 wizard.Show(settings);
                 wizard.ClientSize = new(width, 510);
                 if (scale != 1F) wizard.Scale(new SizeF(scale, scale));
@@ -67,6 +71,10 @@ public sealed partial class AppShellTests
                 await wizard.CheckCodecsAsync();
                 Assert.Contains("G.722", Field<LabelControl>(wizard, "codecDetails").Text);
                 Render("codecs");
+                Field<SimpleButton>(wizard, "nextButton").PerformClick();
+                Assert.AreEqual(1, audio.BufferChecks);
+                Assert.Contains("Vorschlag", Field<LabelControl>(wizard, "bufferDetails").Text);
+                Render("buffers");
                 Assert.AreEqual(initial.Devices, (await workspace.Settings.LoadAsync()).Options.Devices);
                 if (apply)
                 {
@@ -86,8 +94,8 @@ public sealed partial class AppShellTests
                     wizard.PerformLayout();
                     Application.DoEvents();
                     CheckTableBounds(wizard);
-                    var activePage = Field<Panel>(wizard, "pages").Controls.Cast<Control>().Single(control => control.Visible);
-                    Assert.IsLessThanOrEqualTo(Field<Panel>(wizard, "pages").ClientSize.Height, activePage.Height);
+                    var activePage = Field<NavigationFrame>(wizard, "pages").SelectedPage.Controls.Cast<Control>().Single(control => control is TableLayoutPanel);
+                    Assert.IsLessThanOrEqualTo(Field<NavigationFrame>(wizard, "pages").SelectedPage.ClientSize.Height, activePage.Height);
                     using var image = UiAudit.Capture(wizard);
                     image.Save(Path.Combine(path, $"{step}-{width}.png"), ImageFormat.Png);
                 }
@@ -103,6 +111,24 @@ public sealed partial class AppShellTests
             Assert.IsTrue(button.Visible && button.Enabled);
             using var entry = UiAudit.Capture(settings);
             entry.Save(Path.Combine(path, "settings-devices.png"), ImageFormat.Png);
+            var monitor = Field<SimpleButton>(page, "microphoneMonitorButton");
+            var probe = (AudioSelfTestProbe)services.GetRequiredService<IAudioSelfTest>();
+            Assert.IsTrue(monitor.Visible && monitor.Enabled);
+            monitor.PerformClick();
+            Assert.AreEqual("Stopp", monitor.Text);
+            Assert.AreEqual("self-test-mic", probe.MonitorSettings?.CaptureDeviceId);
+            Assert.AreEqual("self-test-headset", probe.MonitorSettings?.PlaybackDeviceId);
+            Assert.AreEqual(70, probe.MonitorSettings?.CaptureBufferMilliseconds);
+            Assert.AreEqual(110, probe.MonitorSettings?.PlaybackBufferMilliseconds);
+            Field<TrackBarControl>(page, "playVolumeSlider").Value = 27;
+            Assert.AreEqual(27, probe.MonitorVolume?.Percent);
+            Field<SimpleButton>(page, "microphoneMonitorButton").PerformClick();
+            await Field<Task>(page, "_microphoneMonitorTask");
+            Assert.AreEqual("Mithören", monitor.Text);
+            monitor.PerformClick();
+            settings.SelectAutomationTab("settings-audio-levels");
+            await Field<Task>(page, "_microphoneMonitorTask");
+            Assert.AreEqual("Mithören", monitor.Text);
             await settings.StopAsync();
         }
         finally
@@ -147,6 +173,22 @@ public sealed partial class AppShellTests
         var sample = await service.RecordAsync(options, new Progress<ImmutableArray<int>>(), timeout.Token);
         var output = await service.PlayAsync(options, null, new(0), new Progress<AudioSelfTestDevice>(), timeout.Token);
         await service.PlayAsync(options, sample, new(0), new Progress<AudioSelfTestDevice>(), timeout.Token);
+        using (var monitoring = new CancellationTokenSource())
+        {
+            var liveVolume = new AudioPlaybackVolume(0);
+            var monitor = service.MonitorAsync(options, liveVolume, monitoring.Token);
+            try
+            {
+                await Task.WhenAny(monitor, Task.Delay(750, timeout.Token));
+                Assert.IsFalse(monitor.IsCompleted, monitor.Exception?.ToString());
+            }
+            finally
+            {
+                await monitoring.CancelAsync();
+                try { await monitor.WaitAsync(timeout.Token); }
+                catch (OperationCanceledException) when (!timeout.IsCancellationRequested) { }
+            }
+        }
         var codecs = await service.CheckCodecsAsync(sample, timeout.Token);
         Assert.IsGreaterThan(sample.SampleRate * 2, sample.Samples.Length);
         Assert.IsTrue(codecs.All(codec => codec.Passed));
@@ -181,7 +223,24 @@ public sealed partial class AppShellTests
     {
         internal static readonly AudioSelfTestDevice Device = new("Sony INZONE Buds", 48000, 1, 32, 70, 32, false);
         internal int Playbacks { get; private set; }
+        internal int BufferChecks { get; private set; }
+
+        public Task<AudioBufferRecommendation> CheckBuffersAsync(AudioDeviceSettings settings, IProgress<AudioBufferMeasurement> progress, CancellationToken token)
+        {
+            BufferChecks++;
+            return Task.FromResult(new AudioBufferRecommendation(70, 110));
+        }
         internal int LastCaptureBuffer { get; private set; }
+        internal AudioDeviceSettings? MonitorSettings { get; private set; }
+        internal AudioPlaybackVolume? MonitorVolume { get; private set; }
+
+        public async Task MonitorAsync(AudioDeviceSettings settings, AudioPlaybackVolume volume, CancellationToken token)
+        {
+            MonitorSettings = settings;
+            MonitorVolume = volume;
+            await Task.Delay(Timeout.InfiniteTimeSpan, token);
+        }
+
         public Task<AudioSelfTestDevice> PlayAsync(AudioDeviceSettings settings, AudioSelfTestSample? sample, AudioPlaybackVolume volume,
             IProgress<AudioSelfTestDevice> opened, CancellationToken token)
         {

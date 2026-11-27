@@ -5082,6 +5082,14 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   die im Assistenten verwendete Geräteauswahl, Lautstärken und Puffer. Die Probe bleibt im
   Arbeitsspeicher. Pro Debug mit schmalem Fenster, großer Schrift, Skalierung und echten
   INZONE-Endpunkten geprüft (70 ms Eingang, 110 ms Ausgabe, Ausgabestream stumm).
+- [x] ✅ Live-Mithören und automatische Puffermessung im Audio-Assistenten ergänzen.
+  Die Geräteansicht und die Mikrofonseite geben den Eingang über die gewählte Gesprächsausgabe wieder.
+  Der Assistent verwendet wie die Datenbank-Einrichtung einen NavigationFrame mit gleitenden Seitenwechseln.
+  Er empfiehlt den kleinsten für Ein- und Ausgabe jeweils zweimal bestandenen Puffer. Gemessen wird die
+  erfasste PCM-Dauer am Eingang sowie der Referenzton per WASAPI-Loopback auf fehlende Frames,
+  Pegelaussetzer und Impulse. Die Vorschläge werden erst mit Übernehmen gespeichert. Mit den INZONE Buds
+  lieferte der Windows-Standard in Pro Debug 22 ms für beide Geräte. Auch explizite Tests mit
+  20/20, 40/40, 70/70 und 70/110 ms zeigten beim Referenzton keine Aussetzer und Impulse.
 - [x] ✅ G.722-Stereoaufnahmen im echten SIP-Gespräch erneut prüfen (26.11.2026).
   Zuerst Pro, danach FinOffice. Beide isolierten Debug-Prüfhosts boten ausschließlich G.722 an.
   Beide Gespräche wurden verbunden und die RTP-Aufnahmen liefen bis zum geplanten Stopp durch.

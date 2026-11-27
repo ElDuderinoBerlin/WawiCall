@@ -1,5 +1,6 @@
 #nullable disable
 
+using DevExpress.XtraBars.Navigation;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
 using Quantarix.DevExpressExtensions.Controls;
@@ -11,7 +12,16 @@ partial class FrmAudioSelfTest
     private void InitializeComponent()
     {
         layout = new TableLayoutPanel();
-        pages = new Panel();
+        pages = new NavigationFrame();
+        headphonesPage = new NavigationPage();
+        microphonePage = new NavigationPage();
+        codecPage = new NavigationPage();
+        buffersPage = new NavigationPage();
+        buffersStep = new TableLayoutPanel();
+        bufferHint = new LabelControl();
+        bufferDetails = new LabelControl();
+        bufferButton = new SimpleButton();
+        monitorButton = new SimpleButton();
         headphonesStep = new TableLayoutPanel();
         microphoneStep = new TableLayoutPanel();
         codecStep = new TableLayoutPanel();
@@ -44,6 +54,7 @@ partial class FrmAudioSelfTest
         heardEdit = new CheckEdit();
         spectrum = new AudioLevelMeter();
         SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)pages).BeginInit();
         layout.SuspendLayout();
         headphonesStep.SuspendLayout();
         microphoneStep.SuspendLayout();
@@ -269,10 +280,49 @@ partial class FrmAudioSelfTest
         layout.Controls.Add(stepTitle, 0, 0);
         pages.Dock = DockStyle.Fill;
         pages.Name = "pages";
-        pages.AutoScroll = true;
-        pages.Controls.Add(headphonesStep);
-        pages.Controls.Add(microphoneStep);
-        pages.Controls.Add(codecStep);
+        pages.AllowTransitionAnimation = DevExpress.Utils.DefaultBoolean.True;
+        pages.TransitionType = DevExpress.Utils.Animation.Transitions.SlideFade;
+        pages.Pages.AddRange(new NavigationPageBase[] { headphonesPage, microphonePage, codecPage, buffersPage });
+        pages.SelectedPage = headphonesPage;
+        headphonesPage.Name = "headphonesPage";
+        headphonesPage.AutoScroll = true;
+        headphonesPage.Controls.Add(headphonesStep);
+        microphonePage.Name = "microphonePage";
+        microphonePage.AutoScroll = true;
+        microphonePage.Controls.Add(microphoneStep);
+        codecPage.Name = "codecPage";
+        codecPage.AutoScroll = true;
+        codecPage.Controls.Add(codecStep);
+        buffersPage.Name = "buffersPage";
+        buffersPage.AutoScroll = true;
+        buffersPage.Controls.Add(buffersStep);
+        buffersStep.Name = "buffersStep";
+        buffersStep.AutoSize = true;
+        buffersStep.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        buffersStep.Dock = DockStyle.Top;
+        buffersStep.ColumnCount = 1;
+        buffersStep.RowCount = 3;
+        buffersStep.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        buffersStep.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        buffersStep.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        buffersStep.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        bufferHint.Name = "bufferHint";
+        bufferHint.Text = "Ein leiser Referenzton prüft die Ausgabe auf Aussetzer und Pegelsprünge. Der Mikrofontest prüft, ob genügend Audiodaten ankommen.";
+        bufferHint.AutoSizeMode = LabelAutoSizeMode.Vertical;
+        bufferHint.Margin = new Padding(4);
+        bufferDetails.Name = "bufferDetails";
+        bufferDetails.AutoSizeMode = LabelAutoSizeMode.Vertical;
+        bufferDetails.Margin = new Padding(4);
+        bufferButton.Name = "bufferButton";
+        bufferButton.Text = "Puffer erneut messen";
+        bufferButton.AutoSize = true;
+        bufferButton.Anchor = AnchorStyles.Left;
+        bufferButton.Padding = new Padding(12, 0, 12, 0);
+        bufferButton.Click += Buffer_Click;
+        buffersStep.Controls.Add(bufferHint, 0, 0);
+        buffersStep.Controls.Add(bufferButton, 0, 1);
+        buffersStep.Controls.Add(bufferDetails, 0, 2);
+
         layout.Controls.Add(pages, 0, 1);
         layout.Controls.Add(statusLabel, 0, 2);
         layout.Controls.Add(footer, 0, 3);
@@ -301,8 +351,15 @@ partial class FrmAudioSelfTest
         microphoneStep.Controls.Add(recordButton, 0, 4);
         microphoneStep.Controls.Add(sampleButton, 1, 4);
         microphoneStep.Controls.Add(spectrum, 0, 5);
-        microphoneStep.SetColumnSpan(spectrum, 2);
         microphoneStep.Controls.Add(microphoneDetails, 0, 6);
+        monitorButton.Name = "monitorButton";
+        monitorButton.Text = "Mikrofon live mithören";
+        monitorButton.ToolTip = "Die Stimme wird direkt auf der ausgewählten Ausgabe abgespielt. Bei offenen Lautsprechern leise starten.";
+        monitorButton.AutoSize = true;
+        monitorButton.Anchor = AnchorStyles.Left;
+        monitorButton.Padding = new Padding(12, 0, 12, 0);
+        monitorButton.Click += Monitor_Click;
+        microphoneStep.Controls.Add(monitorButton, 1, 5);
         microphoneStep.SetColumnSpan(microphoneDetails, 2);
         codecStep.Controls.Add(codecHint, 0, 0);
         codecStep.SetColumnSpan(codecHint, 2);
@@ -329,12 +386,22 @@ partial class FrmAudioSelfTest
         codecStep.ResumeLayout(false);
         microphoneStep.ResumeLayout(false);
         headphonesStep.ResumeLayout(false);
+        ((System.ComponentModel.ISupportInitialize)pages).EndInit();
         layout.ResumeLayout(false);
         ResumeLayout(false);
     }
 
     private TableLayoutPanel layout;
-    private Panel pages;
+    private NavigationFrame pages;
+    private NavigationPage headphonesPage;
+    private NavigationPage microphonePage;
+    private NavigationPage codecPage;
+    private NavigationPage buffersPage;
+    private TableLayoutPanel buffersStep;
+    private LabelControl bufferHint;
+    private LabelControl bufferDetails;
+    private SimpleButton bufferButton;
+    private SimpleButton monitorButton;
     private TableLayoutPanel headphonesStep;
     private TableLayoutPanel microphoneStep;
     private TableLayoutPanel codecStep;
