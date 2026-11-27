@@ -555,3 +555,11 @@ Integritäts- und FK-Prüfung und werden ohne Überschreiben veröffentlicht.
   Pluginliste und den Pluginwechsel fehlschlagen. `FunctionPluginRuntime.ReadChoice` (Z. 136–149) fängt
   dieselben Fehler dagegen pro Datei ab. → Fehler pro Eintrag abfangen und den Eintrag als nicht verfügbar
   melden oder auslassen.
+- ⬜ **UT-04 · Niedrig · Wechsel des Aufnahmeordners blockiert den Start** – Ein vorgemerkter Wechsel
+  (`RecordingStorage.PendingDirectory`) wird in `RecordingArchive.OpenAsync`
+  ([Z. 16–55](../WawiCallPro.Utilities/Operations/RecordingArchive.cs)) während `HostExecution.RunAsync`
+  (Z. 35–36) ausgeführt. Dabei wird **der gesamte bisherige Aufnahmeordner kopiert**, bevor der Host
+  startet: ohne Fortschrittsanzeige, ohne Abbruchmöglichkeit in der UI und bei Gigabytes an Aufnahmen
+  über viele Minuten. Ein Fehler setzt nur `RecordingArchiveSwitchPending` und wiederholt die komplette
+  Kopie beim nächsten Start. → Kopie im Hintergrund mit Fortschritt und Abbruch ausführen. Bereits
+  kopierte, verifizierte Dateien beim Fortsetzen überspringen.
