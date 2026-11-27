@@ -3794,7 +3794,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   bei der Wiedergabe nur Fehler oder den Einsatz des eingebauten Ersatztons. Ein Wartecursor erscheint
   bei der Dateiauswahl, während der Wiedergabe bleibt der normale Cursor sichtbar.
   Nach erneuter SIP-Anmeldung gilt die gespeicherte Auswahl für eingehende Anrufe.
-  Windows-Geräteereignisse aktualisieren die Liste bei geöffneten Einstellungen automatisch.
+  Windows-COM-Geräteereignisse stoßen die Prüfung im Dialog direkt an. Die Geräteliste bindet
+  nur geänderte Einträge neu und wartet bei einem offenen Auswahlmenü bis zum Schließen.
   Fehlende Geräte behalten ihre Zuordnung und erscheinen nach Rückkehr wieder in der Liste.
   Die Gerätezeilen, Pegelanzeigen, Lautstärke und Aktionen bleiben auch in breiten Fenstern in
   einem kompakten TableLayoutPanel. Je 14 App-Prüfungen in Pro und FinOffice bestanden, einschließlich

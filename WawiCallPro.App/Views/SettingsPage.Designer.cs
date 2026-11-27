@@ -203,7 +203,6 @@ partial class SettingsPage
         playbackPeak = new AudioLevelMeter();
         ringPeak = new AudioLevelMeter();
         audioMeterTimer = new System.Windows.Forms.Timer(components);
-        audioDeviceChangesTimer = new System.Windows.Forms.Timer(components);
         windowsRingtoneLabel = new DevExpress.XtraEditors.LabelControl();
         windowsRingtoneEdit = new DevExpress.XtraEditors.LookUpEdit();
         previewRingtoneButton = new DevExpress.XtraEditors.SimpleButton();
@@ -1158,8 +1157,6 @@ partial class SettingsPage
         VisibleChanged += AudioMeterView_Changed;
         audioMeterTimer.Interval = 100;
         audioMeterTimer.Tick += AudioMeterTimer_Tick;
-        audioDeviceChangesTimer.Interval = 250;
-        audioDeviceChangesTimer.Tick += AudioDeviceChangesTimer_Tick;
         audioDevicesTab.Text = "Geräte";
         audioDevicesTab.Controls.Add(audioLayout);
         audioDevicesTab.AutoScroll = true;
@@ -1243,6 +1240,7 @@ partial class SettingsPage
         captureDeviceEdit.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         captureDeviceEdit.Enabled = false;
         captureDeviceEdit.EditValueChanged += Device_EditValueChanged;
+        captureDeviceEdit.Closed += DevicePopup_Closed;
         audioLayout.Controls.Add(captureDeviceEdit, 1, 0);
         capturePeak.Name = "capturePeak";
         capturePeak.AccessibleName = "Mikrofonpegel";
@@ -1264,6 +1262,7 @@ partial class SettingsPage
         playbackDeviceEdit.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         playbackDeviceEdit.Enabled = false;
         playbackDeviceEdit.EditValueChanged += Device_EditValueChanged;
+        playbackDeviceEdit.Closed += DevicePopup_Closed;
         audioLayout.Controls.Add(playbackDeviceEdit, 1, 1);
         playbackPeak.Name = "playbackPeak";
         playbackPeak.AccessibleName = "Pegel der Gesprächsausgabe";
@@ -1285,6 +1284,7 @@ partial class SettingsPage
         ringDeviceEdit.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         ringDeviceEdit.Enabled = false;
         ringDeviceEdit.EditValueChanged += Device_EditValueChanged;
+        ringDeviceEdit.Closed += DevicePopup_Closed;
         audioLayout.Controls.Add(ringDeviceEdit, 1, 2);
         ringPeak.Name = "ringPeak";
         ringPeak.AccessibleName = "Pegel der Klingelausgabe";
@@ -1978,7 +1978,6 @@ partial class SettingsPage
     private AudioLevelMeter playbackPeak;
     private AudioLevelMeter ringPeak;
     private System.Windows.Forms.Timer audioMeterTimer;
-    private System.Windows.Forms.Timer audioDeviceChangesTimer;
     private DevExpress.XtraEditors.LabelControl windowsRingtoneLabel;
     private DevExpress.XtraEditors.LookUpEdit windowsRingtoneEdit;
     private DevExpress.XtraEditors.SimpleButton previewRingtoneButton;

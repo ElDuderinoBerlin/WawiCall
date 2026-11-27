@@ -14,8 +14,11 @@ public partial class SettingsPage
     private IAudioDeviceCatalog? _audioDevices;
     private IDisposable? _audioDeviceSubscription;
     private int _audioDevicesChanged;
-    private long _retryAudioDevicesAfter;
+    private int _audioDeviceReadVersion;
+    private readonly CancellationTokenSource _audioDeviceLifetime = new();
+    private Task _audioDeviceRefresh = Task.CompletedTask;
     private AudioDeviceCatalog? _audioCatalog;
+    private AudioDeviceCatalog? _deferredAudioCatalog;
     private WindowsIncomingRingtone? _ringtones;
     private IAudioEndpointMeterFactory? _meterFactory;
     private EndpointMeterDisplay? _captureMeter, _playbackMeter, _ringMeter;
@@ -37,10 +40,7 @@ public partial class SettingsPage
         _ringMeter = new EndpointMeterDisplay(ringPeak, AudioEndpointDirection.Playback);
         StopAudioDeviceChanges();
         if (!_audioStopped && catalog is IAudioDeviceChanges changes)
-        {
-            _audioDeviceSubscription = changes.Subscribe(() => Interlocked.Exchange(ref _audioDevicesChanged, 1));
-            audioDeviceChangesTimer.Start();
-        }
+            _audioDeviceSubscription = changes.Subscribe(QueueAudioDeviceChange);
     }
 
     private void ApplyAudioDevices(AudioDeviceSettings settings)
@@ -179,21 +179,87 @@ public partial class SettingsPage
 
     internal Task ReloadAudioDevicesAsync() => _operation?.RunAsync(LoadAudioDevicesAsync) ?? Task.CompletedTask;
 
-    private async void AudioDeviceChangesTimer_Tick(object? sender, EventArgs e)
+    private void QueueAudioDeviceChange()
     {
-        if (_audioStopped || !Visible || _operation?.IsRunning != false || _ringtoneOperation?.IsRunning != false) return;
-        if (Interlocked.Exchange(ref _audioDevicesChanged, 0) != 0
-            || _retryAudioDevicesAfter != 0 && Environment.TickCount64 >= _retryAudioDevicesAfter)
-            await _ringtoneOperation.RunAsync(LoadAudioDevicesAsync);
+        if (!IsHandleCreated || IsDisposed || Interlocked.Exchange(ref _audioDevicesChanged, 1) != 0) return;
+        try { BeginInvoke((Action)AudioDevicesChangedOnUiThread); }
+        catch (InvalidOperationException) { Interlocked.Exchange(ref _audioDevicesChanged, 0); }
+    }
+
+    private void AudioDevicesChangedOnUiThread()
+    {
+        if (!_audioStopped && _audioDeviceRefresh.IsCompleted)
+            _audioDeviceRefresh = ReadChangedAudioDevicesAsync(_audioDeviceLifetime.Token);
+    }
+
+    private async Task ReadChangedAudioDevicesAsync(CancellationToken token)
+    {
+        while (!_audioStopped && Interlocked.Exchange(ref _audioDevicesChanged, 0) != 0)
+        {
+            var catalog = _audioDevices;
+            if (catalog is null) return;
+            var version = ++_audioDeviceReadVersion;
+            try
+            {
+                var devices = await catalog.ReadAsync(token);
+                token.ThrowIfCancellationRequested();
+                if (!_audioStopped && version == _audioDeviceReadVersion && ReferenceEquals(catalog, _audioDevices))
+                    ApplyAudioDeviceCatalog(devices);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+            catch (Exception)
+            {
+                if (!_audioStopped && !IsDisposed)
+                    audioStatus.Text = new AudioDeviceCatalogException().Message;
+            }
+        }
+    }
+
+    private void DevicePopup_Closed(object? sender, DevExpress.XtraEditors.Controls.ClosedEventArgs e)
+    {
+        if (_deferredAudioCatalog is not null && !IsDisposed && IsHandleCreated)
+            BeginInvoke((Action)ApplyDeferredAudioDeviceCatalog);
+    }
+
+    private void ApplyDeferredAudioDeviceCatalog()
+    {
+        if (!_audioStopped && _deferredAudioCatalog is { } devices)
+            ApplyAudioDeviceCatalog(devices);
+    }
+
+    private void ApplyAudioDeviceCatalog(AudioDeviceCatalog devices)
+    {
+        static bool Valid(ImmutableArray<AudioDeviceInfo> entries) => !entries.IsDefault
+            && entries.All(device => device is not null && !string.IsNullOrWhiteSpace(device.Id) && !string.IsNullOrWhiteSpace(device.DisplayName))
+            && entries.Select(device => device.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() == entries.Length;
+
+        if (!Valid(devices.Capture) || !Valid(devices.Playback)) throw new AudioDeviceCatalogException();
+        var previous = _audioCatalog;
+        var captureChanged = previous is null || !previous.Capture.SequenceEqual(devices.Capture);
+        var playbackChanged = previous is null || !previous.Playback.SequenceEqual(devices.Playback);
+        if (captureChanged && captureDeviceEdit.IsPopupOpen ||
+            playbackChanged && (playbackDeviceEdit.IsPopupOpen || ringDeviceEdit.IsPopupOpen))
+        {
+            _deferredAudioCatalog = devices;
+            return;
+        }
+        _audioCatalog = devices;
+        _deferredAudioCatalog = null;
+        if (captureChanged) BindDevice(captureDeviceEdit, devices.Capture, ReadDevice(captureDeviceEdit));
+        if (playbackChanged)
+        {
+            BindDevice(playbackDeviceEdit, devices.Playback, ReadDevice(playbackDeviceEdit));
+            BindDevice(ringDeviceEdit, devices.Playback, ReadDevice(ringDeviceEdit));
+        }
     }
 
     private void StopAudioDeviceChanges()
     {
-        audioDeviceChangesTimer.Stop();
         _audioDeviceSubscription?.Dispose();
         _audioDeviceSubscription = null;
-        _retryAudioDevicesAfter = 0;
+        _deferredAudioCatalog = null;
         Interlocked.Exchange(ref _audioDevicesChanged, 0);
+        if (_audioStopped && !_audioDeviceLifetime.IsCancellationRequested) _audioDeviceLifetime.Cancel();
     }
 
     private async Task LoadAudioDevicesAsync(CancellationToken token)
@@ -201,35 +267,21 @@ public partial class SettingsPage
         if (_audioStopped || _audioDevices is null) return;
         SetDeviceEditorsEnabled(false);
         audioStatus.Text = "Audiogeräte werden geladen …";
+        var version = ++_audioDeviceReadVersion;
         try
         {
             var devices = await _audioDevices.ReadAsync(token);
             token.ThrowIfCancellationRequested();
             if (_audioStopped || IsDisposed) return;
-            if (devices.Capture.IsDefault || devices.Playback.IsDefault || devices.Capture.Concat(devices.Playback).Any(device =>
-                    device is null || string.IsNullOrWhiteSpace(device.Id) || string.IsNullOrWhiteSpace(device.DisplayName))
-                || devices.Capture.Select(device => device.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != devices.Capture.Length
-                || devices.Playback.Select(device => device.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count() != devices.Playback.Length)
-                throw new AudioDeviceCatalogException();
-            _audioCatalog = devices;
-            _retryAudioDevicesAfter = 0;
+            if (version == _audioDeviceReadVersion) ApplyAudioDeviceCatalog(devices);
             if (_ringtones is { } ringtones)
                 _windowsRingtones = await Task.Run(ringtones.ReadWindowsRingtones, token);
             if (_customRingtonePath is { } customPath)
                 _customRingtoneFormat = await Task.Run(() => WindowsIncomingRingtone.ProbeCustomRingtone(customPath, token), token);
             token.ThrowIfCancellationRequested();
             if (_audioStopped || IsDisposed) return;
-            var capture = ReadDevice(captureDeviceEdit);
-            var playback = ReadDevice(playbackDeviceEdit);
-            var ring = ReadDevice(ringDeviceEdit);
-            BindDevice(captureDeviceEdit, devices.Capture, capture);
-            BindDevice(playbackDeviceEdit, devices.Playback, playback);
-            BindDevice(ringDeviceEdit, devices.Playback, ring);
             BindRingtones(ReadDevice(windowsRingtoneEdit));
-            if (!devices.Suppressed && (capture is not null && !devices.Capture.Any(device => string.Equals(device.Id, capture, StringComparison.OrdinalIgnoreCase))
-                || playback is not null && !devices.Playback.Any(device => string.Equals(device.Id, playback, StringComparison.OrdinalIgnoreCase))
-                || ring is not null && !devices.Playback.Any(device => string.Equals(device.Id, ring, StringComparison.OrdinalIgnoreCase))))
-                _retryAudioDevicesAfter = Environment.TickCount64 + 3000;
+            devices = _audioCatalog ?? devices;
             SetDeviceEditorsEnabled(!devices.Suppressed);
             audioStatus.Text = devices.Suppressed ? "Geräteerkennung im Prüfmodus deaktiviert. Zuordnungen bleiben erhalten."
                 : devices.Capture.IsEmpty && devices.Playback.IsEmpty ? "Keine aktiven Geräte gefunden. Zuordnungen bleiben erhalten."
@@ -240,7 +292,6 @@ public partial class SettingsPage
         {
             if (!_audioStopped && !IsDisposed)
             {
-                _retryAudioDevicesAfter = Environment.TickCount64 + 2000;
                 audioStatus.Text = new AudioDeviceCatalogException().Message;
             }
         }

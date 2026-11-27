@@ -188,6 +188,7 @@ public partial class SettingsPage : XtraUserControl
         }
         _audioStopped = true;
         StopAudioDeviceChanges();
+        await _audioDeviceRefresh;
         SetDeviceEditorsEnabled(false);
         if (_ringtoneOperation is not null) await _ringtoneOperation.StopAsync();
         if (_operation is not null) await _operation.StopAsync();
@@ -275,6 +276,7 @@ public partial class SettingsPage : XtraUserControl
     {
         _audioStopped = true;
         StopAudioDeviceChanges();
+        _audioDeviceLifetime.Dispose();
         StopAudioMeters();
         passwordEdit.Text = "";
         _operation?.Dispose();

@@ -197,6 +197,12 @@ public sealed partial class AppShellTests
         capture.EditValue = "test-mic";
         Assert.AreEqual("USB-Mikrofon", capture.Text);
         var notice = page.LastSettingsNotice;
+        var choices = capture.Properties.DataSource;
+        var reads = catalog.Reads;
+        await Task.Run(catalog.Notify);
+        await AppComTelephonyTests.Until(() => catalog.Reads > reads);
+        Assert.AreSame(choices, capture.Properties.DataSource);
+        Assert.AreEqual("test-mic", capture.EditValue);
         catalog.Devices = new([], []);
         await Task.Run(catalog.Notify);
         await AppComTelephonyTests.Until(() => capture.Text == "Gerät nicht verfügbar");
@@ -214,10 +220,15 @@ public sealed partial class AppShellTests
     {
         private Action? _changed;
         internal AudioDeviceCatalog Devices { get; set; } = new([new("test-mic", "USB-Mikrofon")], []);
+        internal int Reads { get; private set; }
         internal bool IsSubscribed => _changed is not null;
         internal void Notify() => _changed?.Invoke();
 
-        public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(Devices);
+        public Task<AudioDeviceCatalog> ReadAsync(CancellationToken cancellationToken = default)
+        {
+            Reads++;
+            return Task.FromResult(Devices);
+        }
 
         public IDisposable Subscribe(Action onChanged)
         {
