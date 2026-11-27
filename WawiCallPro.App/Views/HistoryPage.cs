@@ -19,7 +19,6 @@ public partial class HistoryPage : XtraUserControl
     private IHistoryRecordingPlayback? _playback;
     private HistoryRecordingFiles? _recordingFiles;
     private IReadOnlySet<Guid> _playable = new HashSet<Guid>();
-    private Guid? _playingCall;
     private CancellationTokenSource? _playbackCancellation;
     private Task _playing = Task.CompletedTask;
     private CallNotesSessionFactory? _notesFactory;
@@ -65,7 +64,6 @@ public partial class HistoryPage : XtraUserControl
         InitializeComponent();
         ConfigurePlayer();
         playEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackPlay");
-        stopEditor.Buttons[0].ImageOptions.SvgImage = RibbonIconHelper.Load("PlaybackStop");
         grid.DataSource = Array.Empty<HistoryRow>();
         UiButtonSizing.Attach(this);
         UiButtonSizing.UseNativeHeight(refreshButton);
@@ -255,18 +253,11 @@ public partial class HistoryPage : XtraUserControl
     private void View_PlaybackEditor(object? sender, DevExpress.XtraGrid.Views.Grid.CustomRowCellEditEventArgs e)
     {
         if (e.Column == playbackColumn && view.GetRow(e.RowHandle) is HistoryRow row && _playable.Contains(row.Id))
-            e.RepositoryItem = _playingCall == row.Id ? stopEditor : playEditor;
+            e.RepositoryItem = playEditor;
     }
 
     private void View_ShowingEditor(object? sender, System.ComponentModel.CancelEventArgs e) =>
         e.Cancel = view.FocusedColumn != playbackColumn || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id);
-
-    private void RefreshPlaybackRow(Guid callId)
-    {
-        view.CloseEditor();
-        var handle = view.LocateByValue(nameof(HistoryRow.Id), callId);
-        if (handle >= 0) view.RefreshRow(handle);
-    }
 
     internal Task LoadAsync() => _operation?.RunAsync(LoadCallsAsync) ?? Task.CompletedTask;
 

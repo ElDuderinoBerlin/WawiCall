@@ -72,7 +72,6 @@ partial class HistoryPage
         remoteExtensionColumn = new DevExpress.XtraGrid.Columns.GridColumn();
         stateChangedColumn = new DevExpress.XtraGrid.Columns.GridColumn();
         playEditor = new DevExpress.XtraEditors.Repository.RepositoryItemButtonEdit();
-        stopEditor = new DevExpress.XtraEditors.Repository.RepositoryItemButtonEdit();
         detailsEdit = new DevExpress.XtraEditors.MemoEdit();
         noteEdit = new DevExpress.XtraEditors.MemoEdit();
         saveNoteButton = new DevExpress.XtraEditors.SimpleButton();
@@ -391,17 +390,7 @@ partial class HistoryPage
         playButton.ToolTip = "Gesprächsaufnahme abspielen";
         playEditor.Buttons.Add(playButton);
         playEditor.ButtonClick += Playback_Click;
-        stopEditor.Name = "stopEditor";
-        stopEditor.ButtonsStyle = DevExpress.XtraEditors.Controls.BorderStyles.Simple;
-        stopEditor.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.HideTextEditor;
-        stopEditor.Buttons.Clear();
-        DevExpress.XtraEditors.Controls.EditorButton stopButton = new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Glyph);
-        stopButton.Caption = "Stoppen";
-        stopButton.ImageOptions.SvgImageSize = new System.Drawing.Size(16, 16);
-        stopButton.ToolTip = "Wiedergabe stoppen";
-        stopEditor.Buttons.Add(stopButton);
-        stopEditor.ButtonClick += Playback_Click;
-        grid.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { playEditor, stopEditor });
+        grid.RepositoryItems.Add(playEditor);
         view.Columns.AddRange(new DevExpress.XtraGrid.Columns.GridColumn[]
         {
             startedColumn, directionColumn, numberColumn, companyColumn, machineColumn, stateColumn, durationColumn, playbackColumn,
@@ -475,7 +464,6 @@ partial class HistoryPage
     private DevExpress.XtraGrid.Columns.GridColumn remoteExtensionColumn;
     private DevExpress.XtraGrid.Columns.GridColumn stateChangedColumn;
     private DevExpress.XtraEditors.Repository.RepositoryItemButtonEdit playEditor;
-    private DevExpress.XtraEditors.Repository.RepositoryItemButtonEdit stopEditor;
     private DevExpress.XtraEditors.MemoEdit detailsEdit;
     private DevExpress.XtraEditors.MemoEdit noteEdit;
     private DevExpress.XtraEditors.SimpleButton saveNoteButton;

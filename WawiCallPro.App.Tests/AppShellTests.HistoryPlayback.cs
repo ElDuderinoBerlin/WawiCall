@@ -232,7 +232,10 @@ public sealed partial class AppShellTests
         view.FocusedColumn = column;
         view.ShowEditor();
         Assert.IsInstanceOfType<ButtonEdit>(view.ActiveEditor);
-        Assert.AreEqual("Stoppen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
+        Assert.AreEqual("Abspielen", ((ButtonEdit)view.ActiveEditor!).Properties.Buttons[0].Caption);
+        ClickPlaybackCell(recordedRow);
+        Assert.IsTrue(view.GetMasterRowExpanded(recordedRow));
+        Assert.AreEqual(0, player.CancelledCount);
         var nextRow = view.LocateByValue("Id", next);
         ClickPlaybackCell(nextRow);
         await player.NextStarted.Task.WaitAsync(TimeSpan.FromSeconds(3));

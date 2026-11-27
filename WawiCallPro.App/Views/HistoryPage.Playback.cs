@@ -257,8 +257,7 @@ public partial class HistoryPage
         if (_stopping || _playback is null || view.GetFocusedRow() is not HistoryRow row || !_playable.Contains(row.Id)) return;
         if (_player is { } player && player.Id == row.Id)
         {
-            if (player.Playing) ClosePlayer();
-            else await StartPlayerAsync(row.Id);
+            if (!player.Playing) await StartPlayerAsync(row.Id);
             return;
         }
         ClosePlayer();
@@ -298,8 +297,7 @@ public partial class HistoryPage
     {
         using var cancellation = new CancellationTokenSource();
         _playbackCancellation = cancellation;
-        _playingCall = callId;
-        RefreshPlaybackRow(callId);
+        view.CloseEditor();
         try
         {
             await _playback!.PlayAsync(callId, transport, cancellation.Token);
@@ -312,10 +310,8 @@ public partial class HistoryPage
         finally
         {
             _playbackCancellation = null;
-            _playingCall = null;
             if (!_stopping)
             {
-                RefreshPlaybackRow(callId);
                 if (_player is { } player && ReferenceEquals(_transport, transport))
                 {
                     playerTimer.Stop();
