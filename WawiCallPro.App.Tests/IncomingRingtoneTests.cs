@@ -2,8 +2,10 @@ using CSCore;
 using CSCore.Codecs.WAV;
 using Microsoft.Extensions.DependencyInjection;
 using WawiCallPro.Audio;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Diagnostics;
+using WawiCallPro.Utilities.Persistence;
 
 namespace WawiCallPro.App.Tests;
 
@@ -57,6 +59,58 @@ public sealed class IncomingRingtoneTests
             }
         }
         finally { Directory.Delete(media, true); }
+    }
+
+    [TestMethod]
+    [DataRow(RecordingArtifactFormat.Mp3)]
+    [DataRow(RecordingArtifactFormat.OggVorbis)]
+    [DataRow(RecordingArtifactFormat.Wma)]
+    public async Task CompressedRingtonePreviewsOnceLoopsForCallsAndReleasesTheFile(RecordingArtifactFormat format)
+    {
+        var folder = Directory.CreateTempSubdirectory("WawiCallPro-test-ringtone-").FullName;
+        try
+        {
+            const int sampleRate = 16000;
+            var input = Path.Combine(folder, "source.wav");
+            var samples = new byte[sampleRate * sizeof(short)];
+            for (var sample = 0; sample < sampleRate; sample++)
+                System.Buffers.Binary.BinaryPrimitives.WriteInt16LittleEndian(samples.AsSpan(sample * sizeof(short)),
+                    (short)(8000 * Math.Sin(2 * Math.PI * 440 * sample / sampleRate)));
+            using (var writer = new WaveWriter(input, new WaveFormat(sampleRate, 16, 1)))
+                writer.Write(samples, 0, samples.Length);
+
+            using var services = new ServiceCollection().AddAudioConversion().BuildServiceProvider();
+            var encoder = services.GetRequiredService<IRecordingFormatConverters>().GetConverter(format);
+            var profile = (await encoder.GetSupportedFormatsAsync()).First(option => option.SampleRate == sampleRate && option.Channels == 1);
+            var ringtone = Path.Combine(folder, "Klingelton." + format.Extension());
+            await encoder.ConvertAsync(new(input, ringtone, profile));
+            Assert.IsTrue(ApplicationOptionsValidator.IsLocalRingtonePath(ringtone.ToUpperInvariant()));
+            var decodedFormat = WindowsIncomingRingtone.ProbeCustomRingtone(ringtone, default);
+            Assert.IsNotNull(decodedFormat);
+            Assert.AreEqual(1, decodedFormat.Channels);
+            Assert.IsGreaterThan(0, decodedFormat.SampleRate);
+
+            var output = new Probe { BufferSize = 128 * 1024 };
+            var player = new WindowsIncomingRingtone(output, null);
+            var settings = new AudioDeviceSettings { CustomRingtonePath = ringtone, RingDeviceId = "headset", RingVolumePercent = 42 };
+            Assert.IsTrue(await player.PreviewAsync(settings, default));
+            Assert.AreEqual(decodedFormat.SampleRate, output.SampleRate);
+            Assert.IsTrue(output.Bytes.Any(value => value != 0));
+            Assert.IsLessThan(output.BufferSize, output.Bytes.Length);
+            await player.PlayAsync(settings, default);
+            Assert.AreEqual(decodedFormat.SampleRate, output.SampleRate);
+            Assert.AreEqual(output.BufferSize, output.Bytes.Length);
+            Assert.AreEqual("headset", output.Settings?.PlaybackDeviceId);
+            Assert.AreEqual(42, output.Settings?.PlaybackVolumePercent);
+            using (File.Open(ringtone, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+
+            File.WriteAllBytes(ringtone, [1, 2, 3, 4]);
+            Assert.IsNull(WindowsIncomingRingtone.ProbeCustomRingtone(ringtone, default));
+            Assert.IsFalse(await player.PreviewAsync(settings, default));
+            Assert.AreEqual(48000, output.SampleRate);
+            using (File.Open(ringtone, FileMode.Open, FileAccess.Read, FileShare.None)) { }
+        }
+        finally { Directory.Delete(folder, true); }
     }
 
     [TestMethod]
@@ -125,6 +179,7 @@ public sealed class IncomingRingtoneTests
 
     private sealed class Probe : IHistoryRecordingOutput
     {
+        internal int BufferSize { get; init; } = 16;
         internal AudioDeviceSettings? Settings { get; private set; }
         internal byte[] Bytes { get; private set; } = [];
         internal int SampleRate { get; private set; }
@@ -133,7 +188,7 @@ public sealed class IncomingRingtoneTests
         {
             Settings = settings;
             SampleRate = source.WaveFormat.SampleRate;
-            var buffer = new byte[16];
+            var buffer = new byte[BufferSize];
             Bytes = buffer[..source.Read(buffer, 0, buffer.Length)];
         }
     }

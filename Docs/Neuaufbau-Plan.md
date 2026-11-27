@@ -3793,11 +3793,11 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Speichern übernimmt geänderte Pegel auch im laufenden Gespräch, und CSCore verwendet sie nach
   Gerätewechsel oder Wiederanbindung erneut. Beide App-Debug-Ausgaben und je sechs gezielte
   App-Prüfungen einschließlich Audio-Rendering bestanden. Layoutnachweise `.artifacts/audio-devices/`.
-  **WAV wählen …** übernimmt einen eigenen lokalen Klingelton als PCM16 in Mono oder Stereo.
+  ✅ **Datei wählen …** übernimmt eigene Klingeltöne als PCM16-WAV, MP3, Ogg/Vorbis oder WMA in Mono oder Stereo.
   Die Settings zeigen Abtastrate und Kanäle. Im vorhandenen WAV-Konverter lassen sich die Abtastrate
   und Mono/Stereo auswählen. Das lokale Profilformat 19 speichert den Pfad. Der eingebaute Ton
   bleibt als Fallback verfügbar, wenn die eigene Datei später fehlt oder nicht lesbar ist.
-  Sie wiederholen die WAV bis zum Ende des Klingelns über den konfigurierten Klingelausgang.
+  Die App wiederholt den gewählten Ton bis zum Ende des Klingelns über den konfigurierten Klingelausgang.
   Windows 11 (Build 22631) stellte 13 Dateien bereit. Gerätespezifische Tests verwendeten `Ring01.wav`
   und das Jabra Link 380. In Pro und FinOffice bestanden je 10 App-, 8 SIP- und 31
   Konfigurationsprüfungen. Debug-/Any-CPU-Builds von App und Konsole erfolgreich. Hintergrundrenders

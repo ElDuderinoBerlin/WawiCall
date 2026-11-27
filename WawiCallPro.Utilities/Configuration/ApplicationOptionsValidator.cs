@@ -228,7 +228,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         if (devices.WindowsRingtoneFile is { } ringtone && !IsWindowsRingtoneFileName(ringtone))
             issues.Add(new("devices.windowsRingtoneFile", "Der Windows-Klingelton muss ein WAV-Dateiname ohne Pfad sein."));
         if (devices.CustomRingtonePath is { } custom && (!IsLocalRingtonePath(custom) || devices.WindowsRingtoneFile is not null))
-            issues.Add(new("devices.customRingtonePath", "Eine eigene lokale WAV-Datei oder einen Windows-Klingelton auswählen."));
+            issues.Add(new("devices.customRingtonePath", "Eine lokale WAV-, MP3-, Ogg/Vorbis- oder WMA-Datei oder einen Windows-Klingelton auswählen."));
         if (devices.MicrophoneVolumePercent is < 0 or > 100)
             issues.Add(new("devices.microphoneVolumePercent", "Die Lautstärke muss zwischen 0 und 100 liegen."));
         if (devices.PlaybackVolumePercent is < 0 or > 100)
@@ -364,10 +364,10 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
         && !name.Any(char.IsControl) && name.IndexOfAny(['/', '\\', ':']) < 0
         && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0;
 
-    /// <summary>Accepts fully qualified drive paths to local WAV files.</summary>
+    /// <summary>Accepts fully qualified drive paths to supported local ringtone files.</summary>
     public static bool IsLocalRingtonePath(string path) => path.Length is > 4 and <= 32767
         && Path.IsPathFullyQualified(path) && !path.StartsWith(@"\\", StringComparison.Ordinal)
-        && path.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+        && Path.GetExtension(path).ToLowerInvariant() is ".wav" or ".mp3" or ".ogg" or ".wma"
         && !path.Any(char.IsControl) && path.IndexOf(':', 2) < 0;
 
     private static bool IsReservedDeviceName(string fileName)

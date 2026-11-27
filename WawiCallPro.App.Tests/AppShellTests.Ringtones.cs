@@ -3,14 +3,17 @@ using CSCore.Codecs.WAV;
 using DevExpress.LookAndFeel;
 using DevExpress.Utils;
 using DevExpress.XtraEditors;
+using Microsoft.Extensions.DependencyInjection;
 using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Diagnostics;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.App.Views;
 using WawiCallPro.Audio;
+using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
 using WawiCallPro.Utilities.Diagnostics;
+using WawiCallPro.Utilities.Persistence;
 
 namespace WawiCallPro.App.Tests;
 
@@ -19,7 +22,7 @@ public sealed partial class AppShellTests
     [TestMethod]
     [DataRow("Office 2019 Black", 16F, 1F)]
     [DataRow("Basic", 10F, 1.5F)]
-    public Task WindowsRingtoneSettingsPreviewDraftAndPreserveMissingSelections(string skin, float points, float scale) => WithWorkspace(async (workspace, _, _) =>
+    public Task WindowsRingtoneSettingsPreviewDraftAndPreserveMissingSelections(string skin, float points, float scale) => WithWorkspace(async (workspace, services, _) =>
     {
         var snapshot = await workspace.Settings.LoadAsync();
         await workspace.Settings.SaveAsync(snapshot.Options with
@@ -53,6 +56,7 @@ public sealed partial class AppShellTests
             var page = Field<SettingsPage>(dialog, "settingsPage");
             var ringtone = Field<LookUpEdit>(page, "windowsRingtoneEdit");
             var button = Field<SimpleButton>(page, "previewRingtoneButton");
+            Assert.AreEqual("Datei wählen …", Field<SimpleButton>(page, "browseRingtoneButton").Text);
             Assert.AreEqual("RingPrevious.wav", ringtone.EditValue);
             Assert.Contains("nicht verfügbar", ringtone.Text);
             Assert.IsTrue(button.Enabled);
@@ -98,14 +102,23 @@ public sealed partial class AppShellTests
             Assert.AreEqual("RingNew.wav", (await workspace.Settings.LoadAsync()).Options.Devices.WindowsRingtoneFile);
             var customFile = Path.Combine(media, "Eigene Ansage.wav");
             var channels = scale == 1F ? 2 : 1;
-            using (var wave = new WaveWriter(customFile, new WaveFormat(44100, 16, channels)))
-                wave.Write(new byte[256], 0, 256);
+            var sampleRate = scale == 1F ? 44100 : 16000;
+            WriteAudioSource(customFile, new WaveFormat(sampleRate, 16, channels), sampleRate);
+            if (scale != 1F)
+            {
+                var encoder = services.GetRequiredService<IRecordingFormatConverters>().GetConverter(RecordingArtifactFormat.OggVorbis);
+                var profile = (await encoder.GetSupportedFormatsAsync()).First(option => option.SampleRate == sampleRate && option.Channels == channels);
+                var oggFile = Path.ChangeExtension(customFile, ".ogg");
+                await encoder.ConvertAsync(new(customFile, oggFile, profile));
+                customFile = oggFile;
+            }
+            Assert.IsNotNull(WindowsIncomingRingtone.ProbeCustomRingtone(customFile, default));
             await page.SelectCustomRingtoneAsync(customFile);
             var info = Field<LabelControl>(page, "customRingtoneInfo");
             Assert.Contains("Hz", info.Text);
             Assert.Contains(channels == 1 ? "Mono" : "Stereo", info.Text);
             await page.PreviewRingtoneAsync();
-            Assert.AreEqual(44100, output.SampleRate);
+            Assert.AreEqual(sampleRate, output.SampleRate);
             Assert.AreEqual(channels, output.Channels);
             await page.SaveAsync(CancellationToken.None);
             await page.ReloadAsync();
@@ -145,7 +158,7 @@ public sealed partial class AppShellTests
             WindowsFormsSettings.DefaultFont = previousFont;
             AppearanceObject.DefaultFont = previousAppearance;
         }
-    });
+    }, configure: services => services.AddAudioConversion());
 
     [TestMethod]
     public Task SettingsDeviceMetersReleaseWhenLeavingTheAudioTab() => WithWorkspace(async (workspace, _, _) =>

@@ -1335,7 +1335,7 @@ partial class SettingsPage
         customRingtoneInfo.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
         audioLayout.Controls.Add(customRingtoneInfo, 1, 7);
         browseRingtoneButton.Name = "browseRingtoneButton";
-        browseRingtoneButton.Text = "WAV wählen …";
+        browseRingtoneButton.Text = "Datei wählen …";
         browseRingtoneButton.AutoSize = true;
         browseRingtoneButton.Anchor = System.Windows.Forms.AnchorStyles.Right;
         browseRingtoneButton.Padding = new System.Windows.Forms.Padding(12, 0, 12, 0);

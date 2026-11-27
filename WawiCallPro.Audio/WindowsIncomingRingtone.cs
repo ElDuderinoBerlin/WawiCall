@@ -33,6 +33,13 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
         return format;
     }
 
+    /// <summary>Checks whether a local ringtone can be decoded and repeated.</summary>
+    public static WaveFormat? ProbeCustomRingtone(string path, CancellationToken token)
+    {
+        using var source = WindowsRingtoneFiles.TryOpenCustomAudio(path, token);
+        return source?.WaveFormat;
+    }
+
     public Task PlayAsync(string? deviceId, int volumePercent, CancellationToken cancellationToken) =>
         PlayAsync(new AudioDeviceSettings { RingDeviceId = deviceId, RingVolumePercent = volumePercent }, cancellationToken);
 
@@ -60,10 +67,13 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
         AudioPlaybackVolume? volume = null)
     {
         token.ThrowIfCancellationRequested();
-        using var file = settings.CustomRingtonePath is { } custom
-            ? WindowsRingtoneFiles.TryOpenCustom(custom, token, out _) : _files.TryOpen(settings.WindowsRingtoneFile, token);
-        using var wave = file is null ? null : new WaveFileReader(file);
-        using IWaveSource source = wave is null ? new RingtoneWaveSource() : preview && volume is null ? wave : new LoopStream(wave);
+        using var file = settings.CustomRingtonePath is null ? _files.TryOpen(settings.WindowsRingtoneFile, token) : null;
+        using var wave = settings.CustomRingtonePath is { } custom
+            ? WindowsRingtoneFiles.TryOpenCustomAudio(custom, token) : file is null ? null : new WaveFileReader(file);
+        using var loop = wave is not null && (!preview || volume is not null)
+            ? new LoopStream(wave) { DisposeBaseSource = false } : null;
+        using var fallback = wave is null ? new RingtoneWaveSource() : null;
+        var source = loop ?? wave ?? fallback!;
         var playback = settings with { PlaybackDeviceId = settings.RingDeviceId, PlaybackVolumePercent = settings.RingVolumePercent };
         try
         {
@@ -71,7 +81,7 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
             else _output.Play(source, playback, volume, token);
         }
         catch (OperationCanceledException) when (preview && token.IsCancellationRequested && !caller.IsCancellationRequested) { }
-        return settings is { WindowsRingtoneFile: null, CustomRingtonePath: null } || file is not null;
+        return settings is { WindowsRingtoneFile: null, CustomRingtonePath: null } || wave is not null;
     }
 
     private sealed class RingtoneWaveSource : IWaveSource

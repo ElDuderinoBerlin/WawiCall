@@ -3,7 +3,6 @@ using System.IO;
 using DevExpress.XtraEditors;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Audio;
-using WawiCallPro.Core.Audio;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Utilities.Configuration;
 
@@ -25,7 +24,7 @@ public partial class SettingsPage
     private AudioPlaybackVolume? _ringtonePreviewVolume;
     private IReadOnlyList<string> _windowsRingtones = [];
     private string? _customRingtonePath;
-    private PcmWaveHeader? _customRingtoneFormat;
+    private CSCore.WaveFormat? _customRingtoneFormat;
     private bool _audioStopped;
 
     internal void ConfigureAudioDevices(IAudioDeviceCatalog catalog)
@@ -73,7 +72,7 @@ public partial class SettingsPage
         windowsRingtoneEdit.ToolTip = SelectedCustomRingtone;
         customRingtoneInfo.Text = SelectedCustomRingtone is null ? "" : _customRingtoneFormat is { } format
             ? $"{format.SampleRate:N0} Hz · {(format.Channels == 1 ? "Mono" : "Stereo")}"
-            : "Eigene WAV-Datei nicht verfügbar";
+            : "Eigene Klingeltondatei nicht verfügbar";
     }
 
     private string? SelectedWindowsRingtone => ReadDevice(windowsRingtoneEdit) is { } selected && selected != CustomRingtone ? selected : null;
@@ -84,7 +83,8 @@ public partial class SettingsPage
         using var waiting = new UiWaitCursor(this);
         using var picker = new XtraOpenFileDialog
         {
-            Title = "Eigene WAV-Datei als Klingelton auswählen", Filter = "WAV-Datei (*.wav)|*.wav",
+            Title = "Eigene Klingeltondatei auswählen",
+            Filter = "Audiodateien (*.wav;*.mp3;*.ogg;*.wma)|*.wav;*.mp3;*.ogg;*.wma|WAV-Dateien (*.wav)|*.wav|MP3-Dateien (*.mp3)|*.mp3|Ogg/Vorbis-Dateien (*.ogg)|*.ogg|WMA-Dateien (*.wma)|*.wma",
             CheckFileExists = true, RestoreDirectory = true
         };
         var owner = (Control?)FindForm() ?? this;
@@ -95,17 +95,17 @@ public partial class SettingsPage
     internal Task SelectCustomRingtoneAsync(string fileName) => _ringtoneOperation?.RunAsync(async token =>
     {
         using var waiting = new UiWaitCursor(this);
-        var format = await Task.Run(() => WindowsIncomingRingtone.ReadCustomRingtoneFormat(fileName, token), token);
+        var format = await Task.Run(() => WindowsIncomingRingtone.ProbeCustomRingtone(fileName, token), token);
         if (_audioStopped || IsDisposed) return;
         if (format is null)
         {
-            audioStatus.Text = "Eine lokale PCM-WAV-Datei mit 16 Bit und Mono oder Stereo auswählen. Das Format lässt sich im WAV-Konverter ändern.";
+            audioStatus.Text = "Eine abspielbare lokale WAV-, MP3-, Ogg/Vorbis- oder WMA-Datei in Mono oder Stereo auswählen.";
             return;
         }
         _customRingtonePath = fileName;
         _customRingtoneFormat = format;
         BindRingtones(CustomRingtone);
-        audioStatus.Text = "Eigene WAV-Datei gewählt.";
+        audioStatus.Text = "";
     }) ?? Task.CompletedTask;
 
     internal Task PreviewRingtoneAsync() => _ringtoneOperation?.RunAsync(async token =>
@@ -216,7 +216,7 @@ public partial class SettingsPage
             if (_ringtones is { } ringtones)
                 _windowsRingtones = await Task.Run(ringtones.ReadWindowsRingtones, token);
             if (_customRingtonePath is { } customPath)
-                _customRingtoneFormat = await Task.Run(() => WindowsIncomingRingtone.ReadCustomRingtoneFormat(customPath, token), token);
+                _customRingtoneFormat = await Task.Run(() => WindowsIncomingRingtone.ProbeCustomRingtone(customPath, token), token);
             token.ThrowIfCancellationRequested();
             if (_audioStopped || IsDisposed) return;
             var capture = ReadDevice(captureDeviceEdit);

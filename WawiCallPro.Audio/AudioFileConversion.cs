@@ -72,7 +72,7 @@ public sealed class AudioFileConversion(IHistoryRecordingOutput output, Configur
         }, token).ConfigureAwait(false);
     }
 
-    private static IWaveSource Open(Stream stream, string path, CancellationToken token)
+    internal static IWaveSource Open(Stream stream, string path, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var extension = Path.GetExtension(path).ToLowerInvariant();
