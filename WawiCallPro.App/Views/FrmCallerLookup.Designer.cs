@@ -49,7 +49,7 @@ partial class FrmCallerLookup
         statusText.Id = 0;
         statusText.Name = "statusText";
         statusText.AutoSize = DevExpress.XtraBars.BarStaticItemSize.Spring;
-        statusText.ItemAppearance.Normal.TextOptions.WordWrap = DevExpress.Utils.WordWrap.Wrap;
+        statusText.ItemAppearance.Normal.TextOptions.WordWrap = DevExpress.Utils.WordWrap.NoWrap;
         ClientSize = new System.Drawing.Size(960, 640);
         MinimumSize = new System.Drawing.Size(600, 440);
         Text = "WawiCallPro – Anrufzuordnung";

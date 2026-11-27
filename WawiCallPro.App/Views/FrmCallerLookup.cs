@@ -108,10 +108,10 @@ public partial class FrmCallerLookup : XtraForm
 
     private void UpdateStatusBar()
     {
-        var lookupStatus = callerPage.StatusText;
-        statusText.Caption = _ended ? "Bereit" : _callStatus.Length == 0 ? lookupStatus :
-            lookupStatus.Length == 0 ? _callStatus : _callStatus + "\n" + lookupStatus;
-        statusText.Hint = _ended ? "" : statusText.Caption;
+        statusText.Caption = _ended ? "Bereit" : string.Join(" · ",
+            new[] { callControls.CompactStatusText, callerPage.CompactStatusText }.Where(text => text.Length > 0));
+        statusText.Hint = string.Join(Environment.NewLine,
+            new[] { _callStatus, callerPage.StatusText }.Where(text => text.Length > 0));
     }
 
     private void UpdateCaption(CallSnapshot call)

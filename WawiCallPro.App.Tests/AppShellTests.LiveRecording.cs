@@ -10,6 +10,7 @@ using WawiCallPro.Database.Contracts;
 using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.History;
+using WawiCallPro.Interfaces.PhoneNumbers;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
@@ -205,6 +206,18 @@ public sealed partial class AppShellTests
                     Failure = state == LiveRecordingState.Failed ? LiveRecordingFailure.StorageFailed : null
                 });
                 var panel = Field<CallControlPanel>(dialog, "callControls"); panel.Bind(service, call);
+                if (state == LiveRecordingState.Recording)
+                {
+                    dialog.Page.Display(new(CallerMatchDecisionKind.NoSearchCompanies, [], null, null, new()
+                    {
+                        SearchCompanies = [], ParserVersion = "test", SearchedAtUtc = DateTimeOffset.UtcNow
+                    }));
+                    var status = Field<DevExpress.XtraBars.BarStaticItem>(dialog, "statusText");
+                    Assert.AreEqual("Verbunden · Aufnahme läuft · Keine Suchfirmen", status.Caption);
+                    Assert.Contains("beide Gesprächsseiten", status.Hint);
+                    Assert.Contains("Telefon-Cache", status.Hint);
+                    Assert.IsTrue(status.ShowToolTip);
+                }
                 dialog.Show(); if (scale != 1F) dialog.Scale(new SizeF(scale, scale)); dialog.PerformLayout(); Application.DoEvents();
                 CheckTableBounds(dialog);
                 using var picture = WawiCallPro.App.Diagnostics.UiAudit.Capture(dialog);

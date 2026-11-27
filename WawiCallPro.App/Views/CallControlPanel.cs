@@ -249,6 +249,35 @@ public partial class CallControlPanel : XtraUserControl
 
     private Action<string>? _externalStatus;
 
+    internal string CompactStatusText
+    {
+        get
+        {
+            if (_call is null) return "";
+            var call = _telephony is null ? "Telefonie nicht verfügbar" : _call.State switch
+            {
+                CallState.Created => "Neuer Anruf",
+                CallState.Dialing => "Rufaufbau",
+                CallState.Ringing => "Klingelt",
+                CallState.Connected => "Verbunden",
+                CallState.Held => "Gehalten",
+                CallState.Ended => "Beendet",
+                CallState.Failed => "Fehlgeschlagen",
+                _ => ""
+            };
+            var recording = _displayedRecordingState switch
+            {
+                LiveRecordingState.Starting => "Aufnahme startet",
+                LiveRecordingState.Recording => "Aufnahme läuft",
+                LiveRecordingState.Stopping => "Speichert Aufnahme",
+                LiveRecordingState.Completed => "Aufnahme gespeichert",
+                LiveRecordingState.Failed => "Aufnahmefehler",
+                _ => ""
+            };
+            return recording.Length == 0 ? call : string.Join(" · ", new[] { call, recording }.Where(text => text.Length > 0));
+        }
+    }
+
     internal void UseStatusBar(Action<string> display)
     {
         _externalStatus = display;

@@ -67,6 +67,7 @@ public partial class CallerLookupPage : XtraUserControl
     }
     internal CallerMatchDecision? Decision => _decision;
     internal string StatusText { get; private set; } = "Rufnummer eingeben und die ausgewählten Suchfirmen prüfen.";
+    internal string CompactStatusText { get; private set; } = "Rufnummer eingeben";
     internal event EventHandler? StatusChanged;
     internal void BindNotes(CallNotesSession notes)
     {
@@ -80,7 +81,7 @@ public partial class CallerLookupPage : XtraUserControl
         _accept = accept;
         _boundLine = (_workspace?.Telephony as ICallLineContextProvider)?.GetLineContext(call.Id);
         filters.Visible = false;
-        ShowStatus("");
+        ShowStatus("", "");
     }
 
     internal void ObserveCallAddress(CallSnapshot call)
@@ -110,9 +111,13 @@ public partial class CallerLookupPage : XtraUserControl
         return national is { Kind: PhoneNumberAddressKind.Public } ? national.Parsed?.RegionDescription : null;
     }
 
-    private void ShowStatus(string status)
+    private void ShowStatus(string status) =>
+        ShowStatus(status, status == "Bitte warten …" ? "Bitte warten" : "Aktion fehlgeschlagen");
+
+    private void ShowStatus(string status, string compactStatus)
     {
         StatusText = status;
+        CompactStatusText = compactStatus;
         StatusChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -132,7 +137,7 @@ public partial class CallerLookupPage : XtraUserControl
         if (!_workspace.CanUseBusinessDirectory)
         {
             searchButton.Enabled = chooseButton.Enabled = cancelButton.Enabled = false;
-            ShowStatus("Rufnummernsuche ist gesperrt. Telefonie bleibt verfügbar; Details stehen im Log-Fenster.");
+            ShowStatus("Rufnummernsuche ist gesperrt. Telefonie bleibt verfügbar; Details stehen im Log-Fenster.", "Suche gesperrt");
             return;
         }
         var address = _boundCall?.RemoteAddress ?? new(NumberPresentation.Available, numberEdit.Text.Trim());
@@ -143,7 +148,8 @@ public partial class CallerLookupPage : XtraUserControl
             selectionLabel.Text = "Keine Zuordnung."; chooseButton.Enabled = false;
             ShowStatus(_boundCall is null
                 ? "Bitte eine gültige Rufnummer mit Ländervorwahl eingeben."
-                : "Für diese Rufnummer ist keine öffentliche Anrufzuordnung möglich.");
+                : "Für diese Rufnummer ist keine öffentliche Anrufzuordnung möglich.",
+                _boundCall is null ? "Ungültige Rufnummer" : "Keine Zuordnung");
             return;
         }
         var number = incoming.Address.OriginalValue ?? "";
@@ -168,7 +174,7 @@ public partial class CallerLookupPage : XtraUserControl
                 if (_accept is not null) await _accept(_decision!, request.Token);
             }
             catch (OperationCanceledException) when (request.IsCancellationRequested)
-            { ShowStatus("Suche abgebrochen. Keine neue Zuordnung übernommen."); selectionLabel.Text = "Keine Zuordnung."; }
+            { ShowStatus("Suche abgebrochen. Keine neue Zuordnung übernommen.", "Suche abgebrochen"); selectionLabel.Text = "Keine Zuordnung."; }
             finally
             {
                 _request = null;
@@ -184,14 +190,14 @@ public partial class CallerLookupPage : XtraUserControl
         if (_workspace is null || !_workspace.CanUseBusinessDirectory || _decision is null || _callEnded || _operation?.IsRunning == true || view.GetFocusedRow() is not CandidateRow row) return;
         var current = _workspace.PhoneSearch.GetStatus();
         if (current.Generation != _decision.IndexGeneration || current.State is not (PhoneSearchScopeState.Ready or PhoneSearchScopeState.Partial))
-        { ShowStatus("Suchstand geändert oder abgelaufen. Bitte erneut suchen, bevor ein Datensatz übernommen wird."); chooseButton.Enabled = false; return; }
+        { ShowStatus("Suchstand geändert oder abgelaufen. Bitte erneut suchen, bevor ein Datensatz übernommen wird.", "Suchstand geändert"); chooseButton.Enabled = false; return; }
         _decision = _decision with { Lookup = _decision.Lookup with { IsComplete = current.IsComplete }, Groups = _decision.Groups.Select(group =>
             group with { Company = current.Companies.Single(company => company.Company == group.Company.Company) }).ToImmutableArray() };
         Display(_workspace.CallerDecisions.Choose(_decision, row.Candidate.Party));
         if (_accept is not null && _operation is not null)
         {
             chooseButton.Enabled = false;
-            await _operation.RunAsync(async token => { await _accept(_decision!, token); if (!_callEnded) ShowStatus("Zuordnung für diesen Anruf gespeichert."); });
+            await _operation.RunAsync(async token => { await _accept(_decision!, token); if (!_callEnded) ShowStatus("Zuordnung für diesen Anruf gespeichert.", "Zuordnung gespeichert"); });
             if (!IsDisposed && !Disposing) UpdateFocusedDetails();
         }
     }
@@ -214,7 +220,17 @@ public partial class CallerLookupPage : XtraUserControl
                     + (selection.IsProvisional ? ", vorläufig)" : ")")
                 : "Keine Zuordnung übernommen. Einen Datensatz markieren und ausdrücklich übernehmen.";
             var decisionStatus = DecisionText(decision.Kind);
-            ShowStatus(decision.Selection is null ? decisionStatus : selectionLabel.Text + "\n" + decisionStatus);
+            var compactStatus = decision.Kind switch
+            {
+                CallerMatchDecisionKind.Unique or CallerMatchDecisionKind.LineUnique or CallerMatchDecisionKind.Manual => "Zugeordnet",
+                CallerMatchDecisionKind.Incomplete => "Suchstand unvollständig",
+                CallerMatchDecisionKind.LineConflict => "Zuordnung prüfen",
+                CallerMatchDecisionKind.SelectionUnavailable => "Auswahl veraltet",
+                CallerMatchDecisionKind.NoMatch => "Kein Treffer",
+                CallerMatchDecisionKind.NoSearchCompanies => "Keine Suchfirmen",
+                _ => "Auswahl erforderlich"
+            };
+            ShowStatus(decision.Selection is null ? decisionStatus : selectionLabel.Text + "\n" + decisionStatus, compactStatus);
             scopeLabel.Text = string.Join("\n", decision.Groups.Select(group => group.Company.DisplayName + ": " + CacheText(group.Company.State)));
         }
         finally { _binding = false; }

@@ -3834,6 +3834,8 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   `ILiveCallRecordingService` führt Start/Stop und gemeinsamen Status pro Call-ID; Buttons in
   Anruferfenster und Gesprächsdetails verwenden dieselbe Instanz. Start nur verbunden, Stop auch
   gehalten. Jeder neue Aufnahmeabschnitt erhält eine eigene Aufnahme-ID.
+  ✅ Die Anrufzuordnung zeigt Gespräch, Aufnahme und Rufnummernzuordnung knapp in einer
+  Statuszeile. Ausführliche Hinweise erscheinen im Tooltip.
   Ein lokaler monotoner Startbezug plus erste tatsächliche Sende-/Empfangs-Codecbeobachtung ergeben
   `LocalCodecObservation`-Anker. Danach reale RTP-Zähler einschließlich Überläufen, Lücken und
   vorhandener Empfangspufferung. Kein Einsatz des strengeren NTP-Resolvers mit erfundenen Referenzen.
