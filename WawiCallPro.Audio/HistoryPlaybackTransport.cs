@@ -16,11 +16,13 @@ public sealed class HistoryPlaybackTransport
     private readonly CscoreSpectrumAnalyzer _leftSpectrum;
     private readonly CscoreSpectrumAnalyzer _rightSpectrum;
     private readonly Lock _spectrumGate = new();
+    private readonly Lock _positionGate = new();
     private readonly float[] _displayedBands = new float[AudioSpectrum.BandEdgesHz.Length - 1];
     private long _lastSpectrumRead;
     private HistoryPlaybackMedia? _media;
     private long _position;
     private long _seek = -1;
+    private long _applyingSeek = -1;
     private int _paused;
     private int _gain = 100;
 
@@ -35,7 +37,18 @@ public sealed class HistoryPlaybackTransport
     }
 
     public HistoryPlaybackMedia? Media => Volatile.Read(ref _media);
-    public TimeSpan Position => TimeSpan.FromTicks(Interlocked.Read(ref _position));
+    public TimeSpan Position
+    {
+        get
+        {
+            lock (_positionGate)
+            {
+                // Keep the user's target visible until the decoder has reached the new position.
+                var ticks = _seek >= 0 ? _seek : _applyingSeek >= 0 ? _applyingSeek : _position;
+                return TimeSpan.FromTicks(ticks);
+            }
+        }
+    }
 
     public bool Paused
     {
@@ -50,7 +63,9 @@ public sealed class HistoryPlaybackTransport
     public void Seek(TimeSpan position)
     {
         if (Media is { CanSeek: true } media)
-            Interlocked.Exchange(ref _seek, Math.Clamp(position.Ticks, 0, media.Duration.Ticks));
+        {
+            lock (_positionGate) _seek = Math.Clamp(position.Ticks, 0, media.Duration.Ticks);
+        }
     }
 
     public ImmutableArray<int> ReadSpectrum()
@@ -74,11 +89,33 @@ public sealed class HistoryPlaybackTransport
         }
     }
 
-    internal bool SeekPending => Interlocked.Read(ref _seek) >= 0;
-    internal long TakeSeek() => Interlocked.Exchange(ref _seek, -1);
+    internal bool SeekPending
+    {
+        get { lock (_positionGate) return _seek >= 0 || _applyingSeek >= 0; }
+    }
+
+    internal long TakeSeek()
+    {
+        lock (_positionGate)
+        {
+            if (_seek < 0) return -1;
+            _applyingSeek = _seek;
+            _seek = -1;
+            return _applyingSeek;
+        }
+    }
+
+    internal void CompleteSeek()
+    {
+        lock (_positionGate) _applyingSeek = -1;
+    }
+
     internal void SetGain(int value) => Volatile.Write(ref _gain, value);
     internal void SetMedia(HistoryPlaybackMedia media) => Volatile.Write(ref _media, media);
-    internal void SetPosition(TimeSpan position) => Interlocked.Exchange(ref _position, position.Ticks);
+    internal void SetPosition(TimeSpan position)
+    {
+        lock (_positionGate) _position = position.Ticks;
+    }
     internal void AddSamples(int sampleRate, int channels, ReadOnlySpan<short> samples)
     {
         lock (_spectrumGate)

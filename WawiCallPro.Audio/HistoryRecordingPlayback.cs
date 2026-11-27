@@ -138,9 +138,13 @@ internal sealed class WasapiHistoryRecordingOutput : IHistoryRecordingOutput
             var ticks = transport.TakeSeek();
             if (ticks >= 0)
             {
-                source.SetPosition(TimeSpan.FromTicks(ticks));
-                measured.ResetPosition(source.Position);
-                transport.ClearSpectrum();
+                try
+                {
+                    source.SetPosition(TimeSpan.FromTicks(ticks));
+                    measured.ResetPosition(source.Position);
+                    transport.ClearSpectrum();
+                }
+                finally { transport.CompleteSeek(); }
             }
             if (transport.Paused)
             {

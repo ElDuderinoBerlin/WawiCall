@@ -128,7 +128,29 @@ public sealed partial class AppShellTests
         Assert.AreEqual(6296, ((TrackBarControl)detail.ActiveEditor!).Value);
         Assert.AreEqual(-1L, player.Transport.TakeSeek());
         ((TrackBarControl)detail.ActiveEditor!).Value = 5000;
-        Assert.AreEqual(TimeSpan.FromSeconds(13.5).Ticks, player.Transport.TakeSeek());
+        var requested = TimeSpan.FromSeconds(13.5);
+        renderPlayer.Invoke(page, []);
+        Assert.AreEqual(5000, ((TrackBarControl)detail.ActiveEditor!).Value);
+        Assert.AreEqual("00:13", detail.GetRowCellValue(0, "Elapsed"));
+        Assert.AreEqual(requested.Ticks, player.Transport.TakeSeek());
+        player.Transport.SetPosition(TimeSpan.FromSeconds(17.5));
+        renderPlayer.Invoke(page, []);
+        Assert.AreEqual(5000, ((TrackBarControl)detail.ActiveEditor!).Value);
+
+        // A newer seek takes precedence when the previous one finishes.
+        ((TrackBarControl)detail.ActiveEditor!).Value = 2500;
+        player.Transport.SetPosition(requested);
+        player.Transport.CompleteSeek();
+        renderPlayer.Invoke(page, []);
+        Assert.AreEqual(2500, ((TrackBarControl)detail.ActiveEditor!).Value);
+        var latest = TimeSpan.FromSeconds(6.75);
+        Assert.AreEqual(latest.Ticks, player.Transport.TakeSeek());
+        player.Transport.SetPosition(latest);
+        player.Transport.CompleteSeek();
+        player.Transport.SetPosition(TimeSpan.FromSeconds(9));
+        renderPlayer.Invoke(page, []);
+        Assert.AreEqual(3333, ((TrackBarControl)detail.ActiveEditor!).Value);
+        Assert.AreEqual(-1L, player.Transport.TakeSeek());
         detail.HideEditor();
         var toggle = typeof(HistoryPage).GetMethod("TogglePlayer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         toggle.Invoke(page, []);

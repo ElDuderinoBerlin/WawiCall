@@ -88,7 +88,7 @@ public sealed partial class AppShellTests
 
             var seekTo = TimeSpan.FromSeconds(4);
             transport.Seek(seekTo);
-            await WaitForAsync(() => transport.Position >= seekTo);
+            await WaitForAsync(() => !transport.SeekPending && transport.Position >= seekTo);
             Assert.AreEqual(seekTo, transport.Position);
             transport.Paused = false;
             await playing.WaitAsync(timeout.Token);
