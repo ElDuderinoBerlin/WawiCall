@@ -6,7 +6,16 @@ namespace WawiCallPro.Core.Audio;
 /// <summary>Validated seekable PCM16 WAV metadata shared by recording, mixing and conversion services.</summary>
 public sealed record PcmWaveHeader(int SampleRate, int Channels, long DataOffset, long DataLength)
 {
-    public TimeSpan Duration => TimeSpan.FromSeconds(DataLength / (double)(SampleRate * Channels * 2));
+    public TimeSpan Duration
+    {
+        get
+        {
+            // Use the same rounding as the recording journal, including half-tick frame boundaries.
+            var frames = DataLength / (Channels * 2);
+            var ticks = ((Int128)frames * TimeSpan.TicksPerSecond + SampleRate / 2) / SampleRate;
+            return TimeSpan.FromTicks(checked((long)ticks));
+        }
+    }
 
     // Reject unfinished RIFF sizes and truncated chunks before a native decoder sees the input.
     public static PcmWaveHeader Read(Stream stream, CancellationToken token)

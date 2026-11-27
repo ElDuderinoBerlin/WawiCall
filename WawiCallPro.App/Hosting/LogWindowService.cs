@@ -74,7 +74,7 @@ internal sealed class UiLogProvider(LogWindowService logs) : ILoggerProvider
                 OperationEvent.RecordingArchiveSwitchPending => "Der Aufnahmeordner konnte noch nicht gewechselt werden. WawiCallPro verwendet weiterhin den bisherigen Ordner. Weitere WawiCallPro-Prozesse schließen und Zielordner sowie vorhandene Dateien prüfen.",
                 OperationEvent.RecordingDirectoryInventoryIncomplete => "Die Bestandsaufnahme des Aufnahmeordners konnte nicht vollständig durchgeführt werden. Eine vollständige Zuordnung der Dateien ist damit nicht bestätigt. Die Bestandsaufnahme verändert keine Dateien oder Datenbankeinträge.",
                 OperationEvent.RecordingConversionInterrupted => "Unterbrochene Aufnahmekonvertierungen wurden als fehlgeschlagen markiert. Die WAV-Aufnahmen und vorhandene temporäre Dateien bleiben erhalten.",
-                OperationEvent.RecordingConversionQueueIncomplete => "Die Konvertierungswarteschlange konnte nicht alle Aufträge abschließen. Nicht gestartete Aufträge und geschützte Abschlüsse bleiben erhalten; fehlgeschlagene Aufträge werden nicht automatisch erneut eingereiht.",
+                OperationEvent.RecordingConversionQueueIncomplete => "Konvertierungswarteschlange: Aufträge stehen noch aus oder sind fehlgeschlagen.",
                 OperationEvent.LiveRecordingSignalMissing => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.SignalMissing),
                 OperationEvent.LiveRecordingInputFailed => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.InputFailed),
                 OperationEvent.LiveRecordingStorageFailed => LiveRecordingMessages.Failure(WawiCallPro.Interfaces.Audio.LiveRecordingFailure.StorageFailed),

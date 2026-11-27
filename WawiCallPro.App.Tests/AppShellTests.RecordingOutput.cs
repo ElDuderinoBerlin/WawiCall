@@ -176,7 +176,8 @@ public sealed partial class AppShellTests
         };
         var stored = await calls.WriteAsync(new(call, null, [], [], origin));
         var recording = new Recording(Guid.NewGuid(), call.Id, $"{call.Id:N}.wav", "wav", null, RecordingAvailability.Pending);
-        var frames = rate;
+        // This frame count previously rounded one tick below the persisted duration.
+        var frames = rate == 16000 ? 16016 : rate;
         var blockAlign = channels * sizeof(short);
         var dataBytes = frames * blockAlign;
         await journal.BeginAsync(new(recording, null, now),
@@ -192,7 +193,7 @@ public sealed partial class AppShellTests
                 if (channels == 2) writer.Write((short)(9000 * Math.Sin(2 * Math.PI * 660 * frame / rate)));
             }
         }
-        var end = now.AddSeconds(1);
+        var end = now.AddTicks(((long)frames * TimeSpan.TicksPerSecond + rate / 2) / rate);
         var capture = new RecordingCapture(recording.Id, call.Id, now, end, PcmRecordingState.Completed, rate, channels, frames);
         await journal.WriteAsync(new(recording with { Availability = RecordingAvailability.Available, Duration = capture.Duration }, 1, end),
             new(capture, 1, end));

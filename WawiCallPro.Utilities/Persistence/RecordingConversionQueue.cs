@@ -90,6 +90,8 @@ public sealed class RecordingConversionQueue(IRecordingConversionBatch batch, IL
     public void Request() => _requests.Writer.TryWrite(0);
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        int? previousDeferred = null;
+        var batchUnavailable = false;
         try
         {
             await foreach (var request in _requests.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
@@ -97,10 +99,21 @@ public sealed class RecordingConversionQueue(IRecordingConversionBatch batch, IL
                 try
                 {
                     var result = await batch.RunAsync(stoppingToken).ConfigureAwait(false);
-                    if (result.Failed > 0 || result.Deferred > 0) OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete);
+                    if (result.Failed > 0 || result.Deferred > 0 &&
+                        (result.Completed > 0 || previousDeferred != result.Deferred))
+                    {
+                        OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete);
+                    }
+                    previousDeferred = result.Deferred > 0 ? result.Deferred : null;
+                    batchUnavailable = false;
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-                catch (Exception) { OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete); }
+                catch (Exception)
+                {
+                    if (!batchUnavailable) OperationEvents.Write(log, OperationEvent.RecordingConversionQueueIncomplete);
+                    batchUnavailable = true;
+                    previousDeferred = null;
+                }
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

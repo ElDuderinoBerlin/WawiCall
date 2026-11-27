@@ -109,6 +109,29 @@ public sealed class RecordingConversionQueueTests
         worker.Request(); await next.Task.WaitAsync(TimeSpan.FromSeconds(5)); await worker.StopAsync(default); Assert.AreEqual(2, calls);
     }
 
+    [TestMethod]
+    public async Task RepeatedDeferralWarnsOnceUntilTheQueueRecovers()
+    {
+        var log = new QueueLog();
+        using var invoked = new SemaphoreSlim(0);
+        var results = new Queue<RecordingConversionBatchResult>([new(0, 0, 1), new(0, 0, 1), new(1, 0, 0), new(0, 0, 1)]);
+        await using var worker = new RecordingConversionQueue(new Batch(_ =>
+        {
+            var result = results.Dequeue();
+            invoked.Release();
+            return Task.FromResult(result);
+        }), log);
+
+        await worker.StartAsync(default);
+        for (var i = 0; i < 4; i++)
+        {
+            worker.Request();
+            Assert.IsTrue(await invoked.WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+        await worker.StopAsync(default);
+        Assert.AreEqual(2, log.WarningCount);
+    }
+
     private static StoredRecordingConversion MakeJob(RecordingConversionState state = RecordingConversionState.Pending)
     {
         var now = DateTimeOffset.UtcNow;
@@ -146,9 +169,10 @@ public sealed class RecordingConversionQueueTests
     private sealed class QueueLog : ILogger<RecordingConversionQueue>
     {
         internal readonly TaskCompletionSource Warned = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal int WarningCount { get; private set; }
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null; public bool IsEnabled(LogLevel level) => true;
         public void Log<TState>(LogLevel level, EventId id, TState state, Exception? error, Func<TState, Exception?, string> formatter)
-        { Assert.IsNull(error); Assert.AreEqual(LogLevel.Warning, level); Assert.IsTrue(OperationEvents.TryGetEvent(state, out var value)); Assert.AreEqual(OperationEvent.RecordingConversionQueueIncomplete, value); Warned.TrySetResult(); }
+        { Assert.IsNull(error); Assert.AreEqual(LogLevel.Warning, level); Assert.IsTrue(OperationEvents.TryGetEvent(state, out var value)); Assert.AreEqual(OperationEvent.RecordingConversionQueueIncomplete, value); WarningCount++; Warned.TrySetResult(); }
     }
 }
 
