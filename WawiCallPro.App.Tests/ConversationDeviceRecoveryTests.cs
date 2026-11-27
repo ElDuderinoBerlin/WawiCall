@@ -21,6 +21,42 @@ public sealed class ConversationDeviceRecoveryTests
     private static readonly AudioFormat Pcmu = new(SDPWellKnownMediaFormatsEnum.PCMU);
 
     [TestMethod]
+    public async Task ConversationOutputFadesInWithoutChangingTheObservedPcm()
+    {
+        using var codec = new AudioEncoder();
+        await using var observed = new PcmObservingAudioEncoder(codec);
+        var observer = new ReceivedPcmProbe();
+        await using var subscription = observed.Subscribe(observer);
+        var output = new ConversationPlaybackEncoder(observed);
+        var silence = codec.EncodeAudio(new short[160], Pcmu);
+        Assert.IsTrue(output.DecodeAudio(silence, Pcmu).All(sample => sample == 0));
+
+        var packet = codec.EncodeAudio(Enumerable.Repeat((short)12000, 80).ToArray(), Pcmu);
+        var expected = codec.DecodeAudio(packet, Pcmu);
+        var first = output.DecodeAudio(packet, Pcmu);
+        CollectionAssert.AreEqual(expected, observer.Samples);
+        Assert.AreEqual((short)0, first[0]);
+        Assert.IsTrue(first[^1] > 0 && first[^1] < expected[^1]);
+
+        var second = output.DecodeAudio(packet, Pcmu);
+        Assert.IsTrue(second[0] > first[^1]);
+        Assert.AreEqual(expected[^1], second[^1]);
+        CollectionAssert.AreEqual(expected, observer.Samples);
+        CollectionAssert.AreEqual(expected, output.DecodeAudio(packet, Pcmu));
+    }
+
+    private sealed class ReceivedPcmProbe : IConversationPcmObserver
+    {
+        public short[] Samples { get; private set; } = [];
+
+        public bool TryObserve(ConversationAudioSide side, int sampleRate, int channels, ReadOnlySpan<short> samples)
+        {
+            if (side == ConversationAudioSide.Received) Samples = samples.ToArray();
+            return true;
+        }
+    }
+
+    [TestMethod]
     public async Task AutomaticSipBindAdvertisesAReachableAudioAddressInAnOutgoingOffer()
     {
         using var services = new ServiceCollection().AddAudioConversion().AddLogging().BuildServiceProvider();

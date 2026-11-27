@@ -42,7 +42,8 @@ internal sealed class ConversationAudioHardware : IConversationAudioHardware
         WindowsAudioEndPoint? endpoint = null;
         try
         {
-            endpoint = new(encoder, capture ? null : device, capture ? device : null, capture == false, capture,
+            IAudioEncoder deviceEncoder = capture ? encoder : new ConversationPlaybackEncoder(encoder);
+            endpoint = new(deviceEncoder, capture ? null : device, capture ? device : null, capture == false, capture,
                 format, allowDeviceFallback: false);
             if (capture ? !endpoint.IsAudioSourceInitialized : !endpoint.IsAudioSinkInitialized)
                 throw new InvalidOperationException("The Windows conversation audio device could not be opened.");

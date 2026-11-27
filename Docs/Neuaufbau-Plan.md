@@ -3752,6 +3752,9 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   anschließend Stille, damit der WASAPI-Puffer vor dem Öffnen des Gesprächsaudios ablaufen kann.
   Pro Debug prüft den Stereo-Auslauf samplegenau, die erneute native WASAPI-Initialisierung und
   die Freigabe bei sechs SIP-Zustandsübergängen.
+  ✅ Jede neu geöffnete CSCore-Gesprächsausgabe blendet die ersten hörbaren PCM-Frames über
+  15 ms ein. Der Pro-Debug-Test vergleicht die vor der Ausgabebearbeitung beobachteten Samples
+  mit dem unveränderten RTP-PCM. Ein stummer nativer WASAPI-Test prüft zwei Ausgabegeräte.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
   `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen
