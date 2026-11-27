@@ -587,3 +587,8 @@ URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Ab
   auf die Einschränkung per Exchange **RBAC for Applications** bzw. Application Access Policy hinweisen und
   das in der CRA-Bedrohungsanalyse festhalten. Optional prüfen, ob die Antwort für ein fremdes Postfach
   abgelehnt wird (Testkonto).
+- ⬜ **OF-02 · Niedrig · Gmail-Import übernimmt Spam und Papierkorb** – `GmailConnector`
+  ([Z. 35](../WawiCallPro.Office/GmailConnector.cs)) fragt mit `includeSpamTrash=true` ab. Spam- und
+  gelöschte Nachrichten landen damit im lokalen Mail-Cache und in der Kundenansicht. Das erhöht das Risiko
+  durch Phishing-Inhalte und widerspricht der Datensparsamkeit für bewusst gelöschte Mails.
+  → Standardmäßig `false` setzen und höchstens pro Ordner gezielt zulassen.
