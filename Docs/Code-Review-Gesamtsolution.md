@@ -282,7 +282,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Utilities | UT | ~8 380 | ✅ (B7) |
 | WawiCallPro.Office | OF | ~1 740 | ✅ (B8) |
 | WawiCallPro.Interfaces | IF | ~2 140 | ⬜ |
-| WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ⬜ |
+| WawiCallPro.Plugins.Lexware.Pro / .FinOffice | LX | ~1 800 | ✅ (B9) |
 | WawiCallPro.Plugin.Windows | PW | ~1 110 | ⬜ |
 | WawiCallPro.Console | CN | ~880 | ⬜ |
 | WawiCallPro.PhoneMenu, Plugins.JtlWawi, Functions.Dummy* | KL | <200 | ⬜ |
@@ -600,7 +600,11 @@ URLs sind gegen Host, UserInfo, Fragment und Länge abgesichert (`MailHttp`), Ab
   durch Phishing-Inhalte und widerspricht der Datensparsamkeit für bewusst gelöschte Mails.
   → Standardmäßig `false` setzen und höchstens pro Ordner gezielt zulassen.
 
-## B9 – WawiCallPro.Plugins.Lexware.Pro / .FinOffice ⬜ in Arbeit (Stand 27.11.2026)
+## B9 – WawiCallPro.Plugins.Lexware.Pro / .FinOffice ✅ gelesen (27 Dateien, Stand 27.11.2026)
+
+Gut gelöst: Fehler werden auf feste Codes abgebildet, Upstream-Logs sind abgeschaltet (Rohantworten,
+Logindaten), Standardmandant 1 wird nicht implizit gewählt, Mandanten sind an die Installations-ID gebunden,
+FinOffice-Zugriffe laufen nur lesend, Redirects sind deaktiviert. Siehe auch T-03 (Ursache in `ProApiSession`).
 
 - ⬜ **LX-01 · Mittel · Zugangsdaten an die Lexware-API ggf. unverschlüsselt im Netz** –
   `ProInstallationSource.Detect` ([Z. 101–107](../WawiCallPro.Plugins.Lexware.Pro/ProInstallationSource.cs))
