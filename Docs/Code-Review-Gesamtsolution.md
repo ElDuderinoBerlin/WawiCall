@@ -277,7 +277,7 @@ Befundnummern: `<Kürzel>-NN`.
 | WawiCallPro.Audio | AU | ~6 450 | ✅ (B1) |
 | WawiCallPro.Telephony.Sip / WawiCallPro.Telephony | TS | ~1 670 | ✅ (B2) |
 | WawiCallPro.Automation / .Automation.Contracts | AT | ~930 | ✅ (B3) |
-| WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | 🟨 (B4, Views offen) |
+| WawiCallPro.App (Hosting, Views, MainForm) | AP | ~16 460 | ✅ (B4) |
 | WawiCallPro.Core | CO | ~1 940 | ✅ (B5) |
 | WawiCallPro.Database | DB | ~5 500 | ✅ (B6) |
 | WawiCallPro.Utilities | UT | ~8 380 | ✅ (B7) |
@@ -425,7 +425,7 @@ CLR-Schnittstellen. Die Klassenfabrik schreibt keine Registry-Einträge.
   → Fachlich entscheiden: Telefonie-Automation per Einstellung freischalten (Standard aus), Rückfrage oder
   Sperrliste für Sonderrufnummern, Mengenbegrenzung. Entscheidung in der CRA-Bedrohungsanalyse dokumentieren.
 
-## B4 – WawiCallPro.App 🟨 teilweise gelesen (Stand 27.11.2026)
+## B4 – WawiCallPro.App ✅ gelesen (Kernpfade, Stand 27.11.2026)
 
 Vollständig gelesen: `Program.cs`, `AppApplicationContext`, `StartupSplash`/`StartupFocusHandoff`,
 `AppInstanceGuard`, `AppExceptionBoundary`, `AppStartArguments`, `AppComIdentity`, `UserComRegistration`
@@ -477,8 +477,9 @@ Arbeitsbereich angepasst. Browse-Dialoge laufen über `XtraOpen/SaveFileDialog` 
   laufen, bis zufällig eine GC die Fassaden finalisiert hat. Zusätzlich wird im Finalizer-Thread ein
   Lock genommen. → Clients über das deterministische native `Release` (`AutomationDispatch`/`ServerLock`)
   zählen und auf den Finalizer verzichten.
-- 🟨 **AP-99 · Teilweise · Restliche Views und `MainForm.*`** – Inzwischen ebenfalls gelesen:
-  `MainForm.cs` (Start, Schließpfad `PrepareToCloseAsync`), `MainForm.PluginShell`/`.Companies` (abgesicherte
+- ✅ **AP-99 · Abgeschlossen · Restliche Views und `MainForm.*`** – Ebenfalls gelesen:
+  `MainForm.cs` (Start, Schließpfad `PrepareToCloseAsync`), `CallerLookupPage` (AP-07), `HistoryPage.LoadCallsAsync` (AP-08),
+  `FrmDatabaseSetup` (Freigabe leerer Datenbanken, geordnetes Schließen), `MainForm.PluginShell`/`.Companies` (abgesicherte
   Hintergrundaufgaben), `FrmSettings` und `SettingsPage` (Speichern/Schließen, siehe AP-06), `FrmDial` und
   `.Search` (abgesicherte Suche, geordnetes Schließen), `FrmAnnouncements` (Entwurfsdateien) sowie die
   Lexware-Sperre (`AppWorkspace.CanUseBusinessDirectory` → `ProductPluginRuntime.CanActivate`/`EnsureAvailable`,
