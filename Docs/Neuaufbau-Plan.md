@@ -3763,6 +3763,13 @@ Audio-Aufgaben ergänzen laufende Medienverarbeitung und Dateibearbeitung; die e
   Zwei echte SIP-Anrufe verglichen die bisherige Paket-DLL und die lokal gebaute DLL in Pro Debug.
   Der Knackser blieb im zweiten Anruf hörbar. Der RTP-Mitschnitt brach im ersten Lauf mit
   `TimelineConflict` ab. Im zweiten Lauf wurden WAV und MP3 erfolgreich gespeichert.
+  ✅ Pro Debug erfasste bei einem weiteren echten SIP-Anruf den WASAPI-Loopback und die ersten
+  32 decodierten RTP-Frames auf derselben QPC-Zeitbasis. Ab rund 60 ms nach dem Annehmen bis
+  450 ms lagen die erfassten Loopback-Samples bei null. Die Gesprächsausgabe öffnete bei
+  rund 370 ms, der erste decodierte RTP-Frame kam bei rund 385 ms. In den ersten vier
+  RTP-Frames lag der Spitzenwert bei 3 von 32768. Beide digitalen Mitschnitte zeigen für
+  den gemeldeten einzelnen Knackser keinen entsprechenden Impuls. Die Ursache
+  am tatsächlichen Audioausgang oder an der Gegenstelle bleibt offen.
   Siehe [Architektur](Architektur.md#lokaler-klingelton).
 - [x] ✅ CSCore-Gerätepegel in den Audio-Einstellungen und beim Aufnehmen und Vorhören von Ansagen.
   `AudioMeterInformation` liest den Pegel des gewählten Windows-Endpunkts. In den Einstellungen
