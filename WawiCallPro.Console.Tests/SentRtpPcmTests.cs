@@ -21,6 +21,43 @@ namespace WawiCallPro.Console.Tests;
 public sealed partial class SentRtpPcmTests
 {
     [TestMethod]
+    public async Task RtpDtmfReachesThePeerWhileCaptureKeepsItsSentPcmSubscription()
+    {
+        await using var fixture = new Fixture();
+        await fixture.Connect();
+        using var files = new RecordingFiles();
+        await using var recording = await Sessions().StartAsync(files.Request(8000));
+        await using var binding = new SentPcmRecordingBindingFactory().Attach(fixture.Tap, recording, Anchor(fixture));
+        var observer = new Observer();
+        await using var subscription = fixture.Tap.Subscribe(observer);
+        var first = Samples(160, 0);
+        var last = Samples(160, 2);
+        fixture.Capture(first);
+        var before = (await fixture.Packets(1)).Single();
+
+        var tone = fixture.Media.SendDtmf(5, default);
+        Assert.IsFalse(tone.IsCompleted);
+        fixture.Capture(Samples(160, 1));
+        await tone;
+        Assert.AreEqual((byte)5, await fixture.DtmfReceived.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+
+        fixture.Capture(last);
+        var after = (await fixture.Packets(1)).Single();
+        Assert.AreEqual(unchecked(before.Header.Timestamp + 160 + RTPSession.DTMF_EVENT_DURATION), after.Header.Timestamp);
+        Assert.AreEqual(2, observer.Frames.Count);
+        Assert.IsFalse(subscription.Completion.IsCompleted);
+        await binding.DisposeAsync();
+        Assert.IsNull(await binding.Completion);
+        var duration = binding.LastWindowEnd;
+        await recording.StopAsync(duration);
+        var pcm = files.Read(8000, checked((int)(duration.Ticks * 8000 / TimeSpan.TicksPerSecond)));
+        var sent = pcm.Where((_, index) => index % 2 == 0).ToArray();
+        CollectionAssert.AreEqual(first, sent[..160]);
+        Assert.IsTrue(sent[160..^160].All(sample => sample == 0));
+        CollectionAssert.AreEqual(last, sent[^160..]);
+    }
+
+    [TestMethod]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMA)]
     [DataRow(SDPWellKnownMediaFormatsEnum.PCMU)]
     [DataRow(SDPWellKnownMediaFormatsEnum.G722)]
@@ -277,6 +314,7 @@ public sealed partial class SentRtpPcmTests
         private readonly RTPSession _receiver = new(false, false, false, IPAddress.Loopback);
         private readonly ConcurrentQueue<RTPPacket> _packets = new();
         private readonly SemaphoreSlim _arrived = new(0);
+        internal TaskCompletionSource<byte> DtmfReceived { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal Fixture(SDPWellKnownMediaFormatsEnum codec = SDPWellKnownMediaFormatsEnum.PCMA)
         {
             Format = new(codec); Tap = new(Codec); _input = new(Format.ClockRate);
@@ -284,11 +322,13 @@ public sealed partial class SentRtpPcmTests
             var manager = new MediaFormatManager<AudioFormat>([Format]); manager.SetSelectedFormat(Format);
             Field("_audioEncoder").SetValue(Endpoint, Tap); Field("_inputWaveSource").SetValue(Endpoint, _input);
             Field("_waveSourceFormat").SetValue(Endpoint, _input.WaveFormat); Field("_audioFormatManager").SetValue(Endpoint, manager);
-            Media = new(new MediaEndPoints { AudioSource = Endpoint, AudioSink = Endpoint }, IPAddress.Loopback, 0);
+            var sessionType = typeof(SipRtpPcmBridgeFactory).Assembly.GetType("WawiCallPro.Audio.ConversationVoipMediaSession", throwOnError: true)!;
+            Media = (VoIPMediaSession)Activator.CreateInstance(sessionType, new MediaEndPoints { AudioSource = Endpoint, AudioSink = Endpoint }, IPAddress.Loopback)!;
             Bridge = new SipRtpPcmBridgeFactory(new RtpAudioPacketBufferFactory(TimeProvider.System), TimeProvider.System,
                 NullLogger<SipRtpPcmBridgeFactory>.Instance).Create(Media, Endpoint, Tap);
             _receiver.addTrack(new MediaStreamTrack(new List<AudioFormat> { Format }));
             _receiver.OnRtpPacketReceived += (_, type, packet) => { if (type == SDPMediaTypesEnum.audio) { _packets.Enqueue(packet); _arrived.Release(); } };
+            _receiver.OnRtpEvent += (_, tone, _) => { if (tone.EndOfEvent) DtmfReceived.TrySetResult(tone.EventID); };
         }
         internal async Task Connect()
         {

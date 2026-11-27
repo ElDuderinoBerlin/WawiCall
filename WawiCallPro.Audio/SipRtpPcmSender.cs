@@ -15,12 +15,14 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
     private readonly Dictionary<int, Pending> _pending = new();
     private readonly TaskCompletionSource _drained = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _closed;
+    private bool _dtmfActive;
     private int _inflight, _sendThread;
 
     internal SipRtpPcmSender(VoIPMediaSession media, PcmObservingAudioEncoder pcm)
     {
         _media = media; _source = media.Media.AudioSource; _pcm = pcm;
         pcm.AttachSender(this);
+        if (media is ConversationVoipMediaSession conversation) conversation.PcmSender = this;
         _source.OnAudioSourceEncodedSample -= media.SendAudio;
         _source.OnAudioSourceEncodedSample += Send;
         if (!ReferenceEquals(_source, media.AudioExtrasSource))
@@ -46,6 +48,25 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
 
     private void Send(uint duration, byte[] payload) => Submit(duration, payload, extras: false);
     private void SendExtras(uint duration, byte[] payload) => Submit(duration, payload, extras: true);
+
+    internal async Task SendDuringDtmfAsync(Func<Task> send, CancellationToken token)
+    {
+        await _serial.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (_dtmfActive) throw new InvalidOperationException("Ein RTP-Tonwahlsignal wird bereits gesendet.");
+            _dtmfActive = true;
+        }
+        finally { _serial.Release(); }
+        try { await send().ConfigureAwait(false); }
+        finally
+        {
+            await _serial.WaitAsync().ConfigureAwait(false);
+            try { _dtmfActive = false; }
+            finally { _serial.Release(); }
+        }
+    }
+
     private void Submit(uint duration, byte[] payload, bool extras)
     {
         Pending? pending = null;
@@ -62,6 +83,9 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
             { Fail(); _media.SendAudio(duration, payload); return; }
             _serial.Wait(); entered = true;
             Volatile.Write(ref _sendThread, Environment.CurrentManagedThreadId);
+            // SIPSorcery suppresses voice RTP during telephone-event. Drop the paired source block
+            // without reporting missing PCM metadata or adding audio that was never sent.
+            if (_dtmfActive) return;
             var track = _media.AudioStream?.LocalTrack;
             var timestamp = track?.Timestamp ?? 0; var ssrc = track?.Ssrc ?? 0;
             _media.SendAudio(duration, payload);
@@ -103,6 +127,7 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
         {
             if (_closed) return new(_drained.Task);
             _closed = true;
+            if (_media is ConversationVoipMediaSession conversation) conversation.PcmSender = null;
             _source.OnAudioSourceEncodedSample -= Send;
             if (!ReferenceEquals(_source, _media.AudioExtrasSource)) _media.AudioExtrasSource.OnAudioSourceEncodedSample -= SendExtras;
             _pcm.DetachSender(this);

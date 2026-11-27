@@ -372,10 +372,20 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
         const string digits = "0123456789*#ABCD";
         var code = digits.IndexOf(char.ToUpperInvariant(digit));
         if (code < 0) throw new TelephonyException("InvalidDtmf");
-        if (_account!.Connection.DtmfMethod == SipDtmfMethod.SipInfo)
+        if (_account!.Connection.DtmfMethod == SipDtmfMethod.SipInfo
+            || agent.UserAgent.MediaSession is RTPSession rtp
+                && (rtp.AudioStream is not { } audio || audio.RemoteTrack?.Capabilities.Any(format => format.ID == audio.NegotiatedRtpEventPayloadID
+                    && string.Equals(format.Name(), SDP.TELEPHONE_EVENT_ATTRIBUTE, StringComparison.OrdinalIgnoreCase)) != true))
             await SendDtmfInfoAsync(agent, digits[code], cancellationToken).ConfigureAwait(false);
         else
-            await agent.UserAgent.SendDtmf((byte)code).WaitAsync(cancellationToken).ConfigureAwait(false);
+        {
+            using var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Stopping.Token);
+            try { await agent.UserAgent.MediaSession.SendDtmf((byte)code, stopping.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) when (agent.Stopping.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            { throw new TelephonyException("NotConnected"); }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (agent.Stopping.IsCancellationRequested) throw new TelephonyException("NotConnected");
+        }
     }, cancellationToken);
 
     private async Task SendDtmfInfoAsync(Agent agent, char digit, CancellationToken cancellationToken)

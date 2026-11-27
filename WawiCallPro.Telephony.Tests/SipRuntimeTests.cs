@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging.Abstractions;
 using SIPSorcery.Media;
+using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 using WawiCallPro.Interfaces.Companies;
@@ -432,6 +433,52 @@ public sealed partial class SipRuntimeTests
         Assert.AreEqual("Signal=A\r\nDuration=250\r\n", info[1].Body);
         Assert.AreEqual(info[0].Header.CSeq + 1, info[1].Header.CSeq);
         await fixture.Runtime.HangUpAsync(id);
+    }
+
+    [TestMethod]
+    public async Task RtpDtmfUsesSipInfoWhenPeerDoesNotOfferTelephoneEvent()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        using var transport = new SIPTransport();
+        var channel = new SIPUDPChannel(new IPEndPoint(IPAddress.Loopback, 0));
+        transport.AddSIPChannel(channel);
+        using var peer = new SIPUserAgent(transport, null, false);
+        using var media = new NoTelephoneEventAnswer();
+        var info = new TaskCompletionSource<SIPRequest>(TaskCreationOptions.RunContinuationsAsynchronously);
+        transport.SIPTransportRequestReceived += (_, _, request) =>
+        {
+            if (request.Method == SIPMethodsEnum.INFO)
+            {
+                info.TrySetResult(request);
+                var transaction = new SIPNonInviteTransaction(transport, request, null);
+                transaction.SendResponse(SIPResponse.GetResponse(request, SIPResponseStatusCodesEnum.Ok, null));
+            }
+            return Task.CompletedTask;
+        };
+        peer.OnIncomingCall += async (agent, request) => await agent.Answer(agent.AcceptCall(request), media);
+        var id = await fixture.Runtime.DialAsync(new CompanyKey(LexwareProductLine.Pro, "isolated-sip", "1"),
+            $"sip:peer@127.0.0.1:{channel.Port}");
+        await UntilAsync(() => fixture.Runtime.GetCalls().Single().State == CallState.Connected);
+
+        await fixture.Runtime.SendDtmfAsync(id, '5');
+        var delivered = await info.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreEqual("Signal=5\r\nDuration=250\r\n", delivered.Body);
+        await fixture.Runtime.HangUpAsync(id);
+    }
+
+    private sealed class NoTelephoneEventAnswer() : VoIPMediaSession(
+        format => format.Codec == SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMA, noDtmfSupport: true)
+    {
+        public override SDP CreateAnswer(IPAddress connectionAddress)
+        {
+            var answer = base.CreateAnswer(connectionAddress);
+            foreach (var audio in answer.Media.Where(media => media.Media == SDPMediaTypesEnum.audio))
+            foreach (var format in audio.MediaFormats.Values.Where(format => format.Name() == SDP.TELEPHONE_EVENT_ATTRIBUTE).ToArray())
+                audio.MediaFormats.Remove(format.ID);
+            return answer;
+        }
     }
 
     private sealed class Fixture : IAsyncDisposable

@@ -384,14 +384,15 @@ Gesprächsprotokollierung benötigt diese Funktion nicht, interaktive Telefonie 
 
 | Aufgabe | Vorgesehene Umsetzung |
 |---|---|
-| Ziffern im aufgebauten Gespräch senden | Über das vorhandene `ITelephonyService.SendDtmfAsync`; SIPSorcery-Adapter verwendet `SIPUserAgent.SendDtmf` |
+| Ziffern im aufgebauten Gespräch senden | `ITelephonyService.SendDtmfAsync` sendet ausgehandelte RTP-Telefonieereignisse über die SIPSorcery-Mediensitzung. Bei fehlender Aushandlung oder konfiguriertem SIP-INFO-Modus wird SIP INFO verwendet. |
 | Empfangene Ziffern für eigene Telefonmenüs | RTP-Empfang über `OnDtmfTone` in ein technikunabhängiges, einem Gespräch zugeordnetes Ereignis übersetzen; der gemeinsame Empfangsvertrag fehlt noch |
 | Tatsächliche DTMF-Töne im Audiosignal erkennen | Separater optionaler Audio-Detektor hinter Interface/DI, erst bei nachgewiesenem Bedarf für In-band-DTMF oder Dateianalyse |
 
 Der SIP-Pfad verwendet ausgehandelte RTP-Telefonieereignisse gemäß RFC 4733, häufig weiterhin
 „RFC 2833“ genannt. Empfangene RTP-Pakete sind nicht jeweils ein neuer Tastendruck; vollständige
-Ereignisse müssen sauber zugeordnet und Mehrfachmeldungen vermieden werden. Andere DTMF-Verfahren
-wie SIP INFO oder In-band werden nur für tatsächlich benötigte, geprüfte Anlagenprofile ergänzt.
+Ereignisse müssen sauber zugeordnet und Mehrfachmeldungen vermieden werden. Während eines gesendeten
+RTP-Telefonieereignisses setzt SIPSorcery das Senden von Sprachpaketen aus. Die PCM-Aufnahme behält
+den RTP-Zeitversatz als Stille bei und zeichnet die nächsten gesendeten Sprachpakete weiter auf.
 
 In `D:\Application-Development\WawiCallPro_old\WawiCallPro.old.sln` stehen `DtmfDetection`,
 `DtmfDetection.CSCore` und `DtmfDetector`. Die ersten beiden sind .NET-Framework-4.8-Bibliotheken für

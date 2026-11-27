@@ -57,8 +57,8 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
             var bindAddress = IPAddress.Parse(connection.BindAddress);
             // The SDK advertises an explicitly supplied wildcard in an initial SDP offer.
             // An unspecified media bind lets it select a usable local address for SDP.
-            media = new VoIPMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio },
-                bindAddress.Equals(IPAddress.Any) ? null : bindAddress, 0)
+            media = new ConversationVoipMediaSession(new MediaEndPoints { AudioSource = audio, AudioSink = audio },
+                bindAddress.Equals(IPAddress.Any) ? null : bindAddress)
                 { AcceptRtpFromAny = connection.AcceptRtpFromAny };
             receive = bridges.Create(media, audio, pcm);
             return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media), pcm, receive),
