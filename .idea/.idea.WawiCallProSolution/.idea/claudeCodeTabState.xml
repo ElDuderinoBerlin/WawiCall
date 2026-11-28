@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ClaudeCodeTabState">
+    <option name="tabSessions">
+      <map>
+        <entry key="0">
+          <value>
+            <TabSessionState>
+              <option name="projectPath" value="D:\Application-Development\WawiCallPro" />
+              <option name="provider" value="claude" />
+              <option name="sessionId" value="c2b18e13-ed42-4275-83de-334c16417875" />
+              <option name="cwd" value="D:\Application-Development\WawiCallPro" />
+              <option name="model" value="claude-opus-5-5[1m]" />
+              <option name="permissionMode" value="bypassPermissions" />
+              <option name="claudeSupplierId" value="__cli_login__" />
+              <option name="codexSupplierId" value="__codex_cli_login__" />
+              <option name="ompApprovalMode" value="" />
+            </TabSessionState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

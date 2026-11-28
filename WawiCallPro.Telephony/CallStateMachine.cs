@@ -22,7 +22,7 @@ public enum CallChangeResult
 /// </summary>
 public sealed class CallStateMachine
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private CallSnapshot _current;
 
     /// <summary>Accepts a new or persisted snapshot; invalid persisted state is rejected rather than repaired silently.</summary>

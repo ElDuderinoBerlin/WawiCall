@@ -66,9 +66,9 @@ internal static class Program
         try
         {
             if (args is not ["--activate-existing", var profile] || !Path.IsPathFullyQualified(profile)) return 2;
-            var application = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
+            var application = Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
             using var instance = new AppInstanceGuard(application,
-                new WawiCallPro.Utilities.Operations.ApplicationPaths(new ConfigurationLocation(profile)));
+                new Utilities.Operations.ApplicationPaths(new ConfigurationLocation(profile)));
             if (instance.TryAcquire()) return 2;
             instance.RequestExistingInstanceActivation();
             return 0;
@@ -93,7 +93,7 @@ internal static class Program
             var documentationProfile = documentation ? Directory.CreateTempSubdirectory("WawiCallPro-docs-").FullName : null;
             if (documentationProfile is not null)
                 Environment.SetEnvironmentVariable("WAWICALLPRO_CONFIG_DIR", documentationProfile);
-            var descriptor = WawiCallPro.Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
+            var descriptor = Utilities.Hosting.ApplicationDescriptor.FromAssembly(typeof(Program).Assembly);
             var identity = AppComIdentity.Resolve(start, descriptor);
             bootstrap = AppBootstrap.Create();
             exceptions = bootstrap.GetRequiredService<AppExceptionBoundary>();

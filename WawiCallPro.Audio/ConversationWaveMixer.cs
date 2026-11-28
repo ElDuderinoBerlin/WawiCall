@@ -22,7 +22,7 @@ public sealed class ConversationWaveMixer(IConversationWaveRenderer renderer) : 
         try
         {
             ConversationWaveMixResult result;
-            using (var output = OpenOutput(temporary))
+            await using (var output = OpenOutput(temporary))
             {
                 created = true;
                 result = renderer.Render(request, output, token);

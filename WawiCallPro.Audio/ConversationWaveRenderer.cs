@@ -66,7 +66,7 @@ public sealed class ConversationWaveRenderer : IConversationWaveRenderer
                         else
                         {
                             var sum = left + right;
-                            if (sum < short.MinValue || sum > short.MaxValue) clipped++;
+                            if (sum is < short.MinValue or > short.MaxValue) clipped++;
                             BinaryPrimitives.WriteInt16LittleEndian(mixed.AsSpan(frame * 2, 2), (short)Math.Clamp(sum, short.MinValue, short.MaxValue));
                         }
                     }
@@ -78,7 +78,7 @@ public sealed class ConversationWaveRenderer : IConversationWaveRenderer
             // WaveWriter versions can swallow errors while rewriting the header in Dispose.
             borrowed.ThrowIfFaulted();
             cancellationToken.ThrowIfCancellationRequested();
-            return new(request.CallId, request.RecordingId, frames, request.SampleRate, channels, clipped);
+            return new ConversationWaveMixResult(request.CallId, request.RecordingId, frames, request.SampleRate, channels, clipped);
         }
         finally
         {

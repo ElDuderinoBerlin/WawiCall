@@ -15,6 +15,7 @@ public sealed class Migration001Companies(DatabaseType databaseType) : ForwardOn
             .WithColumn("applicationid").AsString(64).NotNullable().PrimaryKey("pk_wawicallpro_metadata")
             .WithColumn("formatversion").AsInt32().NotNullable()
             .WithColumn("createdatutc").AsInt64().NotNullable();
+
         metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_applicationid", sql.TextCheck("applicationid", 64, nonBlank: true));
         metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_formatversion", sql.IntegerCheck("formatversion", 1, int.MaxValue));
         metadata.WithCheckConstraint(sql, "ck_wawicallpro_metadata_createdatutc", sql.IntegerCheck("createdatutc", 0, 3155378975999999999));
@@ -32,6 +33,7 @@ public sealed class Migration001Companies(DatabaseType databaseType) : ForwardOn
             .WithColumn("cacherefreshedatutc").AsInt64().Nullable()
             .WithColumn("createdatutc").AsInt64().NotNullable()
             .WithColumn("updatedatutc").AsInt64().NotNullable();
+
         companies.WithCheckConstraint(sql, "ck_companies_id", $"{sql.Hex(sql.Quote("id"), 32)} AND {sql.Quote("id")} <> '00000000000000000000000000000000'");
         companies.WithCheckConstraint(sql, "ck_companies_sourcehash", sql.Hex(sql.Quote("sourcehash"), 64));
         companies.WithCheckConstraint(sql, "ck_companies_productline", sql.IntegerCheck("productline", 1, 2));
@@ -45,12 +47,14 @@ public sealed class Migration001Companies(DatabaseType databaseType) : ForwardOn
         companies.WithCheckConstraint(sql, "ck_companies_updatedatutc", sql.IntegerCheck("updatedatutc", 0, 3155378975999999999));
         companies.WithCheckConstraint(sql, "ck_companies_chronology", "[createdatutc] <= [updatedatutc]");
         companies.WithCheckConstraint(sql, "ck_companies_cache", "([cacheversion] = 0 AND [cacherefreshedatutc] IS NULL) OR ([cacheversion] > 0 AND [cacherefreshedatutc] IS NOT NULL)");
+
         Create.Index("ux_companies_sourcehash").OnTable("companies").InSchema(sql.SchemaName).OnColumn("sourcehash").Ascending().WithOptions().Unique();
         Create.Index("ix_companies_productline").OnTable("companies").InSchema(sql.SchemaName).OnColumn("productline").Ascending().OnColumn("sourcehash").Ascending();
 
         var insert = Insert.IntoTable("wawicallpro_metadata");
         if (databaseType == DatabaseType.SqlServer) insert.InSchema("dbo");
         if (databaseType == DatabaseType.PostgreSql) insert.InSchema("public");
+
         insert.Row(new
         {
             applicationid = "WawiCallPro.Communications",

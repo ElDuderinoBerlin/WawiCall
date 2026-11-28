@@ -1,0 +1,23 @@
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+fehlerhaft HistoryPlaybackButtonIsPerRowAndStopsWhenThePageCloses (2s 857ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Fehler bei "Assert.IsTrue". „condition“ Ausdruck: „view.GetMasterRowExpanded(recordedRow)“. Target {X=318,Y=39}, hit RowCell, Rufnummer; MouseDown Left 1 {X=318,Y=39}; 
+    um Microsoft.VisualStudio.TestTools.UnitTesting.Assert.ThrowAssertIsTrueFailed(String message) in /_/src/TestFramework/TestFramework/Assertions/Assert.IsTrue.cs:161
+    um Microsoft.VisualStudio.TestTools.UnitTesting.Assert.IsTrue(Nullable`1 condition, String message, String conditionExpression) in /_/src/TestFramework/TestFramework/Assertions/Assert.IsTrue.cs:153
+    um WawiCallPro.App.Tests.AppShellTests.<>c.<HistoryPlaybackButtonIsPerRowAndStopsWhenThePageCloses>b__235_0(AppWorkspace workspace, IServiceProvider services, TestPlugin _) in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.HistoryPlayback.cs:84
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass192_0.<WithWorkspace>b__0() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3808
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass192_0.<WithWorkspace>b__0() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3815
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass199_1.<<RunStaAsync>b__1>d.MoveNext() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3851
+    --- End of stack trace from previous location ---
+    um WawiCallPro.App.Tests.AppShellTests.RunStaAsync(Func`1 action, TimeSpan timeout) in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3862
+    um Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.cs:408
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) fehlerhaft mit 1 Fehler(n) [+0/x1/?0] (3s 165ms)
+Exitcode: 2
+
+Testlaufzusammenfassung: Fehler!
+  gesamt: 1
+  fehlgeschlagen: 1
+  erfolgreich: 0
+  übersprungen: 0
+  Dauer: 3s 312ms
+Der Testlauf wurde mit einem nicht erfolgreichen Exitcode abgeschlossen: 2. Mindestens ein Test ist fehlgeschlagen. Siehe: https://aka.ms/testingplatform/exitcodes

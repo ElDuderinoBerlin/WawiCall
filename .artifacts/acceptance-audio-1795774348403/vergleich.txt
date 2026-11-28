@@ -1,0 +1,47 @@
+Loopback 48000 Hz, 2 channels, 32 bits, 00000003-0000-0010-8000-00aa00389b71
+answer ms/rate [(0.0, 0)] count 1
+ring-end ms/rate [(183.19, 0)] count 1
+open-output ms/rate [(369.444, 16000)] count 1
+output-open ms/rate [(381.112, 16000)] count 1
+rtp-arrival ms/rate [(361.099, 16000), (399.149, 16000), (399.76, 16000), (416.013, 16000)] count 32
+rtp-decoded ms/rate [(384.832, 16000), (399.517, 16000), (401.336, 16000), (416.606, 16000)] count 32
+decoder-output ms/rate [(396.311, 16000), (399.626, 16000), (401.457, 16000), (416.749, 16000)] count 32
+-80.0..0.0 ms: samples=7620 peak=443 rms=148.9 max-step=(124, -53.125, -11)
+0.0..60.0 ms: samples=5700 peak=191 rms=54.0 max-step=(11, 6.979166666666629, -35)
+60.0..120.0 ms: samples=5760 peak=0 rms=0.0 max-step=(0, 119.97916666666663, 0)
+120.0..200.0 ms: samples=7622 peak=0 rms=0.0 max-step=(0, 199.97916666666674, 0)
+200.0..300.0 ms: samples=9540 peak=0 rms=0.0 max-step=(0, 299.97916666666674, 0)
+300.0..450.0 ms: samples=14342 peak=0 rms=0.0 max-step=(0, 449.97916666666674, 0)
+450.0..750.0 ms: samples=28674 peak=72 rms=10.5 max-step=(26, 612.2291666666665, 22)
+ring-end �10 ms
+173.2..193.2 ms: samples=1864 peak=0 rms=0.0 max-step=(0, 193.16666666666674, 0)
+open-output �10 ms
+359.4..379.4 ms: samples=1920 peak=0 rms=0.0 max-step=(0, 379.41666666666663, 0)
+output-open �10 ms
+371.1..391.1 ms: samples=1920 peak=0 rms=0.0 max-step=(0, 391.08333333333337, 0)
+rtp-arrival �10 ms
+351.1..371.1 ms: samples=1920 peak=0 rms=0.0 max-step=(0, 371.08333333333337, 0)
+rtp-decoded �10 ms
+374.8..394.8 ms: samples=1920 peak=0 rms=0.0 max-step=(0, 394.8125, 0)
+WASAPI strongest separated steps [(26, 612.229), (24, 560.5), (21, 716.875), (20, 736.562), (17, 580.979), (11, 6.979), (10, 29.104), (9, 642.875), (9, 626.458), (9, 546.875), (8, 43.604), (7, 749.062)]
+Loop packets at transitions [(166.88, 176.88, 2), (177.46, 187.46, 2), (186.9, 196.9, 2), (196.88, 206.88, 2), (206.87, 216.87, 2), (216.89, 226.89, 2), (226.89, 236.89, 2), (236.88, 246.88, 2), (246.89, 256.89, 2), (256.87, 266.87, 2), (266.87, 276.87, 2), (276.88, 286.88, 2), (286.88, 296.88, 2), (297.46, 307.46, 2), (306.87, 316.87, 2), (316.88, 326.88, 2), (326.87, 336.87, 2), (336.87, 346.87, 2), (346.87, 356.87, 2), (356.87, 366.87, 2), (366.88, 376.88, 2), (376.88, 386.88, 2), (386.88, 396.88, 2)]
+RTP 01 384.83 ms frames=320 tsDelta=0 peak=3 step=3
+RTP 02 399.52 ms frames=320 tsDelta=160 peak=3 step=4
+RTP 03 401.34 ms frames=320 tsDelta=320 peak=3 step=3
+RTP 04 416.61 ms frames=320 tsDelta=480 peak=3 step=3
+RTP 05 445.24 ms frames=448 tsDelta=704 peak=61 step=6
+RTP 06 464.87 ms frames=320 tsDelta=864 peak=78 step=91
+RTP 07 484.69 ms frames=320 tsDelta=1024 peak=28 step=50
+RTP 08 504.74 ms frames=320 tsDelta=1184 peak=41 step=76
+RTP 09 524.16 ms frames=320 tsDelta=1344 peak=32 step=51
+RTP 10 545.66 ms frames=320 tsDelta=1504 peak=18 step=24
+RTP 11 564.51 ms frames=320 tsDelta=1664 peak=19 step=20
+RTP 12 584.61 ms frames=320 tsDelta=1824 peak=14 step=21
+RTP 13 604.79 ms frames=320 tsDelta=1984 peak=29 step=49
+RTP 14 624.50 ms frames=320 tsDelta=2144 peak=36 step=70
+RTP 15 644.19 ms frames=320 tsDelta=2304 peak=62 step=90
+RTP 16 664.34 ms frames=320 tsDelta=2464 peak=18 step=18
+RTP 17 684.20 ms frames=320 tsDelta=2624 peak=12 step=22
+RTP 18 704.21 ms frames=320 tsDelta=2784 peak=15 step=15
+RTP 19 725.07 ms frames=320 tsDelta=2944 peak=12 step=16
+RTP 20 744.77 ms frames=320 tsDelta=3104 peak=11 step=20

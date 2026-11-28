@@ -1,0 +1,23 @@
+{
+  "Utc": "2026-11-27T16:11:47.4835477+00:00",
+  "Point": "db-confirmed",
+  "Engine": "SQLite",
+  "ProcessId": 162648,
+  "ParentProcessId": 154800,
+  "ExitCode": -1,
+  "AssemblyPath": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.Console.Tests\\bin\\Debug\\Pro\\net11.0-windows10.0.19041.0\\WawiCallPro.Console.Tests.dll",
+  "AudioAssemblyPath": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.Console.Tests\\bin\\Debug\\Pro\\net11.0-windows10.0.19041.0\\WawiCallPro.Audio.dll",
+  "Framework": ".NET 11.0.0",
+  "ProductLine": "Pro",
+  "Sha256": "acc4402fd52573d287f7945fef55e3b0901ff5292c732ef18fe4840648e4b04a",
+  "Length": 17111,
+  "WaveSha256": "cfdb4a4ff62cce1804bf4fed57978f06ce224496f979337edd88d542d0d6e71f",
+  "FrozenChangedAtUtc": "2026-11-27T16:11:47.3027488+00:00",
+  "JobState": "Completed",
+  "Failure": null,
+  "AttemptId": "d83717cb-a562-492a-9c6e-5a65283a636b",
+  "Attempts": 1,
+  "JobVersion": 3,
+  "ArtifactVersion": 2,
+  "ArtifactSha256": "acc4402fd52573d287f7945fef55e3b0901ff5292c732ef18fe4840648e4b04a"
+}

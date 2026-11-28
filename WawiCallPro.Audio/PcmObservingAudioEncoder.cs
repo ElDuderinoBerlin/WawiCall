@@ -7,7 +7,7 @@ namespace WawiCallPro.Audio;
 /// Codec exceptions retain their normal behavior; observer failures are isolated and observable.</summary>
 public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncoder, IConversationPcmFailureSource, IAsyncDisposable
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private Subscription[] _subscriptions = [];
     private readonly HashSet<Subscription> _retiring = [];
     private Task? _dispose;

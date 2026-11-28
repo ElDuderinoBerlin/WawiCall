@@ -17,7 +17,7 @@
     <ProjectReference Include="..\WawiCallPro.Plugin.Windows\WawiCallPro.Plugin.Windows.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />
-    <PackageReference Update="MSTest.TestFramework" Version="4.5.2" />
+    <PackageReference Update="MSTest.TestAdapter" Version="4.5.3" />
+    <PackageReference Update="MSTest.TestFramework" Version="4.5.3" />
   </ItemGroup>
 </Project>

@@ -6,6 +6,6 @@
     <ProjectReference Include="../../../../Quantarix.Lexware.Core/Quantarix.Lexware.Core.csproj" />
     <ProjectReference Include="../../../../Quantarix.Pcfk.Core/Quantarix.Pcfk.Core.csproj" />
     <ProjectReference Include="../PrivateDependency/PrivateDependency.csproj" />
-    <PackageReference Include="Dapper" Version="2.1.89" />
+    <PackageReference Include="Dapper" Version="2.1.100" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,13 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+übersprungen InstalledWindowsRingtonePlaysOnRequestedNativeOutput
+  Fehler bei "Assert.Inconclusive". Set WCP_TEST_RINGTONE_DEVICE to opt in to playback.
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) erfolgreich [+28/x0/?1] (35s 136ms)
+
+Testlaufzusammenfassung: Bestanden!
+  gesamt: 29
+  fehlgeschlagen: 0
+  erfolgreich: 28
+  übersprungen: 1
+  Dauer: 35s 283ms

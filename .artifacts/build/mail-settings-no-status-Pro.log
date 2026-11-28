@@ -1,0 +1,37 @@
+  WawiCallPro.Automation.Contracts -> D:\Application-Development\WawiCallPro\WawiCallPro.Automation.Contracts\bin\Debug\net11.0\WawiCallPro.Automation.Contracts.dll
+  Quantarix.Plugin.Abstractions -> D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Abstractions\bin\Debug\net10.0\Quantarix.Plugin.Abstractions.dll
+  Quantarix.License.Core -> D:\Application-Development\Quantarix.License.System\Quantarix.License.Core\bin\Debug\net11.0\Quantarix.License.Core.dll
+  Quantarix.Interop -> D:\Application-Development\Quantarix.Interop\bin\Debug\net11.0-windows\Quantarix.Interop.dll
+  Quantarix.Lexware.Core -> D:\Application-Development\Quantarix.Lexware.Core\bin\Debug\net11.0\Quantarix.Lexware.Core.dll
+  WawiCallPro.Interfaces -> D:\Application-Development\WawiCallPro\WawiCallPro.Interfaces\bin\Debug\net11.0\WawiCallPro.Interfaces.dll
+  WawiCallPro.Telephony -> D:\Application-Development\WawiCallPro\WawiCallPro.Telephony\bin\Debug\net11.0\WawiCallPro.Telephony.dll
+  WawiCallPro.Automation -> D:\Application-Development\WawiCallPro\WawiCallPro.Automation\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.Automation.dll
+  Quantarix.Plugin.Hosting -> D:\Application-Development\Quantarix.Plugin.System\src\Quantarix.Plugin.Hosting\bin\Debug\net10.0\Quantarix.Plugin.Hosting.dll
+  Quantarix.License.Client -> D:\Application-Development\Quantarix.License.System\Quantarix.License.Client\bin\Debug\net11.0\Quantarix.License.Client.dll
+  Quantarix.Lexware.APIService -> D:\Application-Development\Quantarix.Lexware.APIService\Quantarix.Lexware.APIService\bin\Debug\net11.0\Quantarix.Lexware.APIService.dll
+  WawiCallPro.Plugin.Windows -> D:\Application-Development\WawiCallPro\WawiCallPro.Plugin.Windows\bin\Debug\net11.0-windows\WawiCallPro.Plugin.Windows.dll
+  WawiCallPro.Database -> D:\Application-Development\WawiCallPro\WawiCallPro.Database\bin\Debug\net11.0\WawiCallPro.Database.dll
+  PhoneNumbers.MetadataBuilder -> D:\Application-Development\WawiCallPro\src\libphonenumber-csharp\csharp\PhoneNumbers.MetadataBuilder\bin\Debug\net10.0\PhoneNumbers.MetadataBuilder.dll
+  PhoneNumbers -> D:\Application-Development\WawiCallPro\src\libphonenumber-csharp\csharp\PhoneNumbers\bin\Debug\net10.0\PhoneNumbers.dll
+  WawiCallPro.Core -> D:\Application-Development\WawiCallPro\WawiCallPro.Core\bin\Debug\net11.0\WawiCallPro.Core.dll
+  Quantarix.Core -> D:\Application-Development\Quantarix.Core\bin\AnyCPU\Debug\net11.0\Quantarix.Core.dll
+  WawiCallPro.Utilities -> D:\Application-Development\WawiCallPro\WawiCallPro.Utilities\bin\Debug\net11.0\WawiCallPro.Utilities.dll
+  WawiCallPro.Telephony.Sip -> D:\Application-Development\WawiCallPro\WawiCallPro.Telephony.Sip\bin\Debug\net11.0\WawiCallPro.Telephony.Sip.dll
+  WawiCallPro.Office -> D:\Application-Development\WawiCallPro\WawiCallPro.Office\bin\Debug\net11.0\WawiCallPro.Office.dll
+  SIPSorceryMedia.Windows.CSCore -> D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\bin\Debug\net11.0-windows10.0.19041.0\SIPSorceryMedia.Windows.CSCore.dll
+  WawiCallPro.Audio -> D:\Application-Development\WawiCallPro\WawiCallPro.Audio\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.Audio.dll
+  WawiCallPro.Functions.DummyClock -> D:\Application-Development\WawiCallPro\WawiCallPro.Functions.DummyClock\bin\Debug\net11.0\WawiCallPro.Functions.DummyClock.dll
+  WawiCallPro.Plugins.JtlWawi -> D:\Application-Development\WawiCallPro\WawiCallPro.Plugins.JtlWawi\bin\Debug\net11.0\WawiCallPro.Plugins.JtlWawi.dll
+  WawiCallPro.Functions.DummyStatus -> D:\Application-Development\WawiCallPro\WawiCallPro.Functions.DummyStatus\bin\Debug\net11.0\WawiCallPro.Functions.DummyStatus.dll
+  WawiCallPro.Plugins.Lexware.Pro -> D:\Application-Development\WawiCallPro\WawiCallPro.Plugins.Lexware.Pro\bin\Debug\net11.0-windows\WawiCallPro.Plugins.Lexware.Pro.dll
+  Quantarix.Windows -> D:\Application-Development\Quantarix.Windows\bin\AnyCPU\Debug\net11.0-windows\Quantarix.Windows.dll
+  Quantarix.DevExpress -> D:\Application-Development\Quantarix.DevExpress\bin\Debug\net11.0-windows\Quantarix.DevExpressExtensions.dll
+  [QxBuild] Kept 0 DevExpress resource assembly/assemblies in D:\Application-Development\Quantarix.DevExpress\bin\Debug\net11.0-windows\de\
+  WawiCallPro.App -> D:\Application-Development\WawiCallPro\WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\WawiCallPro.App.Pro.dll
+  D:\Application-Development\WawiCallPro\WawiCallPro.App\bin\ComDebug\Pro\WawiCallPro.App.Pro.exe
+
+Der Buildvorgang wurde erfolgreich ausgeführt.
+    0 Warnung(en)
+    0 Fehler
+
+Verstrichene Zeit 00:00:08.72

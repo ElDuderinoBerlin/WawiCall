@@ -56,7 +56,12 @@ public sealed partial class AppShellTests
         var capture = Field<LookUpEdit>(page, "captureDeviceEdit"); var playback = Field<LookUpEdit>(page, "playbackDeviceEdit"); var ring = Field<LookUpEdit>(page, "ringDeviceEdit");
         Assert.AreEqual("missing-capture", capture.EditValue); Assert.Contains("nicht verfügbar", capture.Text);
         Assert.AreEqual("Lautsprecher eins", playback.Text); Assert.AreEqual("missing-ring", ring.EditValue);
-        Assert.IsTrue(capture.Enabled); Assert.AreEqual(DevExpress.XtraEditors.Controls.SearchMode.AutoSearch, capture.Properties.SearchMode);
+        Assert.IsTrue(capture.Enabled);
+        foreach (var editor in new[] { capture, playback, ring })
+        {
+            Assert.AreEqual(DevExpress.XtraEditors.Controls.SearchMode.OnlyInPopup, editor.Properties.SearchMode);
+            Assert.AreEqual(DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor, editor.Properties.TextEditStyle);
+        }
         Assert.IsFalse(capture.Properties.ShowHeader); Assert.IsFalse(capture.Properties.ShowFooter);
         Assert.AreEqual(1, capture.Properties.Columns.Count); Assert.AreEqual("Name", capture.Properties.Columns[0].FieldName);
         capture.EditValue = "capture-two"; playback.EditValue = "render-two"; ring.EditValue = "render-one";
@@ -1622,13 +1627,13 @@ public sealed partial class AppShellTests
                     await WaitForDialStateAsync(() => Field<LabelControl>(dialog, "statusLabel").Text.Contains("unterbrochen"));
                 }
                 if (scale != 1F) dialog.Scale(new SizeF(scale, scale)); dialog.PerformLayout(); Application.DoEvents();
+                Assert.IsTrue(dialog.Height <= dialog.MinimumSize.Height + 6 * dialog.Font.Height,
+                    $"Opening at {width}px/{fontSize}pt grew to {dialog.Height}px for a {dialog.MinimumSize.Height}px minimum.");
                 using var shot = UiAudit.Capture(dialog); shot.Save(Path.Combine(output, $"dial-{width}-{fontSize:0}-{scale:0.0}-{skin}-{palette}-{populated}.png"), ImageFormat.Png);
                 CheckTableBounds(dialog);
                 Assert.AreEqual(Field<SimpleButton>(dialog, "dialButton").Size, Field<SimpleButton>(dialog, "cancelButton").Size);
                 Assert.IsTrue(Field<TableLayoutPanel>(dialog, "layout").Bottom <= dialog.ClientSize.Height,
                     $"{width}/{fontSize}/{scale}/{populated}: layout={Field<TableLayoutPanel>(dialog, "layout").Bounds}, client={dialog.ClientSize}, minimum={dialog.MinimumSize}");
-                Assert.IsTrue(dialog.Height <= dialog.MinimumSize.Height + 6 * dialog.Font.Height,
-                    $"Opening at {width}px/{fontSize}pt grew to {dialog.Height}px for a {dialog.MinimumSize.Height}px minimum.");
                 await dialog.StopAsync();
             }
         }

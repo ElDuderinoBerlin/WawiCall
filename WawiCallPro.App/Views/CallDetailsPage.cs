@@ -18,7 +18,7 @@ public partial class CallDetailsPage : XtraUserControl
     private readonly List<Task> _loads = [];
     private Task _pendingLoads = Task.CompletedTask;
     private readonly Dictionary<XtraTabPage, IPluginViewHandle> _views = [];
-    private readonly Dictionary<WawiCallPro.Interfaces.Parties.PartyKey, MailPage> _mailViews = [];
+    private readonly Dictionary<Interfaces.Parties.PartyKey, MailPage> _mailViews = [];
     private Task? _stopTask;
     private CallerMatchDecision? _acceptedDecision;
     private bool _resourcesDisposed;
@@ -184,7 +184,7 @@ public partial class CallDetailsPage : XtraUserControl
     }
     private void Choose_Click(object? sender, EventArgs e) => ChooseRequested?.Invoke(this);
     private static string Role(CallViewContext context) => context.Party.Kind switch
-    { WawiCallPro.Interfaces.Parties.PartyKind.Customer => "Kunde", WawiCallPro.Interfaces.Parties.PartyKind.Supplier => "Lieferant", WawiCallPro.Interfaces.Parties.PartyKind.CustomerContact => "Kundenkontakt", _ => "Lieferantenkontakt" };
+    { Interfaces.Parties.PartyKind.Customer => "Kunde", Interfaces.Parties.PartyKind.Supplier => "Lieferant", Interfaces.Parties.PartyKind.CustomerContact => "Kundenkontakt", _ => "Lieferantenkontakt" };
     private void Reload_Click(object? sender, EventArgs e) => QueueLoad();
     private void DisposePage()
     {

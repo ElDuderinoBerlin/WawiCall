@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v11.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v11.0": {
+      "hostpath-probe/0.1.0": {
+        "runtime": {
+          "hostpath-probe.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "hostpath-probe/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

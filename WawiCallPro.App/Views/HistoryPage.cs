@@ -43,7 +43,7 @@ public partial class HistoryPage : XtraUserControl
     {
         if (_stopping || _history is null) throw new InvalidOperationException("History unavailable.");
         var history = await _history.GetCallAsync(id, token);
-        if (history?.Call.Id != id) throw new Hosting.AutomationCallNotFoundException();
+        if (history?.Call.Id != id) throw new AutomationCallNotFoundException();
         var call = history.Call;
         var companyName = history.Parties.FirstOrDefault(party => party.IsSelected)?.CompanyDisplayName
             ?? await ReadCompanyNameAsync(call.Company, token);

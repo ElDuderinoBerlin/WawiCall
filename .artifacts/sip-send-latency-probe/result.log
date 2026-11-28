@@ -1,0 +1,5 @@
+Kopfhörermikrofon (Jabra Link 380)
+  WASAPI 16000 Hz, buffer 22,0 ms, engine 10,0 ms; n=181; first-sample age median/p95 10,1/11,0 ms; invalid stamps 0; packet 10,0 ms.
+  G722 requested 0 ms: 117 packets, missing sequence 0; first RTP 36,4 ms; media per packet 20,0 ms; spacing median/p95/max 20,0/20,2/23,0 ms; media-clock arrival spread p05–p95 0,8 ms.
+  G722 requested 70 ms: 117 packets, missing sequence 0; first RTP 55,0 ms; media per packet 20,0 ms; spacing median/p95/max 0,1/47,6/48,2 ms; media-clock arrival spread p05–p95 42,0 ms.
+  PCMA requested 0 ms: 235 packets, missing sequence 0; first RTP 28,7 ms; media per packet 10,0 ms; spacing median/p95/max 10,0/10,9/12,5 ms; media-clock arrival spread p05–p95 1,0 ms.

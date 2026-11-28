@@ -6,7 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WawiCallPro.Core\WawiCallPro.Core.csproj" />
     <ProjectReference Include="..\WawiCallPro.Plugins.Lexware.FinOffice\WawiCallPro.Plugins.Lexware.FinOffice.csproj" />
-    <PackageReference Update="MSTest.TestAdapter" Version="4.5.2" />
-    <PackageReference Update="MSTest.TestFramework" Version="4.5.2" />
+    <PackageReference Update="MSTest.TestAdapter" Version="4.5.3" />
+    <PackageReference Update="MSTest.TestFramework" Version="4.5.3" />
   </ItemGroup>
 </Project>

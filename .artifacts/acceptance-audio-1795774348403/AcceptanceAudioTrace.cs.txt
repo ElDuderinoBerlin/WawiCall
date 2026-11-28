@@ -1,0 +1,39 @@
+#if DEBUG
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace WawiCallPro.Audio;
+
+public static class AcceptanceAudioTrace
+{
+    private static readonly object Gate = new();
+    private static readonly Dictionary<string, int> Counts = new();
+    private static readonly string? DirectoryPath = ReadArmFile();
+
+    private static string? ReadArmFile()
+    {
+        var marker = Path.Combine(AppContext.BaseDirectory, "acceptance-audio.arm");
+        try { return File.Exists(marker) ? File.ReadAllText(marker).Trim() : null; }
+        catch (IOException) { return null; }
+    }
+
+    public static void Write(string stage, int rate = 0, int channels = 0, uint rtpTime = 0, ReadOnlySpan<short> pcm = default)
+    {
+        var timestamp = Stopwatch.GetTimestamp();
+        if (DirectoryPath is null) return;
+        lock (Gate)
+        {
+            Counts.TryGetValue(stage, out var count);
+            if (count >= 32) return;
+            Counts[stage] = count + 1;
+            try
+            {
+                var data = Convert.ToBase64String(MemoryMarshal.AsBytes(pcm));
+                File.AppendAllText(Path.Combine(DirectoryPath, "rtp.tsv"),
+                    $"{stage}\t{timestamp}\t{rate}\t{channels}\t{rtpTime}\t{data}{Environment.NewLine}");
+            }
+            catch (IOException) { }
+        }
+    }
+}
+#endif

@@ -1,0 +1,39 @@
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+fehlerhaft WindowsRingtoneSettingsPreviewDraftAndPreserveMissingSelections ("Basic",10,1,5) (2s 964ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Die Testmethode „WawiCallPro.App.Tests.AppShellTests.WindowsRingtoneSettingsPreviewDraftAndPreserveMissingSelections“ hat eine Ausnahme ausgelöst: 
+  System.IO.InvalidDataException: Found invalid data while decoding.
+    um NVorbis.Residue0.Init(IPacket packet, Int32 channels, ICodebook[] codebooks)
+    um NVorbis.StreamDecoder.LoadBooks(IPacket packet)
+    um NVorbis.StreamDecoder.ProcessHeaderPacket(IPacket packet, Func`2 processAction, Action`1 doneAction)
+    um NVorbis.StreamDecoder.ProcessHeaderPackets(IPacket packet)
+    um NVorbis.StreamDecoder..ctor(IPacketProvider packetProvider, IFactory factory)
+    um NVorbis.VorbisReader.<>c.<.cctor>b__83_1(IPacketProvider pp)
+    um NVorbis.VorbisReader.ProcessNewStream(IPacketProvider packetProvider)
+    um NVorbis.Ogg.ContainerReader.ProcessNewStream(IPacketProvider packetProvider)
+    um NVorbis.Ogg.PageReader.AddPage(Int32 streamSerial, Byte[] pageBuf, Boolean isResync)
+    um NVorbis.Ogg.PageReaderBase.AddPage(Byte[] pageBuf, Boolean isResync)
+    um NVorbis.Ogg.PageReaderBase.ReadNextPage()
+    um NVorbis.Ogg.ContainerReader.FindNextStream()
+    um NVorbis.Ogg.ContainerReader.TryInit()
+    um NVorbis.VorbisReader..ctor(Stream stream, Boolean closeOnDispose)
+    um WawiCallPro.Audio.RecordingFormatConverters.VorbisPlaybackSource..ctor(Stream stream) in D:\Application-Development\WawiCallPro\WawiCallPro.Audio\RecordingFormatConverters.cs:38
+    um WawiCallPro.Audio.RecordingFormatConverters.OpenPlayback(Stream stream, RecordingArtifactFormat format, CancellationToken token) in D:\Application-Development\WawiCallPro\WawiCallPro.Audio\RecordingFormatConverters.cs:30
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass336_0.<WindowsRingtoneSettingsPreviewDraftAndPreserveMissingSelections>b__0(AppWorkspace workspace, IServiceProvider services, TestPlugin _) in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.Ringtones.cs:114
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass192_0.<WithWorkspace>b__0() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3808
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass192_0.<WithWorkspace>b__0() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3815
+    um WawiCallPro.App.Tests.AppShellTests.<>c__DisplayClass199_1.<<RunStaAsync>b__1>d.MoveNext() in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3851
+    --- End of stack trace from previous location ---
+    um WawiCallPro.App.Tests.AppShellTests.RunStaAsync(Func`1 action, TimeSpan timeout) in D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\AppShellTests.cs:3862
+    um Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestMethodInfo.ExecuteInternalAsync(Object[] arguments, CancellationTokenSource timeoutTokenSource) in /_/src/Adapter/MSTestAdapter.PlatformServices/Execution/TestMethodInfo.cs:408
+    
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) fehlerhaft mit 1 Fehler(n) [+1/x1/?0] (7s 222ms)
+Exitcode: 2
+
+Testlaufzusammenfassung: Fehler!
+  gesamt: 2
+  fehlgeschlagen: 1
+  erfolgreich: 1
+  übersprungen: 0
+  Dauer: 7s 358ms
+Der Testlauf wurde mit einem nicht erfolgreichen Exitcode abgeschlossen: 2. Mindestens ein Test ist fehlgeschlagen. Siehe: https://aka.ms/testingplatform/exitcodes

@@ -55,7 +55,7 @@ internal static class AppAutomationComposition
         {
             Progress = (type, index, total, completed, token) => provider.GetRequiredService<StartupProgress>().ReportAsync(type, index, total, completed, token),
             RevalidateBeforeUserMode = token => ((LicenseStartupGate)provider.GetRequiredKeyedService<IHostedService>(keys[foundation - 1])).StartAsync(token),
-            MetadataServices = [() => provider.GetRequiredService<WawiCallPro.Utilities.Plugins.ProductPluginRuntime>(),
+            MetadataServices = [() => provider.GetRequiredService<Utilities.Plugins.ProductPluginRuntime>(),
                 () => provider.GetRequiredService<AppAutomationCatalog>(), () => provider.GetRequiredService<AppAutomationTelephony>(),
                 () => provider.GetRequiredService<AppCallAssociation>(), () => provider.GetRequiredService<AppAutomationShutdown>()]
         });
@@ -63,7 +63,7 @@ internal static class AppAutomationComposition
     }
 }
 
-internal sealed class AppComInstallationCheck(WawiCallPro.Utilities.Plugins.ILexwareInstallation installation) : IHostedService
+internal sealed class AppComInstallationCheck(Utilities.Plugins.ILexwareInstallation installation) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {

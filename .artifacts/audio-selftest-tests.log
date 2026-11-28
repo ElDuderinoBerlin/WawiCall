@@ -1,0 +1,37 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestRendersAllStepsAndPersistsOnlyOnApply (7s 774ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestProcessesAllCodecsWithTwentyMillisecondBlocks (42ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestMeasuresNativeInputAndOutputBuffers (11s 471ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Standardausgabe
+    Mikrofon (INZONE Buds): 70 ms; Kopfhörer (INZONE Buds): 110 ms.
+    
+    
+    
+    Debugablaufverfolgung:
+    Initialized WasapiCapture[Mode: Shared; Latency: 70; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    
+  Fehlerausgabe
+erfolgreich AudioDeviceSettingsPreserveMissingEndpointsAndSaveOnlyStableIds (873ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioDeviceSettingsRenderAvailableMissingEmptyFailedAndSuppressedCatalogs (13s 364ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioDeviceSettingsRestoreSelectionsWithDifferentIdCasing (382ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich RecordingStoragePreviewAndSavedPendingDirectoryUseTheSamePattern (2s 345ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) erfolgreich [+7/x0/?0] (36s 584ms)
+
+Testlaufzusammenfassung: Bestanden!
+  gesamt: 7
+  fehlgeschlagen: 0
+  erfolgreich: 7
+  übersprungen: 0
+  Dauer: 36s 740ms

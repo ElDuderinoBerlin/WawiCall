@@ -1,0 +1,9 @@
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) erfolgreich [+25/x0/?0] (24s 005ms)
+
+Testlaufzusammenfassung: Bestanden!
+  gesamt: 25
+  fehlgeschlagen: 0
+  erfolgreich: 25
+  übersprungen: 0
+  Dauer: 24s 153ms

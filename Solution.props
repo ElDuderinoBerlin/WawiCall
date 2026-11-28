@@ -8,7 +8,7 @@
         <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
 
         <!-- Standard ist FinOffice; Pro-Builds setzen LexwareProductLine explizit auf Pro. -->
-        <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">FinOffice</LexwareProductLine>
+        <LexwareProductLine Condition="'$(LexwareProductLine)' == ''">Pro</LexwareProductLine>
 
         <!-- Abgeleitete Flags fuer MSBuild-Conditions in Projektdateien und Targets. -->
         <LexwareProductLinePro Condition="'$(LexwareProductLine)' == 'Pro'">true</LexwareProductLinePro>

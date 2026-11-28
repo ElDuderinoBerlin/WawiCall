@@ -1,0 +1,32 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich LogHoverReadsTheMatchingFileRecordAndKeepsTheListShort (388ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich HistoryPlaybackRetriesOnlyTheRequestedEndpoint ("selected-headset") (10ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich HistoryPlaybackRetriesOnlyTheRequestedEndpoint (null) (0ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich HistoryPlaybackNativeDistinguishesDisconnectedAndActiveHeadphones (657ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Standardausgabe
+    
+    
+    Debugablaufverfolgung:
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    
+  Fehlerausgabe
+erfolgreich RecordingOutputConvertsDecodesAndExportsThroughHistory (8000,2) (1s 575ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich RecordingOutputConvertsDecodesAndExportsThroughHistory (16000,1) (952ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich RecordingOutputConvertsDecodesAndExportsThroughHistory (48000,2) (979ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) erfolgreich [+7/x0/?0] (4s 884ms)
+
+Testlaufzusammenfassung: Bestanden!
+  gesamt: 7
+  fehlgeschlagen: 0
+  erfolgreich: 7
+  übersprungen: 0
+  Dauer: 5s 023ms

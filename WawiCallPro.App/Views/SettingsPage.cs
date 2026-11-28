@@ -1,4 +1,5 @@
 using DevExpress.XtraEditors;
+using Quantarix.DevExpressExtensions.Controls;
 using WawiCallPro.App.Hosting;
 using WawiCallPro.Utilities.Configuration;
 using System.Collections.Immutable;
@@ -242,7 +243,7 @@ public partial class SettingsPage : XtraUserControl
     internal DevExpress.XtraTab.XtraTabControl SettingsTabs => tabs;
     private async Task ActivatePluginAsync(string id, CancellationToken token)
     {
-        if (_workspace?.Plugins is not WawiCallPro.Interfaces.Plugins.IProductPluginSelection selection) return;
+        if (_workspace?.Plugins is not Interfaces.Plugins.IProductPluginSelection selection) return;
         RequireCleanPluginDraft();
         saveButton.Enabled = importButton.Enabled = exportButton.Enabled = false;
         foreach (DevExpress.XtraTab.XtraTabPage tab in tabs.TabPages) tab.PageEnabled = ReferenceEquals(tab, pluginTab);
@@ -490,7 +491,7 @@ public partial class SettingsPage : XtraUserControl
         // Refresh mail state without silently accepting concurrent edits to the other open settings tabs.
         var previousGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(_snapshot!.Options with { MailAccounts = [], MailCache = new() });
         var nextGeneral = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(next.Options with { MailAccounts = [], MailCache = new() });
-        if (!previousGeneral.AsSpan().SequenceEqual(nextGeneral)) throw new WawiCallPro.Interfaces.Office.MailException(WawiCallPro.Interfaces.Office.MailFailure.Conflict);
+        if (!previousGeneral.AsSpan().SequenceEqual(nextGeneral)) throw new WawiCallPro.Interfaces.Office.MailException(Interfaces.Office.MailFailure.Conflict);
         _snapshot = next;
         mailSettingsPage.Apply(_snapshot.Options.MailAccounts, _snapshot.Options.Companies);
         mailSettingsPage.ApplyCache(_snapshot.Options.MailCache);

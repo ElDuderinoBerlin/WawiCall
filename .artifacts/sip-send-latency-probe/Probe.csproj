@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows10.0.19041.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CSCore">
+      <HintPath>D:\Application-Development\WawiCallPro\WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\CSCore.dll</HintPath>
+    </Reference>
+    <Reference Include="SIPSorceryMedia.Windows.CSCore">
+      <HintPath>D:\Application-Development\SIPSorceryMedia.Windows.CSCore\src\bin\Debug\net11.0-windows10.0.19041.0\SIPSorceryMedia.Windows.CSCore.dll</HintPath>
+    </Reference>
+    <Reference Include="SIPSorceryMedia.Abstractions">
+      <HintPath>D:\Application-Development\WawiCallPro\WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\SIPSorceryMedia.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="SIPSorcery">
+      <HintPath>D:\Application-Development\WawiCallPro\WawiCallPro.App\bin\Debug\net11.0-windows10.0.19041.0\SIPSorcery.dll</HintPath>
+    </Reference>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

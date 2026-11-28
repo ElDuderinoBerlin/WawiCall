@@ -71,10 +71,10 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
 
     private void ShowSearch()
     {
-        this.Visible = true;
-        this.BringToFront();
+        Visible = true;
+        BringToFront();
         _listLog.SendToBack();
-        this.Parent?.PerformLayout();
+        Parent?.PerformLayout();
         _txtSearch.Focus();
         _txtSearch.SelectAll();
     }
@@ -82,7 +82,7 @@ internal sealed partial class LogListBoxSearchController : XtraUserControl
     private void HideSearch()
     {
         _txtSearch.Text = string.Empty;
-        this.Visible = false;
+        Visible = false;
         ClearHighlights();
         _listLog.Focus();
     }

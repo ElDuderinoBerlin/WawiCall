@@ -21,12 +21,15 @@ public sealed class LexwarePlugin(
     public long ConnectionRevision => (directory as IBusinessDirectoryConnectionState)?.ConnectionRevision ?? 0;
     public bool IsConnectionConfigured => directory is not IBusinessDirectoryConnectionState connection || connection.IsConnectionConfigured;
     public IBusinessDirectory Directory => _configured ? directory : throw new InvalidOperationException("Plugin is not configured.");
+
     public void Initialize(IPluginHost host) { ArgumentNullException.ThrowIfNull(host); _initialized = true; }
+
     public void Configure(IWawiCallHostServices hostServices)
     {
         if (!_initialized || !ReferenceEquals(services, hostServices)) throw new InvalidOperationException("Plugin initialization/injection order.");
         _configured = true;
     }
+
     public void RegisterShell(IPluginShellUi host)
     {
         host.RegisterGroup(new("stammdaten", "Stammdaten"));
@@ -41,6 +44,7 @@ public sealed class LexwarePlugin(
 
     public IPluginLifetimeResource CreatePartySearch(IPartySearchWorkspaceFactory factory) => _configured
         ? factory.Create() : throw new InvalidOperationException("Plugin is not configured.");
+
     public IPluginSettingsView CreateConnectionSettings(IPluginConnectionEditContext context)
     {
         if (!_configured) throw new InvalidOperationException("Plugin is not configured.");
@@ -48,7 +52,9 @@ public sealed class LexwarePlugin(
         try { page.Reload(context, directory, () => IsConnectionConfigured); return new SettingsView(page, directory, () => IsConnectionConfigured); }
         catch { page.Dispose(); throw; }
     }
+
     public string ConnectionSettingsTitle => "Lexware";
+
     private sealed class SettingsView(LexwareSettingsPage page, IBusinessDirectory directory, Func<bool> connectionReady) : IPluginSettingsView
     {
         public System.Windows.Forms.Control View => page;
@@ -62,6 +68,7 @@ public sealed class LexwarePlugin(
         public Task StopAsync(CancellationToken cancellationToken = default) => page.StopAsync(cancellationToken);
         public void Dispose() => page.Dispose();
     }
+
     public void Execute() => throw new NotSupportedException("Fachoperationen werden über den Datenadapter ausgeführt.");
     public void Shutdown() { _configured = false; _initialized = false; }
 }

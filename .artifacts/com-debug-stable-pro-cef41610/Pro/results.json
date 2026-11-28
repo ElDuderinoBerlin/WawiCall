@@ -1,0 +1,70 @@
+{
+  "Edition": "Pro",
+  "Before": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+  "Updated": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+  "FailedBuild": {
+    "ExitCode": 1,
+    "ErrorCode": "WAWICOM001",
+    "RegisteredBefore": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+    "RegisteredAfter": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+    "AssemblyUnchanged": true
+  },
+  "Restored": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+  "BeforeAssembly": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\e88a0c521cb84896b85909f02daf5792\\net11.0-windows10.0.19041.0\\WawiCallPro.App.Pro.dll",
+  "UpdatedAssembly": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\3d64d6bf0e1c4c36a964700556622ddc\\net11.0-windows10.0.19041.0\\WawiCallPro.App.Pro.dll",
+  "UnattributedWindowEvents": 5,
+  "Activations": [
+    {
+      "Stage": "before",
+      "Bitness": "x64",
+      "ProcessId": 18768,
+      "Executable": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+      "State": "Ready",
+      "CreateObjectMs": 477,
+      "StatusObservedMs": 1445,
+      "ComVisible": "False",
+      "VisibleWindows": 0,
+      "ShowEvents": 0,
+      "ObservedAt": "2026-11-26T21:27:26.1739514+00:00"
+    },
+    {
+      "Stage": "during-build",
+      "Bitness": "x86",
+      "ProcessId": 18768,
+      "Executable": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+      "State": "Ready",
+      "CreateObjectMs": 16,
+      "StatusObservedMs": 16,
+      "ComVisible": "False",
+      "VisibleWindows": 0,
+      "ShowEvents": 0,
+      "ObservedAt": "2026-11-26T21:27:31.2102485+00:00"
+    },
+    {
+      "Stage": "after-refresh",
+      "Bitness": "x86",
+      "ProcessId": 18768,
+      "Executable": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+      "State": "Ready",
+      "CreateObjectMs": 16,
+      "StatusObservedMs": 23,
+      "ComVisible": "False",
+      "VisibleWindows": 0,
+      "ShowEvents": 0,
+      "ObservedAt": "2026-11-26T21:27:47.5129097+00:00"
+    },
+    {
+      "Stage": "cold-start-after-failed-build",
+      "Bitness": "x64",
+      "ProcessId": 8756,
+      "Executable": "D:\\Application-Development\\WawiCallPro\\WawiCallPro.App\\bin\\ComDebug\\Pro\\WawiCallPro.App.Pro.exe",
+      "State": "Ready",
+      "CreateObjectMs": 211,
+      "StatusObservedMs": 664,
+      "ComVisible": "False",
+      "VisibleWindows": 0,
+      "ShowEvents": 0,
+      "ObservedAt": "2026-11-26T21:28:25.2203908+00:00"
+    }
+  ]
+}

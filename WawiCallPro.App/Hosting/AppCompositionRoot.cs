@@ -71,7 +71,7 @@ internal static class AppCompositionRoot
                 services.AddSingleton(provider => new AppUiState(provider.GetRequiredService<ApplicationDescriptor>(), mode,
                     provider.GetRequiredService<IWindowDisplayEnvironment>()));
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPartySearchPresentation, PartySearchPresentation>();
-                services.AddSingleton<WawiCallPro.Interfaces.Plugins.IPartySearchWorkspaceFactory, WawiCallPro.Plugin.Windows.PartySearchWorkspaceFactory>();
+                services.AddSingleton<Interfaces.Plugins.IPartySearchWorkspaceFactory, WawiCallPro.Plugin.Windows.PartySearchWorkspaceFactory>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPartySearchWorkspaceAccess, WawiCallPro.Plugin.Windows.PartySearchWorkspaceAccess>();
                 services.AddSingleton<IAppHotkeyBackend, WindowsAppHotkeyBackend>();
                 services.AddSingleton<IAppHotkeyFactory, AppHotkeyFactory>();
@@ -104,7 +104,7 @@ internal static class AppCompositionRoot
                 if (!mode.SuppressNetwork) services.AddPhoneSearchMaintenance();
                 if (!mode.SuppressNetwork) services.AddHostedService<MailStartupImport>();
                 services.AddSingleton<WawiCallPro.Plugin.Windows.IPluginViewAccess, WawiCallPro.Plugin.Windows.PluginViewAccess>();
-                services.AddSingleton(new WawiCallPro.Utilities.Plugins.SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
+                services.AddSingleton(new SharedPluginContractAssembly(typeof(WawiCallPro.Plugin.Windows.IWawiCallPluginViews).Assembly));
                 services.AddSingleton<IUiDispatcher>(_ => new SynchronizationContextUiDispatcher(uiContext));
                 services.AddSingleton<IHostLifetime, AppHostLifetime>();
                 services.AddAppAutomation(mode, identity);

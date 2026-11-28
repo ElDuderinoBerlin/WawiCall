@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CSCore">
+      <HintPath>../../src/CSCore/CSCore/bin/Debug/net8.0/CSCore.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

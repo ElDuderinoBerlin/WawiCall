@@ -73,9 +73,9 @@ public sealed class AppWorkspace(
     }
     internal WawiCallPro.Audio.IHistoryRecordingPlayback? RecordingPlayback => recordingPlayback;
     internal HistoryRecordingFiles? RecordingFiles => recordingFiles;
-    public WawiCallPro.Interfaces.Telephony.ITelephonyService? Telephony { get; } = telephony;
     internal IRecordingDirectoryInventory? RecordingInventory => recordingInventory;
-    public WawiCallPro.Interfaces.Telephony.ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
+    public ITelephonyService? Telephony { get; } = telephony;
+    public ITelephonyConnection? TelephonyConnection { get; } = telephonyConnection;
     public ApplicationDescriptor Application { get; } = application;
     public ApplicationConfigurationService Configuration { get; } = configuration;
     public ConfigurationStore Settings { get; } = settings;
@@ -107,7 +107,7 @@ public sealed class AppWorkspace(
     public IPhoneNumberDiagnostics NumberDiagnostics { get; } = numberDiagnostics;
     public CallNotesSessionFactory CallNotes { get; } = callNotes;
     public IAppAutoStart AutoStart { get; } = autoStart;
-    public WawiCallPro.Office.MailApplication Mail { get; } = mail;
+    public MailApplication Mail { get; } = mail;
 
     public Task<PluginSummary> GetPluginAsync(CancellationToken cancellationToken) =>
         Plugins.UseAsync(async (plugin, token) =>

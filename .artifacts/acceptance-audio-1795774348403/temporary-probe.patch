@@ -1,0 +1,97 @@
+diff --git a/WawiCallPro.App/Hosting/AppTelephonyService.cs b/WawiCallPro.App/Hosting/AppTelephonyService.cs
+index 61c8a21..27f673b 100644
+--- a/WawiCallPro.App/Hosting/AppTelephonyService.cs
++++ b/WawiCallPro.App/Hosting/AppTelephonyService.cs
+@@ -136,7 +136,13 @@ internal sealed class AppTelephonyService(ITelephonyService backend, ITelephonyC
+     internal static bool IsActive(CallSnapshot call) => call.State is not (CallState.Ended or CallState.Failed);
+     // Ending an owned call remains available after license/source revocation.
+     public Task HangUpAsync(Guid callId, CancellationToken cancellationToken = default) => backend.HangUpAsync(callId, cancellationToken);
+-    public Task AnswerAsync(Guid callId, CancellationToken cancellationToken = default) => backend.AnswerAsync(callId, cancellationToken);
++    public Task AnswerAsync(Guid callId, CancellationToken cancellationToken = default)
++    {
++#if DEBUG
++        Audio.AcceptanceAudioTrace.Write("answer");
++#endif
++        return backend.AnswerAsync(callId, cancellationToken);
++    }
+     public Task RejectAsync(Guid callId, CancellationToken cancellationToken = default) => backend.RejectAsync(callId, cancellationToken);
+     public Task HoldAsync(Guid callId, CancellationToken cancellationToken = default) => backend.HoldAsync(callId, cancellationToken);
+     public Task ResumeAsync(Guid callId, CancellationToken cancellationToken = default) => backend.ResumeAsync(callId, cancellationToken);
+diff --git a/WawiCallPro.Audio/ConversationAudioHardware.cs b/WawiCallPro.Audio/ConversationAudioHardware.cs
+index a1581b5..f47eb68 100644
+--- a/WawiCallPro.Audio/ConversationAudioHardware.cs
++++ b/WawiCallPro.Audio/ConversationAudioHardware.cs
+@@ -42,11 +42,17 @@ internal sealed class ConversationAudioHardware : IConversationAudioHardware
+         WindowsAudioEndPoint? endpoint = null;
+         try
+         {
++#if DEBUG
++            if (!capture) AcceptanceAudioTrace.Write("open-output", format.ClockRate, format.ChannelCount);
++#endif
+             IAudioEncoder deviceEncoder = capture ? encoder : new ConversationPlaybackEncoder(encoder);
+             endpoint = new(deviceEncoder, capture ? null : device, capture ? device : null, capture == false, capture,
+                 format, allowDeviceFallback: false);
+             if (capture ? !endpoint.IsAudioSourceInitialized : !endpoint.IsAudioSinkInitialized)
+                 throw new InvalidOperationException("The Windows conversation audio device could not be opened.");
++#if DEBUG
++            if (!capture) AcceptanceAudioTrace.Write("output-open", format.ClockRate, format.ChannelCount);
++#endif
+             return new Device(device, endpoint, capture);
+         }
+         catch
+diff --git a/WawiCallPro.Audio/ConversationPlaybackEncoder.cs b/WawiCallPro.Audio/ConversationPlaybackEncoder.cs
+index 3d149ed..5e197e4 100644
+--- a/WawiCallPro.Audio/ConversationPlaybackEncoder.cs
++++ b/WawiCallPro.Audio/ConversationPlaybackEncoder.cs
+@@ -15,6 +15,9 @@ internal sealed class ConversationPlaybackEncoder(IAudioEncoder inner) : IAudioE
+     {
+         // The underlying encoder publishes original PCM to the RTP recording and meter before playback.
+         var decoded = inner.DecodeAudio(encoded, format);
++#if DEBUG
++        AcceptanceAudioTrace.Write("decoder-output", format.ClockRate, format.ChannelCount);
++#endif
+         var channels = format.ChannelCount;
+         var fadeFrames = format.ClockRate * FadeMilliseconds / 1000;
+         if (fadeFrames < 2 || channels is not (1 or 2) || decoded.Length % channels != 0 ||
+diff --git a/WawiCallPro.Audio/PcmObservingAudioEncoder.cs b/WawiCallPro.Audio/PcmObservingAudioEncoder.cs
+index b26c08f..39f3621 100644
+--- a/WawiCallPro.Audio/PcmObservingAudioEncoder.cs
++++ b/WawiCallPro.Audio/PcmObservingAudioEncoder.cs
+@@ -67,6 +67,9 @@ public sealed class PcmObservingAudioEncoder(IAudioEncoder inner) : IAudioEncode
+         try
+         {
+             var pcm = inner.DecodeAudio(encoded, format);
++#if DEBUG
++            if (position is { } packet) AcceptanceAudioTrace.Write("rtp-decoded", format.ClockRate, format.ChannelCount, packet.Timestamp, pcm);
++#endif
+             if (context is not null && pcm.Length == 0) RejectReceivedMetadata();
+             Publish(ConversationAudioSide.Received, format, pcm, position);
+             return pcm;
+diff --git a/WawiCallPro.Audio/SipRtpAudioReceiver.cs b/WawiCallPro.Audio/SipRtpAudioReceiver.cs
+index 1190531..b75176c 100644
+--- a/WawiCallPro.Audio/SipRtpAudioReceiver.cs
++++ b/WawiCallPro.Audio/SipRtpAudioReceiver.cs
+@@ -29,6 +29,9 @@ internal sealed class SipRtpAudioReceiver : IAsyncDisposable
+ 
+     internal void Receive(RtpPcmPacketPosition position, EncodedAudioFrame frame)
+     {
++#if DEBUG
++        AcceptanceAudioTrace.Write("rtp-arrival", frame.AudioFormat.ClockRate, frame.AudioFormat.ChannelCount, position.Timestamp);
++#endif
+         if (!Enter()) return;
+         try
+         {
+diff --git a/WawiCallPro.Audio/WindowsIncomingRingtone.cs b/WawiCallPro.Audio/WindowsIncomingRingtone.cs
+index f609d90..07240e1 100644
+--- a/WawiCallPro.Audio/WindowsIncomingRingtone.cs
++++ b/WawiCallPro.Audio/WindowsIncomingRingtone.cs
+@@ -96,6 +96,9 @@ public sealed class WindowsIncomingRingtone : IIncomingRingtone
+         using var fading = new RingtoneFadeOut(normalized ?? source, token) { DisposeBaseSource = false };
+         try { _output.Play(fading, playback, hardStop.Token); }
+         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
++#if DEBUG
++        AcceptanceAudioTrace.Write("ring-end");
++#endif
+         token.ThrowIfCancellationRequested();
+     }
+ 

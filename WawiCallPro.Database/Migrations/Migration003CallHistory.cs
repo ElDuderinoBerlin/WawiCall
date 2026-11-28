@@ -34,6 +34,7 @@ public sealed class Migration003CallHistory(DatabaseType databaseType) : Forward
             .WithColumn("answeredatutc").AsInt64().Nullable()
             .WithColumn("endedatutc").AsInt64().Nullable()
             .WithColumn("endreason").AsInt32().Nullable();
+
         calls.WithCheckConstraint(sql, "ck_phonecalls_id", $"{sql.Hex(sql.Quote("id"), 32)} AND {sql.Quote("id")} <> '00000000000000000000000000000000'");
         calls.WithCheckConstraint(sql, "ck_phonecalls_companyid", $"{sql.Quote("companyid")} IS NULL OR (" + $"{sql.Hex(sql.Quote("companyid"), 32)} AND {sql.Quote("companyid")} <> '00000000000000000000000000000000'" + ")");
         calls.WithCheckConstraint(sql, "ck_phonecalls_writeversion", sql.IntegerCheck("writeversion", 1, long.MaxValue));
@@ -68,6 +69,7 @@ public sealed class Migration003CallHistory(DatabaseType databaseType) : Forward
         calls.WithCheckConstraint(sql, "ck_phonecalls_end", "([state] IN (1,2,3,4,5) AND [endedatutc] IS NULL AND [endreason] IS NULL) OR ([state] IN (6,7) AND [endedatutc] IS NOT NULL AND [endedatutc] = [statechangedatutc] AND [endreason] IS NOT NULL)");
         calls.WithCheckConstraint(sql, "ck_phonecalls_reason", "[state] NOT IN (6,7) OR ([state] = 7 AND [endreason] IN (7,8,9)) OR ([state] = 6 AND (([endreason] IN (1,10) AND [answeredatutc] IS NOT NULL) OR ([endreason] = 2 AND [direction] = 1 AND [answeredatutc] IS NULL) OR ([endreason] = 5 AND [direction] = 2 AND [answeredatutc] IS NULL) OR ([endreason] IN (3,4) AND [answeredatutc] IS NULL) OR [endreason] = 6))");
         calls.WithForeignKeyConstraint(sql, "fk_phonecalls_company", ["companyid"], "companies", "id");
+
         Create.Index("ix_phonecalls_start").OnTable("phonecalls").InSchema(sql.SchemaName).OnColumn("startedatutc").Descending().OnColumn("id").Ascending();
         Create.Index("ix_phonecalls_workstation").OnTable("phonecalls").InSchema(sql.SchemaName).OnColumn("workstationid").Ascending().OnColumn("startedatutc").Descending().OnColumn("id").Ascending();
         Create.Index("ix_phonecalls_machine").OnTable("phonecalls").InSchema(sql.SchemaName).OnColumn("machinename").Ascending().OnColumn("startedatutc").Descending().OnColumn("id").Ascending();
@@ -132,6 +134,7 @@ public sealed class Migration003CallHistory(DatabaseType databaseType) : Forward
             .WithColumn("occurredatutc").AsInt64().NotNullable()
             .WithColumn("state").AsInt32().NotNullable()
             .WithColumn("code").AsString(64).NotNullable();
+
         events.WithCheckConstraint(sql, "ck_callevents_id", $"{sql.Hex(sql.Quote("id"), 32)} AND {sql.Quote("id")} <> '00000000000000000000000000000000'");
         events.WithCheckConstraint(sql, "ck_callevents_callid", $"{sql.Hex(sql.Quote("callid"), 32)} AND {sql.Quote("callid")} <> '00000000000000000000000000000000'");
         events.WithCheckConstraint(sql, "ck_callevents_sequence", sql.IntegerCheck("sequence", 1, long.MaxValue));

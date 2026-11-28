@@ -16,10 +16,12 @@ public partial class MainForm
         PartyViews = _automationParties.Count(item => _pluginPages.ContainsKey(item.Value)),
         GlobalCompanySelected = _workspace?.Companies.Current.Company is not null,
         OwnedViews = OwnedForms.Where(form => !form.IsDisposed).Select(form => form.GetType().Name).ToArray(),
-        ModalViews = OwnedForms.Where(form => form.Modal && form.Visible).Select(form => form.GetType().Name).ToArray()
+        ModalViews = OwnedForms.Where(form => form is { Modal: true, Visible: true }).Select(form => form.GetType().Name).ToArray()
     };
+
     private readonly Dictionary<(PartyKey Party, string View), BaseDocument> _automationParties = [];
-    private readonly Dictionary<FrmDial, (WawiCallPro.Interfaces.Companies.CompanyKey Company, string Number)> _automationDials = [];
+    private readonly Dictionary<FrmDial, (Interfaces.Companies.CompanyKey Company, string Number)> _automationDials = [];
+
     internal async Task PresentAutomationAsync(PresentationRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -90,9 +92,9 @@ public partial class MainForm
                 existing.Show(); existing.Activate(); return;
             }
             var dial = new FrmDial(_workspace.Directory, _workspace.Telephony!, request.Company);
+            dial.ConfigurePhoneSearch(_workspace.PartySearch, _state);
             _state?.AttachWindow(dial, "FrmDial"); dial.SetAutomationNumber(number);
             _automationDials.Add(dial, (request.Company, number));
-            dial.ConfigurePhoneSearch(_workspace.PartySearch, _state);
             dial.FormClosed += (_, _) => _automationDials.Remove(dial);
             dial.Show(this); return;
         }
@@ -117,7 +119,7 @@ public partial class MainForm
 
     private async Task OpenAutomationPartyAsync(PartyKey party, string number, string? pluginView, CancellationToken token)
     {
-        var sourcePlugin = (_workspace!.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId;
+        var sourcePlugin = (_workspace!.Plugins as Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId;
         var key = (party, pluginView ?? "master-data");
         if (_automationParties.TryGetValue(key, out var existing) && _pluginPages.TryGetValue(existing, out var existingHandle)
             && (existingHandle.View is not PartySearchPage existingPage || existingPage.DisplayedParty == party))
@@ -140,7 +142,7 @@ public partial class MainForm
         try
         {
             token.ThrowIfCancellationRequested();
-            if (_closing || !_workspace.CanUseBusinessDirectory || sourcePlugin != (_workspace.Plugins as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId
+            if (_closing || !_workspace.CanUseBusinessDirectory || sourcePlugin != (_workspace.Plugins as Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId
                 || handle.View.IsDisposed) throw new AutomationFault(AutomationFailure.NotReady);
             var host = new Panel { Dock = DockStyle.Fill }; handle.View.Dock = DockStyle.Fill; host.Controls.Add(handle.View);
             var document = tabbedView.AddDocument(host);

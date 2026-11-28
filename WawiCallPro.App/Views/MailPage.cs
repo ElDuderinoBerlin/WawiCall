@@ -11,7 +11,7 @@ namespace WawiCallPro.App.Views;
 public partial class MailPage : XtraUserControl
 {
     private IMailViewSource? _source;
-    private WawiCallPro.Office.MailApplication? _application;
+    private Office.MailApplication? _application;
     private MailContent? _message;
     private bool _allowImport;
     private string _catalogStatus = "";
@@ -70,7 +70,7 @@ public partial class MailPage : XtraUserControl
         Cancel(ref _listCancellation); Cancel(ref _previewCancellation); searchTimer.Stop();
         return Track(LoadCatalogAsync(token));
     }
-    internal void ConfigureMailActions(WawiCallPro.Office.MailApplication application, bool allowImport)
+    internal void ConfigureMailActions(Office.MailApplication application, bool allowImport)
     { _application = application; _allowImport = allowImport; }
     internal async Task CancelPendingLoadsAsync()
     {

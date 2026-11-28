@@ -24,7 +24,7 @@ public sealed class ApplicationOptionsValidator(ISecretProtector secrets)
             if (user.LogDirectory is { } directory && !IsValidLogDirectory(directory))
                 issues.Add(new("user.logDirectory", "Für das Log-Verzeichnis einen absoluten lokalen Ordnerpfad angeben."));
             if (!GlobalHotkeySettings.IsSupported(user.ShowWindowHotkey) || !GlobalHotkeySettings.IsSupported(user.DialHotkey))
-                issues.Add(new("user.hotkeys", "Erlaubt sind deaktivierte Tastenkürzel oder Strg+Alt+F1 bis Strg+Alt+F11."));
+                issues.Add(new("user.hotkeys", "Erlaubt sind F1 bis F11 mit optionalem Strg, Alt oder Umschalt. Zum Deaktivieren das Feld leeren."));
             if (user.ShowWindowHotkey is not null && user.ShowWindowHotkey == user.DialHotkey)
                 issues.Add(new("user.hotkeys", "Für die beiden Aktionen unterschiedliche Tastenkürzel auswählen."));
         }

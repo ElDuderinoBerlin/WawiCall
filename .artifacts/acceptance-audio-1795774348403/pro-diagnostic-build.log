@@ -1,0 +1,9 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+
+Der Buildvorgang wurde erfolgreich ausgeführt.
+
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+    1 Warnung(en)
+    0 Fehler
+
+Verstrichene Zeit 00:00:09.59

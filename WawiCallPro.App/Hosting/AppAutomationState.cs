@@ -21,7 +21,7 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
     internal bool UserMode { get { lock (_gate) return _userMode; } }
     internal Func<CancellationToken, Task>? ShowRequested { get; set; }
     internal Func<PresentationRequest, CancellationToken, Task>? PresentRequested { get; set; }
-    internal WawiCallPro.Interfaces.Plugins.IProductPluginRuntime? Runtime { get; set; }
+    internal Interfaces.Plugins.IProductPluginRuntime? Runtime { get; set; }
     private ImmutableArray<Company> _companies = [];
     private ImmutableArray<AutomationView> _views = AppAutomationCatalog.BaseViews;
     private string? _catalogPlugin;
@@ -84,14 +84,14 @@ internal sealed class AppAutomationState(ApplicationDescriptor application, Time
         {
             if (BusinessAvailable()) return _views;
             // Connection setup remains reachable before a source catalog can be authenticated.
-            if ((Runtime as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
-                && Runtime?.IsLoaded == true && (Runtime is not WawiCallPro.Interfaces.Plugins.IProductPluginAvailability availability || availability.CanUseActivePlugin))
+            if ((Runtime as Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
+                && Runtime?.IsLoaded == true && (Runtime is not Interfaces.Plugins.IProductPluginAvailability availability || availability.CanUseActivePlugin))
                 return AppAutomationCatalog.BaseViews.AddRange(_views.Where(view => view.Id == "settings-wawi"));
             return AppAutomationCatalog.BaseViews;
         }
     }
-    private bool BusinessAvailable() => _businessReady && (Runtime as WawiCallPro.Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
-        && Runtime?.IsLoaded == true && (Runtime is not WawiCallPro.Interfaces.Plugins.IProductPluginAvailability available || available.CanUseActivePlugin);
+    private bool BusinessAvailable() => _businessReady && (Runtime as Interfaces.Plugins.IProductPluginSelection)?.ActivePluginId == _catalogPlugin
+        && Runtime?.IsLoaded == true && (Runtime is not Interfaces.Plugins.IProductPluginAvailability available || available.CanUseActivePlugin);
     public void RequireAccess(AutomationAccess access, CompanyKey? company = null)
     {
         lock (_gate)

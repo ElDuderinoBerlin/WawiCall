@@ -46,7 +46,7 @@ internal static class UiAudit
                     }
                     if (surface == "PhoneNumberDiagnosticsPage")
                     {
-                        using var content = new WawiCallPro.App.Views.PhoneNumberDiagnosticsPage { Dock = DockStyle.Fill };
+                        using var content = new Views.PhoneNumberDiagnosticsPage { Dock = DockStyle.Fill };
                         form.Controls.Add(content); content.BringToFront(); CreateHandles(content); form.PerformLayout();
                         using var shot = new Bitmap(content.Width, content.Height);
                         content.DrawToBitmap(shot, new Rectangle(Point.Empty, content.Size));
@@ -55,7 +55,7 @@ internal static class UiAudit
                     }
                     if (surface == "CallDetailsPage")
                     {
-                        using var content = new WawiCallPro.App.Views.CallDetailsPage { Dock = DockStyle.Fill };
+                        using var content = new Views.CallDetailsPage { Dock = DockStyle.Fill };
                         form.Controls.Add(content); content.BringToFront(); CreateHandles(content); form.PerformLayout();
                         using var shot = new Bitmap(content.Width, content.Height);
                         content.DrawToBitmap(shot, new Rectangle(Point.Empty, content.Size));
@@ -137,7 +137,7 @@ internal static class UiAudit
                     form.Show();
                     Application.DoEvents();
                     form.Refresh();
-                    if (surface == "MailPage" && form.GetActiveDocumentView() is WawiCallPro.App.Views.MailPage mail)
+                    if (surface == "MailPage" && form.GetActiveDocumentView() is Views.MailPage mail)
                     {
                         using var mailBitmap = CaptureMail(mail);
                         mailBitmap.Save(Path.Combine(outputDirectory, $"MailPage-{size.Width}-{fontSize:0}.png"), ImageFormat.Png);
@@ -146,11 +146,11 @@ internal static class UiAudit
                         scaledMailBitmap.Save(Path.Combine(outputDirectory, $"MailPage-{size.Width}-{fontSize:0}-scale150.png"), ImageFormat.Png);
                         continue;
                     }
-                    if (surface == "HistoryPage" && form.GetActiveDocumentView() is WawiCallPro.App.Views.HistoryPage history)
+                    if (surface == "HistoryPage" && form.GetActiveDocumentView() is Views.HistoryPage history)
                     {
-                        var action = history.Controls.Find("refreshButton", true).OfType<DevExpress.XtraEditors.SimpleButton>().Single();
-                        var from = history.Controls.Find("fromEdit", true).OfType<DevExpress.XtraEditors.DateEdit>().Single();
-                        var to = history.Controls.Find("toEdit", true).OfType<DevExpress.XtraEditors.DateEdit>().Single();
+                        var action = history.Controls.Find("refreshButton", true).OfType<SimpleButton>().Single();
+                        var from = history.Controls.Find("fromEdit", true).OfType<DateEdit>().Single();
+                        var to = history.Controls.Find("toEdit", true).OfType<DateEdit>().Single();
                         var measurements = new
                         {
                             action.DeviceDpi, Font = action.Font.ToString(), Host = action.FindForm()?.GetType().FullName,
@@ -202,7 +202,7 @@ internal static class UiAudit
 
     // RichEdit's WM_PRINT ignores the destination offset when a parent prints its children.
     // Print it separately at its actual client position instead of capturing the desktop.
-    internal static Bitmap CaptureMail(WawiCallPro.App.Views.MailPage page)
+    internal static Bitmap CaptureMail(Views.MailPage page)
     {
         var editor = page.Controls.Find("mailBody", true).OfType<DevExpress.XtraRichEdit.RichEditControl>().Single();
         var bitmap = new Bitmap(page.Width, page.Height);

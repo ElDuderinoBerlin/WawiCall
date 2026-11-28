@@ -57,13 +57,13 @@ internal sealed class PageOperation : IDisposable
     internal static string Describe(Exception exception) => exception switch
     {
         WawiCallPro.Interfaces.Plugins.PluginSettingsValidationException => exception.Message,
-        WawiCallPro.Interfaces.Office.MailException => exception.Message,
-        WawiCallPro.Interfaces.Telephony.TelephonyException or ConfigurationException or DatabaseOperationException or RepositoryConflictException or SecretProtectionException or WawiCallPro.Interfaces.PhoneNumbers.PhoneCacheRefreshException => exception.Message,
-        WawiCallPro.Plugin.Windows.UnsavedPluginChangesException => exception.Message,
+        Interfaces.Office.MailException => exception.Message,
+        Interfaces.Telephony.TelephonyException or ConfigurationException or DatabaseOperationException or RepositoryConflictException or SecretProtectionException or Interfaces.PhoneNumbers.PhoneCacheRefreshException => exception.Message,
+        Plugin.Windows.UnsavedPluginChangesException => exception.Message,
         UnsavedCallNotesException => exception.Message,
         ActiveCallCloseException => exception.Message,
         AutoStartException => exception.Message,
-        WawiCallPro.Utilities.Plugins.LexwareUnavailableException => exception.Message,
+        Utilities.Plugins.LexwareUnavailableException => exception.Message,
         NotSupportedException => "Diese Funktion ist im aktiven Plugin noch nicht verfügbar.",
         _ => "Die Aktion ist fehlgeschlagen. Bitte Einstellungen und Erreichbarkeit prüfen."
     };

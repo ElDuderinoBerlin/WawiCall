@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
+    <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
+  </PropertyGroup>
+  <ItemGroup><Reference Include="CSCore"><HintPath>D:\Application-Development\WawiCallPro\src\CSCore\CSCore\bin\Debug\net8.0\CSCore.dll</HintPath></Reference></ItemGroup>
+</Project>

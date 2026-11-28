@@ -1,0 +1,85 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.CSharp.CurrentVersion.targets(130,9): warning MSB3884: Regelsatzdatei "MinimumRecommendedRules.ruleset" konnte nicht gefunden werden. [D:\Application-Development\WawiCallPro\src\CSCore\CSCore\CSCore.csproj]
+Ausführen von Tests von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioBufferProbeMeasuresLoopbackDropoutsAndImpulses (31s 782ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Standardausgabe
+    Requested 0/0 ms; actual 22/22 ms; input 4,000 s of 4 s; render BufferProbeResult { SignalFound = True, Low10MsBlocks = 0, ImpulseGroups = 0, MissingFrames = 0, TonePeak = 480 }; native discontinuity: False; Windows 100%.
+    Requested 20/20 ms; actual 22/22 ms; input 4,000 s of 4 s; render BufferProbeResult { SignalFound = True, Low10MsBlocks = 0, ImpulseGroups = 0, MissingFrames = 0, TonePeak = 480 }; native discontinuity: False; Windows 100%.
+    Requested 40/40 ms; actual 40/40 ms; input 4,000 s of 4 s; render BufferProbeResult { SignalFound = True, Low10MsBlocks = 0, ImpulseGroups = 0, MissingFrames = 0, TonePeak = 480 }; native discontinuity: False; Windows 100%.
+    Requested 70/70 ms; actual 70/70 ms; input 4,000 s of 4 s; render BufferProbeResult { SignalFound = True, Low10MsBlocks = 0, ImpulseGroups = 0, MissingFrames = 0, TonePeak = 480 }; native discontinuity: False; Windows 100%.
+    Requested 70/110 ms; actual 70/110 ms; input 3,970 s of 4 s; render BufferProbeResult { SignalFound = True, Low10MsBlocks = 0, ImpulseGroups = 0, MissingFrames = 0, TonePeak = 480 }; native discontinuity: False; Windows 100%.
+    
+    
+    
+    Debugablaufverfolgung:
+    Initialized WasapiCapture[Mode: Shared; Latency: 100; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 20; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 40; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 70; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 70; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    
+  Fehlerausgabe
+erfolgreich AudioBufferProbeAutomaticallyRecommendsAConfirmedConfiguration (12s 713ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Standardausgabe
+    Recommendation: AudioBufferRecommendation { CaptureMilliseconds = 0, PlaybackMilliseconds = 0, MeasuredCaptureMilliseconds = 22, MeasuredPlaybackMilliseconds = 22 }
+    
+    
+    
+    Debugablaufverfolgung:
+    Initialized WasapiCapture[Mode: Shared; Latency: 100; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 100; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    
+  Fehlerausgabe
+erfolgreich AudioBufferProbeDetectsAnInjectedImpulseAndDropout (2ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestRendersAllStepsAndPersistsOnlyOnApply (9s 359ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestProcessesAllCodecsWithTwentyMillisecondBlocks (33ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioSelfTestMeasuresNativeInputAndOutputBuffers (12s 406ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+  Standardausgabe
+    Mikrofon (INZONE Buds): 70 ms; Kopfhörer (INZONE Buds): 110 ms.
+    
+    
+    
+    Debugablaufverfolgung:
+    Initialized WasapiCapture[Mode: Shared; Latency: 70; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    Initialized WasapiCapture[Mode: Shared; Latency: 70; OutputFormat: ChannelsAvailable: 1|SampleRate: 48000|Bps: 192000|BlockAlign: 4|BitsPerSample: 32|Encoding: Extensible|SubFormat: 00000003-0000-0010-8000-00aa00389b71|ChannelMask: SpeakerFrontCenter]
+    Disposing WasapiOut.
+    Wasapi is already stopped.
+    
+  Fehlerausgabe
+erfolgreich AudioDeviceSettingsPreserveMissingEndpointsAndSaveOnlyStableIds (814ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioDeviceSettingsRenderAvailableMissingEmptyFailedAndSuppressedCatalogs (13s 491ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+erfolgreich AudioDeviceSettingsRestoreSelectionsWithDifferentIdCasing (460ms)
+  von D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64)
+D:\Application-Development\WawiCallPro\WawiCallPro.App.Tests\bin\Debug\Pro\net11.0-windows10.0.19041.0\WawiCallPro.App.Tests.dll (net11.0|x64) erfolgreich [+9/x0/?0] (1m 21s 561ms)
+
+Testlaufzusammenfassung: Bestanden!
+  gesamt: 9
+  fehlgeschlagen: 0
+  erfolgreich: 9
+  übersprungen: 0
+  Dauer: 1m 21s 700ms

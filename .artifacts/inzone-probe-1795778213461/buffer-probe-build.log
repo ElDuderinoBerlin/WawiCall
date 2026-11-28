@@ -1,0 +1,11 @@
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.Common.CurrentVersion.targets(2468,5): warning MSB3245: Dieser Verweis konnte nicht aufgelöst werden. Die "Microsoft.Extensions.Logging.Abstractions"-Assembly wurde nicht gefunden. Stellen Sie sicher, dass die Assembly auf dem Datenträger vorhanden ist. Falls dieser Verweis im Code erforderlich ist, können Kompilierungsfehler auftreten. [D:\Application-Development\WawiCallPro\.artifacts\inzone-probe-1795778213461\Probe.csproj]
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.Common.CurrentVersion.targets(2468,5): warning MSB3243: Der Konflikt zwischen "Microsoft.Extensions.Logging.Abstractions, Version=11.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60" und "Microsoft.Extensions.Logging.Abstractions" kann nicht aufgelöst werden. Auswahl von "Microsoft.Extensions.Logging.Abstractions, Version=11.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60" nach dem Zufallsprinzip. [D:\Application-Development\WawiCallPro\.artifacts\inzone-probe-1795778213461\Probe.csproj]
+
+Der Buildvorgang wurde erfolgreich ausgeführt.
+
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.Common.CurrentVersion.targets(2468,5): warning MSB3245: Dieser Verweis konnte nicht aufgelöst werden. Die "Microsoft.Extensions.Logging.Abstractions"-Assembly wurde nicht gefunden. Stellen Sie sicher, dass die Assembly auf dem Datenträger vorhanden ist. Falls dieser Verweis im Code erforderlich ist, können Kompilierungsfehler auftreten. [D:\Application-Development\WawiCallPro\.artifacts\inzone-probe-1795778213461\Probe.csproj]
+C:\Program Files\dotnet\sdk\11.0.100\Microsoft.Common.CurrentVersion.targets(2468,5): warning MSB3243: Der Konflikt zwischen "Microsoft.Extensions.Logging.Abstractions, Version=11.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60" und "Microsoft.Extensions.Logging.Abstractions" kann nicht aufgelöst werden. Auswahl von "Microsoft.Extensions.Logging.Abstractions, Version=11.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60" nach dem Zufallsprinzip. [D:\Application-Development\WawiCallPro\.artifacts\inzone-probe-1795778213461\Probe.csproj]
+    2 Warnung(en)
+    0 Fehler
+
+Verstrichene Zeit 00:00:00.15
