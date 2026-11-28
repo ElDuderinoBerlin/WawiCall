@@ -21,6 +21,29 @@ namespace WawiCallPro.Console.Tests;
 public sealed partial class SentRtpPcmTests
 {
     [TestMethod]
+    public async Task CaptureCallbackAfterRtpCloseDoesNotInvalidatePreviouslySentPcm()
+    {
+        await using var fixture = new Fixture();
+        await fixture.Connect();
+        using var files = new RecordingFiles();
+        await using var recording = await Sessions().StartAsync(files.Request(8000));
+        await using var binding = new SentPcmRecordingBindingFactory().Attach(fixture.Tap, recording, Anchor(fixture));
+        var samples = Samples(160, 0);
+        fixture.Capture(samples);
+        await fixture.Packets(1);
+
+        // The capture callback can run while call teardown has already closed RTP.
+        var late = fixture.Tap.EncodeAudio(Samples(160, 1), fixture.Format);
+        fixture.Media.Close("Synthetic hangup");
+        fixture.Emit(160, late);
+
+        await binding.DisposeAsync();
+        Assert.IsNull(await binding.Completion);
+        await recording.StopAsync(binding.LastWindowEnd);
+        CollectionAssert.AreEqual(samples, files.Read(8000, 160).Where((_, index) => index % 2 == 0).ToArray());
+    }
+
+    [TestMethod]
     public async Task RtpDtmfReachesThePeerWhileCaptureKeepsItsSentPcmSubscription()
     {
         await using var fixture = new Fixture();

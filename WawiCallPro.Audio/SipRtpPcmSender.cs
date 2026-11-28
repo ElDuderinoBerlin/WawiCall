@@ -40,6 +40,7 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
             && samples.Length <= format.ClockRate * format.ChannelCount * 2 && payload.Length is > 0 and <= 65536;
         lock (_gate)
         {
+            if (_media.IsClosed) return;
             if (_closed || !valid || _pending.ContainsKey(Environment.CurrentManagedThreadId) || _pending.Count >= 8)
             { Fail(); return; }
             _pending.Add(Environment.CurrentManagedThreadId, new(format, payload, samples.ToArray()));
@@ -85,16 +86,21 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
             Volatile.Write(ref _sendThread, Environment.CurrentManagedThreadId);
             // SIPSorcery suppresses voice RTP during telephone-event. Drop the paired source block
             // without reporting missing PCM metadata or adding audio that was never sent.
-            if (_dtmfActive) return;
+            if (_dtmfActive || _media.IsClosed) return;
             var track = _media.AudioStream?.LocalTrack;
             var timestamp = track?.Timestamp ?? 0; var ssrc = track?.Ssrc ?? 0;
-            _media.SendAudio(duration, payload);
+            // A BYE can close RTP while the endpoint is still delivering its last capture callback.
+            try { _media.SendAudio(duration, payload); }
+            catch (Exception) when (_media.IsClosed) { return; }
             if (extras || !_pcm.HasSentObservers) return;
             var stream = _media.AudioStream;
             if (pending is null || track is null || stream is null || !ReferenceEquals(track, stream.LocalTrack)
                 || !ReferenceEquals(pending.Payload, payload) || duration == 0 || track.Ssrc != ssrc
                 || unchecked(track.Timestamp - timestamp) != duration)
-            { Fail(); return; }
+            {
+                if (!_media.IsClosed) Fail();
+                return;
+            }
             var selected = stream.NegotiatedFormat.ToAudioFormat();
             if (selected.FormatID != pending.Format.FormatID || selected.Codec != pending.Format.Codec
                 || selected.ClockRate != pending.Format.ClockRate || selected.RtpClockRate != pending.Format.RtpClockRate
@@ -131,7 +137,7 @@ internal sealed class SipRtpPcmSender : IAsyncDisposable
             _source.OnAudioSourceEncodedSample -= Send;
             if (!ReferenceEquals(_source, _media.AudioExtrasSource)) _media.AudioExtrasSource.OnAudioSourceEncodedSample -= SendExtras;
             _pcm.DetachSender(this);
-            if (_pending.Count != 0) Fail();
+            if (_pending.Count != 0 && !_media.IsClosed) Fail();
             _pending.Clear();
             if (_inflight == 0) _drained.TrySetResult();
             return new(_drained.Task);
