@@ -504,6 +504,7 @@ public sealed partial class SipRuntimeTests
         private bool _unavailableAudio;
         private IIncomingRingtone? _ringtone;
         internal string Destination => "sip:workstation@127.0.0.1:" + LocalPort;
+        internal string PendingDirectory => Path.Combine(_root, "sip-pending");
 
         internal static Task<Fixture> CreateAsync(bool unavailableAudio = false) => CreateAsync(unavailableAudio, null);
 
@@ -769,12 +770,14 @@ public sealed partial class SipRuntimeTests
         internal readonly ConcurrentQueue<CallSnapshot> Snapshots = new();
         internal int Recoveries;
         internal volatile bool Unavailable;
+        internal Func<CallSnapshot, bool>? Reject;
         internal int Attempts;
         internal WawiCallPro.Interfaces.History.CallOrigin? CapturedOrigin;
         public Task<CallSnapshot> SaveAsync(CallSnapshot snapshot, CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref Attempts);
             if (Unavailable) throw new IOException("Isolated database outage.");
+            if (Reject?.Invoke(snapshot) == true) throw new ArgumentException("Isolated permanent rejection.");
             var saved = snapshot with { Origin = CapturedOrigin ?? snapshot.Origin };
             Snapshots.Enqueue(saved); return Task.FromResult(saved);
         }

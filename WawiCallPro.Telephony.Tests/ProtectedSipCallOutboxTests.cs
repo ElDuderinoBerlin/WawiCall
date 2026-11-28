@@ -80,6 +80,30 @@ public sealed class ProtectedSipCallOutboxTests
     }
 
     [TestMethod]
+    public async Task QuarantinedRecordIsNeitherReplayedNorBlockingLaterRecords()
+    {
+        using var fixture = new Fixture();
+        var rejected = NewCall();
+        var later = NewCall();
+        using (var journal = fixture.Create())
+        {
+            await journal.OpenAsync(new());
+            await journal.AppendAsync(rejected);
+            await journal.AppendAsync(later);
+            Assert.ThrowsExactly<IOException>(() => journal.Quarantine(later));
+            journal.Quarantine(rejected);
+        }
+        Assert.HasCount(1, Directory.GetFiles(fixture.Pending, "*.rejected"));
+        Assert.IsFalse((await File.ReadAllTextAsync(Directory.GetFiles(fixture.Pending, "*.rejected")[0])).Contains("synthetic-caller"));
+        using var restarted = fixture.Create();
+        var restored = await restarted.OpenAsync(new());
+        Assert.HasCount(1, restored);
+        Assert.AreEqual(later, restored[0]);
+        restarted.Acknowledge(restored[0]);
+        Assert.IsEmpty(Directory.GetFiles(fixture.Pending, "*.pending"));
+    }
+
+    [TestMethod]
     public async Task LockExcludesAnotherHostAndCloseLeavesUnacknowledgedRecords()
     {
         using var fixture = new Fixture();

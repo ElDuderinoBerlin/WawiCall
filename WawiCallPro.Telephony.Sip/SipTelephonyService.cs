@@ -636,6 +636,15 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                     if (_agent?.Id == saved.Id && _agent.State?.Current.Revision == saved.Revision)
                         _agent.State = _states.Create(saved);
             }
+            catch (Exception error) when (IsPermanentRejection(error))
+            {
+                // Retrying cannot succeed. Retire only this observation so later calls are still persisted.
+                try { _outbox.Quarantine(snapshot); }
+                catch { StorageFailed(); return; }
+                _pendingWrites.Dequeue();
+                _journaled.Remove((snapshot.Id, snapshot.Revision));
+                Failure("CallSnapshotRejected");
+            }
             catch
             {
                 StorageFailed();
@@ -650,6 +659,9 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             _outboxLoaded = false;
         }
     }
+
+    private static bool IsPermanentRejection(Exception error) => error is ArgumentException
+        || error is WawiCallPro.Database.Contracts.RepositoryConflictException { Kind: not WawiCallPro.Database.Contracts.RepositoryConflictKind.VersionMismatch };
 
     private void StorageFailed()
     {

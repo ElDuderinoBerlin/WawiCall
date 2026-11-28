@@ -100,6 +100,16 @@ public sealed class ProtectedSipCallOutbox(ApplicationPaths paths, ISecretProtec
         _entries.Dequeue();
     }
 
+    public void Quarantine(CallSnapshot snapshot)
+    {
+        if (_lease is null || !_entries.TryPeek(out var entry) || entry.Call.Id != snapshot.Id || entry.Call.Revision != snapshot.Revision)
+            throw Unavailable();
+        // Only *.pending is replayed; the renamed record keeps its DPAPI protection for later analysis.
+        try { File.Move(entry.Path, Path.ChangeExtension(entry.Path, ".rejected"), overwrite: false); }
+        catch { throw Unavailable(); }
+        _entries.Dequeue();
+    }
+
     private string DatabaseBinding(CommunicationDatabaseSettings database)
     {
         string target;

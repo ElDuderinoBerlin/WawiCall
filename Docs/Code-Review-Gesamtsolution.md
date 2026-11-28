@@ -351,7 +351,7 @@ Die geordnete Warteschlange schreibt jede Beobachtung zuerst als DPAPI-geschütz
 in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernommen, Rufnummernunterdrückung
 (`Privacy: id`) wird beachtet. Zugangsdaten werden nur kurzzeitig entschlüsselt.
 
-- ⬜ **TS-01 · Hoch · Fremd-INVITE blockiert die Gesprächsspeicherung (plausibel, nicht nachgestellt)** –
+- ✅ **TS-01 · Hoch · Fremd-INVITE blockiert die Gesprächsspeicherung (behoben 28.11.2026)** –
   Drei Eigenschaften greifen ineinander:
   1. Der Transport lauscht standardmäßig auf `0.0.0.0:5060`
      (`ApplicationOptions.cs:73–74`). [`SipTelephonyService.cs:144–156`](../WawiCallPro.Telephony.Sip/SipTelephonyService.cs)
@@ -378,6 +378,14 @@ in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernomm
     Standard aus). Test `DefaultSettingsAcceptNewInvitesOnlyFromTheRegisteredProxy` (Registrar/Scanner).
   - ✅ (b) `SipCallerIdentity` übernimmt eine signalisierte Kennung nur bis 256 Zeichen, ohne Steuer- oder
     Surrogatzeichen und nicht als reinen Leerraum, sonst `Unknown`. Test `OversizedSignalledIdentityIsStoredAsUnknownCaller`.
+  - ✅ (c) `FlushPendingAsync` erkennt dauerhafte Ablehnungen (`ArgumentException`, `RepositoryConflictException`
+    außer `VersionMismatch`). Der Snapshot wird über `ISipCallOutbox.Quarantine` als DPAPI-geschütztes
+    `*.rejected` beiseitegelegt und nicht erneut eingespielt; es wird `CallSnapshotRejected` gemeldet und die
+    Warteschlange läuft weiter. Tests `QuarantinedRecordIsNeitherReplayedNorBlockingLaterRecords`,
+    `PermanentlyRejectedCallIsQuarantinedAndLaterCallsAreStillPersisted`.
+  - ✅ (d) Tests ergänzt (fremde Quelle, Kennungslänge, Quarantäne). Nachweis: Debug/Pro, App und Console ohne
+    Warnungen, `WawiCallPro.Telephony.Tests` 91/91 und `WawiCallPro.Utilities.Tests` 455/455 bestanden.
+    Offen bleibt nur die Sichtprüfung der neuen Zeile im SIP-Expertenraster (GUI-Test nur nach Absprache).
 - ⬜ **TS-02 · Mittel · Gespräch bleibt nach eigenem Auflegen „verbunden“ (plausibel)** – `HangUpAsync`
   (Z. 299–316) berechnet den Endegrund aus dem Stand **vor** der Einreihung. Nimmt die Gegenstelle einen
   ausgehenden Anruf gleichzeitig mit dem Auflegen an, verarbeitet die Ereignisschleife zuerst `Connected`.
