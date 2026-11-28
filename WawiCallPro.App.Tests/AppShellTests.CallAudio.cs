@@ -124,8 +124,9 @@ public sealed partial class AppShellTests
                     Assert.AreEqual(end.Left, record.Left);
                     Assert.AreEqual(end.Left, slider.Left);
                     Assert.AreEqual(end.Width, slider.Width);
-                    Assert.AreEqual(slider.Left, microphone.Left);
+                    Assert.AreEqual(answer.Left, microphone.Left);
                     Assert.AreEqual(slider.Left, playback.Left);
+                    Assert.AreEqual(microphone.Top, playback.Top);
                     Assert.AreEqual(slider.Width, microphone.Width);
                     Assert.AreEqual(slider.Width, playback.Width);
                     Assert.IsTrue(microphone.Visible && playback.Visible);

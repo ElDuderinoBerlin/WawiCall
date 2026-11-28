@@ -140,8 +140,8 @@ partial class CallControlPanel
         playbackPeak.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
         playbackPeak.Margin = new System.Windows.Forms.Padding(3);
         actions.Controls.Add(microphoneLabel, 0, 4);
-        actions.Controls.Add(microphonePeak, 1, 4);
-        actions.Controls.Add(playbackLabel, 0, 5);
+        actions.Controls.Add(microphonePeak, 0, 5);
+        actions.Controls.Add(playbackLabel, 1, 4);
         actions.Controls.Add(playbackPeak, 1, 5);
         layout.Controls.Add(actions, 0, 0);
         dtmfKeypad.Name = "dtmfKeypad";
