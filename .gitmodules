@@ -1,0 +1,9 @@
+[submodule "src/CSCore"]
+	path = src/CSCore
+	url = https://github.com/filoe/cscore.git
+[submodule "src/NAudio"]
+	path = src/NAudio
+	url = https://github.com/naudio/NAudio.git
+[submodule "src/libphonenumber-csharp"]
+	path = src/libphonenumber-csharp
+	url = https://github.com/twcclegg/libphonenumber-csharp.git
