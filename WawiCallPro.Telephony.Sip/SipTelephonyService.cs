@@ -146,6 +146,13 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
                 if (_stopping || !ReferenceEquals(_transport, activeTransport)) return;
                 if (request.Method == SIPMethodsEnum.INVITE && string.IsNullOrEmpty(request.Header.To.ToTag))
                 {
+                    // Scanners on the network must not ring the workstation or create call history.
+                    if (!account.Connection.AcceptInvitesFromAnySource
+                        && !SipCallerIdentity.IsRegisteredPeer(request.RemoteSIPEndPoint, Volatile.Read(ref _registeredPeer)))
+                    {
+                        _log.LogDebug("SIP-INVITE einer nicht registrierten Quelle verworfen.");
+                        return;
+                    }
                     Agent? incoming;
                     lock (_gate) incoming = _agent;
                     if (incoming is not null)

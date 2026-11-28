@@ -60,4 +60,36 @@ public sealed partial class SipRuntimeTests
         }
         finally { untrusted.Shutdown(); }
     }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task DefaultSettingsAcceptNewInvitesOnlyFromTheRegisteredProxy(bool registeredPeer)
+    {
+        await using var fixture = await Fixture.CreateAsync(false, null, acceptInvitesFromAnySource: false);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        var target = SIPURI.ParseSIPURI(fixture.Destination);
+        var from = new SIPFromHeader(null, SIPURI.ParseSIPURI("sip:+12025550123@example.invalid"), "test-origin");
+        var invite = SIPRequest.GetRequest(SIPMethodsEnum.INVITE, target, new SIPToHeader(null, target, null), from);
+        var destination = new SIPEndPoint(SIPProtocolsEnum.udp, IPAddress.Loopback, fixture.LocalPort);
+        var scanner = new SIPTransport();
+        try
+        {
+            scanner.AddSIPChannel(new SIPUDPChannel(new IPEndPoint(IPAddress.Loopback, 0)));
+            await (registeredPeer ? fixture.RegistrarTransport : scanner).SendRequestAsync(destination, invite);
+            if (registeredPeer)
+            {
+                await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+                Assert.AreEqual("+12025550123", fixture.Runtime.GetCalls().Single().RemoteAddress.OriginalValue);
+                return;
+            }
+            // A foreign INVITE is dropped before a call, journal entry or ringtone exists.
+            await Task.Delay(TimeSpan.FromMilliseconds(750));
+            Assert.IsEmpty(fixture.Runtime.GetCalls());
+            Assert.IsEmpty(fixture.Persistence.Snapshots);
+            Assert.AreEqual(0, fixture.Media.Created);
+        }
+        finally { scanner.Shutdown(); }
+    }
 }

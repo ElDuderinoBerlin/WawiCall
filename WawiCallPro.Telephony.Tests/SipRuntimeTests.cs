@@ -507,8 +507,9 @@ public sealed partial class SipRuntimeTests
 
         internal static Task<Fixture> CreateAsync(bool unavailableAudio = false) => CreateAsync(unavailableAudio, null);
 
+        // Most scenarios use a direct SIPUserAgent peer. Source filtering has dedicated tests with the production default.
         internal static async Task<Fixture> CreateAsync(bool unavailableAudio, IIncomingRingtone? ringtone, int ringVolume = 35,
-            SipDtmfMethod dtmfMethod = SipDtmfMethod.Rtp)
+            SipDtmfMethod dtmfMethod = SipDtmfMethod.Rtp, bool acceptInvitesFromAnySource = true)
         {
             var fixture = new Fixture();
             var channel = new SIPUDPChannel(new IPEndPoint(IPAddress.Loopback, 0));
@@ -534,7 +535,8 @@ public sealed partial class SipRuntimeTests
                     Server = "127.0.0.1", Port = channel.Port, Username = "workstation",
                     Password = protector.Protect("isolated-secret", SipAccountOptions.PasswordPurpose),
                     Connection = new() { BindAddress = "127.0.0.1", LocalPort = fixture.LocalPort, RegistrationTimeoutSeconds = 1,
-                        RetryIntervalSeconds = 1, RingTimeoutSeconds = 5, DtmfMethod = dtmfMethod }
+                        RetryIntervalSeconds = 1, RingTimeoutSeconds = 5, DtmfMethod = dtmfMethod,
+                        AcceptInvitesFromAnySource = acceptInvitesFromAnySource }
                 }
             });
             fixture._unavailableAudio = unavailableAudio;

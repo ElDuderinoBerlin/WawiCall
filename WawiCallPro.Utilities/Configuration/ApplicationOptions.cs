@@ -78,6 +78,9 @@ public sealed record SipConnectionOptions
     public int KeepAliveIntervalSeconds { get; init; }
     public int RingTimeoutSeconds { get; init; } = 60;
     public bool AcceptRtpFromAny { get; init; }
+    /// <summary>Accepts new INVITEs from any source instead of only the registered proxy endpoint.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool AcceptInvitesFromAnySource { get; init; }
     public bool EnableG722 { get; init; } = true;
     public string? CodecOrder { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

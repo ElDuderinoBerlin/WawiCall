@@ -39,6 +39,9 @@ internal sealed class SipAdvancedSettings
     [DisplayName("RTP von abweichender Adresse"), Category("Medien"), Description("Nur bei entsprechender Anlagen-/NAT-Konfiguration aktivieren."), DefaultValue(false)]
     public bool AcceptRtpFromAny { get; set; } = false;
 
+    [DisplayName("Anrufe von abweichender Adresse"), Category("Anrufe"), Description("Eingehende Anrufe auch annehmen, wenn sie nicht vom registrierten SIP-Server kommen. Nur aktivieren, wenn die Anlage von einer anderen Adresse signalisiert; sonst können fremde Geräte im Netz Anrufe auslösen."), DefaultValue(false)]
+    public bool AcceptInvitesFromAnySource { get; set; }
+
     internal static SipAdvancedSettings From(SipConnectionOptions options) => new()
     {
         BindAddress = options.BindAddress,
@@ -51,6 +54,7 @@ internal sealed class SipAdvancedSettings
         CodecOrder = options.CodecOrder ?? (options.EnableG722 ? DefaultCodecOrder : DefaultCodecOrderWithoutG722),
         DtmfMethod = options.DtmfMethod,
         AcceptRtpFromAny = options.AcceptRtpFromAny,
+        AcceptInvitesFromAnySource = options.AcceptInvitesFromAnySource,
     };
 
     internal SipConnectionOptions Read() => new()
@@ -66,5 +70,6 @@ internal sealed class SipAdvancedSettings
         CodecOrder = CodecOrder is DefaultCodecOrder or DefaultCodecOrderWithoutG722 ? null : CodecOrder,
         DtmfMethod = DtmfMethod,
         AcceptRtpFromAny = AcceptRtpFromAny,
+        AcceptInvitesFromAnySource = AcceptInvitesFromAnySource,
     };
 }

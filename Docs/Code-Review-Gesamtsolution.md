@@ -372,6 +372,10 @@ in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernomm
   Steuerzeichen, sonst `Unknown`). (c) Dauerhafte Validierungs- und Konfliktfehler vom Wiederholen
   ausnehmen: betroffenen Snapshot in Quarantäne verschieben, sichtbar melden und nachfolgende Einträge
   weiterverarbeiten. (d) Tests mit überlangem und steuerzeichenhaltigem From-Header sowie mit fremder Quelladresse ergänzen.
+  - ✅ (a) Neue INVITEs werden nur noch vom exakten Registrar-Endpunkt angenommen (Protokoll, Adresse, Port;
+    `SipCallerIdentity.IsRegisteredPeer`), alle anderen ohne Anruf, Journal oder Klingelton verworfen.
+    Expertenoption „Anrufe von abweichender Adresse“ (`SipConnectionOptions.AcceptInvitesFromAnySource`,
+    Standard aus). Test `DefaultSettingsAcceptNewInvitesOnlyFromTheRegisteredProxy` (Registrar/Scanner).
 - ⬜ **TS-02 · Mittel · Gespräch bleibt nach eigenem Auflegen „verbunden“ (plausibel)** – `HangUpAsync`
   (Z. 299–316) berechnet den Endegrund aus dem Stand **vor** der Einreihung. Nimmt die Gegenstelle einen
   ausgehenden Anruf gleichzeitig mit dem Auflegen an, verarbeitet die Ereignisschleife zuerst `Connected`.
