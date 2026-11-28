@@ -260,6 +260,11 @@ Quellen: [WinForms Coding Style](https://github.com/dotnet/winforms/blob/main/do
 
 ## Projektspezifische Vorgaben – WawiCallPro
 
+### Git-Branch für Commits
+
+- Alle neuen Commits für WawiCallPro direkt auf `main` erstellen. Vor dem Commit prüfen, dass `main`
+  ausgecheckt ist. Vorhandene lokale Änderungen und deren Staging beim Branchwechsel erhalten.
+
 ### Bilder und Symbole
 
 - Neue und überarbeitete Bilder, Illustrationen und Symbole der Anwendungsoberfläche
