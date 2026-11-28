@@ -12,6 +12,9 @@
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="NVorbis" Version="0.10.5" />
     <ProjectReference Include="..\WawiCallPro.Telephony.Sip\WawiCallPro.Telephony.Sip.csproj" />
+    <ProjectReference Include="..\ThirdParty\DtmfDetection\DtmfDetection\DtmfDetection.csproj" />
+    <None Include="..\ThirdParty\DtmfDetection\LICENSE" Link="DtmfDetection-LICENSE.txt"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <ProjectReference Include="..\..\SIPSorceryMedia.Windows.CSCore\src\SIPSorceryMedia.Windows.CSCore.csproj" />
   </ItemGroup>
 </Project>

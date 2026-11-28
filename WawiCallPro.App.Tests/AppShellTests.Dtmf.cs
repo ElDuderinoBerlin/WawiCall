@@ -5,12 +5,27 @@ using DevExpress.XtraEditors;
 using DtmfDetection;
 using DtmfDetection.CSCore;
 using WawiCallPro.App.Views;
+using WawiCallPro.Audio;
 using WawiCallPro.Interfaces.Telephony;
 
 namespace WawiCallPro.App.Tests;
 
 public sealed partial class AppShellTests
 {
+    [TestMethod]
+    public void LocalDtmfFeedbackUsesTheDetectableToneForEveryKey()
+    {
+        var keys = "0123456789*#ABCD";
+        var expected = new[] { PhoneKey.Zero, PhoneKey.One, PhoneKey.Two, PhoneKey.Three,
+            PhoneKey.Four, PhoneKey.Five, PhoneKey.Six, PhoneKey.Seven, PhoneKey.Eight, PhoneKey.Nine,
+            PhoneKey.Star, PhoneKey.Hash, PhoneKey.A, PhoneKey.B, PhoneKey.C, PhoneKey.D };
+        for (var index = 0; index < keys.Length; index++)
+        {
+            using var tone = DtmfFeedback.CreateTone(keys[index]);
+            Assert.AreEqual(expected[index], tone.DtmfTones().Single().DtmfTone.Key);
+        }
+    }
+
     [TestMethod]
     public Task DialKeypadEditsTheDestinationWithoutStartingACall() => RunStaAsync(() =>
     {

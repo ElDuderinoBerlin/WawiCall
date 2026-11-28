@@ -383,7 +383,10 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             || agent.UserAgent.MediaSession is RTPSession rtp
                 && (rtp.AudioStream is not { } audio || audio.RemoteTrack?.Capabilities.Any(format => format.ID == audio.NegotiatedRtpEventPayloadID
                     && string.Equals(format.Name(), SDP.TELEPHONE_EVENT_ATTRIBUTE, StringComparison.OrdinalIgnoreCase)) != true))
+        {
             await SendDtmfInfoAsync(agent, digits[code], cancellationToken).ConfigureAwait(false);
+            _log.LogDebug("Tonwahl per SIP INFO vom SIP-Peer bestätigt.");
+        }
         else
         {
             using var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Stopping.Token);
@@ -392,6 +395,12 @@ public sealed partial class SipTelephonyService : ITelephonyService, ITelephonyC
             { throw new TelephonyException("NotConnected"); }
             cancellationToken.ThrowIfCancellationRequested();
             if (agent.Stopping.IsCancellationRequested) throw new TelephonyException("NotConnected");
+            _log.LogDebug("Tonwahl als ausgehandeltes RTP-Telefonereignis gesendet.");
+        }
+        if (agent.Media?.ConversationAudio is { } feedback)
+        {
+            using var stopping = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, agent.Stopping.Token);
+            await feedback.PlayDtmfFeedbackAsync(digits[code], stopping.Token).ConfigureAwait(false);
         }
     }, cancellationToken);
 

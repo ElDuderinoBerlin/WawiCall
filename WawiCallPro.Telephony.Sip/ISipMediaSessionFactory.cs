@@ -23,4 +23,5 @@ public interface ISipConversationAudio
     ConversationAudioSnapshot GetAudio();
     void SetPlaybackVolume(int percent);
     void SetMicrophoneMuted(bool muted);
+    Task PlayDtmfFeedbackAsync(char digit, CancellationToken token) => Task.CompletedTask;
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SIPSorcery.Media;
 using SIPSorcery.SIP.App;
 using SIPSorceryMedia.Abstractions;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Telephony.Sip;
 using WawiCallPro.Utilities.Configuration;
 
@@ -16,6 +17,7 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
     private readonly ApplicationConfigurationService? _configuration;
     private readonly TimeProvider _clock = TimeProvider.System;
     private readonly ILogger _log = NullLogger.Instance;
+    private readonly IHistoryRecordingOutput? _feedbackOutput;
 
     public WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges, ApplicationConfigurationService configuration,
         TimeProvider clock, ILogger<WindowsSipMediaSessionFactory> log) : this(bridges)
@@ -24,6 +26,10 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         _clock = clock;
         _log = log;
     }
+
+    public WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges, ApplicationConfigurationService configuration,
+        TimeProvider clock, ILogger<WindowsSipMediaSessionFactory> log, IHistoryRecordingOutput feedbackOutput)
+        : this(bridges, configuration, clock, log) => _feedbackOutput = feedbackOutput;
 
     internal WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridges, IConversationAudioHardware hardware,
         ApplicationConfigurationService configuration, TimeProvider clock, ILogger log) : this(bridges)
@@ -61,7 +67,7 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
                 bindAddress.Equals(IPAddress.Any) ? null : bindAddress)
                 { AcceptRtpFromAny = connection.AcceptRtpFromAny };
             receive = bridges.Create(media, audio, pcm);
-            return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media), pcm, receive),
+            return new RecordingInputMediaSession(new PcmSipMediaSession(new AudioSession(audio, media, _feedbackOutput, _log), pcm, receive),
                 devices, audio.ReadPlaybackBinding);
         }
         catch
@@ -80,10 +86,37 @@ public sealed class WindowsSipMediaSessionFactory(ISipRtpPcmBridgeFactory bridge
         }
     }
 
-    private sealed class AudioSession(RecoveringConversationAudio audio, VoIPMediaSession media) : ISipMediaSession
+    private sealed class AudioSession(RecoveringConversationAudio audio, VoIPMediaSession media,
+        IHistoryRecordingOutput? feedbackOutput, ILogger log) : ISipMediaSession, ISipConversationAudio
     {
         public IMediaSession Session => media;
-        public ISipConversationAudio ConversationAudio => audio;
+        public ISipConversationAudio ConversationAudio => this;
+        public ConversationAudioSnapshot GetAudio() => audio.GetAudio();
+        public void SetPlaybackVolume(int percent) => audio.SetPlaybackVolume(percent);
+        public void SetMicrophoneMuted(bool muted) => audio.SetMicrophoneMuted(muted);
+
+        public async Task PlayDtmfFeedbackAsync(char digit, CancellationToken token)
+        {
+            if (feedbackOutput is null || token.IsCancellationRequested) return;
+            var volume = audio.GetAudio().PlaybackVolumePercent;
+            if (volume == 0) return;
+            try
+            {
+                var playback = audio.ReadPlaybackBinding();
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, playback.Changed);
+                await Task.Run(() =>
+                {
+                    using var tone = DtmfFeedback.CreateTone(digit);
+                    feedbackOutput.Play(tone, new AudioDeviceSettings
+                    {
+                        PlaybackDeviceId = playback.DeviceId,
+                        PlaybackVolumePercent = volume
+                    }, linked.Token);
+                }, linked.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception) { log.LogDebug("Der lokale Tonwahlton konnte nicht wiedergegeben werden."); }
+        }
         public void ApplyPlaybackSettings()
         {
             if (media.AudioStream is { } stream) audio.EnableNegotiatedAudio(stream.NegotiatedFormat.ToAudioFormat());
