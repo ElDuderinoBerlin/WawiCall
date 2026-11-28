@@ -92,4 +92,27 @@ public sealed partial class SipRuntimeTests
         }
         finally { scanner.Shutdown(); }
     }
+
+    [TestMethod]
+    [DataRow(256, NumberPresentation.Available)]
+    [DataRow(257, NumberPresentation.Unknown)]
+    [DataRow(3000, NumberPresentation.Unknown)]
+    public async Task OversizedSignalledIdentityIsStoredAsUnknownCaller(int length, NumberPresentation expected)
+    {
+        await using var fixture = await Fixture.CreateAsync(false, null, acceptInvitesFromAnySource: false);
+        await fixture.Runtime.ConnectAsync();
+        await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
+        var target = SIPURI.ParseSIPURI(fixture.Destination);
+        var user = new string('a', length);
+        var from = new SIPFromHeader(null, SIPURI.ParseSIPURI("sip:" + user + "@example.invalid"), "test-origin");
+        var invite = SIPRequest.GetRequest(SIPMethodsEnum.INVITE, target, new SIPToHeader(null, target, null), from);
+        await fixture.RegistrarTransport.SendRequestAsync(new SIPEndPoint(SIPProtocolsEnum.udp, IPAddress.Loopback, fixture.LocalPort), invite);
+        await UntilAsync(() => fixture.Runtime.GetCalls().Any(call => call.State == CallState.Ringing));
+        var caller = fixture.Runtime.GetCalls().Single().RemoteAddress;
+        Assert.AreEqual(expected, caller.Presentation);
+        Assert.AreEqual(expected == NumberPresentation.Available ? user : null, caller.OriginalValue);
+        // The journaled observation stays within the persisted address limit.
+        await UntilAsync(() => !fixture.Persistence.Snapshots.IsEmpty);
+        Assert.IsTrue(fixture.Persistence.Snapshots.All(call => (call.RemoteAddress.OriginalValue?.Length ?? 0) <= 256));
+    }
 }

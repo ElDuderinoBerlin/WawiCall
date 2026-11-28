@@ -376,6 +376,8 @@ in die Datenbank. P-Asserted-Identity wird nur vom registrierten Proxy übernomm
     `SipCallerIdentity.IsRegisteredPeer`), alle anderen ohne Anruf, Journal oder Klingelton verworfen.
     Expertenoption „Anrufe von abweichender Adresse“ (`SipConnectionOptions.AcceptInvitesFromAnySource`,
     Standard aus). Test `DefaultSettingsAcceptNewInvitesOnlyFromTheRegisteredProxy` (Registrar/Scanner).
+  - ✅ (b) `SipCallerIdentity` übernimmt eine signalisierte Kennung nur bis 256 Zeichen, ohne Steuer- oder
+    Surrogatzeichen und nicht als reinen Leerraum, sonst `Unknown`. Test `OversizedSignalledIdentityIsStoredAsUnknownCaller`.
 - ⬜ **TS-02 · Mittel · Gespräch bleibt nach eigenem Auflegen „verbunden“ (plausibel)** – `HangUpAsync`
   (Z. 299–316) berechnet den Endegrund aus dem Stand **vor** der Einreihung. Nimmt die Gegenstelle einen
   ausgehenden Anruf gleichzeitig mit dem Auflegen an, verarbeitet die Ereignisschleife zuerst `Connected`.

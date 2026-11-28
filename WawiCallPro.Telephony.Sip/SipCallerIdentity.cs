@@ -22,8 +22,14 @@ internal static class SipCallerIdentity
         }
 
         if (anonymous) return new(NumberPresentation.Withheld);
-        return string.IsNullOrEmpty(from) ? new(NumberPresentation.Unknown) : new(NumberPresentation.Available, from);
+        // Remote input must never exceed what call history accepts; an invalid identity stays unknown.
+        return IsPresentable(from) ? new(NumberPresentation.Available, from) : new(NumberPresentation.Unknown);
     }
+
+    internal const int MaximumIdentityLength = 256;
+
+    private static bool IsPresentable(string? value) => value is { Length: > 0 and <= MaximumIdentityLength }
+        && !string.IsNullOrWhiteSpace(value) && !value.Any(char.IsControl) && !value.Any(char.IsSurrogate);
 
     /// <summary>True only for the exact transport endpoint that answered the current registration.</summary>
     internal static bool IsRegisteredPeer(SIPEndPoint? source, SIPEndPoint? registeredPeer) =>
