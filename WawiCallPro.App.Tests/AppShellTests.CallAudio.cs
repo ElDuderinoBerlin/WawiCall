@@ -111,6 +111,8 @@ public sealed partial class AppShellTests
                     var label = Field<LabelControl>(controls, "volumeLabel");
                     var muteButton = Field<SimpleButton>(controls, "muteMicrophone");
                     var keypad = Field<DialKeypad>(controls, "dtmfKeypad");
+                    var microphone = Field<Quantarix.DevExpressExtensions.Controls.AudioLevelMeter>(controls, "microphonePeak");
+                    var playback = Field<Quantarix.DevExpressExtensions.Controls.AudioLevelMeter>(controls, "playbackPeak");
                     Assert.AreSame(answer.Parent, slider.Parent);
                     Assert.AreEqual(answer.Size, end.Size);
                     Assert.AreEqual(answer.Size, record.Size);
@@ -122,6 +124,12 @@ public sealed partial class AppShellTests
                     Assert.AreEqual(end.Left, record.Left);
                     Assert.AreEqual(end.Left, slider.Left);
                     Assert.AreEqual(end.Width, slider.Width);
+                    Assert.AreEqual(slider.Left, microphone.Left);
+                    Assert.AreEqual(slider.Left, playback.Left);
+                    Assert.AreEqual(slider.Width, microphone.Width);
+                    Assert.AreEqual(slider.Width, playback.Width);
+                    Assert.IsTrue(microphone.Visible && playback.Visible);
+                    Assert.AreEqual(65, playback.Position);
                     Assert.IsTrue(keypad.Visible && keypad.Enabled);
                     Assert.IsTrue(keypad.Right <= keypad.Parent!.ClientSize.Width,
                         $"{width}/{fontSize}/{scale}: {keypad.Bounds} in {keypad.Parent.ClientSize}");
@@ -148,6 +156,8 @@ public sealed partial class AppShellTests
                 Assert.AreEqual(actionBounds, Field<TableLayoutPanel>(panel, "actions").Bounds);
                 panel.Observe(call with { State = CallState.Ended, Revision = call.Revision + 2 });
                 Assert.IsTrue(Field<DialKeypad>(panel, "dtmfKeypad").Visible);
+                Assert.IsTrue(Field<Quantarix.DevExpressExtensions.Controls.AudioLevelMeter>(panel, "playbackPeak").Visible);
+                Assert.AreEqual(0, Field<Quantarix.DevExpressExtensions.Controls.AudioLevelMeter>(panel, "playbackPeak").Position);
                 Assert.IsFalse(volume.Enabled);
                 Assert.IsFalse(Field<System.Windows.Forms.Timer>(panel, "audioTimer").Enabled);
                 Assert.AreEqual(keypadBounds, Field<DialKeypad>(panel, "dtmfKeypad").Bounds);

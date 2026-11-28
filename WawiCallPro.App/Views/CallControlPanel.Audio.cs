@@ -20,6 +20,18 @@ public partial class CallControlPanel
         audioTimer.Enabled = canControlAudio && Visible;
         var audio = canControlAudio ? ((IConversationAudioService)_telephony!).GetAudio(_call!.Id) : null;
         conversationVolume.Enabled = audio is not null;
+        if (audio is null || _call?.State != CallState.Connected)
+        {
+            microphonePeak.Clear();
+            playbackPeak.Clear();
+        }
+        else
+        {
+            microphonePeak.Position = audio.MicrophonePeakPercent;
+            playbackPeak.Position = audio.PlaybackPeakPercent;
+            microphonePeak.SetSpectrum(audio.MicrophoneSpectrum.AsSpan());
+            playbackPeak.SetSpectrum(audio.PlaybackSpectrum.AsSpan());
+        }
         if (audio is null)
         {
             muteMicrophone.Enabled = false;

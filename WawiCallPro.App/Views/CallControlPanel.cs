@@ -98,9 +98,12 @@ public partial class CallControlPanel : XtraUserControl
         var width = Math.Max(textWidth + recordingButton.Padding.Horizontal, recordingButton.MinimumSize.Width)
             + recordingButton.Margin.Horizontal;
         var margin = endButton.Margin;
+        var meterMargin = new Padding(margin.Left, LogicalToDeviceUnits(2), margin.Right, LogicalToDeviceUnits(2));
         var sliderHeight = endButton.Height;
         if (actions.ColumnStyles[0].SizeType == SizeType.Absolute && actions.ColumnStyles[0].Width == width
-            && volumeLabel.Margin == margin && conversationVolume.Margin == margin && conversationVolume.Height == sliderHeight) return;
+            && volumeLabel.Margin == margin && conversationVolume.Margin == margin && conversationVolume.Height == sliderHeight
+            && microphoneLabel.Margin == meterMargin && playbackLabel.Margin == meterMargin
+            && microphonePeak.Margin == meterMargin && playbackPeak.Margin == meterMargin) return;
         actions.SuspendLayout();
         try
         {
@@ -110,6 +113,7 @@ public partial class CallControlPanel : XtraUserControl
                 column.Width = width;
             }
             volumeLabel.Margin = conversationVolume.Margin = margin;
+            microphoneLabel.Margin = playbackLabel.Margin = microphonePeak.Margin = playbackPeak.Margin = meterMargin;
             conversationVolume.Height = sliderHeight;
         }
         finally { actions.ResumeLayout(true); }
