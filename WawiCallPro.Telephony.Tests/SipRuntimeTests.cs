@@ -6,6 +6,7 @@ using SIPSorcery.Media;
 using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
+using WawiCallPro.Interfaces.Audio;
 using WawiCallPro.Interfaces.Companies;
 using WawiCallPro.Interfaces.Telephony;
 using WawiCallPro.Telephony.Sip;
@@ -396,6 +397,12 @@ public sealed partial class SipRuntimeTests
     public async Task SipInfoSendsDigitsInDialogAndReportsRejection(bool tcp)
     {
         await using var fixture = await Fixture.CreateAsync(false, null, dtmfMethod: SipDtmfMethod.SipInfo);
+        var feedback = new TestDtmfFeedback();
+        fixture.Media.Wrap = media =>
+        {
+            ((TestMedia)media).ConversationAudio = feedback;
+            return media;
+        };
         if (tcp) await fixture.UseTcpAsync();
         await fixture.Runtime.ConnectAsync();
         await UntilAsync(() => fixture.Runtime.Registration.State == RegistrationState.Registered);
@@ -406,9 +413,11 @@ public sealed partial class SipRuntimeTests
         using var peer = new SIPUserAgent(transport, null, false);
         using var media = new TestMedia();
         var requests = new ConcurrentQueue<SIPRequest>();
+        var feedbackOnArrival = new ConcurrentQueue<char[]>();
         transport.SIPTransportRequestReceived += (_, _, request) =>
         {
             if (request.Method != SIPMethodsEnum.INFO) return Task.CompletedTask;
+            feedbackOnArrival.Enqueue(feedback.Digits.ToArray());
             requests.Enqueue(request);
             var status = requests.Count == 1 ? SIPResponseStatusCodesEnum.Ok : SIPResponseStatusCodesEnum.UnsupportedMediaType;
             var transaction = new SIPNonInviteTransaction(transport, request, null);
@@ -425,6 +434,9 @@ public sealed partial class SipRuntimeTests
         Assert.AreEqual("DtmfInfoRejected", rejection.Code);
         var info = requests.ToArray();
         Assert.HasCount(2, info);
+        var played = feedbackOnArrival.ToArray();
+        CollectionAssert.AreEqual(new[] { '#' }, played[0]);
+        CollectionAssert.AreEqual(new[] { '#', 'A' }, played[1]);
         Assert.AreEqual(peer.Dialogue.CallId, info[0].Header.CallId);
         Assert.AreEqual(peer.Dialogue.LocalTag, info[0].Header.To.ToTag);
         Assert.AreEqual(peer.Dialogue.RemoteTag, info[0].Header.From.FromTag);
@@ -802,9 +814,23 @@ public sealed partial class SipRuntimeTests
         private readonly VoIPMediaSession _session = new(format => format.Codec is SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMA or SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMU);
         private int _disposed;
         public IMediaSession Session => _session;
+        public ISipConversationAudio? ConversationAudio { get; set; }
         public void ApplyPlaybackSettings() { }
         public void Dispose() { if (Interlocked.Exchange(ref _disposed, 1) == 0) { _session.Close("test"); closed?.Invoke(); } }
         public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+    }
+
+    private sealed class TestDtmfFeedback : ISipConversationAudio
+    {
+        internal ConcurrentQueue<char> Digits { get; } = new();
+        public ConversationAudioSnapshot GetAudio() => new(100, false, 0, 0);
+        public void SetPlaybackVolume(int percent) { }
+        public void SetMicrophoneMuted(bool muted) { }
+        public Task PlayDtmfFeedbackAsync(char digit, CancellationToken token)
+        {
+            Digits.Enqueue(digit);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FaultingCloseMedia(ISipMediaSession inner) : ISipMediaSession
